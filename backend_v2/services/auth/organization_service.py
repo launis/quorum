@@ -276,7 +276,7 @@ class OrganizationService:
             )
 
     async def list_organizations(self, initiator: TokenData) -> list[Organization]:
-        """List organizations securely scoped by Tenant/Organization.
+        """List organizations securely scoped by the 4-Tier RBAC Governance Matrix.
 
         Args:
             initiator: The token data of the user requesting the list.
@@ -286,8 +286,18 @@ class OrganizationService:
 
         Raises:
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the tenant's organization does not exist.
-            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator lacks access.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator is MEMBER or VIEWER.
         """
+        if initiator.role in (UserRole.MEMBER, UserRole.VIEWER):
+            logger.error(
+                "[OrganizationService] %s: Role %s denied access to list_organizations (initiator=%s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.role.value,
+                initiator.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Insufficient permissions to view organization configuration.")
+
         if initiator.role != UserRole.ROOT:
             if not initiator.organization_id:
                 return []
@@ -295,7 +305,7 @@ class OrganizationService:
         return await self.org_repo.list_all()
 
     async def get_organization(self, initiator: TokenData, org_id: str) -> Organization:
-        """Fetch organization securely.
+        """Fetch organization securely enforcing the 4-Tier RBAC Governance Matrix.
 
         Args:
             initiator: The token data of the user requesting the fetch.
@@ -308,6 +318,17 @@ class OrganizationService:
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization does not exist.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator lacks access.
         """
+        if initiator.role in (UserRole.MEMBER, UserRole.VIEWER):
+            logger.error(
+                "[OrganizationService] %s: Role %s denied access to get_organization %s (initiator=%s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.role.value,
+                org_id,
+                initiator.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("You do not have permission to view this organization.")
+
         org = await self._fetch_org_or_raise(org_id)
 
         if initiator.role != UserRole.ROOT and initiator.organization_id != org_id:
@@ -322,47 +343,105 @@ class OrganizationService:
 
         return org
 
-    async def update_organization(
-        self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO | OrganizationCreate
-    ) -> Organization:
-        """Update an organization securely.
+    async def update_organization(self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO) -> Organization:
+        """Update an organization securely enforcing the 4-Tier RBAC Governance Matrix.
 
         Args:
             initiator: The token data of the user initiating the update.
             org_id: The ID of the organization to update.
-            data: The update payload.
+            data: Validated OrganizationUpdateDTO payload.
 
         Returns:
             The updated organization model.
 
         Raises:
-            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator is not ROOT.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if RBAC or FinOps field rules are violated.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization does not exist.
         """
-        if initiator.role != UserRole.ROOT:
+        self._validate_organization_update_permissions(initiator=initiator, org_id=org_id, data=data)
+        await self._fetch_org_or_raise(org_id)
+        await self.org_repo.update(org_id, data)
+
+        if self.audit_service is not None:
+            await self.audit_service.log_event(
+                actor_id=initiator.id,
+                action="ORGANIZATION_UPDATED",
+                organization_id=org_id,
+                target_id=org_id,
+                details=data.model_dump(mode="json", exclude_unset=True),
+            )
+
+        return await self._fetch_org_or_raise(org_id)
+
+    def _validate_organization_update_permissions(
+        self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO
+    ) -> None:
+        """Validate 4-Tier RBAC permissions and FinOps field locks for organization updates.
+
+        Args:
+            initiator: Authenticated caller token data.
+            org_id: Target organization identifier.
+            data: Validated OrganizationUpdateDTO payload.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges or mutates FinOps limits.
+        """
+        if initiator.role == UserRole.ROOT:
+            return
+
+        if initiator.role not in (UserRole.ADMIN, UserRole.MANAGER):
             logger.error(
-                "[OrganizationService] %s: Only ROOT can update organizations (initiator=%s, org_id=%s).",
+                "[OrganizationService] %s: User %s (%s) denied update on organization %s.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                initiator.role.value,
+                org_id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Insufficient permissions to update organization.")
+
+        if initiator.organization_id != org_id:
+            logger.error(
+                "[OrganizationService] %s: User %s attempted cross-tenant update on organization %s.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
                 org_id,
                 exc_info=True,
             )
-            raise PermissionDeniedError("Only ROOT can update organizations.")
+            raise PermissionDeniedError("Cannot update foreign organization.")
 
-        await self.get_organization(initiator, org_id)
-
-        update_dto = (
-            data
-            if isinstance(data, OrganizationUpdateDTO)
-            else OrganizationUpdateDTO(
-                name=data.name,
-                tpm_limit=data.tpm_limit,
-                rpm_limit=data.rpm_limit,
+        has_finops_mutation = any(
+            field_val is not None
+            for field_val in (
+                data.quota_limit,
+                data.tpm_limit,
+                data.rpm_limit,
+                data.tier,
+                data.subscription_status,
+                data.is_active,
+                data.billing_id,
             )
         )
-        await self.org_repo.update(org_id, update_dto)
+        if has_finops_mutation:
+            logger.error(
+                "[OrganizationService] %s: Non-ROOT user %s (%s) attempted to mutate FinOps limits on %s.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                initiator.role.value,
+                org_id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Only ROOT can modify platform FinOps limits or billing status.")
 
-        return await self.get_organization(initiator, org_id)
+        if initiator.role == UserRole.MANAGER and data.allowed_email_domains is not None:
+            logger.error(
+                "[OrganizationService] %s: MANAGER %s attempted to mutate allowed_email_domains on %s.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                org_id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Only ADMIN or ROOT can modify allowed email domains.")
 
     async def create_invitation(
         self,

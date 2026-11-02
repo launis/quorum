@@ -69,6 +69,7 @@ async def test_auth_service_create_user_hierarchy_and_validations(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
 
     # 1. Creator not found
@@ -195,6 +196,7 @@ async def test_auth_service_create_user_firebase_flow(
             quota_limit=500.0,
             tpm_limit=50000,
             rpm_limit=500,
+            allowed_email_domains=[],
         )
     )
 
@@ -569,6 +571,7 @@ async def test_auth_service_ensure_root_user_branches(
         quota_limit=5000.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     root_user = User(
         id=SYSTEM_ROOT_USER_ID,
@@ -628,6 +631,7 @@ async def test_create_user_root_creator_success(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     root_user = User(
@@ -678,6 +682,7 @@ async def test_create_user_admin_creator_same_org_success(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     admin_user = User(
@@ -789,6 +794,7 @@ async def test_create_user_manager_creating_user_raises_permission_denied(
             quota_limit=1000.0,
             tpm_limit=10000,
             rpm_limit=100,
+            allowed_email_domains=[],
         )
     )
     manager = User(
@@ -834,6 +840,7 @@ async def test_create_user_member_creating_user_raises_permission_denied(
             quota_limit=1000.0,
             tpm_limit=10000,
             rpm_limit=100,
+            allowed_email_domains=[],
         )
     )
     member = User(
@@ -1830,6 +1837,7 @@ async def test_ensure_root_user_success_when_root_exists(
         quota_limit=5000.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(sys_org)
     root = User(
@@ -1865,6 +1873,7 @@ async def test_ensure_root_user_heals_organization_id_if_drifted(
         quota_limit=5000.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(sys_org)
     drifted_root = User(
@@ -1976,6 +1985,7 @@ async def test_user_service_firebase_delete_and_null_repo_returns(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
 
@@ -2062,3 +2072,135 @@ async def test_user_service_with_exchanged_quorum_jwt_token_data(
     users = await auth_service.list_users(verified_token_data)
     assert len(users) == 1
     assert users[0].id == admin_user.id
+
+
+@pytest.mark.asyncio
+async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocation(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verify Step 5.2 self-update guards, role hierarchy, soft-delete aware LAST_ADMIN_PROTECTION, and RevocationCache."""
+    mock_revocation = MagicMock(revoke_user_sessions=AsyncMock())
+    auth_service = AuthService(mock_repo, use_firebase=False, revocation_cache=mock_revocation)
+
+    org_id = "org_0195f3a00000700080000000000000c1"
+    root_id = "usr_0195f3a00000700080000000000000c0"
+    admin_id = "usr_0195f3a00000700080000000000000c1"
+    deleted_admin_id = "usr_0195f3a00000700080000000000000c2"
+    manager_id = "usr_0195f3a00000700080000000000000c3"
+    member_id = "usr_0195f3a00000700080000000000000c4"
+
+    await mock_repo.create_user(
+        User(
+            id=root_id,
+            email="root52@test.com",
+            name="Root",
+            role=UserRole.ROOT,
+            organization_id=SystemOrganizations.ROOT_SYSTEM,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=admin_id,
+            email="admin52@test.com",
+            name="Active Admin",
+            role=UserRole.ADMIN,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=deleted_admin_id,
+            email="deleted_admin52@test.com",
+            name="Deleted Admin",
+            role=UserRole.ADMIN,
+            organization_id=org_id,
+            is_active=True,
+            deleted_at=datetime.now(timezone.utc),
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=manager_id,
+            email="mgr52@test.com",
+            name="Manager",
+            role=UserRole.MANAGER,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=member_id,
+            email="mem52@test.com",
+            name="Member",
+            role=UserRole.MEMBER,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+
+    # 1. Self-update blocked fields (organization_id, is_active, password)
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.update_user(
+            member_id, member_id, UserUpdate(organization_id="org_0195f3a00000700080000000000000ff")
+        )
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.update_user(member_id, member_id, UserUpdate(is_active=False))
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.update_user(member_id, member_id, UserUpdate(password="newpass123"))
+
+    # 2. MANAGER can view org user via get_user, but MEMBER cannot view peer user in same org
+    mgr_tok = TokenData(id=manager_id, role=UserRole.MANAGER, organization_id=org_id)
+    mem_tok = TokenData(id=member_id, role=UserRole.MEMBER, organization_id=org_id)
+    assert (await auth_service.get_user(mgr_tok, member_id)).id == member_id
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.get_user(mem_tok, manager_id)
+
+    # 3. Soft-delete aware LAST_ADMIN_PROTECTION on deactivating the sole non-deleted ADMIN
+    with pytest.raises(ConflictError) as deact_exc:
+        await auth_service.update_user(root_id, admin_id, UserUpdate(is_active=False))
+    assert deact_exc.value.details["reason"] == "LAST_ADMIN_PROTECTION"
+
+    # 4. ADMIN modifying higher role in update_user raises PermissionDeniedError
+    await mock_repo.create_user(
+        User(
+            id="usr_0195f3a00000700080000000000000c5",
+            email="root_in_org@test.com",
+            name="Root In Org",
+            role=UserRole.ROOT,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.update_user(
+            admin_id, "usr_0195f3a00000700080000000000000c5", UserUpdate(role=UserRole.MEMBER)
+        )
+
+    # 5. RevocationCache triggered on update_user (is_active=False) and update_user_role
+    await auth_service.update_user(admin_id, member_id, UserUpdate(is_active=False))
+    mock_revocation.revoke_user_sessions.assert_awaited_with(member_id, ttl_seconds=900)
+
+    mock_revocation.revoke_user_sessions.reset_mock()
+    await auth_service.update_user_role(admin_id, member_id, UserRole.VIEWER)
+    mock_revocation.revoke_user_sessions.assert_awaited_with(member_id, ttl_seconds=900)

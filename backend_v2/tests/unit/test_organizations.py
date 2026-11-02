@@ -9,6 +9,7 @@ import pytest
 from pydantic import SecretStr
 
 from backend_v2.api.routers.iam.organizations import (
+    create_organization,
     delete_organization,
     delete_organization_secret,
     get_all_organizations,
@@ -25,6 +26,7 @@ from backend_v2.models.auth import (
     SYSTEM_ROOT_USER_ID,
     Organization,
     OrganizationCreate,
+    OrganizationUpdateDTO,
     SubscriptionStatus,
     TenantSecretCreateDTO,
     TokenData,
@@ -89,10 +91,19 @@ async def test_organizations_router_crud_positive(
         tpm_limit=50000,
         rpm_limit=100,
     )
+    mock_auth_service.create_organization.return_value = sample_org
+    created = await create_organization(
+        data=org_create,
+        current_user=mock_current_user,
+        auth_service=mock_auth_service,
+    )
+    assert created == sample_org
+
+    org_update = OrganizationUpdateDTO(name="Tenant Org")
     mock_auth_service.update_organization.return_value = sample_org
     saved = await save_organization(
         id=ORG_ID,
-        data=org_create,
+        data=org_update,
         current_user=mock_current_user,
         auth_service=mock_auth_service,
     )

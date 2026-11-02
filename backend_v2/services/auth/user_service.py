@@ -37,6 +37,16 @@ logger = logging.getLogger(__name__)
 __all__ = ["UserService"]
 
 
+_ROLE_HIERARCHY: dict[UserRole, int] = {
+    UserRole.ROOT: 40,
+    UserRole.ADMIN: 30,
+    UserRole.MANAGER: 20,
+    UserRole.MEMBER: 10,
+    UserRole.VIEWER: 5,
+}
+_REVOCATION_TTL_SECONDS: int = 900
+
+
 class UserService:
     """User Management, Role Hierarchy, and Lifecycle Service.
 
@@ -47,6 +57,7 @@ class UserService:
         audit_service: Optional audit event logging service.
         use_firebase: Flag indicating if Firebase Admin SDK integration is enabled.
         firebase_auth: Firebase authentication client instance or mock.
+        revocation_cache: Optional Dual-Key Redis session revocation cache.
     """
 
     def __init__(
@@ -56,6 +67,7 @@ class UserService:
         audit_service: Any = None,
         use_firebase: bool = False,
         firebase_auth: Any = None,
+        revocation_cache: Any = None,
     ) -> None:
         """Initializes the UserService.
 
@@ -65,6 +77,7 @@ class UserService:
             audit_service: Optional service for recording audit logs.
             use_firebase: Flag indicating if Firebase integration is enabled.
             firebase_auth: Optional Firebase authentication module or mock.
+            revocation_cache: Optional Redis revocation cache for immediate session invalidation.
         """
         self.repo = user_repo
         self.user_repo = user_repo
@@ -72,6 +85,7 @@ class UserService:
         self.audit_service = audit_service
         self.use_firebase = use_firebase
         self.firebase_auth = firebase_auth
+        self.revocation_cache = revocation_cache
 
     async def create_user(self, creator_id: str, user_data: UserCreate) -> User:
         """Creates a new user, enforcing hierarchy and tenancy.
@@ -111,7 +125,6 @@ class UserService:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or org constraints are violated.
         """
         creator = await self.repo.get_by_id(creator_id)
-
         if not creator:
             logger.error(
                 "[UserService] %s: Creator not found (creator_id=%s).",
@@ -125,11 +138,54 @@ class UserService:
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
-        target_org_id: str | None = None
+        target_org_id = await self._resolve_target_org_for_creation(creator, user_data, force_org_id)
+        self._enforce_hierarchy(creator, user_data.role)
+        new_id = self._provision_firebase_or_local_user_id(user_data)
 
-        # Resolve Org ID
+        new_user = User(
+            id=new_id,
+            email=user_data.email,
+            name=user_data.name,
+            role=user_data.role,
+            organization_id=target_org_id,
+            created_at=datetime.now(timezone.utc),
+            created_by=creator.id,
+            is_active=user_data.is_active,
+            language=user_data.language,
+            theme_mode=user_data.theme_mode,
+        )
+        saved_user = await self.repo.create(new_user)
+
+        if self.audit_service:
+            await self.audit_service.log_event(
+                actor_id=creator_id,
+                action="USER_CREATED",
+                organization_id=target_org_id,
+                target_id=new_id,
+                details={"email": new_user.email, "role": new_user.role.value},
+            )
+
+        return saved_user
+
+    async def _resolve_target_org_for_creation(
+        self, creator: User, user_data: UserCreate, force_org_id: str | None
+    ) -> str | None:
+        """Resolve and validate the target organization for user creation.
+
+        Args:
+            creator: Authenticated creator User instance.
+            user_data: Validated UserCreate payload.
+            force_org_id: Optional forced organization ID.
+
+        Returns:
+            Resolved organization ID or None.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenancy or ROOT org rules are violated.
+            AppException: With ErrorCodes.VALIDATION_FAILED if target organization does not exist.
+        """
         if force_org_id:
-            target_org_id = force_org_id
+            target_org_id: str | None = force_org_id
         elif creator.role == UserRole.ROOT:
             target_org_id = (
                 user_data.organization_id if user_data.organization_id is not None else creator.organization_id
@@ -139,7 +195,7 @@ class UserService:
                 logger.error(
                     "[UserService] %s: Creator %s cannot create users in foreign organization %s.",
                     ErrorCodes.PERMISSION_DENIED.name,
-                    creator_id,
+                    creator.id,
                     user_data.organization_id,
                     exc_info=True,
                 )
@@ -157,10 +213,8 @@ class UserService:
                 raise PermissionDeniedError("Root users can only be created within the System Organization.")
             target_org_id = SystemOrganizations.ROOT_SYSTEM
 
-        # RULE: Organization MUST exist
         if target_org_id and target_org_id != SystemOrganizations.ROOT_SYSTEM:
             org_exists = await self.org_repo.get_by_id(target_org_id)
-
             if not org_exists:
                 logger.error(
                     "[UserService] %s: Target Organization '%s' does not exist.",
@@ -173,25 +227,31 @@ class UserService:
                     status_code=404,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
+        return target_org_id
 
-        # Enforce Role Hierarchy
-        self._enforce_hierarchy(creator, user_data.role)
+    def _provision_firebase_or_local_user_id(self, user_data: UserCreate) -> str:
+        """Provision a Firebase user ID when enabled or generate a canonical UUIDv7 user ID.
 
-        new_id = ""
+        Args:
+            user_data: Validated UserCreate payload.
 
-        # 1. Create in Firebase (if enabled)
+        Returns:
+            Provisioned user ID string.
+
+        Raises:
+            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase creation fails.
+        """
         if self.use_firebase and user_data.password:
             try:
                 fb_user = self.firebase_auth.create_user(
                     email=user_data.email, password=user_data.password, name=user_data.name
                 )
-                new_id = fb_user.id
+                return str(fb_user.id)
             except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
-                # Check for existing
                 try:
                     existing = self.firebase_auth.get_user_by_email(user_data.email)
-                    new_id = existing.id
-                    logger.info("User %s already in Firebase. Using existing UID.", new_id)
+                    logger.info("User %s already in Firebase. Using existing UID.", existing.id)
+                    return str(existing.id)
                 except AppException, OSError, ValueError, KeyError, RuntimeError, TypeError:
                     logger.error(
                         "[UserService] %s: Failed to create Firebase user: %s",
@@ -204,37 +264,7 @@ class UserService:
                         status_code=500,
                         details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     ) from e
-        else:
-            # Generate canonical 32-hex RFC 9562 UUIDv7 user ID
-            new_id = generate_opaque_id(EntityPrefix.USER)
-
-        # 2. Create in Local DB
-        new_user = User(
-            id=new_id,
-            email=user_data.email,
-            name=user_data.name,
-            role=user_data.role,
-            organization_id=target_org_id,
-            created_at=datetime.now(timezone.utc),
-            created_by=creator.id,
-            is_active=user_data.is_active,
-            language=user_data.language,
-            theme_mode=user_data.theme_mode,
-        )
-
-        saved_user = await self.repo.create(new_user)
-
-        # Audit
-        if self.audit_service:
-            await self.audit_service.log_event(
-                actor_id=creator_id,
-                action="USER_CREATED",
-                organization_id=target_org_id,
-                target_id=new_id,
-                details={"email": new_user.email, "role": new_user.role.value},
-            )
-
-        return saved_user
+        return generate_opaque_id(EntityPrefix.USER)
 
     def _enforce_hierarchy(self, creator: User, target_role: UserRole) -> None:
         """Enforces role hierarchy rules for user creation.
@@ -280,16 +310,20 @@ class UserService:
         raise PermissionDeniedError("This user role cannot create users")
 
     async def _count_org_admins(self, org_id: str) -> int:
-        """Counts the number of active admins in an organization.
+        """Counts the number of active, non-deleted admins in an organization.
 
         Args:
             org_id: The ID of the organization.
 
         Returns:
-            The number of admin users.
+            The number of active, non-deleted admin users.
         """
         all_users = await self.repo.list_all()
-        return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
+        return sum(
+            1
+            for u in all_users
+            if u.organization_id == org_id and u.role == UserRole.ADMIN and u.is_active and u.deleted_at is None
+        )
 
     async def get_users_by_organization(self, organization_id: str) -> list[User]:
         """Async retrieval of all users for a given organization.
@@ -425,9 +459,7 @@ class UserService:
         return True
 
     async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:
-        """General update method for users.
-
-        If 'role' is being changed, we must enforce Last Admin Protection.
+        """General update method for users enforcing 4-Tier RBAC, hierarchy, and Last Admin Protection.
 
         Args:
             initiator_id: The UID of the user initiating the update.
@@ -460,76 +492,10 @@ class UserService:
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
-        # Permission Check
-        if initiator.role != UserRole.ROOT:
-            # Self-Update Rule (Language/Theme)
-            if initiator_id == target_id:
-                # Allowed to update self, but check for Restricted fields (Role)
-                if updates.role is not None and updates.role != initiator.role:
-                    logger.error(
-                        "[UserService] %s: User %s attempted to change their own role.",
-                        ErrorCodes.PERMISSION_DENIED.name,
-                        initiator_id,
-                        exc_info=True,
-                    )
-                    raise PermissionDeniedError("Users cannot change their own role.")
-
-            # Org Admin Check
-            elif initiator.role == UserRole.ADMIN:
-                if target.organization_id != initiator.organization_id:
-                    logger.error(
-                        "[UserService] %s: Admin %s attempted to update user %s in foreign organization %s.",
-                        ErrorCodes.PERMISSION_DENIED.name,
-                        initiator_id,
-                        target_id,
-                        target.organization_id,
-                        exc_info=True,
-                    )
-                    raise PermissionDeniedError("Cannot update users from other organizations")
-
-            else:
-                logger.error(
-                    "[UserService] %s: User %s with role %s lacks permission to update user %s.",
-                    ErrorCodes.PERMISSION_DENIED.name,
-                    initiator_id,
-                    initiator.role.value,
-                    target_id,
-                    exc_info=True,
-                )
-                raise PermissionDeniedError("Insufficient permissions to update users")
-
-        # Organization Change Protection (Only ROOT can move users)
-        if updates.organization_id is not None and updates.organization_id != target.organization_id:
-            if initiator.role != UserRole.ROOT:
-                logger.error(
-                    "[UserService] %s: Non-ROOT user %s attempted to transfer user %s between organizations.",
-                    ErrorCodes.PERMISSION_DENIED.name,
-                    initiator_id,
-                    target_id,
-                    exc_info=True,
-                )
-                raise PermissionDeniedError("Only ROOT can transfer users between organizations.")
-
-        # LAST ADMIN PROTECTION (Role Change)
-        if updates.role is not None and target.role == UserRole.ADMIN:
-            # If we are changing FROM Admin TO something else
-            if updates.role != UserRole.ADMIN:
-                if target.organization_id:
-                    admin_count = await self._count_org_admins(target.organization_id)
-
-                    if admin_count <= 1:
-                        logger.error(
-                            "[UserService] %s: Cannot demote the last Administrator of an Organization.",
-                            ErrorCodes.CONFLICT_ERROR.name,
-                            exc_info=True,
-                        )
-                        raise ConflictError(
-                            message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator of an Organization.",
-                            details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
-                        )
+        self._validate_update_user_permissions(initiator, target, updates)
+        await self._enforce_last_admin_protection_on_update(target, updates)
 
         updated_user = await self.repo.update(target_id, updates)
-
         if not updated_user:
             logger.error(
                 "[UserService] %s: User update failed (not found despite check).",
@@ -542,10 +508,10 @@ class UserService:
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
 
-        # Audit
+        await self._maybe_revoke_sessions_on_update(target, updates)
+
         if self.audit_service:
             changed_fields = updates.model_dump(exclude_unset=True)
-
             await self.audit_service.log_event(
                 actor_id=initiator_id,
                 action="USER_UPDATED",
@@ -556,8 +522,189 @@ class UserService:
 
         return updated_user
 
+    def _validate_update_user_permissions(self, initiator: User, target: User, updates: UserUpdate) -> None:
+        """Validate 4-Tier RBAC, self-service profile limits, and hierarchy for user updates.
+
+        Args:
+            initiator: Authenticated user performing the update.
+            target: Target user record being modified.
+            updates: Requested UserUpdate payload.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if RBAC or hierarchy rules are violated.
+        """
+        if updates.organization_id is not None and updates.organization_id != target.organization_id:
+            if initiator.role != UserRole.ROOT:
+                logger.error(
+                    "[UserService] %s: Non-ROOT user %s attempted to transfer user %s between organizations.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator.id,
+                    target.id,
+                    exc_info=True,
+                )
+                raise PermissionDeniedError("Only ROOT can transfer users between organizations.")
+
+        if initiator.role == UserRole.ROOT:
+            return
+
+        if initiator.id == target.id:
+            self._validate_self_update_fields(initiator, target, updates)
+            return
+
+        if initiator.role == UserRole.ADMIN:
+            if target.organization_id != initiator.organization_id:
+                logger.error(
+                    "[UserService] %s: Admin %s attempted to update user %s in foreign organization %s.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator.id,
+                    target.id,
+                    target.organization_id,
+                    exc_info=True,
+                )
+                raise PermissionDeniedError("Cannot update users from other organizations")
+            self._enforce_role_modification_hierarchy(initiator, target, updates.role)
+            return
+
+        logger.error(
+            "[UserService] %s: User %s with role %s lacks permission to update user %s.",
+            ErrorCodes.PERMISSION_DENIED.name,
+            initiator.id,
+            initiator.role.value,
+            target.id,
+            exc_info=True,
+        )
+        raise PermissionDeniedError("Insufficient permissions to update users")
+
+    def _validate_self_update_fields(self, initiator: User, target: User, updates: UserUpdate) -> None:
+        """Enforce self-service profile restrictions (only name, language, and theme_mode permitted).
+
+        Args:
+            initiator: Non-ROOT user updating their own profile.
+            target: Current user state.
+            updates: Requested UserUpdate payload.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if restricted fields are mutated.
+        """
+        if updates.role is not None and updates.role != initiator.role:
+            logger.error(
+                "[UserService] %s: User %s attempted to change their own role.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Users cannot change their own role.")
+
+        if updates.is_active is not None and updates.is_active != target.is_active:
+            logger.error(
+                "[UserService] %s: User %s attempted to mutate their own active status.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Users cannot change their own active status.")
+
+        if updates.password is not None:
+            logger.error(
+                "[UserService] %s: User %s attempted to mutate password via self-service profile update.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Users cannot reset password via self-service profile update.")
+
+    def _enforce_role_modification_hierarchy(self, initiator: User, target: User, new_role: UserRole | None) -> None:
+        """Enforce numeric role hierarchy on target user modification and role assignment.
+
+        Args:
+            initiator: Non-ROOT user initiating the modification.
+            target: Target user being modified.
+            new_role: Optional new role being assigned.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if target or new_role exceeds initiator rank.
+        """
+        init_val = _ROLE_HIERARCHY[initiator.role]
+        target_val = _ROLE_HIERARCHY[target.role]
+
+        if init_val < target_val:
+            logger.error(
+                "[UserService] %s: User %s (%s) cannot modify user %s (%s) with higher privileges.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                initiator.role.value,
+                target.id,
+                target.role.value,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("Cannot modify users with higher or equal privileges.")
+
+        if new_role is not None:
+            new_val = _ROLE_HIERARCHY[new_role]
+            if init_val < new_val:
+                logger.error(
+                    "[UserService] %s: User %s (%s) cannot promote user %s to higher role %s.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator.id,
+                    initiator.role.value,
+                    target.id,
+                    new_role.value,
+                    exc_info=True,
+                )
+                raise PermissionDeniedError("Cannot promote user to a role higher than your own.")
+
+    async def _enforce_last_admin_protection_on_update(self, target: User, updates: UserUpdate) -> None:
+        """Enforce soft-delete aware LAST_ADMIN_PROTECTION on role demotion or account deactivation.
+
+        Args:
+            target: Target user record prior to update.
+            updates: Requested UserUpdate payload.
+
+        Raises:
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if demoting or deactivating the last active org ADMIN.
+        """
+        if target.role != UserRole.ADMIN or not target.organization_id:
+            return
+        if not target.is_active or target.deleted_at is not None:
+            return
+
+        demoting_admin = updates.role is not None and updates.role != UserRole.ADMIN
+        deactivating_admin = updates.is_active is False
+        if not demoting_admin and not deactivating_admin:
+            return
+
+        admin_count = await self._count_org_admins(target.organization_id)
+        if admin_count <= 1:
+            logger.error(
+                "[UserService] %s: Cannot demote or deactivate the last Administrator of an Organization.",
+                ErrorCodes.CONFLICT_ERROR.name,
+                exc_info=True,
+            )
+            raise ConflictError(
+                message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator of an Organization.",
+                details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
+            )
+
+    async def _maybe_revoke_sessions_on_update(self, target: User, updates: UserUpdate) -> None:
+        """Trigger immediate Redis Kill-Switch when role, organization_id, or active status changes.
+
+        Args:
+            target: User record prior to update.
+            updates: Applied UserUpdate payload.
+
+        Raises:
+            AppException: If Redis session revocation fails when revocation_cache is configured.
+        """
+        if self.revocation_cache is None:
+            return
+        role_changed = updates.role is not None and updates.role != target.role
+        org_changed = updates.organization_id is not None and updates.organization_id != target.organization_id
+        deactivated = updates.is_active is False
+        if role_changed or org_changed or deactivated:
+            await self.revocation_cache.revoke_user_sessions(target.id, ttl_seconds=_REVOCATION_TTL_SECONDS)
+
     async def update_user_role(self, initiator_id: str, target_id: str, new_role: UserRole) -> User:
-        """Updates a user's role with strict Last Admin Protection.
+        """Updates a user's role with strict Last Admin Protection and immediate Redis session revocation.
 
         Args:
             initiator_id: The UID of the user changing the role.
@@ -590,45 +737,8 @@ class UserService:
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
-        # 1. Access Control (Hierarchy)
         if initiator.role != UserRole.ROOT:
-            role_values: dict[UserRole, int] = {
-                UserRole.ROOT: 40,
-                UserRole.ADMIN: 30,
-                UserRole.MANAGER: 20,
-                UserRole.MEMBER: 10,
-                UserRole.VIEWER: 5,
-            }
-
-            init_val = role_values[initiator.role]
-            target_val = role_values[target.role]
-            new_val = role_values[new_role]
-
-            if init_val < target_val:
-                logger.error(
-                    "[UserService] %s: User %s (%s) cannot modify user %s (%s) with higher privileges.",
-                    ErrorCodes.PERMISSION_DENIED.name,
-                    initiator_id,
-                    initiator.role.value,
-                    target_id,
-                    target.role.value,
-                    exc_info=True,
-                )
-                raise PermissionDeniedError("Cannot modify users with higher or equal privileges.")
-
-            if init_val < new_val:
-                logger.error(
-                    "[UserService] %s: User %s (%s) cannot promote user %s to higher role %s.",
-                    ErrorCodes.PERMISSION_DENIED.name,
-                    initiator_id,
-                    initiator.role.value,
-                    target_id,
-                    new_role.value,
-                    exc_info=True,
-                )
-                raise PermissionDeniedError("Cannot promote user to a role higher than your own.")
-
-            # Org Constraint
+            self._enforce_role_modification_hierarchy(initiator, target, new_role)
             if initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
                     logger.error(
@@ -640,12 +750,19 @@ class UserService:
                         exc_info=True,
                     )
                     raise PermissionDeniedError("Cannot manage users in other organizations.")
+            else:
+                logger.error(
+                    "[UserService] %s: User %s with role %s lacks permission to update user roles.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator_id,
+                    initiator.role.value,
+                    exc_info=True,
+                )
+                raise PermissionDeniedError("Insufficient permissions to update user roles.")
 
-        # 2. Last Admin Protection
         if target.role == UserRole.ADMIN and new_role != UserRole.ADMIN:
             if target.organization_id:
                 count = await self._count_org_admins(target.organization_id)
-
                 if count <= 1:
                     logger.error(
                         "[UserService] %s: LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
@@ -657,9 +774,7 @@ class UserService:
                         details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
                     )
 
-        # 3. Apply Update
         updated = await self.repo.update(target_id, UserUpdate(role=new_role))
-
         if not updated:
             logger.error(
                 "[UserService] %s: User update failed (user reference lost).",
@@ -672,7 +787,9 @@ class UserService:
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
 
-        # 4. Audit
+        if self.revocation_cache is not None and new_role != target.role:
+            await self.revocation_cache.revoke_user_sessions(target_id, ttl_seconds=_REVOCATION_TTL_SECONDS)
+
         if self.audit_service:
             await self.audit_service.log_event(
                 actor_id=initiator_id,
@@ -685,24 +802,27 @@ class UserService:
         return updated
 
     async def list_users(self, initiator: TokenData) -> list[User]:
-        """List users securely scoped by Tenant/Organization.
+        """List users securely scoped by the 4-Tier RBAC Governance Matrix.
 
         Args:
             initiator: The token data of the user requesting the list.
 
         Returns:
-            A list of users scoped to the initiator's permissions.
+            A list of users scoped to the initiator's role and organization.
         """
         all_users: list[User] = await self.repo.list_all()
 
         if initiator.role == UserRole.ROOT:
             return all_users
 
+        if initiator.role in (UserRole.MEMBER, UserRole.VIEWER):
+            return [u for u in all_users if u.id == initiator.id]
+
         org_id = initiator.organization_id
         return [u for u in all_users if u.organization_id == org_id]
 
     async def get_user(self, initiator: TokenData, target_id: str) -> User:
-        """Fetch user securely.
+        """Fetch user securely enforcing the 4-Tier RBAC Governance Matrix.
 
         Args:
             initiator: The token data of the user requesting the fetch.
@@ -726,14 +846,13 @@ class UserService:
             )
             raise ResourceNotFoundError(resource_type="user", resource_id=target_id)
 
-        # Tenant Isolation
         if initiator.role == UserRole.ROOT:
             return user
 
         if initiator.id == target_id:
             return user
 
-        if initiator.role == UserRole.ADMIN and user.organization_id == initiator.organization_id:
+        if initiator.role in (UserRole.ADMIN, UserRole.MANAGER) and user.organization_id == initiator.organization_id:
             return user
 
         logger.error(

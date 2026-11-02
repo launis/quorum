@@ -27,17 +27,25 @@ from backend_v2.models.auth import (
     TokenExchangeRequestDTO,
     User,
     UserRole,
+    UserUpdate,
 )
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.enums import EmailDeliveryStatus, EntityPrefix, InvitationStatus, SystemLocale
+from backend_v2.models.domain.execution import FrozenContext
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.enums import EmailDeliveryStatus, EntityPrefix, ExecutionStatus, InvitationStatus, SystemLocale
 from backend_v2.services.auth import (
     AuthService,
     OrganizationRepository,
     OrganizationService,
     UserRepository,
 )
+from backend_v2.services.execution.ingress_service import create_execution_record
+from backend_v2.services.execution.lifecycle_service import ExecutionLifecycleService
 from backend_v2.settings import Settings
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryExecutionRepository,
+    InMemoryUnifiedWorkflowRepository,
+)
 
 
 @pytest.fixture
@@ -146,7 +154,8 @@ async def test_auth_service_organization_read_and_update(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Test list_organizations, get_organization, update_organization, and get_users_by_organization."""
-    auth = AuthService(mock_repo, use_firebase=False)
+    mock_audit = MagicMock(log_event=AsyncMock())
+    auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
     test_org = Organization(
         id="org_0195f3a0000070008000000000000202",
         name="Test Organization",
@@ -162,19 +171,31 @@ async def test_auth_service_organization_read_and_update(
     await mock_repo.create_organization(test_org)
 
     root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
-    member_with_org = TokenData(
+    manager_with_org = TokenData(
         id="usr_0195f3a0000070008000000000000101",
-        role=UserRole.MEMBER,
+        role=UserRole.MANAGER,
         email="m@test.com",
         organization_id="org_0195f3a0000070008000000000000202",
     )
-    member_no_org = TokenData(
-        id="usr_0195f3a0000070008000000000000104", role=UserRole.MEMBER, email="orphan@test.com", organization_id=None
+    manager_no_org = TokenData(
+        id="usr_0195f3a0000070008000000000000104",
+        role=UserRole.MANAGER,
+        email="orphan@test.com",
+        organization_id=None,
+    )
+    member_with_org = TokenData(
+        id="usr_0195f3a0000070008000000000000199",
+        role=UserRole.MEMBER,
+        email="member@test.com",
+        organization_id="org_0195f3a0000070008000000000000202",
     )
 
     assert len(await auth.list_organizations(root_token)) == 1
-    assert len(await auth.list_organizations(member_with_org)) == 1
-    assert len(await auth.list_organizations(member_no_org)) == 0
+    assert len(await auth.list_organizations(manager_with_org)) == 1
+    assert len(await auth.list_organizations(manager_no_org)) == 0
+
+    with pytest.raises(PermissionDeniedError):
+        await auth.list_organizations(member_with_org)
 
     with pytest.raises(ResourceNotFoundError):
         await auth.get_organization(root_token, "org_0195f3a0000070008000000000000203")
@@ -182,9 +203,9 @@ async def test_auth_service_organization_read_and_update(
     foreign_org = test_org.model_copy(update={"id": "org_0195f3a0000070008000000000000204", "name": "Foreign Org"})
     await mock_repo.create_organization(foreign_org)
     with pytest.raises(PermissionDeniedError):
-        await auth.get_organization(member_with_org, "org_0195f3a0000070008000000000000204")
+        await auth.get_organization(manager_with_org, "org_0195f3a0000070008000000000000204")
 
-    found_org = await auth.get_organization(member_with_org, "org_0195f3a0000070008000000000000202")
+    found_org = await auth.get_organization(manager_with_org, "org_0195f3a0000070008000000000000202")
     assert found_org.id == "org_0195f3a0000070008000000000000202"
 
     with pytest.raises(PermissionDeniedError):
@@ -192,21 +213,18 @@ async def test_auth_service_organization_read_and_update(
             member_with_org, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="New")
         )
 
+    updated_by_manager = await auth.update_organization(
+        manager_with_org,
+        "org_0195f3a0000070008000000000000202",
+        OrganizationUpdateDTO(name="Manager Updated Name", contact_email="lead@acme.com"),
+    )
+    assert updated_by_manager.name == "Manager Updated Name"
+    mock_audit.log_event.assert_awaited()
+
     updated = await auth.update_organization(
-        root_token, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="Updated Name")
+        root_token, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="Updated Name", tpm_limit=60000)
     )
     assert updated.id == "org_0195f3a0000070008000000000000202"
-
-    create_dto = OrganizationCreate(
-        name="Brand New",
-        admin_email="a@b.com",
-        admin_password="password123",
-        admin_name="Brand New Admin",
-        tpm_limit=50000,
-        rpm_limit=500,
-    )
-    updated2 = await auth.update_organization(root_token, "org_0195f3a0000070008000000000000202", create_dto)
-    assert updated2.id == "org_0195f3a0000070008000000000000202"
 
     users = await auth.get_users_by_organization("org_0195f3a0000070008000000000000205")
     assert users == []
@@ -350,7 +368,7 @@ async def test_get_organization_root_initiator_any_org_success(
 async def test_get_organization_same_org_member_success(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """TC-P3-05: Non-root member can view their own organization."""
+    """TC-P3-05: MANAGER and ADMIN can view their own organization; MEMBER and VIEWER raise PermissionDeniedError."""
     auth_service = AuthService(mock_repo)
     test_org = Organization(
         id="org_0195f3a0000070008000000000000208",
@@ -365,15 +383,23 @@ async def test_get_organization_same_org_member_success(
         allowed_email_domains=[],
     )
     await mock_repo.create_organization(test_org)
+    manager_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000107",
+        role=UserRole.MANAGER,
+        organization_id="org_0195f3a0000070008000000000000208",
+    )
+
+    org = await auth_service.get_organization(manager_initiator, "org_0195f3a0000070008000000000000208")
+    assert org.id == "org_0195f3a0000070008000000000000208"
+    assert org.name == "My Org"
+
     member_initiator = TokenData(
         id="usr_0195f3a0000070008000000000000107",
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000208",
     )
-
-    org = await auth_service.get_organization(member_initiator, "org_0195f3a0000070008000000000000208")
-    assert org.id == "org_0195f3a0000070008000000000000208"
-    assert org.name == "My Org"
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.get_organization(member_initiator, "org_0195f3a0000070008000000000000208")
 
 
 @pytest.mark.asyncio
@@ -508,7 +534,7 @@ async def test_list_organizations_tenant_initiator_returns_own_org_only(
 async def test_list_organizations_tenant_initiator_no_org_id_returns_empty_list(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """TC-P3-10: Tenant initiator with no organization_id returns empty list."""
+    """TC-P3-10: MANAGER/ADMIN initiator with no organization_id returns empty list; MEMBER raises PermissionDeniedError."""
     auth_service = AuthService(mock_repo)
     org1 = Organization(
         id="org_0195f3a0000070008000000000000215",
@@ -523,10 +549,14 @@ async def test_list_organizations_tenant_initiator_no_org_id_returns_empty_list(
         allowed_email_domains=[],
     )
     await mock_repo.create_organization(org1)
-    member_no_org = TokenData(id="usr_0195f3a0000070008000000000000110", role=UserRole.MEMBER, organization_id=None)
+    manager_no_org = TokenData(id="usr_0195f3a0000070008000000000000110", role=UserRole.MANAGER, organization_id=None)
 
-    orgs = await auth_service.list_organizations(member_no_org)
+    orgs = await auth_service.list_organizations(manager_no_org)
     assert orgs == []
+
+    member_no_org = TokenData(id="usr_0195f3a0000070008000000000000110", role=UserRole.MEMBER, organization_id=None)
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.list_organizations(member_no_org)
 
 
 @pytest.mark.asyncio
@@ -558,11 +588,12 @@ async def test_update_organization_root_initiator_with_update_dto_success(
 
 
 @pytest.mark.asyncio
-async def test_update_organization_root_initiator_with_create_dto_success(
+async def test_update_organization_manager_and_admin_profile_fields_success(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """TC-P3-12: ROOT initiator updates organization using OrganizationCreate payload."""
-    auth_service = AuthService(mock_repo)
+    """TC-P3-12: MANAGER and ADMIN can update profile fields (name, contact_email); ADMIN can update allowed_email_domains."""
+    mock_audit = MagicMock(log_event=AsyncMock())
+    auth_service = AuthService(mock_repo, audit_service=mock_audit)
     org = Organization(
         id="org_0195f3a0000070008000000000000217",
         name="Old Name",
@@ -576,38 +607,80 @@ async def test_update_organization_root_initiator_with_create_dto_success(
         allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
-    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
-    create_dto = OrganizationCreate(
-        name="Converted Name",
-        admin_email="a@b.com",
-        admin_name="Admin",
-        admin_password="password",
-        tpm_limit=70000,
-        rpm_limit=700,
+    manager_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000105",
+        role=UserRole.MANAGER,
+        organization_id="org_0195f3a0000070008000000000000217",
     )
+    updated_mgr = await auth_service.update_organization(
+        manager_initiator,
+        "org_0195f3a0000070008000000000000217",
+        OrganizationUpdateDTO(name="Manager Name", contact_email="mgr@org.com"),
+    )
+    assert updated_mgr.name == "Manager Name"
+    assert updated_mgr.contact_email == "mgr@org.com"
 
-    updated = await auth_service.update_organization(root_initiator, "org_0195f3a0000070008000000000000217", create_dto)
-    assert updated.id == "org_0195f3a0000070008000000000000217"
-    assert updated.name == "Converted Name"
-    assert updated.tpm_limit == 70000
+    # MANAGER cannot update allowed_email_domains
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.update_organization(
+            manager_initiator,
+            "org_0195f3a0000070008000000000000217",
+            OrganizationUpdateDTO(allowed_email_domains=["org.com"]),
+        )
+
+    admin_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000106",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000217",
+    )
+    updated_adm = await auth_service.update_organization(
+        admin_initiator,
+        "org_0195f3a0000070008000000000000217",
+        OrganizationUpdateDTO(name="Admin Name", allowed_email_domains=["org.com"]),
+    )
+    assert updated_adm.name == "Admin Name"
+    assert updated_adm.allowed_email_domains == ["org.com"]
 
 
 @pytest.mark.asyncio
 async def test_update_organization_non_root_initiator_raises_permission_denied(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """TC-P3-13: Non-ROOT initiator raises PermissionDeniedError on update."""
+    """TC-P3-13: Non-ROOT initiator raises PermissionDeniedError on FinOps fields, foreign org, or MEMBER/VIEWER roles."""
     auth_service = AuthService(mock_repo)
+    org = Organization(
+        id="org_0195f3a0000070008000000000000206",
+        name="Target Org",
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+        allowed_email_domains=[],
+    )
+    await mock_repo.create_organization(org)
     admin_initiator = TokenData(
         id="usr_0195f3a0000070008000000000000109",
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000206",
     )
-    dto = OrganizationUpdateDTO(name="New Name")
+    dto = OrganizationUpdateDTO(tpm_limit=999999)
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await auth_service.update_organization(admin_initiator, "org_0195f3a0000070008000000000000206", dto)
-    assert "Only ROOT can update organizations." in str(exc_info.value)
+    assert "Only ROOT can modify platform FinOps limits" in str(exc_info.value)
+
+    foreign_admin = TokenData(
+        id="usr_0195f3a0000070008000000000000109",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000999",
+    )
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.update_organization(
+            foreign_admin, "org_0195f3a0000070008000000000000206", OrganizationUpdateDTO(name="Foreign")
+        )
 
 
 @pytest.mark.asyncio
@@ -1255,3 +1328,140 @@ async def test_invitation_domain_allowlist_and_role_hierarchy_negative(
         )
     assert exp_exc.value.error_code == ErrorCodes.INVITATION_EXPIRED.value
     assert auth.org_service._local_invitations[inv_dto.id].status == InvitationStatus.REVOKED
+
+
+@pytest.mark.asyncio
+async def test_rbac_four_tier_matrix_boundaries_boundary(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verify 4-Tier RBAC Matrix (VIEWER/MEMBER, MANAGER, ADMIN, ROOT) across users, orgs, invitations, and executions."""
+    auth = AuthService(mock_repo, use_firebase=False)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    root_id = generate_opaque_id(EntityPrefix.USER)
+    admin_id = generate_opaque_id(EntityPrefix.USER)
+    manager_id = generate_opaque_id(EntityPrefix.USER)
+    member_id = generate_opaque_id(EntityPrefix.USER)
+    viewer_id = generate_opaque_id(EntityPrefix.USER)
+
+    await mock_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="Matrix Org",
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+            allowed_email_domains=[],
+        )
+    )
+    for uid, email, role, oid in (
+        (root_id, "root@matrix.com", UserRole.ROOT, SystemOrganizations.ROOT_SYSTEM),
+        (admin_id, "admin@matrix.com", UserRole.ADMIN, org_id),
+        (manager_id, "manager@matrix.com", UserRole.MANAGER, org_id),
+        (member_id, "member@matrix.com", UserRole.MEMBER, org_id),
+        (viewer_id, "viewer@matrix.com", UserRole.VIEWER, org_id),
+    ):
+        await mock_repo.create_user(
+            User(
+                id=uid,
+                email=email,
+                name=role.value,
+                role=role,
+                organization_id=oid,
+                is_active=True,
+                created_at=datetime.now(timezone.utc),
+                language=SystemLocale.EN,
+                theme_mode="system",
+            )
+        )
+
+    root_tok = TokenData(id=root_id, role=UserRole.ROOT, organization_id=SystemOrganizations.ROOT_SYSTEM)
+    admin_tok = TokenData(id=admin_id, role=UserRole.ADMIN, organization_id=org_id)
+    manager_tok = TokenData(id=manager_id, role=UserRole.MANAGER, organization_id=org_id)
+    member_tok = TokenData(id=member_id, role=UserRole.MEMBER, organization_id=org_id)
+    viewer_tok = TokenData(id=viewer_id, role=UserRole.VIEWER, organization_id=org_id)
+
+    # 1. list_users: VIEWER/MEMBER see only self; MANAGER/ADMIN see org users; ROOT sees all
+    assert [u.id for u in await auth.list_users(member_tok)] == [member_id]
+    assert [u.id for u in await auth.list_users(viewer_tok)] == [viewer_id]
+    assert len(await auth.list_users(manager_tok)) == 4
+    assert len(await auth.list_users(admin_tok)) == 4
+    assert len(await auth.list_users(root_tok)) == 5
+
+    # 2. update_user: VIEWER/MEMBER/MANAGER can self-update profile, but MANAGER cannot update another user
+    updated_self = await auth.update_user(
+        member_id, member_id, UserUpdate(name="Member Self", language=SystemLocale.FI, theme_mode="dark")
+    )
+    assert updated_self.name == "Member Self"
+    assert updated_self.language == SystemLocale.FI
+    assert updated_self.theme_mode == "dark"
+
+    with pytest.raises(PermissionDeniedError):
+        await auth.update_user(manager_id, member_id, UserUpdate(name="Manager Edit Peer"))
+
+    # ADMIN can update org users, but cannot promote to ROOT
+    with pytest.raises(PermissionDeniedError):
+        await auth.update_user(admin_id, member_id, UserUpdate(role=UserRole.ROOT))
+
+    # 3. update_organization & create_invitation
+    with pytest.raises(PermissionDeniedError):
+        await auth.update_organization(member_tok, org_id, OrganizationUpdateDTO(name="Denied"))
+    with pytest.raises(PermissionDeniedError):
+        await auth.update_organization(viewer_tok, org_id, OrganizationUpdateDTO(name="Denied"))
+
+    mgr_org = await auth.update_organization(
+        manager_tok, org_id, OrganizationUpdateDTO(name="Mgr Org", contact_email="lead@matrix.com")
+    )
+    assert mgr_org.name == "Mgr Org"
+    assert mgr_org.contact_email == "lead@matrix.com"
+
+    with pytest.raises(PermissionDeniedError):
+        await auth.update_organization(manager_tok, org_id, OrganizationUpdateDTO(quota_limit=9999.0))
+    with pytest.raises(PermissionDeniedError):
+        await auth.update_organization(admin_tok, org_id, OrganizationUpdateDTO(quota_limit=9999.0))
+
+    with pytest.raises(PermissionDeniedError):
+        await auth.org_service.create_invitation(
+            manager_tok, org_id, InvitationCreateDTO(email="invitee@matrix.com", role=UserRole.MEMBER)
+        )
+    inv = await auth.org_service.create_invitation(
+        admin_tok, org_id, InvitationCreateDTO(email="invitee@matrix.com", role=UserRole.MEMBER)
+    )
+    assert inv.status == InvitationStatus.PENDING
+
+    # 4. list_executions: MEMBER/VIEWER see only own executions; MANAGER/ADMIN see all org executions
+    exec_repo = InMemoryExecutionRepository()
+    exe_member_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    exe_peer_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    await exec_repo.save_execution(
+        create_execution_record(
+            execution_id=exe_member_id,
+            workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
+            raw_inputs=WorkflowInputs(),
+            frozen_context=FrozenContext(),
+            source_identity_manifest={},
+            organization_id=org_id,
+            created_by=member_id,
+            status=ExecutionStatus.PENDING,
+        )
+    )
+    await exec_repo.save_execution(
+        create_execution_record(
+            execution_id=exe_peer_id,
+            workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
+            raw_inputs=WorkflowInputs(),
+            frozen_context=FrozenContext(),
+            source_identity_manifest={},
+            organization_id=org_id,
+            created_by=viewer_id,
+            status=ExecutionStatus.PENDING,
+        )
+    )
+    lifecycle = ExecutionLifecycleService(exec_repo=exec_repo)
+    assert [e.id for e in await lifecycle.list_executions(member_tok)] == [exe_member_id]
+    assert [e.id for e in await lifecycle.list_executions(viewer_tok)] == [exe_peer_id]
+    assert {e.id for e in await lifecycle.list_executions(manager_tok)} == {exe_member_id, exe_peer_id}
+    assert {e.id for e in await lifecycle.list_executions(admin_tok)} == {exe_member_id, exe_peer_id}

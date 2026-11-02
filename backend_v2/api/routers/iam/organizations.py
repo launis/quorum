@@ -20,6 +20,7 @@ from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
     OrganizationDeleteResponse,
+    OrganizationUpdateDTO,
     TenantSecretCreateDTO,
     TenantSecretResponseDTO,
     TokenData,
@@ -235,6 +236,29 @@ async def delete_organization_secret(
     return OrganizationDeleteResponse(status="success", deleted_id=secret_id)
 
 
+@router.post("/", response_model=Organization)
+async def create_organization(
+    data: OrganizationCreate,
+    current_user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+) -> Organization:
+    """Provision a new organization and its initial administrator via SSOT Service Layer.
+
+    Args:
+        data: Validated OrganizationCreate payload.
+        current_user: The authenticated user making the request.
+        auth_service: The authentication service dependency.
+
+    Returns:
+        The newly created Organization.
+
+    Raises:
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller is not ROOT.
+        AppException: If creating the organization fails.
+    """
+    return await auth_service.create_organization(current_user, data)
+
+
 @router.get("/{id}", response_model=Organization)
 async def get_organization(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> Organization:
     """Retrieve a specific organization securely via SSOT Service Layer.
@@ -257,22 +281,22 @@ async def get_organization(id: str, current_user: CurrentUserDep, auth_service: 
 
 @router.put("/{id}", response_model=Organization)
 async def save_organization(
-    id: str, data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep
+    id: str, data: OrganizationUpdateDTO, current_user: CurrentUserDep, auth_service: AuthServiceDep
 ) -> Organization:
-    """Create or update an organization securely via SSOT Service Layer.
+    """Update an existing organization securely via SSOT Service Layer.
 
     Args:
         id: The unique identifier of the organization.
-        data: The organization data to update or create.
+        data: Validated OrganizationUpdateDTO payload.
         current_user: The authenticated user making the request.
         auth_service: The authentication service dependency.
 
     Returns:
-        The updated or created organization.
+        The updated organization.
 
     Raises:
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission.
-        AppException: If saving the organization fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization does not exist.
     """
     return await auth_service.update_organization(current_user, id, data)
 

@@ -87,7 +87,7 @@ async def test_list_executions_root_returns_all(root_token: TokenData) -> None:
 
 @pytest.mark.asyncio
 async def test_list_executions_member_filters_by_org_and_creator(member_token: TokenData) -> None:
-    """Verify standard MEMBER lists only executions belonging to their org or created by them."""
+    """Verify MEMBER/VIEWER lists only executions created by them, while MANAGER/ADMIN lists org-wide executions."""
     rec_same_org = _make_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         org_id="org_0195f3a0000070008123456789abcdef",
@@ -110,9 +110,21 @@ async def test_list_executions_member_filters_by_org_and_creator(member_token: T
     await exec_repo.save_execution(rec_foreign)
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
-    result = await service.list_executions(member_token)
-    assert len(result) == 2
-    assert {e.id for e in result} == {"exe_0195f3a0000070008123456789abcdef", "exe_0195f3a0000070018123456789abcdef"}
+    result_member = await service.list_executions(member_token)
+    assert len(result_member) == 1
+    assert {e.id for e in result_member} == {"exe_0195f3a0000070018123456789abcdef"}
+
+    manager_token = TokenData(
+        id="usr_0195f3a0000070008123456789abcdef",
+        role=UserRole.MANAGER,
+        organization_id="org_0195f3a0000070008123456789abcdef",
+    )
+    result_manager = await service.list_executions(manager_token)
+    assert len(result_manager) == 2
+    assert {e.id for e in result_manager} == {
+        "exe_0195f3a0000070008123456789abcdef",
+        "exe_0195f3a0000070018123456789abcdef",
+    }
 
 
 @pytest.mark.asyncio

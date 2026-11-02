@@ -92,6 +92,7 @@ class AuthService:
             audit_service=self.audit_service,
             use_firebase=use_firebase,
             firebase_auth=self.token_service.firebase_auth,
+            revocation_cache=revocation_cache,
         )
         self.org_service = OrganizationService(
             org_repo=self.org_repo,
@@ -219,9 +220,7 @@ class AuthService:
         """Fetch organization securely."""
         return await self.org_service.get_organization(initiator=initiator, org_id=org_id)
 
-    async def update_organization(
-        self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO | OrganizationCreate
-    ) -> Organization:
+    async def update_organization(self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO) -> Organization:
         """Update an organization securely."""
         return await self.org_service.update_organization(initiator=initiator, org_id=org_id, data=data)
 
