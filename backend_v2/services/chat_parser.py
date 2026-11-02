@@ -7,6 +7,7 @@ aligning with the V2 Fail-Fast architecture.
 import json
 import logging
 import re
+from typing import Annotated
 
 from fastapi import status
 from pydantic import ConfigDict, Field, ValidationError
@@ -65,8 +66,8 @@ class AnchorSpanDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    start: int = Field(ge=0, description="Start character offset")
-    end: int = Field(ge=0, description="End character offset")
+    start: Annotated[int, Field(ge=0, description="Start character offset")]
+    end: Annotated[int, Field(ge=0, description="End character offset")]
 
 
 class ChatParserService:
@@ -78,7 +79,7 @@ class ChatParserService:
         phrase: str,
         start_pos: int,
     ) -> AnchorSpanDTO:
-        """Finds the start and end indices of an anchor phrase in text.
+        """Find the start and end indices of an anchor phrase in text.
 
         First attempts exact substring match via str.find(). If that fails due to
         Unicode whitespace variations (e.g. non-breaking spaces, en spaces, newlines),
@@ -92,7 +93,7 @@ class ChatParserService:
             start_pos: Monotonic start position in text.
 
         Returns:
-            AnchorSpanDTO: Character offset boundaries (start, end) of phrase in text.
+            Character offset boundaries (start, end) of phrase in text.
 
         Raises:
             ValueError: If phrase cannot be found after start_pos or contains no valid tokens.
@@ -109,17 +110,13 @@ class ChatParserService:
 
         # 2. Whitespace-flexible exact token sequence match
         words = clean_phrase.split()
-        if not words:
-            msg = "Anchor phrase contains no words"
-            raise ValueError(msg)
-
         pattern = re.compile(r"\s+".join(map(re.escape, words)))
         match = pattern.search(text, start_pos)
         if match:
             return AnchorSpanDTO(start=match.start(), end=match.end())
 
         # 3. Delimiter-flexible token sequence match for markdown tables
-        clean_tokens = [t.strip("| \t\r\n") for t in clean_phrase.split() if t.strip("| \t\r\n")]
+        clean_tokens = [t.strip("| \t\r\n") for t in words if t.strip("| \t\r\n")]
         if not clean_tokens:
             msg = f"Anchor phrase contains no valid tokens after delimiter normalization: '{phrase}'"
             raise ValueError(msg)
@@ -131,6 +128,146 @@ class ChatParserService:
 
         msg = f"Anchor phrase not found in source text after position {start_pos}: '{phrase}'"
         raise ValueError(msg)
+
+    @staticmethod
+    async def _initialize_llm_client(
+        system_repo: ISystemRepository,
+        registry_id: str | None = None,
+        provider: LLMProvider | None = None,
+    ) -> LLMClient:
+        """Initialize the FAST cognitive tier LLM client for chat parsing.
+
+        Args:
+            system_repo: System configuration repository instance.
+            registry_id: Optional authoritative model registry ID.
+            provider: Optional explicit provider override.
+
+        Returns:
+            Initialized LLM client bound to the chat_parser pipeline.
+
+        Raises:
+            AppException: If LLM client initialization fails (CONFIGURATION_ERROR).
+        """
+        try:
+            if registry_id is not None or provider is not None:
+                return await LLMClient.from_tier(
+                    CognitiveTier.FAST,
+                    repository=system_repo,
+                    pipeline_name="chat_parser",
+                    registry_id=registry_id,
+                    provider=provider,
+                )
+            return await LLMClient.from_tier(
+                CognitiveTier.FAST,
+                repository=system_repo,
+                pipeline_name="chat_parser",
+            )
+        except ConfigurationError as e:
+            msg = f"Failed to initialize LLMClient for ChatParser: {e.message}"
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            ) from e
+
+    @staticmethod
+    def _extract_turns_from_anchors(
+        raw_paste: str,
+        parsed_anchors: ChatTurnAnchorsResponseDTO,
+    ) -> list[ChatMessageDTO]:
+        """Slice verbatim conversational turns from raw text using monotonic boundary anchors.
+
+        Args:
+            raw_paste: Raw unstructured text pasted from a chat UI.
+            parsed_anchors: Validated boundary anchors returned by the LLM.
+
+        Returns:
+            Extracted chronological list of chat messages.
+
+        Raises:
+            AppException: If turns list is empty (VALIDATION_FAILED) or an anchor cannot be
+                located monotonically in source text (PARSING_FAILED).
+        """
+        if not parsed_anchors.turns:
+            msg = "Fail-Fast: Raw text did not contain a valid dialogue/conversation."
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        turns: list[ChatMessageDTO] = []
+        current_pos = 0
+        for turn in parsed_anchors.turns:
+            try:
+                start_span = ChatParserService._find_anchor_span(raw_paste, turn.start_phrase, current_pos)
+            except ValueError as e:
+                msg = f"Start anchor not found in source text after position {current_pos}: '{turn.start_phrase}'"
+                logger.error(
+                    "[ChatParser] %s: %s",
+                    ErrorCodes.PARSING_FAILED.name,
+                    msg,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.PARSING_FAILED.name, "anchor": turn.start_phrase},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.PARSING_FAILED.value, "anchor": turn.start_phrase},
+                ) from e
+
+            try:
+                end_span = ChatParserService._find_anchor_span(raw_paste, turn.end_phrase, start_span.start)
+            except ValueError as e:
+                msg = f"End anchor not found in source text after position {start_span.start}: '{turn.end_phrase}'"
+                logger.error(
+                    "[ChatParser] %s: %s",
+                    ErrorCodes.PARSING_FAILED.name,
+                    msg,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.PARSING_FAILED.name, "anchor": turn.end_phrase},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.PARSING_FAILED.value, "anchor": turn.end_phrase},
+                ) from e
+
+            content = raw_paste[start_span.start : end_span.end].strip(" \t\r\n")
+            if content:
+                turns.append(ChatMessageDTO(role=turn.speaker, content=content))
+            current_pos = end_span.end
+
+        if not turns:
+            msg = "Fail-Fast: Raw text did not contain valid dialogue turns after anchor slicing."
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        return turns
 
     @staticmethod
     async def parse_pasted_chat(
@@ -148,7 +285,7 @@ class ChatParserService:
             provider: Optional explicit provider override.
 
         Returns:
-            ChatHistoryDTO: Strictly typed chat history object.
+            Strictly typed chat history object.
 
         Raises:
             AppException: If input is empty (EMPTY_INPUT), LLM initialization fails (CONFIGURATION_ERROR),
@@ -158,12 +295,12 @@ class ChatParserService:
         logger.debug("[ChatParser] parse_pasted_chat CALLED")
 
         if not raw_paste or not raw_paste.strip():
-            # Fail Fast: Cannot parse empty text
             msg = "ChatParser received empty input."
             logger.error(
                 "[ChatParser] %s: %s",
                 ErrorCodes.EMPTY_INPUT.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.EMPTY_INPUT.name},
             )
             raise AppException(
@@ -172,42 +309,13 @@ class ChatParserService:
                 details={"error_code": ErrorCodes.EMPTY_INPUT.value},
             )
 
-        # Phase 1, Step 1.2: Initialize LLM Client via CognitiveTier Enum SSOT
-        try:
-            if registry_id is not None or provider is not None:
-                llm_client = await LLMClient.from_tier(
-                    CognitiveTier.FAST,
-                    repository=system_repo,
-                    pipeline_name="chat_parser",
-                    registry_id=registry_id,
-                    provider=provider,
-                )
-            else:
-                llm_client = await LLMClient.from_tier(
-                    CognitiveTier.FAST,
-                    repository=system_repo,
-                    pipeline_name="chat_parser",
-                )
+        llm_client = await ChatParserService._initialize_llm_client(
+            system_repo=system_repo,
+            registry_id=registry_id,
+            provider=provider,
+        )
+        executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
 
-            executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
-        except ConfigurationError as e:
-            msg = f"Failed to initialize LLMClient for ChatParser: {e.message}"
-            logger.error(
-                "[ChatParser] %s: %s",
-                ErrorCodes.CONFIGURATION_ERROR.name,
-                msg,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            ) from e
-
-        # Construct the Prompt
-        # Mandates: Strip all AI UI fluff (Regenerate, Copy code, etc)
-        # Role Segregation: Isolated System Instruction prevents prompt injection
         user_content = TemplateProcessor.render_prompt(
             t"<context>\nHere is the raw text to process:\n</context>\n<source_data>\n{raw_paste}\n</source_data>\n"
         )
@@ -220,83 +328,13 @@ class ChatParserService:
         ]
 
         try:
-            # V2 Strict Output Generation: Anchor-based boundary extraction
             parsed_anchors, _ = await executor.execute_structured_task(
                 client=llm_client,
                 messages=messages,
                 response_model=ChatTurnAnchorsResponseDTO,
                 validation_context={"execution_id": "global", "step_id": "chat_parser"},
             )
-
-            if not parsed_anchors.turns:
-                msg = "Fail-Fast: Raw text did not contain a valid dialogue/conversation."
-                logger.error(
-                    "[ChatParser] %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    msg,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-
-            # Monotonic verbatim anchor slicing
-            turns: list[ChatMessageDTO] = []
-            current_pos = 0
-            for turn in parsed_anchors.turns:
-                try:
-                    start_span = ChatParserService._find_anchor_span(raw_paste, turn.start_phrase, current_pos)
-                except ValueError:
-                    msg = f"Start anchor not found in source text after position {current_pos}: '{turn.start_phrase}'"
-                    logger.error(
-                        "[ChatParser] %s: %s",
-                        ErrorCodes.PARSING_FAILED.name,
-                        msg,
-                        extra={"error_code": ErrorCodes.PARSING_FAILED.name, "anchor": turn.start_phrase},
-                    )
-                    raise AppException(
-                        message=msg,
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": ErrorCodes.PARSING_FAILED.value, "anchor": turn.start_phrase},
-                    ) from None
-
-                try:
-                    end_span = ChatParserService._find_anchor_span(raw_paste, turn.end_phrase, start_span.start)
-                except ValueError:
-                    msg = f"End anchor not found in source text after position {start_span.start}: '{turn.end_phrase}'"
-                    logger.error(
-                        "[ChatParser] %s: %s",
-                        ErrorCodes.PARSING_FAILED.name,
-                        msg,
-                        extra={"error_code": ErrorCodes.PARSING_FAILED.name, "anchor": turn.end_phrase},
-                    )
-                    raise AppException(
-                        message=msg,
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": ErrorCodes.PARSING_FAILED.value, "anchor": turn.end_phrase},
-                    ) from None
-
-                content = raw_paste[start_span.start : end_span.end].strip(" \t\r\n")
-                if content:
-                    turns.append(ChatMessageDTO(role=turn.speaker, content=content))
-                current_pos = end_span.end
-
-            if not turns:
-                msg = "Fail-Fast: Raw text did not contain valid dialogue turns after anchor slicing."
-                logger.error(
-                    "[ChatParser] %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    msg,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-
+            turns = ChatParserService._extract_turns_from_anchors(raw_paste, parsed_anchors)
             logger.info("[ChatParser] Parsing successful. Extracted %s messages.", len(turns))
             return ChatHistoryDTO(conversation=turns)
 

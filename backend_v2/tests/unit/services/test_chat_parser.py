@@ -14,8 +14,8 @@ from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
-from backend_v2.models.enums import CognitiveTier
-from backend_v2.services.chat_parser import ChatParserService
+from backend_v2.models.enums import CognitiveTier, LLMProvider
+from backend_v2.services.chat_parser import AnchorSpanDTO, ChatParserService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -340,3 +340,76 @@ async def test_chat_parser_markdown_table_anchor_resilience(
     assert history.conversation[0].role == "user"
     assert history.conversation[1].role == "ai"
     assert "osaamistarpeidenjatkuvaakehitystä" in history.conversation[1].content
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_tier")
+async def test_chat_parser_with_explicit_registry_id_and_provider(
+    mock_from_tier: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
+) -> None:
+    """Ensure explicit registry_id and provider overrides are forwarded to LLMClient.from_tier."""
+    mock_client = AsyncMock()
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[
+            ChatTurnAnchorDTO(speaker="user", start_phrase="Hello world", end_phrase="Hello world"),
+        ]
+    )
+    mock_client.run_structured_task.return_value = (
+        mock_anchors,
+        {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+    )
+    mock_from_tier.return_value = mock_client
+
+    res = await ChatParserService.parse_pasted_chat(
+        "Hello world",
+        mock_repository,
+        registry_id="reg_0195f000000070008000000000000001",
+        provider=LLMProvider.VERTEX_AI,
+    )
+    assert len(res.conversation) == 1
+    mock_from_tier.assert_called_once_with(
+        CognitiveTier.FAST,
+        repository=mock_repository,
+        pipeline_name="chat_parser",
+        registry_id="reg_0195f000000070008000000000000001",
+        provider=LLMProvider.VERTEX_AI,
+    )
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_tier")
+@patch("backend_v2.services.chat_parser.ChatParserService._find_anchor_span")
+async def test_chat_parser_empty_turns_after_slicing_fails_fast(
+    mock_find_span: MagicMock,
+    mock_from_tier: AsyncMock,
+    mock_repository: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Ensure zero non-empty turns after anchor slicing triggers 400 VALIDATION_FAILED AppException."""
+    mock_client = AsyncMock()
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[
+            ChatTurnAnchorDTO(speaker="user", start_phrase="Hello", end_phrase="world"),
+        ]
+    )
+    mock_client.run_structured_task.return_value = (
+        mock_anchors,
+        {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+    )
+    mock_from_tier.return_value = mock_client
+    mock_find_span.return_value = AnchorSpanDTO(start=0, end=0)
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("Hello world", mock_repository)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_anchor_span_dto_negative_bounds_rejected() -> None:
+    """ISTQB BVA: Ensure AnchorSpanDTO rejects negative start or end offsets."""
+    with pytest.raises(ValidationError):
+        AnchorSpanDTO(start=-1, end=5)
+
+    with pytest.raises(ValidationError):
+        AnchorSpanDTO(start=0, end=-1)
+
