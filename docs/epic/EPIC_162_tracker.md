@@ -105,7 +105,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/epic/EPIC_162_tracker.md] @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_deterministic_hardening_state.md]
   ```
@@ -168,6 +168,7 @@
   - **Step 4.2 (`2c0fa20de`)**: Synchronized `state_version` OCC and atomic increments in `@[backend_v2/tests/fakes/in_memory_uow.py]` and `@[backend_v2/tests/fakes/in_memory_repositories.py]`, wired `expected_state_version=record.state_version` in `ExecutionOverrideService` (`@[backend_v2/services/execution/override_service.py]`), preserved concurrent human overrides and incremented `state_version` in `ExecutionCommitter.commit_trace` (`@[backend_v2/services/orchestrator/dag_executor/execution_committer.py]`), added `@JsonKey(name: 'state_version') @Default(1) int stateVersion` to Flutter `ExecutionRecord` (`@[client_app_v2/lib/features/execution/models/execution_record.dart]`), and verified unit tests in `@[backend_v2/tests/unit/services/execution/test_override_service.py]`, `@[backend_v2/tests/unit/services/orchestrator/dag_executor/test_execution_committer.py]`, and `@[client_app_v2/test/unit/features/execution/models/execution_record_test.dart]`.
   - **Step 4.3 (`a5b60d555`)**: Verified 100% pass across `scripts/audit_zero_orm_strictness.py`, `scripts/audit_dto_parity.py`, `backend_v2/tests/integration/test_sdui_semantic_parity.py`, `scripts/backend_audit_loop.py backend_v2/ --test --ast-strict` (`6,764 passed`, `97.32%` coverage), `scripts/flutter_audit_loop.py client_app_v2/ --build`, and live E2E integration suite `backend_v2/tests/integration/test_integration_real_llm.py` (`6 passed`).
 - Completed all **Post-Implementation Gates** across all 27 Backend Tier 2 Hardening targets and all 4 Frontend Tier 2 Hardening targets, `scripts/audit_epic_coverage.py --epic docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md`, and `scripts/flutter_audit_loop.py client_app_v2/ --build --test --strict` (`1,315 passed`, `0 failed`).
+- Completed `/tier7-describe-architecture @[docs/epic/EPIC_162_tracker.md] @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_deterministic_hardening_state.md]`, synchronizing all 4 target Knowledge Items (`@[ki_god_code_prevention.md]`, `@[ki_zero_permissive_typing.md]`, `@[ki_router_ssot_and_crud_clone_lifecycle.md]`, `@[ki_deterministic_hardening_state.md]`) and `metadata.json` manifests, `@[.agents/rules/04_directory_reference.md]`, and timeless architecture pillar narratives in `@[docs/architecture/01_system_context_and_invariants.md]`, `@[docs/architecture/02_data_seeding_and_ontology.md]`, `@[docs/architecture/03_cognitive_orchestration_engine.md]`, `@[docs/architecture/04_server_driven_ui_and_presentation.md]`, and `@[docs/architecture/05_resilience_and_observability.md]`.
 
 ## Learned
 - `ExecutionStep` (`#L135-L170`) and `ExecutionRecord` (`#L196-L375`) in `@[backend_v2/models/domain/execution.py]` must be referenced as distinct single-class AST spans to satisfy `MBD004` in `scripts/audit_markdown_boundaries.py`.
@@ -178,9 +179,9 @@
 - Adding `ALTER TABLE executions ADD COLUMN IF NOT EXISTS state_version INTEGER NOT NULL DEFAULT 1;` to `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` ensures `PostgresPoolManager.apply_migrations()` idempotently upgrades existing local PostgreSQL 19 `executions` tables prior to live E2E execution.
 
 ## Remaining
-- Execute `/tier7-describe-architecture @[docs/epic/EPIC_162_tracker.md] @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_deterministic_hardening_state.md]` and `/tier8-audit-epic @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md]`.
+- Execute `/tier8-audit-epic @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md]`.
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/epic/EPIC_162_tracker.md] @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_deterministic_hardening_state.md]
+/tier8-audit-epic @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md]
 ```
