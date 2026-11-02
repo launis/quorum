@@ -72,7 +72,7 @@
   - [x] @[backend_v2/database/postgres/storage_driver.py]
   - [x] @[backend_v2/database/repositories/execution.py]
   - [x] @[backend_v2/hooks/interaction_hook.py]
-  - [ ] @[backend_v2/hooks/linguistics.py]
+  - [x] @[backend_v2/hooks/linguistics.py]
   - [ ] @[backend_v2/hooks/source_verification_hook.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/models/domain/execution.py]
