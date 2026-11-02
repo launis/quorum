@@ -137,7 +137,7 @@ class StudioOutputProfileService:
                         message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED}
                     )
 
-        # Phase 2, Step 2.1: Validate variance_target_block and user_role_target_block against allowed_prompt_blocks
+        # Validate variance_target_block and user_role_target_block against allowed_prompt_blocks
         if profile.variance_target_block is not None and profile.variance_target_block not in allowed_prompt_blocks:
             msg = (
                 f"Variance Target Block '{profile.variance_target_block}' does not exist in the context "
