@@ -51,7 +51,7 @@ __all__ = [
     "run_zero_orm_audit",
 ]
 
-# Step 1: Closed 12-table topology and banned symbol sets
+# Define closed 12-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -279,7 +279,7 @@ _CREATE_TABLE_REGEX = re.compile(
     re.IGNORECASE,
 )
 
-# Phase 3, Step 3: Ban TEXT primary keys across the 12-table PostgreSQL 19 topology
+# Ban TEXT primary keys across the 12-table PostgreSQL 19 topology
 _BANNED_TEXT_PK_REGEX = re.compile(
     r"\bid\s+TEXT\s+PRIMARY\s+KEY\b",
     re.IGNORECASE,
@@ -557,7 +557,7 @@ def audit_python_file(filepath: Path, *, is_db_scope: bool = True) -> list[ZeroO
             )
         ]
 
-    # Phase 1, Step 1: Enforce ZORM006 column subscript parity across entity_adapter sub-modules
+    # Enforce ZORM006 column subscript parity across entity_adapter sub-modules
     is_adapter = filepath.name in {"graph_adapter.py", "entity_adapter.py"} or "entity_adapter" in filepath.parts
     visitor = _ZeroOrmAstVisitor(
         filepath=str(filepath),
