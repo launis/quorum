@@ -97,7 +97,7 @@
   - [x] @[scripts/run_ablation_benchmark.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_162_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`.
   - [x] @[client_app_v2/lib/features/execution/models/execution_record.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/execution_step.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/execution_step.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies or deprecated parameters remain.
