@@ -44,7 +44,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_160/02_phase2_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/02_phase2_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]` (`f10dd15f6`)
   - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
   - [x] Step 2.1: `TokenService` Session Upgrade (`exchange_firebase_token`), Mandatory 2FA Enforcement & 0.1 ms RAM Verification
   - [x] Step 2.2: Token Exchange & Logout Router Endpoints, IAM Router SSOT Consolidation & Multi-Role Dependency Guard
@@ -55,13 +55,13 @@
 ### Phase 3: Enterprise BYOK & Cloud Secrets Engine for LLM & MCP Services
 **Plan:** @[docs/epic/tasks_EPIC_160/03_phase3_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/03_phase3_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-  - [ ] Step 0: PRE-FLIGHT & SELF-HYDRATION
-  - [ ] Step 3.1: `SecretService` (Cloud Secret Manager & Envelope Encryption — Single-Pipeline Non-Nullable Resolution)
-  - [ ] Step 3.2: Request-Scoped Credential Injection in `LiteLLMProvider` & `GenericMCPClient`
-  - [ ] Step 3.3: Organization BYOK Management Endpoints & DLP AST Guardrail
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+  - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
+  - [x] Step 3.1: `SecretService` (Cloud Secret Manager & Envelope Encryption — Single-Pipeline Non-Nullable Resolution)
+  - [x] Step 3.2: Request-Scoped Credential Injection in `LiteLLMProvider` & `GenericMCPClient`
+  - [x] Step 3.3: Organization BYOK Management Endpoints & DLP AST Guardrail
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 4: Real-Time Dual-Key Redis Kill-Switch (`MGET`) & FinOps Rate Limiting
@@ -197,9 +197,9 @@
 | REQ-160-004 | Implement `TokenService.exchange_firebase_token` (enforcing mandatory 2FA `firebase.sign_in_second_factor` and headless CLI `target_user_id` exchange) and refactor `TokenService.verify_token` to 0.1 ms RAM-only decode with zero DB queries and zero `mock-token:` branches | Phase 2, Step 2.1 | [x] Completed |
 | REQ-160-005 | Expose `POST /api/v2/iam/auth/exchange`, `POST /api/v2/iam/auth/logout`, and RFC 8693 `POST /api/v2/iam/auth/impersonate`, remove `verify_user_token` and duplicate `/auth/users*` shadow routes, and upgrade `require_role` to `Sequence[UserRole] \| UserRole` | Phase 2, Step 2.2 | [x] Completed |
 | REQ-160-006 | Migrate `scripts/run_e2e_variance_test.py` and `test_integration_real_llm.py` to `_get_or_refresh_cli_session` (`CliSessionStateDTO` created in Phase 1) with 13-minute auto-refresh and remediate all `TD_DICT_GET` and `TD_MODEL_FACTORY` warnings | Phase 2, Step 2.3 | [x] Completed |
-| REQ-160-007 | Create `SecretService` in `[NEW] backend_v2/services/auth/secret_service.py` supporting `CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` (AES-256-GCM DEK + Cloud KMS KEK with `kek_version`) with a Single-Pipeline Non-Nullable `ResolvedCredentialDTO` contract | Phase 3, Step 3.1 | [ ] Pending |
-| REQ-160-008 | Inject request-scoped `pydantic.SecretStr` credentials dynamically per `organization_id` into `LLMFactory`, `LiteLLMProvider`, `ToolDispatcher`, and `GenericMCPClient` with zero cross-tenant bleed | Phase 3, Step 3.2 | [ ] Pending |
-| REQ-160-009 | Expose organization BYOK endpoints (`GET`, `PUT`, `DELETE` under `/api/v2/iam/organizations/{org_id}/secrets`) and add AST guardrail in `scripts/_ast_guardrails.py` preventing `SecretStr.get_secret_value()` leakage | Phase 3, Step 3.3 | [ ] Pending |
+| REQ-160-007 | Create `SecretService` in `[NEW] backend_v2/services/auth/secret_service.py` supporting `CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` (AES-256-GCM DEK + Cloud KMS KEK with `kek_version`) with a Single-Pipeline Non-Nullable `ResolvedCredentialDTO` contract | Phase 3, Step 3.1 | [x] Completed |
+| REQ-160-008 | Inject request-scoped `pydantic.SecretStr` credentials dynamically per `organization_id` into `LLMFactory`, `LiteLLMProvider`, `ToolDispatcher`, and `GenericMCPClient` with zero cross-tenant bleed | Phase 3, Step 3.2 | [x] Completed |
+| REQ-160-009 | Expose organization BYOK endpoints (`GET`, `PUT`, `DELETE` under `/api/v2/iam/organizations/{org_id}/secrets`) and add AST guardrail in `scripts/_ast_guardrails.py` preventing `SecretStr.get_secret_value()` leakage | Phase 3, Step 3.3 | [x] Completed |
 | REQ-160-010 | Create `RevocationCache` in `[NEW] backend_v2/core/redis_security.py` executing atomic O(1) Dual-Key Redis `MGET revoked:usr:{id} revoked:jti:{jti}` with strict Fail-Closed `503 Service Unavailable` semantics and wire into `get_current_user_from_header` | Phase 4, Step 4.1 | [ ] Pending |
 | REQ-160-011 | Create `TenantRateLimitService` in `[NEW] backend_v2/core/redis_security.py` (per-org `rpm_limit`/`tpm_limit` and edge IP rate limiting) and monthly USD `quota_limit` / `SubscriptionStatus` check in `UsageService.check_quota` | Phase 4, Step 4.2 | [ ] Pending |
 | REQ-160-012 | Create `EmailService` in `[NEW] backend_v2/services/auth/email_service.py` and cryptographic single/batch B2B invitations (`create_invitation`, `create_invitation_batch`, `accept_invitation`) with `allowed_email_domains` and 1:1 Flat Identity Collision Guard | Phase 5, Step 5.1 | [ ] Pending |
@@ -220,6 +220,10 @@
   - **Step 2.1**: Implemented `TokenService.exchange_firebase_token(payload: TokenExchangeRequestDTO) -> TokenExchangeResponseDTO` (enforcing mandatory `firebase.sign_in_second_factor` 2FA, 1:1 `firebase_uid` binding with `ConflictError` on collision, and headless CLI `target_user_id` exchange) and refactored `TokenService.verify_token(token: str) -> TokenData` in `@[backend_v2/services/auth/token_service.py]` to perform 0.1 ms RAM-only `Quorum Local JWT` decode with zero database queries and zero `mock-token:` string prefix branches.
   - **Step 2.2**: Exposed `POST /api/v2/iam/auth/exchange`, `POST /api/v2/iam/auth/logout`, and RFC 8693 `POST /api/v2/iam/auth/impersonate` in `@[backend_v2/api/routers/iam/auth.py]` and `@[backend_v2/services/auth/__init__.py]`, deleted the 4 duplicate `/auth/users*` routes from `@[backend_v2/api/routers/iam/auth.py]`, exposed `POST /api/v2/iam/users` in `@[backend_v2/api/routers/iam/users.py]`, removed catch-all `try ... except Exception` blocks in `@[backend_v2/api/routers/iam/users.py]` and `@[backend_v2/api/routers/iam/organizations.py]`, and upgraded `require_role` in `@[backend_v2/api/dependencies.py]` to accept `Sequence[UserRole] | UserRole`.
   - **Step 2.3**: Implemented `_get_or_refresh_cli_session` with 13-minute auto-refresh (`expires_in_seconds - 120.0`) in `@[scripts/run_e2e_variance_test.py]`, migrated all `"Bearer mock-token:..."` headers in `@[scripts/run_e2e_variance_test.py]` and `@[backend_v2/tests/integration/test_integration_real_llm.py]`, and remediated all 132 `TD_DICT_GET` warnings and 2 `TD_MODEL_FACTORY` warnings (`0` findings across all 80 Epic 160 targets).
+- Completed Phase 3 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
+  - **Step 3.1**: Created `SecretService` in `@[backend_v2/services/auth/secret_service.py]` implementing Dual-Tier BYOK Secret Governance (`CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` with AES-256-GCM DEK + Cloud KMS KEK and `kek_version`) returning a non-nullable `ResolvedCredentialDTO` with zero fallback to platform keys on decryption/lookup failure (`3b27084c8`).
+  - **Step 3.2**: Updated `LLMFactory._resolve_provider_api_key`, `LLMFactory.create_provider`, `LiteLLMProvider`, `ToolDispatcher`, and `GenericMCPClient` to inject request-scoped `pydantic.SecretStr` credentials dynamically per `organization_id` with tenant-isolated router cache keys (`f"{model_id}:{organization_id}"`) and zero secret leakage in `MCPAuditTrace` (`7f759a9f4`).
+  - **Step 3.3**: Added `GET /api/v2/iam/organizations/{org_id}/secrets`, `PUT /api/v2/iam/organizations/{org_id}/secrets`, and `DELETE /api/v2/iam/organizations/{org_id}/secrets/{secret_id}` in `@[backend_v2/api/routers/iam/organizations.py]` guarded by `require_role([UserRole.ROOT, UserRole.ADMIN])`, and added `QGR033` DLP AST guardrail check in `@[scripts/_ast_guardrails.py]` preventing `SecretStr.get_secret_value()` serialization inside logger calls or `MCPAuditTrace` instantiations.
 
 ## Learned
 - `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
@@ -227,10 +231,10 @@
 - `audit_dict_eradication.py` bans `dict[str, JsonValue]` return type annotations on test helper methods (`unauthorized_open_json_annotations`); fixture helpers in unit tests must return concrete validated Pydantic V2 DTOs (`TokenExchangeResponseDTO`) and call `.model_dump(mode="json")` at the mock boundary.
 
 ## Remaining
-- Run `/tier8-audit-plan` on Phase 2 (`@[docs/epic/tasks_EPIC_160/02_phase2_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 3 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
+- Run `/tier8-audit-plan` on Phase 3 (`@[docs/epic/tasks_EPIC_160/03_phase3_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 4 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]
 ```
 

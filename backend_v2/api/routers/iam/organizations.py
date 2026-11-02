@@ -1,21 +1,34 @@
 """Organizations API Router.
 
-Provides canonical SSOT endpoints for managing organizations securely under `/api/v2/iam/organizations`.
+Provides canonical SSOT endpoints for managing organizations and tenant BYOK secrets
+securely under `/api/v2/iam/organizations`.
 """
 
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, OrganizationCreate, OrganizationDeleteResponse
+from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep, require_role
+from backend_v2.models.auth import (
+    Organization,
+    OrganizationCreate,
+    OrganizationDeleteResponse,
+    TenantSecretCreateDTO,
+    TenantSecretResponseDTO,
+    TokenData,
+)
+from backend_v2.models.enums import UserRole
+from backend_v2.services.auth.secret_service import SecretService, get_secret_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/organizations", tags=["Admin IAM V2 - Organizations"])
+
+SecretServiceDep = Annotated[SecretService, Depends(get_secret_service)]
+TenantAdminDep = Annotated[TokenData, Depends(require_role([UserRole.ROOT, UserRole.ADMIN]))]
 
 
 @router.get("/", response_model=list[Organization])
@@ -35,6 +48,94 @@ async def get_all_organizations(current_user: CurrentUserDep, auth_service: Auth
     """
     # Phase 2, Step 2.2: Propagate typed AppExceptions directly without catch-all swallowing
     return await auth_service.list_organizations(current_user)
+
+
+@router.get("/{org_id}/secrets", response_model=list[TenantSecretResponseDTO])
+async def list_organization_secrets(
+    org_id: str,
+    current_user: TenantAdminDep,
+    secret_service: SecretServiceDep,
+) -> list[TenantSecretResponseDTO]:
+    """List redacted BYOK secret metadata records configured for an organization.
+
+    # Phase 3, Step 3.3: GET /api/v2/iam/organizations/{org_id}/secrets guarded by ROOT/ADMIN
+
+    Args:
+        org_id: Target organization identifier (org_<hex32>).
+        current_user: Authenticated ROOT or ADMIN user.
+        secret_service: Injected SecretService dependency.
+
+    Returns:
+        List of redacted TenantSecretResponseDTO instances with masked_hint only.
+
+    Raises:
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller does not own org_id.
+    """
+    return await secret_service.list_tenant_secrets(initiator=current_user, organization_id=org_id)
+
+
+@router.put("/{org_id}/secrets", response_model=TenantSecretResponseDTO)
+async def upsert_organization_secret(
+    org_id: str,
+    payload: TenantSecretCreateDTO,
+    current_user: TenantAdminDep,
+    secret_service: SecretServiceDep,
+) -> TenantSecretResponseDTO:
+    """Provision or rotate a tenant-scoped BYOK secret for an organization.
+
+    # Phase 3, Step 3.3: PUT /api/v2/iam/organizations/{org_id}/secrets guarded by ROOT/ADMIN
+
+    Args:
+        org_id: Target organization identifier (org_<hex32>).
+        payload: Validated TenantSecretCreateDTO containing the SecretStr credential.
+        current_user: Authenticated ROOT or ADMIN user.
+        secret_service: Injected SecretService dependency.
+
+    Returns:
+        Redacted TenantSecretResponseDTO confirming secret configuration and kek_version.
+
+    Raises:
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller does not own org_id.
+        AppException: With ErrorCodes.VALIDATION_FAILED if payload is invalid.
+        ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if KMS wrapping fails.
+    """
+    return await secret_service.upsert_tenant_secret(
+        initiator=current_user,
+        organization_id=org_id,
+        payload=payload,
+    )
+
+
+@router.delete("/{org_id}/secrets/{secret_id}", response_model=OrganizationDeleteResponse)
+async def delete_organization_secret(
+    org_id: str,
+    secret_id: str,
+    current_user: TenantAdminDep,
+    secret_service: SecretServiceDep,
+) -> OrganizationDeleteResponse:
+    """Delete a tenant-scoped BYOK secret from an organization.
+
+    # Phase 3, Step 3.3: DELETE /api/v2/iam/organizations/{org_id}/secrets/{secret_id} guarded by ROOT/ADMIN
+
+    Args:
+        org_id: Owning organization identifier (org_<hex32>).
+        secret_id: Canonical tenant secret identifier (sec_<hex32>).
+        current_user: Authenticated ROOT or ADMIN user.
+        secret_service: Injected SecretService dependency.
+
+    Returns:
+        OrganizationDeleteResponse confirming deletion of secret_id.
+
+    Raises:
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller does not own org_id.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if secret_id does not exist in org_id.
+    """
+    await secret_service.delete_tenant_secret(
+        initiator=current_user,
+        organization_id=org_id,
+        secret_id=secret_id,
+    )
+    return OrganizationDeleteResponse(status="success", deleted_id=secret_id)
 
 
 @router.get("/{id}", response_model=Organization)
@@ -98,20 +199,5 @@ async def delete_organization(
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission.
         AppException: If deleting the organization fails.
     """
-    try:
-        await auth_service.delete_organization(current_user, id)
-        return OrganizationDeleteResponse(status="success", deleted_id=id)
-    except AppException:
-        raise
-    except Exception as e:
-        msg = f"Error deleting organization: {e}"
-        logger.error(
-            "[OrganizationRouter] %s: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "error": str(e), "target_id": id},
-        )
-        raise AppException(
-            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
-        ) from e
+    await auth_service.delete_organization(current_user, id)
+    return OrganizationDeleteResponse(status="success", deleted_id=id)

@@ -1778,6 +1778,44 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                 severity=GuardrailSeverity.FATAL,
                             )
 
+        # Phase 3, Step 3.3: DLP AST guardrail verifying TenantSecretDTO and ResolvedCredentialDTO
+        # never serialize SecretStr via get_secret_value() inside logger calls or MCPAuditTrace instantiations.
+        if not self.is_guardrail_self:
+            is_logger_or_audit_sink = False
+            match node.func:
+                case ast.Name(id="MCPAuditTrace"):
+                    is_logger_or_audit_sink = True
+                case ast.Attribute(attr="MCPAuditTrace" | "log_event"):
+                    is_logger_or_audit_sink = True
+                case ast.Attribute(
+                    attr="debug" | "info" | "warning" | "warn" | "error" | "critical" | "exception" | "log",
+                    value=recv_expr,
+                ):
+                    root_logger_id = _get_root_identifier(recv_expr)
+                    if root_logger_id in {"logger", "logging", "log"} or (
+                        isinstance(recv_expr, ast.Attribute) and recv_expr.attr in {"logger", "_logger"}
+                    ):
+                        is_logger_or_audit_sink = True
+                case _:
+                    is_logger_or_audit_sink = False
+
+            if is_logger_or_audit_sink:
+                sink_nodes: list[ast.expr] = list(node.args) + [kw.value for kw in node.keywords]
+                for sink_arg in sink_nodes:
+                    for sub_node in ast.walk(sink_arg):
+                        if (
+                            isinstance(sub_node, ast.Call)
+                            and isinstance(sub_node.func, ast.Attribute)
+                            and sub_node.func.attr == "get_secret_value"
+                        ):
+                            self._add_violation(
+                                sub_node,
+                                "QGR033",
+                                f"Banned `SecretStr.get_secret_value()` serialization `{ast.unparse(sub_node)}` inside logger or `MCPAuditTrace` sink.",
+                                "Never unwrap `TenantSecretDTO` or `ResolvedCredentialDTO` `SecretStr` values via `get_secret_value()` inside logger calls, audit events, or `MCPAuditTrace` instantiations; log only `masked_hint` or opaque identifiers.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
+
         self.generic_visit(node)
 
     def visit_AsyncWith(self, node: ast.AsyncWith) -> None:

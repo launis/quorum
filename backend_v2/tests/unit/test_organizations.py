@@ -6,15 +6,18 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import SecretStr
 
 from backend_v2.api.routers.iam.organizations import (
     delete_organization,
+    delete_organization_secret,
     get_all_organizations,
     get_organization,
+    list_organization_secrets,
     save_organization,
+    upsert_organization_secret,
 )
 from backend_v2.exceptions import (
-    AppException,
     PermissionDeniedError,
     ResourceNotFoundError,
 )
@@ -23,9 +26,13 @@ from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
     SubscriptionStatus,
+    TenantSecretCreateDTO,
     TokenData,
     UserRole,
 )
+from backend_v2.models.enums import LLMProvider, SecretScope
+from backend_v2.services.auth.secret_service import SecretService
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 ORG_ID = "org_0195f3a0000070008000000000000010"
 
@@ -117,12 +124,58 @@ async def test_organizations_router_delete_error_branches_negative(
     mock_current_user: TokenData,
     mock_auth_service: AsyncMock,
 ) -> None:
-    """Negative: Verify delete_organization propagates AppException and wraps unexpected errors in 500 AppException."""
+    """Negative: Verify delete_organization propagates PermissionDeniedError and ResourceNotFoundError directly."""
     mock_auth_service.delete_organization.side_effect = PermissionDeniedError("Cannot delete system org")
     with pytest.raises(PermissionDeniedError):
         await delete_organization(id=ORG_ID, current_user=mock_current_user, auth_service=mock_auth_service)
 
-    mock_auth_service.delete_organization.side_effect = RuntimeError("Database connection lost")
-    with pytest.raises(AppException) as exc:
+    mock_auth_service.delete_organization.side_effect = ResourceNotFoundError("Organization", ORG_ID)
+    with pytest.raises(ResourceNotFoundError):
         await delete_organization(id=ORG_ID, current_user=mock_current_user, auth_service=mock_auth_service)
-    assert exc.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_organizations_router_byok_secrets_endpoints_positive_and_negative(
+    mock_current_user: TokenData,
+) -> None:
+    """Positive & Negative: Verify list_organization_secrets, upsert_organization_secret, and delete_organization_secret."""
+    uow = InMemoryUnitOfWork()
+    secret_service = SecretService(entity_adapter=uow.entities)
+
+    created = await upsert_organization_secret(
+        org_id=ORG_ID,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.OPENAI.value,
+            plaintext_secret=SecretStr("sk-org-router-unit-9876"),
+        ),
+        current_user=mock_current_user,
+        secret_service=secret_service,
+    )
+    assert created.organization_id == ORG_ID
+    assert created.masked_hint == "****9876"
+
+    secrets_list = await list_organization_secrets(
+        org_id=ORG_ID,
+        current_user=mock_current_user,
+        secret_service=secret_service,
+    )
+    assert len(secrets_list) == 1
+    assert secrets_list[0].id == created.id
+
+    deleted = await delete_organization_secret(
+        org_id=ORG_ID,
+        secret_id=created.id,
+        current_user=mock_current_user,
+        secret_service=secret_service,
+    )
+    assert deleted.status == "success"
+    assert deleted.deleted_id == created.id
+
+    with pytest.raises(ResourceNotFoundError):
+        await delete_organization_secret(
+            org_id=ORG_ID,
+            secret_id=created.id,
+            current_user=mock_current_user,
+            secret_service=secret_service,
+        )

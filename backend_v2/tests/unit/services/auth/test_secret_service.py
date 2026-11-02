@@ -8,6 +8,11 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import SecretStr
 
+from backend_v2.api.routers.iam.organizations import (
+    delete_organization_secret,
+    list_organization_secrets,
+    upsert_organization_secret,
+)
 from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
@@ -52,6 +57,7 @@ from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+from scripts._ast_guardrails import scan_source_code_for_guardrails
 
 
 class _RecordingAuditLogger(AuditLoggerProtocol):
@@ -650,3 +656,94 @@ async def test_llm_factory_and_dispatcher_byok_request_scoped_injection_positive
     assert captured_cred[0] is not None
     assert captured_cred[0].secret_value.get_secret_value() == "mcp-bearer-secret-9999"
     assert "mcp-bearer-secret-9999" not in str(audit_trace.model_dump(mode="json"))
+
+
+@pytest.mark.asyncio
+async def test_organizations_byok_router_endpoints_positive_and_negative() -> None:
+    """Positive & Negative: Verify GET/PUT/DELETE /organizations/{org_id}/secrets endpoints and tenant isolation."""
+    uow = InMemoryUnitOfWork()
+    audit_logger = _RecordingAuditLogger()
+    service = SecretService(entity_adapter=uow.entities, audit_service=audit_logger)
+
+    org_a = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    org_b = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_a = _make_token_data(role=UserRole.ADMIN, organization_id=org_a)
+
+    created = await upsert_organization_secret(
+        org_id=org_a,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.OPENAI.value,
+            plaintext_secret=SecretStr("sk-org-router-test-7777"),
+        ),
+        current_user=admin_a,
+        secret_service=service,
+    )
+    assert created.organization_id == org_a
+    assert created.masked_hint == "****7777"
+
+    listed = await list_organization_secrets(
+        org_id=org_a,
+        current_user=admin_a,
+        secret_service=service,
+    )
+    assert len(listed) == 1
+    assert listed[0].id == created.id
+
+    with pytest.raises(PermissionDeniedError) as cross_exc:
+        await list_organization_secrets(
+            org_id=org_b,
+            current_user=admin_a,
+            secret_service=service,
+        )
+    assert cross_exc.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+
+    del_resp = await delete_organization_secret(
+        org_id=org_a,
+        secret_id=created.id,
+        current_user=admin_a,
+        secret_service=service,
+    )
+    assert del_resp.status == "success"
+    assert del_resp.deleted_id == created.id
+
+
+def test_dlp_ast_guardrail_secret_str_leakage_detection_positive_and_negative() -> None:
+    """Positive & Negative: Verify QGR033 catches get_secret_value() in logger and MCPAuditTrace calls."""
+    bad_source = '''"""Module docstring."""
+import logging
+from backend_v2.models.auth import ResolvedCredentialDTO
+from backend_v2.models.domain.mcp import MCPAuditTrace
+
+logger = logging.getLogger(__name__)
+
+
+def leak_in_log(cred: ResolvedCredentialDTO) -> None:
+    """Bad function leaking secret in logger."""
+    logger.info("Resolved key", extra={"raw": cred.secret_value.get_secret_value()})
+    MCPAuditTrace(
+        step_id="stp_0195f3a0000070008000000000000001",
+        gateway_id="sys_0195f3a0000070008000000000000001",
+        tool_name=cred.secret_value.get_secret_value(),
+        arguments={},
+        status="SUCCESS",
+        latency_ms=1.0,
+    )
+'''
+    violations = scan_source_code_for_guardrails("backend_v2/services/mcp/bad_sink.py", bad_source.encode("utf-8"))
+    qgr033_msgs = [v.message for v in violations if v.rule_code == "QGR033" and "get_secret_value" in v.message]
+    assert len(qgr033_msgs) == 2
+
+    clean_source = '''"""Module docstring."""
+from backend_v2.models.auth import ResolvedCredentialDTO
+
+
+def safe_header_bind(cred: ResolvedCredentialDTO) -> str:
+    """Bind header safely outside logger or audit trace."""
+    return f"Bearer {cred.secret_value.get_secret_value()}"
+'''
+    clean_violations = scan_source_code_for_guardrails(
+        "backend_v2/services/mcp/safe_bind.py", clean_source.encode("utf-8")
+    )
+    clean_qgr033 = [v for v in clean_violations if v.rule_code == "QGR033" and "get_secret_value" in v.message]
+    assert clean_qgr033 == []
