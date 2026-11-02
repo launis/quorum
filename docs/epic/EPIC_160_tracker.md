@@ -56,7 +56,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_160/03_phase3_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/03_phase3_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]` (`792a2fe62`)
   - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
   - [x] Step 3.1: `SecretService` (Cloud Secret Manager & Envelope Encryption — Single-Pipeline Non-Nullable Resolution)
   - [x] Step 3.2: Request-Scoped Credential Injection in `LiteLLMProvider` & `GenericMCPClient`
@@ -223,7 +223,7 @@
 - Completed Phase 3 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
   - **Step 3.1**: Created `SecretService` in `@[backend_v2/services/auth/secret_service.py]` implementing Dual-Tier BYOK Secret Governance (`CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` with AES-256-GCM DEK + Cloud KMS KEK and `kek_version`) returning a non-nullable `ResolvedCredentialDTO` with zero fallback to platform keys on decryption/lookup failure (`3b27084c8`).
   - **Step 3.2**: Updated `LLMFactory._resolve_provider_api_key`, `LLMFactory.create_provider`, `LiteLLMProvider`, `ToolDispatcher`, and `GenericMCPClient` to inject request-scoped `pydantic.SecretStr` credentials dynamically per `organization_id` with tenant-isolated router cache keys (`f"{model_id}:{organization_id}"`) and zero secret leakage in `MCPAuditTrace` (`7f759a9f4`).
-  - **Step 3.3**: Added `GET /api/v2/iam/organizations/{org_id}/secrets`, `PUT /api/v2/iam/organizations/{org_id}/secrets`, and `DELETE /api/v2/iam/organizations/{org_id}/secrets/{secret_id}` in `@[backend_v2/api/routers/iam/organizations.py]` guarded by `require_role([UserRole.ROOT, UserRole.ADMIN])`, and added `QGR033` DLP AST guardrail check in `@[scripts/_ast_guardrails.py]` preventing `SecretStr.get_secret_value()` serialization inside logger calls or `MCPAuditTrace` instantiations.
+  - **Step 3.3**: Added `GET /api/v2/iam/organizations/{org_id}/secrets`, `PUT /api/v2/iam/organizations/{org_id}/secrets`, and `DELETE /api/v2/iam/organizations/{org_id}/secrets/{secret_id}` in `@[backend_v2/api/routers/iam/organizations.py]` guarded by `require_role([UserRole.ROOT, UserRole.ADMIN])`, added `QGR033` DLP AST guardrail check in `@[scripts/_ast_guardrails.py]` preventing `SecretStr.get_secret_value()` serialization inside logger calls or `MCPAuditTrace` instantiations (`3c051f263`), and updated subpackage test discovery in `@[scripts/backend_audit_loop.py]` (`792a2fe62`).
 
 ## Learned
 - `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
