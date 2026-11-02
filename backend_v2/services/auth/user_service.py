@@ -49,7 +49,6 @@ _ROLE_HIERARCHY: dict[UserRole, int] = {
     UserRole.MEMBER: 10,
     UserRole.VIEWER: 5,
 }
-_REVOCATION_TTL_SECONDS: int = 900
 
 
 class UserService:
@@ -357,7 +356,7 @@ class UserService:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if permissions are insufficient or target is protected.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the user violates Last Admin Protection.
         """
-        # Phase 5, Step 5.3: Execute in-place GDPR Soft-Delete anonymization
+        # Execute in-place GDPR Soft-Delete anonymization
         logger.info("[UserService] delete_user called. Initiator: %s, Target: %s", initiator_id, target_id)
 
         initiator = await self.repo.get_by_id(initiator_id)
@@ -486,11 +485,13 @@ class UserService:
         Returns:
             Anonymized User model persisted in the repository.
         """
-        # Phase 5, Step 5.3: 1. Trigger RevocationCache kill-switch first
+        # Trigger RevocationCache kill-switch before anonymizing the user record
         if self.revocation_cache is not None:
-            await self.revocation_cache.revoke_user_sessions(target.id, ttl_seconds=_REVOCATION_TTL_SECONDS)
+            await self.revocation_cache.revoke_user_sessions(
+                target.id, ttl_seconds=get_settings().iam_revocation_ttl_seconds
+            )
 
-        # Phase 5, Step 5.3: 2. In-place GDPR anonymization preserving executions foreign keys
+        # In-place GDPR anonymization preserving executions foreign keys
         anonymized = target.model_copy(
             update={
                 "is_active": False,
@@ -517,7 +518,7 @@ class UserService:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if targeting SYSTEM_ROOT_USER_ID.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last active administrator.
         """
-        # Phase 5, Step 5.3: Webhook-triggered GDPR Soft-Delete by firebase_uid
+        # Webhook-triggered GDPR Soft-Delete by firebase_uid
         target = await self.repo.get_by_firebase_uid(firebase_uid)
         if target is None:
             target = await self.repo.get_by_id(firebase_uid)
@@ -585,7 +586,7 @@ class UserService:
             AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if HMAC signature is missing or invalid.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found.
         """
-        # Phase 5, Step 5.3: Validate X-Quorum-Webhook-Signature HMAC against firebase_webhook_secret
+        # Validate X-Quorum-Webhook-Signature HMAC against firebase_webhook_secret
         settings = get_settings()
         if settings.firebase_webhook_secret is None:
             msg = "Firebase webhook secret is not configured."
@@ -862,7 +863,9 @@ class UserService:
         org_changed = updates.organization_id is not None and updates.organization_id != target.organization_id
         deactivated = updates.is_active is False
         if role_changed or org_changed or deactivated:
-            await self.revocation_cache.revoke_user_sessions(target.id, ttl_seconds=_REVOCATION_TTL_SECONDS)
+            await self.revocation_cache.revoke_user_sessions(
+                target.id, ttl_seconds=get_settings().iam_revocation_ttl_seconds
+            )
 
     async def update_user_role(self, initiator_id: str, target_id: str, new_role: UserRole) -> User:
         """Updates a user's role with strict Last Admin Protection and immediate Redis session revocation.
@@ -949,7 +952,9 @@ class UserService:
             )
 
         if self.revocation_cache is not None and new_role != target.role:
-            await self.revocation_cache.revoke_user_sessions(target_id, ttl_seconds=_REVOCATION_TTL_SECONDS)
+            await self.revocation_cache.revoke_user_sessions(
+                target_id, ttl_seconds=get_settings().iam_revocation_ttl_seconds
+            )
 
         if self.audit_service:
             await self.audit_service.log_event(
