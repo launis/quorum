@@ -17,8 +17,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'organization_iam_settings_view.g.dart';
 
-// Phase 6, Step 6.2: Role-Segregated Organization IAM, Task Assignments & BYOK Secrets Studio UI (/organization).
-
 @riverpod
 Future<Organization> organizationProfile(Ref ref, String orgId) async {
   final result = await ref.watch(userRepositoryProvider).getOrganization(orgId);
@@ -415,6 +413,10 @@ class _TaskAssignmentsManagementCard extends HookConsumerWidget {
               ],
             ),
             AppSpacing.h16,
+            if (actionMutation.hasError) ...[
+              ErrorView(error: actionMutation.error!, compact: true),
+              AppSpacing.h12,
+            ],
             switch (assignmentsAsync) {
               AsyncLoading() => const Center(
                 child: CircularProgressIndicator(),
@@ -720,7 +722,10 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
                 ])
                   DropdownMenuItem(
                     value: role,
-                    child: Text(role.name.toUpperCase()),
+                    child: Text(
+                      role.name.toUpperCase(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
               onChanged: (val) {
@@ -728,6 +733,10 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
               },
             ),
             AppSpacing.h12,
+            if (mutation.hasError) ...[
+              ErrorView(error: mutation.error!, compact: true),
+              AppSpacing.h12,
+            ],
             OutlinedButton.icon(
               key: const Key('org_send_invite_btn'),
               onPressed: mutation.isLoading ? null : sendInvite,
@@ -821,7 +830,10 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
                               for (final role in UserRole.values)
                                 DropdownMenuItem(
                                   value: role,
-                                  child: Text(role.name.toUpperCase()),
+                                  child: Text(
+                                    role.name.toUpperCase(),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                             ],
                             onChanged: (newRole) {
@@ -1005,6 +1017,10 @@ class _ByokSecretsCard extends HookConsumerWidget {
               ),
             ),
             AppSpacing.h12,
+            if (mutation.hasError) ...[
+              ErrorView(error: mutation.error!, compact: true),
+              AppSpacing.h12,
+            ],
             OutlinedButton.icon(
               key: const Key('org_save_secret_btn'),
               onPressed: mutation.isLoading ? null : saveSecret,

@@ -350,5 +350,64 @@ void main() {
         expect(find.text('****abcd'), findsOneWidget);
       }
     });
+
+    testWidgets(
+      'negative: renders ErrorView when organization profile fetch fails with AppException',
+      (WidgetTester tester) async {
+        final execClient = _FakeExecutionClient();
+        final failingRepo = _FailingUserRepository();
+
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: userWithRole(UserRole.admin),
+            userRepo: failingRepo,
+            execClient: execClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('org_metadata_card')), findsOneWidget);
+        expect(find.byIcon(Icons.error_outline), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'boundary: renders errorNotFound when organizationId is empty or null',
+      (WidgetTester tester) async {
+        final userRepo = _FakeUserRepository();
+        final execClient = _FakeExecutionClient();
+
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: const User(
+              id: 'usr_01960000000070008000000000000009',
+              email: 'orphan_admin@quorum.ai',
+              role: UserRole.admin,
+              organizationId: '',
+            ),
+            userRepo: userRepo,
+            execClient: execClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(Scaffold)),
+        )!;
+        expect(find.byKey(const Key('org_metadata_card')), findsNothing);
+        expect(find.text(l10n.errorNotFound), findsOneWidget);
+      },
+    );
   });
+}
+
+class _FailingUserRepository extends _FakeUserRepository {
+  @override
+  Future<Either<AppException, Organization>> getOrganization(
+    String orgId,
+  ) async {
+    return Left(
+      AppException.server('Organization backend unavailable'),
+    );
+  }
 }
