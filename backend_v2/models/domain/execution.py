@@ -2,7 +2,7 @@
 
 SSOT for FrozenContext, ExecutionCreate, ExecutionStep, ExecutionStepState,
 ExecutionSummarySnapshot, EvaluatedMatrixContextDTO, ExecutionRecord,
-JobAcceptedDTO, and EvidenceRejectionRequest.
+JobAcceptedDTO, EvidenceRejectionRequest, and ExecutionAssignment.
 """
 
 from __future__ import annotations
@@ -90,6 +90,9 @@ def _resolve_default_matrix_sampling_limit() -> int:
 
     In production environment (matrix_sampling_limit=0), defaults to full evaluation (0 = all atoms).
     In development environment (matrix_sampling_limit=1), defaults to fast sampled execution.
+
+    Returns:
+        Configured integer matrix sampling limit from system settings.
     """
     from backend_v2.settings import get_settings
 
@@ -228,7 +231,6 @@ class ExecutionRecord(ExecutionCoreFields):
     id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     workflow_version: int = Field(default=1, ge=1, description="Version number of the executing workflow")
-    # Phase 4, Step 4.1: Add monotonic optimistic concurrency control state_version
     state_version: Annotated[
         int,
         Field(ge=1, default=1, description="Monotonically increasing optimistic concurrency control version"),

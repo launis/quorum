@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from backend_v2.models.domain.execution import (
     EvaluatedMatrixContextDTO,
     EvidenceRejectionRequest,
+    ExecutionAssignment,
     ExecutionCreate,
     ExecutionRecord,
     ExecutionStep,
@@ -15,6 +16,7 @@ from backend_v2.models.domain.execution import (
     FrozenContext,
     JobAcceptedDTO,
 )
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
@@ -35,7 +37,7 @@ def test_theory_manifest_immutability() -> None:
     manifest = InjectedTheoryManifestDTO(theories={"th_1": "Theory text"})
     assert manifest.theories["th_1"] == "Theory text"
     with pytest.raises((ValidationError, TypeError)):
-        manifest.theories = {"th_2": "New"}
+        manifest.theories = {"th_2": "New"}  # type: ignore[misc]
 
 
 def test_schema_manifest_immutability() -> None:
@@ -44,13 +46,15 @@ def test_schema_manifest_immutability() -> None:
     assert "stp_1" in manifest
     assert manifest["stp_1"] == {"type": "object"}
     with pytest.raises((ValidationError, TypeError)):
-        manifest.schemas = {"stp_2": {"type": "string"}}
+        manifest.schemas = {"stp_2": {"type": "string"}}  # type: ignore[misc]
 
 
 def test_execution_create_defaults() -> None:
-    ec = ExecutionCreate(
-        workflow_id="wor_0195f3a0000070018234567890abcdef",
-        target_locale="fi",
+    ec = ExecutionCreate.model_validate(
+        {
+            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+            "target_locale": "fi",
+        }
     )
     assert ec.workflow_id == "wor_0195f3a0000070018234567890abcdef"
     assert ec.target_locale == "fi"
@@ -61,13 +65,15 @@ def test_execution_create_defaults() -> None:
 
 
 def test_execution_create_custom_and_validator() -> None:
-    ec = ExecutionCreate(
-        workflow_id="wor_0195f3a0000070018234567890abcdef",
-        target_locale="en",
-        profile_id="pro_0195f3a0000070018234567890abcdef",
-        matrix_sampling_strategy=None,
-        provider_override=LLMProvider.OPENAI,
-        model_registry_id="reg_0195f3a0000070018234567890abcdef",
+    ec = ExecutionCreate.model_validate(
+        {
+            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+            "target_locale": "en",
+            "profile_id": "pro_0195f3a0000070018234567890abcdef",
+            "matrix_sampling_strategy": None,
+            "provider_override": LLMProvider.OPENAI,
+            "model_registry_id": "reg_0195f3a0000070018234567890abcdef",
+        }
     )
     assert ec.matrix_sampling_strategy > 0
     assert ec.provider_override == LLMProvider.OPENAI
@@ -141,7 +147,7 @@ def test_execution_summary_snapshot_zero_strictness_boundary() -> None:
 def test_evaluated_matrix_context_dto() -> None:
     dto = EvaluatedMatrixContextDTO(
         evaluated_atoms={"atm_1": "PASSED"},
-        raw_atoms=[EvaluatedAtomDTO(tda_id="atm_1", status="PASSED", score=1.0)],
+        raw_atoms=[EvaluatedAtomDTO.model_validate({"tda_id": "atm_1", "status": "PASSED", "score": 1.0})],
     )
     assert dto.evaluated_atoms == {"atm_1": "PASSED"}
     assert len(dto.raw_atoms) == 1
@@ -257,3 +263,109 @@ def test_execution_record_with_step_passed_forwarder() -> None:
     assert step.status == ExecutionStatus.PASSED
     assert step.progress == 100
     assert updated.step_states["stp_render"] == step
+
+
+def test_execution_record_without_profile_synthesis() -> None:
+    cache_item = RenderedSynthesisCache.model_validate({})
+    rec = ExecutionRecord(
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        target_locale="fi",
+        status=ExecutionStatus.PASSED,
+        profile_syntheses={"prf_0195f3a0000070018234567890abcdef": cache_item},
+        created_at=datetime.now(timezone.utc),
+    )
+    unchanged = rec.without_profile_synthesis("prf_99999999999970018234567890abcdef")
+    assert unchanged is rec
+
+    removed = rec.without_profile_synthesis("prf_0195f3a0000070018234567890abcdef")
+    assert "prf_0195f3a0000070018234567890abcdef" not in removed.profile_syntheses
+    assert "prf_0195f3a0000070018234567890abcdef" in rec.profile_syntheses
+
+
+def test_execution_record_transition_step_updates_label_and_merkle_hash() -> None:
+    initial_step = ExecutionStep(
+        id="stp_0195f3a0000070018234567890abcdef",
+        label="Initial Label",
+        status=ExecutionStatus.RUNNING,
+    )
+    rec = ExecutionRecord(
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        target_locale="fi",
+        status=ExecutionStatus.RUNNING,
+        steps=[initial_step],
+        step_states={"stp_0195f3a0000070018234567890abcdef": initial_step},
+        created_at=datetime.now(timezone.utc),
+    )
+    updated = rec.transition_step(
+        step_id="stp_0195f3a0000070018234567890abcdef",
+        status=ExecutionStatus.PASSED,
+        label="Updated Label",
+        input_merkle_hash="a" * 64,
+    )
+    assert updated.steps[0].label == "Updated Label"
+    assert updated.steps[0].input_merkle_hash == "a" * 64
+
+
+@pytest.mark.parametrize("invalid_strictness", [-1, 101])
+def test_execution_summary_snapshot_invalid_strictness_bounds(invalid_strictness: int) -> None:
+    """ISTQB Negative Boundary Test: strictness_level outside [0, 100] raises ValidationError."""
+    with pytest.raises(ValidationError):
+        ExecutionSummarySnapshot(strictness_level=invalid_strictness)
+
+
+@pytest.mark.parametrize("invalid_progress", [-1, 101])
+def test_execution_step_invalid_progress_bounds(invalid_progress: int) -> None:
+    """ISTQB Negative Boundary Test: progress outside [0, 100] raises ValidationError."""
+    with pytest.raises(ValidationError):
+        ExecutionStep(
+            id="stp_step12345678",
+            label="Analyst Step",
+            progress=invalid_progress,
+        )
+
+
+def test_execution_assignment_instantiation_and_iso_coercion() -> None:
+    """Verify ExecutionAssignment instantiation and ISO 8601 string timestamp coercion."""
+    assignment = ExecutionAssignment.model_validate(
+        {
+            "organization_id": "org_0195f3a0000070018234567890abcdef",
+            "assigned_email": "candidate@example.com",
+            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+            "token_hash": "a" * 64,
+            "hard_deadline_at": "2026-12-31T23:59:59Z",
+            "created_by": "usr_0195f3a0000070018234567890abcdef",
+        }
+    )
+    assert assignment.id.startswith("tsk_")
+    assert assignment.hard_deadline_at == datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    assert assignment.activated_at is None
+
+
+def test_execution_assignment_negative_boundaries() -> None:
+    """ISTQB Negative Boundary Test: invalid relative_duration_seconds (<60) and invalid ISO timestamp."""
+    with pytest.raises(ValidationError):
+        ExecutionAssignment.model_validate(
+            {
+                "organization_id": "org_0195f3a0000070018234567890abcdef",
+                "assigned_email": "candidate@example.com",
+                "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+                "token_hash": "a" * 64,
+                "hard_deadline_at": datetime.now(timezone.utc),
+                "relative_duration_seconds": 59,
+                "created_by": "usr_0195f3a0000070018234567890abcdef",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        ExecutionAssignment.model_validate(
+            {
+                "organization_id": "org_0195f3a0000070018234567890abcdef",
+                "assigned_email": "candidate@example.com",
+                "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+                "token_hash": "a" * 64,
+                "hard_deadline_at": "not-a-timestamp",
+                "created_by": "usr_0195f3a0000070018234567890abcdef",
+            }
+        )

@@ -111,7 +111,7 @@
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/exceptions.py]
   - [x] @[backend_v2/models/auth.py]
-  - [ ] @[backend_v2/models/domain/execution.py]
+  - [x] @[backend_v2/models/domain/execution.py]
   - [ ] @[backend_v2/database/interfaces.py]
   - [ ] @[backend_v2/database/postgres/entity_adapter/__init__.py]
   - [ ] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
