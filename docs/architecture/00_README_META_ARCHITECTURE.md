@@ -10,7 +10,7 @@ This directory (`docs/architecture/`) contains the foundational meta-architectur
 
 Architecture in Quorum is defined along two isolated axes:
 1. **The Theoretical Axis (The Narrative):** This directory (`docs/architecture/`). It explains the *why*, the *concepts*, and the *capabilities* of the 9 pillars without referencing specific file paths, temporary code snippets, or implementations.
-2. **The Physical Axis (The Map):** The `.agents/rules/04_directory_reference.md` rule file. It contains the hardcoded, physical paths and module boundaries (e.g., `backend_v2/services/`, `client_app_v2/lib/features/`).
+2. **The Physical Axis (The Map):** The `.agents/rules/04_directory_reference.md` rule file. It contains the hardcoded, physical paths and module boundaries (`backend_v2/services/` and `client_app_v2/lib/features/`).
 
 By separating the theoretical from the physical, the system can continuously refactor directories without invalidating the architectural theory, and vice-versa.
 
@@ -30,12 +30,12 @@ The core architecture is structured across dedicated architectural pillars:
 ## 3. The Golden Rule: Timelessness & Pure Present-Tense Description
 
 The documents in this directory MUST remain absolutely timeless, stateless, and focused purely on what the system currently consists of:
-- **BANNED:** Project phases or development stages (e.g., "Phase 1", "Phase 2", "vaiheet", "rollout phases").
-- **BANNED:** Mentioning Epic IDs (e.g., "In Epic 115 we added...").
-- **BANNED:** Historical comparisons or legacy migrations (e.g., "The old V1 system used X, but now we use Y").
+- **BANNED:** Project development stages ("vaiheet" or rollout stages).
+- **BANNED:** Mentioning task or initiative identifiers.
+- **BANNED:** Historical comparisons or legacy migrations ("The old V1 system used X, but now we use Y").
 - **BANNED:** Dates, future roadmaps, or "in-progress" markers.
-- **BANNED:** Physical file paths (e.g., `backend_v2/api/routers/`).
-- **BANNED:** Artificial meta-rule framing such as `- **Law:**` / `- **Enforcement:**` or labeling sections as "(The Laws)".
+- **BANNED:** Physical file paths (`backend_v2/api/routers/`) inside pillar documents `01_` through `09_`.
+- **BANNED:** Artificial meta-rule framing (`- **Law:**`, `- **Enforcement:**`, or `(The Laws)`).
 
 The documents must describe the system purely and exclusively as it exists *now*, in the present tense, as an objective state of truth ("kerro ainoastaan ja puhtaasti se mitä meillä on nyt").
 
@@ -52,3 +52,52 @@ The documents must describe the system purely and exclusively as it exists *now*
 4. **Physical Map Update:** If directories were changed, the AI updates `.agents/rules/04_directory_reference.md` directly.
 
 This creates a "Write-Once, Synthesize-Everywhere" paradigm that ensures the global architecture remains universally accurate without manual chore-work.
+
+## 5. Scientific Verification, Multi-Model Variance & Component Ablation Runbook
+
+To obtain the most rigorous, unbiased empirical verification of the Quorum neurosymbolic runtime and eliminate single-model self-confirmation bias, cache-assisted false consistency, and tokenization artifacts, execute the **Dual-Tier Two-Model Verification Protocol** across two independent foundation model families (Google Gemini and OpenAI GPT).
+
+### 5.1 Environment & Authentication Architecture
+1. **Environment Credentials (`.env`):**
+   - Configure both provider API keys in `.env`: `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) for Google AI Studio (`LLMProvider.AI_STUDIO`) and `OPENAI_API_KEY` for OpenAI (`LLMProvider.OPENAI`).
+   - For local HTTP variance execution against the backend API, ensure `ENVIRONMENT=development` (or `ENABLE_MOCK_AUTH=true`) is active so the IAM token exchange endpoint accepts local mock tokens.
+2. **Decoupled Authentication Mechanics:**
+   - **Macro E2E Variance Runner (`scripts/run_e2e_variance_test.py`):** Communicates over HTTP and SSE with the active FastAPI backend and Arq worker daemon. It authenticates via `POST /api/v2/iam/auth/exchange` using `mock_token:usr_0195f3a0000070008000000000000001` (Principal Admin), receives a 15-minute Quorum Local JWT, and automatically refreshes the token at the 13-minute mark (`_get_or_refresh_cli_session`) to prevent `401 Unauthorized` expirations during multi-hour runs.
+   - **Micro Component Ablation Runner (`scripts/run_ablation_benchmark.py`):** Executes in-process via `scripts/ablation_live_executor.py` directly against `LiteLLMProvider` and `AnchorValidationService` without HTTP or Arq worker overhead. It requires no HTTP JWT token and resolves provider credentials directly from `.env` (`Settings`) and cognitive tier mappings from `backend_v2/seed/seed_data.json`.
+
+### 5.2 Step 1 — Macro End-to-End Two-Model Production Variance Run
+With PostgreSQL 19, Redis, the FastAPI backend (`uv run uvicorn backend_v2.main:app --port 8000`), and the Arq background worker (`uv run arq backend_v2.worker.WorkerSettings`) running, execute the full E2E variance test across both Google and OpenAI model registries:
+
+```powershell
+# 1. Execute 3 un-cached production DAG runs per model registry (Google Gemini vs. OpenAI GPT)
+#    with default Unicode whitespace perturbation (U+00A0, U+2002, U+2003, U+2009) and 15s cooldowns:
+uv run python scripts/run_e2e_variance_test.py --compare-registries google openai --num-runs 3 --no-cache --cooldown-seconds 15 --output-dir data/files/variance_reports
+
+# 2. Run deep differential and root-cause disagreement analysis across the resulting execution IDs:
+uv run python scripts/diff_executions.py <google_exec_1> <google_exec_2> <google_exec_3> <openai_exec_1> <openai_exec_2> <openai_exec_3>
+```
+
+**Why this guarantees maximum scientific honesty:**
+- **`--compare-registries google openai`**: Evaluates the exact same workflow and source documents across two distinct model families (`sys_0195f3a00000700e826807f3bfa3454d` and `sys_0195f3a0000070038ba992b15075498b`), automatically restoring the original workflow registry inside a `try...finally` block upon completion.
+- **`--no-cache` + Default Stride Whitespace Perturbation**: Disables semantic and LLM caching and injects distinct non-breaking Unicode spaces into Layer 4 source documents on each run, breaking Byte-Pair Encoding (BPE) token sequence identity and SHA-256 prefix cache hashes while preserving 100% semantic meaning.
+- **`--num-runs 3 --cooldown-seconds 15`**: Enables multi-rater Fleiss' Kappa ($\kappa_{\text{Fleiss}}$) and non-redundant binary Shannon Entropy ($\bar{H}$) estimation while preventing upstream RPM rate-limit throttling from skewing Best-of-3 consensus.
+
+### 5.3 Step 2 — Micro 5-Configuration Two-Provider Live Component Ablation
+Execute the controlled 5-configuration component ablation benchmark (`1: Full Quorum Bo3 + Lexical Firewall`, `2: Quorum without Lexical Firewall`, `3: Quorum Single-Pass k=1`, `4: Atom-Level Unconstrained Judge`, `5: Monolithic Step-Level Judge`) across all $N = 220$ proposition frames (`Pair A: Remote Work Policy` and `Pair B: Strategic Foresight / Sitra`) on both providers:
+
+```powershell
+# 1. Live Dual-Provider Component Ablation (AI Studio Gemini vs. OpenAI GPT) with blinded human audit manifest export:
+uv run python scripts/run_ablation_benchmark.py --mode live --config all --runs 2 --compare-providers ai_studio openai --strictness 85 --export-manifest all --manifest-format csv
+
+# 2. Zero-Token Replay Strictness Sensitivity Sweep across frozen production execution traces:
+uv run python scripts/run_ablation_benchmark.py --mode replay --config all --strictness-levels 0 50 70 85 100
+
+# 3. Zero-Token In-Silico Stress Test (19.7% chimera attack pressure and 0.9% transient API drop pressure):
+uv run python scripts/run_ablation_benchmark.py --mode in-silico --config all --inject-chimera-rate 0.197 --inject-dlq-rate 0.009
+```
+
+**Key Scientific Outputs Produced (`data/files/ablation_reports/`):**
+- **Within-Provider & Cross-Provider Agreement**: Reports Observed Raw Agreement ($P_o$), Cohen's Kappa ($\kappa_{\text{Cohen}}$), Fleiss' Kappa ($\kappa_{\text{Fleiss}}$), and cross-provider inter-rater reliability (`cross_provider_kappa` between `ai_studio` and `openai`).
+- **Hierarchical Cluster-Bootstrapped Confidence Intervals**: Reports both naive asymptotic standard errors and two-stage cluster-bootstrapped 95% confidence intervals (`ClusterBootstrapMetricsDTO`, $K = 10$ step clusters, $B = 2,000$ iterations) accounting for intra-batch correlation ($\text{Deff}^{1/2}$).
+- **Mechanistic Defense Quantification**: Measures exact Chimera Quote Interception Rate ($\text{Specificity}_{\text{lex}} = 1.000$ in Configuration 1 vs. unanchored leakage in Configuration 2) and Monolithic Criterion Omission Rate (`DLQ` in Configuration 5).
+- **Blinded Human Calibration Manifest (`--export-manifest all --manifest-format csv`)**: Exports a deterministic, randomized CSV manifest stripping internal system verdicts so domain experts can perform blind manual annotation to establish external construct validity ($\widehat{\text{PPV}}$, $\widehat{\text{FOR}}$, and human–AI $\kappa$).
