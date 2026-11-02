@@ -78,7 +78,7 @@
   - [x] @[backend_v2/models/domain/execution.py]
   - [x] @[backend_v2/models/dtos/node_execution.py]
   - [x] @[backend_v2/models/dtos/trace.py]
-  - [ ] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/services/chat_parser.py]
   - [ ] @[backend_v2/services/execution/override_service.py]
   - [ ] @[backend_v2/services/execution/resumption_service.py]
