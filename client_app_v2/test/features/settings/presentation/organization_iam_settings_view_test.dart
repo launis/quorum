@@ -406,8 +406,6 @@ class _FailingUserRepository extends _FakeUserRepository {
   Future<Either<AppException, Organization>> getOrganization(
     String orgId,
   ) async {
-    return Left(
-      AppException.server('Organization backend unavailable'),
-    );
+    return Left(AppException.server('Organization backend unavailable'));
   }
 }

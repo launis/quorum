@@ -316,10 +316,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(
-          find.byKey(const Key('task_portal_preview_card')),
-          findsNothing,
-        );
+        expect(find.byKey(const Key('task_portal_preview_card')), findsNothing);
 
         // Boundary check: hard deadline already in the past clamps remaining seconds to 0s
         final expiredClient = _FakeExecutionClient(

@@ -4,11 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/studio_client.dart';
-import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_user_provider.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
-import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
@@ -317,7 +315,10 @@ void main() {
             translations: {'en': 'Self Reflection', 'fi': 'Itsearviointi'},
           ),
           description: const I18nText(
-            translations: {'en': 'Answer questions', 'fi': 'Vastaa kysymyksiin'},
+            translations: {
+              'en': 'Answer questions',
+              'fi': 'Vastaa kysymyksiin',
+            },
           ),
           required: true,
           inputModes: const ['questionnaire'],
@@ -339,7 +340,10 @@ void main() {
           id: profId,
           workflowId: wfId,
           name: const I18nText(
-            translations: {'en': 'Executive Summary', 'fi': 'Johdon yhteenveto'},
+            translations: {
+              'en': 'Executive Summary',
+              'fi': 'Johdon yhteenveto',
+            },
           ),
           description: const I18nText(
             translations: {

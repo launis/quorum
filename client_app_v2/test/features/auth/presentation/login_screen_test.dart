@@ -146,7 +146,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.mfaChallengeTitle), findsOneWidget);
-        final challengeField = find.byKey(const Key('mfa_challenge_totp_field'));
+        final challengeField = find.byKey(
+          const Key('mfa_challenge_totp_field'),
+        );
         expect(challengeField, findsOneWidget);
 
         await tester.enterText(challengeField, ' 654321 ');
@@ -229,7 +231,9 @@ void main() {
             );
         await tester.pumpAndSettle();
 
-        final challengeField = find.byKey(const Key('mfa_challenge_totp_field'));
+        final challengeField = find.byKey(
+          const Key('mfa_challenge_totp_field'),
+        );
         await tester.enterText(challengeField, '12345');
         await tester.tap(find.text(l10n.mfaVerifyBtn));
         await tester.pumpAndSettle();
