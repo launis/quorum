@@ -129,7 +129,7 @@
   - [x] [NEW] @[backend_v2/services/execution/assignment_service.py]
   - [x] @[backend_v2/services/execution/lifecycle_service.py]
   - [x] @[backend_v2/services/execution/ingress_service.py]
-  - [ ] [NEW] @[backend_v2/core/redis_security.py]
+  - [x] [NEW] @[backend_v2/core/redis_security.py]
   - [ ] @[backend_v2/services/usage_service.py]
   - [ ] @[backend_v2/llm/provider/litellm_provider.py]
   - [ ] @[backend_v2/llm/provider/provider_factory.py]
