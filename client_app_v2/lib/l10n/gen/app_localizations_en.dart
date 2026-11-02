@@ -2759,7 +2759,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noneDefaultLabel => 'None (Default)';
 
   @override
-  String get profileDisplayNameLabel => 'Profile Display Name';
+  String get profileDisplayNameLabel => 'Display Name';
 
   @override
   String get profileDescriptionLabel => 'Profile Description (Optional)';
@@ -5740,6 +5740,308 @@ class AppLocalizationsEn extends AppLocalizations {
   String contrastiveCharCounter(int count, int min) {
     return '$count/$min chars';
   }
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
+  String get navOrganization => 'Organization & IAM';
+
+  @override
+  String get signOutBtn => 'Sign Out';
+
+  @override
+  String get signOutAllDevicesBtn => 'Sign Out From All Devices';
+
+  @override
+  String get mfaChallengeTitle => 'Two-Factor Authentication';
+
+  @override
+  String get mfaChallengeSubtitle =>
+      'Enter the 6-digit TOTP code from your authenticator app.';
+
+  @override
+  String get mfaEnrollmentTitle => 'Mandatory 2FA Enrollment';
+
+  @override
+  String get mfaEnrollmentSubtitle =>
+      'Add this secret key or provisioning URI to your authenticator app and confirm with a 6-digit code.';
+
+  @override
+  String get mfaSecretKeyLabel => 'Authenticator Secret Key';
+
+  @override
+  String get mfaProvisioningUriLabel => 'Provisioning URI';
+
+  @override
+  String get mfaTotpCodeLabel => '6-Digit TOTP Code';
+
+  @override
+  String get mfaTotpCodeError => 'Enter a valid 6-digit code';
+
+  @override
+  String get mfaVerifyBtn => 'Verify & Sign In';
+
+  @override
+  String get mfaCompleteEnrollmentBtn => 'Complete 2FA Enrollment';
+
+  @override
+  String get mfaBackToLoginBtn => 'Back to Sign In';
+
+  @override
+  String get profileViewTitle => 'User Profile & Session';
+
+  @override
+  String get profileIdentityCardTitle => 'Identity & Organization';
+
+  @override
+  String get profilePreferencesCardTitle => 'Personal Preferences';
+
+  @override
+  String get profileSessionSecurityCardTitle => 'Session & Security';
+
+  @override
+  String get profileSaveNameBtn => 'Save Display Name';
+
+  @override
+  String get profileEmailLabel => 'Email Address';
+
+  @override
+  String get profileRoleLabel => 'Role';
+
+  @override
+  String get profileOrganizationIdLabel => 'Organization ID';
+
+  @override
+  String get profileMfaVerifiedBadge => '2FA Verified (TOTP)';
+
+  @override
+  String get profileThemeModeLabel => 'Theme Mode';
+
+  @override
+  String get profileThemeSystem => 'System Default';
+
+  @override
+  String get profileThemeLight => 'Light';
+
+  @override
+  String get profileThemeDark => 'Dark';
+
+  @override
+  String get profileUiLanguageLabel => 'UI Language';
+
+  @override
+  String get profileUpdatedSuccess => 'Profile preferences updated';
+
+  @override
+  String get orgIamViewTitle => 'Organization & IAM Governance';
+
+  @override
+  String get orgProfileCardTitle => 'Organization Profile & FinOps Quotas';
+
+  @override
+  String get orgContactEmailLabel => 'Billing / Contact Email';
+
+  @override
+  String get orgSaveProfileBtn => 'Save Organization Profile';
+
+  @override
+  String get orgQuotaLimitLabel => 'Monthly Quota (USD)';
+
+  @override
+  String get orgTpmLimitLabel => 'TPM Limit';
+
+  @override
+  String get orgRpmLimitLabel => 'RPM Limit';
+
+  @override
+  String get orgSubscriptionStatusLabel => 'Subscription Status';
+
+  @override
+  String get orgTaskAssignmentsCardTitle => 'Time-Bound Task Assignments';
+
+  @override
+  String get orgNewTaskAssignmentBtn => 'New Task Assignment';
+
+  @override
+  String get orgResendEmailBtn => 'Resend Email';
+
+  @override
+  String get orgExtendDeadlineBtn => 'Extend +24h';
+
+  @override
+  String get orgRevokeAssignmentBtn => 'Revoke Task';
+
+  @override
+  String get orgOpenReportBtn => 'Open Execution Report';
+
+  @override
+  String get orgInvitationsCardTitle =>
+      'B2B User Invitations & Role Governance';
+
+  @override
+  String get orgInviteEmailLabel => 'Invitee Email';
+
+  @override
+  String get orgInviteRoleLabel => 'Assigned Role';
+
+  @override
+  String get orgSendInvitationBtn => 'Send Invitation';
+
+  @override
+  String get orgBatchInviteHint =>
+      'Batch Recipient Emails (comma or newline separated)';
+
+  @override
+  String get orgSendBatchInvitationBtn => 'Send Batch Invitations';
+
+  @override
+  String get orgRevokeInvitationBtn => 'Revoke Invitation';
+
+  @override
+  String get orgMembersHeader => 'Organization Members';
+
+  @override
+  String get orgRevokeSessionsBtn => 'Revoke Sessions';
+
+  @override
+  String get orgGdprDeleteUserBtn => 'GDPR Anonymize & Delete';
+
+  @override
+  String get orgByokSecretsCardTitle => 'BYOK Credentials & Cloud Secrets';
+
+  @override
+  String get orgSecretScopeLabel => 'Secret Scope';
+
+  @override
+  String get orgSecretTargetIdentifierLabel => 'Provider / Gateway Identifier';
+
+  @override
+  String get orgSecretStorageModeLabel => 'Storage Mode';
+
+  @override
+  String get orgSecretPlaintextLabel => 'API Key / Secret Token';
+
+  @override
+  String get orgSaveSecretBtn => 'Save BYOK Secret';
+
+  @override
+  String get orgDeleteSecretBtn => 'Delete Secret';
+
+  @override
+  String get orgSecretConfiguredBadge => 'Configured';
+
+  @override
+  String get assignAsTimeBoundTaskBtn => 'Assign as Time-Bound Task';
+
+  @override
+  String get taskBuilderDialogTitle => 'Configure Time-Bound Task Assignment';
+
+  @override
+  String get taskBuilderSingleEmailLabel => 'Assignee Email';
+
+  @override
+  String get taskBuilderBatchEmailsLabel =>
+      'Cohort Recipients (multi-email paste or CSV email,name,language)';
+
+  @override
+  String get taskBuilderUploadCsvBtn => 'Import Recipients (.csv)';
+
+  @override
+  String get taskBuilderLockedInputsTitle =>
+      'Locked Background Inputs (Sender Provided)';
+
+  @override
+  String get taskBuilderAssigneeInputsTitle =>
+      'Assignee Input Slots (Interactive FilterChips)';
+
+  @override
+  String get taskBuilderHardDeadlineLabel => 'Hard Deadline (Hours from now)';
+
+  @override
+  String get taskBuilderRelativeDurationLabel =>
+      'Active Timer Duration (Minutes, optional)';
+
+  @override
+  String get taskBuilderResultVisibilityLabel => 'Post-Submission Visibility';
+
+  @override
+  String get taskBuilderVisibilityConfirmation => 'Confirmation Only';
+
+  @override
+  String get taskBuilderVisibilityFullReport => 'Full Report Access';
+
+  @override
+  String get taskBuilderSubmitSingleBtn => 'Create Task Assignment';
+
+  @override
+  String get taskBuilderSubmitBatchBtn => 'Create Cohort Batch Assignment';
+
+  @override
+  String taskBuilderMagicLinkReady(String link) {
+    return 'Magic Task Link Created: $link';
+  }
+
+  @override
+  String get taskBuilderExportCsvBtn => 'Download Cohort Magic Links (.csv)';
+
+  @override
+  String get taskPortalTitle => 'Time-Bound Execution Assignment';
+
+  @override
+  String taskPortalOrgLabel(String orgName) {
+    return 'Organization: $orgName';
+  }
+
+  @override
+  String taskPortalAssignedEmailLabel(String email) {
+    return 'Assigned Recipient: $email';
+  }
+
+  @override
+  String get taskPortalIdentityMismatchTitle =>
+      'Account Identity Mismatch (IDENTITY_MISMATCH)';
+
+  @override
+  String taskPortalIdentityMismatchDesc(
+    String currentEmail,
+    String assignedEmail,
+  ) {
+    return 'You are currently signed in as $currentEmail, but this task is assigned to $assignedEmail.';
+  }
+
+  @override
+  String get taskPortalSwitchAccountBtn => 'Sign Out & Switch Account';
+
+  @override
+  String get taskPortalJitOnboardingTitle =>
+      'Create Account & Enroll 2FA to Access Task';
+
+  @override
+  String get taskPortalJitNameLabel => 'Full Name';
+
+  @override
+  String get taskPortalJitPasswordLabel => 'Create Password';
+
+  @override
+  String get taskPortalJitCompleteBtn => 'Register, Verify 2FA & Continue';
+
+  @override
+  String get taskPortalStartTaskBtn => 'Start Task';
+
+  @override
+  String taskPortalRemainingTimeLabel(String time) {
+    return 'Remaining Time: $time';
+  }
+
+  @override
+  String get taskPortalSaveDraftBtn => 'Save Draft';
+
+  @override
+  String get taskPortalSubmitTaskBtn => 'Submit Task';
+
+  @override
+  String get taskPortalSubmittedTitle => 'Task Submitted Successfully';
 
   @override
   String staleTargetBlockChipLabel(String blockId) {

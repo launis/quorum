@@ -5081,7 +5081,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileDisplayNameLabel.
   ///
   /// In en, this message translates to:
-  /// **'Profile Display Name'**
+  /// **'Display Name'**
   String get profileDisplayNameLabel;
 
   /// No description provided for @profileDescriptionLabel.
@@ -10330,6 +10330,567 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count}/{min} chars'**
   String contrastiveCharCounter(int count, int min);
+
+  /// No description provided for @navProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get navProfile;
+
+  /// No description provided for @navOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization & IAM'**
+  String get navOrganization;
+
+  /// No description provided for @signOutBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get signOutBtn;
+
+  /// No description provided for @signOutAllDevicesBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out From All Devices'**
+  String get signOutAllDevicesBtn;
+
+  /// No description provided for @mfaChallengeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-Factor Authentication'**
+  String get mfaChallengeTitle;
+
+  /// No description provided for @mfaChallengeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit TOTP code from your authenticator app.'**
+  String get mfaChallengeSubtitle;
+
+  /// No description provided for @mfaEnrollmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mandatory 2FA Enrollment'**
+  String get mfaEnrollmentTitle;
+
+  /// No description provided for @mfaEnrollmentSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this secret key or provisioning URI to your authenticator app and confirm with a 6-digit code.'**
+  String get mfaEnrollmentSubtitle;
+
+  /// No description provided for @mfaSecretKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticator Secret Key'**
+  String get mfaSecretKeyLabel;
+
+  /// No description provided for @mfaProvisioningUriLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Provisioning URI'**
+  String get mfaProvisioningUriLabel;
+
+  /// No description provided for @mfaTotpCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'6-Digit TOTP Code'**
+  String get mfaTotpCodeLabel;
+
+  /// No description provided for @mfaTotpCodeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid 6-digit code'**
+  String get mfaTotpCodeError;
+
+  /// No description provided for @mfaVerifyBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify & Sign In'**
+  String get mfaVerifyBtn;
+
+  /// No description provided for @mfaCompleteEnrollmentBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete 2FA Enrollment'**
+  String get mfaCompleteEnrollmentBtn;
+
+  /// No description provided for @mfaBackToLoginBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Sign In'**
+  String get mfaBackToLoginBtn;
+
+  /// No description provided for @profileViewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'User Profile & Session'**
+  String get profileViewTitle;
+
+  /// No description provided for @profileIdentityCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity & Organization'**
+  String get profileIdentityCardTitle;
+
+  /// No description provided for @profilePreferencesCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Preferences'**
+  String get profilePreferencesCardTitle;
+
+  /// No description provided for @profileSessionSecurityCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session & Security'**
+  String get profileSessionSecurityCardTitle;
+
+  /// No description provided for @profileSaveNameBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Display Name'**
+  String get profileSaveNameBtn;
+
+  /// No description provided for @profileEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address'**
+  String get profileEmailLabel;
+
+  /// No description provided for @profileRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get profileRoleLabel;
+
+  /// No description provided for @profileOrganizationIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization ID'**
+  String get profileOrganizationIdLabel;
+
+  /// No description provided for @profileMfaVerifiedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'2FA Verified (TOTP)'**
+  String get profileMfaVerifiedBadge;
+
+  /// No description provided for @profileThemeModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme Mode'**
+  String get profileThemeModeLabel;
+
+  /// No description provided for @profileThemeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System Default'**
+  String get profileThemeSystem;
+
+  /// No description provided for @profileThemeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get profileThemeLight;
+
+  /// No description provided for @profileThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get profileThemeDark;
+
+  /// No description provided for @profileUiLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'UI Language'**
+  String get profileUiLanguageLabel;
+
+  /// No description provided for @profileUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile preferences updated'**
+  String get profileUpdatedSuccess;
+
+  /// No description provided for @orgIamViewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization & IAM Governance'**
+  String get orgIamViewTitle;
+
+  /// No description provided for @orgProfileCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization Profile & FinOps Quotas'**
+  String get orgProfileCardTitle;
+
+  /// No description provided for @orgContactEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing / Contact Email'**
+  String get orgContactEmailLabel;
+
+  /// No description provided for @orgSaveProfileBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Organization Profile'**
+  String get orgSaveProfileBtn;
+
+  /// No description provided for @orgQuotaLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Quota (USD)'**
+  String get orgQuotaLimitLabel;
+
+  /// No description provided for @orgTpmLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'TPM Limit'**
+  String get orgTpmLimitLabel;
+
+  /// No description provided for @orgRpmLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'RPM Limit'**
+  String get orgRpmLimitLabel;
+
+  /// No description provided for @orgSubscriptionStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Status'**
+  String get orgSubscriptionStatusLabel;
+
+  /// No description provided for @orgTaskAssignmentsCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time-Bound Task Assignments'**
+  String get orgTaskAssignmentsCardTitle;
+
+  /// No description provided for @orgNewTaskAssignmentBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'New Task Assignment'**
+  String get orgNewTaskAssignmentBtn;
+
+  /// No description provided for @orgResendEmailBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Email'**
+  String get orgResendEmailBtn;
+
+  /// No description provided for @orgExtendDeadlineBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Extend +24h'**
+  String get orgExtendDeadlineBtn;
+
+  /// No description provided for @orgRevokeAssignmentBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke Task'**
+  String get orgRevokeAssignmentBtn;
+
+  /// No description provided for @orgOpenReportBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Execution Report'**
+  String get orgOpenReportBtn;
+
+  /// No description provided for @orgInvitationsCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'B2B User Invitations & Role Governance'**
+  String get orgInvitationsCardTitle;
+
+  /// No description provided for @orgInviteEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitee Email'**
+  String get orgInviteEmailLabel;
+
+  /// No description provided for @orgInviteRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned Role'**
+  String get orgInviteRoleLabel;
+
+  /// No description provided for @orgSendInvitationBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Invitation'**
+  String get orgSendInvitationBtn;
+
+  /// No description provided for @orgBatchInviteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch Recipient Emails (comma or newline separated)'**
+  String get orgBatchInviteHint;
+
+  /// No description provided for @orgSendBatchInvitationBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Batch Invitations'**
+  String get orgSendBatchInvitationBtn;
+
+  /// No description provided for @orgRevokeInvitationBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke Invitation'**
+  String get orgRevokeInvitationBtn;
+
+  /// No description provided for @orgMembersHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization Members'**
+  String get orgMembersHeader;
+
+  /// No description provided for @orgRevokeSessionsBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke Sessions'**
+  String get orgRevokeSessionsBtn;
+
+  /// No description provided for @orgGdprDeleteUserBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'GDPR Anonymize & Delete'**
+  String get orgGdprDeleteUserBtn;
+
+  /// No description provided for @orgByokSecretsCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BYOK Credentials & Cloud Secrets'**
+  String get orgByokSecretsCardTitle;
+
+  /// No description provided for @orgSecretScopeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret Scope'**
+  String get orgSecretScopeLabel;
+
+  /// No description provided for @orgSecretTargetIdentifierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider / Gateway Identifier'**
+  String get orgSecretTargetIdentifierLabel;
+
+  /// No description provided for @orgSecretStorageModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Mode'**
+  String get orgSecretStorageModeLabel;
+
+  /// No description provided for @orgSecretPlaintextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'API Key / Secret Token'**
+  String get orgSecretPlaintextLabel;
+
+  /// No description provided for @orgSaveSecretBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Save BYOK Secret'**
+  String get orgSaveSecretBtn;
+
+  /// No description provided for @orgDeleteSecretBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Secret'**
+  String get orgDeleteSecretBtn;
+
+  /// No description provided for @orgSecretConfiguredBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Configured'**
+  String get orgSecretConfiguredBadge;
+
+  /// No description provided for @assignAsTimeBoundTaskBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign as Time-Bound Task'**
+  String get assignAsTimeBoundTaskBtn;
+
+  /// No description provided for @taskBuilderDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure Time-Bound Task Assignment'**
+  String get taskBuilderDialogTitle;
+
+  /// No description provided for @taskBuilderSingleEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignee Email'**
+  String get taskBuilderSingleEmailLabel;
+
+  /// No description provided for @taskBuilderBatchEmailsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cohort Recipients (multi-email paste or CSV email,name,language)'**
+  String get taskBuilderBatchEmailsLabel;
+
+  /// No description provided for @taskBuilderUploadCsvBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Recipients (.csv)'**
+  String get taskBuilderUploadCsvBtn;
+
+  /// No description provided for @taskBuilderLockedInputsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked Background Inputs (Sender Provided)'**
+  String get taskBuilderLockedInputsTitle;
+
+  /// No description provided for @taskBuilderAssigneeInputsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignee Input Slots (Interactive FilterChips)'**
+  String get taskBuilderAssigneeInputsTitle;
+
+  /// No description provided for @taskBuilderHardDeadlineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard Deadline (Hours from now)'**
+  String get taskBuilderHardDeadlineLabel;
+
+  /// No description provided for @taskBuilderRelativeDurationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Timer Duration (Minutes, optional)'**
+  String get taskBuilderRelativeDurationLabel;
+
+  /// No description provided for @taskBuilderResultVisibilityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Post-Submission Visibility'**
+  String get taskBuilderResultVisibilityLabel;
+
+  /// No description provided for @taskBuilderVisibilityConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmation Only'**
+  String get taskBuilderVisibilityConfirmation;
+
+  /// No description provided for @taskBuilderVisibilityFullReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Report Access'**
+  String get taskBuilderVisibilityFullReport;
+
+  /// No description provided for @taskBuilderSubmitSingleBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Task Assignment'**
+  String get taskBuilderSubmitSingleBtn;
+
+  /// No description provided for @taskBuilderSubmitBatchBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Cohort Batch Assignment'**
+  String get taskBuilderSubmitBatchBtn;
+
+  /// No description provided for @taskBuilderMagicLinkReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Magic Task Link Created: {link}'**
+  String taskBuilderMagicLinkReady(String link);
+
+  /// No description provided for @taskBuilderExportCsvBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Cohort Magic Links (.csv)'**
+  String get taskBuilderExportCsvBtn;
+
+  /// No description provided for @taskPortalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time-Bound Execution Assignment'**
+  String get taskPortalTitle;
+
+  /// No description provided for @taskPortalOrgLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization: {orgName}'**
+  String taskPortalOrgLabel(String orgName);
+
+  /// No description provided for @taskPortalAssignedEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned Recipient: {email}'**
+  String taskPortalAssignedEmailLabel(String email);
+
+  /// No description provided for @taskPortalIdentityMismatchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Identity Mismatch (IDENTITY_MISMATCH)'**
+  String get taskPortalIdentityMismatchTitle;
+
+  /// No description provided for @taskPortalIdentityMismatchDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'You are currently signed in as {currentEmail}, but this task is assigned to {assignedEmail}.'**
+  String taskPortalIdentityMismatchDesc(
+    String currentEmail,
+    String assignedEmail,
+  );
+
+  /// No description provided for @taskPortalSwitchAccountBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out & Switch Account'**
+  String get taskPortalSwitchAccountBtn;
+
+  /// No description provided for @taskPortalJitOnboardingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account & Enroll 2FA to Access Task'**
+  String get taskPortalJitOnboardingTitle;
+
+  /// No description provided for @taskPortalJitNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get taskPortalJitNameLabel;
+
+  /// No description provided for @taskPortalJitPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Password'**
+  String get taskPortalJitPasswordLabel;
+
+  /// No description provided for @taskPortalJitCompleteBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Register, Verify 2FA & Continue'**
+  String get taskPortalJitCompleteBtn;
+
+  /// No description provided for @taskPortalStartTaskBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Task'**
+  String get taskPortalStartTaskBtn;
+
+  /// No description provided for @taskPortalRemainingTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining Time: {time}'**
+  String taskPortalRemainingTimeLabel(String time);
+
+  /// No description provided for @taskPortalSaveDraftBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Draft'**
+  String get taskPortalSaveDraftBtn;
+
+  /// No description provided for @taskPortalSubmitTaskBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Task'**
+  String get taskPortalSubmitTaskBtn;
+
+  /// No description provided for @taskPortalSubmittedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Submitted Successfully'**
+  String get taskPortalSubmittedTitle;
 
   /// No description provided for @staleTargetBlockChipLabel.
   ///

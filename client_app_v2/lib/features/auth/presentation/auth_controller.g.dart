@@ -8,28 +8,128 @@ part of 'auth_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Coordinates tenant-scoped master data caches for invalidation on tenant switch or sign-out.
+
+@ProviderFor(masterData)
+final masterDataProvider = MasterDataProvider._();
+
+/// Coordinates tenant-scoped master data caches for invalidation on tenant switch or sign-out.
+
+final class MasterDataProvider
+    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
+    with $FutureModifier<void>, $FutureProvider<void> {
+  /// Coordinates tenant-scoped master data caches for invalidation on tenant switch or sign-out.
+  MasterDataProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'masterDataProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$masterDataHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<void> create(Ref ref) {
+    return masterData(ref);
+  }
+}
+
+String _$masterDataHash() => r'df259476397820af68d06674de8c1db0b79740bb';
+
+/// Holds active 2FA challenge or mandatory first-time TOTP enrollment state during authentication.
+
+@ProviderFor(MfaSessionController)
+final mfaSessionControllerProvider = MfaSessionControllerProvider._();
+
+/// Holds active 2FA challenge or mandatory first-time TOTP enrollment state during authentication.
+final class MfaSessionControllerProvider
+    extends $NotifierProvider<MfaSessionController, MfaPendingState> {
+  /// Holds active 2FA challenge or mandatory first-time TOTP enrollment state during authentication.
+  MfaSessionControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'mfaSessionControllerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$mfaSessionControllerHash();
+
+  @$internal
+  @override
+  MfaSessionController create() => MfaSessionController();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MfaPendingState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MfaPendingState>(value),
+    );
+  }
+}
+
+String _$mfaSessionControllerHash() =>
+    r'97e562eb4b801516e995e525f0b154a7c1e2a1ab';
+
+/// Holds active 2FA challenge or mandatory first-time TOTP enrollment state during authentication.
+
+abstract class _$MfaSessionController extends $Notifier<MfaPendingState> {
+  MfaPendingState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<MfaPendingState, MfaPendingState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<MfaPendingState, MfaPendingState>,
+              MfaPendingState,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 /// **Authentication Controller**
 ///
-/// Manages the global authentication state of the application.
+/// Manages global authentication state, mandatory 2FA challenge/enrollment,
+/// 13-minute silent background token exchange, and the 5-step cryptographic logout pipeline.
 
 @ProviderFor(AuthController)
 final authControllerProvider = AuthControllerProvider._();
 
 /// **Authentication Controller**
 ///
-/// Manages the global authentication state of the application.
+/// Manages global authentication state, mandatory 2FA challenge/enrollment,
+/// 13-minute silent background token exchange, and the 5-step cryptographic logout pipeline.
 final class AuthControllerProvider
     extends $AsyncNotifierProvider<AuthController, User?> {
   /// **Authentication Controller**
   ///
-  /// Manages the global authentication state of the application.
+  /// Manages global authentication state, mandatory 2FA challenge/enrollment,
+  /// 13-minute silent background token exchange, and the 5-step cryptographic logout pipeline.
   AuthControllerProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'authControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -42,11 +142,12 @@ final class AuthControllerProvider
   AuthController create() => AuthController();
 }
 
-String _$authControllerHash() => r'b6ed218e58db5bbe9c26adcb4ad7a7d225cdaa09';
+String _$authControllerHash() => r'123528b74ec0bc2a786b866232d818c643174296';
 
 /// **Authentication Controller**
 ///
-/// Manages the global authentication state of the application.
+/// Manages global authentication state, mandatory 2FA challenge/enrollment,
+/// 13-minute silent background token exchange, and the 5-step cryptographic logout pipeline.
 
 abstract class _$AuthController extends $AsyncNotifier<User?> {
   FutureOr<User?> build();

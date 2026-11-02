@@ -1,86 +1,156 @@
+import 'package:client_app/core/models/enums.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+export 'package:client_app/core/models/enums.dart' show UserRole;
 
 part 'user.freezed.dart';
 part 'user.g.dart';
 
-enum UserRole {
-  @JsonValue('ROOT')
-  root,
-  @JsonValue('ADMIN')
-  admin,
-  @JsonValue('MANAGER')
-  manager,
-  @JsonValue('MEMBER')
-  member,
-  @JsonValue('VIEWER')
-  viewer,
-  @JsonValue('UNKNOWN')
-  unknown;
-
-  static UserRole fromString(String value) {
-    switch (value.toUpperCase()) {
-      case 'ROOT':
-        return UserRole.root;
-      case 'ADMIN':
-        return UserRole.admin;
-      case 'MANAGER':
-        return UserRole.manager;
-      case 'MEMBER':
-        return UserRole.member;
-      case 'VIEWER':
-        return UserRole.viewer;
-      default:
-        throw FormatException('Unknown UserRole: $value');
-    }
-  }
-
-  String toJson() {
-    if (this == UserRole.unknown) return 'VIEWER';
-    return name.toUpperCase();
-  }
-}
+// Phase 6, Step 6.1: Synchronize User and IAM Session Upgrade / Logout Freezed DTOs.
 
 /// **User Domain Model**
 ///
 /// Represents the profile of an authenticated user in the system.
-/// This model is hydrated from the `/api/v1/users/me` endpoint.
+/// Hydrated from `/api/v2/iam/auth/exchange` and `/api/v2/iam/users/me`.
 @freezed
 abstract class User with _$User {
   const User._();
 
+  @JsonSerializable(explicitToJson: true)
   const factory User({
-    required String id,
-    String? slug,
-    required String email,
-    required UserRole role,
-    String? organizationId,
-    String? name,
-    String? createdAt,
-    String? language,
-    String? themeMode,
-    DateTime? lastLoginAt,
-    int? executionCount,
-    bool? isActive,
-    String? createdBy,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'slug') String? slug,
+    @JsonKey(name: 'email') required String email,
+    @JsonKey(name: 'role') required UserRole role,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'name') String? name,
+    @JsonKey(name: 'created_at') String? createdAt,
+    @JsonKey(name: 'language') String? language,
+    @JsonKey(name: 'theme_mode') String? themeMode,
+    @JsonKey(name: 'last_login_at') DateTime? lastLoginAt,
+    @JsonKey(name: 'execution_count') int? executionCount,
+    @JsonKey(name: 'is_active') bool? isActive,
+    @JsonKey(name: 'created_by') String? createdBy,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
-  /// **Helper**: Checks if the user has Admin privileges.
+  /// Checks if the user has Admin or Root privileges.
   bool get isAdmin => role == UserRole.root || role == UserRole.admin;
+
+  /// Checks if the user can access Organization & IAM governance views.
+  bool get canManageOrganization =>
+      role == UserRole.root ||
+      role == UserRole.admin ||
+      role == UserRole.manager;
 }
 
-/// **Verify Token Request DTO**
-///
-/// Request payload for token verification endpoint `/api/v1/auth/verify`.
+/// Request payload for `POST /api/v2/iam/auth/exchange`.
 @freezed
-abstract class VerifyTokenRequest with _$VerifyTokenRequest {
-  const VerifyTokenRequest._();
+abstract class TokenExchangeRequestDto with _$TokenExchangeRequestDto {
+  const TokenExchangeRequestDto._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory VerifyTokenRequest({required String token}) =
-      _VerifyTokenRequest;
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory TokenExchangeRequestDto({
+    @JsonKey(name: 'firebase_token', includeIfNull: false)
+    String? firebaseToken,
+    @JsonKey(name: 'target_user_id', includeIfNull: false) String? targetUserId,
+    @JsonKey(name: 'service_auth_secret', includeIfNull: false)
+    String? serviceAuthSecret,
+  }) = _TokenExchangeRequestDto;
 
-  factory VerifyTokenRequest.fromJson(Map<String, dynamic> json) =>
-      _$VerifyTokenRequestFromJson(json);
+  factory TokenExchangeRequestDto.fromJson(Map<String, dynamic> json) =>
+      _$TokenExchangeRequestDtoFromJson(json);
+}
+
+/// Response payload from `POST /api/v2/iam/auth/exchange`.
+@freezed
+abstract class TokenExchangeResponseDto with _$TokenExchangeResponseDto {
+  const TokenExchangeResponseDto._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory TokenExchangeResponseDto({
+    @JsonKey(name: 'access_token') required String accessToken,
+    @JsonKey(name: 'token_type') @Default('bearer') String tokenType,
+    @JsonKey(name: 'expires_in_seconds') required int expiresInSeconds,
+    @JsonKey(name: 'user') required User user,
+  }) = _TokenExchangeResponseDto;
+
+  factory TokenExchangeResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$TokenExchangeResponseDtoFromJson(json);
+}
+
+/// Request payload for `POST /api/v2/iam/auth/logout`.
+@freezed
+abstract class LogoutRequestDto with _$LogoutRequestDto {
+  const LogoutRequestDto._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory LogoutRequestDto({
+    @JsonKey(name: 'revoke_all_sessions')
+    @Default(false)
+    bool revokeAllSessions,
+  }) = _LogoutRequestDto;
+
+  factory LogoutRequestDto.fromJson(Map<String, dynamic> json) =>
+      _$LogoutRequestDtoFromJson(json);
+}
+
+/// Response payload from `POST /api/v2/iam/auth/logout`.
+@freezed
+abstract class LogoutResponseDto with _$LogoutResponseDto {
+  const LogoutResponseDto._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory LogoutResponseDto({
+    @JsonKey(name: 'status') @Default('revoked') String status,
+    @JsonKey(name: 'revoked_jti') required String revokedJti,
+    @JsonKey(name: 'all_sessions_revoked') required bool allSessionsRevoked,
+  }) = _LogoutResponseDto;
+
+  factory LogoutResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$LogoutResponseDtoFromJson(json);
+}
+
+/// Request payload for `POST /api/v2/iam/users`.
+@freezed
+abstract class UserCreate with _$UserCreate {
+  const UserCreate._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory UserCreate({
+    @JsonKey(name: 'email') required String email,
+    @JsonKey(name: 'name', includeIfNull: false) String? name,
+    @JsonKey(name: 'role') @Default(UserRole.member) UserRole role,
+    @JsonKey(name: 'organization_id') required String organizationId,
+    @JsonKey(name: 'is_active') @Default(true) bool isActive,
+    @JsonKey(name: 'language', includeIfNull: false) String? language,
+    @JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,
+    @JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,
+    @JsonKey(name: 'password', includeIfNull: false) String? password,
+  }) = _UserCreate;
+
+  factory UserCreate.fromJson(Map<String, dynamic> json) =>
+      _$UserCreateFromJson(json);
+}
+
+/// Request payload for `PUT /api/v2/iam/users/{id}`.
+@freezed
+abstract class UserUpdate with _$UserUpdate {
+  const UserUpdate._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory UserUpdate({
+    @JsonKey(name: 'name', includeIfNull: false) String? name,
+    @JsonKey(name: 'role', includeIfNull: false) UserRole? role,
+    @JsonKey(name: 'organization_id', includeIfNull: false)
+    String? organizationId,
+    @JsonKey(name: 'is_active', includeIfNull: false) bool? isActive,
+    @JsonKey(name: 'language', includeIfNull: false) String? language,
+    @JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,
+    @JsonKey(name: 'password', includeIfNull: false) String? password,
+  }) = _UserUpdate;
+
+  factory UserUpdate.fromJson(Map<String, dynamic> json) =>
+      _$UserUpdateFromJson(json);
 }

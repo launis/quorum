@@ -93,8 +93,8 @@
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/06_phase6_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-  - [ ] Step 0: PRE-FLIGHT & SELF-HYDRATION
-  - [ ] Step 6.1: Mandatory 2FA Enrollment/Challenge Flow, `AuthInterceptor`, Session Upgrade Handshake, 13-Minute Silent Refresh & 5-Step Logout Pipeline
+  - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
+  - [x] Step 6.1: Mandatory 2FA Enrollment/Challenge Flow, `AuthInterceptor`, Session Upgrade Handshake, 13-Minute Silent Refresh & 5-Step Logout Pipeline
   - [ ] Step 6.2: Adaptive Navigation Logout Action, Separated User Profile View (`UserProfileSettingsView`), Organization IAM Studio UI (`OrganizationIamSettingsView`), Direct Task Assignment Builder in `NewExecutionView` & Task Assignment Portal (`TaskAssignmentPortalView`)
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
@@ -206,7 +206,7 @@
 | REQ-160-013 | Enforce the 4-Tier RBAC Governance Matrix (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`), self-service profile updates (`name`, `language`, `theme_mode`), soft-delete aware `LAST_ADMIN_PROTECTION`, and immediate Redis Kill-Switch on privilege mutations | Phase 5, Step 5.2 | [x] Completed |
 | REQ-160-014 | Implement in-place GDPR Soft-Delete anonymization in `UserService.delete_user` and `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` preserving `executions` foreign keys | Phase 5, Step 5.3 | [x] Completed |
 | REQ-160-015 | Create `ExecutionAssignmentService` in `[NEW] backend_v2/services/execution/assignment_service.py` and `/api/v2/execution/executions/assignments` endpoints with SafeLinks-immune `GET .../preview`, JIT user onboarding + 2FA, explicit `POST .../activate`, Dual-Clock expiration, and single-shot submission | Phase 5, Step 5.4 | [x] Completed |
-| REQ-160-016 | Implement mandatory 2FA challenge/enrollment in Flutter `LoginScreen` and `AuthController`, `@Riverpod(keepAlive: true)` `AuthRepository` with Freezed DTOs, `AuthInterceptor` token exchange, 13-minute silent refresh, and the 5-step `signOut` pipeline | Phase 6, Step 6.1 | [ ] Pending |
+| REQ-160-016 | Implement mandatory 2FA challenge/enrollment in Flutter `LoginScreen` and `AuthController`, `@Riverpod(keepAlive: true)` `AuthRepository` with Freezed DTOs, `AuthInterceptor` token exchange, 13-minute silent refresh, and the 5-step `signOut` pipeline | Phase 6, Step 6.1 | [x] Completed |
 | REQ-160-017 | Repurpose `ScaffoldWithNav` to **Profiili / Profile** with trailing Sign Out action, and build `UserProfileSettingsView`, `OrganizationIamSettingsView`, Direct Task Assignment Builder in `NewExecutionView`, and `TaskAssignmentPortalView` (`/task/:token`) | Phase 6, Step 6.2 | [ ] Pending |
 
 # Session Handover Context

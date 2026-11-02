@@ -1,18 +1,15 @@
-import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
-import 'package:dio/dio.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
+import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// **Authentication Interceptor**
 ///
-/// This interceptor acts as the security bridge between the Flutter Client and the Python Backend.
-/// It ensures that every outgoing HTTP request is authenticated with the current user's identity.
-///
-/// **NOTE**: Token availability is ensured by upstream Riverpod providers
-/// waiting for authentication state before making API calls.
+/// Attaches the active 15-minute `Quorum Local JWT` (cached via `/iam/auth/exchange`
+/// in `mockTokenProvider`) or falls back to the Firebase ID token when no local
+/// session JWT has been cached yet.
 class AuthInterceptor extends Interceptor {
   final Ref _ref;
 
@@ -23,11 +20,22 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // 1. Try Firebase Auth (synchronous read - providers ensure auth is ready)
+    // Phase 6, Step 6.1: Attach exchanged Quorum Local JWT from session token store.
+    final isExchangeRoute = options.path.endsWith('/iam/auth/exchange');
+    final sessionJwt = _ref.read(mockTokenProvider);
+
+    if (sessionJwt != null && sessionJwt.trim().isNotEmpty) {
+      if (!isExchangeRoute) {
+        options.headers['Authorization'] = 'Bearer ${sessionJwt.trim()}';
+      }
+      super.onRequest(options, handler);
+      return;
+    }
+
     final auth = _ref.read(firebaseAuthInstanceProvider);
     final user = auth.currentUser;
 
-    if (user != null) {
+    if (user != null && !isExchangeRoute) {
       try {
         final token = await user.getIdToken();
         if (token == null || token.trim().isEmpty) {
@@ -48,12 +56,6 @@ class AuthInterceptor extends Interceptor {
           true,
         );
         return;
-      }
-    } else {
-      // 2. Try Mock Token (Hybrid/Dev Mode)
-      final mockToken = _ref.read(mockTokenProvider);
-      if (mockToken != null && mockToken.trim().isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $mockToken';
       }
     }
 

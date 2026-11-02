@@ -2777,7 +2777,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get noneDefaultLabel => 'Ei mitään (Oletus)';
 
   @override
-  String get profileDisplayNameLabel => 'Profiilin näyttönimi';
+  String get profileDisplayNameLabel => 'Näyttönimi';
 
   @override
   String get profileDescriptionLabel => 'Profiilin kuvaus (valinnainen)';
@@ -5782,6 +5782,310 @@ class AppLocalizationsFi extends AppLocalizations {
   String contrastiveCharCounter(int count, int min) {
     return '$count/$min merkkiä';
   }
+
+  @override
+  String get navProfile => 'Profiili';
+
+  @override
+  String get navOrganization => 'Organisaatio & IAM';
+
+  @override
+  String get signOutBtn => 'Kirjaudu ulos';
+
+  @override
+  String get signOutAllDevicesBtn => 'Kirjaudu ulos kaikilta laitteilta';
+
+  @override
+  String get mfaChallengeTitle => 'Kaksivaiheinen tunnistautuminen';
+
+  @override
+  String get mfaChallengeSubtitle =>
+      'Syötä 6-numeroinen TOTP-koodi tunnistautumissovelluksestasi.';
+
+  @override
+  String get mfaEnrollmentTitle => 'Pakollinen 2FA-käyttöönotto';
+
+  @override
+  String get mfaEnrollmentSubtitle =>
+      'Lisää tämä salainen avain tai URI tunnistautumissovellukseesi ja vahvista 6-numeroisella koodilla.';
+
+  @override
+  String get mfaSecretKeyLabel => 'Tunnistautumissovelluksen salainen avain';
+
+  @override
+  String get mfaProvisioningUriLabel => 'Aktivointi-URI';
+
+  @override
+  String get mfaTotpCodeLabel => '6-numeroinen TOTP-koodi';
+
+  @override
+  String get mfaTotpCodeError => 'Syötä kelvollinen 6-numeroinen koodi';
+
+  @override
+  String get mfaVerifyBtn => 'Vahvista ja kirjaudu';
+
+  @override
+  String get mfaCompleteEnrollmentBtn => 'Viimeistele 2FA-käyttöönotto';
+
+  @override
+  String get mfaBackToLoginBtn => 'Takaisin kirjautumiseen';
+
+  @override
+  String get profileViewTitle => 'Käyttäjäprofiili ja istunto';
+
+  @override
+  String get profileIdentityCardTitle => 'Identiteetti ja organisaatio';
+
+  @override
+  String get profilePreferencesCardTitle => 'Omat asetukset';
+
+  @override
+  String get profileSessionSecurityCardTitle => 'Istunto ja tietoturva';
+
+  @override
+  String get profileSaveNameBtn => 'Tallenna näyttönimi';
+
+  @override
+  String get profileEmailLabel => 'Sähköpostiosoite';
+
+  @override
+  String get profileRoleLabel => 'Rooli';
+
+  @override
+  String get profileOrganizationIdLabel => 'Organisaation ID';
+
+  @override
+  String get profileMfaVerifiedBadge => '2FA Vahvistettu (TOTP)';
+
+  @override
+  String get profileThemeModeLabel => 'Teematila';
+
+  @override
+  String get profileThemeSystem => 'Järjestelmän oletus';
+
+  @override
+  String get profileThemeLight => 'Vaalea';
+
+  @override
+  String get profileThemeDark => 'Tumma';
+
+  @override
+  String get profileUiLanguageLabel => 'Käyttöliittymän kieli';
+
+  @override
+  String get profileUpdatedSuccess => 'Profiiliasetukset päivitetty';
+
+  @override
+  String get orgIamViewTitle => 'Organisaation ja IAM-hallinta';
+
+  @override
+  String get orgProfileCardTitle => 'Organisaation profiili ja FinOps-kiintiöt';
+
+  @override
+  String get orgContactEmailLabel => 'Laskutus- / yhteysosoite';
+
+  @override
+  String get orgSaveProfileBtn => 'Tallenna organisaation profiili';
+
+  @override
+  String get orgQuotaLimitLabel => 'Kuukausikiintiö (USD)';
+
+  @override
+  String get orgTpmLimitLabel => 'TPM-raja';
+
+  @override
+  String get orgRpmLimitLabel => 'RPM-raja';
+
+  @override
+  String get orgSubscriptionStatusLabel => 'Tilauksen tila';
+
+  @override
+  String get orgTaskAssignmentsCardTitle => 'Aikarajatut tehtäväosoitukset';
+
+  @override
+  String get orgNewTaskAssignmentBtn => 'Uusi tehtäväosoitus';
+
+  @override
+  String get orgResendEmailBtn => 'Lähetä sähköposti uudelleen';
+
+  @override
+  String get orgExtendDeadlineBtn => 'Jatka +24h';
+
+  @override
+  String get orgRevokeAssignmentBtn => 'Peruuta tehtävä';
+
+  @override
+  String get orgOpenReportBtn => 'Avaa suoritusraportti';
+
+  @override
+  String get orgInvitationsCardTitle => 'B2B-käyttäjäkutsut ja roolihallinta';
+
+  @override
+  String get orgInviteEmailLabel => 'Kutsuttavan sähköposti';
+
+  @override
+  String get orgInviteRoleLabel => 'Määritetty rooli';
+
+  @override
+  String get orgSendInvitationBtn => 'Lähetä kutsu';
+
+  @override
+  String get orgBatchInviteHint =>
+      'Massakutsujen sähköpostit (pilkulla tai rivinvaihdolla eroteltuna)';
+
+  @override
+  String get orgSendBatchInvitationBtn => 'Lähetä massakutsut';
+
+  @override
+  String get orgRevokeInvitationBtn => 'Peruuta kutsu';
+
+  @override
+  String get orgMembersHeader => 'Organisaation jäsenet';
+
+  @override
+  String get orgRevokeSessionsBtn => 'Peruuta istunnot';
+
+  @override
+  String get orgGdprDeleteUserBtn => 'GDPR-anonymisointi ja poisto';
+
+  @override
+  String get orgByokSecretsCardTitle => 'BYOK-avaimet ja pilvisalaisuudet';
+
+  @override
+  String get orgSecretScopeLabel => 'Salaisuuden kohdealue';
+
+  @override
+  String get orgSecretTargetIdentifierLabel =>
+      'Palveluntarjoajan / yhdyskäytävän tunniste';
+
+  @override
+  String get orgSecretStorageModeLabel => 'Tallennustila';
+
+  @override
+  String get orgSecretPlaintextLabel => 'API-avain / Salainen poletti';
+
+  @override
+  String get orgSaveSecretBtn => 'Tallenna BYOK-salaisuus';
+
+  @override
+  String get orgDeleteSecretBtn => 'Poista salaisuus';
+
+  @override
+  String get orgSecretConfiguredBadge => 'Määritetty';
+
+  @override
+  String get assignAsTimeBoundTaskBtn => 'Osoita aikarajattuna tehtävänä';
+
+  @override
+  String get taskBuilderDialogTitle => 'Määritä aikarajattu tehtäväosoitus';
+
+  @override
+  String get taskBuilderSingleEmailLabel => 'Vastaanottajan sähköposti';
+
+  @override
+  String get taskBuilderBatchEmailsLabel =>
+      'Kohortin vastaanottajat (sähköpostilista tai CSV email,name,language)';
+
+  @override
+  String get taskBuilderUploadCsvBtn => 'Tuo vastaanottajat (.csv)';
+
+  @override
+  String get taskBuilderLockedInputsTitle =>
+      'Lukitut taustasyötteet (Lähettäjän täyttämät)';
+
+  @override
+  String get taskBuilderAssigneeInputsTitle =>
+      'Vastaanottajan syötekentät (FilterChip-valinta)';
+
+  @override
+  String get taskBuilderHardDeadlineLabel =>
+      'Ehdoton määräaika (tuntia tästä hetkestä)';
+
+  @override
+  String get taskBuilderRelativeDurationLabel =>
+      'Aktiivisen ajastimen kesto (minuuttia, valinnainen)';
+
+  @override
+  String get taskBuilderResultVisibilityLabel =>
+      'Tulosten näkyvyys palautuksen jälkeen';
+
+  @override
+  String get taskBuilderVisibilityConfirmation => 'Vain vahvistus';
+
+  @override
+  String get taskBuilderVisibilityFullReport => 'Täysi raportin lukuoikeus';
+
+  @override
+  String get taskBuilderSubmitSingleBtn => 'Luo tehtäväosoitus';
+
+  @override
+  String get taskBuilderSubmitBatchBtn => 'Luo kohortin massatehtävä';
+
+  @override
+  String taskBuilderMagicLinkReady(String link) {
+    return 'Tehtävälinkki luotu: $link';
+  }
+
+  @override
+  String get taskBuilderExportCsvBtn => 'Lataa kohortin tehtävälinkit (.csv)';
+
+  @override
+  String get taskPortalTitle => 'Aikarajattu suoritustehtävä';
+
+  @override
+  String taskPortalOrgLabel(String orgName) {
+    return 'Organisaatio: $orgName';
+  }
+
+  @override
+  String taskPortalAssignedEmailLabel(String email) {
+    return 'Määritetty vastaanottaja: $email';
+  }
+
+  @override
+  String get taskPortalIdentityMismatchTitle =>
+      'Käyttäjätilin ristiriita (IDENTITY_MISMATCH)';
+
+  @override
+  String taskPortalIdentityMismatchDesc(
+    String currentEmail,
+    String assignedEmail,
+  ) {
+    return 'Olet kirjautuneena tilillä $currentEmail, mutta tämä tehtävä on osoitettu osoitteelle $assignedEmail.';
+  }
+
+  @override
+  String get taskPortalSwitchAccountBtn => 'Kirjaudu ulos ja vaihda tiliä';
+
+  @override
+  String get taskPortalJitOnboardingTitle =>
+      'Luo tili ja ota 2FA käyttöön tehtävää varten';
+
+  @override
+  String get taskPortalJitNameLabel => 'Koko nimi';
+
+  @override
+  String get taskPortalJitPasswordLabel => 'Luo salasana';
+
+  @override
+  String get taskPortalJitCompleteBtn => 'Rekisteröidy, vahvista 2FA ja jatka';
+
+  @override
+  String get taskPortalStartTaskBtn => 'Aloita tehtävä';
+
+  @override
+  String taskPortalRemainingTimeLabel(String time) {
+    return 'Jäljellä oleva aika: $time';
+  }
+
+  @override
+  String get taskPortalSaveDraftBtn => 'Tallenna luonnos';
+
+  @override
+  String get taskPortalSubmitTaskBtn => 'Palauta tehtävä';
+
+  @override
+  String get taskPortalSubmittedTitle => 'Tehtävä palautettu onnistuneesti';
 
   @override
   String staleTargetBlockChipLabel(String blockId) {

@@ -95,6 +95,56 @@ class SettingsController extends _$SettingsController {
     }
   }
 
+  /// Synchronizes persisted backend user preferences (`language` and `themeMode`) into local settings state.
+  Future<void> syncFromUserProfile({
+    String? language,
+    String? themeMode,
+  }) async {
+    final current = switch (state) {
+      AsyncData(:final value) => value,
+      _ => const AppSettingsState(),
+    };
+
+    ThemeMode resolvedTheme = current.themeMode;
+    if (themeMode != null && themeMode.trim().isNotEmpty) {
+      final normalizedTheme = themeMode.trim().toLowerCase();
+      if (normalizedTheme == 'system' ||
+          normalizedTheme == 'light' ||
+          normalizedTheme == 'dark') {
+        resolvedTheme = _parseThemeMode(normalizedTheme, current.themeMode);
+      }
+    }
+
+    Locale resolvedLocale = current.locale;
+    if (language != null && language.trim().isNotEmpty) {
+      final normalizedLang = language.trim().toLowerCase();
+      final isSupported = AppLocalizations.supportedLocales.any(
+        (locale) => locale.languageCode == normalizedLang,
+      );
+      if (isSupported) {
+        resolvedLocale = Locale(normalizedLang);
+      }
+    }
+
+    state = AsyncData(
+      current.copyWith(themeMode: resolvedTheme, locale: resolvedLocale),
+    );
+
+    try {
+      await _prefs.setString(_themeModeKey, resolvedTheme.name);
+      await _prefs.setString(_localeKey, resolvedLocale.languageCode);
+    } catch (e, st) {
+      if (ref.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .warning(
+              'SettingsController',
+              'Could not persist synced user profile preferences locally: $e\n$st',
+            );
+      }
+    }
+  }
+
   ThemeMode _parseThemeMode(String? val, ThemeMode uninitializedDefault) {
     return switch (val) {
       null => uninitializedDefault,

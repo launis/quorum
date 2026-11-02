@@ -37,7 +37,7 @@ final class SettingsControllerProvider
 }
 
 String _$settingsControllerHash() =>
-    r'c91372836b2da89e3aa88eb1861274ea4b1760e4';
+    r'72c12db45e9b9a66d47bf2f2fb561cc1d5f668c4';
 
 /// Manages application theme and locale preferences via non-blocking `SharedPreferencesAsync`.
 

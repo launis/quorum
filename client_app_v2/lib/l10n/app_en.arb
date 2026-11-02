@@ -2971,6 +2971,139 @@
       }
     }
   },
+  "navProfile": "Profile",
+  "navOrganization": "Organization & IAM",
+  "signOutBtn": "Sign Out",
+  "signOutAllDevicesBtn": "Sign Out From All Devices",
+  "mfaChallengeTitle": "Two-Factor Authentication",
+  "mfaChallengeSubtitle": "Enter the 6-digit TOTP code from your authenticator app.",
+  "mfaEnrollmentTitle": "Mandatory 2FA Enrollment",
+  "mfaEnrollmentSubtitle": "Add this secret key or provisioning URI to your authenticator app and confirm with a 6-digit code.",
+  "mfaSecretKeyLabel": "Authenticator Secret Key",
+  "mfaProvisioningUriLabel": "Provisioning URI",
+  "mfaTotpCodeLabel": "6-Digit TOTP Code",
+  "mfaTotpCodeError": "Enter a valid 6-digit code",
+  "mfaVerifyBtn": "Verify & Sign In",
+  "mfaCompleteEnrollmentBtn": "Complete 2FA Enrollment",
+  "mfaBackToLoginBtn": "Back to Sign In",
+  "profileViewTitle": "User Profile & Session",
+  "profileIdentityCardTitle": "Identity & Organization",
+  "profilePreferencesCardTitle": "Personal Preferences",
+  "profileSessionSecurityCardTitle": "Session & Security",
+  "profileDisplayNameLabel": "Display Name",
+  "profileSaveNameBtn": "Save Display Name",
+  "profileEmailLabel": "Email Address",
+  "profileRoleLabel": "Role",
+  "profileOrganizationIdLabel": "Organization ID",
+  "profileMfaVerifiedBadge": "2FA Verified (TOTP)",
+  "profileThemeModeLabel": "Theme Mode",
+  "profileThemeSystem": "System Default",
+  "profileThemeLight": "Light",
+  "profileThemeDark": "Dark",
+  "profileUiLanguageLabel": "UI Language",
+  "profileUpdatedSuccess": "Profile preferences updated",
+  "orgIamViewTitle": "Organization & IAM Governance",
+  "orgProfileCardTitle": "Organization Profile & FinOps Quotas",
+  "orgNameLabel": "Organization Name",
+  "orgContactEmailLabel": "Billing / Contact Email",
+  "orgSaveProfileBtn": "Save Organization Profile",
+  "orgQuotaLimitLabel": "Monthly Quota (USD)",
+  "orgTpmLimitLabel": "TPM Limit",
+  "orgRpmLimitLabel": "RPM Limit",
+  "orgSubscriptionStatusLabel": "Subscription Status",
+  "orgTaskAssignmentsCardTitle": "Time-Bound Task Assignments",
+  "orgNewTaskAssignmentBtn": "New Task Assignment",
+  "orgResendEmailBtn": "Resend Email",
+  "orgExtendDeadlineBtn": "Extend +24h",
+  "orgRevokeAssignmentBtn": "Revoke Task",
+  "orgOpenReportBtn": "Open Execution Report",
+  "orgInvitationsCardTitle": "B2B User Invitations & Role Governance",
+  "orgInviteEmailLabel": "Invitee Email",
+  "orgInviteRoleLabel": "Assigned Role",
+  "orgSendInvitationBtn": "Send Invitation",
+  "orgBatchInviteHint": "Batch Recipient Emails (comma or newline separated)",
+  "orgSendBatchInvitationBtn": "Send Batch Invitations",
+  "orgRevokeInvitationBtn": "Revoke Invitation",
+  "orgMembersHeader": "Organization Members",
+  "orgRevokeSessionsBtn": "Revoke Sessions",
+  "orgGdprDeleteUserBtn": "GDPR Anonymize & Delete",
+  "orgByokSecretsCardTitle": "BYOK Credentials & Cloud Secrets",
+  "orgSecretScopeLabel": "Secret Scope",
+  "orgSecretTargetIdentifierLabel": "Provider / Gateway Identifier",
+  "orgSecretStorageModeLabel": "Storage Mode",
+  "orgSecretPlaintextLabel": "API Key / Secret Token",
+  "orgSaveSecretBtn": "Save BYOK Secret",
+  "orgDeleteSecretBtn": "Delete Secret",
+  "orgSecretConfiguredBadge": "Configured",
+  "assignAsTimeBoundTaskBtn": "Assign as Time-Bound Task",
+  "taskBuilderDialogTitle": "Configure Time-Bound Task Assignment",
+  "taskBuilderSingleEmailLabel": "Assignee Email",
+  "taskBuilderBatchEmailsLabel": "Cohort Recipients (multi-email paste or CSV email,name,language)",
+  "taskBuilderUploadCsvBtn": "Import Recipients (.csv)",
+  "taskBuilderLockedInputsTitle": "Locked Background Inputs (Sender Provided)",
+  "taskBuilderAssigneeInputsTitle": "Assignee Input Slots (Interactive FilterChips)",
+  "taskBuilderHardDeadlineLabel": "Hard Deadline (Hours from now)",
+  "taskBuilderRelativeDurationLabel": "Active Timer Duration (Minutes, optional)",
+  "taskBuilderResultVisibilityLabel": "Post-Submission Visibility",
+  "taskBuilderVisibilityConfirmation": "Confirmation Only",
+  "taskBuilderVisibilityFullReport": "Full Report Access",
+  "taskBuilderSubmitSingleBtn": "Create Task Assignment",
+  "taskBuilderSubmitBatchBtn": "Create Cohort Batch Assignment",
+  "taskBuilderMagicLinkReady": "Magic Task Link Created: {link}",
+  "@taskBuilderMagicLinkReady": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "taskBuilderExportCsvBtn": "Download Cohort Magic Links (.csv)",
+  "taskPortalTitle": "Time-Bound Execution Assignment",
+  "taskPortalOrgLabel": "Organization: {orgName}",
+  "@taskPortalOrgLabel": {
+    "placeholders": {
+      "orgName": {
+        "type": "String"
+      }
+    }
+  },
+  "taskPortalAssignedEmailLabel": "Assigned Recipient: {email}",
+  "@taskPortalAssignedEmailLabel": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "taskPortalIdentityMismatchTitle": "Account Identity Mismatch (IDENTITY_MISMATCH)",
+  "taskPortalIdentityMismatchDesc": "You are currently signed in as {currentEmail}, but this task is assigned to {assignedEmail}.",
+  "@taskPortalIdentityMismatchDesc": {
+    "placeholders": {
+      "currentEmail": {
+        "type": "String"
+      },
+      "assignedEmail": {
+        "type": "String"
+      }
+    }
+  },
+  "taskPortalSwitchAccountBtn": "Sign Out & Switch Account",
+  "taskPortalJitOnboardingTitle": "Create Account & Enroll 2FA to Access Task",
+  "taskPortalJitNameLabel": "Full Name",
+  "taskPortalJitPasswordLabel": "Create Password",
+  "taskPortalJitCompleteBtn": "Register, Verify 2FA & Continue",
+  "taskPortalStartTaskBtn": "Start Task",
+  "taskPortalRemainingTimeLabel": "Remaining Time: {time}",
+  "@taskPortalRemainingTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "taskPortalSaveDraftBtn": "Save Draft",
+  "taskPortalSubmitTaskBtn": "Submit Task",
+  "taskPortalSubmittedTitle": "Task Submitted Successfully",
   "staleTargetBlockChipLabel": "Removed from workflow: {blockId}",
   "@staleTargetBlockChipLabel": {
     "placeholders": {
