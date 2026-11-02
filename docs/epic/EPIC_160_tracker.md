@@ -135,7 +135,7 @@
   - [x] @[backend_v2/llm/provider/provider_factory.py]
   - [x] @[backend_v2/services/mcp/generic_mcp_client.py]
   - [x] @[backend_v2/services/mcp/dispatcher.py]
-  - [ ] @[backend_v2/api/dependencies.py]
+  - [x] @[backend_v2/api/dependencies.py]
   - [ ] @[backend_v2/api/routers/iam/auth.py]
   - [ ] @[backend_v2/api/routers/iam/users.py]
   - [ ] @[backend_v2/api/routers/iam/organizations.py]
