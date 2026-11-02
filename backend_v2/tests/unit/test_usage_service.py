@@ -135,6 +135,7 @@ async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemory
         quota_limit=10.0,
         tpm_limit=1000,
         rpm_limit=10,
+        allowed_email_domains=[],
     )
     await fake_repo.create_organization(org)
     fake_repo.set_org_usage_total("org_0195f3a0000070018234abcd5678ef90", 5.0)
@@ -145,8 +146,12 @@ async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemory
 
 
 @pytest.mark.asyncio
-async def test_check_quota_exceed(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
-    """Verify check_quota returns False when monthly usage equals or exceeds organization quota_limit."""
+async def test_check_quota_exceed(
+    usage_service: UsageService,
+    fake_repo: InMemoryUnifiedWorkflowRepository,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify check_quota logs QUOTA_EXCEEDED and raises AppException when monthly usage exceeds quota_limit."""
     org = Organization(
         id="org_0195f3a0000070018234abcd5678ef90",
         name="Test Org",
@@ -156,12 +161,98 @@ async def test_check_quota_exceed(usage_service: UsageService, fake_repo: InMemo
         quota_limit=10.0,
         tpm_limit=1000,
         rpm_limit=10,
+        allowed_email_domains=[],
     )
     await fake_repo.create_organization(org)
     fake_repo.set_org_usage_total("org_0195f3a0000070018234abcd5678ef90", 15.0)
 
-    res = await usage_service.check_quota("org_0195f3a0000070018234abcd5678ef90")
-    assert res is False
+    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as exc_info:
+        await usage_service.check_quota("org_0195f3a0000070018234abcd5678ef90")
+
+    assert exc_info.value.status_code == 402
+    assert exc_info.value.details == {"error_code": ErrorCodes.QUOTA_EXCEEDED.value}
+    assert ErrorCodes.QUOTA_EXCEEDED.name in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_usage_service_check_quota_bva_and_subscription_boundary(
+    usage_service: UsageService,
+    fake_repo: InMemoryUnifiedWorkflowRepository,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Contract: Monthly spend at quota_limit - 0.01 passes; >= quota_limit or inactive subscription raises QUOTA_EXCEEDED."""
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
+    quota_limit = 100.0
+
+    # 1. ACTIVE and TRIAL with quota_limit - 0.01 pass
+    for active_status in (SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL):
+        org = Organization(
+            id=org_id,
+            name="BVA Org",
+            is_active=True,
+            tier="enterprise",
+            subscription_status=active_status,
+            quota_limit=quota_limit,
+            tpm_limit=10000,
+            rpm_limit=60,
+            allowed_email_domains=[],
+        )
+        await fake_repo.create_organization(org)
+        fake_repo.set_org_usage_total(org_id, quota_limit - 0.01)
+
+        assert await usage_service.check_quota(org_id) is True
+
+    # 2. Exact quota_limit and quota_limit + 0.01 raise AppException with ErrorCodes.QUOTA_EXCEEDED
+    for exhausted_spend in (quota_limit, quota_limit + 0.01):
+        fake_repo.set_org_usage_total(org_id, exhausted_spend)
+        caplog.clear()
+        with caplog.at_level(logging.ERROR), pytest.raises(AppException) as budget_exc:
+            await usage_service.check_quota(org_id)
+        assert budget_exc.value.status_code == 402
+        assert budget_exc.value.details == {"error_code": ErrorCodes.QUOTA_EXCEEDED.value}
+        assert ErrorCodes.QUOTA_EXCEEDED.name in caplog.text
+
+    # 3. Inactive SubscriptionStatus (PAST_DUE, CANCELED) or is_active=False raises QUOTA_EXCEEDED even at $0 spend
+    fake_repo.set_org_usage_total(org_id, 0.0)
+    for inactive_status in (
+        SubscriptionStatus.PAST_DUE,
+        SubscriptionStatus.CANCELED,
+    ):
+        inactive_org = Organization(
+            id=org_id,
+            name="Inactive Sub Org",
+            is_active=True,
+            tier="enterprise",
+            subscription_status=inactive_status,
+            quota_limit=quota_limit,
+            tpm_limit=10000,
+            rpm_limit=60,
+            allowed_email_domains=[],
+        )
+        await fake_repo.create_organization(inactive_org)
+        caplog.clear()
+        with caplog.at_level(logging.ERROR), pytest.raises(AppException) as sub_exc:
+            await usage_service.check_quota(org_id)
+        assert sub_exc.value.status_code == 402
+        assert sub_exc.value.details == {"error_code": ErrorCodes.QUOTA_EXCEEDED.value}
+        assert ErrorCodes.QUOTA_EXCEEDED.name in caplog.text
+
+    disabled_org = Organization(
+        id=org_id,
+        name="Disabled Org",
+        is_active=False,
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=quota_limit,
+        tpm_limit=10000,
+        rpm_limit=60,
+        allowed_email_domains=[],
+    )
+    await fake_repo.create_organization(disabled_org)
+    with pytest.raises(AppException) as disabled_exc:
+        await usage_service.check_quota(org_id)
+    assert disabled_exc.value.status_code == 402
+    assert disabled_exc.value.details == {"error_code": ErrorCodes.QUOTA_EXCEEDED.value}
 
 
 @pytest.mark.asyncio
@@ -225,6 +316,7 @@ async def test_get_usage_report_with_aggregate(
         quota_limit=10.0,
         tpm_limit=1000,
         rpm_limit=10,
+        allowed_email_domains=[],
     )
     await fake_repo.create_organization(org)
 

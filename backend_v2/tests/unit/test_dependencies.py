@@ -31,6 +31,7 @@ from backend_v2.api.dependencies import (
     get_prompt_compiler,
     get_report_artifact_repo,
     get_report_service,
+    get_revocation_cache,
     get_studio_output_profile_service,
     get_studio_prompt_block_service,
     get_studio_simulation_service,
@@ -38,10 +39,12 @@ from backend_v2.api.dependencies import (
     get_studio_workflow_service,
     get_system_repo,
     get_task_blueprint_repo,
+    get_tenant_rate_limit_service,
     get_usage_service,
     get_workflow_repo,
     require_role,
 )
+from backend_v2.core.redis_security import RevocationCache
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
 from backend_v2.database.repositories.component import ComponentRepositoryImpl
 from backend_v2.database.repositories.components.agent import AgentRepositoryImpl
@@ -54,7 +57,12 @@ from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
 from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
-from backend_v2.exceptions import AuthenticationError, ErrorCodes, PermissionDeniedError
+from backend_v2.exceptions import (
+    AuthenticationError,
+    ErrorCodes,
+    PermissionDeniedError,
+    ServiceUnavailableError,
+)
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix
@@ -159,6 +167,74 @@ async def test_get_current_user_from_header_token_query() -> None:
     user = await get_current_user_from_header(auth_service=mock_auth_service, token=None, token_query="query_token_123")
     assert user == expected_user
     mock_auth_service.verify_token.assert_called_once_with("query_token_123")
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_from_header_revocation_cache_failure_and_error() -> None:
+    """Verify get_current_user_from_header invokes RevocationCache.assert_not_revoked immediately after verify_token."""
+    mock_auth_service = AsyncMock()
+    user_id = generate_opaque_id(EntityPrefix.USER)
+    expected_user = TokenData(
+        id=user_id,
+        email="revoked@test.com",
+        role=UserRole.MEMBER,
+        jti="0195f3a0-0000-7000-8000-000000000001",
+    )
+    mock_auth_service.verify_token.return_value = expected_user
+    mock_credentials = MagicMock(spec=HTTPAuthorizationCredentials)
+    mock_credentials.credentials = "jwt_token_abc"
+
+    mock_redis = AsyncMock()
+    mock_redis.mget.return_value = [None, None]
+    revocation_cache = RevocationCache(redis=mock_redis)
+
+    # 1. Unrevoked token passes
+    verified = await get_current_user_from_header(
+        auth_service=mock_auth_service,
+        token=mock_credentials,
+        revocation_cache=revocation_cache,
+    )
+    assert verified == expected_user
+    mock_redis.mget.assert_awaited_once_with(
+        f"revoked:usr:{user_id}",
+        "revoked:jti:0195f3a0-0000-7000-8000-000000000001",
+    )
+
+    # 2. Revoked token raises 401 AuthenticationError (AUTH_TOKEN_EXPIRED)
+    mock_redis.mget.return_value = [None, "1"]
+    with pytest.raises(AuthenticationError) as exc_revoked:
+        await get_current_user_from_header(
+            auth_service=mock_auth_service,
+            token=mock_credentials,
+            revocation_cache=revocation_cache,
+        )
+    assert exc_revoked.value.status_code == 401
+    assert exc_revoked.value.details["error_code"] == ErrorCodes.AUTH_TOKEN_EXPIRED.value
+
+    # 3. Redis connection error enforces Fail-Closed 503 ServiceUnavailableError
+    mock_redis.mget.side_effect = ConnectionError("Redis offline")
+    with pytest.raises(ServiceUnavailableError) as exc_down:
+        await get_current_user_from_header(
+            auth_service=mock_auth_service,
+            token=mock_credentials,
+            revocation_cache=revocation_cache,
+        )
+    assert exc_down.value.status_code == 503
+    assert exc_down.value.details["error_code"] == ErrorCodes.SERVICE_UNAVAILABLE.value
+
+
+def test_get_revocation_cache_and_tenant_rate_limit_service() -> None:
+    """Verify get_revocation_cache and get_tenant_rate_limit_service bind request.app.state.arq_pool."""
+    mock_request = MagicMock()
+    expected_pool = MagicMock()
+    mock_request.app.state.arq_pool = expected_pool
+
+    rev_cache = get_revocation_cache(request=mock_request)
+    assert rev_cache is not None
+    assert rev_cache.redis is expected_pool
+
+    rate_limiter = get_tenant_rate_limit_service(request=mock_request)
+    assert rate_limiter.redis is expected_pool
 
 
 @pytest.mark.asyncio

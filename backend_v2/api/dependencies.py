@@ -11,7 +11,9 @@ from typing import Annotated, Any, cast
 from arq.connections import ArqRedis
 from fastapi import Depends, Query, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from starlette.datastructures import State
 
+from backend_v2.core.redis_security import RevocationCache, TenantRateLimitService
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.factory import get_driver
 from backend_v2.database.interfaces import (
@@ -91,6 +93,7 @@ __all__ = [
     "PromptCompilerDep",
     "ReportArtifactRepoDep",
     "ReportServiceDep",
+    "RevocationCacheDep",
     "StudioOutputProfileServiceDep",
     "StudioPromptBlockServiceDep",
     "StudioSimulationServiceDep",
@@ -98,6 +101,7 @@ __all__ = [
     "StudioWorkflowServiceDep",
     "SystemRepoDep",
     "TaskBlueprintRepoDep",
+    "TenantRateLimitServiceDep",
     "UsageServiceDep",
     "UserDep",
     "WorkflowRepoDep",
@@ -123,6 +127,7 @@ __all__ = [
     "get_prompt_compiler",
     "get_report_artifact_repo",
     "get_report_service",
+    "get_revocation_cache",
     "get_studio_output_profile_service",
     "get_studio_prompt_block_service",
     "get_studio_simulation_service",
@@ -130,6 +135,7 @@ __all__ = [
     "get_studio_workflow_service",
     "get_system_repo",
     "get_task_blueprint_repo",
+    "get_tenant_rate_limit_service",
     "get_usage_service",
     "get_workflow_repo",
     "require_role",
@@ -357,20 +363,64 @@ def get_usage_service(identity_repo: IdentityRepoDep, audit_repo: AuditRepoDep) 
 UsageServiceDep = Annotated[UsageService, Depends(get_usage_service)]
 
 
+def get_revocation_cache(request: Request) -> RevocationCache | None:
+    """Instantiate the Redis revocation cache from the application Arq Redis pool.
+
+    Args:
+        request: Current HTTP request.
+
+    Returns:
+        Configured RevocationCache instance when Redis state is initialized, or None.
+    """
+    if not isinstance(request.app.state, State):
+        return RevocationCache(redis=request.app.state.arq_pool)
+    if "arq_pool" not in request.app.state._state:
+        return None
+    return RevocationCache(redis=request.app.state.arq_pool)
+
+
+RevocationCacheDep = Annotated[RevocationCache | None, Depends(get_revocation_cache)]
+
+
+def get_tenant_rate_limit_service(request: Request) -> TenantRateLimitService:
+    """Instantiate the per-tenant Redis sliding-window rate limiter from application state.
+
+    Args:
+        request: Current HTTP request.
+
+    Returns:
+        Configured TenantRateLimitService instance.
+    """
+    if not isinstance(request.app.state, State):
+        return TenantRateLimitService(redis=request.app.state.arq_pool)
+    if "arq_pool" not in request.app.state._state:
+        return TenantRateLimitService(redis=None)
+    return TenantRateLimitService(redis=request.app.state.arq_pool)
+
+
+TenantRateLimitServiceDep = Annotated[TenantRateLimitService, Depends(get_tenant_rate_limit_service)]
+
+
 def get_auth_service(
     repo: IdentityRepoDep,
     settings: Annotated[Settings, Depends(get_settings)],
+    revocation_cache: Annotated[RevocationCache | None, Depends(get_revocation_cache)] = None,
 ) -> AuthService:
     """Instantiate the authentication service.
 
     Args:
         repo: Identity repository.
         settings: Application settings.
+        revocation_cache: Optional Redis revocation cache for kill-switch enforcement.
 
     Returns:
         Auth service instance.
     """
-    return AuthService(repo=repo, use_firebase=settings.use_firebase_auth)
+    return AuthService(
+        repo=repo,
+        use_firebase=settings.use_firebase_auth,
+        revocation_cache=revocation_cache,
+    )
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
@@ -380,6 +430,7 @@ async def get_current_user_from_header(
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
     token: Annotated[HTTPAuthorizationCredentials | None, Security(security)] = None,
     token_query: Annotated[str | None, Query(alias="token")] = None,
+    revocation_cache: Annotated[RevocationCache | None, Depends(get_revocation_cache)] = None,
 ) -> TokenData:
     """Extract and verify the current user from the authorization header or query parameter.
 
@@ -387,12 +438,15 @@ async def get_current_user_from_header(
         auth_service: Authentication service.
         token: Optional HTTP bearer token.
         token_query: Optional query parameter token fallback for file streaming.
+        revocation_cache: Optional Redis revocation cache for Dual-Key MGET kill-switch enforcement.
 
     Returns:
         Verified token data.
 
     Raises:
-        AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if the token is missing or invalid.
+        AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if the token is missing or invalid,
+            or ErrorCodes.AUTH_TOKEN_EXPIRED if revoked in Redis.
+        ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE if Redis kill-switch check fails.
     """
     raw_token = token_query
     if token is not None:
@@ -409,7 +463,11 @@ async def get_current_user_from_header(
             message=msg,
             details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
         )
-    return await auth_service.verify_token(raw_token)
+    # Phase 4, Step 4.1: Verify token and immediately enforce Fail-Closed Dual-Key Redis MGET kill-switch
+    token_data = await auth_service.verify_token(raw_token)
+    if revocation_cache is not None:
+        await revocation_cache.assert_not_revoked(token_data)
+    return token_data
 
 
 UserDep = Annotated[TokenData, Depends(get_current_user_from_header)]

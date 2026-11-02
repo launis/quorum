@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 
 from backend_v2.database.interfaces import IAuditRepository, IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.auth import SubscriptionStatus, SystemOrganizations
 from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain import UsageRecord
 from backend_v2.models.domain.base import UsageAggregateUpdateDTO
@@ -214,17 +214,18 @@ class UsageService:
             ) from e
 
     async def check_quota(self, org_id: str) -> bool:
-        """Check whether the organization is within monthly quota limits.
+        """Check whether the organization has an active subscription and is within monthly USD quota limits.
 
         Args:
             org_id: Organization identifier to evaluate.
 
         Returns:
-            True if organization usage is under the monthly limit, False if exceeded.
+            True if the organization subscription is active and monthly usage is below quota_limit.
 
         Raises:
             AppException: If org_id is empty (ErrorCodes.VALIDATION_FAILED), organization does not
-                exist (ErrorCodes.RESOURCE_NOT_FOUND), or quota evaluation fails (ErrorCodes.QUOTA_CHECK_FAILED).
+                exist (ErrorCodes.RESOURCE_NOT_FOUND), subscription is inactive or monthly USD budget
+                is exhausted (ErrorCodes.QUOTA_EXCEEDED), or evaluation fails (ErrorCodes.QUOTA_CHECK_FAILED).
         """
         try:
             # 1. Get Org Limits
@@ -247,6 +248,27 @@ class UsageService:
                     message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
                 )
 
+            # Phase 4, Step 4.2: Verify active SubscriptionStatus (ACTIVE or TRIAL) and is_active flag
+            if not org.is_active or org.subscription_status not in (
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.TRIAL,
+            ):
+                msg = (
+                    f"Quota Check: Organization '{org_id}' subscription is not active "
+                    f"(status={org.subscription_status}). Execution denied."
+                )
+                logger.error(
+                    "[UsageService] %s: %s",
+                    ErrorCodes.QUOTA_EXCEEDED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.QUOTA_EXCEEDED.value},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=402,
+                    details={"error_code": ErrorCodes.QUOTA_EXCEEDED.value},
+                )
+
             limit = float(org.quota_limit)
 
             # 2. Calculate Usage (Current Month)
@@ -256,8 +278,18 @@ class UsageService:
             used = await self.identity_repo.get_org_usage_total(org_id, since=start_of_month)
 
             if used >= limit:
-                logger.warning("Quota Exceeded for %s: Used $%s >= Limit $%s", org_id, used, limit)
-                return False
+                msg = f"Quota Exceeded for {org_id}: Used ${used} >= Limit ${limit}"
+                logger.error(
+                    "[UsageService] %s: %s",
+                    ErrorCodes.QUOTA_EXCEEDED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.QUOTA_EXCEEDED.value},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=402,
+                    details={"error_code": ErrorCodes.QUOTA_EXCEEDED.value},
+                )
 
             return True
 
