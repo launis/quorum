@@ -98,12 +98,12 @@ class LogicNodeStateDTO(V2CoreBase):
 
     steps: Annotated[
         list[StepOutputDTO],
-        Field(default_factory=list, description="Projector snapshot steps list"),
-    ]
+        "Projector snapshot steps list",
+    ] = Field(default_factory=list, description="Projector snapshot steps list")
     dynamic_inputs: Annotated[
         dict[str, DomainInputValue],
-        Field(default_factory=dict, description="Dynamic inputs dictionary"),
-    ]
+        "Dynamic inputs dictionary",
+    ] = Field(default_factory=dict, description="Dynamic inputs dictionary")
 
 
 class LogicEvaluationContextDTO(V2CoreBase):
@@ -130,12 +130,12 @@ class LogicEvaluationContextDTO(V2CoreBase):
     metadata: Annotated[ExecutionMetadata, Field(description="Execution metadata")]
     global_context_vars: Annotated[
         GlobalContextVarsDTO,
-        Field(default_factory=GlobalContextVarsDTO, description="Global context variables"),
-    ]
+        "Global context variables",
+    ] = Field(default_factory=GlobalContextVarsDTO, description="Global context variables")
     inputs: Annotated[
         ExecutionInputsDTO,
-        Field(default_factory=ExecutionInputsDTO, description="Execution inputs container"),
-    ]
+        "Execution inputs container",
+    ] = Field(default_factory=ExecutionInputsDTO, description="Execution inputs container")
     target_locale: Annotated[str | None, Field(default=None, description="Target locale code")] = None
     user_role: Annotated[str | None, Field(default=None, description="User role")] = None
 
@@ -154,8 +154,8 @@ class StepOutputContentDTO(V2CoreBase):
 
     data: Annotated[
         dict[str, StepOutputContentValue],
-        Field(default_factory=dict, description="Structured event payload content"),
-    ]
+        "Structured event payload content",
+    ] = Field(default_factory=dict, description="Structured event payload content")
 
     def items(self) -> ItemsView[str, StepOutputContentValue]:
         """Return key-value pairs from the payload dictionary.
