@@ -278,6 +278,7 @@ CREATE TABLE IF NOT EXISTS executions (
     CONSTRAINT enforce_execution_output_profile_uuidv7 CHECK (uuid_extract_version(output_profile_id) = 7),
     CONSTRAINT enforce_execution_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
+ALTER TABLE executions ADD COLUMN IF NOT EXISTS state_version INTEGER NOT NULL DEFAULT 1;
 
 -- 9. Report Artifacts (Materialized Report Metadata)
 CREATE TABLE IF NOT EXISTS report_artifacts (

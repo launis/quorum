@@ -6,6 +6,7 @@ in chat_log inputs, preventing cache collisions on downstream user-only cognitiv
 
 from __future__ import annotations
 
+import itertools
 import json
 import subprocess
 import sys
@@ -1030,7 +1031,10 @@ class TestPollDatabaseForExecution:
             json.dumps({"executions": {"exe_1": {"id": "exe_1", "status": "PASSED"}}}),
             encoding="utf-8",
         )
-        with patch("time.sleep"):
+        with (
+            patch("scripts.run_e2e_variance_test.time.sleep"),
+            patch("scripts.run_e2e_variance_test.requests.get", side_effect=requests.RequestException("offline")),
+        ):
             res = poll_database_for_execution(db_file, "exe_1", timeout_seconds=10)
             assert res is not None
             assert res["status"] == "PASSED"
@@ -1042,7 +1046,10 @@ class TestPollDatabaseForExecution:
             json.dumps({"executions": {"exe_2": {"id": "exe_2", "status": "FAILED"}}}),
             encoding="utf-8",
         )
-        with patch("time.sleep"):
+        with (
+            patch("scripts.run_e2e_variance_test.time.sleep"),
+            patch("scripts.run_e2e_variance_test.requests.get", side_effect=requests.RequestException("offline")),
+        ):
             res = poll_database_for_execution(db_file, "exe_2", timeout_seconds=10)
             assert res is not None
             assert res["status"] == "FAILED"
@@ -1054,7 +1061,14 @@ class TestPollDatabaseForExecution:
             json.dumps({"executions": {"exe_3": {"id": "exe_3", "status": "RUNNING"}}}),
             encoding="utf-8",
         )
-        with patch("time.sleep"), patch("time.time", side_effect=[0.0, 5.0, 20.0, 20.0, 20.0, 20.0]):
+        with (
+            patch("scripts.run_e2e_variance_test.time.sleep"),
+            patch("scripts.run_e2e_variance_test.requests.get", side_effect=requests.RequestException("offline")),
+            patch(
+                "scripts.run_e2e_variance_test.time.time",
+                side_effect=itertools.chain([0.0, 5.0], itertools.repeat(20.0)),
+            ),
+        ):
             res = poll_database_for_execution(db_file, "exe_3", timeout_seconds=10)
             assert res is None
 
@@ -1062,7 +1076,14 @@ class TestPollDatabaseForExecution:
         """Verify poll_database_for_execution tolerates JSONDecodeError gracefully during polling."""
         db_file = tmp_path / "db.json"
         db_file.write_text("INVALID_JSON", encoding="utf-8")
-        with patch("time.sleep"), patch("time.time", side_effect=[0.0, 5.0, 20.0, 20.0, 20.0, 20.0]):
+        with (
+            patch("scripts.run_e2e_variance_test.time.sleep"),
+            patch("scripts.run_e2e_variance_test.requests.get", side_effect=requests.RequestException("offline")),
+            patch(
+                "scripts.run_e2e_variance_test.time.time",
+                side_effect=itertools.chain([0.0, 5.0], itertools.repeat(20.0)),
+            ),
+        ):
             res = poll_database_for_execution(db_file, "exe_4", timeout_seconds=10)
             assert res is None
 
