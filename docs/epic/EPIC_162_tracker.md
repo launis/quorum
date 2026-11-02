@@ -91,7 +91,7 @@
   - [x] @[backend_v2/services/studio/output_profile_service.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
   - [x] @[backend_v2/settings.py]
-  - [ ] @[scripts/_ast_guardrails.py]
+  - [x] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/ablation_live_executor.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
   - [ ] @[scripts/run_ablation_benchmark.py]
