@@ -396,26 +396,43 @@ class User(UserBase):
         return v.strip() if v else v
 
 
-class UserAdminView(UserBase):
+class UserAdminView(User):
     """Extended User model for administrative views with execution statistics and login metadata.
 
     Attributes:
-        id: Unique User Opaque Stripe ID.
+        id: Unique User Opaque Stripe ID (usr_<hex32>).
         slug: Optional human-readable identifier.
         created_at: Account creation timestamp.
         created_by: Identifier of the creator user, if applicable.
+        firebase_uid: External Firebase Auth UID when linked.
+        deleted_at: GDPR soft-deletion UTC timestamp.
         last_login_at: Timestamp of most recent login, if available.
         execution_count: Total number of workflow executions run by the user.
     """
 
     model_config = ConfigDict(from_attributes=True, extra="forbid", frozen=True, strict=True)
 
-    id: Annotated[PrefixedUUID7, Field(description="Unique user identifier")]
-    slug: Annotated[str | None, Field(default=None, description="Legacy human-readable identifier")] = None
-    created_at: Annotated[datetime, Field(description="Account creation timestamp")]
-    created_by: Annotated[str | None, Field(default=None, description="UID of the creator")] = None
+    # Phase 1, Step 1: Inherit all 13 persisted User fields (including firebase_uid and deleted_at)
     last_login_at: Annotated[datetime | None, Field(default=None, description="Timestamp of last login")] = None
     execution_count: Annotated[int, Field(default=0, description="Total number of executions run")] = 0
+
+    @field_validator("last_login_at", mode="before")
+    @classmethod
+    def parse_last_login_at(cls, v: Any) -> Any:
+        """Coerces ISO 8601 datetime strings into datetime instances before strict validation.
+
+        Args:
+            v: Raw timestamp value (ISO string, datetime object, or None).
+
+        Returns:
+            Parsed datetime instance or original value for downstream validation.
+
+        Raises:
+            ValueError: If a string input is not a valid ISO 8601 timestamp.
+        """
+        if isinstance(v, str):
+            return datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return v
 
 
 # --- Creation & Update Models ---

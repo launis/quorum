@@ -274,8 +274,8 @@ def test_audit_parity_report_inheritance_and_aliases(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    # Preferred alias: Workflow vs WorkflowResponseDTO
-    (backend_dir / "workflow.py").write_text("class Workflow:\n    old_name: str\n", encoding="utf-8")
+    # Preferred alias: Workflow vs WorkflowResponseDTO (base fields union-merged into preferred alias)
+    (backend_dir / "workflow.py").write_text("class Workflow:\n    base_slug: str\n", encoding="utf-8")
     (backend_dir / "workflow_resp.py").write_text("class WorkflowResponseDTO:\n    id: str\n", encoding="utf-8")
 
     # Frontend matching:
@@ -288,12 +288,12 @@ def test_audit_parity_report_inheritance_and_aliases(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (frontend_dir / "workflow.dart").write_text(
-        "@freezed\nabstract class Workflow with _$Workflow {\n  const factory Workflow({\n    required String id,\n  }) = _Workflow;\n}\n",
+        "@freezed\nabstract class Workflow with _$Workflow {\n  const factory Workflow({\n    required String id,\n    required String baseSlug,\n  }) = _Workflow;\n}\n",
         encoding="utf-8",
     )
     # Duplicate model definition across files to test merge branch
     (frontend_dir / "workflow_part2.dart").write_text(
-        "@freezed\nabstract class Workflow with _$Workflow {\n  const factory Workflow({\n    required String id,\n  }) = _Workflow;\n}\n",
+        "@freezed\nabstract class Workflow with _$Workflow {\n  const factory Workflow({\n    required String id,\n    required String baseSlug,\n  }) = _Workflow;\n}\n",
         encoding="utf-8",
     )
 
@@ -301,6 +301,23 @@ def test_audit_parity_report_inheritance_and_aliases(tmp_path: Path) -> None:
     assert report.is_success is True
     assert report.shared_models_count >= 3
     assert report.mismatches == []
+
+    # Negative: When a base model in PREFERRED_BACKEND_ALIASES (User) defines fields omitted in Frontend User,
+    # audit_parity_report must flag the missing base model fields even if UserAdminView did not redeclare them.
+    (backend_dir / "user.py").write_text(
+        "class User:\n    id: str\n    firebase_uid: str | None\n\n"
+        "class UserAdminView:\n    id: str\n    execution_count: int\n",
+        encoding="utf-8",
+    )
+    (frontend_dir / "user.dart").write_text(
+        "@freezed\nabstract class User with _$User {\n  const factory User({\n    required String id,\n    required int executionCount,\n  }) = _User;\n}\n",
+        encoding="utf-8",
+    )
+    report_missing_base = audit_parity_report(backend_dir, frontend_dir)
+    assert report_missing_base.is_success is False
+    assert any(
+        m.model_name == "UserAdminView" and m.field_name == "firebase_uid" for m in report_missing_base.mismatches
+    )
 
 
 def test_audit_dto_parity_main_cli_execution(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
