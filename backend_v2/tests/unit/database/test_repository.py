@@ -1,7 +1,13 @@
+"""Unit tests for UnifiedWorkflowRepository and sub-repository delegation."""
+
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import JsonValue
 
+from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
+from backend_v2.database.repositories.execution import HydrationPayloadValue
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import (
@@ -21,14 +27,17 @@ from backend_v2.models.domain.knowledge import (
 )
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
-from backend_v2.models.domain.system_config import ModelProfile
+from backend_v2.models.domain.system_config import (
+    ModelProfile,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
     StepUpdateDTO,
     WorkflowCreateDTO,
     WorkflowUpdateDTO,
 )
-from backend_v2.models.dtos.system import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import (
     BlockDataType,
@@ -36,20 +45,24 @@ from backend_v2.models.enums import (
     ExecutionStatus,
     LLMProvider,
     PromptBlockCategory,
+    SystemLocale,
     TargetBlockType,
 )
 
 
 @pytest.mark.asyncio
 async def test_hydrate_payloads_fails_fast_on_empty_blob() -> None:
-    """Epic 32: Test that an empty storage blob triggers a Fail-Fast DATA_CORRUPTION error."""
+    """Test that an empty storage blob triggers a Fail-Fast DATA_CORRUPTION error."""
     mock_driver = AsyncMock()
     mock_driver.read.return_value = b"   "
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
 
     with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_driver):
-        data = {"id": "exe_123", "execution_trace_storage_path": "executions/exe_123/execution_trace.json"}
+        data: dict[str, HydrationPayloadValue] = {
+            "id": "exe_123",
+            "execution_trace_storage_path": "executions/exe_123/execution_trace.json",
+        }
 
         with pytest.raises(AppException) as exc_info:
             await repo._hydrate_payloads(data)
@@ -66,7 +79,7 @@ async def test_persist_audit_trace_fails_fast() -> None:
     mock_driver.upsert.side_effect = Exception("DB crash")
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    data = {
+    data: dict[str, JsonValue] = {
         "frozen_context": {
             "mcp_tool_audit": [
                 {
@@ -96,7 +109,7 @@ async def test_offload_payloads_fails_fast() -> None:
     mock_storage_driver = AsyncMock()
     mock_storage_driver.save.side_effect = Exception("Storage crash")
 
-    data = {
+    data: dict[str, JsonValue] = {
         "execution_trace": ["large_data"] * 10000  # Will exceed 100KB
     }
 
@@ -116,7 +129,7 @@ async def test_hydrate_audit_trails_fails_fast() -> None:
     mock_driver.query.side_effect = Exception("Query crash")
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    data = {"id": "doc_123"}
+    data: dict[str, HydrationPayloadValue] = {"id": "doc_123"}
 
     with patch("backend_v2.database.repositories.execution.get_storage_driver"):
         with pytest.raises(AppException) as exc_info:
@@ -129,13 +142,21 @@ async def test_hydrate_audit_trails_fails_fast() -> None:
 
 @pytest.mark.asyncio
 async def test_workflow_fetching() -> None:
+    """Test that get_workflow_by_id returns None when the workflow record does not exist."""
     mock_driver = AsyncMock()
-    mock_driver.get.return_value = {"id": "test_wf"}
-    pass
+    mock_driver.get.return_value = None
+    repo = UnifiedWorkflowRepository(driver=mock_driver)
+
+    workflow_id = "wor_0195f3a0000070008123456789abcdef"
+    res = await repo.get_workflow_by_id(workflow_id)
+
+    assert res is None
+    mock_driver.get.assert_called_once_with("workflows", workflow_id)
 
 
 @pytest.mark.asyncio
 async def test_all_passthrough_methods() -> None:
+    """Test delegation across UnifiedWorkflowRepository passthrough methods."""
     mock_driver = AsyncMock()
     mock_driver.query.return_value = []
     mock_driver.get.return_value = None
@@ -171,7 +192,15 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_audit_logs()
     await repo.get_all_workflows()
     await repo.get_workflow_by_id("1")
-    await repo.create_workflow(WorkflowCreateDTO(slug="wf_slug", name="WF"))
+    await repo.create_workflow(
+        WorkflowCreateDTO(
+            slug="wf_slug",
+            name="WF",
+            description=None,
+            expected_inputs=[],
+            steps=[],
+        )
+    )
     mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
     await repo.update_workflow("1", WorkflowUpdateDTO(name="WF New"))
     await repo.update_workflow_definition("1", WorkflowUpdateDTO(name="WF New"))
@@ -179,7 +208,18 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_all_steps()
     mock_driver.get.return_value = None
     await repo.get_step_by_id("1")
-    await repo.create_step(StepCreateDTO(slug="step_slug", name=I18nText(translations={"en": "Step"})))
+    await repo.create_step(
+        StepCreateDTO(
+            slug="step_slug",
+            name=I18nText(translations={"en": "Step"}),
+            criteria_block_ids=[],
+            pre_hooks=[],
+            post_hooks=[],
+            allowed_mcp_tools=[],
+            mcp_tool_params={},
+            expected_inputs=[],
+        )
+    )
     mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
     await repo.update_step("1", StepUpdateDTO(name=I18nText(translations={"en": "Step"})))
     await repo.delete_step("1", force_delete=True)
@@ -258,6 +298,7 @@ async def test_all_passthrough_methods() -> None:
             quota_limit=500.0,
             tpm_limit=50000,
             rpm_limit=500,
+            allowed_email_domains=[],
         )
     )
     await repo.update_organization("1", OrganizationUpdateDTO(name="Org New"))
@@ -271,9 +312,9 @@ async def test_all_passthrough_methods() -> None:
             email="test@test.com",
             role=UserRole.MEMBER,
             is_active=True,
-            language="en",
+            language=SystemLocale.EN,
             theme_mode="system",
-            created_at="2026-01-01T00:00:00Z",
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
             organization_id="org_0195f3a0000070008123456789abcdef",
         )
     )
@@ -310,28 +351,28 @@ async def test_all_passthrough_methods() -> None:
 
 @pytest.mark.asyncio
 async def test_system_repo_get_mcp_gateways_with_id() -> None:
-    """Positive: get_mcp_gateways with specific ID filters by id."""
+    """Positive: get_mcp_gateways with specific ID executes O(1) primary-key lookup via driver.get."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [
-        {"id": "sys_0195f3a0000070018234567890abcdef", "type": "mcp_gateways", "tools": []}
-    ]
+    gateway_id = "sys_0195f3a0000070018234567890abcdef"
+    mock_driver.get.return_value = {
+        "id": gateway_id,
+        "type": "mcp_gateways",
+        "tools": [],
+    }
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    res = await repo.get_mcp_gateways(id="sys_0195f3a0000070018234567890abcdef")
+    res = await repo.get_mcp_gateways(id=gateway_id)
 
-    assert res.id == "sys_0195f3a0000070018234567890abcdef"
-    mock_driver.query.assert_called_once()
-    filters = mock_driver.query.call_args[0][1]
-    assert len(filters) == 1
-    assert filters[0].field == "id"
-    assert filters[0].value == "sys_0195f3a0000070018234567890abcdef"
+    assert res.id == gateway_id
+    mock_driver.get.assert_called_once_with("system_config", gateway_id)
+    mock_driver.query.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_system_repo_get_mcp_gateways_not_found_raises() -> None:
-    """Negative: get_mcp_gateways raises ResourceNotFoundError when config document is missing."""
+    """Negative: get_mcp_gateways with specific ID raises ResourceNotFoundError when driver.get returns None."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
+    mock_driver.get.return_value = None
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
     with pytest.raises(ResourceNotFoundError) as exc_info:
@@ -339,12 +380,28 @@ async def test_system_repo_get_mcp_gateways_not_found_raises() -> None:
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["resource_id"] == "sys_nonexistent"
+    mock_driver.get.assert_called_once_with("system_config", "sys_nonexistent")
+    mock_driver.query.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_system_repo_get_mcp_gateways_default_not_found_raises() -> None:
+    """Negative: get_mcp_gateways without ID raises ResourceNotFoundError when type query returns empty list."""
+    mock_driver = AsyncMock()
+    mock_driver.query.return_value = []
+
+    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await repo.get_mcp_gateways()
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["resource_id"] == "mcp_gateways"
+    mock_driver.query.assert_called_once()
+    mock_driver.get.assert_not_called()
 
 
 def test_append_only_repository_increment_version() -> None:
     """Positive: tests version incrementing on AppendOnlyRepositoryBase."""
-    from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
-
     repo = AppendOnlyRepositoryBase(AsyncMock())
     res = repo._increment_version("wf_exec")
     assert res.base_id == "wf_exec"

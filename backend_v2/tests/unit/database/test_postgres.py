@@ -114,6 +114,7 @@ from backend_v2.models.enums import (
     StepType,
     StepZone,
     StorageBackend,
+    SystemLocale,
     ToolCapability,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -2026,9 +2027,9 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
         role=UserRole.ROOT,
         organization_id=org_id,
         is_active=True,
-        language="fi",
+        language=SystemLocale.FI,
         theme_mode="dark",
-        created_at="2026-01-01T00:00:00Z",
+        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
     )
     expected_org = Organization(
         id=org_id,
@@ -2039,6 +2040,7 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
         quota_limit=1000.0,
         tpm_limit=100000,
         rpm_limit=1000,
+        allowed_email_domains=[],
     )
     mock_driver.get.side_effect = [
         expected_user.model_dump(mode="json"),
