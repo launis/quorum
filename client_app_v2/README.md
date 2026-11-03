@@ -1,14 +1,28 @@
 # Cognitive Quorum — Client Application
 
-Desktop-first Flutter user interface for the **Cognitive Quorum** platform. The client communicates asynchronously with the FastAPI backend and background worker pipeline while enforcing a passive, Server-Driven UI (Dumb Painter / Zero-Math UI) architecture.
+**Desktop-First Server-Driven UI Client for Cognitive Quorum.**
+
+> **Architecture:** Server-Driven UI (SDUI), Dumb Painter Presentation, Isolate-Backed Deserialization
+> **Philosophy:** Zero-Math UI, Fail-Fast Freezed Contracts, No-String Localization
+
+The Flutter desktop client communicates asynchronously with the FastAPI backend and background worker pipeline, rendering Server-Driven UI payloads with zero client-side business or scoring logic.
 
 ---
 
 ## 📚 Architecture Documentation
 
-All architectural specifications, Server-Driven UI contracts, state management invariants, and presentation rules are maintained exclusively in the architecture documentation directory:
+All system and client architectural specifications, Server-Driven UI contracts, state management invariants, and presentation rules are maintained exclusively in [`../docs/architecture/`](../docs/architecture/):
 
-* **[Architecture Documentation (`docs/architecture/`)](../docs/architecture/)**: The Single Source of Truth for the system and client architecture, including **[Server-Driven UI & Presentation](../docs/architecture/04_server_driven_ui_and_presentation.md)**.
+* **[Meta-Architecture & Verification Runbook](../docs/architecture/00_README_META_ARCHITECTURE.md)**
+* **[System Context & Invariants](../docs/architecture/01_system_context_and_invariants.md)**
+* **[Data Seeding & Ontology](../docs/architecture/02_data_seeding_and_ontology.md)**
+* **[Cognitive Orchestration Engine](../docs/architecture/03_cognitive_orchestration_engine.md)**
+* **[Server-Driven UI & Presentation](../docs/architecture/04_server_driven_ui_and_presentation.md)**
+* **[Resilience & Observability](../docs/architecture/05_resilience_and_observability.md)**
+* **[Enriched Atom Graph Engine](../docs/architecture/06_enriched_atom_graph_engine.md)**
+* **[EU AI Act Compliance & Governance](../docs/architecture/07_eu_ai_act_compliance_architecture.md)**
+* **[Matrix Theory Explanations Compendium](../docs/architecture/08_matrix_explanations.md)**
+* **[LLM Prompt Orchestration & Matrix Evaluation](../docs/architecture/09_llm_prompt_orchestration_and_matrix_evaluation.md)**
 
 ---
 
@@ -23,24 +37,34 @@ All architectural specifications, Server-Driven UI contracts, state management i
 
 ## 📂 Directory Structure
 
-* `lib/core/`: Application shell, error boundaries, routing, theme, localization, and network infrastructure.
-* `lib/features/`: Feature modules including `auth/`, `dashboard/`, `execution/`, `organization/`, and `studio/`.
-* `lib/shared/` & `lib/models/`: Shared UI components and Freezed data models synchronized with backend DTO schemas.
-* `lib/l10n/`: Localization `.arb` catalogs.
+* `lib/core/`: Core models (`models/`), network client (`network/`), error boundaries (`error/`), configuration (`config/`), and application constants.
+* `lib/features/`: Feature modules (`auth/`, `execution/`, `reports/`, `settings/`, `shell/`, `studio/`).
+* `lib/l10n/`: Localization `.arb` catalogs and generated localization delegates.
+* `lib/router/`: Typed `GoRouter` route definitions.
+* `lib/shared/`: Reusable passive UI widgets and layout components.
+* `lib/theme/`: Design tokens, typography, and theme definitions.
+* `lib/utils/`: Formatting and helper utilities.
 
 ---
 
-## 📦 Development Environment
+## 📦 Getting Started
 
-To start the full stack locally from the workspace root:
-```powershell
-cd ..
-./run_local.bat
-```
+1. **Full-Stack Startup (from Workspace Root)**:
+   ```powershell
+   cd ..
+   ./run_local.bat
+   ```
+2. **Standalone Client Development**:
+   ```powershell
+   flutter pub get
+   dart run build_runner build -d
+   flutter run
+   ```
 
-To run and develop the Flutter client independently when the backend is already running:
-```powershell
-flutter pub get
-dart run build_runner build -d
-flutter run
-```
+---
+
+## 🛡️ License
+
+**Proprietary and Closed-Source.**
+Copyright (c) Risto Launis. All Rights Reserved.
+No permission is granted to use, copy, modify, or distribute this software under any circumstances.
