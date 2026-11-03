@@ -130,6 +130,7 @@ async def _fetch_and_validate_workflow(repository: Any, workflow_id: str) -> Wor
     Raises:
         WorkflowNotFoundError: If the workflow does not exist in the repository.
         ValidationError: If the stored workflow fails Pydantic schema validation.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if default_strictness_level is missing.
     """
     workflow_dict = await repository.get_workflow(workflow_id)
     if not workflow_dict:
@@ -142,7 +143,22 @@ async def _fetch_and_validate_workflow(repository: Any, workflow_id: str) -> Wor
             extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": workflow_id},
         )
         raise WorkflowNotFoundError(workflow_id)
-    return Workflow.model_validate(workflow_dict)
+    workflow_def = Workflow.model_validate(workflow_dict)
+    if workflow_def.default_strictness_level is None:
+        msg = f"Strict Fail-Fast Enforced: Workflow '{workflow_id}' is missing mandatory 'default_strictness_level'."
+        logger.error(
+            "[Worker] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "workflow_id": workflow_id},
+        )
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+    return workflow_def
 
 
 async def _fetch_and_validate_execution(

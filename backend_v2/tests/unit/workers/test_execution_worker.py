@@ -814,3 +814,32 @@ async def test_execution_worker_zero_strictness_workflow_crash_reproduction() ->
         execution_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert result.status == "COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_execution_worker_missing_strictness_level_raises() -> None:
+    """Negative test: verify workflow missing default_strictness_level routes to DLQ before engine execution."""
+    mock_workflow = _create_mock_workflow().model_copy(update={"default_strictness_level": None})
+    mock_record = _create_mock_record()
+
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock()
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        inputs=ExecutionInputsDTO(),
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+    )
+    assert result.status == "FAILED/DLQ"
+    mock_engine.execute_workflow.assert_not_awaited()
