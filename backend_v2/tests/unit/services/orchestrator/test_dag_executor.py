@@ -13,10 +13,10 @@ from backend_v2.models.domain.execution import ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -842,7 +842,21 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         patch("backend_v2.services.orchestrator.matrix_reducer.MatrixReducer.reduce_matrix") as mock_matrix_reducer,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
-        mock_reduced = LightweightMatrixOutput(raw_score=4.0, normalized_score=80.0, justification="Reduced")
+        mock_reduced = LightweightMatrixDTO(
+            execution_id="exe_0195f3a0000070018111222233334444",
+            reduced_atoms=[
+                ReducedAtomDTO(
+                    tda_id="tda_0195f3a0000070018111222233334444",
+                    status=ExecutionStatus.PASSED,
+                    reasoning="Reduced",
+                    depends_on_tda_ids=[],
+                    short_circuit_reason_tda_ids=[],
+                )
+            ],
+            global_metrics={"total_atoms": 1, "evaluated": 1},
+            evaluated_matrices=[],
+            raw_extensions=[],
+        )
         mock_matrix_reducer.return_value = mock_reduced
 
         event_with_mcp = TraceEvent(
