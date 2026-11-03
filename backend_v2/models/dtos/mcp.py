@@ -897,7 +897,6 @@ class MCPSearchResultItemDTO(V2CoreBase):
     score: Annotated[float | int | None, Field(default=None, description="Relevance score.")] = None
 
 
-# Step 1: Extend MCPStructuredContentDTO with structured error detail schema
 class MCPStructuredErrorDetailDTO(V2CoreBase):
     """Structured error detail object returned inside MCP 'structuredContent.detail'.
 

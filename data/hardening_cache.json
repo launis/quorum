@@ -2418,11 +2418,11 @@
     },
     "backend_v2/services/mcp/generic_mcp_client.py": {
       "target_file": "backend_v2/services/mcp/generic_mcp_client.py",
-      "target_sha256": "9bad398f5492944a86e86f4fff0278069b8d70430fe4756f71826ddda3c3156e",
-      "unit_test_sha256": "adf09254b58165d639f727f3298fe3b1c06a29c0f63bd4840dbab4803eebd774",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "e0f4b746850d9c3a3bff8c61f2f8b0b7adee2e7359430ebd8a57320c96b9c741",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "b1d6d7f65433b4d63b73834357273b69041c2baaa45d4fcecef5e9ca111b3018",
+      "unit_test_sha256": "8860a98983f2e4f9e6bb5173fad9ed0a1e0b979c527f408b92fdb6c1f7829a8e",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "259f20d9222f8af99c2d32b09b7cecb2b137be51ae376b52b776194468fa5ac7",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/ed563108-0af0-40f7-a46f-50cafd8bffb5/task.md"
     },
     "backend_v2/services/mcp/alias_registry.py": {
       "target_file": "backend_v2/services/mcp/alias_registry.py",
@@ -4191,6 +4191,14 @@
       "rules_sha256": "bde0602c66b2c9b1be0c56dca88e227bf215c1d29712b06bcb3044648f2c8181",
       "composite_sha256": "73183ef928fd15c60a6d36a15831ac8224c42c5f5ab2287ebdca32d5d572216f",
       "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/b75f5510-8298-4174-9114-7f99446fddfe/task.md"
+    },
+    "backend_v2/models/dtos/mcp.py": {
+      "target_file": "backend_v2/models/dtos/mcp.py",
+      "target_sha256": "42d6be576f76fa68d52dbfbc50374cefa1c32c23c679d0a82d41e8d438681586",
+      "unit_test_sha256": "661466f70ad82aef210819dd562c97706da52dc3bb6d65a96c7c86e4d1500bf0",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "49c172dd686ae61b311fbbac51f9791356fe102febc11284be4714537e9dc6aa",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/ed563108-0af0-40f7-a46f-50cafd8bffb5/task.md"
     }
   }
 }

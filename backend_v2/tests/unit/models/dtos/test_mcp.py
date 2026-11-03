@@ -1,7 +1,5 @@
 """Unit tests for MCP DTOs."""
 
-from __future__ import annotations
-
 import pytest
 from pydantic import ValidationError
 
@@ -22,6 +20,7 @@ from backend_v2.models.dtos.mcp import (
     MCPSearchResultItemDTO,
     MCPServerInfoDTO,
     MCPStructuredContentDTO,
+    MCPStructuredErrorDetailDTO,
     MCPToolAnnotationsDTO,
     MCPToolCallParamsDTO,
     MCPToolCallResultDTO,
@@ -550,3 +549,24 @@ def test_mcp_structured_content_and_meta_dtos_positive_and_negative() -> None:
 
     with pytest.raises(ValidationError):
         MCPStructuredContentDTO.model_validate({"unknown_key": "forbidden"})
+
+    err_structured = MCPStructuredContentDTO.model_validate(
+        {
+            "error": "Upstream quota exceeded",
+            "statusCode": 429,
+            "detail": {"error": "Rate limit reached", "message": "Retry after 60s"},
+            "documentationUrl": "https://docs.example.com/errors/429",
+        }
+    )
+    assert err_structured.error == "Upstream quota exceeded"
+    assert err_structured.status == 429
+    assert isinstance(err_structured.detail, MCPStructuredErrorDetailDTO)
+    assert err_structured.detail.error == "Rate limit reached"
+    assert err_structured.detail.message == "Retry after 60s"
+    assert err_structured.documentation == "https://docs.example.com/errors/429"
+
+    with pytest.raises(ValidationError):
+        MCPStructuredErrorDetailDTO.model_validate({"error": "bad", "extra_key": "forbidden"})
+
+    with pytest.raises(ValidationError):
+        MCPStructuredErrorDetailDTO.model_validate({"error": 12345})
