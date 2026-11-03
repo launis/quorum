@@ -8,20 +8,20 @@ from backend_v2.models.domain.blackboard import (
     LLMDraftAtomList,
 )
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
+from backend_v2.models.dtos.dag_models import ChunkPacketDTO, ExtractedAtom, GlobalOntologyMap, OntologyEntity
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
 
 @pytest.fixture
-def mock_executor():
+def mock_executor() -> MagicMock:
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock()
     return executor
 
 
 @pytest.fixture
-def mock_client():
+def mock_client() -> MagicMock:
     client = MagicMock()
     client.provider_name = "mock_llm_99"
     client.model_name = "mock"
@@ -29,7 +29,7 @@ def mock_client():
 
 
 @pytest.fixture
-def settings_mock(monkeypatch):
+def settings_mock(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     mock = MagicMock()
     mock.max_concurrent_llm_steps = 10
     mock.llm_max_retries = 2
@@ -43,7 +43,11 @@ def settings_mock(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_execute_phase_0(mock_executor, mock_client, settings_mock):
+async def test_execute_phase_0(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Test phase 0 extraction of ontology map from chunks."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
 
@@ -67,7 +71,11 @@ async def test_execute_phase_0(mock_executor, mock_client, settings_mock):
 
 
 @pytest.mark.asyncio
-async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
+async def test_execute_phase_1(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Test phase 1 atomic claims extraction using ontology."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
 
@@ -106,7 +114,11 @@ async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
 
 
 @pytest.mark.asyncio
-async def test_execute_phase_1_drafts(mock_executor, mock_client, settings_mock):
+async def test_execute_phase_1_drafts(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Test execute_phase_1_drafts extraction and token aggregation."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
 
@@ -135,7 +147,7 @@ async def test_execute_phase_1_drafts(mock_executor, mock_client, settings_mock)
         TokenUsage(prompt_tokens=100, completion_tokens=25, total_tokens=125),
     )
 
-    progress_calls = []
+    progress_calls: list[tuple[int, int]] = []
 
     async def mock_progress(completed: int, total: int) -> None:
         progress_calls.append((completed, total))
@@ -155,7 +167,11 @@ async def test_execute_phase_1_drafts(mock_executor, mock_client, settings_mock)
 
 
 @pytest.mark.asyncio
-async def test_extract_drafts_from_chunk_dlq_fallback(mock_executor, mock_client, settings_mock):
+async def test_extract_drafts_from_chunk_dlq_fallback(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Test DLQ fallback when extraction throws exception."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_executor.execute_structured_task.side_effect = RuntimeError("Crash in LLM task")
@@ -177,7 +193,7 @@ async def test_extract_drafts_from_chunk_dlq_fallback(mock_executor, mock_client
     assert usage.total_tokens == 0
 
 
-def test_calculate_packets_empty(mock_executor):
+def test_calculate_packets_empty(mock_executor: MagicMock) -> None:
     """Test _calculate_packets with text without block IDs."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     packets = atomizer._calculate_packets("Simple text without any brackets")
@@ -186,10 +202,8 @@ def test_calculate_packets_empty(mock_executor):
     assert packets_blank == []
 
 
-def test_calculate_packets_dto_structure(mock_executor):
+def test_calculate_packets_dto_structure(mock_executor: MagicMock) -> None:
     """Test _calculate_packets returns ChunkPacketDTO instances with correct fields."""
-    from backend_v2.models.dtos.dag_models import ChunkPacketDTO
-
     atomizer = TwoPassAtomizer(executor=mock_executor)
     text = "[B0] First block\n\n[B1] Second block\n\n[B2] Third block"
     packets = atomizer._calculate_packets(text, packet_size=2)
@@ -205,7 +219,11 @@ def test_calculate_packets_dto_structure(mock_executor):
 
 
 @pytest.mark.asyncio
-async def test_empty_packets_zero_llm_calls_short_circuit(mock_executor, mock_client, settings_mock):
+async def test_empty_packets_zero_llm_calls_short_circuit(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """PROMISE: Zero LLM calls dispatched and empty models returned on text lacking block markers."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     ontology_empty = GlobalOntologyMap(entities=[], macro_rules=[])
@@ -236,7 +254,11 @@ async def test_empty_packets_zero_llm_calls_short_circuit(mock_executor, mock_cl
 
 
 @pytest.mark.asyncio
-async def test_extract_atoms_from_chunk_outside_packet_raises(mock_executor, mock_client, settings_mock):
+async def test_extract_atoms_from_chunk_outside_packet_raises(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Negative boundary: Block ID outside packet bounds raises ValueError."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_draft_list = LLMDraftAtomList(
@@ -254,7 +276,7 @@ async def test_extract_atoms_from_chunk_outside_packet_raises(mock_executor, moc
         mock_draft_list,
         TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
-    result, usage = await atomizer._extract_atoms_from_chunk(
+    result, _ = await atomizer._extract_atoms_from_chunk(
         client=mock_client,
         compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
         start_b="B0",
@@ -267,7 +289,11 @@ async def test_extract_atoms_from_chunk_outside_packet_raises(mock_executor, moc
 
 
 @pytest.mark.asyncio
-async def test_extract_atoms_from_chunk_alias_not_found(mock_executor, mock_client, settings_mock):
+async def test_extract_atoms_from_chunk_alias_not_found(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Verifies behavior when clean_id is not in alias map."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_draft_list = LLMDraftAtomList(
@@ -298,7 +324,11 @@ async def test_extract_atoms_from_chunk_alias_not_found(mock_executor, mock_clie
 
 
 @pytest.mark.asyncio
-async def test_execute_phase_1_drafts_dlq_chunk_detected(mock_executor, mock_client, settings_mock):
+async def test_execute_phase_1_drafts_dlq_chunk_detected(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Verifies execute_phase_1_drafts sets dlq_status when chunk fails."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_executor.execute_structured_task.side_effect = RuntimeError("DLQ crash")
@@ -312,7 +342,11 @@ async def test_execute_phase_1_drafts_dlq_chunk_detected(mock_executor, mock_cli
 
 
 @pytest.mark.asyncio
-async def test_extract_drafts_corrupted_atom_dropped(mock_executor, mock_client, settings_mock):
+async def test_extract_drafts_corrupted_atom_dropped(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Verifies that non-deductive atoms with block_id outside boundary or missing alias are dropped."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_draft_list = LLMDraftAtomList(
@@ -350,7 +384,11 @@ async def test_extract_drafts_corrupted_atom_dropped(mock_executor, mock_client,
 
 
 @pytest.mark.asyncio
-async def test_two_pass_atomizer_execute_phase_0_without_semaphore(mock_executor, mock_client, settings_mock):
+async def test_two_pass_atomizer_execute_phase_0_without_semaphore(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Phase 3 Test Contract: execute_phase_0 without semaphore returns GlobalOntologyMap and TokenUsage."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_ontology = GlobalOntologyMap(
@@ -370,7 +408,11 @@ async def test_two_pass_atomizer_execute_phase_0_without_semaphore(mock_executor
 
 
 @pytest.mark.asyncio
-async def test_two_pass_atomizer_execute_phase_1_without_semaphore(mock_executor, mock_client, settings_mock):
+async def test_two_pass_atomizer_execute_phase_1_without_semaphore(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Phase 3 Test Contract: execute_phase_1 without semaphore returns list[ExtractedAtom] and TokenUsage."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
@@ -400,13 +442,17 @@ async def test_two_pass_atomizer_execute_phase_1_without_semaphore(mock_executor
 
 
 @pytest.mark.asyncio
-async def test_two_pass_atomizer_helpers_reject_unexpected_semaphore_kwarg(mock_executor, mock_client, settings_mock):
+async def test_two_pass_atomizer_helpers_reject_unexpected_semaphore_kwarg(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Phase 3 Test Contract: verify helpers and phase methods reject unexpected sem / semaphore kwargs."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
     dummy_sem = asyncio.Semaphore(1)
     sem_kwarg = {"sem": dummy_sem}
-    semaphore_kwarg = {"semaphore": dummy_sem}
+    semaphore_kwarg: dict[str, None] = {"semaphore": None}
 
     with pytest.raises(TypeError, match="unexpected keyword argument 'sem'"):
         await atomizer._extract_ontology_from_chunk(
@@ -438,7 +484,11 @@ async def test_two_pass_atomizer_helpers_reject_unexpected_semaphore_kwarg(mock_
 
 
 @pytest.mark.asyncio
-async def test_extract_atoms_from_chunk_outside_packet_dropped_with_warning(mock_executor, mock_client, settings_mock):
+async def test_extract_atoms_from_chunk_outside_packet_dropped_with_warning(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
     """Verify that an atom referencing a block outside the chunk's packet_keys is dropped with a warning, not crashing."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
@@ -466,7 +516,7 @@ async def test_extract_atoms_from_chunk_outside_packet_dropped_with_warning(mock
         TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
     )
 
-    result, usage = await atomizer._extract_atoms_from_chunk(
+    result, _ = await atomizer._extract_atoms_from_chunk(
         client=mock_client,
         compiled_prompt=compiled_prompt,
         start_b="B0",
@@ -526,7 +576,7 @@ async def test_extract_atoms_from_chunk_bounds_anchor_quote_over_1000_chars(
     oversized_block_text = "X" * 1250
     # Explicit positive max_citation_span_chars = 1000 slices to 1,000 chars
     settings_mock.max_citation_span_chars = 1000
-    result, usage = await atomizer._extract_atoms_from_chunk(
+    result, _ = await atomizer._extract_atoms_from_chunk(
         client=mock_client,
         compiled_prompt=compiled_prompt,
         start_b="B0",
@@ -540,3 +590,71 @@ async def test_extract_atoms_from_chunk_bounds_anchor_quote_over_1000_chars(
     assert result[0].source_quotes is not None
     assert len(result[0].source_quotes[0]) == 1000
     assert result[0].source_quotes[0] == "X" * 1000
+
+
+@pytest.mark.asyncio
+async def test_extract_atoms_from_chunk_unbounded_default_allows_anchor_quote_over_1000_chars(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
+    """Verify that default unbounded max_citation_span_chars=0 preserves anchor quotes exceeding 1,000 chars."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
+
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="Extracted premise from paragraph exceeding 1,000 chars",
+                resolved_claim="Claim from full paragraph block",
+                source_block_id="B0",
+                draft_id="a0",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+    )
+
+    oversized_block_text = "X" * 1250
+    settings_mock.max_citation_span_chars = 0
+    result, _ = await atomizer._extract_atoms_from_chunk(
+        client=mock_client,
+        compiled_prompt=compiled_prompt,
+        start_b="B0",
+        end_b="B0",
+        packet_keys=["B0"],
+        chunk_index=0,
+        hydrated_text=f"[B0] {oversized_block_text}",
+    )
+
+    assert len(result) == 1
+    assert result[0].source_quotes == (oversized_block_text,)
+
+    # Step 2: Verify 1:1 parity for _extract_drafts_from_chunk under unbounded (0) and bounded (1000) settings
+    draft_unbounded, _ = await atomizer._extract_drafts_from_chunk(
+        client=mock_client,
+        compiled_prompt=compiled_prompt,
+        start_b="B0",
+        end_b="B0",
+        packet_keys=["B0"],
+        chunk_index=0,
+        hydrated_text=f"[B0] {oversized_block_text}",
+    )
+    assert len(draft_unbounded.atoms) == 1
+    assert draft_unbounded.atoms[0].source_quotes == (oversized_block_text,)
+
+    settings_mock.max_citation_span_chars = 1000
+    draft_bounded, _ = await atomizer._extract_drafts_from_chunk(
+        client=mock_client,
+        compiled_prompt=compiled_prompt,
+        start_b="B0",
+        end_b="B0",
+        packet_keys=["B0"],
+        chunk_index=0,
+        hydrated_text=f"[B0] {oversized_block_text}",
+    )
+    assert len(draft_bounded.atoms) == 1
+    assert draft_bounded.atoms[0].source_quotes == ("X" * 1000,)

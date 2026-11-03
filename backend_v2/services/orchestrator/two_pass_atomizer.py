@@ -528,6 +528,16 @@ class TwoPassAtomizer:
                 continue
 
             exact_quote = local_alias_map[clean_id]
+            # Step 2: Synchronize draft anchor quote bounding with Settings.max_citation_span_chars (0 = unbounded)
+            max_span_chars = get_settings().max_citation_span_chars
+            if max_span_chars > 0 and len(exact_quote) > max_span_chars:
+                logger.debug(
+                    "Bounding draft anchor quote exceeding %d chars Gate 2 ceiling: block_id=%s, len=%d",
+                    max_span_chars,
+                    clean_id,
+                    len(exact_quote),
+                )
+                exact_quote = exact_quote[:max_span_chars]
 
             draft_quotes: tuple[str, ...] | None = None
             if exact_quote:

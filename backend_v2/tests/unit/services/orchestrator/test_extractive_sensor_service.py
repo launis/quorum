@@ -9,6 +9,7 @@ from backend_v2.models.domain.matrix import TDAAssertion
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import (
     AtomEvaluationResultDTO,
+    AtomExecutionState,
     ExtractedAtom,
     LinkedAtomGraph,
 )
@@ -158,7 +159,6 @@ def test_extractive_sensor_service_fuzzy_match() -> None:
 
 
 def test_extractive_sensor_service_extracted_atom_pre_evaluate_empty_quote() -> None:
-
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
@@ -173,12 +173,11 @@ def test_extractive_sensor_service_extracted_atom_pre_evaluate_empty_quote() -> 
 
 
 def test_extractive_sensor_service_extracted_atom_pre_evaluate_fail() -> None:
-
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quotes="Very specific quote that is not here",
+        source_quotes=("Very specific quote that is not here",),
         source_id="src",
         source_sequence_index=0,
     )
@@ -189,13 +188,12 @@ def test_extractive_sensor_service_extracted_atom_pre_evaluate_fail() -> None:
 
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
-
     # 1. Undecided
     atom_undecided = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quotes="undecided_quote",
+        source_quotes=("undecided_quote",),
         source_id="src",
         source_sequence_index=0,
     )
@@ -206,7 +204,7 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
         tda_id="tda_22222222222222222222222222222222",
         reasoning="reason",
         resolved_claim="claim",
-        source_quotes="fail_quote",
+        source_quotes=("fail_quote",),
         source_id="src",
         source_sequence_index=0,
     )
@@ -231,23 +229,26 @@ def test_extractive_sensor_service_resolve_majority_vote(monkeypatch: pytest.Mon
         EnsembleCallResultDTO(
             evaluations={
                 "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r1"
+                    status=ExecutionStatus.PASSED, reasoning="r1", extensions={}
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
                 "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                    status=ExecutionStatus.FAILED, reasoning="r2"
+                    status=ExecutionStatus.FAILED, reasoning="r2", extensions={}
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
                 "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r3"
+                    status=ExecutionStatus.PASSED, reasoning="r3", extensions={}
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
     resolved = ExtractiveSensorService.resolve_majority_vote(["tda_11111111111111111111111111111111"], results)
@@ -261,36 +262,39 @@ def test_extractive_sensor_service_resolve_majority_vote(monkeypatch: pytest.Mon
                 EnsembleCallResultDTO(
                     evaluations={
                         "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                            status=ExecutionStatus.PASSED, reasoning="r1"
+                            status=ExecutionStatus.PASSED, reasoning="r1", extensions={}
                         )
-                    }
+                    },
+                    usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
                 )
             ],
         )
 
-    # Split vote without consensus (if min_consensus was 2, but we only have 3 different? Actually booleans only have 2 states)
-    # But if an atom was missing from responses
+    # Split vote without consensus when atom is missing from responses
     results_split: list[EnsembleCallResultDTO] = [
         EnsembleCallResultDTO(
             evaluations={
                 "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r1"
+                    status=ExecutionStatus.PASSED, reasoning="r1", extensions={}
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
                 "tda_22222222222222222222222222222222": AtomEvaluationResultDTO(
-                    status=ExecutionStatus.FAILED, reasoning="r2"
+                    status=ExecutionStatus.FAILED, reasoning="r2", extensions={}
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
                 "tda_33333333333333333333333333333333": AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r3"
+                    status=ExecutionStatus.PASSED, reasoning="r3", extensions={}
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
     resolved_split = ExtractiveSensorService.resolve_majority_vote(
@@ -308,15 +312,29 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
     results_split: list[EnsembleCallResultDTO] = [
         EnsembleCallResultDTO(
             evaluations={
-                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quotes="quote 1")
-            }
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="r1",
+                    source_quotes=("quote 1",),
+                    extensions={},
+                )
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
-                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quotes=None)
-            }
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.FAILED,
+                    reasoning="r2",
+                    source_quotes=None,
+                    extensions={},
+                )
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
-        EnsembleCallResultDTO(evaluations=None),  # 3rd call failed transiently
+        EnsembleCallResultDTO(
+            evaluations=None, usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        ),  # 3rd call failed transiently
     ]
     res_pos = ExtractiveSensorService.resolve_majority_vote([tda_id], results_split, is_inverse_map={tda_id: False})
     assert res_pos[tda_id].status == ExecutionStatus.FAILED
@@ -346,21 +364,35 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
         EnsembleCallResultDTO(
             evaluations={
                 tda_id: AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r1", source_quotes="valid quote"
+                    status=ExecutionStatus.PASSED,
+                    reasoning="r1",
+                    source_quotes=("valid quote",),
+                    extensions={},
                 )
-            }
-        ),
-        EnsembleCallResultDTO(
-            evaluations={
-                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quotes=None)
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
                 tda_id: AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r3", source_quotes="valid quote"
+                    status=ExecutionStatus.FAILED,
+                    reasoning="r2",
+                    source_quotes=None,
+                    extensions={},
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="r3",
+                    source_quotes=("valid quote",),
+                    extensions={},
+                )
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
     res_consensus = ExtractiveSensorService.resolve_majority_vote(
@@ -372,10 +404,16 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
     # 6. Partition F (Zero Votes Cast: atom missing from all responses -> SYSTEM_ERROR)
     results_empty: list[EnsembleCallResultDTO] = [
         EnsembleCallResultDTO(
-            evaluations={"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")}
+            evaluations={
+                "tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", extensions={})
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
-            evaluations={"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r2")}
+            evaluations={
+                "tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r2", extensions={})
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
     res_zero = ExtractiveSensorService.resolve_majority_vote([tda_id], results_empty, is_inverse_map={tda_id: True})
@@ -385,12 +423,11 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
 
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
-
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quotes="quote",
+        source_quotes=("quote",),
         source_id="src",
         source_sequence_index=0,
     )
@@ -399,9 +436,6 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
     executor = AsyncMock(spec=LLMTaskExecutor)
     client = AsyncMock(spec=LLMClient)
 
-    # We must mock executor.execute_structured_task to return a BatchEvaluationResponse-like dict or model
-    # The actual BatchEvaluationResponse is defined inside evaluate_atom_boolean_batch, so we can't easily import it.
-    # We will use a mock that has a `results` attribute
     class MockResult(BaseModel):
         alias: str
         reasoning: str
@@ -475,7 +509,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quotes="quote",
+        source_quotes=("quote",),
         source_id="src",
         source_sequence_index=0,
     )
@@ -661,26 +695,41 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         assert usage.total_tokens == 60 * get_settings().ensemble_parallelism
 
 
-def test_boolean_evaluation_result_sentence_boundary_truncation() -> None:
-    """Verifies that BooleanEvaluationResult enforces strict 1,000-char boundary validation without in-place mutation."""
-    # Positive: 602-char quote (like Sitra block B4) passes under Gate 2 ceiling
+def test_boolean_evaluation_result_sentence_boundary_truncation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifies that BooleanEvaluationResult enforces Settings.max_citation_span_chars boundary validation."""
+    # Positive 1: 602-char quote (like Sitra block B4) passes under default unbounded setting
     valid_long_quote = "Ensimmäinen lause tekstissä. " * 20  # ~580 chars
     res = BooleanEvaluationResult(
         alias="a0",
         reasoning="Test reasoning",
         is_true=True,
-        source_quotes=valid_long_quote,
+        source_quotes=(valid_long_quote,),
     )
     assert res.source_quotes == (valid_long_quote.strip(),)
 
-    # Negative: quote exceeding 1,000 chars raises ValidationError
+    # Positive 2 (Step 2): Under default max_citation_span_chars = 0, quotes > 1,000 chars ("A" * 1250) pass
+    unbounded_quote = "A" * 1250
+    res_unbounded = BooleanEvaluationResult(
+        alias="a0",
+        reasoning="Test reasoning",
+        is_true=True,
+        source_quotes=(unbounded_quote,),
+    )
+    assert res_unbounded.source_quotes == (unbounded_quote,)
+
+    # Negative (Step 2): When max_citation_span_chars = 1000 is configured, quote of "A" * 1001 raises ValidationError
+    settings_instance = get_settings().model_copy(update={"max_citation_span_chars": 1000})
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.extractive_sensor_service.get_settings",
+        lambda: settings_instance,
+    )
     too_long_quote = "A" * 1001
-    with pytest.raises(ValidationError, match="exceeds maximum allowed length"):
+    with pytest.raises(ValidationError, match="exceeds maximum allowed length of 1000 characters"):
         BooleanEvaluationResult(
             alias="a0",
             reasoning="Test reasoning",
             is_true=True,
-            source_quotes=too_long_quote,
+            source_quotes=(too_long_quote,),
         )
 
 
@@ -691,7 +740,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
         alias="a0",
         reasoning="Valid reason",
         is_true=True,
-        source_quotes="valid quote",
+        source_quotes=("valid quote",),
         contextual_override=False,
     )
     assert res1.is_true is True
@@ -736,7 +785,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
             alias="a0",
             reasoning="Whitespace quote",
             is_true=True,
-            source_quotes="   ",
+            source_quotes=("   ",),
             contextual_override=False,
         )
 
@@ -746,7 +795,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
             alias="a0",
             reasoning="Stale quote on false",
             is_true=False,
-            source_quotes="stale quote",
+            source_quotes=("stale quote",),
             contextual_override=False,
         )
 
@@ -756,7 +805,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
             alias="a0",
             reasoning="Too short quote",
             is_true=True,
-            source_quotes="123456789",
+            source_quotes=("123456789",),
             contextual_override=False,
         )
 
@@ -765,7 +814,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
         alias="a0",
         reasoning="Valid 10 char quote",
         is_true=True,
-        source_quotes="1234567890",
+        source_quotes=("1234567890",),
         contextual_override=False,
     )
     assert res8.source_quotes == ("1234567890",)
@@ -776,7 +825,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
             alias="a0",
             reasoning="Override cannot have quote",
             is_true=True,
-            source_quotes="valid quote here",
+            source_quotes=("valid quote here",),
             contextual_override=True,
         )
 
@@ -790,18 +839,22 @@ def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
                 tda_id: AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="Vahvistettu",
-                    source_quotes="Tämä on suora lainaus lähteestä.",
+                    source_quotes=("Tämä on suora lainaus lähteestä.",),
+                    extensions={},
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
                 tda_id: AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="Sama havainto",
-                    source_quotes="Tämä on toinen suora lainaus.",
+                    source_quotes=("Tämä on toinen suora lainaus.",),
+                    extensions={},
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
         EnsembleCallResultDTO(
             evaluations={
@@ -809,8 +862,10 @@ def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
                     status=ExecutionStatus.FAILED,
                     reasoning="Eri mieltä",
                     source_quotes=None,
+                    extensions={},
                 )
-            }
+            },
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
     resolved = ExtractiveSensorService.resolve_majority_vote([tda_id], results)
@@ -826,7 +881,7 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
         tda_id=tda_id,
         reasoning="reason",
         resolved_claim="claim",
-        source_quotes="Initial static claim",
+        source_quotes=("Initial static claim",),
         source_id="src",
         source_sequence_index=0,
     )
@@ -870,7 +925,7 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
             return_value=tda_id,
         ),
     ):
-        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+        results, _usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
             [node], executor, client, "Teksti", target_locale="fi"
         )
 
@@ -892,15 +947,15 @@ def test_boolean_evaluation_result_schema_description() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("invalid_locale", ["", "   ", None])
-async def test_evaluate_atom_boolean_batch_invalid_locale_fails_fast(invalid_locale: str | None) -> None:
-    """Verifies that evaluate_atom_boolean_batch raises AppException with VALIDATION_FAILED when locale is empty, whitespace or None."""
+@pytest.mark.parametrize("invalid_locale", ["", "   ", "\t\n"])
+async def test_evaluate_atom_boolean_batch_invalid_locale_fails_fast(invalid_locale: str) -> None:
+    """Verifies that evaluate_atom_boolean_batch raises AppException with VALIDATION_FAILED when locale is empty or whitespace."""
     node = LinkedAtomGraph(
         atom=ExtractedAtom(
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quotes="quote",
+            source_quotes=("quote",),
             source_id="src",
             source_sequence_index=0,
         ),
@@ -931,7 +986,7 @@ async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quotes="quote",
+            source_quotes=("quote",),
             source_id="src",
             source_sequence_index=0,
         ),
@@ -991,7 +1046,7 @@ async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> 
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quotes="quote 1",
+            source_quotes=("quote 1",),
             source_id="src_1",
             source_sequence_index=0,
         ),
@@ -1002,7 +1057,7 @@ async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> 
             tda_id="tda_22222222222222222222222222222222",
             reasoning="reason 2",
             resolved_claim="claim 2",
-            source_quotes="quote 2",
+            source_quotes=("quote 2",),
             source_id="src_2",
             source_sequence_index=1,
         ),
@@ -1069,7 +1124,7 @@ async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_i
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quotes="quote 1",
+            source_quotes=("quote 1",),
             source_id="src_1",
             source_sequence_index=0,
         ),
@@ -1080,7 +1135,7 @@ async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_i
             tda_id="tda_22222222222222222222222222222222",
             reasoning="reason 2",
             resolved_claim="claim 2",
-            source_quotes="quote 2",
+            source_quotes=("quote 2",),
             source_id="src_2",
             source_sequence_index=1,
         ),
@@ -1137,9 +1192,15 @@ def test_resolve_majority_vote_insufficient_consensus_raises_agent_execution_err
         ExtractiveSensorService.resolve_majority_vote(
             expected_tda_ids=["tda_11111111111111111111111111111111"],
             results=[
-                EnsembleCallResultDTO(evaluations=None),
-                EnsembleCallResultDTO(evaluations=None),
-                EnsembleCallResultDTO(evaluations=None),
+                EnsembleCallResultDTO(
+                    evaluations=None, usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+                ),
+                EnsembleCallResultDTO(
+                    evaluations=None, usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+                ),
+                EnsembleCallResultDTO(
+                    evaluations=None, usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+                ),
             ],
         )
     assert exc_info.value.status_code == 503
@@ -1149,14 +1210,12 @@ def test_resolve_majority_vote_insufficient_consensus_raises_agent_execution_err
 @pytest.mark.asyncio
 async def test_evaluate_atom_boolean_batch_with_current_states_and_extensions() -> None:
     """Verify evaluate_atom_boolean_batch accepts current_states and populates extensions."""
-    from backend_v2.models.dtos.dag_models import AtomExecutionState
-
     node = LinkedAtomGraph(
         atom=ExtractedAtom(
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quotes="valid quote text here",
+            source_quotes=("valid quote text here",),
             source_id="src_1",
             source_sequence_index=0,
         ),
@@ -1201,10 +1260,12 @@ async def test_evaluate_atom_boolean_batch_with_current_states_and_extensions() 
         "tda_11111111111111111111111111111111": AtomExecutionState(
             tda_id="tda_11111111111111111111111111111111",
             status=ExecutionStatus.PENDING,
+            short_circuit_reason_tda_ids=[],
+            extensions={},
         ),
     }
 
-    results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+    results, _usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
         nodes=[node],
         executor=executor,
         client=client,
@@ -1229,7 +1290,7 @@ async def test_evaluate_atom_boolean_batch_exception_group_propagation() -> None
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quotes="valid quote text here",
+            source_quotes=("valid quote text here",),
             source_id="src_1",
             source_sequence_index=0,
         ),
