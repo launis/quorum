@@ -59,6 +59,7 @@ from scripts._ast_guardrails import (
 __all__ = [
     "_MACRO_AUTHORITATIVE_SCRIPTS",
     "discover_authoritative_scripts",
+    "discover_companion_test_targets",
     "find_transitional_strangler_proxy_files",
     "main",
     "run_tests_with_strict_coverage",
@@ -121,6 +122,223 @@ def find_transitional_strangler_proxy_files(targets: list[str]) -> list[str]:
                         sibling_str = sibling_file.as_posix()
                         if sibling_str not in targets and sibling_str not in discovered:
                             discovered.append(sibling_str)
+    return discovered
+
+
+def _build_py_file_test_candidates(parts: list[str], filename: str) -> list[str]:
+    """Build ordered candidate unit test filenames for a Python source file.
+
+    Args:
+        parts: Path components split by '/'.
+        filename: Base filename with .py extension.
+
+    Returns:
+        Ordered list of candidate test filenames.
+    """
+    if len(parts) >= 2 and filename == "__init__.py":
+        pkg_name = parts[-2]
+        clean_base = filename.removesuffix(".py").lstrip("_")
+        return [
+            f"test_{pkg_name}.py",
+            f"test_{pkg_name}_facade.py",
+            "test_facade.py",
+            f"test__{pkg_name}.py",
+            f"test_{clean_base}.py",
+            f"test_{filename}",
+        ]
+    clean_base = filename.removesuffix(".py").lstrip("_")
+    candidates = [
+        f"test_{clean_base}.py",
+        f"test_{clean_base}_dtos.py",
+        f"test__{clean_base}.py",
+        f"test_{filename}",
+    ]
+    if clean_base.startswith("audit_"):
+        candidates.append(f"test_{clean_base.removeprefix('audit_')}.py")
+    if clean_base.startswith("test_"):
+        candidates.append(f"{clean_base}.py")
+    return candidates
+
+
+def _discover_existing_py_test_paths(parts: list[str], filename: str, candidates: list[str]) -> list[str]:
+    """Resolve existing unit test file paths on disk for a Python source file.
+
+    Args:
+        parts: Path components split by '/'.
+        filename: Base filename with .py extension.
+        candidates: Ordered candidate test filenames to probe.
+
+    Returns:
+        List of existing test file paths in POSIX format.
+
+    Raises:
+        OSError: If directory globbing fails on the filesystem.
+    """
+    clean_base = filename.removesuffix(".py").lstrip("_")
+    test_paths: list[str] = []
+    if parts[0] == "scripts":
+        for cand in candidates:
+            cand_path = Path("backend_v2/tests/unit/scripts") / cand
+            if cand_path.exists():
+                test_paths.append(str(cand_path).replace("\\", "/"))
+                for sib in sorted(cand_path.parent.glob(f"test_{clean_base}_*.py")):
+                    sib_str = str(sib).replace("\\", "/")
+                    if sib_str not in test_paths:
+                        test_paths.append(sib_str)
+                break
+    elif parts[0] == "backend_v2":
+        for cand in candidates:
+            # 1. Direct subfolder match
+            p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
+            if p.exists():
+                test_paths.append(str(p).replace("\\", "/"))
+                for sib in sorted(p.parent.glob(f"test_{clean_base}_*.py")):
+                    sib_str = str(sib).replace("\\", "/")
+                    if sib_str not in test_paths:
+                        test_paths.append(sib_str)
+                break
+            # 1b. Parent package subfolder test file
+            for i in range(len(parts) - 2, 0, -1):
+                parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / cand
+                if parent_cand.exists():
+                    test_paths.append(str(parent_cand).replace("\\", "/"))
+                    for sib in sorted(parent_cand.parent.glob(f"test_{clean_base}_*.py")):
+                        sib_str = str(sib).replace("\\", "/")
+                        if sib_str not in test_paths:
+                            test_paths.append(sib_str)
+                    break
+            if test_paths:
+                break
+            # 2. Parent package test file
+            for i in range(len(parts) - 2, 0, -1):
+                parent_pkg = parts[i]
+                parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / f"test_{parent_pkg}.py"
+                if parent_cand.exists():
+                    test_paths.append(str(parent_cand).replace("\\", "/"))
+                    break
+            if test_paths:
+                break
+            # 3. Flat unit test match (direct or package-prefixed)
+            flat = Path("backend_v2/tests/unit") / cand
+            if flat.exists():
+                test_paths.append(str(flat).replace("\\", "/"))
+                break
+            pkg_prefix_cand = Path("backend_v2/tests/unit") / f"test_{'_'.join(parts[1:-1])}_{cand[5:]}"
+            if pkg_prefix_cand.exists():
+                test_paths.append(str(pkg_prefix_cand).replace("\\", "/"))
+                break
+    return test_paths
+
+
+def _discover_existing_dir_test_paths(target_clean: str, parts: list[str]) -> list[str]:
+    """Discover existing unit test directories or files for a backend_v2 directory target.
+
+    Args:
+        target_clean: Normalized POSIX path to a backend_v2 directory.
+        parts: Path components split by '/'.
+
+    Returns:
+        List of existing test directory or file paths in POSIX format.
+
+    Raises:
+        OSError: If directory traversal fails on the filesystem.
+    """
+    target_stem = Path(target_clean).stem
+    target_dir = Path(target_clean.strip("/"))
+    test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
+    test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{target_stem}.py"
+    has_test_dir = test_dir.exists()
+    if has_test_dir and len(parts) <= 2:
+        return [str(test_dir).replace("\\", "/")]
+    if test_file.exists() and not has_test_dir:
+        return [str(test_file).replace("\\", "/")]
+
+    discovered_tests: list[str] = []
+    if has_test_dir:
+        discovered_tests.append(str(test_dir).replace("\\", "/"))
+    parent_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:-1])
+    if parent_test_dir.exists():
+        for m in sorted(parent_test_dir.glob(f"test_{target_stem}*.py")):
+            s = str(m).replace("\\", "/")
+            if s not in discovered_tests:
+                discovered_tests.append(s)
+
+    flat_unit = Path("backend_v2/tests/unit")
+    flat_pkg_test = flat_unit / f"test_{target_stem}.py"
+    if flat_pkg_test.exists():
+        s = str(flat_pkg_test).replace("\\", "/")
+        if s not in discovered_tests:
+            discovered_tests.append(s)
+
+    if target_dir.is_dir():
+        for sub_py in sorted(target_dir.glob("*.py")):
+            if sub_py.name == "__init__.py":
+                continue
+            stem = sub_py.stem
+            sub_cand1 = parent_test_dir / f"test_{stem}.py"
+            if sub_cand1.exists():
+                s = str(sub_cand1).replace("\\", "/")
+                if s not in discovered_tests:
+                    discovered_tests.append(s)
+            sub_cand2 = flat_unit / f"test_{stem}.py"
+            if sub_cand2.exists():
+                s = str(sub_cand2).replace("\\", "/")
+                if s not in discovered_tests:
+                    discovered_tests.append(s)
+
+    return discovered_tests
+
+
+def discover_companion_test_targets(targets: list[str]) -> list[str]:
+    """Discover existing companion unit test files or directories for target paths.
+
+    Used when --test is enabled so that Stage 1 (ruff check --fix) and Stage 2
+    (ruff format) automatically lint and format the companion test files alongside
+    the target source files.
+
+    Args:
+        targets: Target file or directory paths passed to the audit loop.
+
+    Returns:
+        Deduplicated list of existing companion test paths not already in targets.
+
+    Raises:
+        OSError: If directory globbing fails on the filesystem.
+    """
+    discovered: list[str] = []
+    normalized_inputs = {t.replace("\\", "/").rstrip("/") for t in targets}
+
+    for target in targets:
+        target_clean = target.replace("\\", "/")
+        if target_clean.endswith(".py"):
+            parts = target_clean.split("/")
+            filename = parts[-1]
+            if "tests" in parts:
+                sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
+                if not filename.startswith("test_") and sibling_test.exists():
+                    cand_str = str(sibling_test).replace("\\", "/")
+                    if cand_str not in normalized_inputs and cand_str not in discovered:
+                        discovered.append(cand_str)
+            else:
+                candidates = _build_py_file_test_candidates(parts, filename)
+                for path_str in _discover_existing_py_test_paths(parts, filename, candidates):
+                    if path_str not in normalized_inputs and path_str not in discovered:
+                        discovered.append(path_str)
+        else:
+            parts = target_clean.strip("/").split("/")
+            if "tests" in parts or parts == ["backend_v2"]:
+                continue
+            if parts[0] == "scripts":
+                scripts_test_dir = Path("backend_v2/tests/unit/scripts")
+                if scripts_test_dir.exists():
+                    dir_str = str(scripts_test_dir).replace("\\", "/")
+                    if dir_str not in normalized_inputs and dir_str not in discovered:
+                        discovered.append(dir_str)
+            elif parts[0] == "backend_v2":
+                for dir_test_path in _discover_existing_dir_test_paths(target_clean, parts):
+                    if dir_test_path not in normalized_inputs and dir_test_path not in discovered:
+                        discovered.append(dir_test_path)
+
     return discovered
 
 
@@ -212,85 +430,11 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
         else:
             if target_clean.endswith("/__init__.py"):
                 cov_target = target_clean.removesuffix("/__init__.py").replace("/", ".")
-                pkg_name = parts[-2] if len(parts) >= 2 else "init"
-                clean_base = filename.removesuffix(".py").lstrip("_")
-                # Package facade test candidate discovery: checks test_{pkg}.py, test_{pkg}_facade.py, and test_facade.py
-                candidates = [
-                    f"test_{pkg_name}.py",
-                    f"test_{pkg_name}_facade.py",
-                    "test_facade.py",
-                    f"test__{pkg_name}.py",
-                    f"test_{clean_base}.py",
-                    f"test_{filename}",
-                ]
             else:
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
-                clean_base = filename.removesuffix(".py").lstrip("_")
-                candidates = [
-                    f"test_{clean_base}.py",
-                    f"test_{clean_base}_dtos.py",
-                    f"test__{clean_base}.py",
-                    f"test_{filename}",
-                ]
-                if clean_base.startswith("audit_"):
-                    candidates.append(f"test_{clean_base.removeprefix('audit_')}.py")
-                if clean_base.startswith("test_"):
-                    candidates.append(f"{clean_base}.py")
             cov_filter_name = filename
-
-            test_paths = []
-            # First-class operational and guardrail scripts test discovery
-            if parts[0] == "scripts":
-                for cand in candidates:
-                    cand_path = Path("backend_v2/tests/unit/scripts") / cand
-                    if cand_path.exists():
-                        test_paths.append(str(cand_path).replace("\\", "/"))
-                        for sib in sorted(cand_path.parent.glob(f"test_{clean_base}_*.py")):
-                            sib_str = str(sib).replace("\\", "/")
-                            if sib_str not in test_paths:
-                                test_paths.append(sib_str)
-                        break
-            elif parts[0] == "backend_v2":
-                for cand in candidates:
-                    # 1. Direct subfolder match
-                    p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
-                    if p.exists():
-                        test_paths.append(str(p).replace("\\", "/"))
-                        for sib in sorted(p.parent.glob(f"test_{clean_base}_*.py")):
-                            sib_str = str(sib).replace("\\", "/")
-                            if sib_str not in test_paths:
-                                test_paths.append(sib_str)
-                        break
-                    # 1b. Parent package subfolder test file (specifically: backend_v2/models/prompts/execution/matrix_evaluation.py -> tests/unit/models/prompts/test_matrix_evaluation.py)
-                    for i in range(len(parts) - 2, 0, -1):
-                        parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / cand
-                        if parent_cand.exists():
-                            test_paths.append(str(parent_cand).replace("\\", "/"))
-                            for sib in sorted(parent_cand.parent.glob(f"test_{clean_base}_*.py")):
-                                sib_str = str(sib).replace("\\", "/")
-                                if sib_str not in test_paths:
-                                    test_paths.append(sib_str)
-                            break
-                    if test_paths:
-                        break
-                    # 2. Parent package test file (specifically: backend_v2/hooks/scoring/passivity_hook.py -> test_scoring.py or test_hooks.py)
-                    for i in range(len(parts) - 2, 0, -1):
-                        parent_pkg = parts[i]
-                        parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / f"test_{parent_pkg}.py"
-                        if parent_cand.exists():
-                            test_paths.append(str(parent_cand).replace("\\", "/"))
-                            break
-                    if test_paths:
-                        break
-                    # 3. Flat unit test match (direct or package-prefixed like test_hooks_validation.py)
-                    flat = Path("backend_v2/tests/unit") / cand
-                    if flat.exists():
-                        test_paths.append(str(flat).replace("\\", "/"))
-                        break
-                    pkg_prefix_cand = Path("backend_v2/tests/unit") / f"test_{'_'.join(parts[1:-1])}_{cand[5:]}"
-                    if pkg_prefix_cand.exists():
-                        test_paths.append(str(pkg_prefix_cand).replace("\\", "/"))
-                        break
+            candidates = _build_py_file_test_candidates(parts, filename)
+            test_paths = _discover_existing_py_test_paths(parts, filename, candidates)
 
             if not test_paths:
                 if parts[0] == "scripts":
@@ -329,58 +473,16 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
             result = subprocess.run(coverage_cmd)
     else:
         parts = target_clean.strip("/").split("/")
-        target_stem = Path(target_clean).stem
         cov_target = target_clean.removesuffix(".py").replace("/", ".").strip(".")
         if "tests" in parts:
             test_path = target_clean
         else:
             if parts[0] == "backend_v2":
-                target_dir = Path(target_clean.strip("/"))
-                test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
-                test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{target_stem}.py"
-                has_test_dir = test_dir.exists()
-                if has_test_dir and len(parts) <= 2:
-                    test_path = str(test_dir).replace("\\", "/")
-                elif test_file.exists() and not has_test_dir:
-                    test_path = str(test_file).replace("\\", "/")
+                discovered_tests = _discover_existing_dir_test_paths(target_clean, parts)
+                if discovered_tests:
+                    test_path = " ".join(discovered_tests)
                 else:
-                    discovered_tests: list[str] = []
-                    if has_test_dir:
-                        discovered_tests.append(str(test_dir).replace("\\", "/"))
-                    parent_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:-1])
-                    if parent_test_dir.exists():
-                        for m in sorted(parent_test_dir.glob(f"test_{target_stem}*.py")):
-                            s = str(m).replace("\\", "/")
-                            if s not in discovered_tests:
-                                discovered_tests.append(s)
-
-                    flat_unit = Path("backend_v2/tests/unit")
-                    flat_pkg_test = flat_unit / f"test_{target_stem}.py"
-                    if flat_pkg_test.exists():
-                        s = str(flat_pkg_test).replace("\\", "/")
-                        if s not in discovered_tests:
-                            discovered_tests.append(s)
-
-                    if target_dir.is_dir():
-                        for sub_py in sorted(target_dir.glob("*.py")):
-                            if sub_py.name == "__init__.py":
-                                continue
-                            stem = sub_py.stem
-                            sub_cand1 = parent_test_dir / f"test_{stem}.py"
-                            if sub_cand1.exists():
-                                s = str(sub_cand1).replace("\\", "/")
-                                if s not in discovered_tests:
-                                    discovered_tests.append(s)
-                            sub_cand2 = flat_unit / f"test_{stem}.py"
-                            if sub_cand2.exists():
-                                s = str(sub_cand2).replace("\\", "/")
-                                if s not in discovered_tests:
-                                    discovered_tests.append(s)
-
-                    if discovered_tests:
-                        test_path = " ".join(discovered_tests)
-                    else:
-                        test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+                    test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
             elif parts[0] == "scripts":
                 test_path = "backend_v2/tests/unit/scripts"
             elif parts[0] == "tests":
@@ -553,19 +655,25 @@ Optional steps:
         if proxy_path not in stage_targets:
             stage_targets.append(proxy_path)
 
+    ruff_targets: list[str] = list(stage_targets)
+    if run_test:
+        for companion_test in discover_companion_test_targets(stage_targets):
+            if companion_test not in ruff_targets:
+                ruff_targets.append(companion_test)
+
     targets_str = ", ".join(stage_targets)
     print(f"\n🚀 Executing quality-loop for targets: {targets_str}")
     print("--------------------------------------------------")
 
     print("\n⏳ 1/10: Checking and fixing files (ruff check --fix)...")
-    res = subprocess.run(["uv", "run", "ruff", "check", *stage_targets, "--fix", "--extend-ignore=E501"])
+    res = subprocess.run(["uv", "run", "ruff", "check", *ruff_targets, "--fix", "--extend-ignore=E501"])
     if res.returncode != 0:
         print("❌ Ruff linter found unfixable errors!")
         sys.exit(res.returncode)
     print("✅ Linting and auto-fix complete.")
 
     print("\n⏳ 2/10: Formatting code (ruff format)...")
-    res = subprocess.run(["uv", "run", "ruff", "format", *stage_targets])
+    res = subprocess.run(["uv", "run", "ruff", "format", *ruff_targets])
     if res.returncode != 0:
         print("❌ Ruff formatting failed!")
         sys.exit(res.returncode)

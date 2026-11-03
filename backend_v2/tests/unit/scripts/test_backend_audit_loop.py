@@ -17,6 +17,7 @@ import pytest
 
 from scripts._ast_guardrails import GuardrailSeverity, GuardrailViolation
 from scripts.backend_audit_loop import (
+    discover_companion_test_targets,
     find_transitional_strangler_proxy_files,
     main,
     run_tests_with_strict_coverage,
@@ -802,3 +803,68 @@ def test_subprocess_skills_architecture_failure(mock_exit: MagicMock, mock_scan:
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 1
+
+
+@patch("scripts.backend_audit_loop.run_tests_with_strict_coverage")
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_main_with_test_flag_expands_ruff_targets_with_companion_tests(
+    mock_sub: MagicMock, mock_scan: MagicMock, mock_run_tests: MagicMock
+) -> None:
+    """Verify --test includes companion unit test files in ruff check and ruff format while keeping mypy scoped."""
+    main(["backend_v2/services/execution/ingress_service.py", "--micro", "--test"])
+    ruff_check_cmd = mock_sub.call_args_list[0][0][0]
+    ruff_format_cmd = mock_sub.call_args_list[1][0][0]
+    mypy_cmd = mock_sub.call_args_list[2][0][0]
+
+    assert "backend_v2/services/execution/ingress_service.py" in ruff_check_cmd
+    assert "backend_v2/tests/unit/services/execution/test_ingress_service.py" in ruff_check_cmd
+    assert "backend_v2/services/execution/ingress_service.py" in ruff_format_cmd
+    assert "backend_v2/tests/unit/services/execution/test_ingress_service.py" in ruff_format_cmd
+    assert "backend_v2/services/execution/ingress_service.py" in mypy_cmd
+    assert "backend_v2/tests/unit/services/execution/test_ingress_service.py" not in mypy_cmd
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_main_without_test_flag_does_not_expand_companion_tests(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
+    """Verify omitting --test keeps ruff check and ruff format scoped strictly to stage_targets."""
+    main(["backend_v2/services/execution/ingress_service.py", "--micro"])
+    ruff_check_cmd = mock_sub.call_args_list[0][0][0]
+    ruff_format_cmd = mock_sub.call_args_list[1][0][0]
+
+    assert "backend_v2/services/execution/ingress_service.py" in ruff_check_cmd
+    assert "backend_v2/tests/unit/services/execution/test_ingress_service.py" not in ruff_check_cmd
+    assert "backend_v2/services/execution/ingress_service.py" in ruff_format_cmd
+    assert "backend_v2/tests/unit/services/execution/test_ingress_service.py" not in ruff_format_cmd
+
+
+def test_discover_companion_test_targets_across_files_and_directories() -> None:
+    """Verify discover_companion_test_targets resolves companion tests for files, factories, scripts, and dirs."""
+    companions = discover_companion_test_targets(
+        [
+            "backend_v2/services/execution/ingress_service.py",
+            "backend_v2/tests/factories/model_factories.py",
+            "scripts/backend_audit_loop.py",
+            "scripts/",
+            "backend_v2/services/auth/",
+        ]
+    )
+    assert "backend_v2/tests/unit/services/execution/test_ingress_service.py" in companions
+    assert "backend_v2/tests/factories/test_model_factories.py" in companions
+    assert "backend_v2/tests/unit/scripts/test_backend_audit_loop.py" in companions
+    assert "backend_v2/tests/unit/scripts" in companions
+    assert "backend_v2/tests/unit/test_token_service.py" in companions
+
+
+def test_discover_companion_test_targets_returns_empty_for_nonexistent_or_root_targets() -> None:
+    """Verify discover_companion_test_targets returns empty list for nonexistent files, root backend_v2, or test files."""
+    companions = discover_companion_test_targets(
+        [
+            "backend_v2/services/nonexistent_module_xyz.py",
+            "backend_v2/",
+            "backend_v2/tests/unit/",
+            "backend_v2/tests/unit/test_token_service.py",
+        ]
+    )
+    assert companions == []
