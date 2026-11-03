@@ -34,11 +34,11 @@
     },
     "backend_v2/workers/synthesis_worker.py": {
       "target_file": "backend_v2/workers/synthesis_worker.py",
-      "target_sha256": "cec38469d5fc251f7f513027c71d062bedaf2634a97d9dfab0554e4ffe3e5418",
-      "unit_test_sha256": "548ff9ded4aa1cce8e94d4ee25db96963f5524ad94bcf368fd0640dcfab99c93",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "5fac833b651d8262cf93476b35a540f4bdd59dc30cf7847b4a16fb7e80a82d3b",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "target_sha256": "ab3b50db6da251cf293ff0c6756963f96c38fd008813ef851d67db04cacc7dbe",
+      "unit_test_sha256": "f06e42ff906fa398fa76ec030e77dca2988dba54433bd2de4fc870bb0764885b",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "cbcf4ed178792a8fde4d3d6a4ac9ca4a580ba71db19d00bd4194670793c40902",
+      "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
     },
     "backend_v2/workers/variance_synthesis.py": {
       "target_file": "backend_v2/workers/variance_synthesis.py",
@@ -58,11 +58,11 @@
     },
     "backend_v2/services/sdui/adapters/causal_graph_adapter.py": {
       "target_file": "backend_v2/services/sdui/adapters/causal_graph_adapter.py",
-      "target_sha256": "333e176a6c621199afa72bfc119d0f7cb04a4df7db982b35083679f650f5234b",
-      "unit_test_sha256": "0f0265cd79fce790c9d186338e572fc76aa21e9acd160a96fd180ae27e58efdd",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "e86b176f31ad14114dbce6703edaeb0d19e0ee1059fe2d79a605ab265b5807ff",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "target_sha256": "a59900fd7e65d15b33a7cf8c34d0861004cde81c06f8fd60b54f153c9635ca9c",
+      "unit_test_sha256": "9c0785027da29158d7352d72fa429e6ac1a5ca2ab5cc39fedbecd79f08178f79",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "4bc11df5b97d6dc11b44c82c333c2ad508442ec4f8b7211b3bbd506c46158301",
+      "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
     },
     "backend_v2/services/sdui/adapters/executive_summary_adapter.py": {
       "target_file": "backend_v2/services/sdui/adapters/executive_summary_adapter.py",
@@ -1946,11 +1946,11 @@
     },
     "backend_v2/models/dtos/synthesis.py": {
       "target_file": "backend_v2/models/dtos/synthesis.py",
-      "target_sha256": "1caf302512564731cf8c41784712424406bd6c968b2c36a10f7c4264a1e011a3",
-      "unit_test_sha256": "ad2c4304e04c27a5bea7bf1f5230259dc73ce1757fbebb4a818690b2c9411afa",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "bb7fcc1b806df9fd52a9034b94734d317b7d1826d156557daa98932b7bcadc62",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "target_sha256": "7a2b0d4999a8825407adaf10fbd80ba2f7fc1153149a7550ba1698214f063fe8",
+      "unit_test_sha256": "df6dfce5df22c1bb9574605c293c6f407a0e06d033ee9f7f6ae479be90ed9a34",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "ef597279b175d0d541574735061d52ff961af75e7ac623298ab11bfcb3f1b7e6",
+      "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
     },
     "backend_v2/models/dtos/sensor.py": {
       "target_file": "backend_v2/models/dtos/sensor.py",
@@ -2826,11 +2826,11 @@
     },
     "backend_v2/models/prompts/synthesis/synthesis_directives.py": {
       "target_file": "backend_v2/models/prompts/synthesis/synthesis_directives.py",
-      "target_sha256": "8a60b60183c150e91a2f1918928fb1b8fa78803cec3d6412d4b462239cb35aad",
+      "target_sha256": "3b5f29be0fc32052b990c54a1f7cbea697b69753e6dc2d0c46360575a2fb8742",
       "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "e08db9c122d72af67516a4f95ff2b04d70fa81929ab36d4cac7e56332a6bf9bd",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "d0b08e2a6665629aa041e1e1c1eeffb0ea7b7276ee9d541c2f3b8800e8fefde5",
+      "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
     },
     "backend_v2/services/blueprint.py": {
       "target_file": "backend_v2/services/blueprint.py",
