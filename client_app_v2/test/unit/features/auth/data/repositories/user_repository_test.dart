@@ -88,7 +88,9 @@ void main() {
 
         final userPayload = buildUser().toJson();
 
-        when(() => mockDio.get<Map<String, Object?>>('/iam/auth/me')).thenAnswer(
+        when(
+          () => mockDio.get<Map<String, Object?>>('/iam/auth/me'),
+        ).thenAnswer(
           (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(path: '/iam/auth/me'),
             data: userPayload,
@@ -198,7 +200,10 @@ void main() {
 
         final orgsResult = await repository.listOrganizations();
         expect(orgsResult.isRight(), isTrue);
-        expect(orgsResult.getRight().toNullable()!.single.id, equals(validOrgId));
+        expect(
+          orgsResult.getRight().toNullable()!.single.id,
+          equals(validOrgId),
+        );
 
         when(
           () => mockDio.get<Map<String, Object?>>(
@@ -428,7 +433,9 @@ void main() {
       'Negative 1 (ISTQB BVA & Schema Integrity): rejects null payloads, non-Map array elements, and non-32-hex entity IDs (16-hex min-1 / 33-hex max+1)',
       () async {
         // Null payload -> Left(AppException)
-        when(() => mockDio.get<Map<String, Object?>>('/iam/auth/me')).thenAnswer(
+        when(
+          () => mockDio.get<Map<String, Object?>>('/iam/auth/me'),
+        ).thenAnswer(
           (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(path: '/iam/auth/me'),
             data: null,

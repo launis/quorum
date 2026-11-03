@@ -4106,11 +4106,11 @@
     },
     "client_app_v2/lib/features/auth/domain/models/user.dart": {
       "target_file": "client_app_v2/lib/features/auth/domain/models/user.dart",
-      "target_sha256": "2a0cbaa5ec44773843530adc9b9b1c7b1ce8988b3fb8a2b54f0b3d2f7152c6bd",
-      "unit_test_sha256": "93c730638203cf3700791fae724e26b2f8135224c24e9a48dee13c0d44c16c6f",
-      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
-      "composite_sha256": "8f9ef3c969cc754997dec8e1f7e94b6acfb77d92b5b8b8f66716f2bc6cc22c69",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "4d713ad8507dc739327509dc475963dd44a1613888bf955e0cee9dd1501489e0",
+      "unit_test_sha256": "5d3b04219b2374fe0d22fa6cf685ab31dddf6046ff76c672a63626c0e02e513b",
+      "rules_sha256": "d163f30acb632f54a6f3b668790ee266343f217fb681ede2d5c5440cec1cb56e",
+      "composite_sha256": "56c5efc6f00020b2cb78bd7ae4016b5f95553281e9e0d0bd5a193ac5b0bec307",
+      "source_tracker": "docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md"
     },
     "client_app_v2/lib/features/auth/data/auth_repository.dart": {
       "target_file": "client_app_v2/lib/features/auth/data/auth_repository.dart",
@@ -4154,11 +4154,11 @@
     },
     "client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart": {
       "target_file": "client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart",
-      "target_sha256": "0d0f15d55fe156e24a90f1b12f059c202a4130537454936e84cbc5845f309458",
-      "unit_test_sha256": "f2d5341457e04c9665a8b3b25a9b6d5368feaade653320b7e008ae587959eb9c",
-      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
-      "composite_sha256": "4034885595e74930fa93d060ca62a2398f89203771e441110a49062f87d12ec8",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "d447febad903dc178a6aed0638e8f4c9a2a78ee8489f3875eae33086a97a644a",
+      "unit_test_sha256": "fedfd5dc8f6d37744f9124e9e768631c96fb9a3283ba069237a37d91ff4260b6",
+      "rules_sha256": "bde0602c66b2c9b1be0c56dca88e227bf215c1d29712b06bcb3044648f2c8181",
+      "composite_sha256": "2200da31336a2b08e23f8e49291f5fa7751f5da9bf91eb38af310533ae3c4b24",
+      "source_tracker": "docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md"
     },
     "client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart",
@@ -4175,6 +4175,14 @@
       "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
       "composite_sha256": "365c717a6ec9c4204c3f0f05565f122ec62c9c67569cc5745d1ea9337b2385f8",
       "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
+    },
+    "client_app_v2/lib/features/auth/data/repositories/user_repository.dart": {
+      "target_file": "client_app_v2/lib/features/auth/data/repositories/user_repository.dart",
+      "target_sha256": "86218670a4705993ad36d01d165da795f947fcf8c86e7a747ad71f01557f678a",
+      "unit_test_sha256": "d62cef54e582ae65154c743c65bda9c702eb3e19c9633365f9cacc054f025e27",
+      "rules_sha256": "bde0602c66b2c9b1be0c56dca88e227bf215c1d29712b06bcb3044648f2c8181",
+      "composite_sha256": "f466487cfeeed920d4845c05b2458675448bf59fde1f410eb6f6c19f44fbdfac",
+      "source_tracker": "docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md"
     }
   }
 }
