@@ -25,12 +25,12 @@ from backend_v2.models.domain.execution import (
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
 from backend_v2.models.dtos.causal_discovery import (
     CausalGraphPayloadDTO,
     CausalNodeDTO,
 )
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import EngineType, ExecutionStatus, HistoricalContextMode, StepType
@@ -205,16 +205,24 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
                     step_name=step.id,
                     event_type="output",
                     content={"summary": "completed"},
-                    metadata=TraceEventMetadataDTO(generated_schema={"type": "object"}),
+                    metadata=TraceEventMetadataDTO(generated_schema={"type": "object"}, mcp_audit_traces=[]),
                 )
             ]
 
-    reduced_dto = LightweightMatrixOutput(
-        raw_score=4.5,
-        normalized_score=85.0,
-        justification="Reduced",
-        evaluated_atoms={},
-        extensions={},
+    reduced_dto = LightweightMatrixDTO(
+        execution_id=state.execution_id,
+        reduced_atoms=[
+            ReducedAtomDTO(
+                tda_id="tda_0195f3a0000070018111222233334444",
+                status=ExecutionStatus.PASSED,
+                reasoning="Reduced rationale",
+                depends_on_tda_ids=[],
+                short_circuit_reason_tda_ids=[],
+            )
+        ],
+        global_metrics={"total_atoms": 1, "evaluated": 1},
+        evaluated_matrices=[],
+        raw_extensions=[],
     )
     progress_errors: list[tuple[str, Exception]] = []
 
@@ -351,7 +359,7 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
         await prepare_step_strategy_context(state=state_empty_nodes, step_id=tda_step.id)
     assert exc_empty_nodes.value.details["error_code"] == ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION
 
-    # 6. MatrixReducer failure raises WorkflowExecutionError
+    # 6. Pre-synthesis step with upstream causal step in step_states but 0 evaluated matrix atoms emits no matrix_reducer TraceEvent
     bp = Step(
         id="stp_0195f3a0000070058555666677778888",
         slug="synth_fail",
@@ -364,6 +372,16 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
         mcp_tool_params={},
     )
     synth_rule = StepRule(id="stp_0195f3a00000700a8aaa1111bbbb2222", task_blueprint=bp.id)
+    state_zero_atoms = _build_state(
+        steps=[causal_step, synth_rule],
+        step_definitions={bp.id: bp},
+        step_statuses={causal_step.id: ExecutionStatus.PASSED},
+    )
+    await prepare_step_strategy_context(state=state_zero_atoms, step_id=synth_rule.id)
+    assert not any(evt.step_name == "matrix_reducer" for evt in state_zero_atoms.exec_record.execution_trace)
+    assert state_zero_atoms.exec_record.context_variables.matrix_reducer_output is None
+
+    # 7. MatrixReducer failure raises WorkflowExecutionError
     state_red_fail = _build_state(steps=[synth_rule], step_definitions={bp.id: bp})
     with (
         patch(

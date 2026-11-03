@@ -1,5 +1,7 @@
 """Unit tests for Two-Tier Length Budget Enforcer."""
 
+import logging
+
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -36,15 +38,35 @@ def test_enforce_budget_exceeding_clean_sentence_trim() -> None:
     assert len(result) <= budget
 
 
-def test_enforce_budget_no_punctuation_in_window_preserves_first_sentence() -> None:
-    """When no boundary exists in 60-100% window, first complete sentence is preserved intact."""
+def test_enforce_budget_punctuation_in_50_to_60_percent_window_succeeds_without_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Inputs with a sentence boundary in the [50%, 60%) window (130 of 250 chars) succeed without warning."""
+    first_sentence = "A" * 129 + "."
+    assert len(first_sentence) == 130
+    second_sentence = " " + ("B" * 140) + "."
+    full_text = first_sentence + second_sentence
+
+    with caplog.at_level(logging.WARNING):
+        result = enforce_sentence_boundary_budget(full_text, max_chars=250)
+
+    assert result == first_sentence
+    assert caplog.records == []
+
+
+def test_enforce_budget_no_punctuation_in_window_preserves_first_sentence(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """When no boundary exists in 50-100% window, first complete sentence (<50%) is preserved with warning."""
     first = "Initial critical insight."
     long_tail = " A" + " massive continuous narrative clause without any internal period" * 5
     full_text = first + long_tail
     budget = 100
 
-    result = enforce_sentence_boundary_budget(full_text, max_chars=budget)
+    with caplog.at_level(logging.WARNING):
+        result = enforce_sentence_boundary_budget(full_text, max_chars=budget)
     assert result == first
+    assert "No sentence boundary in 50-100% window of budget 100" in caplog.text
 
 
 def test_enforce_budget_single_unbroken_sentence_word_boundary_trim() -> None:

@@ -6,6 +6,7 @@ and mid-word truncation of executive reports while maintaining semantic integrit
 
 import logging
 import re
+from typing import Final
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -14,6 +15,8 @@ logger = logging.getLogger(__name__)
 __all__ = ["enforce_sentence_boundary_budget"]
 
 _TERMINAL_PUNCTUATION = {".", "!", "?"}
+# Phase 2, Step 2: Minimum ratio for primary backward sentence-boundary scan window (50-100%)
+_SENTENCE_WINDOW_MIN_RATIO: Final[float] = 0.5
 
 
 def enforce_sentence_boundary_budget(text: str, max_chars: int) -> str:
@@ -53,7 +56,7 @@ def enforce_sentence_boundary_budget(text: str, max_chars: int) -> str:
         return stripped_text
 
     # Scan backwards from max_chars to locate nearest terminal punctuation
-    window_min = int(max_chars * 0.6)
+    window_min = int(max_chars * _SENTENCE_WINDOW_MIN_RATIO)
     candidate_slice = stripped_text[:max_chars]
 
     # Find last terminal punctuation within [window_min, max_chars]
@@ -73,14 +76,14 @@ def enforce_sentence_boundary_budget(text: str, max_chars: int) -> str:
             end_idx += 1
         return stripped_text[:end_idx].strip()
 
-    # Fallback: No sentence boundary found in [60%, 100%] window.
+    # Fallback: No sentence boundary found in [50%, 100%] window.
     # Locate the first complete sentence
     first_sentence_match = re.search(r"^.*?[.!?](?:\s|$)", stripped_text, flags=re.DOTALL)
     if first_sentence_match:
         first_sentence = first_sentence_match.group(0).strip()
         if len(first_sentence) <= max_chars:
             logger.warning(
-                "[LengthBudgetEnforcer] No sentence boundary in 60-100%% window of budget %d. "
+                "[LengthBudgetEnforcer] No sentence boundary in 50-100%% window of budget %d. "
                 "Retaining first complete sentence (%d chars).",
                 max_chars,
                 len(first_sentence),

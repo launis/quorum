@@ -193,15 +193,19 @@ async def prepare_step_strategy_context(
             try:
                 reducer_cls = _resolve_matrix_reducer()
                 lightweight_matrix = reducer_cls.reduce_matrix(state.exec_record)
-                reduce_event = TraceEvent(step_name="matrix_reducer", event_type="output", content=lightweight_matrix)
-                async with _update_lock:
-                    state.exec_record.execution_trace.append(reduce_event)
-                    state.projector.apply_delta(reduce_event)
-                    new_cv = state.exec_record.context_variables.with_update(
-                        __MATRIX_REDUCER_OUTPUT__=lightweight_matrix
+                # Phase 2, Step 2: Only emit matrix_reducer trace event when evaluated atoms exist
+                if lightweight_matrix.reduced_atoms:
+                    reduce_event = TraceEvent(
+                        step_name="matrix_reducer", event_type="output", content=lightweight_matrix
                     )
-                    state.exec_record = state.exec_record.model_copy(update={"context_variables": new_cv})
-                logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
+                    async with _update_lock:
+                        state.exec_record.execution_trace.append(reduce_event)
+                        state.projector.apply_delta(reduce_event)
+                        new_cv = state.exec_record.context_variables.with_update(
+                            __MATRIX_REDUCER_OUTPUT__=lightweight_matrix
+                        )
+                        state.exec_record = state.exec_record.model_copy(update={"context_variables": new_cv})
+                    logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
             except Exception as e:
                 err_name = ErrorCodes.WORKFLOW_EXECUTION_FAILED.name
                 logger.error("[DAGExecutor] %s: Failed to project and reduce matrix: %s", err_name, e, exc_info=True)
