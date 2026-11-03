@@ -18,7 +18,7 @@
   - [x] Step 1: Phase 1: Align UserCreate DTO Defaults and Add UserRepository CRUD Methods
   - [x] Step 2: Phase 2: Implement 3-Tier RBAC User CRUD UI in OrganizationIamSettingsView
   - [x] Step 3: Phase 3: Global Quality Gates and Atomic Commit
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_3_Tier_RBAC_User_CRUD_UI.md] @[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_3_Tier_RBAC_User_CRUD_UI.md] @[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md]`
 
 ### Post-Implementation Gates
 
@@ -48,7 +48,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_3_Tier_RBAC_User_CRUD_UI.md] @[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_3_Tier_RBAC_User_CRUD_UI.md] @[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -78,16 +78,17 @@
 - Completed Step 1: Aligned `UserCreate` in `@[client_app_v2/lib/features/auth/domain/models/user.dart]` (`@Default('fi') String language`, `@Default('system') String themeMode`), added `createUser` (`POST /iam/users/`) and `listOrganizations` (`GET /iam/organizations/`) to `@[client_app_v2/lib/features/auth/data/repositories/user_repository.dart]`, and verified roundtrip serialization in `@[client_app_v2/test/unit/features/auth/domain/models/user_test.dart]`.
 - Completed Step 2: Added English/Finnish localization keys to `@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]`, implemented `availableOrganizationsProvider`, `_RootOrganizationSelectorCard`, direct user creation (`org_create_user_mode_chip`), RBAC-filtered role dropdowns, `_EditMemberDialog` (`name`, `isActive`, and `ROOT`-only `organizationId`), and Fail-Fast `res.fold((err) => throw err, ...)` unpacking in `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`, and added positive (`ADMIN` own-org CRUD, `ROOT` cross-org CRUD), negative boundary (`password.length == 5`), and backend error widget tests in `@[client_app_v2/test/features/settings/presentation/organization_iam_settings_view_test.dart]`.
 - Completed Step 3: Passed global backend (`scripts/backend_audit_loop.py backend_v2/ --test` — 6,872 passed, 97.45% coverage, 81/81 DTO Parity aligned) and global frontend (`scripts/flutter_audit_loop.py client_app_v2/ --build` — 1,359 tests passed, 0 analyzer/guardrail issues) quality gates and committed changes atomically.
+- Completed Tier 8 Plan Audit (`/tier8-audit-plan`): Verified 100% physical implementation across all 7 target files (`REQ-001` through `REQ-008`), 81/81 cross-language DTO parity (`audit_dto_parity.py`), 0 technical debt findings (`audit_technical_debt.py`), and 100% plan-tracker parity (`audit_plan_tracker_parity.py`).
 
 ## Learned
 - `OrganizationIamSettingsView` uses `useState<String?>(null)` at the top of `build` before `switch (authState)` so `ROOT` can dynamically switch `activeOrgId` across organizations while invalidating `organizationMembersProvider` and `organizationAssignmentsProvider` on switch (`tenant_data_isolation`).
 - Filtering displayed members in `_InvitationsAndMembersCard` by `member.organizationId == orgId` ensures `ROOT` views and manages members of the currently selected organization while `ADMIN` remains strictly scoped to their own organization.
+- During `Tier 2 Hardening (Frontend)` (`--micro` mode), `resolve_flutter_unit_test_files` in `@[scripts/flutter_audit_loop.py#L62-L92]` requires a matching unit test file for `@[client_app_v2/lib/features/auth/data/repositories/user_repository.dart]` at `client_app_v2/test/unit/features/auth/data/repositories/user_repository_test.dart`.
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_3_Tier_RBAC_User_CRUD_UI.md] @[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md]`.
-- Execute Tier 2 Frontend Hardening and `/tier7-describe-architecture`.
+- Execute Tier 2 Frontend Hardening via `scripts/auto_hardening_runner.py` and `/tier7-describe-architecture`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_3_Tier_RBAC_User_CRUD_UI.md] @[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 ```
