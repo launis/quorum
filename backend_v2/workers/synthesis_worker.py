@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -370,16 +370,37 @@ async def generate_profile_synthesis_and_pdf_task(
         t_row = None
         ext_metrics = None
 
-        # Phase 2, Step 2.3: Build unified CausalSynthesisBriefDTO and fan out across all 4 tasks
+        # Phase 2, Step 2: Hydrate causal_payload from reversed(final_inputs) with PostgreSQL JSONB parity
         causal_diagnosis_text: str | None = None
         causal_payload: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
-        for evt in reversed(execution.execution_trace):
-            match evt.content:
-                case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                    causal_payload = evt.content
-                    break
-                case _:
-                    continue
+        causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
+            CausalTdaFusionResultDTO | CausalGraphPayloadDTO
+        )
+        for step_dto in reversed(final_inputs):
+            if isinstance(step_dto.payload, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
+                causal_payload = step_dto.payload
+                break
+            if step_dto.block_id in ("fusion", "graph") and step_dto.payload is not None:
+                try:
+                    causal_payload = causal_adapter.validate_python(step_dto.payload, strict=False)
+                except ValidationError as val_err:
+                    msg = f"Fail-Fast: Failed to validate causal payload in final_inputs for block '{step_dto.block_id}': {val_err}"
+                    logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from val_err
+                break
+
+        if causal_payload is None:
+            for evt in reversed(execution.execution_trace):
+                match evt.content:
+                    case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                        causal_payload = evt.content
+                        break
+                    case _:
+                        continue
 
         if causal_payload is None and execution.step_states:
             for state_val in execution.step_states.values():

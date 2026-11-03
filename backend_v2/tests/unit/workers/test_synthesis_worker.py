@@ -791,6 +791,241 @@ async def test_synthesis_worker_fans_out_causal_synthesis_brief_to_all_four_task
                                                 assert "<global_length_constraint_chars>" not in part
 
 
+@pytest.mark.asyncio
+async def test_synthesis_worker_hydrates_quiescent_fusion_from_jsonb_trace_output() -> None:
+    """Test generate_profile_synthesis_and_pdf_task hydrates CausalTdaFusionResultDTO from JSONB output TraceEvent via final_inputs."""
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
+    step_id = generate_opaque_id(EntityPrefix.STEP)
+    n1 = generate_opaque_id(EntityPrefix.NODE)
+    n2 = generate_opaque_id(EntityPrefix.NODE)
+    n3 = generate_opaque_id(EntityPrefix.NODE)
+
+    fusion_result = CausalTdaFusionResultDTO(
+        graph=CausalGraphPayloadDTO(
+            nodes=[
+                CausalNodeDTO(node_id=n1, claim="Foundational Premise", status=ExecutionStatus.PASSED),
+                CausalNodeDTO(node_id=n2, claim="Warranted Conclusion", status=ExecutionStatus.PASSED),
+                CausalNodeDTO(node_id=n3, claim="Unlinked Deliverable Island", status=ExecutionStatus.PASSED),
+            ],
+            edges=[
+                CausalEdgeDTO(
+                    source_id=n1,
+                    target_id=n2,
+                    reasoning="Foundational Premise directly supports Warranted Conclusion.",
+                )
+            ],
+            isolated_node_ids=[n3],
+            cycle_detected=False,
+        ),
+        root_cause_diagnoses=[],
+        falsified_claims=[],
+        prescriptive_remediations=[],
+        anti_fluff_audit=AntiFluffAuditDTO(
+            isolated_concept_count=1,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=0.33,
+            largest_component_ratio=0.67,
+            branch_convergence_ratio=0.0,
+        ),
+        fair_scoring=FairScoringBreakdownDTO(
+            independent_error_count=0,
+            cascading_fault_count=0,
+            raw_penalty_points=0.0,
+            deduplicated_penalty_points=0.0,
+            dampened_savings_points=0.0,
+        ),
+    )
+
+    rec = ExecutionRecord(
+        id=exec_id,
+        workflow_id=wf_id,
+        output_profile_id=prof_id,
+        status=ExecutionStatus.PASSED,
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        execution_trace=[
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="output",
+                step_name=step_id,
+                content={"fusion": fusion_result.model_dump(mode="json", exclude_none=True)},
+            )
+        ],
+    )
+    prof = _make_base_profile(prof_id, wf_id)
+    wf = _make_base_workflow(wf_id, prof_id)
+
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(rec)
+    await mock_repo.save_output_profile(prof)
+    await mock_repo.save_workflow(wf)
+
+    distilled_dto = SynthesisDistillationDTO(
+        distilled_inputs="Distilled inputs text",
+        target_locale="en",
+        title_map={"blk_0195f3a00000700283456789abcdef01": "Matrix 1"},
+        matrices_to_explain=[
+            MatrixExplanationContextDTO(
+                real_matrix_id="blk_0195f3a00000700283456789abcdef01",
+                matrix_id="m0",
+                matrix_label="Matrix 1",
+                score=2.0,
+                justification="Justification",
+            )
+        ],
+    )
+    token_usage = TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20, cost_usd=0.001)
+    shared_balanced_client = AsyncMock()
+
+    import backend_v2.workers.synthesis_worker as synthesis_worker_mod
+
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
+            with patch(
+                "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
+                new_callable=AsyncMock,
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=distilled_dto),
+                ),
+            ):
+                with patch(
+                    "backend_v2.workers.synthesis_worker.LLMClient.from_tier",
+                    new_callable=AsyncMock,
+                    return_value=shared_balanced_client,
+                ):
+                    with patch(
+                        "backend_v2.workers.synthesis_worker.create_executive_summary_task",
+                        new_callable=AsyncMock,
+                        return_value=(
+                            ExecutiveSummarySectionResult(
+                                executive_summary=[ParagraphBlock(text="Exec", exact_quotes=[], citations=[])],
+                                user_role=None,
+                                user_role_justification=None,
+                                cited_sources=[],
+                            ),
+                            token_usage,
+                        ),
+                    ) as mock_exec_task:
+                        with patch(
+                            "backend_v2.workers.synthesis_worker.create_matrix_sections_tasks",
+                            new_callable=AsyncMock,
+                            return_value=[],
+                        ) as mock_matrix_task:
+                            with patch(
+                                "backend_v2.workers.synthesis_worker.create_xai_highlights_task",
+                                new_callable=AsyncMock,
+                                return_value=None,
+                            ) as mock_xai_task:
+                                with patch(
+                                    "backend_v2.workers.synthesis_worker.create_row_explanations_task",
+                                    new_callable=AsyncMock,
+                                    return_value=None,
+                                ) as mock_row_task:
+                                    with patch(
+                                        "backend_v2.workers.synthesis_worker.build_variance_metrics_and_task",
+                                        new_callable=AsyncMock,
+                                        return_value=(None, None),
+                                    ):
+                                        with patch(
+                                            "backend_v2.workers.synthesis_worker.ReportService"
+                                        ) as mock_report_service_cls:
+                                            mock_svc = mock_report_service_cls.return_value
+                                            mock_svc.get_or_create_default_artifact = AsyncMock()
+
+                                            await generate_profile_synthesis_and_pdf_task(
+                                                execution_id=exec_id,
+                                                accept_language="en",
+                                                profile_id=prof_id,
+                                            )
+
+                                            for task_mock in (
+                                                mock_exec_task,
+                                                mock_matrix_task,
+                                                mock_xai_task,
+                                                mock_row_task,
+                                            ):
+                                                task_mock.assert_awaited_once()
+                                                diag = task_mock.await_args.kwargs["causal_diagnosis"]
+                                                assert diag is not None
+                                                assert "Logical Cohesion: 0.33" in diag
+                                                assert "Largest Connected Component Ratio: 0.67" in diag
+                                                assert "Established Causal Chains (Premise -> Conclusion):" in diag
+                                                assert (
+                                                    "- Foundational Premise -> Warranted Conclusion: "
+                                                    "Foundational Premise directly supports Warranted Conclusion."
+                                                    in diag
+                                                )
+                                                assert "Isolated Unlinked Claims (Degree-Zero Islands):" in diag
+                                                assert "- Unlinked Deliverable Island" in diag
+
+
+@pytest.mark.asyncio
+async def test_synthesis_worker_corrupted_fusion_payload_in_trace_raises_app_exception() -> None:
+    """Test generate_profile_synthesis_and_pdf_task raises AppException when fusion payload in final_inputs is corrupted."""
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
+    step_id = generate_opaque_id(EntityPrefix.STEP)
+
+    rec = ExecutionRecord(
+        id=exec_id,
+        workflow_id=wf_id,
+        output_profile_id=prof_id,
+        status=ExecutionStatus.PASSED,
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        execution_trace=[
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="output",
+                step_name=step_id,
+                content={"fusion": {"corrupted": "invalid_schema"}},
+            )
+        ],
+    )
+    prof = _make_base_profile(prof_id, wf_id)
+    wf = _make_base_workflow(wf_id, prof_id)
+
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(rec)
+    await mock_repo.save_output_profile(prof)
+    await mock_repo.save_workflow(wf)
+
+    distilled_dto = SynthesisDistillationDTO(
+        distilled_inputs="Distilled inputs text",
+        target_locale="en",
+        title_map={},
+        matrices_to_explain=[],
+    )
+
+    import backend_v2.workers.synthesis_worker as synthesis_worker_mod
+
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
+            with patch(
+                "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
+                new_callable=AsyncMock,
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=distilled_dto),
+                ),
+            ):
+                with patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier", new_callable=AsyncMock):
+                    with pytest.raises(AppException) as exc_info:
+                        await generate_profile_synthesis_and_pdf_task(
+                            execution_id=exec_id,
+                            accept_language="en",
+                            profile_id=prof_id,
+                        )
+                    assert exc_info.value.status_code == 500
+
+
 def test_causal_synthesis_brief_dto_extra_fields_raises_validation_error() -> None:
     """Test CausalSynthesisBriefDTO.model_validate raises ValidationError on unknown extra attribute."""
     with pytest.raises(ValidationError):
