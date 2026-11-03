@@ -615,16 +615,15 @@ enum UserRole {
 /// Organization subscription lifecycle status.
 @JsonEnum()
 enum SubscriptionStatus {
-  @JsonValue('ACTIVE')
-  active('ACTIVE'),
-  @JsonValue('TRIAL')
-  trial('TRIAL'),
-  @JsonValue('PAST_DUE')
-  pastDue('PAST_DUE'),
-  @JsonValue('SUSPENDED')
-  suspended('SUSPENDED'),
-  @JsonValue('CANCELLED')
-  cancelled('CANCELLED');
+  // Step 1: Align SubscriptionStatus 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('active')
+  active('active'),
+  @JsonValue('trial')
+  trial('trial'),
+  @JsonValue('past_due')
+  pastDue('past_due'),
+  @JsonValue('canceled')
+  canceled('canceled');
 
   const SubscriptionStatus(this.backendValue);
   final String backendValue;
@@ -633,14 +632,15 @@ enum SubscriptionStatus {
 /// Cryptographic B2B organization invitation lifecycle status.
 @JsonEnum()
 enum InvitationStatus {
-  @JsonValue('PENDING')
-  pending('PENDING'),
-  @JsonValue('ACCEPTED')
-  accepted('ACCEPTED'),
-  @JsonValue('EXPIRED')
-  expired('EXPIRED'),
-  @JsonValue('REVOKED')
-  revoked('REVOKED');
+  // Step 1: Align InvitationStatus 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('pending')
+  pending('pending'),
+  @JsonValue('accepted')
+  accepted('accepted'),
+  @JsonValue('expired')
+  expired('expired'),
+  @JsonValue('revoked')
+  revoked('revoked');
 
   const InvitationStatus(this.backendValue);
   final String backendValue;
@@ -649,18 +649,19 @@ enum InvitationStatus {
 /// Time-bound execution task assignment lifecycle status.
 @JsonEnum()
 enum AssignmentStatus {
-  @JsonValue('PENDING')
-  pending('PENDING'),
-  @JsonValue('ACTIVATED')
-  activated('ACTIVATED'),
-  @JsonValue('SUBMITTED')
-  submitted('SUBMITTED'),
-  @JsonValue('COMPLETED')
-  completed('COMPLETED'),
-  @JsonValue('EXPIRED')
-  expired('EXPIRED'),
-  @JsonValue('REVOKED')
-  revoked('REVOKED');
+  // Step 1: Align AssignmentStatus 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('pending')
+  pending('pending'),
+  @JsonValue('activated')
+  activated('activated'),
+  @JsonValue('submitted')
+  submitted('submitted'),
+  @JsonValue('completed')
+  completed('completed'),
+  @JsonValue('expired')
+  expired('expired'),
+  @JsonValue('revoked')
+  revoked('revoked');
 
   const AssignmentStatus(this.backendValue);
   final String backendValue;
@@ -669,10 +670,11 @@ enum AssignmentStatus {
 /// Post-submission report visibility level for external task assignees.
 @JsonEnum()
 enum AssignmentResultVisibility {
-  @JsonValue('CONFIRMATION_ONLY')
-  confirmationOnly('CONFIRMATION_ONLY'),
-  @JsonValue('FULL_REPORT_ACCESS')
-  fullReportAccess('FULL_REPORT_ACCESS');
+  // Step 1: Align AssignmentResultVisibility 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('confirmation_only')
+  confirmationOnly('confirmation_only'),
+  @JsonValue('full_report_access')
+  fullReportAccess('full_report_access');
 
   const AssignmentResultVisibility(this.backendValue);
   final String backendValue;
@@ -681,14 +683,11 @@ enum AssignmentResultVisibility {
 /// Outbound transactional email transport mode.
 @JsonEnum()
 enum EmailTransportMode {
-  @JsonValue('CONSOLE_MOCK')
-  consoleMock('CONSOLE_MOCK'),
-  @JsonValue('SMTP')
-  smtp('SMTP'),
-  @JsonValue('SENDGRID')
-  sendgrid('SENDGRID'),
-  @JsonValue('RESEND')
-  resend('RESEND');
+  // Step 1: Align EmailTransportMode 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('console')
+  console('console'),
+  @JsonValue('http_api')
+  httpApi('http_api');
 
   const EmailTransportMode(this.backendValue);
   final String backendValue;
@@ -697,20 +696,13 @@ enum EmailTransportMode {
 /// Outbound transactional email delivery status.
 @JsonEnum()
 enum EmailDeliveryStatus {
-  @JsonValue('PENDING')
-  pending('PENDING'),
-  @JsonValue('QUEUED')
-  queued('QUEUED'),
-  @JsonValue('SENT')
-  sent('SENT'),
-  @JsonValue('MOCK_LOGGED')
-  mockLogged('MOCK_LOGGED'),
-  @JsonValue('FAILED')
-  failed('FAILED'),
-  @JsonValue('FAILED_TRANSIENT')
-  failedTransient('FAILED_TRANSIENT'),
-  @JsonValue('FAILED_PERMANENT')
-  failedPermanent('FAILED_PERMANENT');
+  // Step 1: Align EmailDeliveryStatus 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('pending')
+  pending('pending'),
+  @JsonValue('sent')
+  sent('sent'),
+  @JsonValue('failed')
+  failed('failed');
 
   const EmailDeliveryStatus(this.backendValue);
   final String backendValue;
@@ -719,10 +711,11 @@ enum EmailDeliveryStatus {
 /// Target domain scope for organization BYOK credentials.
 @JsonEnum()
 enum SecretScope {
-  @JsonValue('LLM_PROVIDER')
-  llmProvider('LLM_PROVIDER'),
-  @JsonValue('MCP_GATEWAY')
-  mcpGateway('MCP_GATEWAY');
+  // Step 1: Align SecretScope 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('llm_provider')
+  llmProvider('llm_provider'),
+  @JsonValue('mcp_gateway')
+  mcpGateway('mcp_gateway');
 
   const SecretScope(this.backendValue);
   final String backendValue;
@@ -731,10 +724,11 @@ enum SecretScope {
 /// Cryptographic storage mode for organization BYOK credentials.
 @JsonEnum()
 enum SecretStorageMode {
-  @JsonValue('CLOUD_SECRET_MANAGER')
-  cloudSecretManager('CLOUD_SECRET_MANAGER'),
-  @JsonValue('ENVELOPE_KMS')
-  envelopeKms('ENVELOPE_KMS');
+  // Step 1: Align SecretStorageMode 1:1 with backend_v2/models/enums.py SSOT.
+  @JsonValue('cloud_secret_manager')
+  cloudSecretManager('cloud_secret_manager'),
+  @JsonValue('envelope_kms')
+  envelopeKms('envelope_kms');
 
   const SecretStorageMode(this.backendValue);
   final String backendValue;

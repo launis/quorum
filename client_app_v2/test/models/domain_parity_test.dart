@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 
@@ -23,7 +24,7 @@ void main() {
       }
 
       if (!seedFile.existsSync()) {
-        fail('Epic 12 Fatal: seed_data.json not found. PWD=$currentDir');
+        fail('Fatal: seed_data.json not found. PWD=$currentDir');
       }
 
       seedJsonString = seedFile.readAsStringSync();
@@ -90,5 +91,23 @@ void main() {
 
       expect(parsedWorkflows.length, rawWorkflows.length);
     });
+
+    test(
+      'Organization.fromJson extracts Organizations perfectly from SSoT',
+      () {
+        final rawOrganizations = seedData['organizations'] as List<dynamic>;
+        expect(
+          rawOrganizations.isNotEmpty,
+          true,
+          reason: 'Seed should have organizations',
+        );
+
+        final parsedOrganizations = rawOrganizations
+            .map((e) => Organization.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        expect(parsedOrganizations.length, rawOrganizations.length);
+      },
+    );
   });
 }

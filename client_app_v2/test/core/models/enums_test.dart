@@ -104,15 +104,43 @@ void main() {
     );
 
     test(
-      'SecretScope and SecretStorageMode expose exact backend string tokens',
+      'IAM, Assignment, Email, and Secret enums expose exact lowercase snake_case backend string tokens',
       () {
-        expect(SecretScope.llmProvider.backendValue, 'LLM_PROVIDER');
-        expect(SecretScope.mcpGateway.backendValue, 'MCP_GATEWAY');
+        // Step 2: Verify canonical lowercase snake_case backendValue across all 8 aligned enums.
+        expect(SecretScope.llmProvider.backendValue, 'llm_provider');
+        expect(SecretScope.mcpGateway.backendValue, 'mcp_gateway');
         expect(
           SecretStorageMode.cloudSecretManager.backendValue,
-          'CLOUD_SECRET_MANAGER',
+          'cloud_secret_manager',
         );
-        expect(SecretStorageMode.envelopeKms.backendValue, 'ENVELOPE_KMS');
+        expect(SecretStorageMode.envelopeKms.backendValue, 'envelope_kms');
+        expect(SubscriptionStatus.active.backendValue, 'active');
+        expect(SubscriptionStatus.trial.backendValue, 'trial');
+        expect(SubscriptionStatus.pastDue.backendValue, 'past_due');
+        expect(SubscriptionStatus.canceled.backendValue, 'canceled');
+        expect(InvitationStatus.pending.backendValue, 'pending');
+        expect(InvitationStatus.accepted.backendValue, 'accepted');
+        expect(InvitationStatus.expired.backendValue, 'expired');
+        expect(InvitationStatus.revoked.backendValue, 'revoked');
+        expect(AssignmentStatus.pending.backendValue, 'pending');
+        expect(AssignmentStatus.activated.backendValue, 'activated');
+        expect(AssignmentStatus.submitted.backendValue, 'submitted');
+        expect(AssignmentStatus.completed.backendValue, 'completed');
+        expect(AssignmentStatus.expired.backendValue, 'expired');
+        expect(AssignmentStatus.revoked.backendValue, 'revoked');
+        expect(
+          AssignmentResultVisibility.confirmationOnly.backendValue,
+          'confirmation_only',
+        );
+        expect(
+          AssignmentResultVisibility.fullReportAccess.backendValue,
+          'full_report_access',
+        );
+        expect(EmailTransportMode.console.backendValue, 'console');
+        expect(EmailTransportMode.httpApi.backendValue, 'http_api');
+        expect(EmailDeliveryStatus.pending.backendValue, 'pending');
+        expect(EmailDeliveryStatus.sent.backendValue, 'sent');
+        expect(EmailDeliveryStatus.failed.backendValue, 'failed');
       },
     );
   });

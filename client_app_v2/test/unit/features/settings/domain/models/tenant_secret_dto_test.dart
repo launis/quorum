@@ -18,6 +18,7 @@ void main() {
     test(
       'Positive: serializes and deserializes Organization, Invitation, TenantSecret, and ExecutionAssignment DTOs with 1:1 snake_case parity',
       () {
+        // Step 2: Use canonical lowercase snake_case enum tokens matching backend_v2/models/enums.py.
         final org = Organization.fromJson({
           'id': validOrgId,
           'slug': 'quorum-ent',
@@ -27,7 +28,7 @@ void main() {
           'tier': 'enterprise',
           'contact_email': 'ops@quorum.ai',
           'billing_id': 'cus_123',
-          'subscription_status': 'ACTIVE',
+          'subscription_status': 'active',
           'quota_limit': 1500.5,
           'tpm_limit': 250000,
           'rpm_limit': 120,
@@ -44,7 +45,7 @@ void main() {
         );
         final updateJson = updateDto.toJson();
         expect(updateJson['name'], equals('Updated Name'));
-        expect(updateJson['subscription_status'], equals('TRIAL'));
+        expect(updateJson['subscription_status'], equals('trial'));
         expect(updateJson.containsKey('billing_id'), isFalse);
 
         final orgDelete = OrganizationDeleteResponse.fromJson({
@@ -80,8 +81,8 @@ void main() {
               'organization_id': validOrgId,
               'email': 'alice@quorum.ai',
               'role': 'MANAGER',
-              'status': 'PENDING',
-              'email_delivery_status': 'SENT',
+              'status': 'pending',
+              'email_delivery_status': 'sent',
               'invited_by': validUserId,
               'expires_at': '2026-11-10T10:00:00.000Z',
               'created_at': '2026-11-01T10:00:00.000Z',
@@ -95,7 +96,7 @@ void main() {
         );
 
         final secretCreate = TenantSecretCreateDto.fromJson({
-          'scope': 'LLM_PROVIDER',
+          'scope': 'llm_provider',
           'target_identifier': 'google',
           'plaintext_secret': 'test-placeholder-value',
         });
@@ -105,9 +106,9 @@ void main() {
         final secretRes = TenantSecretResponseDto.fromJson({
           'id': validSecId,
           'organization_id': validOrgId,
-          'scope': 'MCP_GATEWAY',
+          'scope': 'mcp_gateway',
           'target_identifier': 'sys_01960000000070008000000000000099',
-          'storage_mode': 'ENVELOPE_KMS',
+          'storage_mode': 'envelope_kms',
           'configured': true,
           'masked_hint': '...abcd',
           'kek_version': 'v1',
@@ -125,7 +126,7 @@ void main() {
             'dynamic_inputs': {'brief': 'Context doc'},
           },
           'assignee_input_keys': ['candidate_notes'],
-          'result_visibility': 'FULL_REPORT_ACCESS',
+          'result_visibility': 'full_report_access',
           'hard_deadline_at': '2026-12-01T00:00:00.000Z',
           'relative_duration_seconds': 3600,
         });
@@ -159,9 +160,9 @@ void main() {
               'locked_inputs': const <String, dynamic>{},
               'assignee_input_keys': ['input_a'],
               'draft_inputs': const <String, dynamic>{},
-              'status': 'ACTIVATED',
-              'email_delivery_status': 'SENT',
-              'result_visibility': 'CONFIRMATION_ONLY',
+              'status': 'activated',
+              'email_delivery_status': 'sent',
+              'result_visibility': 'confirmation_only',
               'hard_deadline_at': '2026-12-01T00:00:00.000Z',
               'created_by': validUserId,
               'created_at': '2026-11-01T00:00:00.000Z',
@@ -181,7 +182,7 @@ void main() {
           'assigned_email_masked': 'o***@quorum.ai',
           'workflow_id': validWfId,
           'target_locale': 'fi',
-          'status': 'PENDING',
+          'status': 'pending',
           'hard_deadline_at': '2026-12-01T00:00:00.000Z',
         });
         expect(preview.organizationName, equals('Quorum Enterprise'));
@@ -226,8 +227,17 @@ void main() {
         );
 
         expect(
+          () => Organization.fromJson({
+            'id': validOrgId,
+            'name': 'Quorum',
+            'subscription_status': 'ACTIVE',
+          }),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        expect(
           () => TenantSecretCreateDto.fromJson({
-            'scope': 'LLM_PROVIDER',
+            'scope': 'llm_provider',
             'target_identifier': 'openai',
             'plaintext_secret': 'placeholder',
             'extra_field': 'forbidden',

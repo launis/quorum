@@ -100,11 +100,10 @@ Map<String, dynamic> _$OrganizationToJson(_Organization instance) =>
     };
 
 const _$SubscriptionStatusEnumMap = {
-  SubscriptionStatus.active: 'ACTIVE',
-  SubscriptionStatus.trial: 'TRIAL',
-  SubscriptionStatus.pastDue: 'PAST_DUE',
-  SubscriptionStatus.suspended: 'SUSPENDED',
-  SubscriptionStatus.cancelled: 'CANCELLED',
+  SubscriptionStatus.active: 'active',
+  SubscriptionStatus.trial: 'trial',
+  SubscriptionStatus.pastDue: 'past_due',
+  SubscriptionStatus.canceled: 'canceled',
 };
 
 _OrganizationUpdateDto _$OrganizationUpdateDtoFromJson(
@@ -344,20 +343,16 @@ Map<String, dynamic> _$InvitationResponseDtoToJson(
 };
 
 const _$InvitationStatusEnumMap = {
-  InvitationStatus.pending: 'PENDING',
-  InvitationStatus.accepted: 'ACCEPTED',
-  InvitationStatus.expired: 'EXPIRED',
-  InvitationStatus.revoked: 'REVOKED',
+  InvitationStatus.pending: 'pending',
+  InvitationStatus.accepted: 'accepted',
+  InvitationStatus.expired: 'expired',
+  InvitationStatus.revoked: 'revoked',
 };
 
 const _$EmailDeliveryStatusEnumMap = {
-  EmailDeliveryStatus.pending: 'PENDING',
-  EmailDeliveryStatus.queued: 'QUEUED',
-  EmailDeliveryStatus.sent: 'SENT',
-  EmailDeliveryStatus.mockLogged: 'MOCK_LOGGED',
-  EmailDeliveryStatus.failed: 'FAILED',
-  EmailDeliveryStatus.failedTransient: 'FAILED_TRANSIENT',
-  EmailDeliveryStatus.failedPermanent: 'FAILED_PERMANENT',
+  EmailDeliveryStatus.pending: 'pending',
+  EmailDeliveryStatus.sent: 'sent',
+  EmailDeliveryStatus.failed: 'failed',
 };
 
 _InvitationBatchCreateDto _$InvitationBatchCreateDtoFromJson(
@@ -449,8 +444,8 @@ Map<String, dynamic> _$TenantSecretCreateDtoToJson(
 };
 
 const _$SecretScopeEnumMap = {
-  SecretScope.llmProvider: 'LLM_PROVIDER',
-  SecretScope.mcpGateway: 'MCP_GATEWAY',
+  SecretScope.llmProvider: 'llm_provider',
+  SecretScope.mcpGateway: 'mcp_gateway',
 };
 
 _TenantSecretResponseDto _$TenantSecretResponseDtoFromJson(
@@ -531,8 +526,8 @@ Map<String, dynamic> _$TenantSecretResponseDtoToJson(
 };
 
 const _$SecretStorageModeEnumMap = {
-  SecretStorageMode.cloudSecretManager: 'CLOUD_SECRET_MANAGER',
-  SecretStorageMode.envelopeKms: 'ENVELOPE_KMS',
+  SecretStorageMode.cloudSecretManager: 'cloud_secret_manager',
+  SecretStorageMode.envelopeKms: 'envelope_kms',
 };
 
 _ExecutionAssignmentCreateDto _$ExecutionAssignmentCreateDtoFromJson(
@@ -631,8 +626,8 @@ Map<String, dynamic> _$ExecutionAssignmentCreateDtoToJson(
 };
 
 const _$AssignmentResultVisibilityEnumMap = {
-  AssignmentResultVisibility.confirmationOnly: 'CONFIRMATION_ONLY',
-  AssignmentResultVisibility.fullReportAccess: 'FULL_REPORT_ACCESS',
+  AssignmentResultVisibility.confirmationOnly: 'confirmation_only',
+  AssignmentResultVisibility.fullReportAccess: 'full_report_access',
 };
 
 _ExecutionAssignmentRecipientDto _$ExecutionAssignmentRecipientDtoFromJson(
@@ -931,12 +926,12 @@ Map<String, dynamic> _$ExecutionAssignmentResponseDtoToJson(
 };
 
 const _$AssignmentStatusEnumMap = {
-  AssignmentStatus.pending: 'PENDING',
-  AssignmentStatus.activated: 'ACTIVATED',
-  AssignmentStatus.submitted: 'SUBMITTED',
-  AssignmentStatus.completed: 'COMPLETED',
-  AssignmentStatus.expired: 'EXPIRED',
-  AssignmentStatus.revoked: 'REVOKED',
+  AssignmentStatus.pending: 'pending',
+  AssignmentStatus.activated: 'activated',
+  AssignmentStatus.submitted: 'submitted',
+  AssignmentStatus.completed: 'completed',
+  AssignmentStatus.expired: 'expired',
+  AssignmentStatus.revoked: 'revoked',
 };
 
 _ExecutionAssignmentBatchResponseDto

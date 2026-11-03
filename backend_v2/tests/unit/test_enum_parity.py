@@ -285,3 +285,21 @@ def test_iam_and_assignment_enums_ssot_in_python_enums() -> None:
         "envelope_kms",
         "cloud_secret_manager",
     }
+
+
+@pytest.mark.parametrize(
+    "enum_name",
+    [
+        "SubscriptionStatus",
+        "InvitationStatus",
+        "AssignmentStatus",
+        "AssignmentResultVisibility",
+        "EmailTransportMode",
+        "EmailDeliveryStatus",
+        "SecretScope",
+        "SecretStorageMode",
+    ],
+)
+def test_iam_and_assignment_enums_dart_parity(enum_name: str) -> None:
+    """Verify IAM, Assignment, Email, and Secret enums match 1:1 between Python and Dart."""
+    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), enum_name)
