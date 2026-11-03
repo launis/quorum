@@ -16,7 +16,7 @@ from backend_v2.models.dtos.dag_models import (
 from backend_v2.models.enums import ExecutionStatus
 
 
-def test_causal_edge_valid():
+def test_causal_edge_valid() -> None:
     """Test CausalEdge with valid data."""
     edge = CausalEdge(
         edge_reasoning="Reasoning test",
@@ -29,19 +29,21 @@ def test_causal_edge_valid():
     assert edge.expected_status == ExecutionStatus.PASSED
 
 
-def test_causal_edge_forbids_extra():
+def test_causal_edge_forbids_extra() -> None:
     """Test CausalEdge forbids extra fields."""
     with pytest.raises(ValidationError):
-        CausalEdge(
-            edge_reasoning="Reasoning test",
-            tda_id="tda_0195f3a0000070018234567890123456",
-            source_id="src_1",
-            expected_status=ExecutionStatus.PASSED,
-            extra_field="invalid",
+        CausalEdge.model_validate(
+            {
+                "edge_reasoning": "Reasoning test",
+                "tda_id": "tda_0195f3a0000070018234567890123456",
+                "source_id": "src_1",
+                "expected_status": ExecutionStatus.PASSED,
+                "extra_field": "invalid",
+            }
         )
 
 
-def test_extracted_atom_valid():
+def test_extracted_atom_valid() -> None:
     """Test ExtractedAtom with valid data."""
     atom = ExtractedAtom(
         reasoning="Testing reasoning",
@@ -55,7 +57,7 @@ def test_extracted_atom_valid():
     assert atom.tda_id == "tda_0195f3a0000070018234567890abcdef"
 
 
-def test_extracted_atom_invalid_tda_id():
+def test_extracted_atom_invalid_tda_id() -> None:
     """Test ExtractedAtom with invalid tda_id format."""
     with pytest.raises(ValidationError):
         ExtractedAtom(
@@ -68,7 +70,7 @@ def test_extracted_atom_invalid_tda_id():
         )
 
 
-def test_extracted_atom_missing_quote_not_logical():
+def test_extracted_atom_missing_quote_not_logical() -> None:
     """Test ExtractedAtom fails if quote is missing and not logical deduction."""
     with pytest.raises(
         ValidationError, match="source_quotes is mandatory unless is_logical_deduction or is_inverse is True"
@@ -84,7 +86,7 @@ def test_extracted_atom_missing_quote_not_logical():
         )
 
 
-def test_extracted_atom_quote_with_logical_deduction():
+def test_extracted_atom_quote_with_logical_deduction() -> None:
     """Test ExtractedAtom fails if quote is present when logical deduction."""
     with pytest.raises(
         ValidationError, match="source_quotes must be None if is_logical_deduction or is_inverse is True"
@@ -100,7 +102,7 @@ def test_extracted_atom_quote_with_logical_deduction():
         )
 
 
-def test_extracted_atom_segment_under_30_chars_when_m_greater_than_1_raises_error():
+def test_extracted_atom_segment_under_30_chars_when_m_greater_than_1_raises_error() -> None:
     """Test ExtractedAtom raises ValidationError if any segment is < 30 chars when m > 1."""
     with pytest.raises(
         ValidationError,
@@ -117,7 +119,7 @@ def test_extracted_atom_segment_under_30_chars_when_m_greater_than_1_raises_erro
         )
 
 
-def test_extracted_atom_allows_segment_up_to_1000_chars_gate2_ceiling():
+def test_extracted_atom_allows_segment_up_to_1000_chars_gate2_ceiling() -> None:
     """Prove Gate 2 safety ceiling: ExtractedAtom must accept quotes up to 1,000 characters."""
     valid_long_quote = "A" * 602  # Exact length from Sitra block B4
     atom = ExtractedAtom(
@@ -132,7 +134,7 @@ def test_extracted_atom_allows_segment_up_to_1000_chars_gate2_ceiling():
     assert atom.source_quotes == (valid_long_quote,)
 
 
-def test_linked_atom_graph_valid():
+def test_linked_atom_graph_valid() -> None:
     """Test LinkedAtomGraph with valid data."""
     atom = ExtractedAtom(
         reasoning="Testing reasoning",
@@ -142,29 +144,31 @@ def test_linked_atom_graph_valid():
         source_id="src_1",
         source_sequence_index=0,
     )
-    graph = LinkedAtomGraph(atom=atom)
+    graph = LinkedAtomGraph(atom=atom, depends_on=[])
     assert graph.atom == atom
     assert graph.depends_on == []
 
 
-def test_atom_execution_state_valid():
+def test_atom_execution_state_valid() -> None:
     """Test AtomExecutionState with valid data."""
     state = AtomExecutionState(
         tda_id="tda_0195f3a0000070018234567890abcdef",
         status=ExecutionStatus.PENDING,
+        short_circuit_reason_tda_ids=[],
+        extensions={},
     )
     assert state.tda_id == "tda_0195f3a0000070018234567890abcdef"
     assert state.status == ExecutionStatus.PENDING
     assert state.short_circuit_reason_tda_ids == []
 
 
-def test_ontology_entity_valid():
+def test_ontology_entity_valid() -> None:
     """Test OntologyEntity with valid data."""
     entity = OntologyEntity(name="Entity1", description="Desc")
     assert entity.name == "Entity1"
 
 
-def test_global_ontology_map_valid():
+def test_global_ontology_map_valid() -> None:
     """Test GlobalOntologyMap with valid data."""
     entity = OntologyEntity(name="Entity1", description="Desc")
     gmap = GlobalOntologyMap(entities=[entity], macro_rules=["Rule 1"])
@@ -178,7 +182,9 @@ def test_atom_execution_state_source_quote_valid() -> None:
     state = AtomExecutionState(
         tda_id="tda_0195f3a0000070018234567890abcdef",
         status=ExecutionStatus.PASSED,
+        short_circuit_reason_tda_ids=[],
         source_quotes=("Valid verbatim quote.",),
+        extensions={},
     )
     assert state.source_quotes == ("Valid verbatim quote.",)
 
@@ -189,7 +195,9 @@ def test_atom_execution_state_source_quote_long_allowed() -> None:
     state = AtomExecutionState(
         tda_id="tda_0195f3a0000070018234567890abcdef",
         status=ExecutionStatus.PASSED,
+        short_circuit_reason_tda_ids=[],
         source_quotes=(long_quote,),
+        extensions={},
     )
     assert state.source_quotes == (long_quote,)
 
@@ -210,21 +218,26 @@ def test_atom_evaluation_result_dto_valid() -> None:
 
 def test_atom_evaluation_result_dto_coerces_list_to_tuple() -> None:
     """Test AtomEvaluationResultDTO coerces list of quotes to tuple."""
-    dto = AtomEvaluationResultDTO(
-        status=ExecutionStatus.PASSED,
-        source_quotes=["Segment 1 with sufficient length.", "Segment 2 with sufficient length."],
+    dto = AtomEvaluationResultDTO.model_validate(
+        {
+            "status": ExecutionStatus.PASSED,
+            "source_quotes": ["Segment 1 with sufficient length.", "Segment 2 with sufficient length."],
+            "extensions": {},
+        }
     )
     assert dto.source_quotes == ("Segment 1 with sufficient length.", "Segment 2 with sufficient length.")
 
 
 def test_atom_evaluation_result_dto_frozen_immutability() -> None:
     """Test AtomEvaluationResultDTO is immutable (frozen=True)."""
+    assert AtomEvaluationResultDTO.model_config["frozen"] is True
     dto = AtomEvaluationResultDTO(
         status=ExecutionStatus.PASSED,
         reasoning="Reasoning",
+        extensions={},
     )
     with pytest.raises(ValidationError):
-        dto.status = ExecutionStatus.FAILED
+        delattr(dto, "status")
 
 
 def test_atom_evaluation_result_dto_forbids_extra_fields() -> None:
@@ -250,6 +263,7 @@ def test_atom_evaluation_result_dto_source_quote_long_allowed() -> None:
     dto = AtomEvaluationResultDTO(
         status=ExecutionStatus.PASSED,
         source_quotes=(long_quote,),
+        extensions={},
     )
     assert dto.source_quotes == (long_quote,)
 
@@ -296,13 +310,41 @@ def test_extracted_atom_more_than_3_segments_raises_error() -> None:
         )
 
 
-def test_extracted_atom_segment_over_1000_chars_raises_error() -> None:
-    """Test ExtractedAtom raises ValidationError if any segment exceeds 1,000 chars."""
-    with pytest.raises(ValidationError, match="source_quotes segment exceeds maximum allowed length"):
+def test_extracted_atom_segment_over_1000_chars_allowed_and_empty_rejected() -> None:
+    """Test ExtractedAtom accepts verbatim segments over 1,000 chars and rejects empty or sub-floor segments."""
+    # Step 1: Verify unbounded verbatim segment > 1,000 chars ("A" * 1250) is accepted
+    long_segment = "A" * 1250
+    atom = ExtractedAtom(
+        reasoning="Valid reasoning text.",
+        resolved_claim="Valid claim text.",
+        source_quotes=(long_segment,),
+        tda_id="tda_0195f3a0000070018234567890abcdef",
+        source_sequence_index=0,
+    )
+    assert atom.source_quotes == (long_segment,)
+
+    # Negative boundary 1: Empty/whitespace-only segments coerce to None and fail mandatory quote check
+    with pytest.raises(
+        ValidationError,
+        match="source_quotes is mandatory unless is_logical_deduction or is_inverse is True",
+    ):
         ExtractedAtom(
             reasoning="Valid reasoning text.",
             resolved_claim="Valid claim text.",
-            source_quotes=("A" * 1001,),
+            source_quotes=("   ",),
+            tda_id="tda_0195f3a0000070018234567890abcdef",
+            source_sequence_index=0,
+        )
+
+    # Negative boundary 2: Multi-segment floor violation (29 chars < 30-char minimum when m > 1)
+    with pytest.raises(
+        ValidationError,
+        match="source_quotes segment floor is at least 30 characters when m > 1",
+    ):
+        ExtractedAtom(
+            reasoning="Valid reasoning text.",
+            resolved_claim="Valid claim text.",
+            source_quotes=(long_segment, "B" * 29),
             tda_id="tda_0195f3a0000070018234567890abcdef",
             source_sequence_index=0,
         )
