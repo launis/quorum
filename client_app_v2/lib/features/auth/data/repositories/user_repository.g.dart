@@ -8,13 +8,17 @@ part of 'user_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Keep-alive Riverpod provider for [UserRepository].
 
 @ProviderFor(userRepository)
 final userRepositoryProvider = UserRepositoryProvider._();
 
+/// Keep-alive Riverpod provider for [UserRepository].
+
 final class UserRepositoryProvider
     extends $FunctionalProvider<UserRepository, UserRepository, UserRepository>
     with $Provider<UserRepository> {
+  /// Keep-alive Riverpod provider for [UserRepository].
   UserRepositoryProvider._()
     : super(
         from: null,
