@@ -9,6 +9,48 @@ part of 'organization_iam_settings_view.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(availableOrganizations)
+final availableOrganizationsProvider = AvailableOrganizationsProvider._();
+
+final class AvailableOrganizationsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Organization>>,
+          List<Organization>,
+          FutureOr<List<Organization>>
+        >
+    with
+        $FutureModifier<List<Organization>>,
+        $FutureProvider<List<Organization>> {
+  AvailableOrganizationsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'availableOrganizationsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$availableOrganizationsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Organization>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Organization>> create(Ref ref) {
+    return availableOrganizations(ref);
+  }
+}
+
+String _$availableOrganizationsHash() =>
+    r'606a98fd4b45e0a11c05644ebed2c35d5270992b';
+
 @ProviderFor(organizationProfile)
 final organizationProfileProvider = OrganizationProfileFamily._();
 

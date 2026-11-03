@@ -5880,6 +5880,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'B2B User Invitations & Role Governance';
 
   @override
+  String get orgSelectOrganizationLabel => 'Target Organization';
+
+  @override
+  String get orgCreateUserDirectBtn => 'Create User Directly';
+
+  @override
+  String get orgCreateUserPasswordLabel => 'Initial Password';
+
+  @override
+  String get orgCreateUserPasswordHint => 'Minimum 6 characters';
+
+  @override
+  String get orgCreateUserSuccess => 'User account created successfully.';
+
+  @override
+  String get orgEditMemberTooltip => 'Edit Member';
+
+  @override
+  String get orgEditMemberDialogTitle => 'Edit Organization Member';
+
+  @override
+  String get orgMemberActiveStatusLabel => 'Account Active';
+
+  @override
   String get orgInviteEmailLabel => 'Invitee Email';
 
   @override

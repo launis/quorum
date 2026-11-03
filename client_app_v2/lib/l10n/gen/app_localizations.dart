@@ -10601,6 +10601,54 @@ abstract class AppLocalizations {
   /// **'B2B User Invitations & Role Governance'**
   String get orgInvitationsCardTitle;
 
+  /// No description provided for @orgSelectOrganizationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Organization'**
+  String get orgSelectOrganizationLabel;
+
+  /// No description provided for @orgCreateUserDirectBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create User Directly'**
+  String get orgCreateUserDirectBtn;
+
+  /// No description provided for @orgCreateUserPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Initial Password'**
+  String get orgCreateUserPasswordLabel;
+
+  /// No description provided for @orgCreateUserPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum 6 characters'**
+  String get orgCreateUserPasswordHint;
+
+  /// No description provided for @orgCreateUserSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'User account created successfully.'**
+  String get orgCreateUserSuccess;
+
+  /// No description provided for @orgEditMemberTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Member'**
+  String get orgEditMemberTooltip;
+
+  /// No description provided for @orgEditMemberDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Organization Member'**
+  String get orgEditMemberDialogTitle;
+
+  /// No description provided for @orgMemberActiveStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Active'**
+  String get orgMemberActiveStatusLabel;
+
   /// No description provided for @orgInviteEmailLabel.
   ///
   /// In en, this message translates to:

@@ -1,5 +1,6 @@
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -16,6 +17,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'organization_iam_settings_view.g.dart';
+
+// Phase 2, Step 2: Provide organization list for ROOT cross-organization selector
+@riverpod
+Future<List<Organization>> availableOrganizations(Ref ref) async {
+  final result = await ref.watch(userRepositoryProvider).listOrganizations();
+  return result.fold((err) => throw err, (list) => list);
+}
 
 @riverpod
 Future<Organization> organizationProfile(Ref ref, String orgId) async {
@@ -62,6 +70,8 @@ class OrganizationIamSettingsView extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final authState = ref.watch(authControllerProvider);
+    // Phase 2, Step 2: Hold active target organization state for ROOT cross-organization switching
+    final selectedOrgId = useState<String?>(null);
 
     return AppErrorBoundary(
       child: Scaffold(
@@ -98,10 +108,14 @@ class OrganizationIamSettingsView extends HookConsumerWidget {
                   );
                 }
 
-                final orgId = value.organizationId;
-                if (orgId == null || orgId.isEmpty) {
+                final defaultOrgId = value.organizationId;
+                if (defaultOrgId == null || defaultOrgId.isEmpty) {
                   return Center(child: Text(l10n.errorNotFound));
                 }
+
+                final activeOrgId = value.role == UserRole.root
+                    ? (selectedOrgId.value ?? defaultOrgId)
+                    : defaultOrgId;
 
                 final isAdminOrRoot =
                     value.role == UserRole.admin || value.role == UserRole.root;
@@ -111,21 +125,31 @@ class OrganizationIamSettingsView extends HookConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (value.role == UserRole.root)
+                        _RootOrganizationSelectorCard(
+                          activeOrgId: activeOrgId,
+                          l10n: l10n,
+                          onOrganizationSelected: (nextOrgId) {
+                            selectedOrgId.value = nextOrgId;
+                            ref.invalidate(organizationMembersProvider);
+                            ref.invalidate(organizationAssignmentsProvider);
+                          },
+                        ),
                       _OrganizationMetadataCard(
-                        orgId: orgId,
+                        orgId: activeOrgId,
                         l10n: l10n,
                         theme: theme,
                       ),
                       _TaskAssignmentsManagementCard(l10n: l10n, theme: theme),
                       if (isAdminOrRoot) ...[
                         _InvitationsAndMembersCard(
-                          orgId: orgId,
+                          orgId: activeOrgId,
                           currentUser: value,
                           l10n: l10n,
                           theme: theme,
                         ),
                         _ByokSecretsCard(
-                          orgId: orgId,
+                          orgId: activeOrgId,
                           l10n: l10n,
                           theme: theme,
                         ),
@@ -137,6 +161,74 @@ class OrganizationIamSettingsView extends HookConsumerWidget {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RootOrganizationSelectorCard extends ConsumerWidget {
+  final String activeOrgId;
+  final AppLocalizations l10n;
+  final ValueChanged<String> onOrganizationSelected;
+
+  const _RootOrganizationSelectorCard({
+    required this.activeOrgId,
+    required this.l10n,
+    required this.onOrganizationSelected,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final orgsAsync = ref.watch(availableOrganizationsProvider);
+
+    return Card(
+      key: const Key('org_root_selector_card'),
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
+      child: Padding(
+        padding: AppSpacing.p16,
+        child: switch (orgsAsync) {
+          AsyncLoading() => const Center(child: CircularProgressIndicator()),
+          AsyncError(:final error, :final stackTrace) => ErrorView(
+            error: error,
+            stackTrace: stackTrace,
+            compact: true,
+          ),
+          AsyncData(value: final orgs) =>
+            !orgs.any((o) => o.id == activeOrgId)
+                ? ErrorView(
+                    error: AppException.notFound(l10n.errorNotFound),
+                    compact: true,
+                  )
+                : DropdownButtonFormField<String>(
+                    key: const Key('org_root_selector_dropdown'),
+                    isExpanded: true,
+                    initialValue: activeOrgId,
+                    decoration: InputDecoration(
+                      labelText: l10n.orgSelectOrganizationLabel,
+                      prefixIcon: const Icon(Icons.domain_outlined),
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      for (final org in orgs)
+                        DropdownMenuItem(
+                          value: org.id,
+                          child: Text(
+                            org.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (nextOrgId) {
+                      if (nextOrgId != null && nextOrgId != activeOrgId) {
+                        onOrganizationSelected(nextOrgId);
+                      }
+                    },
+                  ),
+        },
       ),
     );
   }
@@ -584,6 +676,8 @@ class _TaskAssignmentsManagementCard extends HookConsumerWidget {
   }
 }
 
+enum _UserProvisioningMode { singleInvite, batchInvite, directCreate }
+
 class _InvitationsAndMembersCard extends HookConsumerWidget {
   final String orgId;
   final User currentUser;
@@ -603,13 +697,26 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
     final membersAsync = ref.watch(organizationMembersProvider);
     final emailController = useTextEditingController();
     final batchEmailsController = useTextEditingController();
+    final createEmailController = useTextEditingController();
+    final createNameController = useTextEditingController();
+    final createPasswordController = useTextEditingController();
     final selectedRole = useState<UserRole>(UserRole.member);
-    final isBatchMode = useState<bool>(false);
+    final provisioningMode = useState<_UserProvisioningMode>(
+      _UserProvisioningMode.singleInvite,
+    );
     final mutation = useMutation<void>();
+
+    final assignableRoles = <UserRole>[
+      UserRole.viewer,
+      UserRole.member,
+      UserRole.manager,
+      UserRole.admin,
+      if (currentUser.role == UserRole.root) UserRole.root,
+    ];
 
     Future<void> sendInvite() async {
       await mutation.mutate(() async {
-        if (isBatchMode.value) {
+        if (provisioningMode.value == _UserProvisioningMode.batchInvite) {
           final lines = batchEmailsController.text
               .split(RegExp(r'[\r\n,;]+'))
               .map((s) => s.trim())
@@ -649,6 +756,40 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
       });
     }
 
+    // Phase 2, Step 2: Direct user creation (POST /iam/users/) with >= 6 character password validation
+    Future<void> createDirectUser() async {
+      await mutation.mutate(() async {
+        final email = createEmailController.text.trim();
+        final name = createNameController.text.trim();
+        final password = createPasswordController.text;
+        if (email.isEmpty || !email.contains('@') || password.length < 6) {
+          throw AppException.validation(l10n.orgCreateUserPasswordHint);
+        }
+        final res = await ref
+            .read(userRepositoryProvider)
+            .createUser(
+              UserCreate(
+                email: email,
+                name: name.isEmpty ? null : name,
+                role: selectedRole.value,
+                organizationId: orgId,
+                password: password,
+              ),
+            );
+        res.fold((err) => throw err, (_) {
+          createEmailController.clear();
+          createNameController.clear();
+          createPasswordController.clear();
+          ref.invalidate(organizationMembersProvider);
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.orgCreateUserSuccess)));
+          }
+        });
+      });
+    }
+
     return Card(
       key: const Key('org_invitations_card'),
       elevation: 2,
@@ -670,22 +811,38 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
             AppSpacing.h12,
             Wrap(
               spacing: AppSpacing.s8,
+              runSpacing: AppSpacing.s8,
               children: [
                 ChoiceChip(
                   label: Text(l10n.orgSendInvitationBtn),
-                  selected: !isBatchMode.value,
-                  onSelected: (_) => isBatchMode.value = false,
+                  selected:
+                      provisioningMode.value ==
+                      _UserProvisioningMode.singleInvite,
+                  onSelected: (_) => provisioningMode.value =
+                      _UserProvisioningMode.singleInvite,
                 ),
                 ChoiceChip(
                   label: Text(l10n.orgSendBatchInvitationBtn),
-                  selected: isBatchMode.value,
-                  onSelected: (_) => isBatchMode.value = true,
+                  selected:
+                      provisioningMode.value ==
+                      _UserProvisioningMode.batchInvite,
+                  onSelected: (_) => provisioningMode.value =
+                      _UserProvisioningMode.batchInvite,
+                ),
+                ChoiceChip(
+                  key: const Key('org_create_user_mode_chip'),
+                  label: Text(l10n.orgCreateUserDirectBtn),
+                  selected:
+                      provisioningMode.value ==
+                      _UserProvisioningMode.directCreate,
+                  onSelected: (_) => provisioningMode.value =
+                      _UserProvisioningMode.directCreate,
                 ),
               ],
             ),
             AppSpacing.h12,
-            if (!isBatchMode.value)
-              TextFormField(
+            switch (provisioningMode.value) {
+              _UserProvisioningMode.singleInvite => TextFormField(
                 key: const Key('org_invite_email_field'),
                 controller: emailController,
                 decoration: InputDecoration(
@@ -693,9 +850,8 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
                   prefixIcon: const Icon(Icons.mail_outline),
                   border: const OutlineInputBorder(),
                 ),
-              )
-            else
-              TextFormField(
+              ),
+              _UserProvisioningMode.batchInvite => TextFormField(
                 key: const Key('org_batch_invite_emails_field'),
                 controller: batchEmailsController,
                 maxLines: 3,
@@ -704,6 +860,42 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
                   border: const OutlineInputBorder(),
                 ),
               ),
+              _UserProvisioningMode.directCreate => Column(
+                children: [
+                  TextFormField(
+                    key: const Key('org_create_user_email_field'),
+                    controller: createEmailController,
+                    decoration: InputDecoration(
+                      labelText: l10n.profileEmailLabel,
+                      prefixIcon: const Icon(Icons.mail_outline),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  AppSpacing.h12,
+                  TextFormField(
+                    key: const Key('org_create_user_name_field'),
+                    controller: createNameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.profileDisplayNameLabel,
+                      prefixIcon: const Icon(Icons.badge_outlined),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  AppSpacing.h12,
+                  TextFormField(
+                    key: const Key('org_create_user_password_field'),
+                    controller: createPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: l10n.orgCreateUserPasswordLabel,
+                      hintText: l10n.orgCreateUserPasswordHint,
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            },
             AppSpacing.h12,
             DropdownButtonFormField<UserRole>(
               key: const Key('org_invite_role_dropdown'),
@@ -714,12 +906,7 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
                 border: const OutlineInputBorder(),
               ),
               items: [
-                for (final role in const [
-                  UserRole.viewer,
-                  UserRole.member,
-                  UserRole.manager,
-                  UserRole.admin,
-                ])
+                for (final role in assignableRoles)
                   DropdownMenuItem(
                     value: role,
                     child: Text(
@@ -737,16 +924,24 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
               ErrorView(error: mutation.error!, compact: true),
               AppSpacing.h12,
             ],
-            OutlinedButton.icon(
-              key: const Key('org_send_invite_btn'),
-              onPressed: mutation.isLoading ? null : sendInvite,
-              icon: const Icon(Icons.send_outlined),
-              label: Text(
-                isBatchMode.value
-                    ? l10n.orgSendBatchInvitationBtn
-                    : l10n.orgSendInvitationBtn,
+            if (provisioningMode.value == _UserProvisioningMode.directCreate)
+              OutlinedButton.icon(
+                key: const Key('org_create_user_submit_btn'),
+                onPressed: mutation.isLoading ? null : createDirectUser,
+                icon: const Icon(Icons.person_add_alt_1_outlined),
+                label: Text(l10n.orgCreateUserDirectBtn),
+              )
+            else
+              OutlinedButton.icon(
+                key: const Key('org_send_invite_btn'),
+                onPressed: mutation.isLoading ? null : sendInvite,
+                icon: const Icon(Icons.send_outlined),
+                label: Text(
+                  provisioningMode.value == _UserProvisioningMode.batchInvite
+                      ? l10n.orgSendBatchInvitationBtn
+                      : l10n.orgSendInvitationBtn,
+                ),
               ),
-            ),
             AppSpacing.h16,
             switch (invitationsAsync) {
               AsyncLoading() => const Center(
@@ -772,12 +967,14 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
                             color: theme.colorScheme.error,
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () => mutation.mutate(() async {
-                              await ref
+                              final res = await ref
                                   .read(userRepositoryProvider)
                                   .revokeInvitation(orgId, inv.id);
-                              ref.invalidate(
-                                organizationInvitationsProvider(orgId),
-                              );
+                              res.fold((err) => throw err, (_) {
+                                ref.invalidate(
+                                  organizationInvitationsProvider(orgId),
+                                );
+                              });
                             }),
                           )
                         : null,
@@ -804,75 +1001,289 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
                 compact: true,
               ),
               AsyncData(:final value) => Column(
-                children: value.map((member) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            member.email,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        AppSpacing.w8,
-                        Expanded(
-                          flex: 1,
-                          child: DropdownButtonFormField<UserRole>(
-                            isExpanded: true,
-                            initialValue: member.role,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            items: [
-                              for (final role in UserRole.values)
-                                DropdownMenuItem(
-                                  value: role,
-                                  child: Text(
-                                    role.name.toUpperCase(),
+                children: value
+                    .where((member) => member.organizationId == orgId)
+                    .map((member) {
+                      final memberRoleOptions = <UserRole>[
+                        UserRole.viewer,
+                        UserRole.member,
+                        UserRole.manager,
+                        UserRole.admin,
+                        if (currentUser.role == UserRole.root ||
+                            member.role == UserRole.root)
+                          UserRole.root,
+                      ];
+                      final canChangeMemberRole =
+                          currentUser.role == UserRole.root ||
+                          (member.role != UserRole.root &&
+                              member.id != currentUser.id);
+                      final canModifyMember =
+                          currentUser.role == UserRole.root ||
+                          member.role != UserRole.root;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    member.email,
                                     overflow: TextOverflow.ellipsis,
                                   ),
+                                  if (member.name != null &&
+                                      member.name!.isNotEmpty)
+                                    Text(
+                                      member.name!,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                            AppSpacing.w8,
+                            Expanded(
+                              flex: 1,
+                              child: DropdownButtonFormField<UserRole>(
+                                key: Key(
+                                  'org_member_role_dropdown_${member.id}',
                                 ),
-                            ],
-                            onChanged: (newRole) {
-                              if (newRole != null && newRole != member.role) {
-                                mutation.mutate(() async {
-                                  await ref
-                                      .read(userRepositoryProvider)
-                                      .updateUser(
-                                        member.id,
-                                        UserUpdate(role: newRole),
-                                      );
-                                  ref.invalidate(organizationMembersProvider);
-                                });
-                              }
-                            },
-                          ),
+                                isExpanded: true,
+                                initialValue: member.role,
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                                items: [
+                                  for (final role in memberRoleOptions)
+                                    DropdownMenuItem(
+                                      value: role,
+                                      child: Text(
+                                        role.name.toUpperCase(),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                ],
+                                onChanged:
+                                    (!canChangeMemberRole || mutation.isLoading)
+                                    ? null
+                                    : (newRole) {
+                                        if (newRole != null &&
+                                            newRole != member.role) {
+                                          mutation.mutate(() async {
+                                            final res = await ref
+                                                .read(userRepositoryProvider)
+                                                .updateUser(
+                                                  member.id,
+                                                  UserUpdate(role: newRole),
+                                                );
+                                            res.fold((err) => throw err, (_) {
+                                              ref.invalidate(
+                                                organizationMembersProvider,
+                                              );
+                                            });
+                                          });
+                                        }
+                                      },
+                              ),
+                            ),
+                            AppSpacing.w8,
+                            if (canModifyMember)
+                              IconButton(
+                                key: Key('org_edit_member_btn_${member.id}'),
+                                tooltip: l10n.orgEditMemberTooltip,
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: mutation.isLoading
+                                    ? null
+                                    : () {
+                                        showDialog<void>(
+                                          context: context,
+                                          builder: (dialogContext) =>
+                                              _EditMemberDialog(
+                                                member: member,
+                                                currentUser: currentUser,
+                                                currentOrgId: orgId,
+                                                l10n: l10n,
+                                              ),
+                                        );
+                                      },
+                              ),
+                            if (member.id != currentUser.id && canModifyMember)
+                              IconButton(
+                                key: Key('org_delete_member_btn_${member.id}'),
+                                tooltip: l10n.orgGdprDeleteUserBtn,
+                                color: theme.colorScheme.error,
+                                icon: const Icon(Icons.person_remove_outlined),
+                                onPressed: mutation.isLoading
+                                    ? null
+                                    : () => mutation.mutate(() async {
+                                        final res = await ref
+                                            .read(userRepositoryProvider)
+                                            .deleteUser(member.id);
+                                        res.fold((err) => throw err, (_) {
+                                          ref.invalidate(
+                                            organizationMembersProvider,
+                                          );
+                                        });
+                                      }),
+                              ),
+                          ],
                         ),
-                        AppSpacing.w8,
-                        if (member.id != currentUser.id)
-                          IconButton(
-                            tooltip: l10n.orgGdprDeleteUserBtn,
-                            color: theme.colorScheme.error,
-                            icon: const Icon(Icons.person_remove_outlined),
-                            onPressed: () => mutation.mutate(() async {
-                              await ref
-                                  .read(userRepositoryProvider)
-                                  .deleteUser(member.id);
-                              ref.invalidate(organizationMembersProvider);
-                            }),
-                          ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      );
+                    })
+                    .toList(),
               ),
             },
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EditMemberDialog extends HookConsumerWidget {
+  final User member;
+  final User currentUser;
+  final String currentOrgId;
+  final AppLocalizations l10n;
+
+  const _EditMemberDialog({
+    required this.member,
+    required this.currentUser,
+    required this.currentOrgId,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nameController = useTextEditingController(text: member.name ?? '');
+    final isActive = useState<bool>(member.isActive ?? true);
+    final selectedOrgId = useState<String>(
+      member.organizationId ?? currentOrgId,
+    );
+    final dialogMutation = useMutation<void>();
+
+    final canToggleActive =
+        currentUser.role == UserRole.root || member.id != currentUser.id;
+
+    return AlertDialog(
+      key: const Key('org_edit_member_dialog'),
+      title: Text(l10n.orgEditMemberDialogTitle),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                key: const Key('org_edit_member_name_field'),
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: l10n.profileDisplayNameLabel,
+                  prefixIcon: const Icon(Icons.badge_outlined),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              AppSpacing.h12,
+              SwitchListTile(
+                key: const Key('org_edit_member_active_switch'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.orgMemberActiveStatusLabel),
+                value: isActive.value,
+                onChanged: canToggleActive
+                    ? (val) => isActive.value = val
+                    : null,
+              ),
+              if (currentUser.role == UserRole.root) ...[
+                AppSpacing.h12,
+                switch (ref.watch(availableOrganizationsProvider)) {
+                  AsyncLoading() => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  AsyncError(:final error, :final stackTrace) => ErrorView(
+                    error: error,
+                    stackTrace: stackTrace,
+                    compact: true,
+                  ),
+                  AsyncData(value: final orgs) =>
+                    DropdownButtonFormField<String>(
+                      key: const Key('org_edit_member_org_dropdown'),
+                      isExpanded: true,
+                      initialValue: selectedOrgId.value,
+                      decoration: InputDecoration(
+                        labelText: l10n.profileOrganizationIdLabel,
+                        prefixIcon: const Icon(Icons.domain_outlined),
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: [
+                        for (final org in orgs)
+                          DropdownMenuItem(
+                            value: org.id,
+                            child: Text(
+                              org.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) selectedOrgId.value = val;
+                      },
+                    ),
+                },
+              ],
+              if (dialogMutation.hasError) ...[
+                AppSpacing.h12,
+                ErrorView(error: dialogMutation.error!, compact: true),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        OutlinedButton.icon(
+          key: const Key('org_edit_member_save_btn'),
+          onPressed: dialogMutation.isLoading
+              ? null
+              : () async {
+                  final nextName = nameController.text.trim();
+                  await dialogMutation.mutate(() async {
+                    final res = await ref
+                        .read(userRepositoryProvider)
+                        .updateUser(
+                          member.id,
+                          UserUpdate(
+                            name: nextName.isEmpty ? null : nextName,
+                            isActive: isActive.value,
+                            organizationId: currentUser.role == UserRole.root
+                                ? selectedOrgId.value
+                                : null,
+                          ),
+                        );
+                    res.fold((err) => throw err, (_) {
+                      ref.invalidate(organizationMembersProvider);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    });
+                  });
+                },
+          icon: const Icon(Icons.save_outlined),
+          label: Text(l10n.save),
+        ),
+      ],
     );
   }
 }
@@ -1110,10 +1521,14 @@ class _ByokSecretsCard extends HookConsumerWidget {
                           color: theme.colorScheme.error,
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () => mutation.mutate(() async {
-                            await ref
+                            final res = await ref
                                 .read(userRepositoryProvider)
                                 .deleteSecret(orgId, secret.id);
-                            ref.invalidate(organizationSecretsProvider(orgId));
+                            res.fold((err) => throw err, (_) {
+                              ref.invalidate(
+                                organizationSecretsProvider(orgId),
+                              );
+                            });
                           }),
                         ),
                       ],

@@ -5921,6 +5921,30 @@ class AppLocalizationsFi extends AppLocalizations {
   String get orgInvitationsCardTitle => 'B2B-käyttäjäkutsut ja roolihallinta';
 
   @override
+  String get orgSelectOrganizationLabel => 'Kohdeorganisaatio';
+
+  @override
+  String get orgCreateUserDirectBtn => 'Luo käyttäjä suoraan';
+
+  @override
+  String get orgCreateUserPasswordLabel => 'Alkusalasana';
+
+  @override
+  String get orgCreateUserPasswordHint => 'Vähintään 6 merkkiä';
+
+  @override
+  String get orgCreateUserSuccess => 'Käyttäjätili luotu onnistuneesti.';
+
+  @override
+  String get orgEditMemberTooltip => 'Muokkaa jäsentä';
+
+  @override
+  String get orgEditMemberDialogTitle => 'Muokkaa organisaation jäsentä';
+
+  @override
+  String get orgMemberActiveStatusLabel => 'Tili aktiivinen';
+
+  @override
   String get orgInviteEmailLabel => 'Kutsuttavan sähköposti';
 
   @override
