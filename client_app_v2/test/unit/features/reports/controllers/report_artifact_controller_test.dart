@@ -415,5 +415,164 @@ void main() {
         ).called(1);
       },
     );
+
+    test(
+      'Positive 3 & Negative 3: executionReportsProvider and reportDetailProvider retain prior compiling state on transient 503 during polling and fail fast on initial or non-transient 400 errors',
+      () async {
+        final generatingSummaryJson = <String, Object?>{
+          ...readySummaryJson,
+          'status': 'generating',
+        };
+        final generatingDetailJson = <String, Object?>{
+          ...readyReportDetailJson,
+          'status': 'generating',
+        };
+
+        var listAttempt = 0;
+        when(
+          () => mockDio.get<List<Object?>>(
+            '/executions/$testExecutionId/reports',
+          ),
+        ).thenAnswer((_) async {
+          listAttempt++;
+          if (listAttempt == 1) {
+            return Response<List<Object?>>(
+              requestOptions: RequestOptions(
+                path: '/executions/$testExecutionId/reports',
+              ),
+              data: <Object?>[generatingSummaryJson],
+              statusCode: 200,
+            );
+          }
+          if (listAttempt == 2) {
+            throw DioException(
+              requestOptions: RequestOptions(
+                path: '/executions/$testExecutionId/reports',
+              ),
+              response: Response<Object?>(
+                requestOptions: RequestOptions(
+                  path: '/executions/$testExecutionId/reports',
+                ),
+                statusCode: 503,
+              ),
+              error: const AppException(
+                type: 'https://api.quorum.fi/errors/service-unavailable',
+                title: 'Service Unavailable',
+                status: 503,
+                detail: 'Redis revocation check timed out.',
+                extensions: <String, Object?>{
+                  'error_code': 'SERVICE_UNAVAILABLE',
+                },
+              ),
+              type: DioExceptionType.badResponse,
+            );
+          }
+          throw const AppException(
+            type: 'https://api.quorum.fi/errors/validation-failed',
+            title: 'Validation Error',
+            status: 400,
+            detail: 'Malformed query parameter.',
+            extensions: <String, Object?>{'error_code': 'VALIDATION_FAILED'},
+          );
+        });
+
+        var detailAttempt = 0;
+        when(
+          () => mockDio.get<Map<String, Object?>>('/reports/$testReportId'),
+        ).thenAnswer((_) async {
+          detailAttempt++;
+          if (detailAttempt == 1) {
+            return Response<Map<String, Object?>>(
+              requestOptions: RequestOptions(path: '/reports/$testReportId'),
+              data: generatingDetailJson,
+              statusCode: 200,
+            );
+          }
+          if (detailAttempt == 2) {
+            throw const AppException(
+              type: 'https://api.quorum.fi/errors/service-unavailable',
+              title: 'Service Unavailable',
+              status: 503,
+              detail: 'Transient Redis timeout.',
+              extensions: <String, Object?>{
+                'error_code': 'SERVICE_UNAVAILABLE',
+              },
+            );
+          }
+          throw AppException.validation('Fatal validation failure');
+        });
+
+        final listSub = container.listen(
+          executionReportsProvider(testExecutionId),
+          (_, _) {},
+        );
+        final detailSub = container.listen(
+          reportDetailProvider(testReportId),
+          (_, _) {},
+        );
+        addTearDown(() {
+          listSub.close();
+          detailSub.close();
+        });
+
+        // Poll 1: Initial load returns generating status
+        final initialList = await container.read(
+          executionReportsProvider(testExecutionId).future,
+        );
+        expect(initialList.single.status, equals(ReportStatus.generating));
+
+        final initialDetail = await container.read(
+          reportDetailProvider(testReportId).future,
+        );
+        expect(initialDetail.status, equals(ReportStatus.generating));
+
+        // Poll 2: Invalidate and receive transient 503 -> retains generating state & logs warning
+        container.invalidate(executionReportsProvider(testExecutionId));
+        final degradedList = await container.read(
+          executionReportsProvider(testExecutionId).future,
+        );
+        expect(degradedList.single.status, equals(ReportStatus.generating));
+        expect(
+          container.read(executionReportsProvider(testExecutionId)).hasError,
+          isFalse,
+        );
+
+        container.invalidate(reportDetailProvider(testReportId));
+        final degradedDetail = await container.read(
+          reportDetailProvider(testReportId).future,
+        );
+        expect(degradedDetail.status, equals(ReportStatus.generating));
+        expect(
+          container.read(reportDetailProvider(testReportId)).hasError,
+          isFalse,
+        );
+
+        verify(
+          () => mockLogger.warning(
+            'ReportArtifactController',
+            any(that: contains('Transient polling error')),
+            any(),
+            any(),
+          ),
+        ).called(2);
+
+        // Poll 3: Non-transient 400 VALIDATION_FAILED -> fails fast with AppException
+        container.invalidate(executionReportsProvider(testExecutionId));
+        await expectLater(
+          container.read(executionReportsProvider(testExecutionId).future),
+          throwsA(
+            isA<AppException>().having((e) => e.status, 'status', equals(400)),
+          ),
+        );
+
+        container.invalidate(reportDetailProvider(testReportId));
+        await expectLater(
+          container.read(reportDetailProvider(testReportId).future),
+          throwsA(
+            isA<AppException>().having((e) => e.status, 'status', equals(400)),
+          ),
+        );
+      },
+    );
   });
 }
