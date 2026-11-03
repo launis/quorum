@@ -132,16 +132,7 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         execution = ExecutionRecord.model_validate(execution_data, strict=False)
-        resolved_lang = accept_language.strip() if accept_language else execution.target_locale
-        if not resolved_lang or not resolved_lang.strip():
-            msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty."
-            logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-        accept_language = resolved_lang.strip()
+        accept_language = accept_language.strip()
         v_step_id = f"sys_render_{profile_id}"
 
         syntheses: dict[str, RenderedSynthesisCache] = {}
@@ -200,12 +191,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 )
 
         await _update_render_status("Calculating dynamic results...")
-
-        if not accept_language and execution.target_locale:
-            accept_language = execution.target_locale
-
-        if accept_language:
-            set_language(accept_language)
+        set_language(accept_language)
 
         if await handle_starvation_if_detected(
             execution=execution,
@@ -307,7 +293,7 @@ async def generate_profile_synthesis_and_pdf_task(
         )
         citation_rules = SYNTHESIS_CITATION_RULES_HARVARD if has_sources_block else SYNTHESIS_NO_CITATION_RULES
 
-        # Phase 2, Step 2.3: Remove <global_length_constraint_chars> from base_dynamic_parts so each task obeys only its own <section_budget>
+        # Omit global length constraint from shared dynamic parts so each synthesis task obeys its own section budget.
         base_dynamic_parts: list[str] = [
             citation_rules,
             build_linguistic_parameters(source_language="Unknown", target_locale=accept_language),
@@ -370,7 +356,7 @@ async def generate_profile_synthesis_and_pdf_task(
         t_row = None
         ext_metrics = None
 
-        # Phase 2, Step 2: Hydrate causal_payload from reversed(final_inputs) with PostgreSQL JSONB parity
+        # Hydrate causal payload from reversed final inputs with PostgreSQL JSONB parity.
         causal_diagnosis_text: str | None = None
         causal_payload: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
         causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
