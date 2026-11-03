@@ -34,7 +34,7 @@ VARIANCE_SYSTEM_PROMPT: str = (
     "evaluation scores in concise, evidence-grounded prose."
 )
 
-# Phase 1, Step 1: Ground synthesis narratives in causal fault chains, Toulmin rebuttals, and topological cohesion.
+# Ground synthesis narratives in causal fault chains, Toulmin rebuttals, and topological cohesion.
 CAUSAL_TDA_DIAGNOSIS_MANDATE: str = (
     "<causal_tda_diagnosis_mandate>\n"
     "- CAUSAL & TOULMIN FALSIFICATION GROUNDING: When <causal_diagnosis> is provided in the dynamic context, "
