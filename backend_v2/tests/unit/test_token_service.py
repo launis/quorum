@@ -670,4 +670,3 @@ async def test_token_service_boundary_and_negative_branches(
     verified_no_actor = await service_no_fb.verify_token(imp_no_actor)
     assert verified_no_actor.actor_id is None
     assert verified_no_actor.id == "usr_0195f3a0000070008000000000000101"
-

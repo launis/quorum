@@ -293,4 +293,3 @@ async def test_organizations_router_invitations_endpoints_positive_and_negative(
             current_user=non_admin_user,
             auth_service=auth_service,
         )
-

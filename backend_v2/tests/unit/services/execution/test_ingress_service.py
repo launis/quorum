@@ -108,14 +108,14 @@ def test_create_execution_record_preserves_custom_carrier() -> None:
 
 
 def test_create_execution_record_handles_dict_metadata() -> None:
-    """Verify dictionary metadata is converted and injected with trace context."""
+    """Verify metadata without telemetry is preserved and injected with trace context."""
     record = create_execution_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        metadata={"workflow_version": 2},
+        metadata=ExecutionMetadata(workflow_version=2),
     )
 
     assert record.metadata is not None
@@ -175,6 +175,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         role_block_id="blk_0195f3a0000070008123456789abcdef",
         extraction_protocol_block_id="blk_0195f3a0000070018123456789abcdef",
         criteria_block_ids=["blk_0195f3a0000070028123456789abcdef"],
+        mcp_tool_params={},
     )
 
     role_block = PersonaPromptBlock(
@@ -257,6 +258,7 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
         name=I18nText(translations={"en": "Analytical Step", "fi": "Analyysi"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        mcp_tool_params={},
     )
 
     profile_obj = OutputProfile(
@@ -441,6 +443,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        mcp_tool_params={},
     )
     await repo.save_step(step_obj)
 
@@ -556,6 +559,7 @@ async def test_generate_sdui_hints_missing_and_invalid_prompt_block_raises() -> 
         type=StepType.LOGIC,
         hook="my_hook",
         role_block_id="blk_0195f3a0000070008123456789abcdef",
+        mcp_tool_params={},
     )
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(workflow)
@@ -592,6 +596,7 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        mcp_tool_params={},
     )
     profile_obj = OutputProfile(
         id="prf_0195f3a0000070008123456789abcdef",
@@ -626,6 +631,7 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Raw input"}),
         target_locale="en",
+        matrix_sampling_strategy=10,
     )
 
     record = await service.start_execution(
@@ -648,6 +654,7 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        mcp_tool_params={},
     )
     profile_obj = OutputProfile(
         id="prf_0195f3a0000070008123456789abcdef",
@@ -679,6 +686,7 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
         target_locale="en",
         model_registry_id="",
+        matrix_sampling_strategy=10,
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -715,4 +723,3 @@ def test_merge_assignment_inputs_partitioning() -> None:
         "locked_key": "authoritative_val",
         "allowed_key": "assignee_val",
     }
-
