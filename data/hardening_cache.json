@@ -2274,11 +2274,11 @@
     },
     "backend_v2/models/dtos/dag_models.py": {
       "target_file": "backend_v2/models/dtos/dag_models.py",
-      "target_sha256": "e4d8dcc37de18f33263c720be23e1d55b1398edf4f8f9396174808dbef0aed8f",
-      "unit_test_sha256": "6949370021d30ab0b1e8c1c83421b7c4dc6e4b0c1a86759c200af12ad1544a3b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "61b1e514412ce6167e69963c95e3085f1f4106b81d2154bc64ce51ebf9e48536",
-      "source_tracker": "docs/epic/EPIC_156_tracker.md"
+      "target_sha256": "86bd7959b96de5e470431ad8bf349cc402455dd30a5c062e0a66716f95afa4f0",
+      "unit_test_sha256": "f8720f31ed6533d76f36dabc5fa8d80a9e65370fd2ebd9c41e5d03ce13be1326",
+      "rules_sha256": "bde0602c66b2c9b1be0c56dca88e227bf215c1d29712b06bcb3044648f2c8181",
+      "composite_sha256": "ccefab51bc53bb04ac2238242604c6ec01a5bf094f346fa0bde6981e617db56b",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/b75f5510-8298-4174-9114-7f99446fddfe/task.md"
     },
     "backend_v2/models/llm.py": {
       "target_file": "backend_v2/models/llm.py",
@@ -2874,11 +2874,11 @@
     },
     "backend_v2/services/orchestrator/two_pass_atomizer.py": {
       "target_file": "backend_v2/services/orchestrator/two_pass_atomizer.py",
-      "target_sha256": "32d574a75578b4a335aec45873a209cb7fb2a01eb27883fccafdccf8c15dfbcd",
-      "unit_test_sha256": "2f6382b7462f02998ab82665c1542308eacbe1b0093e9aaa36553d73ce8327e4",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "780bc77038aad5d5428ae741eedf49c91b465caea245471f49ddf879033c6931",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "target_sha256": "a57b3531a366c27c029d72b28a40e51d1c3b1de3ab382c41a53ef9d61db02462",
+      "unit_test_sha256": "92f1ea5b52198c218668b72d5196fc7ed9b91766aaa68ffea655bc67a399cffc",
+      "rules_sha256": "bde0602c66b2c9b1be0c56dca88e227bf215c1d29712b06bcb3044648f2c8181",
+      "composite_sha256": "25bb9097bba024de5412ffa0ac1ba3d5b158e61242b615764e338db308eb341c",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/b75f5510-8298-4174-9114-7f99446fddfe/task.md"
     },
     "backend_v2/settings.py": {
       "target_file": "backend_v2/settings.py",
@@ -4183,6 +4183,14 @@
       "rules_sha256": "bde0602c66b2c9b1be0c56dca88e227bf215c1d29712b06bcb3044648f2c8181",
       "composite_sha256": "f466487cfeeed920d4845c05b2458675448bf59fde1f410eb6f6c19f44fbdfac",
       "source_tracker": "docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md"
+    },
+    "backend_v2/services/orchestrator/extractive_sensor_service.py": {
+      "target_file": "backend_v2/services/orchestrator/extractive_sensor_service.py",
+      "target_sha256": "99a3d65552394d300beb4755a92460d72e472690606f39cd6ead6b703ed4d33d",
+      "unit_test_sha256": "409b8026d9274aa0d530422c37deb61a78ecd9e682e7f590f2d16a4f9c3b0454",
+      "rules_sha256": "bde0602c66b2c9b1be0c56dca88e227bf215c1d29712b06bcb3044648f2c8181",
+      "composite_sha256": "73183ef928fd15c60a6d36a15831ac8224c42c5f5ab2287ebdca32d5d572216f",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/b75f5510-8298-4174-9114-7f99446fddfe/task.md"
     }
   }
 }

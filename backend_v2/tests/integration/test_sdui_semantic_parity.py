@@ -118,6 +118,37 @@ class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
         """Return default visible columns for matrix tables."""
         return ["label", "raw_score", "distribution", "row_explanation"]
 
+    @classmethod
+    def inner_sdui_blocks(cls) -> list[AnySduiBlock]:
+        """Return empty default inner SDUI blocks list."""
+        return []
+
+
+class AntiFluffAuditDTOFactory(ModelFactory[AntiFluffAuditDTO]):
+    """Polyfactory generator for AntiFluffAuditDTO instances with bounded [0.0, 1.0] ratios."""
+
+    __model__ = AntiFluffAuditDTO
+    isolated_concept_count: int = 0
+    cycle_detected: bool = False
+    unsupported_claims_count: int = 0
+    logical_cohesion_score: float = 0.85
+    largest_component_ratio: float = 1.0
+    branch_convergence_ratio: float = 0.5
+    steering_coupling_ratio: float = 0.5
+    __set_as_default_factory_for_type__ = True
+
+
+class FairScoringBreakdownDTOFactory(ModelFactory[FairScoringBreakdownDTO]):
+    """Polyfactory generator for FairScoringBreakdownDTO satisfying raw == deduplicated + dampened."""
+
+    __model__ = FairScoringBreakdownDTO
+    independent_error_count: int = 1
+    cascading_fault_count: int = 1
+    raw_penalty_points: float = 15.0
+    deduplicated_penalty_points: float = 10.0
+    dampened_savings_points: float = 5.0
+    __set_as_default_factory_for_type__ = True
+
 
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
     """Polyfactory generator for ScorecardAtomDTO instances."""
@@ -158,11 +189,6 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     context_target: str | None = None
     context_target_label: I18nText | None = None
     __set_as_default_factory_for_type__ = True
-
-    @classmethod
-    def inner_sdui_blocks(cls) -> list[AnySduiBlock]:
-        """Return empty default inner SDUI blocks list."""
-        return []
 
 
 class QuoteEvidenceDTOFactory(ModelFactory[QuoteEvidenceDTO]):

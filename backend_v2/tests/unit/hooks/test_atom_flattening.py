@@ -16,7 +16,13 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.dtos.hook_delta import FlatteningHookOutput
-from backend_v2.models.enums import BlockDataType, CognitiveTier, ExecutionStatus, PromptBlockCategory
+from backend_v2.models.enums import (
+    BlockDataType,
+    CognitiveTier,
+    ExecutionStatus,
+    PromptBlockCategory,
+    StepType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -53,6 +59,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixP
                         concept_description=f"Concept Atom {score}-{i}",
                         inverse_evidence=False,
                         aggregation_mode="EXISTS",
+                        depends_on=(),
                     )
                     for i in range(num_atoms_per_scale)
                 ],
@@ -100,6 +107,7 @@ def mock_step() -> Step:
         extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
         criteria_block_ids=["blk_0123456789abcdef0123456789abcdef", "blk_1123456789abcdef0123456789abcdef"],
         cognitive_tier=CognitiveTier.FAST,
+        mcp_tool_params={},
     )
 
 
@@ -234,7 +242,9 @@ async def test_atom_flattening_step_not_found(base_hook_state: HookState) -> Non
 @pytest.mark.asyncio
 async def test_atom_flattening_empty_criteria_blocks(base_hook_state: HookState, mock_step: Step) -> None:
     """Test hook returns empty state delta if step has no criteria blocks."""
-    step_no_blocks = mock_step.model_copy(update={"type": "logic", "hook": "some_hook", "criteria_block_ids": []})
+    step_no_blocks = mock_step.model_copy(
+        update={"type": StepType.LOGIC, "hook": "some_hook", "criteria_block_ids": []}
+    )
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(step_no_blocks)
     deps = _make_deps(workflow_repo=repo)
@@ -245,12 +255,23 @@ async def test_atom_flattening_empty_criteria_blocks(base_hook_state: HookState,
 
 
 @pytest.mark.asyncio
-async def test_atom_flattening_invalid_block_format_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
+async def test_atom_flattening_invalid_block_format_fails_fast(
+    base_hook_state: HookState, mock_step: Step, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test hook raises VALIDATION_FAILED when raw block fails Pydantic validation."""
+    mock_block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=1)
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
-    repo._prompt_blocks._storage["invalid"] = {"invalid": "format_no_id"}
+    await repo.create_prompt_block(mock_block)
     deps = _make_deps(workflow_repo=repo, comp_repo=repo)
+
+    def _raise_validation_error(*_args: object, **_kwargs: object) -> object:
+        raise ValueError("Invalid legacy block format")
+
+    monkeypatch.setattr(
+        "backend_v2.hooks.atom_flattening.PromptBlockAdapter.validate_python",
+        _raise_validation_error,
+    )
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(base_hook_state, deps)
     assert exc_info.value.status_code == 500
@@ -283,6 +304,7 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
         concept_description="Parent Root Assertion",
         inverse_evidence=False,
         aggregation_mode="EXISTS",
+        depends_on=(),
     )
     child_tda = TDAAssertion(
         tda_id="tda_00000000000000010000000000000001",
@@ -349,6 +371,7 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
         concept_description="Root Atom A",
         inverse_evidence=False,
         aggregation_mode="EXISTS",
+        depends_on=(),
     )
     atom_b = TDAAssertion(
         tda_id="tda_0000000000000001000000000000000b",
@@ -372,6 +395,7 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
             concept_description=f"Filler Atom {i}",
             inverse_evidence=False,
             aggregation_mode="EXISTS",
+            depends_on=(),
         )
         for i in range(1, 8)
     ]
