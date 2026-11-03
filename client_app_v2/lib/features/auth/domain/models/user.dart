@@ -131,8 +131,9 @@ abstract class UserCreate with _$UserCreate {
     @JsonKey(name: 'organization_id')
     required String organizationId,
     @JsonKey(name: 'is_active') @Default(true) bool isActive,
-    @JsonKey(name: 'language', includeIfNull: false) String? language,
-    @JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,
+    // Phase 1, Step 1: Align UserCreate language and themeMode defaults with backend UserBase SSOT
+    @JsonKey(name: 'language') @Default('fi') String language,
+    @JsonKey(name: 'theme_mode') @Default('system') String themeMode,
     @JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,
     @JsonKey(name: 'password', includeIfNull: false) String? password,
   }) = _UserCreate;

@@ -270,8 +270,8 @@ _UserCreate _$UserCreateFromJson(Map<String, dynamic> json) => $checkedCreate(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       isActive: $checkedConvert('is_active', (v) => v as bool? ?? true),
-      language: $checkedConvert('language', (v) => v as String?),
-      themeMode: $checkedConvert('theme_mode', (v) => v as String?),
+      language: $checkedConvert('language', (v) => v as String? ?? 'fi'),
+      themeMode: $checkedConvert('theme_mode', (v) => v as String? ?? 'system'),
       createdBy: $checkedConvert('created_by', (v) => v as String?),
       password: $checkedConvert('password', (v) => v as String?),
     );
@@ -294,8 +294,8 @@ Map<String, dynamic> _$UserCreateToJson(_UserCreate instance) =>
         instance.organizationId,
       ),
       'is_active': instance.isActive,
-      'language': ?instance.language,
-      'theme_mode': ?instance.themeMode,
+      'language': instance.language,
+      'theme_mode': instance.themeMode,
       'created_by': ?instance.createdBy,
       'password': ?instance.password,
     };

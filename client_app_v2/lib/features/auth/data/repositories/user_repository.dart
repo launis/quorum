@@ -54,6 +54,21 @@ class UserRepository {
     }
   }
 
+  // Phase 1, Step 1: Add direct user creation via POST /iam/users/
+  Future<Either<AppException, User>> createUser(UserCreate payload) async {
+    try {
+      final response = await _client.post<Map<String, Object?>>(
+        '/iam/users/',
+        data: payload.toJson(),
+      );
+      final data = response.data;
+      if (data == null) return const Left(AppException(detail: ''));
+      return Right(User.fromJson(data));
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
   Future<Either<AppException, User>> updateUser(
     String userId,
     UserUpdate payload,
@@ -98,6 +113,24 @@ class UserRepository {
       final data = response.data;
       if (data == null) return const Left(AppException(detail: ''));
       return Right(UserDeleteResponse.fromJson(data));
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // Phase 1, Step 1: Add organization listing via GET /iam/organizations/ for ROOT cross-org governance
+  Future<Either<AppException, List<Organization>>> listOrganizations() async {
+    try {
+      final response = await _client.get<List<Object?>>('/iam/organizations/');
+      final items = response.data;
+      if (items == null) return const Left(AppException(detail: ''));
+      final organizations = <Organization>[];
+      for (final item in items) {
+        if (item is Map<String, Object?>) {
+          organizations.add(Organization.fromJson(item));
+        }
+      }
+      return Right(organizations);
     } catch (e) {
       return _handleError(e);
     }

@@ -113,15 +113,34 @@ void main() {
         expect(logoutResp.revokedJti, equals('jti_12345'));
         expect(logoutResp.allSessionsRevoked, isFalse);
 
-        // UserCreate & UserUpdate roundtrip
+        // Phase 1, Step 1: UserCreate & UserUpdate roundtrip with required language and theme_mode defaults
         final userCreate = UserCreate(
           email: 'new@quorum.ai',
           organizationId: orgId,
         );
-        final createdFromJson = UserCreate.fromJson(userCreate.toJson());
+        final createJson = userCreate.toJson();
+        expect(createJson['language'], equals('fi'));
+        expect(createJson['theme_mode'], equals('system'));
+        expect(createJson['is_active'], isTrue);
+        final createdFromJson = UserCreate.fromJson(createJson);
         expect(createdFromJson.role, equals(UserRole.member));
         expect(createdFromJson.isActive, isTrue);
+        expect(createdFromJson.language, equals('fi'));
+        expect(createdFromJson.themeMode, equals('system'));
         expect(createdFromJson.organizationId, equals(orgId));
+
+        final directUserCreate = UserCreate(
+          email: 'direct@quorum.ai',
+          name: 'Direct User',
+          role: UserRole.manager,
+          organizationId: orgId,
+          password: 'securePassword123',
+        );
+        final directCreateJson = directUserCreate.toJson();
+        expect(directCreateJson['name'], equals('Direct User'));
+        expect(directCreateJson['password'], equals('securePassword123'));
+        expect(directCreateJson['language'], equals('fi'));
+        expect(directCreateJson['theme_mode'], equals('system'));
 
         const userUpdate = UserUpdate(
           name: 'Updated Name',

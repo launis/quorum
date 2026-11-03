@@ -1345,7 +1345,8 @@ as bool,
 /// @nodoc
 mixin _$UserCreate {
 
-@JsonKey(name: 'email') String get email;@JsonKey(name: 'name', includeIfNull: false) String? get name;@JsonKey(name: 'role') UserRole get role;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'is_active') bool get isActive;@JsonKey(name: 'language', includeIfNull: false) String? get language;@JsonKey(name: 'theme_mode', includeIfNull: false) String? get themeMode;@JsonKey(name: 'created_by', includeIfNull: false) String? get createdBy;@JsonKey(name: 'password', includeIfNull: false) String? get password;
+@JsonKey(name: 'email') String get email;@JsonKey(name: 'name', includeIfNull: false) String? get name;@JsonKey(name: 'role') UserRole get role;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'is_active') bool get isActive;// Phase 1, Step 1: Align UserCreate language and themeMode defaults with backend UserBase SSOT
+@JsonKey(name: 'language') String get language;@JsonKey(name: 'theme_mode') String get themeMode;@JsonKey(name: 'created_by', includeIfNull: false) String? get createdBy;@JsonKey(name: 'password', includeIfNull: false) String? get password;
 /// Create a copy of UserCreate
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1371,7 +1372,7 @@ abstract mixin class $UserCreateCopyWith<$Res>  {
   factory $UserCreateCopyWith(UserCreate value, $Res Function(UserCreate) _then) = _$UserCreateCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language', includeIfNull: false) String? language,@JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
+@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language') String language,@JsonKey(name: 'theme_mode') String themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
 });
 
 
@@ -1388,16 +1389,16 @@ class _$UserCreateCopyWithImpl<$Res>
 
 /// Create a copy of UserCreate
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? email = null,Object? name = freezed,Object? role = null,Object? organizationId = null,Object? isActive = null,Object? language = freezed,Object? themeMode = freezed,Object? createdBy = freezed,Object? password = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? email = null,Object? name = freezed,Object? role = null,Object? organizationId = null,Object? isActive = null,Object? language = null,Object? themeMode = null,Object? createdBy = freezed,Object? password = freezed,}) {
   return _then(_self.copyWith(
 email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
-as bool,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
-as String?,themeMode: freezed == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
-as String?,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as bool,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
+as String,themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
+as String,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
 as String?,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -1484,7 +1485,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language')  String language, @JsonKey(name: 'theme_mode')  String themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserCreate() when $default != null:
 return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isActive,_that.language,_that.themeMode,_that.createdBy,_that.password);case _:
@@ -1505,7 +1506,7 @@ return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isA
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language')  String language, @JsonKey(name: 'theme_mode')  String themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)  $default,) {final _that = this;
 switch (_that) {
 case _UserCreate():
 return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isActive,_that.language,_that.themeMode,_that.createdBy,_that.password);case _:
@@ -1525,7 +1526,7 @@ return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isA
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language')  String language, @JsonKey(name: 'theme_mode')  String themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,) {final _that = this;
 switch (_that) {
 case _UserCreate() when $default != null:
 return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isActive,_that.language,_that.themeMode,_that.createdBy,_that.password);case _:
@@ -1540,7 +1541,7 @@ return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isA
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _UserCreate extends UserCreate {
-  const _UserCreate({@JsonKey(name: 'email') required this.email, @JsonKey(name: 'name', includeIfNull: false) this.name, @JsonKey(name: 'role') this.role = UserRole.member, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'is_active') this.isActive = true, @JsonKey(name: 'language', includeIfNull: false) this.language, @JsonKey(name: 'theme_mode', includeIfNull: false) this.themeMode, @JsonKey(name: 'created_by', includeIfNull: false) this.createdBy, @JsonKey(name: 'password', includeIfNull: false) this.password}): super._();
+  const _UserCreate({@JsonKey(name: 'email') required this.email, @JsonKey(name: 'name', includeIfNull: false) this.name, @JsonKey(name: 'role') this.role = UserRole.member, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'is_active') this.isActive = true, @JsonKey(name: 'language') this.language = 'fi', @JsonKey(name: 'theme_mode') this.themeMode = 'system', @JsonKey(name: 'created_by', includeIfNull: false) this.createdBy, @JsonKey(name: 'password', includeIfNull: false) this.password}): super._();
   factory _UserCreate.fromJson(Map<String, dynamic> json) => _$UserCreateFromJson(json);
 
 @override@JsonKey(name: 'email') final  String email;
@@ -1548,8 +1549,9 @@ class _UserCreate extends UserCreate {
 @override@JsonKey(name: 'role') final  UserRole role;
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') final  String organizationId;
 @override@JsonKey(name: 'is_active') final  bool isActive;
-@override@JsonKey(name: 'language', includeIfNull: false) final  String? language;
-@override@JsonKey(name: 'theme_mode', includeIfNull: false) final  String? themeMode;
+// Phase 1, Step 1: Align UserCreate language and themeMode defaults with backend UserBase SSOT
+@override@JsonKey(name: 'language') final  String language;
+@override@JsonKey(name: 'theme_mode') final  String themeMode;
 @override@JsonKey(name: 'created_by', includeIfNull: false) final  String? createdBy;
 @override@JsonKey(name: 'password', includeIfNull: false) final  String? password;
 
@@ -1579,7 +1581,7 @@ abstract mixin class _$UserCreateCopyWith<$Res> implements $UserCreateCopyWith<$
   factory _$UserCreateCopyWith(_UserCreate value, $Res Function(_UserCreate) _then) = __$UserCreateCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language', includeIfNull: false) String? language,@JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
+@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language') String language,@JsonKey(name: 'theme_mode') String themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
 });
 
 
@@ -1596,16 +1598,16 @@ class __$UserCreateCopyWithImpl<$Res>
 
 /// Create a copy of UserCreate
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? email = null,Object? name = freezed,Object? role = null,Object? organizationId = null,Object? isActive = null,Object? language = freezed,Object? themeMode = freezed,Object? createdBy = freezed,Object? password = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? email = null,Object? name = freezed,Object? role = null,Object? organizationId = null,Object? isActive = null,Object? language = null,Object? themeMode = null,Object? createdBy = freezed,Object? password = freezed,}) {
   return _then(_UserCreate(
 email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
-as bool,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
-as String?,themeMode: freezed == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
-as String?,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as bool,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
+as String,themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
+as String,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
 as String?,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
