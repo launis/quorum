@@ -31,6 +31,7 @@ __all__ = [
     "MCPSearchResultItemDTO",
     "MCPServerInfoDTO",
     "MCPStructuredContentDTO",
+    "MCPStructuredErrorDetailDTO",
     "MCPToolAnnotationsDTO",
     "MCPToolCallParamsDTO",
     "MCPToolCallResultDTO",
@@ -896,6 +897,21 @@ class MCPSearchResultItemDTO(V2CoreBase):
     score: Annotated[float | int | None, Field(default=None, description="Relevance score.")] = None
 
 
+# Step 1: Extend MCPStructuredContentDTO with structured error detail schema
+class MCPStructuredErrorDetailDTO(V2CoreBase):
+    """Structured error detail object returned inside MCP 'structuredContent.detail'.
+
+    Attributes:
+        error: Detailed upstream error message.
+        message: Optional detailed error message.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    error: Annotated[str | None, Field(default=None, description="Detailed upstream error message.")] = None
+    message: Annotated[str | None, Field(default=None, description="Optional detailed error message.")] = None
+
+
 class MCPStructuredContentDTO(V2CoreBase):
     """Structured domain payload returned inside 'structuredContent' by an MCP server.
 
@@ -913,6 +929,10 @@ class MCPStructuredContentDTO(V2CoreBase):
         auth_mode: Authentication mode used by remote service.
         response_time: Remote server response time in seconds.
         request_id: Remote request correlation identifier.
+        error: Upstream tool error summary when structuredContent wraps an error response.
+        status: Upstream HTTP or application status code.
+        detail: Structured or plain-text upstream error detail.
+        documentation: Optional upstream API documentation URL for error diagnosis.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -958,6 +978,27 @@ class MCPStructuredContentDTO(V2CoreBase):
             default=None,
             validation_alias=AliasChoices("requestId", "request_id"),
             description="Remote request ID.",
+        ),
+    ] = None
+    error: Annotated[str | None, Field(default=None, description="Upstream tool error summary.")] = None
+    status: Annotated[
+        int | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("status", "statusCode", "status_code"),
+            description="Upstream HTTP or application status code.",
+        ),
+    ] = None
+    detail: Annotated[
+        MCPStructuredErrorDetailDTO | str | None,
+        Field(default=None, description="Structured or plain-text upstream error detail."),
+    ] = None
+    documentation: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("documentation", "documentationUrl", "documentation_url"),
+            description="Optional upstream API documentation URL for error diagnosis.",
         ),
     ] = None
 

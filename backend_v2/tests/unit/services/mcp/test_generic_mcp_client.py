@@ -722,3 +722,220 @@ async def test_mcp_tools_call_unknown_tool_fails_fast() -> None:
 
     assert exc_info.value.details["error_code"] == ErrorCodes.SEARCH_EXECUTION_FAILED.value
     assert "Unknown tool" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_call_structured_content_rate_limit_retries_and_succeeds() -> None:
+    """Verify SSE tools/call frame with structuredContent 429 error parses, retries as transient, and succeeds."""
+    call_attempts = 0
+
+    def _responder(request: httpx.Request) -> httpx.Response:
+        nonlocal call_attempts
+        if request.method == "GET":
+            return httpx.Response(
+                200,
+                headers={"Content-Type": "text/event-stream"},
+                text="event: endpoint\ndata: /v1/mcp\n\n",
+            )
+        payload = json.loads(request.content.decode("utf-8"))
+        method = payload["method"]
+        if method == "initialize":
+            init_frame = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": payload["id"],
+                    "result": {"protocolVersion": "2025-03-26"},
+                }
+            )
+            return httpx.Response(
+                200,
+                headers={"Content-Type": "text/event-stream"},
+                text=f"event: message\ndata: {init_frame}\n\n",
+            )
+        if method == "notifications/initialized":
+            return httpx.Response(202)
+        if method == "tools/call":
+            call_attempts += 1
+            if call_attempts == 1:
+                rate_limit_frame = json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": payload["id"],
+                        "result": {
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": (
+                                        '{"error":"Search failed","status":429,'
+                                        '"detail":{"error":"Your request has exceeded the rate limit '
+                                        "for development API keys. Please try again later or upgrade to "
+                                        'using production API keys."},'
+                                        '"documentation":"https://docs.tavily.com/documentation/api-reference/endpoint/search"}'
+                                    ),
+                                }
+                            ],
+                            "isError": False,
+                            "structuredContent": {
+                                "error": "Search failed",
+                                "status": 429,
+                                "detail": {
+                                    "error": (
+                                        "Your request has exceeded the rate limit for development API keys. "
+                                        "Please try again later or upgrade to using production API keys."
+                                    )
+                                },
+                                "documentation": "https://docs.tavily.com/documentation/api-reference/endpoint/search",
+                            },
+                        },
+                    }
+                )
+                return httpx.Response(
+                    200,
+                    headers={"Content-Type": "text/event-stream"},
+                    text=f"event: message\ndata: {rate_limit_frame}\n\n",
+                )
+            success_frame = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": payload["id"],
+                    "result": {
+                        "content": [{"type": "text", "text": "Recovered search evidence after rate limit backoff."}],
+                        "isError": False,
+                        "structuredContent": {
+                            "query": "AI governance",
+                            "results": [
+                                {
+                                    "title": "EU AI Act",
+                                    "url": "https://example.com/ai-act",
+                                    "content": "Recovered search evidence after rate limit backoff.",
+                                }
+                            ],
+                        },
+                    },
+                }
+            )
+            return httpx.Response(
+                200,
+                headers={"Content-Type": "text/event-stream"},
+                text=f"event: message\ndata: {success_frame}\n\n",
+            )
+        return httpx.Response(400)
+
+    gateway = _make_gateway(transport_type=MCPTransportType.SSE)
+    client = GenericMCPClient(transport=httpx.MockTransport(_responder))
+    invocation = MCPToolInvocationDTO(
+        gateway_id=gateway.id,
+        namespaced_alias="remote_search__tavily_search",
+        gateway_slug="remote_search",
+        tool_id="tavily_search",
+        arguments={"query": "AI governance"},
+    )
+    result_text = await client.call_tool(gateway, invocation)
+    assert call_attempts == 2
+    assert "Recovered search evidence after rate limit backoff." in result_text
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_call_structured_content_persistent_429_raises_service_unavailable() -> None:
+    """Negative: Verify persistent structuredContent 429 raises ServiceUnavailableError after retries."""
+    call_attempts = 0
+
+    def _responder(request: httpx.Request) -> httpx.Response:
+        nonlocal call_attempts
+        payload = json.loads(request.content.decode("utf-8"))
+        method = payload["method"]
+        if method == "initialize":
+            return httpx.Response(
+                200,
+                json={"jsonrpc": "2.0", "id": payload["id"], "result": {"protocolVersion": "2025-03-26"}},
+            )
+        if method == "notifications/initialized":
+            return httpx.Response(202)
+        if method == "tools/call":
+            call_attempts += 1
+            return httpx.Response(
+                200,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": payload["id"],
+                    "result": {
+                        "content": [{"type": "text", "text": '{"error":"Search failed","status":429}'}],
+                        "isError": False,
+                        "structuredContent": {
+                            "error": "Search failed",
+                            "status": 429,
+                            "detail": {"error": "Rate limit exceeded."},
+                            "documentation": "https://docs.tavily.com/documentation/api-reference/endpoint/search",
+                        },
+                    },
+                },
+            )
+        return httpx.Response(400)
+
+    gateway = _make_gateway()
+    client = GenericMCPClient(transport=httpx.MockTransport(_responder))
+    invocation = MCPToolInvocationDTO(
+        gateway_id=gateway.id,
+        namespaced_alias="remote_search__tavily_search",
+        gateway_slug="remote_search",
+        tool_id="tavily_search",
+        arguments={"query": "AI governance"},
+    )
+    with pytest.raises(ServiceUnavailableError) as exc_info:
+        await client.call_tool(gateway, invocation)
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.SERVICE_UNAVAILABLE.value
+    assert call_attempts >= 2
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_call_structured_content_non_transient_error_fails_fast() -> None:
+    """Negative/Boundary: Verify structuredContent with status=400 fails fast with SEARCH_EXECUTION_FAILED."""
+    call_attempts = 0
+
+    def _responder(request: httpx.Request) -> httpx.Response:
+        nonlocal call_attempts
+        payload = json.loads(request.content.decode("utf-8"))
+        method = payload["method"]
+        if method == "initialize":
+            return httpx.Response(
+                200,
+                json={"jsonrpc": "2.0", "id": payload["id"], "result": {"protocolVersion": "2025-03-26"}},
+            )
+        if method == "notifications/initialized":
+            return httpx.Response(202)
+        if method == "tools/call":
+            call_attempts += 1
+            return httpx.Response(
+                200,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": payload["id"],
+                    "result": {
+                        "content": [{"type": "text", "text": '{"error":"Search failed","status":400}'}],
+                        "isError": False,
+                        "structuredContent": {
+                            "error": "Search failed",
+                            "status": 400,
+                            "detail": "Invalid query syntax.",
+                        },
+                    },
+                },
+            )
+        return httpx.Response(400)
+
+    gateway = _make_gateway()
+    client = GenericMCPClient(transport=httpx.MockTransport(_responder))
+    invocation = MCPToolInvocationDTO(
+        gateway_id=gateway.id,
+        namespaced_alias="remote_search__tavily_search",
+        gateway_slug="remote_search",
+        tool_id="tavily_search",
+        arguments={"query": "AI governance"},
+    )
+    with pytest.raises(AppException) as exc_info:
+        await client.call_tool(gateway, invocation)
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.SEARCH_EXECUTION_FAILED.value
+    assert call_attempts == 1
+    assert "Invalid query syntax" in exc_info.value.message

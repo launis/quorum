@@ -264,15 +264,31 @@ class GenericMCPClient:
                     arguments=invocation.arguments,
                 ),
             )
-            rpc_response = await self._send_rpc_request(
-                client=client,
-                url=target_url,
-                request_dto=call_req,
-                headers=session_headers,
-                buffered_frames=buffered_frames,
+            # Step 1: Harden GenericMCPClient with Tenacity retry for embedded JSON-RPC transient errors
+            tool_retryer = AsyncRetrying(
+                retry=retry_if_exception(_is_transient_llm_error),
+                stop=stop_after_attempt(max(1, settings.llm_max_transient_retries)),
+                wait=wait_exponential_jitter(
+                    initial=settings.llm_retry_delay,
+                    max=float(settings.llm_retry_max_seconds),
+                ),
+                reraise=True,
             )
+            raw_text = ""
+            async for attempt in tool_retryer:
+                with attempt:
+                    rpc_response = await self._send_rpc_request(
+                        client=client,
+                        url=target_url,
+                        request_dto=call_req,
+                        headers=session_headers,
+                        buffered_frames=buffered_frames,
+                    )
+                    raw_text = self._extract_tool_call_text(
+                        rpc_response=rpc_response,
+                        invocation=invocation,
+                    )
 
-        raw_text = self._extract_tool_call_text(rpc_response=rpc_response, invocation=invocation)
         return self._apply_budget_and_cdata(raw_text=raw_text, max_chars=settings.mcp_max_response_chars)
 
     async def _resolve_gateway_credential(
@@ -853,8 +869,10 @@ class GenericMCPClient:
             Concatenated text output from the MCP tool.
 
         Raises:
+            ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE if structured_content or meta
+                reports a transient status code (429, 502, 503, 504) or rate limit.
             AppException: With ErrorCodes.SEARCH_EXECUTION_FAILED or ErrorCodes.AGENT_RESPONSE_MALFORMED
-                if rpc_response.error is set or result.is_error is True.
+                if rpc_response.error is set, result.is_error is True, or structured_content contains an error.
         """
         if rpc_response.error is not None:
             raise self._build_rpc_error(
@@ -868,6 +886,8 @@ class GenericMCPClient:
                 error_code=ErrorCodes.AGENT_RESPONSE_MALFORMED,
             )
 
+        self._check_structured_tool_error(result=rpc_response.result, invocation=invocation)
+
         if rpc_response.result.is_error:
             error_texts = [block.text for block in rpc_response.result.content if block.text.strip()]
             detail_msg = "Remote MCP tool reported isError=True."
@@ -880,6 +900,86 @@ class GenericMCPClient:
 
         text_parts = [block.text for block in rpc_response.result.content if block.text]
         return "\n".join(text_parts)
+
+    # Step 1: Inspect structuredContent and meta for upstream rate limits and tool errors
+    def _check_structured_tool_error(
+        self,
+        *,
+        result: MCPToolCallResultDTO,
+        invocation: MCPToolInvocationDTO,
+    ) -> None:
+        """Inspect structuredContent and execution metadata for embedded upstream HTTP or rate-limit errors.
+
+        Args:
+            result: Parsed MCPToolCallResultDTO from the JSON-RPC response.
+            invocation: Original tool invocation request.
+
+        Raises:
+            ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE when rate limiting or a
+                transient upstream status code (429, 502, 503, 504) is reported.
+            AppException: With ErrorCodes.SEARCH_EXECUTION_FAILED when a non-transient structured
+                error or status >= 400 is reported.
+        """
+        structured = result.structured_content
+        detail_text = ""
+        if structured is not None and structured.detail is not None:
+            if isinstance(structured.detail, str):
+                detail_text = structured.detail.strip()
+            elif structured.detail.error is not None and structured.detail.error.strip():
+                detail_text = structured.detail.error.strip()
+            elif structured.detail.message is not None and structured.detail.message.strip():
+                detail_text = structured.detail.message.strip()
+
+        is_rate_limited = result.meta is not None and result.meta.rate_limited is True
+        status_code: int | None = None
+        if structured is not None:
+            status_code = structured.status
+
+        if is_rate_limited or (status_code is not None and status_code in _TRANSIENT_STATUS_CODES):
+            effective_status = 429
+            if status_code is not None:
+                effective_status = status_code
+            reason = "Rate limit or transient upstream error."
+            if detail_text:
+                reason = detail_text
+            elif structured is not None and structured.error is not None and structured.error.strip():
+                reason = structured.error.strip()
+            msg = (
+                f"MCP tool '{invocation.namespaced_alias}' returned transient upstream status "
+                f"{effective_status}: {reason}"
+            )
+            logger.error(
+                "MCP tool returned transient structured error",
+                extra={
+                    "error_code": ErrorCodes.SERVICE_UNAVAILABLE.value,
+                    "http_status": effective_status,
+                    "tool_id": invocation.tool_id,
+                },
+                exc_info=True,
+            )
+            raise ServiceUnavailableError(
+                message=msg,
+                details={
+                    "error_code": ErrorCodes.SERVICE_UNAVAILABLE.value,
+                    "http_status": effective_status,
+                },
+            )
+
+        if structured is not None and (
+            structured.error is not None or (status_code is not None and status_code >= 400)
+        ):
+            error_parts: list[str] = []
+            if structured.error is not None and structured.error.strip():
+                error_parts.append(structured.error.strip())
+            if detail_text and detail_text not in error_parts:
+                error_parts.append(detail_text)
+            summary = f"status {status_code}"
+            if error_parts:
+                summary = ": ".join(error_parts)
+            raise self._build_rpc_error(
+                f"MCP tool '{invocation.namespaced_alias}' execution failed ({summary})",
+                error_code=ErrorCodes.SEARCH_EXECUTION_FAILED,
+            )
 
     def _apply_budget_and_cdata(self, *, raw_text: str, max_chars: int) -> str:
         """Enforce sentence-boundary character budget and encapsulate in CDATA.
