@@ -34,13 +34,18 @@ VARIANCE_SYSTEM_PROMPT: str = (
     "evaluation scores in concise, evidence-grounded prose."
 )
 
-# Ground synthesis narratives in causal fault chains, Toulmin rebuttals, and contrastive deficits.
+# Phase 1, Step 1: Ground synthesis narratives in causal fault chains, Toulmin rebuttals, and topological cohesion.
 CAUSAL_TDA_DIAGNOSIS_MANDATE: str = (
     "<causal_tda_diagnosis_mandate>\n"
     "- CAUSAL & TOULMIN FALSIFICATION GROUNDING: When <causal_diagnosis> is provided in the dynamic context, "
     "you MUST ground executive summaries, matrix section narratives, XAI highlights, and row explanations in the "
     "resolved root-cause fault chains, Toulmin falsified claims (rebuttal -> invalidated warrant -> falsified claim), "
     "prescriptive remediations, and post-hoc fidelity penalties.\n"
+    "- TOPOLOGICAL COHESION & ISOLATED CLAIM GROUNDING: When <causal_diagnosis> provides Logical Cohesion metrics, "
+    "Established Causal Chains (Premise -> Conclusion), or Isolated Unlinked Claims (Degree-Zero Islands), you MUST "
+    "ground executive summaries, matrix section narratives, XAI highlights, and row explanations in those concrete "
+    "connected chains and isolated degree-zero claims, explicitly explaining which propositions form verified deductive "
+    "chains and which remain disconnected islands.\n"
     "- TRANSITIVE SHORT-CIRCUIT LINEAGE: When a criterion is marked N_A with `short_circuited_by_claims`, explicitly "
     "attribute the unreached tier to the upstream prerequisite failure rather than treating it as an independent omission.\n"
     "</causal_tda_diagnosis_mandate>"

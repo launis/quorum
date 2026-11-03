@@ -137,7 +137,11 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         intact_propositions: Count of intact (PASSED) propositions in the causal graph.
         total_propositions: Total number of propositions in the causal graph.
         logical_cohesion_score: Overall structural cohesion score in [0.0, 1.0].
+        largest_component_ratio: Fraction of deliverable propositions in the largest weakly connected component in [0.0, 1.0].
+        branch_convergence_ratio: Fraction of deliverable propositions with convergent multi-premise warrants (in-degree >= 2) in [0.0, 1.0].
         cycle_detected: Flag indicating whether circular reasoning was detected.
+        isolated_deliverable_claims: Unlinked degree-zero propositions in the causal graph lacking inbound or outbound causal warrants.
+        established_causal_chains: Verified directed causal premise-to-conclusion chains (source_claim -> target_claim: reasoning).
         root_cause_fault_chains: Resolved human-readable fault chains (root_cause_claim -> failing_node_claim).
         toulmin_rebuttals: Resolved 3-way Toulmin falsifications (rebuttal_claim -> invalidated_warrant -> falsified_claim).
         prescriptive_remediations: Resolved prescriptive remediation actions targeting failing claims.
@@ -158,10 +162,43 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         float | None,
         Field(default=None, description="Overall structural cohesion score in [0.0, 1.0]."),
     ] = None
+    # Phase 1, Step 1: Topological cohesion and deliverable graph projection fields
+    largest_component_ratio: Annotated[
+        float | None,
+        Field(
+            default=None,
+            description="Fraction of deliverable propositions in the largest weakly connected component in [0.0, 1.0].",
+        ),
+    ] = None
+    branch_convergence_ratio: Annotated[
+        float | None,
+        Field(
+            default=None,
+            description=(
+                "Fraction of deliverable propositions with convergent multi-premise warrants (in-degree >= 2) in [0.0, 1.0]."
+            ),
+        ),
+    ] = None
     cycle_detected: Annotated[
         bool,
         Field(default=False, description="Flag indicating whether circular reasoning was detected."),
     ] = False
+    isolated_deliverable_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description=(
+                "Unlinked degree-zero propositions in the causal graph lacking inbound or outbound causal warrants."
+            ),
+        ),
+    ]
+    established_causal_chains: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Verified directed causal premise-to-conclusion chains (source_claim -> target_claim: reasoning).",
+        ),
+    ]
     root_cause_fault_chains: Annotated[
         list[str],
         Field(
@@ -219,6 +256,47 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         return fallback_label
 
     @classmethod
+    def _extract_graph_topology(
+        cls,
+        graph: CausalGraphPayloadDTO,
+        node_claim_by_id: dict[str, str],
+    ) -> tuple[list[str], list[str]]:
+        """Extract bounded isolated deliverable claims and established directed causal chains.
+
+        Args:
+            graph: Evaluated causal graph payload.
+            node_claim_by_id: Mapping of graph node IDs to stripped claim strings.
+
+        Returns:
+            Two-element tuple of (isolated_deliverable_claims, established_causal_chains).
+        """
+        # Phase 1, Step 1: Project isolated degree-zero claims and directed premise-to-conclusion edges
+        connected_node_ids = {e.source_id for e in graph.edges if e.source_id != e.target_id} | {
+            e.target_id for e in graph.edges if e.source_id != e.target_id
+        }
+        explicit_isolated_ids = set(graph.isolated_node_ids)
+        raw_isolated_claims = [
+            cls._resolve_node_label(n.claim, n.node_id, n.node_id, node_claim_by_id)
+            for n in graph.nodes
+            if n.node_id in explicit_isolated_ids or n.node_id not in connected_node_ids
+        ]
+        isolated_claims = list(dict.fromkeys(raw_isolated_claims))[:16]
+
+        raw_chains: list[str] = []
+        for edge in graph.edges:
+            if edge.source_id == edge.target_id:
+                continue
+            src_label = cls._resolve_node_label("", edge.source_id, edge.source_id, node_claim_by_id)
+            tgt_label = cls._resolve_node_label("", edge.target_id, edge.target_id, node_claim_by_id)
+            stripped_reasoning = edge.reasoning.strip()
+            if stripped_reasoning:
+                raw_chains.append(f"{src_label} -> {tgt_label}: {stripped_reasoning}")
+            else:
+                raw_chains.append(f"{src_label} -> {tgt_label}")
+        established_chains = list(dict.fromkeys(raw_chains))[:12]
+        return isolated_claims, established_chains
+
+    @classmethod
     def _from_fusion_result(cls, causal_payload: CausalTdaFusionResultDTO) -> Self:
         """Construct a CausalSynthesisBriefDTO from a full CausalTdaFusionResultDTO.
 
@@ -233,6 +311,7 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         }
         intact = sum(1 for n in causal_payload.graph.nodes if n.status == ExecutionStatus.PASSED)
         total = len(causal_payload.graph.nodes)
+        isolated_claims, established_chains = cls._extract_graph_topology(causal_payload.graph, node_claim_by_id)
 
         fault_chains: list[str] = []
         penalties: list[str] = []
@@ -279,7 +358,11 @@ class CausalSynthesisBriefDTO(V2CoreBase):
             intact_propositions=intact,
             total_propositions=total,
             logical_cohesion_score=causal_payload.anti_fluff_audit.logical_cohesion_score,
+            largest_component_ratio=causal_payload.anti_fluff_audit.largest_component_ratio,
+            branch_convergence_ratio=causal_payload.anti_fluff_audit.branch_convergence_ratio,
             cycle_detected=causal_payload.graph.cycle_detected,
+            isolated_deliverable_claims=isolated_claims,
+            established_causal_chains=established_chains,
             root_cause_fault_chains=fault_chains,
             toulmin_rebuttals=rebuttals,
             prescriptive_remediations=remediations,
@@ -298,6 +381,7 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         """
         node_claim_by_id = {n.node_id: n.claim.strip() for n in causal_payload.nodes if n.claim.strip()}
         intact = sum(1 for n in causal_payload.nodes if n.status == ExecutionStatus.PASSED)
+        isolated_claims, established_chains = cls._extract_graph_topology(causal_payload, node_claim_by_id)
         root_chains: list[str] = [
             f"Root Cause Proposition: {cls._resolve_node_label('', root_id, root_id, node_claim_by_id)}"
             for root_id in causal_payload.root_cause_node_ids
@@ -306,7 +390,11 @@ class CausalSynthesisBriefDTO(V2CoreBase):
             intact_propositions=intact,
             total_propositions=len(causal_payload.nodes),
             logical_cohesion_score=None,
+            largest_component_ratio=None,
+            branch_convergence_ratio=None,
             cycle_detected=causal_payload.cycle_detected,
+            isolated_deliverable_claims=isolated_claims,
+            established_causal_chains=established_chains,
             root_cause_fault_chains=root_chains,
             toulmin_rebuttals=[],
             prescriptive_remediations=[],
@@ -345,6 +433,22 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         else:
             lines.append(f"Total Propositions: {self.total_propositions}")
             lines.append(f"Cycle Detected: {self.cycle_detected}")
+
+        if self.largest_component_ratio is not None:
+            lines.append(f"Largest Connected Component Ratio: {self.largest_component_ratio:.2f}")
+
+        if self.branch_convergence_ratio is not None:
+            lines.append(f"Branch Convergence Ratio: {self.branch_convergence_ratio:.2f}")
+
+        if self.established_causal_chains:
+            lines.append("Established Causal Chains (Premise -> Conclusion):")
+            for chain in self.established_causal_chains:
+                lines.append(f"- {chain}")
+
+        if self.isolated_deliverable_claims:
+            lines.append("Isolated Unlinked Claims (Degree-Zero Islands):")
+            for claim in self.isolated_deliverable_claims:
+                lines.append(f"- {claim}")
 
         if self.root_cause_fault_chains:
             lines.append("Root Cause Fault Chains:")

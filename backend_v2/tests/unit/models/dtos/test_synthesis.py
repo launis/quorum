@@ -9,6 +9,7 @@ from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
+    CausalEdgeDTO,
     CausalGraphPayloadDTO,
     CausalNodeDTO,
     CausalRootCauseDiagnosisDTO,
@@ -465,3 +466,106 @@ def test_matrix_failure_deficit_dto_and_causal_synthesis_brief_dto() -> None:
 
     with pytest.raises(ValidationError):
         CausalSynthesisBriefDTO.model_validate({"intact_propositions": 1, "extra_unknown": "forbidden"})
+
+
+def test_causal_synthesis_brief_dto_quiescent_topology_and_truncation_bounds() -> None:
+    """Test CausalSynthesisBriefDTO quiescent topology projection, empty graph boundary, and upper-bound truncation."""
+    n1 = generate_opaque_id(EntityPrefix.NODE)
+    n2 = generate_opaque_id(EntityPrefix.NODE)
+    n3 = generate_opaque_id(EntityPrefix.NODE)
+    n4 = generate_opaque_id(EntityPrefix.NODE)
+
+    quiescent_fusion = CausalTdaFusionResultDTO(
+        graph=CausalGraphPayloadDTO(
+            nodes=[
+                CausalNodeDTO(node_id=n1, claim="Premise A", status=ExecutionStatus.PASSED),
+                CausalNodeDTO(node_id=n2, claim="Conclusion B", status=ExecutionStatus.PASSED),
+                CausalNodeDTO(node_id=n3, claim="Isolated Claim C", status=ExecutionStatus.PASSED),
+                CausalNodeDTO(node_id=n4, claim="Isolated Claim D", status=ExecutionStatus.PASSED),
+            ],
+            edges=[
+                CausalEdgeDTO(
+                    source_id=n1,
+                    target_id=n2,
+                    reasoning="Premise A directly warrants Conclusion B.",
+                ),
+                CausalEdgeDTO(
+                    source_id=n1,
+                    target_id=n1,
+                    reasoning="Self-loop ignored in topological projection.",
+                ),
+            ],
+            isolated_node_ids=[n3, n4],
+            cycle_detected=False,
+        ),
+        root_cause_diagnoses=[],
+        falsified_claims=[],
+        prescriptive_remediations=[],
+        anti_fluff_audit=AntiFluffAuditDTO(
+            isolated_concept_count=2,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=0.50,
+            largest_component_ratio=0.50,
+            branch_convergence_ratio=0.25,
+        ),
+        fair_scoring=FairScoringBreakdownDTO(
+            independent_error_count=0,
+            cascading_fault_count=0,
+            raw_penalty_points=0.0,
+            deduplicated_penalty_points=0.0,
+            dampened_savings_points=0.0,
+        ),
+    )
+
+    brief = CausalSynthesisBriefDTO.from_causal_payload(quiescent_fusion)
+    assert brief.largest_component_ratio == 0.50
+    assert brief.branch_convergence_ratio == 0.25
+    assert brief.isolated_deliverable_claims == ["Isolated Claim C", "Isolated Claim D"]
+    assert brief.established_causal_chains == ["Premise A -> Conclusion B: Premise A directly warrants Conclusion B."]
+
+    formatted = brief.format_for_prompt()
+    assert "Intact Propositions: 4/4" in formatted
+    assert "Logical Cohesion: 0.50" in formatted
+    assert "Largest Connected Component Ratio: 0.50" in formatted
+    assert "Branch Convergence Ratio: 0.25" in formatted
+    assert "Established Causal Chains (Premise -> Conclusion):" in formatted
+    assert "- Premise A -> Conclusion B: Premise A directly warrants Conclusion B." in formatted
+    assert "Isolated Unlinked Claims (Degree-Zero Islands):" in formatted
+    assert "- Isolated Claim C" in formatted
+    assert "- Isolated Claim D" in formatted
+
+    # Boundary 1: Empty graph (0 nodes, 0 edges)
+    empty_graph = CausalGraphPayloadDTO(nodes=[], edges=[])
+    empty_brief = CausalSynthesisBriefDTO.from_causal_payload(empty_graph)
+    assert empty_brief.isolated_deliverable_claims == []
+    assert empty_brief.established_causal_chains == []
+
+    # Boundary 2: High-cardinality graph truncation (20 isolated nodes -> 16, 15 directed edges -> 12)
+    many_node_ids = [generate_opaque_id(EntityPrefix.NODE) for _ in range(36)]
+    many_nodes = [
+        CausalNodeDTO(
+            node_id=many_node_ids[idx],
+            claim=f"Claim Statement {idx}",
+            status=ExecutionStatus.PASSED,
+        )
+        for idx in range(36)
+    ]
+    many_edges = [
+        CausalEdgeDTO(
+            source_id=many_node_ids[idx],
+            target_id=many_node_ids[idx + 1],
+            reasoning="" if idx == 0 else f"Reasoning {idx}",
+        )
+        for idx in range(15)
+    ]
+    high_card_graph = CausalGraphPayloadDTO(
+        nodes=many_nodes,
+        edges=many_edges,
+        isolated_node_ids=many_node_ids[16:36],
+    )
+    high_card_brief = CausalSynthesisBriefDTO.from_causal_payload(high_card_graph)
+    assert len(high_card_brief.isolated_deliverable_claims) == 16
+    assert len(high_card_brief.established_causal_chains) == 12
+    assert high_card_brief.established_causal_chains[0] == "Claim Statement 0 -> Claim Statement 1"
+    assert high_card_brief.established_causal_chains[1] == "Claim Statement 1 -> Claim Statement 2: Reasoning 1"

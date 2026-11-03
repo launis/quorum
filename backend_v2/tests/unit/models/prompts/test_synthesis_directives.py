@@ -52,6 +52,9 @@ def test_synthesis_system_prompts_content() -> None:
     assert "Cognitive Evaluator" in VARIANCE_SYSTEM_PROMPT
     assert "<causal_tda_diagnosis_mandate>" in CAUSAL_TDA_DIAGNOSIS_MANDATE
     assert "</causal_tda_diagnosis_mandate>" in CAUSAL_TDA_DIAGNOSIS_MANDATE
+    assert "TOPOLOGICAL COHESION & ISOLATED CLAIM GROUNDING" in CAUSAL_TDA_DIAGNOSIS_MANDATE
+    assert "Established Causal Chains (Premise -> Conclusion)" in CAUSAL_TDA_DIAGNOSIS_MANDATE
+    assert "Isolated Unlinked Claims (Degree-Zero Islands)" in CAUSAL_TDA_DIAGNOSIS_MANDATE
     assert "<contrastive_frontier_mandate>" in CONTRASTIVE_FRONTIER_MANDATE
     assert "</contrastive_frontier_mandate>" in CONTRASTIVE_FRONTIER_MANDATE
     assert "<xai_curation_mandate>" in SYNTHESIS_XAI_CURATION
