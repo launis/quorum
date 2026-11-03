@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
 from pydantic import ConfigDict, Field
 
@@ -43,6 +43,10 @@ __all__ = [
     "TenantRateLimitService",
     "TenantRateLimitStatusDTO",
 ]
+
+# Phase 1, Step 1: Bounded Redis timeout divisor (3.0s at 900s TTL) and MGET retry ceiling
+_REDIS_TIMEOUT_TTL_DIVISOR: Final[float] = 300.0
+_REVOCATION_MGET_MAX_ATTEMPTS: Final[int] = 2
 
 
 class TenantRateLimitStatusDTO(BaseDTO):
@@ -128,7 +132,7 @@ class RevocationCache:
         if self._timeout_seconds is not None:
             return self._timeout_seconds
         settings = self._resolve_settings()
-        return max(0.5, float(settings.iam_revocation_ttl_seconds) / 450.0)
+        return max(0.5, float(settings.iam_revocation_ttl_seconds) / _REDIS_TIMEOUT_TTL_DIVISOR)
 
     def _require_redis(self) -> Any:
         """Verify that an active Redis client is bound or fail closed with 503.
@@ -274,26 +278,53 @@ class RevocationCache:
         else:
             jti_key = "revoked:jti:none"
 
+        # Phase 1, Step 1: Bounded 2-attempt MGET TimeoutError retry with Fail-Closed 503
         timeout_sec = self._resolve_timeout_seconds()
-        try:
-            async with asyncio.timeout(timeout_sec):
-                results = await redis_client.mget(user_key, jti_key)
-        except AppException:
-            raise
-        except Exception as exc:
-            msg = "Redis revocation check failed; enforcing Fail-Closed security policy."
-            logger.error(
-                "[RevocationCache] %s: %s (%s)",
-                ErrorCodes.SERVICE_UNAVAILABLE.name,
-                msg,
-                type(exc).__name__,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "user_id": token_data.id},
-            )
-            raise ServiceUnavailableError(
-                message=msg,
-                details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
-            ) from exc
+        results: Any = None
+        for attempt in range(1, _REVOCATION_MGET_MAX_ATTEMPTS + 1):
+            try:
+                async with asyncio.timeout(timeout_sec):
+                    results = await redis_client.mget(user_key, jti_key)
+                break
+            except AppException:
+                raise
+            except TimeoutError as exc:
+                if attempt < _REVOCATION_MGET_MAX_ATTEMPTS:
+                    logger.warning(
+                        "[RevocationCache] Transient Redis MGET TimeoutError on attempt %d/%d; retrying immediately (user_id=%s).",
+                        attempt,
+                        _REVOCATION_MGET_MAX_ATTEMPTS,
+                        token_data.id,
+                        extra={"user_id": token_data.id, "attempt": attempt},
+                    )
+                    continue
+                msg = "Redis revocation check failed; enforcing Fail-Closed security policy."
+                logger.error(
+                    "[RevocationCache] %s: %s (%s)",
+                    ErrorCodes.SERVICE_UNAVAILABLE.name,
+                    msg,
+                    type(exc).__name__,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "user_id": token_data.id},
+                )
+                raise ServiceUnavailableError(
+                    message=msg,
+                    details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
+                ) from exc
+            except Exception as exc:
+                msg = "Redis revocation check failed; enforcing Fail-Closed security policy."
+                logger.error(
+                    "[RevocationCache] %s: %s (%s)",
+                    ErrorCodes.SERVICE_UNAVAILABLE.name,
+                    msg,
+                    type(exc).__name__,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "user_id": token_data.id},
+                )
+                raise ServiceUnavailableError(
+                    message=msg,
+                    details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
+                ) from exc
 
         is_revoked = False
         if results is not None:
@@ -366,7 +397,7 @@ class TenantRateLimitService:
         if self._timeout_seconds is not None:
             return self._timeout_seconds
         settings = self._resolve_settings()
-        return max(0.5, float(settings.iam_revocation_ttl_seconds) / 450.0)
+        return max(0.5, float(settings.iam_revocation_ttl_seconds) / _REDIS_TIMEOUT_TTL_DIVISOR)
 
     def _require_redis(self) -> Any:
         """Verify that an active Redis client is bound or fail closed with 503.

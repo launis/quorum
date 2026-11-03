@@ -42,23 +42,33 @@ class InMemoryAsyncRedisFake:
         self.ttls: dict[str, int] = {}
         self.mget_calls: list[tuple[str, ...]] = []
         self.fault: Exception | None = None
+        self.fault_remaining: int | None = None
 
-    def inject_fault(self, exc: Exception) -> None:
+    def inject_fault(self, exc: Exception, fault_count: int | None = None) -> None:
         """Configure a transport/timeout fault to be raised on subsequent Redis operations.
 
         Args:
             exc: Exception instance to raise.
+            fault_count: Optional number of operations that should raise before auto-clearing.
         """
         self.fault = exc
+        self.fault_remaining = fault_count
 
     def clear_faults(self) -> None:
         """Clear any injected fault state."""
         self.fault = None
+        self.fault_remaining = None
 
     def _check_fault(self) -> None:
         """Raise the configured fault if present."""
         if self.fault is not None:
-            raise self.fault
+            exc_to_raise = self.fault
+            if self.fault_remaining is not None:
+                self.fault_remaining -= 1
+                if self.fault_remaining <= 0:
+                    self.fault = None
+                    self.fault_remaining = None
+            raise exc_to_raise
 
     async def set(self, key: str, value: str, ex: int | None = None) -> bool:
         """Set a string value in the in-memory store with an optional expiration TTL.
@@ -86,7 +96,6 @@ class InMemoryAsyncRedisFake:
         Returns:
             List of string values or None for missing keys.
         """
-        self._check_fault()
         normalized_keys: list[str] = []
         for item in keys:
             if isinstance(item, (list, tuple)):
@@ -95,6 +104,7 @@ class InMemoryAsyncRedisFake:
                 normalized_keys.append(str(item))
         key_tuple = tuple(normalized_keys)
         self.mget_calls.append(key_tuple)
+        self._check_fault()
         return [self.store[k] if k in self.store else None for k in key_tuple]
 
     async def incr(self, key: str) -> int:
@@ -525,3 +535,44 @@ async def test_revocation_cache_custom_settings_and_missing_jti_fallback(
     )
     await cache.assert_not_revoked(token_without_jti)
     assert fake_redis.mget_calls[-1] == (f"revoked:usr:{user_id}", "revoked:jti:none")
+
+
+@pytest.mark.asyncio
+async def test_revocation_cache_transient_timeout_single_retry_recovery_and_exhaustion(
+    fake_redis: InMemoryAsyncRedisFake,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify single transient MGET TimeoutError recovers on retry while 2 consecutive timeouts fail closed with 503."""
+    cache = RevocationCache(redis=fake_redis)
+    assert cache._resolve_timeout_seconds() == 3.0
+
+    token_data = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        role=UserRole.MEMBER,
+        organization_id=generate_opaque_id(EntityPrefix.ORG),
+        email="member@acme.com",
+        mfa_verified=True,
+        jti=str(generate_uuid7()),
+    )
+
+    try:
+        # 1. Single transient TimeoutError recovers on immediate retry (attempt 2/2)
+        fake_redis.mget_calls.clear()
+        fake_redis.inject_fault(TimeoutError("Transient loopback stall"), fault_count=1)
+        with caplog.at_level(logging.WARNING):
+            await cache.assert_not_revoked(token_data)
+        assert len(fake_redis.mget_calls) == 2
+        assert "Transient Redis MGET TimeoutError on attempt 1/2" in caplog.text
+
+        # 2. Persistent TimeoutError across both attempts fails closed with 503 ServiceUnavailableError
+        caplog.clear()
+        fake_redis.mget_calls.clear()
+        fake_redis.inject_fault(TimeoutError("Persistent Redis stall"), fault_count=2)
+        with caplog.at_level(logging.ERROR), pytest.raises(ServiceUnavailableError) as exc_info:
+            await cache.assert_not_revoked(token_data)
+        assert len(fake_redis.mget_calls) == 2
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.details["error_code"] == ErrorCodes.SERVICE_UNAVAILABLE.value
+        assert ErrorCodes.SERVICE_UNAVAILABLE.name in caplog.text
+    finally:
+        fake_redis.clear_faults()
