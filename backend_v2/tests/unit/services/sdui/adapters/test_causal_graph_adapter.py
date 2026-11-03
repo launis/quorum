@@ -459,3 +459,77 @@ def test_causal_graph_adapter_enriches_falsified_warrant_and_short_circuit_linea
     assert expected_mapped_lineage in card.falsified_warrant_claims
     assert expected_unmapped_lineage in card.falsified_warrant_claims
     assert "Pre-existing warrant lineage" in card.falsified_warrant_claims
+
+
+def test_causal_graph_adapter_quiescent_and_active_fault_summary_translations() -> None:
+    """Asserts _build_summary_text renders topological metrics when diagnoses_count == 0 and fault count when diagnoses_count > 0."""
+    n1 = generate_opaque_id(EntityPrefix.NODE)
+    n2 = generate_opaque_id(EntityPrefix.NODE)
+    n3 = generate_opaque_id(EntityPrefix.NODE)
+
+    quiescent_graph = CausalGraphPayloadDTO(
+        nodes=[
+            CausalNodeDTO(node_id=n1, claim="Premise 1", status=ExecutionStatus.PASSED),
+            CausalNodeDTO(node_id=n2, claim="Conclusion 2", status=ExecutionStatus.PASSED),
+            CausalNodeDTO(node_id=n3, claim="Isolated 3", status=ExecutionStatus.PASSED),
+        ],
+        edges=[
+            CausalEdgeDTO(
+                source_id=n1,
+                target_id=n2,
+                reasoning="Premise 1 supports Conclusion 2.",
+            )
+        ],
+        root_cause_node_ids=[],
+        cycle_detected=False,
+        isolated_node_ids=[n3],
+        partition_node_ids={},
+        edge_root_causes=[],
+    )
+    quiescent_fusion = CausalTdaFusionResultDTO(
+        graph=quiescent_graph,
+        root_cause_diagnoses=[],
+        anti_fluff_audit=AntiFluffAuditDTO(
+            isolated_concept_count=16,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=0.3333,
+            detected_hollow_terms=[],
+        ),
+        prescriptive_remediations=[],
+        fair_scoring=FairScoringBreakdownDTO(
+            independent_error_count=0,
+            cascading_fault_count=0,
+            raw_penalty_points=0.0,
+            deduplicated_penalty_points=0.0,
+            dampened_savings_points=0.0,
+        ),
+        falsified_claims=[],
+    )
+    ctx_quiescent = _build_sample_adapter_context(causal_result=quiescent_fusion)
+    card_quiescent = CausalGraphAdapter.build_action_card(ctx_quiescent)
+    assert card_quiescent.summary.translations["en"] == (
+        "3/3 propositions intact (1 causal links, 16 isolated claims, cohesion 33%). "
+        "0 root cause fault chains identified."
+    )
+    assert card_quiescent.summary.translations["fi"] == (
+        "3/3 väitettä ehjänä (1 kausaaliketjua, 16 irrallista väitettä, koheesio 33%). 0 juurisyyn ketjua tunnistettu."
+    )
+
+    # Standalone CausalGraphPayloadDTO also has diagnoses_count == 0 and synthesized anti_fluff_audit
+    ctx_graph_only = _build_sample_adapter_context(causal_result=quiescent_graph)
+    card_graph_only = CausalGraphAdapter.build_action_card(ctx_graph_only)
+    assert card_graph_only.summary.translations["en"] == (
+        "3/3 propositions intact (1 causal links, 1 isolated claims, cohesion 100%). "
+        "0 root cause fault chains identified."
+    )
+    assert card_graph_only.summary.translations["fi"] == (
+        "3/3 väitettä ehjänä (1 kausaaliketjua, 1 irrallista väitettä, koheesio 100%). 0 juurisyyn ketjua tunnistettu."
+    )
+
+    # Active fault state (diagnoses_count > 0) preserves fault-chain summary format
+    active_fusion = _build_sample_fusion_result()
+    ctx_active = _build_sample_adapter_context(causal_result=active_fusion)
+    card_active = CausalGraphAdapter.build_action_card(ctx_active)
+    assert card_active.summary.translations["en"] == "1/2 propositions intact. 1 root cause fault chains identified."
+    assert card_active.summary.translations["fi"] == "1/2 väitettä ehjänä. 1 juurisyyn ketjua tunnistettu."

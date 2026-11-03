@@ -133,6 +133,8 @@ class CausalGraphAdapter:
             intact_claims_count=intact_claims_count,
             total_claims_count=total_claims_count,
             diagnoses_count=len(root_cause_diagnoses),
+            edges_count=len(critical_edges),
+            anti_fluff_audit=anti_fluff_audit,
         )
 
         return SduiCausalGraphBlock(
@@ -309,6 +311,8 @@ class CausalGraphAdapter:
         intact_claims_count: int,
         total_claims_count: int,
         diagnoses_count: int,
+        edges_count: int = 0,
+        anti_fluff_audit: AntiFluffAuditDTO | None = None,
     ) -> I18nText:
         """Builds localized summary text for the Unified Causal Action Card.
 
@@ -316,10 +320,28 @@ class CausalGraphAdapter:
             intact_claims_count: Count of propositions with PASSED status.
             total_claims_count: Total count of propositions in the graph.
             diagnoses_count: Count of identified root cause fault chains.
+            edges_count: Count of verified directed causal dependency edges.
+            anti_fluff_audit: Optional AntiFluffAuditDTO containing cohesion and isolated claim metrics.
 
         Returns:
             I18nText containing English and Finnish summary strings.
         """
+        # Phase 3, Step 3: Surface topological cohesion, link count, and isolated claims when diagnoses_count == 0
+        if diagnoses_count == 0 and anti_fluff_audit is not None:
+            cohesion_pct = round(anti_fluff_audit.logical_cohesion_score * 100)
+            isolated_count = anti_fluff_audit.isolated_concept_count
+            en_summary = (
+                f"{intact_claims_count}/{total_claims_count} propositions intact "
+                f"({edges_count} causal links, {isolated_count} isolated claims, cohesion {cohesion_pct}%). "
+                "0 root cause fault chains identified."
+            )
+            fi_summary = (
+                f"{intact_claims_count}/{total_claims_count} väitettä ehjänä "
+                f"({edges_count} kausaaliketjua, {isolated_count} irrallista väitettä, koheesio {cohesion_pct}%). "
+                "0 juurisyyn ketjua tunnistettu."
+            )
+            return I18nText(translations={"en": en_summary, "fi": fi_summary})
+
         en_summary = (
             f"{intact_claims_count}/{total_claims_count} propositions intact. "
             f"{diagnoses_count} root cause fault chains identified."
