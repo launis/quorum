@@ -33,7 +33,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_3_Tier_RBAC_User_CRUD_UI.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_3_Tier_RBAC_User_CRUD_UI.md] @[ki_god_code_prevention.md]
   ```
@@ -79,6 +79,7 @@
 - Completed Step 2: Added English/Finnish localization keys to `@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]`, implemented `availableOrganizationsProvider`, `_RootOrganizationSelectorCard`, direct user creation (`org_create_user_mode_chip`), RBAC-filtered role dropdowns, `_EditMemberDialog` (`name`, `isActive`, and `ROOT`-only `organizationId`), and Fail-Fast `res.fold((err) => throw err, ...)` unpacking in `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`, and added positive (`ADMIN` own-org CRUD, `ROOT` cross-org CRUD), negative boundary (`password.length == 5`), and backend error widget tests in `@[client_app_v2/test/features/settings/presentation/organization_iam_settings_view_test.dart]`.
 - Completed Step 3: Passed global backend (`scripts/backend_audit_loop.py backend_v2/ --test` — 6,872 passed, 97.45% coverage, 81/81 DTO Parity aligned) and global frontend (`scripts/flutter_audit_loop.py client_app_v2/ --build` — 1,359 tests passed, 0 analyzer/guardrail issues) quality gates and committed changes atomically.
 - Completed Tier 8 Plan Audit (`/tier8-audit-plan`): Verified 100% physical implementation across all 7 target files (`REQ-001` through `REQ-008`), 81/81 cross-language DTO parity (`audit_dto_parity.py`), 0 technical debt findings (`audit_technical_debt.py`), and 100% plan-tracker parity (`audit_plan_tracker_parity.py`).
+- Completed Tier 7 As-Built Architectural Sync (`/tier7-describe-architecture`): Synchronized `@[ki_god_code_prevention.md]` and `metadata.json`, updated `@[.agents/rules/04_directory_reference.md]`, and integrated timeless 3-tier RBAC User CRUD narratives into `docs/architecture/01_system_context_and_invariants.md` and `docs/architecture/04_server_driven_ui_and_presentation.md`.
 
 ## Learned
 - `OrganizationIamSettingsView` uses `useState<String?>(null)` at the top of `build` before `switch (authState)` so `ROOT` can dynamically switch `activeOrgId` across organizations while invalidating `organizationMembersProvider` and `organizationAssignmentsProvider` on switch (`tenant_data_isolation`).
@@ -86,7 +87,7 @@
 - During `Tier 2 Hardening (Frontend)` (`--micro` mode), `resolve_flutter_unit_test_files` in `@[scripts/flutter_audit_loop.py#L62-L92]` requires a matching unit test file for `@[client_app_v2/lib/features/auth/data/repositories/user_repository.dart]` at `client_app_v2/test/unit/features/auth/data/repositories/user_repository_test.dart`.
 
 ## Remaining
-- Execute Tier 2 Frontend Hardening via `scripts/auto_hardening_runner.py` and `/tier7-describe-architecture`.
+- Execute Tier 2 Frontend Hardening via `scripts/auto_hardening_runner.py`.
 
 ## Resume Command
 ```powershell
