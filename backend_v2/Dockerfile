@@ -2,8 +2,6 @@ FROM python:3.14
 
 WORKDIR /app
 
-
-
 # Install system dependencies for WeasyPrint (PDF generation)
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -16,21 +14,30 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libopenjp2-7-dev \
     libffi-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 quorum
 
 # Install uv directly into the image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Install Python dependencies using uv (much faster and respects cross-platform uv.lock)
+# Install Python dependencies using uv (respects cross-platform uv.lock) and assign non-root ownership
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project \
+    && chown -R quorum:quorum /app/.venv
 
-# Copy application code to root /app
-COPY backend_v2 /app/backend_v2
+# Copy application code to root /app with non-root ownership
+COPY --chown=quorum:quorum backend_v2 /app/backend_v2
 
-# Set Python path so 'backend' package is resolvable
-ENV PYTHONPATH=/app
+# Configure pre-built .venv environment and Cloud Run default port
+ENV PYTHONPATH=/app \
+    VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH" \
+    UV_NO_SYNC=1 \
+    UV_OFFLINE=1 \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    PORT=8000
 
-# Start the application using uv run
-# We are in /app, so 'backend' is a package.
-CMD ["uv", "run", "uvicorn", "backend_v2.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+USER quorum
+
+# Execute pre-built uvicorn directly on Cloud Run ${PORT} without --reload or runtime uv sync
+CMD ["sh", "-c", "exec /app/.venv/bin/uvicorn backend_v2.main:app --host 0.0.0.0 --port ${PORT}"]

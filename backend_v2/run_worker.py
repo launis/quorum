@@ -7,6 +7,7 @@ to ensure immediate fail-fast logging configuration on startup.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 
 from arq.typing import WorkerSettingsType
@@ -14,10 +15,13 @@ from arq.worker import create_worker
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import _patch_arq_logging
 from backend_v2.worker import WorkerSettings
 
 __all__ = [
+    "_HEALTH_RESPONSE_BYTES",
+    "_handle_health_probe",
     "cli_entrypoint",
     "main",
 ]
@@ -29,25 +33,70 @@ _patch_arq_logging()
 
 logger = logging.getLogger(__name__)
 
+# Step 3: Canonical HTTP 200 OK payload for Cloud Run startup and liveness probes
+_HEALTH_RESPONSE_BYTES: bytes = (
+    b"HTTP/1.1 200 OK\r\n"
+    b"Content-Type: application/json\r\n"
+    b"Content-Length: 15\r\n"
+    b"Connection: close\r\n\r\n"
+    b'{"status":"ok"}'
+)
+
+
+async def _handle_health_probe(
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+) -> None:
+    """Handles Cloud Run TCP/HTTP startup and liveness health probe connections.
+
+    Args:
+        reader: Incoming asyncio stream reader for the probe socket.
+        writer: Outgoing asyncio stream writer for the probe socket.
+    """
+    try:
+        # Step 3: Enforce bounded socket read timeout from Settings.http_client_timeout_seconds
+        with contextlib.suppress(TimeoutError, OSError):
+            await asyncio.wait_for(
+                reader.read(1024),
+                timeout=get_settings().http_client_timeout_seconds,
+            )
+            writer.write(_HEALTH_RESPONSE_BYTES)
+            await writer.drain()
+    finally:
+        writer.close()
+
 
 async def main() -> None:
     """Manual entrypoint for Arq Worker to avoid CLI loop issues.
 
-    Executes the worker configuration async loop and handles critical exit paths.
+    Executes the worker configuration async loop alongside a lightweight
+    asyncio health probe listener and handles critical exit paths.
 
     Raises:
-        AppException: If the worker fails to instantiate or run, conveying a
-            SERVICE_UNAVAILABLE error_code.
+        AppException: If the worker or health listener fails to instantiate or run,
+            conveying a SERVICE_UNAVAILABLE error_code.
         SystemExit: If the worker process receives a keyboard interrupt.
     """
     try:
         logger.info("Starting Arq Worker (Manual Script)...")
 
         # 2. Validate Settings (Implicitly via import/create_worker)
+        settings = get_settings()
         worker_settings: WorkerSettingsType = WorkerSettings
         worker = create_worker(worker_settings)
 
-        await worker.async_run()
+        # Step 3: Bind single-loop asyncio health probe listener on worker_health_port
+        health_server = await asyncio.start_server(
+            _handle_health_probe,
+            host="0.0.0.0",
+            port=settings.worker_health_port,
+        )
+        logger.info(
+            "Worker health probe listener active on 0.0.0.0:%d",
+            settings.worker_health_port,
+        )
+        async with health_server:
+            await worker.async_run()
     except KeyboardInterrupt:
         logger.info("Worker stopped by user.")
         raise SystemExit(0) from None

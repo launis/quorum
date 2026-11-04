@@ -11,12 +11,11 @@ services:
       - REDIS_PORT=6379
       # Development Configuration
       - USE_MOCK_LLM=false
-      - USE_MOCK_DB=true
-      - STORAGE_BACKEND=LOCAL
+      - USE_MOCK_DB=false
+      - STORAGE_BACKEND=POSTGRES
       - STORAGE_BUCKET_NAME=cognitive-quorum.firebasestorage.app
       - USE_VERTEX_LLM=true
       - VERTEX_LOCATION=europe-north1
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
       - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
       # Allow local override via .env if needed, but defaults above are safer for container logic
     env_file:
@@ -38,8 +37,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - USE_MOCK_LLM=false
-      - USE_MOCK_DB=true
-      - STORAGE_BACKEND=LOCAL
+      - USE_MOCK_DB=false
+      - STORAGE_BACKEND=POSTGRES
       - STORAGE_BUCKET_NAME=cognitive-quorum.appspot.com
       - USE_VERTEX_LLM=true
       - VERTEX_LOCATION=europe-north1
