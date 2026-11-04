@@ -243,27 +243,30 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             await close_shared_pool_manager()
         except (AppException, OSError, RuntimeError, AttributeError) as pool_err:
             logger.warning("[Lifespan] Error draining pool on shutdown: %s", pool_err)
+        finally:
+            # Step 1: Reset in-memory readiness state on shutdown
+            app.state.arq_pool = None
+            app.state.pool_manager = None
 
 
 # --- 2. Application Setup ---
 
 app = FastAPI(
     title="Cognitive Quorum API",
-    version="2.9.0",
+    version=get_settings().app_version,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
 )
+# Step 1: Pre-initialize in-memory readiness state at module scope
+app.state.arq_pool = None
+app.state.pool_manager = None
 
 # --- 3. Middleware ---
 
-cors_origins = get_settings().cors_origins
-if not cors_origins:
-    cors_origins = ["*"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=get_settings().cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -404,7 +407,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content=jsonable_encoder(
             {
-                "type": "https://api.quorum.fi/errors/validation-failed",
+                # Step 1: Resolve RFC 7807 validation error type URI dynamically from Settings.jwt_issuer
+                "type": f"{get_settings().jwt_issuer}/errors/validation-failed",
                 "title": "Validation Failed",
                 "status": 422,
                 "detail": readable_detail,

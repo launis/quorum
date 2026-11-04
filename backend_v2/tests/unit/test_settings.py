@@ -14,6 +14,7 @@ from backend_v2.settings import (
     StorageBackend,
     get_lexical_fuzz_threshold,
     get_settings,
+    strip_trailing_slash,
     strip_whitespace,
 )
 
@@ -500,3 +501,111 @@ def test_validate_linker_axiom_budgets_invariants() -> None:
     # Negative BVA 2: negative bridge axioms (< 0)
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, linker_max_bridge_axioms=-1)
+
+
+def test_gcp_production_settings_and_cors_invariants(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify GCP production settings, port/version aliases, trailing-slash normalization, and CORS lockdown."""
+    assert strip_trailing_slash("  https://api.qrum.ai///  ") == "https://api.qrum.ai"
+    assert strip_trailing_slash(42) == 42
+
+    defaults = Settings(use_mock_llm=True, environment="development")
+    assert defaults.app_version == "2.9.0"
+    assert defaults.port == 8000
+    assert defaults.worker_health_port == 8081
+    assert defaults.http_client_timeout_seconds == 5.0
+    assert defaults.gcp_project_id == "cognitive-quorum"
+    assert defaults.gcp_region == "europe-north1"
+    assert defaults.primary_domain == "qrum.ai"
+    assert defaults.jwt_issuer == "https://api.qrum.ai"
+    assert defaults.jwt_audience == "https://qrum.ai"
+    assert defaults.frontend_app_base_url == "https://app.qrum.ai"
+
+    # Environment variable alias resolution (APP_VERSION, PORT, WORKER_HEALTH_PORT, DATABASE_URL, GCP_PROJECT)
+    monkeypatch.setenv("APP_VERSION", "3.0.1")
+    monkeypatch.setenv("PORT", "8080")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://quorum_app:secret@10.0.0.5:5432/quorum")
+    monkeypatch.setenv("GCP_PROJECT", "quorum-cloud-prod")
+    monkeypatch.setenv("GCP_REGION", "europe-north1")
+    monkeypatch.setenv("PRIMARY_DOMAIN", "  qrum.ai/  ")
+    monkeypatch.setenv("JWT_ISSUER", "  https://api.qrum.ai///  ")
+    monkeypatch.setenv("JWT_AUDIENCE", "  https://qrum.ai/  ")
+    monkeypatch.setenv("FRONTEND_APP_BASE_URL", "  https://app.qrum.ai///  ")
+
+    aliased = Settings(use_mock_llm=True, environment="development")
+    assert aliased.app_version == "3.0.1"
+    assert aliased.port == 8080
+    assert aliased.worker_health_port == 8080
+    assert aliased.postgres_dsn == "postgresql://quorum_app:secret@10.0.0.5:5432/quorum"
+    assert aliased.gcp_project_id == "quorum-cloud-prod"
+    assert aliased.primary_domain == "qrum.ai"
+    assert aliased.jwt_issuer == "https://api.qrum.ai"
+    assert aliased.jwt_audience == "https://qrum.ai"
+    assert aliased.frontend_app_base_url == "https://app.qrum.ai"
+
+    # WORKER_HEALTH_PORT takes precedence over PORT
+    monkeypatch.setenv("WORKER_HEALTH_PORT", "9091")
+    worker_override = Settings(use_mock_llm=True, environment="development")
+    assert worker_override.port == 8080
+    assert worker_override.worker_health_port == 9091
+    monkeypatch.delenv("WORKER_HEALTH_PORT", raising=False)
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.delenv("APP_VERSION", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("GCP_PROJECT", raising=False)
+    monkeypatch.delenv("PRIMARY_DOMAIN", raising=False)
+    monkeypatch.delenv("JWT_ISSUER", raising=False)
+    monkeypatch.delenv("JWT_AUDIENCE", raising=False)
+    monkeypatch.delenv("FRONTEND_APP_BASE_URL", raising=False)
+
+    # Production CORS default locking when cors_origins is not explicitly provided
+    prod_default = Settings(use_mock_llm=True, environment="production")
+    assert prod_default.cors_origins == [
+        "https://qrum.ai",
+        "https://app.qrum.ai",
+        "https://studio.qrum.ai",
+    ]
+
+    # Dynamic PRIMARY_DOMAIN rotation parity
+    prod_rotated = Settings(use_mock_llm=True, environment="production", primary_domain="custom.example.com/")
+    assert prod_rotated.primary_domain == "custom.example.com"
+    assert prod_rotated.cors_origins == [
+        "https://custom.example.com",
+        "https://app.custom.example.com",
+        "https://studio.custom.example.com",
+    ]
+
+    # ISTQB Negative BVA 1: Empty or whitespace app_version
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, app_version="")
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, app_version="   ")
+
+    # ISTQB Negative BVA 2: Port bounds (min-1 = 0, max+1 = 65536) for port and worker_health_port
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, port=0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, port=65536)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, worker_health_port=0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, worker_health_port=65536)
+
+    # ISTQB Negative BVA 3: Slash-only or empty domain/issuer/audience
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, jwt_issuer="///")
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, jwt_audience="///")
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, primary_domain="")
+
+    # ISTQB Negative BVA 4: Production CORS origin security violations
+    for invalid_origins in (
+        ["*"],
+        ["https://*.qrum.ai"],
+        ["http://qrum.ai"],
+        ["https://qrum.ai/"],
+        ["https://"],
+        [],
+    ):
+        with pytest.raises(ValidationError):
+            Settings(use_mock_llm=True, environment="production", cors_origins=invalid_origins)

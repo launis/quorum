@@ -197,6 +197,11 @@ async def test_validation_exception_handler() -> None:
 
     response = await validation_exception_handler(mock_request, validation_exc)
     assert response.status_code == 422
+    import json
+
+    payload = json.loads(bytes(response.body).decode("utf-8"))
+    assert payload["type"] == "https://api.qrum.ai/errors/validation-failed"
+    assert "//" not in payload["type"].removeprefix("https://")
 
 
 @pytest.mark.asyncio
@@ -223,15 +228,23 @@ async def test_global_exception_handler() -> None:
 
 @pytest.mark.asyncio
 async def test_lifespan_shutdown_closes_arq_pool() -> None:
-    """Test that lifespan shutdown invokes aclose on the arq pool."""
+    """Test that lifespan shutdown invokes aclose on the arq pool and resets state to None."""
     from arq.connections import ArqRedis
+
+    from backend_v2.main import app as main_app
+    from backend_v2.settings import get_settings
+
+    assert main_app.version == get_settings().app_version
 
     test_app = FastAPI()
     mock_pool = AsyncMock(spec=ArqRedis)
     with patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock):
         async with lifespan(test_app):
             test_app.state.arq_pool = mock_pool
+            assert test_app.state.pool_manager is not None
     mock_pool.aclose.assert_awaited_once()
+    assert test_app.state.arq_pool is None
+    assert test_app.state.pool_manager is None
 
 
 @pytest.mark.asyncio

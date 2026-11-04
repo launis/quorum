@@ -29,6 +29,7 @@ __all__ = [
     "StorageBackend",
     "get_lexical_fuzz_threshold",
     "get_settings",
+    "strip_trailing_slash",
     "strip_whitespace",
 ]
 
@@ -44,6 +45,20 @@ def strip_whitespace(v: Any) -> Any:
     """
     if isinstance(v, str):
         return v.strip()
+    return v
+
+
+def strip_trailing_slash(v: Any) -> Any:
+    """Validator to strip surrounding whitespace and trailing slashes from strings.
+
+    Args:
+        v: Input value.
+
+    Returns:
+        Normalized string without trailing slashes if input is a string, otherwise unchanged value.
+    """
+    if isinstance(v, str):
+        return v.strip().rstrip("/")
     return v
 
 
@@ -100,9 +115,109 @@ class Settings(BaseSettings):
         otel_service_name: Logical service name emitted in OpenTelemetry resource attributes.
         otel_exporter_otlp_endpoint: OTLP collector endpoint for exporting trace spans.
         otel_tracing_sample_rate: Sampling ratio for OpenTelemetry traces (0.0 to 1.0).
+        app_version: Canonical application semantic version.
+        port: Canonical HTTP listener port injected by Cloud Run or local runtime.
+        worker_health_port: Canonical health probe listener port for the Arq background worker.
+        http_client_timeout_seconds: Bounded timeout in seconds for HTTP client and health probe socket reads.
+        gcp_project_id: Canonical Google Cloud project identifier.
+        gcp_region: Canonical Google Cloud deployment region.
+        primary_domain: Primary global B2B SaaS domain.
+        jwt_issuer: Canonical RFC 8693 Quorum Local JWT issuer claim.
+        jwt_audience: Canonical RFC 8693 Quorum Local JWT audience claim.
     """
 
-    # --- Feature Flags ---
+    # --- Feature Flags & Cloud Run / Domain Sovereignty ---
+    # Step 1: Centralize application version, Cloud Run $PORT, worker health port, GCP project/region, and qrum.ai claims
+    app_version: Annotated[
+        str,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default="2.9.0",
+            min_length=1,
+            validation_alias=AliasChoices("app_version", "APP_VERSION"),
+            description="Canonical application semantic version",
+        ),
+    ] = "2.9.0"
+    port: Annotated[
+        int,
+        Field(
+            default=8000,
+            ge=1,
+            le=65535,
+            validation_alias=AliasChoices("port", "PORT"),
+            description="Canonical HTTP listener port injected by Cloud Run or local runtime",
+        ),
+    ] = 8000
+    worker_health_port: Annotated[
+        int,
+        Field(
+            default=8081,
+            ge=1,
+            le=65535,
+            validation_alias=AliasChoices("worker_health_port", "WORKER_HEALTH_PORT", "PORT"),
+            description="Canonical health probe listener port for the Arq background worker",
+        ),
+    ] = 8081
+    http_client_timeout_seconds: Annotated[
+        float,
+        Field(
+            default=5.0,
+            ge=0.1,
+            le=60.0,
+            validation_alias=AliasChoices("http_client_timeout_seconds", "HTTP_CLIENT_TIMEOUT_SECONDS"),
+            description="Bounded timeout in seconds for HTTP client and health probe socket reads",
+        ),
+    ] = 5.0
+    gcp_project_id: Annotated[
+        str,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default="cognitive-quorum",
+            min_length=1,
+            validation_alias=AliasChoices("gcp_project_id", "GCP_PROJECT", "GOOGLE_CLOUD_PROJECT"),
+            description="Canonical Google Cloud project identifier",
+        ),
+    ] = "cognitive-quorum"
+    gcp_region: Annotated[
+        str,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default="europe-north1",
+            min_length=1,
+            validation_alias=AliasChoices("gcp_region", "GCP_REGION"),
+            description="Canonical Google Cloud deployment region",
+        ),
+    ] = "europe-north1"
+    primary_domain: Annotated[
+        str,
+        BeforeValidator(strip_trailing_slash),
+        Field(
+            default="qrum.ai",
+            min_length=1,
+            validation_alias=AliasChoices("primary_domain", "PRIMARY_DOMAIN"),
+            description="Primary global B2B SaaS domain",
+        ),
+    ] = "qrum.ai"
+    jwt_issuer: Annotated[
+        str,
+        BeforeValidator(strip_trailing_slash),
+        Field(
+            default="https://api.qrum.ai",
+            min_length=1,
+            validation_alias=AliasChoices("jwt_issuer", "JWT_ISSUER"),
+            description="Canonical RFC 8693 Quorum Local JWT issuer claim",
+        ),
+    ] = "https://api.qrum.ai"
+    jwt_audience: Annotated[
+        str,
+        BeforeValidator(strip_trailing_slash),
+        Field(
+            default="https://qrum.ai",
+            min_length=1,
+            validation_alias=AliasChoices("jwt_audience", "JWT_AUDIENCE"),
+            description="Canonical RFC 8693 Quorum Local JWT audience claim",
+        ),
+    ] = "https://qrum.ai"
     use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")] = False
     use_vertex_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Vertex AI for LLM")] = (
         False
@@ -113,7 +228,10 @@ class Settings(BaseSettings):
     use_firebase_auth: Annotated[
         bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")
     ] = True
-    cors_origins: Annotated[list[str], Field(default_factory=lambda: ["*"], description="Allowed CORS Origins")]
+    cors_origins: Annotated[
+        list[str],
+        Field(default_factory=lambda: ["*"], min_length=1, description="Allowed CORS Origins"),
+    ]
 
     # --- IAM, Session Token Exchange, Transactional Email & BYOK Secrets ---
     jwt_secret_key: Annotated[
@@ -189,9 +307,11 @@ class Settings(BaseSettings):
     ] = 10.0
     frontend_app_base_url: Annotated[
         str,
+        BeforeValidator(strip_trailing_slash),
         Field(
             default="https://app.qrum.ai",
             min_length=8,
+            validation_alias=AliasChoices("frontend_app_base_url", "FRONTEND_APP_BASE_URL"),
             description="Canonical frontend base URL for constructing /task/<token> and invitation links",
         ),
     ] = "https://app.qrum.ai"
@@ -864,9 +984,15 @@ class Settings(BaseSettings):
         str | None, Field(description="PostgreSQL role password injected from environment.")
     ] = None
     postgres_db: Annotated[str, Field(min_length=1, description="PostgreSQL database name.")] = "quorum"
-    postgres_dsn: Annotated[str | None, Field(description="Optional environment-injected PostgreSQL DSN override.")] = (
-        None
-    )
+    postgres_dsn: Annotated[
+        str | None,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default=None,
+            validation_alias=AliasChoices("postgres_dsn", "POSTGRES_DSN", "DATABASE_URL"),
+            description="Optional environment-injected PostgreSQL DSN override.",
+        ),
+    ] = None
     postgres_min_pool_size: Annotated[int, Field(ge=1, le=50, description="Minimum asyncpg pool connections.")] = 2
     postgres_max_pool_size: Annotated[int, Field(ge=2, le=200, description="Maximum asyncpg pool connections.")] = 20
     postgres_command_timeout_seconds: Annotated[
@@ -1063,7 +1189,12 @@ class Settings(BaseSettings):
 
             has_vertex = any(
                 bool(os.getenv(k))
-                for k in ("VERTEX_PROJECT_ID", "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CLOUD_PROJECT")
+                for k in (
+                    "VERTEX_PROJECT_ID",
+                    "GOOGLE_APPLICATION_CREDENTIALS",
+                    "GOOGLE_CLOUD_PROJECT",
+                    "GCP_PROJECT",
+                )
             )
 
             if not self.google_api_key and not has_vertex:
@@ -1089,10 +1220,15 @@ class Settings(BaseSettings):
         zero pacing delays, minimal development chunks, preflight chunking, zero precedent/web scans,
         compact linker windows, and fast strategy aliases.
         External network and upstream gateway transient errors retain sovereign retry resilience (3).
-        When environment is 'production', sovereign production defaults are preserved.
+        When environment is 'production', sovereign production defaults and strict CORS origin
+        security invariants (HTTPS scheme, no wildcards, no trailing slashes) are enforced.
 
         Returns:
             The settings instance with environment invariants enforced.
+
+        Raises:
+            ValueError: If production cors_origins is empty or contains non-HTTPS, wildcard,
+                or trailing-slash origins.
         """
         if self.environment == "development":
             logger.info("⚡ Development environment active: Clamping LLM bounds and limits to fast profile.")
@@ -1140,6 +1276,28 @@ class Settings(BaseSettings):
                 self.ensemble_min_consensus = 1
             if "dev_max_thinking_budget" not in self.model_fields_set:
                 self.dev_max_thinking_budget = 0
+        elif self.environment == "production":
+            # Step 1: Consolidate production CORS default assignment and strict per-origin validation
+            if "cors_origins" not in self.model_fields_set:
+                self.cors_origins = [
+                    f"https://{self.primary_domain}",
+                    f"https://app.{self.primary_domain}",
+                    f"https://studio.{self.primary_domain}",
+                ]
+            if not self.cors_origins:
+                raise ValueError("Production cors_origins must be non-empty.")
+            for origin in self.cors_origins:
+                if (
+                    not origin.startswith("https://")
+                    or "*" in origin
+                    or origin.endswith("/")
+                    or len(origin) <= len("https://")
+                ):
+                    raise ValueError(
+                        f"Invalid production CORS origin '{origin}'. "
+                        "Every production origin must use 'https://', contain no wildcards ('*'), "
+                        "omit trailing slashes ('/'), and specify a valid host."
+                    )
 
         return self
 
@@ -1173,8 +1331,11 @@ class Settings(BaseSettings):
         """
         providers = []
         if not self.use_mock_llm and (
-            os.getenv("VERTEX_PROJECT_ID")
+            self.use_vertex_llm
+            or os.getenv("VERTEX_PROJECT_ID")
             or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            or os.getenv("GOOGLE_CLOUD_PROJECT")
+            or os.getenv("GCP_PROJECT")
             or Path("service-account.json").exists()
         ):
             providers.append("vertex_ai")
