@@ -35,7 +35,7 @@
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/models/dtos/system.py]
   - [x] @[backend_v2/api/routers/system/health.py]
-  - [ ] @[backend_v2/main.py]
+  - [x] @[backend_v2/main.py]
   - [ ] @[backend_v2/run_worker.py]
 - [x] **[OK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]" --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
