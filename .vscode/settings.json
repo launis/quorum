@@ -1,3 +1,6 @@
 {
-    "files.autoSave": "off"
+    "files.autoSave": "off",
+    "editor.formatOnSave": false,
+    "files.eol": "\n",
+    "files.hotExit": "off"
 }
