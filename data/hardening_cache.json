@@ -2250,11 +2250,11 @@
     },
     "backend_v2/run_worker.py": {
       "target_file": "backend_v2/run_worker.py",
-      "target_sha256": "b694ecd67181e57614aa0a2e5084609eff2f528d69795913889c2678f7ad93da",
-      "unit_test_sha256": "c261a891d1d2894f2b7eb89f7fbf80b6cedea552f518297213bac8ad929a31e6",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "42e2738110c9d3b4b33753c65ef4ca45c4f9287e79b35a04ad87927d61b0f70c",
-      "source_tracker": "docs/epic/EPIC_156_tracker.md"
+      "target_sha256": "912f4b82590c9518252c8c29ac93acfbc27419bddf92f6e0f537ec0bfca0c420",
+      "unit_test_sha256": "704d5991c8c32b4fe71f28c925a58714fec4dcef3143124c56aea0b744c9abf5",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "69d37897563d5c3d877012b5d6069d713897784876f3507bdc162d279044850c",
+      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
     },
     "backend_v2/services/drivers/gcs_file_driver.py": {
       "target_file": "backend_v2/services/drivers/gcs_file_driver.py",
@@ -2698,11 +2698,11 @@
     },
     "backend_v2/api/routers/system/health.py": {
       "target_file": "backend_v2/api/routers/system/health.py",
-      "target_sha256": "cdbc97048edd66c1e861887a34c370951fcd2a8df602104519ec814664306cac",
+      "target_sha256": "d00faed5bb24c24351b5694bbec4648c77191b8df24ddc159c00101696726622",
       "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "54519320a751b50cdf8fa07c05c845cb7fb9a208c904db21fbb2689d489b2401",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "ad69cb3ecda5e742ba9c611c8460bc5929bf589692e7bf7e5be47036f90b66ad",
+      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
     },
     "backend_v2/services/studio/prompt_block_service.py": {
       "target_file": "backend_v2/services/studio/prompt_block_service.py",
@@ -2746,11 +2746,11 @@
     },
     "backend_v2/main.py": {
       "target_file": "backend_v2/main.py",
-      "target_sha256": "43c7daa3281ea555bc9a8805e9ddb93cb025b761fc0f00fd5f8dcdb9a1c9e987",
-      "unit_test_sha256": "2990ae3b86b8ad8edb3785b7b33fa0e54979df04143b4d5e8871351b4b68ab6d",
-      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
-      "composite_sha256": "f2180fa40a56489f7c39835efaf5f9e29c0a57943034c711e067e47857fc74fe",
-      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
+      "target_sha256": "5f18ad3e5d4752b7ebf561976f311992bb9b401ecc7e0830565f03fdd21b94b1",
+      "unit_test_sha256": "0539e6a76c4f6da167e9a88aaede6192ff1133484d0c96793331be407c48329e",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "2783ca73d7c661d67a4ea6fc02c30cf47948c6296735b16f7f88ce9a0c6e47b3",
+      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
     },
     "client_app_v2/lib/core/api/reports_client.dart": {
       "target_file": "client_app_v2/lib/core/api/reports_client.dart",
@@ -2882,11 +2882,11 @@
     },
     "backend_v2/settings.py": {
       "target_file": "backend_v2/settings.py",
-      "target_sha256": "67bcc397683f8804c96beef812b3ad814fc8e7bd4c46eec54a87117141fe3483",
-      "unit_test_sha256": "6df1f4bc7014537d8d2d7fdc43416232b05a3df7db2a0f57449fb8438c973e63",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "313805e3eaa137374781cf03b6dadb204af6550cc2b8e39df57ec3ee649b5781",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "b85b3a4a06bc0b6c0c1e7f6014106a9bed657a579b2049365d6ee1f8c17e614d",
+      "unit_test_sha256": "762dd61ca40b2d74fc81feac382211c8adc023f40f814b1285c520327b5339f9",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "9099d5b184f6e0c741da9fea237741f6c1a9d8ae221fbf266d09ecb32fcef469",
+      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
     },
     "client_app_v2/lib/main.dart": {
       "target_file": "client_app_v2/lib/main.dart",
@@ -4199,6 +4199,14 @@
       "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
       "composite_sha256": "49c172dd686ae61b311fbbac51f9791356fe102febc11284be4714537e9dc6aa",
       "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/ed563108-0af0-40f7-a46f-50cafd8bffb5/task.md"
+    },
+    "backend_v2/models/dtos/system.py": {
+      "target_file": "backend_v2/models/dtos/system.py",
+      "target_sha256": "def130d037398572539dff3fc34021fd47ae8a31fb4ec873f08f50c5b3cbbc5a",
+      "unit_test_sha256": "51e96e899df940ca0b8b3d12324ecb991c34431315d5cf061ad7d6abc71d31c2",
+      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
+      "composite_sha256": "0d2d3858e9db2253b5b3b6dc3fd57aed91ed0cdfba18e349470aca2347a4170b",
+      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
     }
   }
 }
