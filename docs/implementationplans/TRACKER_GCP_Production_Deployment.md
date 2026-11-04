@@ -26,7 +26,7 @@
   - [x] Step 2: Typed HealthCheckResponseDTO & System Health Endpoint
   - [x] Step 3: Cloud Run Worker Health Probe Responder, Non-Root Dockerfile & Docker Compose Hardening
   - [x] Step 4: Global Quality Gate & Completion Verification
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md] @[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md] @[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`
 
 ### Post-Implementation Gates
 
@@ -60,7 +60,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md] @[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md] @[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ---
 
@@ -82,7 +82,7 @@
 | **REQ-GCP-01** | Define `strip_trailing_slash` (`@[backend_v2/settings.py#L51-L62]`), add `app_version`, `port`, `worker_health_port`, `gcp_project_id`, `gcp_region`, `primary_domain` (`BeforeValidator(strip_trailing_slash)`), `jwt_issuer` (`BeforeValidator(strip_trailing_slash)`), and `jwt_audience` (`BeforeValidator(strip_trailing_slash)`), and normalize `frontend_app_base_url` (`BeforeValidator(strip_trailing_slash)`) on `Settings` in `@[backend_v2/settings.py#L51-L62]`. | Step 1 | `[x]` |
 | **REQ-GCP-02** | Consolidate default production `cors_origins` assignment (`[f"https://{self.primary_domain}", f"https://app.{self.primary_domain}", f"https://studio.{self.primary_domain}"]`, omitting `CORS_ORIGINS` from Cloud Run env vars) and unconditional per-origin HTTPS/wildcard/trailing-slash/non-empty validation inside `_enforce_environment_limits` (`@[backend_v2/settings.py#L1214-L1302]`). | Step 1 | `[x]` |
 | **REQ-GCP-03** | Bind `version=get_settings().app_version` on `FastAPI`, pre-initialize and reset `app.state.arq_pool` and `app.state.pool_manager` in `lifespan` (`@[backend_v2/main.py#L182-L249]`), remove legacy `if not cors_origins: cors_origins = ["*"]` fallback, and replace hardcoded `"https://api.quorum.fi/errors/validation-failed"` in `validation_exception_handler` (`@[backend_v2/main.py#L182-L249]`) with dynamic `get_settings().jwt_issuer`. | Step 1 | `[x]` |
-| **REQ-GCP-04** | Define immutable `HealthCheckResponseDTO(BaseResponseDTO)` in `@[backend_v2/models/dtos/system.py#L56-L76]` with `ConfigDict(frozen=True, strict=True, extra="forbid")`. | Step 2 | `[x]` |
+| **REQ-GCP-04** | Define immutable `HealthCheckResponseDTO(BaseResponseDTO)` in `@[backend_v2/models/dtos/system.py#L56-L75]` with `ConfigDict(frozen=True, strict=True, extra="forbid")`. | Step 2 | `[x]` |
 | **REQ-GCP-05** | Expose `GET /api/v2/system/health` (`get_system_health(request: Request)`) in `@[backend_v2/api/routers/system/health.py#L29-L79]` with `response_model=HealthCheckResponseDTO`, $O(1)$ in-memory readiness evaluation (`"ok"` vs. `"degraded"`), `version=cfg.app_version`, and RFC 7807 Dual-Reporting. | Step 2 | `[x]` |
 | **REQ-GCP-06** | Add single-loop `asyncio.start_server` health probe responder (`_handle_health_probe`) bound to `get_settings().worker_health_port` (`8081` locally, `$PORT` in Cloud Run) in `@[backend_v2/run_worker.py#L46-L66]`, configure non-root `quorum` (`UID 10001`) with `chown -R quorum:quorum /app/.venv` and direct `/app/.venv/bin/uvicorn` execution on `${PORT}` in `@[backend_v2/Dockerfile#L1-L36]`, and update `STORAGE_BACKEND=POSTGRES` and deduplicate `GOOGLE_APPLICATION_CREDENTIALS` in `@[docker-compose.yml#L1-L96]`. | Step 3 | `[x]` |
 | **REQ-GCP-07** | Pass the global 10-stage completion gate (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) with >90% coverage and >=2 ISTQB negative tests per feature. | Step 4 | `[x]` |
@@ -97,14 +97,15 @@
 - Completed **Step 3 (`[x]`, Commit `d0bb7722a`)**: Added `_HEALTH_RESPONSE_BYTES`, `_handle_health_probe` (using `contextlib.suppress(TimeoutError, OSError)` and `timeout=get_settings().http_client_timeout_seconds` with deterministic `writer.close()` in `finally:`), and `asyncio.start_server` on `settings.worker_health_port` in `@[backend_v2/run_worker.py]`; hardened `@[backend_v2/Dockerfile]` (`UID 10001` non-root `quorum` user, `chown -R quorum:quorum /app/.venv`, direct `/app/.venv/bin/uvicorn` execution on `${PORT}`); updated `@[docker-compose.yml]` (`STORAGE_BACKEND=POSTGRES`, `USE_MOCK_DB=false`, deduplicated `GOOGLE_APPLICATION_CREDENTIALS`); and added positive and ISTQB negative tests in `@[backend_v2/tests/unit/test_run_worker.py]`.
 - Completed **Step 4 (`[x]`, Commit `d732f4898`)**: Passed the global 10-stage completion gate (`uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) with `6895 passed, 0 failed`, `97.45%` total line coverage, and `0` AST guardrail violations.
 - Completed **Tier 2 Hardening (Backend) (`[x]`)**: Audited and hardened all 5 target backend files (`@[backend_v2/settings.py]`, `@[backend_v2/models/dtos/system.py]`, `@[backend_v2/api/routers/system/health.py]`, `@[backend_v2/main.py]`, and `@[backend_v2/run_worker.py]`) with SHA-256 content-addressed cache entries recorded in `@[data/hardening_cache.json]`.
-- Completed **As-Built Architectural Sync (`/tier7-describe-architecture`, `[x]`)**: Synchronized `@[ki_global_config_sovereignty.md]`, `@[ki_api_router_ssot_governance.md]` / `@[ki_router_ssot_and_crud_clone_lifecycle.md]`, and `@[ki_zero_permissive_typing.md]`, updated `@[.agents/rules/04_directory_reference.md]`, and integrated timeless present-tense architectural narratives into `@[docs/architecture/01_system_context_and_invariants.md]` and `@[docs/architecture/05_resilience_and_observability.md]`.
+- Completed **As-Built Architectural Sync (`/tier7-describe-architecture`, `[x]`, Commit `0105e08d8`)**: Synchronized `@[ki_global_config_sovereignty.md]`, `@[ki_api_router_ssot_governance.md]` / `@[ki_router_ssot_and_crud_clone_lifecycle.md]`, and `@[ki_zero_permissive_typing.md]`, updated `@[.agents/rules/04_directory_reference.md]`, and integrated timeless present-tense architectural narratives into `@[docs/architecture/01_system_context_and_invariants.md]` and `@[docs/architecture/05_resilience_and_observability.md]`.
+- Completed **System 2 Red-Team Audit (`/tier8-audit-plan`, `[x]`)**: Verified 100% physical implementation and AST boundary parity across all 7 requirements (`REQ-GCP-01` through `REQ-GCP-07`) and all 12 target files with 0 fatal violations, 0 orphan requirements, and 100% DTO parity; generated `red_team_audit_GCP_Production_Deployment.md`.
 
 ## Learned
 - Using `contextlib.suppress(TimeoutError, OSError)` inside `try ... finally: writer.close()` in `_handle_health_probe` (`@[backend_v2/run_worker.py]`) cleanly satisfies `QGR003` (which bans non-raising `try...except` blocks in domain modules) while still bounding socket read timeouts via `get_settings().http_client_timeout_seconds` and closing the probe socket deterministically.
 - In `Settings.enabled_providers` (`@[backend_v2/settings.py]`), checking `os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("GCP_PROJECT") or Path("service-account.json").exists()` enables Cloud Run ADC activation via `GCP_PROJECT` / `VERTEX_PROJECT_ID` without leaking local `.env` `GOOGLE_CLOUD_PROJECT` or `USE_VERTEX_LLM` flags into isolated AI Studio unit tests (`test_istqb_equivalence_enabled_providers_independence`).
 
 ## Remaining
-- Execute `/tier8-audit-plan`.
+- All implementation steps, Tier 2 Backend Hardening passes, Tier 7 As-Built Architectural Sync, and Tier 8 System 2 Red-Team Audit are complete (`100%` `[x]`).
 
 ## Resume Command
 ```powershell
