@@ -1331,10 +1331,8 @@ class Settings(BaseSettings):
         """
         providers = []
         if not self.use_mock_llm and (
-            self.use_vertex_llm
-            or os.getenv("VERTEX_PROJECT_ID")
+            os.getenv("VERTEX_PROJECT_ID")
             or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-            or os.getenv("GOOGLE_CLOUD_PROJECT")
             or os.getenv("GCP_PROJECT")
             or Path("service-account.json").exists()
         ):
