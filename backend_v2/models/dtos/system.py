@@ -12,17 +12,18 @@ from backend_v2.models.domain.system_config import SystemConfigMCPGateways, Syst
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 
 __all__ = [
-    "HookListResponse",
+    "AnySystemConfig",
+    "AnySystemConfigAdapter",
     "ClientErrorPayload",
+    "HealthCheckResponseDTO",
+    "HookListResponse",
     "SafetySettingDTO",
     "StrictnessConfigDTO",
     "StrictnessConfigListResponse",
-    "SystemSettingsDTO",
-    "AnySystemConfig",
-    "AnySystemConfigAdapter",
-    "SystemConfigUpdateDTO",
     "SystemConfigCreateDTO",
+    "SystemConfigUpdateDTO",
     "SystemConfigUpsertDTO",
+    "SystemSettingsDTO",
 ]
 
 
@@ -50,6 +51,29 @@ class HookListResponse(BaseResponseDTO):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     hooks: Annotated[list[str], Field(description="A list of registered system hooks or callback identifiers")]
+
+
+# Step 2: Define immutable HealthCheckResponseDTO for Cloud Run and Load Balancer probes
+class HealthCheckResponseDTO(BaseResponseDTO):
+    """Schema for Cloud Run and Cloud Load Balancer health probe responses.
+
+    Attributes:
+        status: Service operational status ('ok' or 'degraded').
+        version: Application semantic version.
+        environment: Active runtime environment stage.
+        storage_backend: Active storage backend identifier.
+        gcp_region: Configured GCP deployment region.
+        primary_domain: Canonical production domain.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    status: Annotated[Literal["ok", "degraded"], Field(default="ok", description="Service operational status")] = "ok"
+    version: Annotated[str, Field(min_length=1, description="Application semantic version")]
+    environment: Annotated[Literal["development", "production"], Field(description="Active runtime environment stage")]
+    storage_backend: Annotated[str, Field(min_length=1, description="Active storage backend identifier")]
+    gcp_region: Annotated[str, Field(min_length=1, description="Configured GCP deployment region")]
+    primary_domain: Annotated[str, Field(min_length=1, description="Canonical production domain")]
 
 
 class ClientErrorPayload(BaseDTO):

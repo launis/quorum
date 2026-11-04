@@ -1,7 +1,61 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.system import ClientErrorPayload, HookListResponse
+from backend_v2.models.dtos.system import ClientErrorPayload, HealthCheckResponseDTO, HookListResponse
+
+
+def test_health_check_response_dto_strictness() -> None:
+    """Verify HealthCheckResponseDTO valid instantiation and ISTQB negative boundaries."""
+    dto = HealthCheckResponseDTO(
+        status="ok",
+        version="2.9.0",
+        environment="production",
+        storage_backend="POSTGRES",
+        gcp_region="europe-north1",
+        primary_domain="qrum.ai",
+    )
+    assert dto.status == "ok"
+    assert dto.version == "2.9.0"
+    assert dto.environment == "production"
+    assert dto.storage_backend == "POSTGRES"
+    assert dto.gcp_region == "europe-north1"
+    assert dto.primary_domain == "qrum.ai"
+
+    # ISTQB Negative 1: Extra unrecognized field rejected (extra="forbid")
+    with pytest.raises(ValidationError):
+        HealthCheckResponseDTO.model_validate(
+            {
+                "status": "ok",
+                "version": "2.9.0",
+                "environment": "production",
+                "storage_backend": "POSTGRES",
+                "gcp_region": "europe-north1",
+                "primary_domain": "qrum.ai",
+                "extra_field": "forbidden",
+            }
+        )
+
+    # ISTQB Negative 2: Empty version string (min_length=1) or invalid status literal rejected
+    with pytest.raises(ValidationError):
+        HealthCheckResponseDTO(
+            status="ok",
+            version="",
+            environment="production",
+            storage_backend="POSTGRES",
+            gcp_region="europe-north1",
+            primary_domain="qrum.ai",
+        )
+    with pytest.raises(ValidationError):
+        HealthCheckResponseDTO.model_validate(
+            {
+                "status": "invalid_status",
+                "version": "2.9.0",
+                "environment": "production",
+                "storage_backend": "POSTGRES",
+                "gcp_region": "europe-north1",
+                "primary_domain": "qrum.ai",
+            }
+        )
 
 
 def test_hook_list_response_strictness() -> None:
@@ -9,7 +63,7 @@ def test_hook_list_response_strictness() -> None:
     assert dto.hooks == ["hook_1", "hook_2"]
 
     with pytest.raises(ValidationError):
-        HookListResponse(hooks=["hook_1"], extra_field="fail")
+        HookListResponse.model_validate({"hooks": ["hook_1"], "extra_field": "fail"})
 
 
 def test_client_error_payload_strictness() -> None:
@@ -28,9 +82,11 @@ def test_client_error_payload_strictness() -> None:
     assert dto.context_data == {"screen": "home"}
 
     with pytest.raises(ValidationError):
-        ClientErrorPayload(
-            error_message="Fatal crash",
-            extra="fail",
+        ClientErrorPayload.model_validate(
+            {
+                "error_message": "Fatal crash",
+                "extra": "fail",
+            }
         )
 
 
