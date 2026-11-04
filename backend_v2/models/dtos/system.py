@@ -53,7 +53,6 @@ class HookListResponse(BaseResponseDTO):
     hooks: Annotated[list[str], Field(description="A list of registered system hooks or callback identifiers")]
 
 
-# Step 2: Define immutable HealthCheckResponseDTO for Cloud Run and Load Balancer probes
 class HealthCheckResponseDTO(BaseResponseDTO):
     """Schema for Cloud Run and Cloud Load Balancer health probe responses.
 
@@ -132,7 +131,15 @@ class StrictnessConfigListResponse(BaseResponseDTO):
 
 
 class SystemSettingsDTO(BaseDTO):
-    """DTO representing global system settings and tuning flags."""
+    """DTO representing global system settings and tuning flags.
+
+    Attributes:
+        type: Config type discriminator literal ('system_settings').
+        environment: Runtime environment stage ('development' or 'production').
+        maintenance_mode: Flag indicating whether maintenance mode is active.
+        debug_logging: Flag indicating whether verbose debug logging is enabled.
+        default_locale: Default system locale code.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="system_settings")
 
@@ -158,7 +165,13 @@ AnySystemConfigAdapter: TypeAdapter[AnySystemConfig] = TypeAdapter(AnySystemConf
 
 
 class SystemConfigUpdateDTO(BaseDTO):
-    """DTO for updating system configuration entries with strict SSOT domain models."""
+    """DTO for updating system configuration entries with strict SSOT domain models.
+
+    Attributes:
+        model_registry: Optional updated model registry configuration.
+        mcp_gateways: Optional updated MCP gateways configuration.
+        system_settings: Optional updated global system settings configuration.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -174,7 +187,13 @@ class SystemConfigUpdateDTO(BaseDTO):
 
 
 class SystemConfigCreateDTO(BaseDTO):
-    """DTO for creating a new system configuration document at ingress boundary."""
+    """DTO for creating a new system configuration document at ingress boundary.
+
+    Attributes:
+        type: Configuration type identifier.
+        content: Strict discriminated union payload of system configurations.
+        slug: Optional human-readable configuration slug.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -184,7 +203,14 @@ class SystemConfigCreateDTO(BaseDTO):
 
 
 class SystemConfigUpsertDTO(BaseDTO):
-    """DTO for upserting system configuration documents."""
+    """DTO for upserting system configuration documents.
+
+    Attributes:
+        id: Optional existing system configuration Opaque ID.
+        type: Configuration type identifier.
+        content: Strict discriminated union payload of system configurations.
+        slug: Optional human-readable configuration slug.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 

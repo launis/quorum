@@ -33,7 +33,7 @@
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]" --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [x] @[backend_v2/settings.py]
-  - [ ] @[backend_v2/models/dtos/system.py]
+  - [x] @[backend_v2/models/dtos/system.py]
   - [ ] @[backend_v2/api/routers/system/health.py]
   - [ ] @[backend_v2/main.py]
   - [ ] @[backend_v2/run_worker.py]
