@@ -239,6 +239,34 @@ class McpToolParamsPanel extends StatelessWidget {
     );
   }
 
+  /// Unwraps nullable `anyOf` / `oneOf` union schemas emitted by FastMCP and Pydantic V2
+  /// while preserving outer title, description, and defaultValue metadata.
+  McpToolSchemaPropertyDto _resolveEffectiveProperty(
+    McpToolSchemaPropertyDto prop,
+  ) {
+    // Phase 3, Step 3: Unwrap first non-null branch from prop.anyOf or prop.oneOf
+    if (prop.type != null ||
+        (prop.enumValues != null && prop.enumValues!.isNotEmpty)) {
+      return prop;
+    }
+    final List<McpToolSchemaPropertyDto>? branches = prop.anyOf ?? prop.oneOf;
+    if (branches == null || branches.isEmpty) {
+      return prop;
+    }
+    for (final McpToolSchemaPropertyDto branch in branches) {
+      if (branch.type != JsonSchemaPropertyType.nullValue) {
+        return branch.copyWith(
+          title: branch.title ?? prop.title,
+          description: branch.description.isNotEmpty
+              ? branch.description
+              : prop.description,
+          defaultValue: branch.defaultValue ?? prop.defaultValue,
+        );
+      }
+    }
+    return prop;
+  }
+
   Widget _buildPropertyControl({
     required BuildContext context,
     required AppLocalizations l10n,
@@ -247,7 +275,8 @@ class McpToolParamsPanel extends StatelessWidget {
     required McpToolSchemaPropertyDto prop,
     required Object? currentValue,
   }) {
-    final enumValues = prop.enumValues;
+    final effectiveProp = _resolveEffectiveProperty(prop);
+    final enumValues = effectiveProp.enumValues;
     if (enumValues != null && enumValues.isNotEmpty) {
       final String? selectedEnum =
           currentValue is String && enumValues.contains(currentValue)
@@ -261,7 +290,9 @@ class McpToolParamsPanel extends StatelessWidget {
         initialValue: selectedEnum,
         decoration: InputDecoration(
           labelText: propName,
-          helperText: prop.description.isNotEmpty ? prop.description : null,
+          helperText: effectiveProp.description.isNotEmpty
+              ? effectiveProp.description
+              : null,
           border: const OutlineInputBorder(),
         ),
         items: <DropdownMenuItem<String?>>[
@@ -285,17 +316,19 @@ class McpToolParamsPanel extends StatelessWidget {
       );
     }
 
-    if (prop.type == JsonSchemaPropertyType.boolean) {
+    if (effectiveProp.type == JsonSchemaPropertyType.boolean) {
       final bool effectiveBool = currentValue is bool
           ? currentValue
-          : (prop.defaultValue is bool ? prop.defaultValue as bool : false);
+          : (effectiveProp.defaultValue is bool
+                ? effectiveProp.defaultValue as bool
+                : false);
       return SwitchListTile(
         key: ValueKey<String>('mcp_param_bool_${namespacedAlias}_$propName'),
         mouseCursor: SystemMouseCursors.click,
         contentPadding: EdgeInsets.zero,
         title: Text(propName, overflow: TextOverflow.ellipsis),
-        subtitle: prop.description.isNotEmpty
-            ? Text(prop.description, overflow: TextOverflow.ellipsis)
+        subtitle: effectiveProp.description.isNotEmpty
+            ? Text(effectiveProp.description, overflow: TextOverflow.ellipsis)
             : null,
         value: effectiveBool,
         onChanged: (bool newValue) {
@@ -304,17 +337,19 @@ class McpToolParamsPanel extends StatelessWidget {
       );
     }
 
-    if (prop.type == JsonSchemaPropertyType.integer ||
-        prop.type == JsonSchemaPropertyType.number) {
-      final String? hintText = prop.defaultValue != null
-          ? l10n.mcpToolParamsDefaultHint(prop.defaultValue.toString())
+    if (effectiveProp.type == JsonSchemaPropertyType.integer ||
+        effectiveProp.type == JsonSchemaPropertyType.number) {
+      final String? hintText = effectiveProp.defaultValue != null
+          ? l10n.mcpToolParamsDefaultHint(effectiveProp.defaultValue.toString())
           : null;
       return _SchemaTextParamField(
         fieldKey: ValueKey<String>(
           'mcp_param_num_${namespacedAlias}_$propName',
         ),
         labelText: propName,
-        helperText: prop.description.isNotEmpty ? prop.description : null,
+        helperText: effectiveProp.description.isNotEmpty
+            ? effectiveProp.description
+            : null,
         hintText: hintText,
         keyboardType: TextInputType.number,
         currentValue: currentValue,
@@ -324,16 +359,19 @@ class McpToolParamsPanel extends StatelessWidget {
             _updateToolParam(namespacedAlias, propName, null);
             return;
           }
-          final num? parsed = prop.type == JsonSchemaPropertyType.integer
+          final num? parsed =
+              effectiveProp.type == JsonSchemaPropertyType.integer
               ? int.tryParse(trimmed)
               : double.tryParse(trimmed);
           if (parsed == null) {
             return;
           }
-          if (prop.minimum != null && parsed < prop.minimum!) {
+          if (effectiveProp.minimum != null &&
+              parsed < effectiveProp.minimum!) {
             return;
           }
-          if (prop.maximum != null && parsed > prop.maximum!) {
+          if (effectiveProp.maximum != null &&
+              parsed > effectiveProp.maximum!) {
             return;
           }
           _updateToolParam(namespacedAlias, propName, parsed);
@@ -341,16 +379,57 @@ class McpToolParamsPanel extends StatelessWidget {
       );
     }
 
-    final String? hintText = prop.defaultValue != null
-        ? l10n.mcpToolParamsDefaultHint(prop.defaultValue.toString())
+    // Phase 3, Step 3: Render string-array parameters as comma-separated List<String> controls
+    if (effectiveProp.type == JsonSchemaPropertyType.array) {
+      final String? hintText = effectiveProp.defaultValue != null
+          ? l10n.mcpToolParamsDefaultHint(effectiveProp.defaultValue.toString())
+          : null;
+      return _SchemaTextParamField(
+        fieldKey: ValueKey<String>(
+          'mcp_param_arr_${namespacedAlias}_$propName',
+        ),
+        labelText: propName,
+        helperText: effectiveProp.description.isNotEmpty
+            ? effectiveProp.description
+            : null,
+        hintText: hintText,
+        keyboardType: TextInputType.text,
+        currentValue: currentValue,
+        onChanged: (String rawText) {
+          final List<String> items = rawText
+              .split(',')
+              .map((String s) => s.trim())
+              .where((String s) => s.isNotEmpty)
+              .toList();
+          if (items.isEmpty) {
+            _updateToolParam(namespacedAlias, propName, null);
+            return;
+          }
+          if (effectiveProp.minItems != null &&
+              items.length < effectiveProp.minItems!) {
+            return;
+          }
+          if (effectiveProp.maxItems != null &&
+              items.length > effectiveProp.maxItems!) {
+            return;
+          }
+          _updateToolParam(namespacedAlias, propName, items);
+        },
+      );
+    }
+
+    final String? hintText = effectiveProp.defaultValue != null
+        ? l10n.mcpToolParamsDefaultHint(effectiveProp.defaultValue.toString())
         : null;
     return _SchemaTextParamField(
       fieldKey: ValueKey<String>('mcp_param_str_${namespacedAlias}_$propName'),
       labelText: propName,
-      helperText: prop.description.isNotEmpty ? prop.description : null,
+      helperText: effectiveProp.description.isNotEmpty
+          ? effectiveProp.description
+          : null,
       hintText: hintText,
       keyboardType: TextInputType.text,
-      maxLength: prop.maxLength,
+      maxLength: effectiveProp.maxLength,
       currentValue: currentValue,
       onChanged: (String rawText) {
         final trimmed = rawText.trim();
@@ -358,10 +437,12 @@ class McpToolParamsPanel extends StatelessWidget {
           _updateToolParam(namespacedAlias, propName, null);
           return;
         }
-        if (prop.minLength != null && trimmed.length < prop.minLength!) {
+        if (effectiveProp.minLength != null &&
+            trimmed.length < effectiveProp.minLength!) {
           return;
         }
-        if (prop.maxLength != null && trimmed.length > prop.maxLength!) {
+        if (effectiveProp.maxLength != null &&
+            trimmed.length > effectiveProp.maxLength!) {
           return;
         }
         _updateToolParam(namespacedAlias, propName, trimmed);
@@ -399,11 +480,18 @@ class _SchemaTextParamFieldState extends State<_SchemaTextParamField> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
 
+  static String _formatCurrentValue(Object? val) {
+    if (val is List<Object?>) {
+      return val.map((Object? e) => e.toString()).join(', ');
+    }
+    return val?.toString() ?? '';
+  }
+
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(
-      text: widget.currentValue?.toString() ?? '',
+      text: _formatCurrentValue(widget.currentValue),
     );
     _focusNode = FocusNode();
   }
@@ -412,11 +500,16 @@ class _SchemaTextParamFieldState extends State<_SchemaTextParamField> {
   void didUpdateWidget(covariant _SchemaTextParamField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.currentValue == null && oldWidget.currentValue != null) {
-      _controller.clear();
+      if (!_focusNode.hasFocus) {
+        _controller.clear();
+      }
     } else if (widget.currentValue != null &&
         widget.currentValue != oldWidget.currentValue &&
-        _controller.text.trim() != widget.currentValue.toString()) {
-      _controller.text = widget.currentValue.toString();
+        !_focusNode.hasFocus) {
+      final formatted = _formatCurrentValue(widget.currentValue);
+      if (_controller.text.trim() != formatted) {
+        _controller.text = formatted;
+      }
     }
   }
 

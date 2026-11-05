@@ -523,5 +523,185 @@ void main() {
         expect(currentParams.containsKey(alias), isFalse);
       },
     );
+
+    testWidgets(
+      'mcp_tool_params_panel_unwraps_nullable_any_of_and_parses_string_arrays (TC-STUDIO-UI-06)',
+      (WidgetTester tester) async {
+        // Phase 3, Step 3: Verify nullable anyOf unwrapping and string-array controls
+        const String alias = 'default_mcp_gateway__tavily_search';
+        const List<McpGateway> tavilyGateways = <McpGateway>[
+          McpGateway(
+            id: 'sys_0195f3a00000700080008172bda70c86',
+            slug: 'default_mcp_gateway',
+            endpointUrl: 'https://mcp.tavily.com/mcp',
+            transportType: McpTransportType.streamableHttp,
+            authType: McpAuthType.bearer,
+            tools: <AllowedMcpTool>[
+              AllowedMcpTool(
+                toolId: 'tavily_search',
+                capability: ToolCapability.search,
+                name: I18nText(
+                  translations: <String, String>{
+                    'en': 'Tavily AI Search',
+                    'fi': 'Tavily AI -haku',
+                  },
+                ),
+                description: 'Search the web for current information.',
+                inputSchema: McpToolInputSchemaDto(
+                  properties: <String, McpToolSchemaPropertyDto>{
+                    'query': McpToolSchemaPropertyDto(
+                      type: JsonSchemaPropertyType.string,
+                    ),
+                    'search_depth': McpToolSchemaPropertyDto(
+                      description: 'The depth of the search.',
+                      anyOf: <McpToolSchemaPropertyDto>[
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.string,
+                          enumValues: <String>[
+                            'basic',
+                            'advanced',
+                            'fast',
+                            'ultra-fast',
+                          ],
+                        ),
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.nullValue,
+                        ),
+                      ],
+                    ),
+                    'max_results': McpToolSchemaPropertyDto(
+                      description: 'Maximum results.',
+                      anyOf: <McpToolSchemaPropertyDto>[
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.integer,
+                          minimum: 1,
+                          maximum: 20,
+                        ),
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.nullValue,
+                        ),
+                      ],
+                    ),
+                    'include_raw_content': McpToolSchemaPropertyDto(
+                      description: 'Include cleaned HTML content.',
+                      anyOf: <McpToolSchemaPropertyDto>[
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.boolean,
+                        ),
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.nullValue,
+                        ),
+                      ],
+                    ),
+                    'include_domains': McpToolSchemaPropertyDto(
+                      description: 'Domains to include.',
+                      anyOf: <McpToolSchemaPropertyDto>[
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.array,
+                          minItems: 1,
+                          maxItems: 3,
+                          items: McpToolSchemaPropertyDto(
+                            type: JsonSchemaPropertyType.string,
+                          ),
+                        ),
+                        McpToolSchemaPropertyDto(
+                          type: JsonSchemaPropertyType.nullValue,
+                        ),
+                      ],
+                    ),
+                  },
+                  requiredFields: <String>['query'],
+                ),
+              ),
+            ],
+          ),
+        ];
+
+        Map<String, Map<String, Object?>> currentParams =
+            <String, Map<String, Object?>>{};
+
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Scaffold(
+                  body: SingleChildScrollView(
+                    child: McpToolParamsPanel(
+                      allowedMcpTools: const <String>[alias],
+                      mcpToolParams: currentParams,
+                      mcpGateways: tavilyGateways,
+                      onChanged: (Map<String, Map<String, Object?>> updated) {
+                        setState(() {
+                          currentParams = updated;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Nullable anyOf enum renders as DropdownButtonFormField
+        final enumFinder = find.byKey(
+          const ValueKey<String>('mcp_param_enum_${alias}_search_depth_null'),
+        );
+        expect(enumFinder, findsOneWidget);
+        await tester.tap(enumFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('advanced').last);
+        await tester.pumpAndSettle();
+        expect(currentParams[alias]?['search_depth'], equals('advanced'));
+
+        // 2. Nullable anyOf boolean renders as SwitchListTile
+        final boolFinder = find.byKey(
+          const ValueKey<String>(
+            'mcp_param_bool_${alias}_include_raw_content',
+          ),
+        );
+        expect(boolFinder, findsOneWidget);
+        await tester.tap(boolFinder);
+        await tester.pumpAndSettle();
+        expect(currentParams[alias]?['include_raw_content'], isTrue);
+
+        // 3. Nullable anyOf integer renders as numeric field and enforces BVA minimum (minimum: 1)
+        final numFinder = find.byKey(
+          const ValueKey<String>('mcp_param_num_${alias}_max_results'),
+        );
+        expect(numFinder, findsOneWidget);
+        // Negative 1 (BVA min-1): 0 < 1 is rejected
+        await tester.enterText(numFinder, '0');
+        await tester.pumpAndSettle();
+        expect(currentParams[alias]?.containsKey('max_results'), isFalse);
+
+        await tester.enterText(numFinder, '10');
+        await tester.pumpAndSettle();
+        expect(currentParams[alias]?['max_results'], equals(10));
+
+        // 4. Nullable anyOf string array parses comma-separated domains into List<String>
+        final arrFinder = find.byKey(
+          const ValueKey<String>('mcp_param_arr_${alias}_include_domains'),
+        );
+        expect(arrFinder, findsOneWidget);
+
+        // Negative 2 (BVA maxItems + 1): 4 items > maxItems (3) is rejected
+        await tester.enterText(arrFinder, 'a.com, b.com, c.com, d.com');
+        await tester.pumpAndSettle();
+        expect(currentParams[alias]?.containsKey('include_domains'), isFalse);
+
+        // Valid 2 domains within [1..3] accepted as List<String>
+        await tester.enterText(arrFinder, 'fi.wikipedia.org, en.wikipedia.org');
+        await tester.pumpAndSettle();
+        expect(
+          currentParams[alias]?['include_domains'],
+          equals(<String>['fi.wikipedia.org', 'en.wikipedia.org']),
+        );
+      },
+    );
   });
 }

@@ -18,7 +18,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md] @[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]`
   - [x] Step 1: Phase 1: Test Technical Debt Cleanup & Backend JSON Schema Draft 2020-12 Vocabulary in MCPToolSchemaPropertyDTO and MCPToolInputSchemaDTO
   - [x] Step 2: Phase 2: Frontend 1:1 Freezed DTO Parity & OpenAPI Sync
-  - [ ] Step 3: Phase 3: Studio McpToolParamsPanel Nullable anyOf/oneOf Unwrapping & Array Parameter Controls
+  - [x] Step 3: Phase 3: Studio McpToolParamsPanel Nullable anyOf/oneOf Unwrapping & Array Parameter Controls
   - [ ] Step 4: Phase 4: Seed Vault Upgrade for Default Tavily Gateway & Global Verification Gates
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md] @[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]`
 
@@ -67,7 +67,7 @@
 | :--- | :--- | :--- | :--- |
 | REQ-001 | Add closed JSON Schema Draft 2020-12 vocabulary (`format`, `pattern`, `unique_items`, `exclusive_minimum`, `exclusive_maximum`, `multiple_of`, `one_of`, `all_of`, `examples`, `deprecated`, `read_only`, `write_only`, `ref`, `defs`) to `MCPToolSchemaPropertyDTO` and `MCPToolInputSchemaDTO` in `@[backend_v2/models/dtos/mcp.py#L93-L264]` and remediate `TD_MODEL_FACTORY` warnings in `@[backend_v2/tests/unit/models/dtos/test_mcp.py#L73-L611]`. | Step 1 | [x] Complete |
 | REQ-002 | Synchronize 1:1 Freezed DTO parity in `McpToolSchemaPropertyDto` and `McpToolInputSchemaDto` in `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L12-L59]`, add positive/negative tests in `@[client_app_v2/test/features/studio/models/mcp_gateway_test.dart#L167-L227]`, and regenerate `@[docs/swagger/openapi.json]`. | Step 2 | [x] Complete |
-| REQ-003 | Implement `_resolveEffectiveProperty` for nullable `anyOf`/`oneOf` unwrapping, `JsonSchemaPropertyType.array` comma-separated `List<String>` control, and focus-safe `_formatCurrentValue` in `@[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart#L242-L447]` with `TC-STUDIO-UI-06` widget tests in `@[client_app_v2/test/features/studio/views/widgets/mcp_tool_params_panel_test.dart#L406-L527]`. | Step 3 | [ ] Pending |
+| REQ-003 | Implement `_resolveEffectiveProperty` for nullable `anyOf`/`oneOf` unwrapping, `JsonSchemaPropertyType.array` comma-separated `List<String>` control, and focus-safe `_formatCurrentValue` in `@[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart#L242-L447]` with `TC-STUDIO-UI-06` widget tests in `@[client_app_v2/test/features/studio/views/widgets/mcp_tool_params_panel_test.dart#L406-L527]`. | Step 3 | [x] Complete |
 | REQ-004 | Upgrade `sys_0195f3a00000700080008172bda70c86` (`default_mcp_gateway`) in `@[backend_v2/seed/seed_data.json#L209-L244]` with full discovered Tavily tool schemas (`tavily_search` and `tavily_extract`), sanitize, validate in-memory, and re-seed via `run_seed.py local`. | Step 4 | [ ] Pending |
 
 # Session Handover Context
