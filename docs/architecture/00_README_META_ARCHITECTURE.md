@@ -18,7 +18,7 @@ By separating the theoretical from the physical, the system can continuously ref
 
 The core architecture is structured across dedicated architectural pillars:
 1. **System Context & Invariants (`01_`)**: Foundational constitution, universal fail-fast invariants, zero permissive typing, canonical domain imports, and fatal AST guardrail enforcement.
-2. **Data Seeding & Ontology (`02_`)**: Database schemas, seed registry, declarative MCP gateway ontology with native knowledge tools (Wikipedia search/read, Tavily search), and two-phase in-memory seeder pre-flight validation.
+2. **Data Seeding & Ontology (`02_`)**: Database schemas, seed registry, declarative MCP gateway ontology with native knowledge tools (Wikipedia search/read, Tavily search/extract) and closed JSON Schema Draft 2020-12 tool parameter contracts, and two-phase in-memory seeder pre-flight validation.
 3. **Cognitive Orchestration Engine (`03_`)**: DAG workflow evaluation, dynamic capability-driven MCP tool dispatching (search, document reader, action) with direct node-level retrieval, sovereign execution subservices, pure Arq worker daemon runtimes, and Best-of-Three Flash consensus.
 4. **Server-Driven UI (SDUI) & Presentation (`04_`)**: Flat polymorphic `inner_sdui_blocks`, co-located forward-reference hydration, and Dumb Painter rendering.
 5. **Resilience & Observability (`05_`)**: Distributed circuit breaking, telemetry, and error classification.
