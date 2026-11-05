@@ -194,7 +194,6 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
             description="Maximum string length constraint.",
         ),
     ] = None
-    # Step 1: Add JSON Schema Draft 2020-12 array bounds and constant literal fields
     min_items: Annotated[
         int | None,
         Field(
@@ -225,7 +224,6 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
             description="Alternative sub-schemas.",
         ),
     ] = None
-    # Phase 1, Step 1: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
     format: Annotated[
         str | None,
         Field(
@@ -368,7 +366,6 @@ class MCPToolInputSchemaDTO(V2CoreBase):
             description="JSON Schema Draft URI specification.",
         ),
     ] = None
-    # Phase 1, Step 1: Add reusable sub-schema definitions map ($defs)
     defs: Annotated[
         dict[str, MCPToolSchemaPropertyDTO] | None,
         Field(
