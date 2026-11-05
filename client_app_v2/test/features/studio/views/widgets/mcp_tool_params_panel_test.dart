@@ -660,9 +660,7 @@ void main() {
 
         // 2. Nullable anyOf boolean renders as SwitchListTile
         final boolFinder = find.byKey(
-          const ValueKey<String>(
-            'mcp_param_bool_${alias}_include_raw_content',
-          ),
+          const ValueKey<String>('mcp_param_bool_${alias}_include_raw_content'),
         );
         expect(boolFinder, findsOneWidget);
         await tester.tap(boolFinder);

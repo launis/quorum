@@ -15,23 +15,23 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md] @[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md] @[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]`
   - [x] Step 1: Phase 1: Test Technical Debt Cleanup & Backend JSON Schema Draft 2020-12 Vocabulary in MCPToolSchemaPropertyDTO and MCPToolInputSchemaDTO
   - [x] Step 2: Phase 2: Frontend 1:1 Freezed DTO Parity & OpenAPI Sync
   - [x] Step 3: Phase 3: Studio McpToolParamsPanel Nullable anyOf/oneOf Unwrapping & Array Parameter Controls
-  - [ ] Step 4: Phase 4: Seed Vault Upgrade for Default Tavily Gateway & Global Verification Gates
+  - [x] Step 4: Phase 4: Seed Vault Upgrade for Default Tavily Gateway & Global Verification Gates
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md] @[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[backend_v2/models/dtos/mcp.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -65,24 +65,27 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-001 | Add closed JSON Schema Draft 2020-12 vocabulary (`format`, `pattern`, `unique_items`, `exclusive_minimum`, `exclusive_maximum`, `multiple_of`, `one_of`, `all_of`, `examples`, `deprecated`, `read_only`, `write_only`, `ref`, `defs`) to `MCPToolSchemaPropertyDTO` and `MCPToolInputSchemaDTO` in `@[backend_v2/models/dtos/mcp.py#L93-L264]` and remediate `TD_MODEL_FACTORY` warnings in `@[backend_v2/tests/unit/models/dtos/test_mcp.py#L73-L611]`. | Step 1 | [x] Complete |
+| REQ-001 | Add closed JSON Schema Draft 2020-12 vocabulary (`format`, `pattern`, `unique_items`, `exclusive_minimum`, `exclusive_maximum`, `multiple_of`, `one_of`, `all_of`, `examples`, `deprecated`, `read_only`, `write_only`, `ref`, `defs`) to `MCPToolSchemaPropertyDTO` and `MCPToolInputSchemaDTO` in `@[backend_v2/models/dtos/mcp.py#L93-L319]` and remediate `TD_MODEL_FACTORY` warnings in `@[backend_v2/tests/unit/models/dtos/test_mcp.py#L357-L421]`. | Step 1 | [x] Complete |
 | REQ-002 | Synchronize 1:1 Freezed DTO parity in `McpToolSchemaPropertyDto` and `McpToolInputSchemaDto` in `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L12-L59]`, add positive/negative tests in `@[client_app_v2/test/features/studio/models/mcp_gateway_test.dart#L167-L227]`, and regenerate `@[docs/swagger/openapi.json]`. | Step 2 | [x] Complete |
 | REQ-003 | Implement `_resolveEffectiveProperty` for nullable `anyOf`/`oneOf` unwrapping, `JsonSchemaPropertyType.array` comma-separated `List<String>` control, and focus-safe `_formatCurrentValue` in `@[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart#L242-L447]` with `TC-STUDIO-UI-06` widget tests in `@[client_app_v2/test/features/studio/views/widgets/mcp_tool_params_panel_test.dart#L406-L527]`. | Step 3 | [x] Complete |
-| REQ-004 | Upgrade `sys_0195f3a00000700080008172bda70c86` (`default_mcp_gateway`) in `@[backend_v2/seed/seed_data.json#L209-L244]` with full discovered Tavily tool schemas (`tavily_search` and `tavily_extract`), sanitize, validate in-memory, and re-seed via `run_seed.py local`. | Step 4 | [ ] Pending |
+| REQ-004 | Upgrade `sys_0195f3a00000700080008172bda70c86` (`default_mcp_gateway`) in `@[backend_v2/seed/seed_data.json#L209-L552]` with full discovered Tavily tool schemas (`tavily_search` and `tavily_extract`), sanitize, validate in-memory, and re-seed via `run_seed.py local`. | Step 4 | [x] Complete |
 
 # Session Handover Context
 
 ## Achieved
-- Initialized `@[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]` for `@[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md]`.
+- Completed **Step 1 & Step 2** (commit `ffda18d62`): Added the closed 14-field JSON Schema Draft 2020-12 vocabulary (`format`, `pattern`, `unique_items`, `exclusive_minimum`, `exclusive_maximum`, `multiple_of`, `one_of`, `all_of`, `examples`, `deprecated`, `read_only`, `write_only`, `ref`, `defs`) to `MCPToolSchemaPropertyDTO` and `MCPToolInputSchemaDTO` in `@[backend_v2/models/dtos/mcp.py#L93-L319]`, remediated all 35 `TD_MODEL_FACTORY` findings in `@[backend_v2/tests/unit/models/dtos/test_mcp.py#L357-L421]` (0 technical debt findings), synchronized 1:1 Freezed DTO parity in `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L12-L73]` and `@[client_app_v2/test/features/studio/models/mcp_gateway_test.dart#L167-L280]`, and regenerated `@[docs/swagger/openapi.json]`.
+- Completed **Step 3** (commit `be131832e`): Implemented `_resolveEffectiveProperty` for nullable `anyOf`/`oneOf` union unwrapping, `JsonSchemaPropertyType.array` comma-separated `List<String>` input rendering with `minItems`/`maxItems` BVA validation, and focus-safe `_formatCurrentValue` in `@[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart#L242-L515]`, verified by `TC-STUDIO-UI-06` in `@[client_app_v2/test/features/studio/views/widgets/mcp_tool_params_panel_test.dart#L406-L530]`.
+- Completed **Step 4**: Upgraded `sys_0195f3a00000700080008172bda70c86` (`default_mcp_gateway`) in `@[backend_v2/seed/seed_data.json#L209-L552]` with the complete 17-property `tavily_search` schema and `tavily_extract` (`capability: "document_reader"`) schema, validated via `sanitize_seed_vault.py`, `run_seed.py local --dry-run`, `audit_database_atoms.py --strict`, and `run_seed.py local`, and passed both global quality gates (`flutter_audit_loop.py client_app_v2/ --build` and `backend_audit_loop.py backend_v2/ --test` with 6,900 tests passing and 97.45% coverage).
 
 ## Learned
-- Pre-flight codebase scan confirmed Steps 1 through 4 are pending implementation.
+- In `@[client_app_v2/lib/core/models/enums.dart#L553-L571]`, the Dart enum value for JSON Schema `"null"` is `JsonSchemaPropertyType.nullValue` (`@JsonValue('null') nullValue('null')`).
+- Preserving `ConfigDict(strict=True, extra="forbid", frozen=True)` and `@JsonSerializable(disallowUnrecognizedKeys: true)` while explicitly declaring Draft 2020-12 keywords allows Tavily (`anyOf`), Jina (`format`), and Context7 (`pattern`, `uniqueItems`) tool schemas to hydrate deterministically without weakening schema boundaries.
 
 ## Remaining
-- Execute Steps 1 through 4 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md]`.
+- Execute Tier 2 AI Hardening (`scripts/auto_hardening_runner.py`), Tier 7 As-Built Architectural Sync (`/tier7-describe-architecture`), and Tier 8 System 2 Red-Team Plan Audit (`/tier8-audit-plan`).
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md] @[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_MCP_SCHEMA_AND_TAVILY_VAULT.md] @[docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md]
 ```
 

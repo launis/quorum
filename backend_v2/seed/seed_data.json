@@ -226,18 +226,326 @@
               "fi": "Tavily AI -haku"
             }
           },
-          "description": "Search the web for current information on any topic using Tavily.",
+          "description": "Search the web for current information on any topic. Use for news, facts, or data beyond your knowledge cutoff, and before answering any question about specific facts, figures or recent events. Returns snippets and source URLs. Results are short excerpts; read a page with tavily_extract to confirm what it says.",
           "input_schema": {
             "type": "object",
             "properties": {
               "query": {
                 "type": "string",
-                "description": "The search query to submit to the Tavily search engine."
+                "description": "Search query. Keep it short and specific, in the words the page itself would use; one idea per query."
+              },
+              "max_results": {
+                "description": "The maximum number of search results to return. Ask for 10 when looking for a specific fact, page or entity.",
+                "any_of": [
+                  {
+                    "type": "integer",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "search_depth": {
+                "description": "The depth of the search. 'basic' for generic results, 'advanced' for more thorough search, 'fast' for optimized low latency with high relevance, 'ultra-fast' for prioritizing latency above all else.",
+                "any_of": [
+                  {
+                    "type": "string",
+                    "description": "",
+                    "enum_values": [
+                      "basic",
+                      "advanced",
+                      "fast",
+                      "ultra-fast"
+                    ]
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "topic": {
+                "description": "Search category. Use 'general' for almost all searches, including current events and requests that combine news with other information. Use 'news' only when the user explicitly asks for news, headlines, or news coverage.",
+                "any_of": [
+                  {
+                    "type": "string",
+                    "description": "",
+                    "enum_values": [
+                      "general",
+                      "news"
+                    ]
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "time_range": {
+                "description": "The time range back from the current date to include in the search results. Filters by when a page was published, not by when the events it describes happened.",
+                "any_of": [
+                  {
+                    "type": "string",
+                    "description": "",
+                    "enum_values": [
+                      "day",
+                      "week",
+                      "month",
+                      "year"
+                    ]
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "include_images": {
+                "description": "Include a list of query-related images in the response",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "include_image_descriptions": {
+                "description": "Include a list of query-related images and their descriptions in the response",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "include_raw_content": {
+                "description": "Include the cleaned and parsed HTML content of each search result. Whole pages can make the response too large to read; to read one page, use tavily_extract with a query instead.",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "include_domains": {
+                "description": "A list of domains to specifically include in the search results, if the user asks to search on specific sites set this to the domain of the site. Use full domains (for example 'en.wikipedia.org' or 'sec.gov'), not top-level suffixes.",
+                "any_of": [
+                  {
+                    "type": "array",
+                    "description": "",
+                    "items": {
+                      "type": "string",
+                      "description": ""
+                    }
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "exclude_domains": {
+                "description": "List of domains to specifically exclude, if the user asks to exclude a domain set this to the domain of the site",
+                "any_of": [
+                  {
+                    "type": "array",
+                    "description": "",
+                    "items": {
+                      "type": "string",
+                      "description": ""
+                    }
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "country": {
+                "description": "Boost search results from a specific country. Must be a full country name (for example 'United States', 'Japan', 'Germany').",
+                "any_of": [
+                  {
+                    "type": "string",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "include_favicon": {
+                "description": "Whether to include the favicon URL for each result",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "start_date": {
+                "description": "Will return all results after the specified start date. Required to be written in the format YYYY-MM-DD.",
+                "any_of": [
+                  {
+                    "type": "string",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "end_date": {
+                "description": "Will return all results before the specified end date. Required to be written in the format YYYY-MM-DD.",
+                "any_of": [
+                  {
+                    "type": "string",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "exact_match": {
+                "description": "Only return results containing the exact phrase(s) in quotes in your query",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "include_published_date": {
+                "description": "Include detected publication dates (beta)",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              },
+              "filter_by_published_date": {
+                "description": "Filter results to the requested date window and exclude results with no detected publication date",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
               }
             },
             "required": [
               "query"
-            ]
+            ],
+            "additional_properties": false
+          }
+        },
+        {
+          "tool_id": "tavily_extract",
+          "enabled": true,
+          "capability": "document_reader",
+          "name": {
+            "translations": {
+              "en": "Tavily Extract",
+              "fi": "Tavily-sivunlukija"
+            }
+          },
+          "description": "Extract content from URLs. Returns raw page content in markdown or text format.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "urls": {
+                "type": "array",
+                "description": "List of URLs to extract content from.",
+                "items": {
+                  "type": "string",
+                  "description": ""
+                }
+              },
+              "extract_depth": {
+                "type": "string",
+                "description": "Use 'advanced' for protected sites or tables/embedded content",
+                "enum_values": [
+                  "basic",
+                  "advanced"
+                ],
+                "default": "basic"
+              },
+              "include_images": {
+                "type": "boolean",
+                "description": "Include images from pages",
+                "default": false
+              },
+              "format": {
+                "type": "string",
+                "description": "Output format",
+                "enum_values": [
+                  "markdown",
+                  "text"
+                ],
+                "default": "markdown"
+              },
+              "include_favicon": {
+                "type": "boolean",
+                "description": "Include favicon URLs",
+                "default": false
+              },
+              "query": {
+                "type": "string",
+                "description": "Query to rerank content chunks by relevance.",
+                "default": ""
+              },
+              "include_usage": {
+                "description": "Include credit usage",
+                "any_of": [
+                  {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  {
+                    "type": "null",
+                    "description": ""
+                  }
+                ]
+              }
+            },
+            "required": [
+              "urls"
+            ],
+            "additional_properties": false
           }
         }
       ]
