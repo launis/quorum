@@ -107,6 +107,9 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
         maximum: Optional maximum numeric value.
         min_length: Optional minimum string length constraint.
         max_length: Optional maximum string length constraint.
+        min_items: Minimum array length constraint when type is array.
+        max_items: Maximum array length constraint when type is array.
+        const: Optional JSON Schema constant literal value.
         any_of: Optional list of alternative sub-schemas (anyOf).
     """
 
@@ -177,6 +180,29 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
             validation_alias=AliasChoices("maxLength", "max_length"),
             description="Maximum string length constraint.",
         ),
+    ] = None
+    # Step 1: Add JSON Schema Draft 2020-12 array bounds and constant literal fields
+    min_items: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=0,
+            validation_alias=AliasChoices("minItems", "min_items"),
+            description="Minimum array length constraint when type is array.",
+        ),
+    ] = None
+    max_items: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=0,
+            validation_alias=AliasChoices("maxItems", "max_items"),
+            description="Maximum array length constraint when type is array.",
+        ),
+    ] = None
+    const: Annotated[
+        MCPArgumentScalar | None,
+        Field(default=None, description="Optional JSON Schema constant literal value."),
     ] = None
     any_of: Annotated[
         list[MCPToolSchemaPropertyDTO] | None,

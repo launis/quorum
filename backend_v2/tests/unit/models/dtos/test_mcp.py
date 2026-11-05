@@ -570,3 +570,42 @@ def test_mcp_structured_content_and_meta_dtos_positive_and_negative() -> None:
 
     with pytest.raises(ValidationError):
         MCPStructuredErrorDetailDTO.model_validate({"error": 12345})
+
+
+def test_mcp_tools_list_result_dto_with_tavily_research_max_items_and_const_positive_and_negative() -> None:
+    """Verify MCPJsonRpcResponseDTO parses tools/list schemas with minItems, maxItems, and const in anyOf."""
+    raw_sse_jsonrpc_frame = (
+        '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"tavily_research",'
+        '"description":"Perform comprehensive research on a given topic.",'
+        '"inputSchema":{"type":"object","properties":{"input":{"type":"string",'
+        '"description":"A comprehensive description of the research task"},'
+        '"files":{"anyOf":[{"items":{"properties":{"name":{"type":"string"},'
+        '"data":{"type":"string"},"type":{"const":"base64","default":"base64",'
+        '"type":"string"}},"required":["name","data"],"type":"object"},'
+        '"minItems":1,"maxItems":5,"type":"array"},{"type":"null"}],'
+        '"default":null,"description":"Base64 .txt/.md/.json attachments"}},'
+        '"required":["input"]}}]}}'
+    )
+    parsed = MCPJsonRpcResponseDTO.model_validate_json(raw_sse_jsonrpc_frame)
+    assert isinstance(parsed.result, MCPToolsListResultDTO)
+    assert len(parsed.result.tools) == 1
+    files_prop = parsed.result.tools[0].input_schema.properties["files"]
+    assert files_prop.any_of is not None
+    array_branch = files_prop.any_of[0]
+    assert array_branch.min_items == 1
+    assert array_branch.max_items == 5
+    assert array_branch.items is not None
+    assert array_branch.items.properties is not None
+    type_prop = array_branch.items.properties["type"]
+    assert type_prop.const == "base64"
+
+    # Negative 1 (BVA min-1): minItems < 0 and maxItems < 0 must raise ValidationError
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate({"type": "array", "minItems": -1})
+
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate({"type": "array", "maxItems": -1})
+
+    # Negative 2 (Type Violation): non-scalar const value (dict) must raise ValidationError
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate({"type": "string", "const": {"nested": "invalid"}})

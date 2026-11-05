@@ -1,19 +1,29 @@
 """Unit tests for SchemaFactory dynamic Pydantic schema generation."""
 
+import pydantic
 import pytest
 from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.schema_builder import SchemaCompilerService
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, SystemRulePromptBlock
 from backend_v2.models.domain.system_config import AllowedMCPTool
 from backend_v2.models.dtos.mcp import (
     MCPToolDescriptorDTO,
     MCPToolInputSchemaDTO,
     MCPToolSchemaPropertyDTO,
 )
-from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
-from backend_v2.services.orchestrator.schema_factory import SchemaFactory
+from backend_v2.models.enums import (
+    BlockDataType,
+    JSONSchemaPropertyType,
+    PromptBlockCategory,
+    ToolCapability,
+)
+from backend_v2.services.orchestrator.schema_factory import (
+    SchemaFactory,
+    StrippedBaseTDAExtraction,
+)
 
 
 def dummy_resolve_i18n(text: str, locale: str) -> str:
@@ -51,10 +61,6 @@ def test_dunder_hallucination_rejected_by_extra_forbid() -> None:
 
     This ensures we enforce Fail-Fast validation instead of silently allowing hallucinations.
     """
-    import pydantic
-
-    from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
-
     # Simulate LLM output with hallucinated __rule_satisfied__ field
     data = {
         "exact_quotes": ["test quote"],
@@ -75,10 +81,6 @@ def test_normal_typo_still_rejected_by_extra_forbid() -> None:
 
     The before-validator MUST only strip __dunder__ keys, not normal field typos.
     """
-    import pydantic
-
-    from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
-
     data = {
         "exact_quotes": ["test quote"],
         "contextual_override": False,
@@ -93,10 +95,7 @@ def test_normal_typo_still_rejected_by_extra_forbid() -> None:
 
 def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFactory) -> None:
     """Verify that build_dynamic_schema enforces dynamic Literal validation on source_document_ids."""
-    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
-    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-
-    criteria = [
+    criteria: list[AnyPromptBlock] = [
         SystemRulePromptBlock(
             id="blk_1234567890abcdef1234567890abcdef",
             slug="test-slug-1",
@@ -311,3 +310,44 @@ def test_build_mcp_tool_declaration_positive_and_negative() -> None:
 
     with pytest.raises(AppException):
         SchemaFactory.build_mcp_tool_declaration("", tool)
+
+
+def test_create_mcp_tool_argument_model_with_const_and_array_bounds_positive_and_negative() -> None:
+    """Positive & Negative: Verify SchemaFactory compiles const into Literal and enforces strict validation."""
+    # Step 1: Verify const compilation and array bounds in SchemaFactory
+    input_schema = MCPToolInputSchemaDTO(
+        properties={
+            "encoding": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.STRING,
+                const="base64",
+                description="Attachment encoding format",
+            ),
+            "files": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.ARRAY,
+                min_items=1,
+                max_items=5,
+                items=MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                description="Attached file names",
+            ),
+        },
+        required=["encoding"],
+    )
+
+    ArgModel = SchemaFactory.create_mcp_tool_argument_model(
+        "default_mcp_gateway__tavily_research",
+        input_schema,
+    )
+
+    # Positive: exact const literal and valid string array accepted
+    valid_instance = ArgModel.model_validate({"encoding": "base64", "files": ["report.md"]})
+    dumped = valid_instance.model_dump(exclude_none=True)
+    assert dumped["encoding"] == "base64"
+    assert dumped["files"] == ["report.md"]
+
+    # Negative 1: non-matching string for const Literal raises ValidationError
+    with pytest.raises(ValidationError):
+        ArgModel.model_validate({"encoding": "utf8"})
+
+    # Negative 2: wrong scalar type (int) for const Literal raises ValidationError
+    with pytest.raises(ValidationError):
+        ArgModel.model_validate({"encoding": 12345})

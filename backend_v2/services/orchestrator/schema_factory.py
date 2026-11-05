@@ -195,6 +195,10 @@ class SchemaFactory:
         Raises:
             AppException: If an object property is missing required keys in its properties map.
         """
+        # Step 1: Compile JSON Schema const property into a strict Literal type constraint
+        if prop.const is not None:
+            return Literal.__getitem__((prop.const,))
+
         if prop.enum_values is not None and len(prop.enum_values) > 0:
             enum_tuple = tuple(prop.enum_values)
             return Literal.__getitem__(enum_tuple)
