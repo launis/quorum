@@ -167,7 +167,6 @@ void main() {
     test(
       'test_mcp_tool_schema_property_dto_min_items_max_items_and_const_positive_and_negative',
       () {
-        // Step 2: Positive deserialization of min_items, max_items, and const inside any_of
         final propJson = <String, dynamic>{
           'any_of': <Map<String, dynamic>>[
             <String, dynamic>{
@@ -228,7 +227,6 @@ void main() {
     test(
       'test_mcp_tool_schema_draft_2020_12_fields_and_defs_positive_and_negative',
       () {
-        // Phase 2, Step 2: Positive hydration of all 14 JSON Schema Draft 2020-12 fields
         final schemaJson = <String, dynamic>{
           'type': 'object',
           'defs': <String, dynamic>{

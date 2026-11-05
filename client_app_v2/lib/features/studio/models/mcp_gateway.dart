@@ -26,12 +26,10 @@ abstract class McpToolSchemaPropertyDto with _$McpToolSchemaPropertyDto {
     num? maximum,
     @JsonKey(name: 'min_length') int? minLength,
     @JsonKey(name: 'max_length') int? maxLength,
-    // Step 2: Add JSON Schema Draft 2020-12 array bounds and constant literal fields for 1:1 DTO parity
     @JsonKey(name: 'min_items') int? minItems,
     @JsonKey(name: 'max_items') int? maxItems,
     @JsonKey(name: 'const') Object? constValue,
     @JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf,
-    // Phase 2, Step 2: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
     String? format,
     String? pattern,
     @JsonKey(name: 'unique_items') bool? uniqueItems,
@@ -66,7 +64,6 @@ abstract class McpToolInputSchemaDto with _$McpToolInputSchemaDto {
     @Default(<String>[]) @JsonKey(name: 'required') List<String> requiredFields,
     @JsonKey(name: 'additional_properties') bool? additionalProperties,
     @JsonKey(name: 'schema_uri') String? schemaUri,
-    // Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
     Map<String, McpToolSchemaPropertyDto>? defs,
   }) = _McpToolInputSchemaDto;
 

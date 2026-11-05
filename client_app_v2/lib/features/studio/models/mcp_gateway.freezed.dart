@@ -15,9 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$McpToolSchemaPropertyDto {
 
- JsonSchemaPropertyType? get type; String? get title; String get description;@JsonKey(name: 'enum_values') List<String>? get enumValues; McpToolSchemaPropertyDto? get items; Map<String, McpToolSchemaPropertyDto>? get properties;@JsonKey(name: 'required') List<String>? get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'default') Object? get defaultValue; num? get minimum; num? get maximum;@JsonKey(name: 'min_length') int? get minLength;@JsonKey(name: 'max_length') int? get maxLength;// Step 2: Add JSON Schema Draft 2020-12 array bounds and constant literal fields for 1:1 DTO parity
-@JsonKey(name: 'min_items') int? get minItems;@JsonKey(name: 'max_items') int? get maxItems;@JsonKey(name: 'const') Object? get constValue;@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? get anyOf;// Phase 2, Step 2: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
- String? get format; String? get pattern;@JsonKey(name: 'unique_items') bool? get uniqueItems;@JsonKey(name: 'exclusive_minimum') num? get exclusiveMinimum;@JsonKey(name: 'exclusive_maximum') num? get exclusiveMaximum;@JsonKey(name: 'multiple_of') num? get multipleOf;@JsonKey(name: 'one_of') List<McpToolSchemaPropertyDto>? get oneOf;@JsonKey(name: 'all_of') List<McpToolSchemaPropertyDto>? get allOf; List<Object?>? get examples; bool? get deprecated;@JsonKey(name: 'read_only') bool? get readOnly;@JsonKey(name: 'write_only') bool? get writeOnly; String? get ref;
+ JsonSchemaPropertyType? get type; String? get title; String get description;@JsonKey(name: 'enum_values') List<String>? get enumValues; McpToolSchemaPropertyDto? get items; Map<String, McpToolSchemaPropertyDto>? get properties;@JsonKey(name: 'required') List<String>? get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'default') Object? get defaultValue; num? get minimum; num? get maximum;@JsonKey(name: 'min_length') int? get minLength;@JsonKey(name: 'max_length') int? get maxLength;@JsonKey(name: 'min_items') int? get minItems;@JsonKey(name: 'max_items') int? get maxItems;@JsonKey(name: 'const') Object? get constValue;@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? get anyOf; String? get format; String? get pattern;@JsonKey(name: 'unique_items') bool? get uniqueItems;@JsonKey(name: 'exclusive_minimum') num? get exclusiveMinimum;@JsonKey(name: 'exclusive_maximum') num? get exclusiveMaximum;@JsonKey(name: 'multiple_of') num? get multipleOf;@JsonKey(name: 'one_of') List<McpToolSchemaPropertyDto>? get oneOf;@JsonKey(name: 'all_of') List<McpToolSchemaPropertyDto>? get allOf; List<Object?>? get examples; bool? get deprecated;@JsonKey(name: 'read_only') bool? get readOnly;@JsonKey(name: 'write_only') bool? get writeOnly; String? get ref;
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -283,7 +281,6 @@ class _McpToolSchemaPropertyDto implements McpToolSchemaPropertyDto {
 @override final  num? maximum;
 @override@JsonKey(name: 'min_length') final  int? minLength;
 @override@JsonKey(name: 'max_length') final  int? maxLength;
-// Step 2: Add JSON Schema Draft 2020-12 array bounds and constant literal fields for 1:1 DTO parity
 @override@JsonKey(name: 'min_items') final  int? minItems;
 @override@JsonKey(name: 'max_items') final  int? maxItems;
 @override@JsonKey(name: 'const') final  Object? constValue;
@@ -296,7 +293,6 @@ class _McpToolSchemaPropertyDto implements McpToolSchemaPropertyDto {
   return EqualUnmodifiableListView(value);
 }
 
-// Phase 2, Step 2: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
 @override final  String? format;
 @override final  String? pattern;
 @override@JsonKey(name: 'unique_items') final  bool? uniqueItems;
@@ -431,8 +427,7 @@ $McpToolSchemaPropertyDtoCopyWith<$Res>? get items {
 /// @nodoc
 mixin _$McpToolInputSchemaDto {
 
- String get type; String? get title; String get description; Map<String, McpToolSchemaPropertyDto> get properties;@JsonKey(name: 'required') List<String> get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'schema_uri') String? get schemaUri;// Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
- Map<String, McpToolSchemaPropertyDto>? get defs;
+ String get type; String? get title; String get description; Map<String, McpToolSchemaPropertyDto> get properties;@JsonKey(name: 'required') List<String> get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'schema_uri') String? get schemaUri; Map<String, McpToolSchemaPropertyDto>? get defs;
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -648,9 +643,7 @@ class _McpToolInputSchemaDto implements McpToolInputSchemaDto {
 
 @override@JsonKey(name: 'additional_properties') final  bool? additionalProperties;
 @override@JsonKey(name: 'schema_uri') final  String? schemaUri;
-// Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
  final  Map<String, McpToolSchemaPropertyDto>? _defs;
-// Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
 @override Map<String, McpToolSchemaPropertyDto>? get defs {
   final value = _defs;
   if (value == null) return null;
