@@ -1524,6 +1524,28 @@
         }
       }
     },
+    "/api/v2/system/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Get System Health",
+        "description": "Evaluates in-memory lifespan readiness and returns Cloud Run health probe status.\n\nArgs:\n    request: Active HTTP request providing access to FastAPI application state.\n\nReturns:\n    Typed HealthCheckResponseDTO reporting operational status and deployment metadata.\n\nRaises:\n    AppException: With error code `INTERNAL_SERVER_ERROR` if an unexpected\n        failure occurs during health evaluation, or re-raises any upstream `AppException`.",
+        "operationId": "get_system_health_api_v2_system_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/system/hooks": {
       "get": {
         "tags": [
@@ -12147,6 +12169,64 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HealthCheckResponseDTO": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "description": "Service operational status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Version",
+            "description": "Application semantic version"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "development",
+              "production"
+            ],
+            "title": "Environment",
+            "description": "Active runtime environment stage"
+          },
+          "storage_backend": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Storage Backend",
+            "description": "Active storage backend identifier"
+          },
+          "gcp_region": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Gcp Region",
+            "description": "Configured GCP deployment region"
+          },
+          "primary_domain": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Primary Domain",
+            "description": "Canonical production domain"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "environment",
+          "storage_backend",
+          "gcp_region",
+          "primary_domain"
+        ],
+        "title": "HealthCheckResponseDTO",
+        "description": "Schema for Cloud Run and Cloud Load Balancer health probe responses.\n\nAttributes:\n    status: Service operational status ('ok' or 'degraded').\n    version: Application semantic version.\n    environment: Active runtime environment stage.\n    storage_backend: Active storage backend identifier.\n    gcp_region: Configured GCP deployment region.\n    primary_domain: Canonical production domain."
+      },
       "HeroInsightBlock": {
         "properties": {
           "id": {
@@ -14436,6 +14516,43 @@
             "title": "Maxlength",
             "description": "Maximum string length constraint."
           },
+          "minItems": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minitems",
+            "description": "Minimum array length constraint when type is array."
+          },
+          "maxItems": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxitems",
+            "description": "Maximum array length constraint when type is array."
+          },
+          "const": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPArgumentScalar"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional JSON Schema constant literal value."
+          },
           "anyOf": {
             "anyOf": [
               {
@@ -14455,7 +14572,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "MCPToolSchemaPropertyDTO",
-        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
+        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    min_items: Minimum array length constraint when type is array.\n    max_items: Maximum array length constraint when type is array.\n    const: Optional JSON Schema constant literal value.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
       },
       "MCPToolSchemaPropertyDTO-Output": {
         "properties": {
@@ -14623,6 +14740,43 @@
             "title": "Max Length",
             "description": "Maximum string length constraint."
           },
+          "min_items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Items",
+            "description": "Minimum array length constraint when type is array."
+          },
+          "max_items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Items",
+            "description": "Maximum array length constraint when type is array."
+          },
+          "const": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPArgumentScalar"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional JSON Schema constant literal value."
+          },
           "any_of": {
             "anyOf": [
               {
@@ -14642,7 +14796,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "MCPToolSchemaPropertyDTO",
-        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
+        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    min_items: Minimum array length constraint when type is array.\n    max_items: Maximum array length constraint when type is array.\n    const: Optional JSON Schema constant literal value.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
       },
       "MCPTransportType": {
         "type": "string",
