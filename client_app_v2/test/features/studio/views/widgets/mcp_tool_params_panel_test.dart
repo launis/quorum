@@ -15,7 +15,7 @@ void main() {
     setUp(() {
       mockGateways = <McpGateway>[
         const McpGateway(
-          id: 'sys_1111222233334444',
+          id: 'sys_0195f3a0000070008000111122223333',
           slug: 'exa_gateway',
           endpointUrl: 'https://mcp.exa.ai/mcp',
           transportType: McpTransportType.streamableHttp,
@@ -51,7 +51,7 @@ void main() {
           ],
         ),
         const McpGateway(
-          id: 'sys_5555666677778888',
+          id: 'sys_0195f3a0000070008000555566667777',
           slug: 'tavily_gateway',
           endpointUrl: 'https://mcp.tavily.com/mcp',
           transportType: McpTransportType.streamableHttp,
@@ -358,7 +358,7 @@ void main() {
       (WidgetTester tester) async {
         const List<McpGateway> brokenGateways = <McpGateway>[
           McpGateway(
-            id: 'sys_9999888877776666',
+            id: 'sys_0195f3a0000070008000999988887777',
             slug: 'broken_gateway',
             endpointUrl: 'https://mcp.example.com/mcp',
             transportType: McpTransportType.streamableHttp,
@@ -409,7 +409,7 @@ void main() {
         const String alias = 'custom_gateway__topic_filter_tool';
         const List<McpGateway> stringGateways = <McpGateway>[
           McpGateway(
-            id: 'sys_1234123412341234',
+            id: 'sys_0195f3a0000070008000123412341234',
             slug: 'custom_gateway',
             endpointUrl: 'https://mcp.example.com/mcp',
             transportType: McpTransportType.streamableHttp,
@@ -527,7 +527,6 @@ void main() {
     testWidgets(
       'mcp_tool_params_panel_unwraps_nullable_any_of_and_parses_string_arrays (TC-STUDIO-UI-06)',
       (WidgetTester tester) async {
-        // Phase 3, Step 3: Verify nullable anyOf unwrapping and string-array controls
         const String alias = 'default_mcp_gateway__tavily_search';
         const List<McpGateway> tavilyGateways = <McpGateway>[
           McpGateway(

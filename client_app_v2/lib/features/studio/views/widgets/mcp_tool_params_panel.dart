@@ -244,7 +244,6 @@ class McpToolParamsPanel extends StatelessWidget {
   McpToolSchemaPropertyDto _resolveEffectiveProperty(
     McpToolSchemaPropertyDto prop,
   ) {
-    // Phase 3, Step 3: Unwrap first non-null branch from prop.anyOf or prop.oneOf
     if (prop.type != null ||
         (prop.enumValues != null && prop.enumValues!.isNotEmpty)) {
       return prop;
@@ -379,7 +378,6 @@ class McpToolParamsPanel extends StatelessWidget {
       );
     }
 
-    // Phase 3, Step 3: Render string-array parameters as comma-separated List<String> controls
     if (effectiveProp.type == JsonSchemaPropertyType.array) {
       final String? hintText = effectiveProp.defaultValue != null
           ? l10n.mcpToolParamsDefaultHint(effectiveProp.defaultValue.toString())
