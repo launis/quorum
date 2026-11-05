@@ -32,20 +32,8 @@ class ErrorInterceptor extends Interceptor {
       logger.error('HTTP', 'Response Body: ${err.response?.data}');
     }
 
-    // Intercept 401/403 gateway responses eagerly because upstream proxies may omit RFC 7807 bodies.
-    if (err.response?.statusCode == 401 || err.response?.statusCode == 403) {
-      handler.reject(
-        DioException(
-          requestOptions: err.requestOptions,
-          response: err.response,
-          type: err.type,
-          error: AppException.unauthorized(),
-        ),
-      );
-      return;
-    }
-
-    // Parse structured RFC 7807 Problem Details or FastAPI 422 validation payloads when present.
+    // Step 2: Parse structured RFC 7807 Problem Details or FastAPI 422 validation payloads first
+    // so HTTP 403 SECURITY_VIOLATION / PERMISSION_DENIED payloads are preserved before the bare 401/403 fallback.
     if (err.response?.data != null &&
         err.response!.data is Map<String, Object?>) {
       final data = err.response!.data as Map<String, Object?>;
@@ -92,6 +80,19 @@ class ErrorInterceptor extends Interceptor {
         );
         return;
       }
+    }
+
+    // Intercept non-RFC 401/403 gateway responses because upstream proxies may omit RFC 7807 bodies.
+    if (err.response?.statusCode == 401 || err.response?.statusCode == 403) {
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          response: err.response,
+          type: err.type,
+          error: AppException.unauthorized(),
+        ),
+      );
+      return;
     }
 
     // Map transport-level timeouts and socket failures to AppException.network for graceful UI degradation.

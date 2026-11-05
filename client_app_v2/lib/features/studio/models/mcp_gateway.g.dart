@@ -28,6 +28,9 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
         'maximum',
         'min_length',
         'max_length',
+        'min_items',
+        'max_items',
+        'const',
         'any_of',
       ],
     );
@@ -70,6 +73,9 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
       maximum: $checkedConvert('maximum', (v) => v as num?),
       minLength: $checkedConvert('min_length', (v) => (v as num?)?.toInt()),
       maxLength: $checkedConvert('max_length', (v) => (v as num?)?.toInt()),
+      minItems: $checkedConvert('min_items', (v) => (v as num?)?.toInt()),
+      maxItems: $checkedConvert('max_items', (v) => (v as num?)?.toInt()),
+      constValue: $checkedConvert('const', (v) => v),
       anyOf: $checkedConvert(
         'any_of',
         (v) => (v as List<dynamic>?)
@@ -89,6 +95,9 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
     'defaultValue': 'default',
     'minLength': 'min_length',
     'maxLength': 'max_length',
+    'minItems': 'min_items',
+    'maxItems': 'max_items',
+    'constValue': 'const',
     'anyOf': 'any_of',
   },
 );
@@ -109,6 +118,9 @@ Map<String, dynamic> _$McpToolSchemaPropertyDtoToJson(
   'maximum': instance.maximum,
   'min_length': instance.minLength,
   'max_length': instance.maxLength,
+  'min_items': instance.minItems,
+  'max_items': instance.maxItems,
+  'const': instance.constValue,
   'any_of': instance.anyOf?.map((e) => e.toJson()).toList(),
 };
 

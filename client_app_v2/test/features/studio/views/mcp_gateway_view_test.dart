@@ -335,5 +335,37 @@ void main() {
 
       expect(find.byType(ErrorView), findsOneWidget);
     });
+
+    testWidgets(
+      'negative ISTQB partition: empty endpointUrl displays validation MaterialBanner without calling discoverTools',
+      (tester) async {
+        // Step 2: Verify Fail-Fast empty endpointUrl guard on Connect and Discover Tools
+        tester.view.physicalSize = const Size(1920, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final emptyUrlGateway = testGateway.copyWith(endpointUrl: '   ');
+        final controller = MockMcpGatewayFormController(emptyUrlGateway);
+        await tester.pumpWidget(
+          createTestWidget(
+            gateway: emptyUrlGateway,
+            customController: controller,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final discoverBtn = find.text('Connect and Discover Tools');
+        expect(discoverBtn, findsOneWidget);
+        await tester.tap(discoverBtn);
+        await tester.pumpAndSettle();
+
+        expect(controller.discoverCalled, isFalse);
+        expect(find.byType(MaterialBanner), findsOneWidget);
+        expect(find.textContaining('Validation failed.'), findsOneWidget);
+      },
+    );
   });
 }

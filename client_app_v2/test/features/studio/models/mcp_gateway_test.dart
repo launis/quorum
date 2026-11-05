@@ -163,5 +163,66 @@ void main() {
         ),
       );
     });
+
+    test(
+      'test_mcp_tool_schema_property_dto_min_items_max_items_and_const_positive_and_negative',
+      () {
+        // Step 2: Positive deserialization of min_items, max_items, and const inside any_of
+        final propJson = <String, dynamic>{
+          'any_of': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'type': 'array',
+              'min_items': 1,
+              'max_items': 5,
+              'items': <String, dynamic>{
+                'type': 'object',
+                'properties': <String, dynamic>{
+                  'type': <String, dynamic>{
+                    'type': 'string',
+                    'const': 'base64',
+                  },
+                },
+              },
+            },
+          ],
+        };
+
+        final parsed = McpToolSchemaPropertyDto.fromJson(propJson);
+        expect(parsed.anyOf, isNotNull);
+        expect(parsed.anyOf!.first.minItems, equals(1));
+        expect(parsed.anyOf!.first.maxItems, equals(5));
+        expect(
+          parsed.anyOf!.first.items?.properties?['type']?.constValue,
+          equals('base64'),
+        );
+
+        // Negative 1: Unrecognized key rejected by disallowUnrecognizedKeys: true
+        expect(
+          () => McpToolSchemaPropertyDto.fromJson(<String, dynamic>{
+            'type': 'array',
+            'min_items': 1,
+            'unrecognized_schema_key': true,
+          }),
+          throwsA(
+            anyOf(isA<FormatException>(), isA<CheckedFromJsonException>()),
+          ),
+        );
+
+        // Negative 2: Wrong type for min_items (String instead of int) rejected
+        expect(
+          () => McpToolSchemaPropertyDto.fromJson(<String, dynamic>{
+            'type': 'array',
+            'min_items': 'not_an_int',
+          }),
+          throwsA(
+            anyOf(
+              isA<TypeError>(),
+              isA<FormatException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+      },
+    );
   });
 }

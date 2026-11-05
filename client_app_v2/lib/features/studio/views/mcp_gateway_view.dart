@@ -156,6 +156,13 @@ class McpGatewayView extends HookConsumerWidget {
         formKey.currentState!.save();
         try {
           final current = ref.read(mcpGatewayFormProvider(id)).value ?? payload;
+          // Step 2: Fail-Fast on empty endpointUrl before dispatching network discovery requests
+          if (current.endpointUrl.trim().isEmpty) {
+            bannerMessage.value =
+                '${l10n.errorValidation}\n\n${l10n.actionHintCheckUrl}';
+            isBannerError.value = true;
+            return;
+          }
           final notifier = ref.read(mcpGatewayFormProvider(id).notifier);
           await notifier.discoverTools(current);
           if (!context.mounted) return;

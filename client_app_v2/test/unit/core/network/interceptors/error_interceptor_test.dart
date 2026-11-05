@@ -287,5 +287,46 @@ void main() {
         expect(fallbackException.status, equals(500));
       },
     );
+
+    test(
+      'Positive 3: preserves structured RFC 7807 HTTP 403 SECURITY_VIOLATION payload instead of overwriting with AUTHENTICATION_FAILED',
+      () {
+        // Step 2: Verify HTTP 403 RFC 7807 Problem Details is parsed into AppException(status: 403, errorCode: SECURITY_VIOLATION)
+        final interceptor = resolveInterceptor();
+        final requestOptions = RequestOptions(
+          path:
+              '/api/v2/studio/mcp-gateways/sys_01a18adecd8e723d87a53fe3fee83fd3/discover',
+          method: 'POST',
+        );
+        final rfc403Payload = <String, Object?>{
+          'type': 'https://api.quorum.fi/errors/security-violation',
+          'title': 'Security Violation',
+          'status': 403,
+          'detail': 'MCP endpoint URL must not be empty.',
+          'request_id': 'req_0195f3a0000070008000000000000043',
+          'extensions': <String, Object?>{'error_code': 'SECURITY_VIOLATION'},
+        };
+        final dioError = DioException(
+          requestOptions: requestOptions,
+          type: DioExceptionType.badResponse,
+          response: Response<Object?>(
+            requestOptions: requestOptions,
+            statusCode: 403,
+            data: rfc403Payload,
+          ),
+        );
+
+        interceptor.onError(dioError, mockErrorHandler);
+
+        final appException = captureRejectedAppException();
+        expect(appException.status, equals(403));
+        expect(appException.title, equals('Security Violation'));
+        expect(
+          appException.detail,
+          equals('MCP endpoint URL must not be empty.'),
+        );
+        expect(appException.errorCode, equals('SECURITY_VIOLATION'));
+      },
+    );
   });
 }

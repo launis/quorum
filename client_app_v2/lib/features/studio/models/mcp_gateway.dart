@@ -26,6 +26,10 @@ abstract class McpToolSchemaPropertyDto with _$McpToolSchemaPropertyDto {
     num? maximum,
     @JsonKey(name: 'min_length') int? minLength,
     @JsonKey(name: 'max_length') int? maxLength,
+    // Step 2: Add JSON Schema Draft 2020-12 array bounds and constant literal fields for 1:1 DTO parity
+    @JsonKey(name: 'min_items') int? minItems,
+    @JsonKey(name: 'max_items') int? maxItems,
+    @JsonKey(name: 'const') Object? constValue,
     @JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf,
   }) = _McpToolSchemaPropertyDto;
 
