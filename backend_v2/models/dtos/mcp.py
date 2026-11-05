@@ -111,6 +111,19 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
         max_items: Maximum array length constraint when type is array.
         const: Optional JSON Schema constant literal value.
         any_of: Optional list of alternative sub-schemas (anyOf).
+        format: Optional string semantic format hint (for example 'uri', 'date-time', 'email').
+        pattern: Optional ECMA-262 regular expression pattern for string validation.
+        unique_items: Whether array items must be unique.
+        exclusive_minimum: Optional exclusive lower numeric bound.
+        exclusive_maximum: Optional exclusive upper numeric bound.
+        multiple_of: Optional numeric divisor constraint (must be strictly positive).
+        one_of: Optional list of mutually exclusive sub-schemas (oneOf).
+        all_of: Optional list of intersected sub-schemas (allOf).
+        examples: Optional list of example values for this property.
+        deprecated: Whether this parameter is marked deprecated.
+        read_only: Whether this property is marked read-only.
+        write_only: Whether this property is marked write-only.
+        ref: Optional JSON Schema $ref pointer string.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -212,6 +225,98 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
             description="Alternative sub-schemas.",
         ),
     ] = None
+    # Phase 1, Step 1: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
+    format: Annotated[
+        str | None,
+        Field(
+            default=None, description="Optional string semantic format hint (for example 'uri', 'date-time', 'email')."
+        ),
+    ] = None
+    pattern: Annotated[
+        str | None,
+        Field(default=None, description="Optional ECMA-262 regular expression pattern for string validation."),
+    ] = None
+    unique_items: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("uniqueItems", "unique_items"),
+            description="Whether array items must be unique.",
+        ),
+    ] = None
+    exclusive_minimum: Annotated[
+        int | float | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("exclusiveMinimum", "exclusive_minimum"),
+            description="Optional exclusive lower numeric bound.",
+        ),
+    ] = None
+    exclusive_maximum: Annotated[
+        int | float | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("exclusiveMaximum", "exclusive_maximum"),
+            description="Optional exclusive upper numeric bound.",
+        ),
+    ] = None
+    multiple_of: Annotated[
+        int | float | None,
+        Field(
+            default=None,
+            gt=0,
+            validation_alias=AliasChoices("multipleOf", "multiple_of"),
+            description="Optional numeric divisor constraint (must be strictly positive).",
+        ),
+    ] = None
+    one_of: Annotated[
+        list[MCPToolSchemaPropertyDTO] | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("oneOf", "one_of"),
+            description="Optional list of mutually exclusive sub-schemas (oneOf).",
+        ),
+    ] = None
+    all_of: Annotated[
+        list[MCPToolSchemaPropertyDTO] | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("allOf", "all_of"),
+            description="Optional list of intersected sub-schemas (allOf).",
+        ),
+    ] = None
+    examples: Annotated[
+        list[MCPArgumentValue] | None,
+        Field(default=None, description="Optional list of example values for this property."),
+    ] = None
+    deprecated: Annotated[
+        bool | None,
+        Field(default=None, description="Whether this parameter is marked deprecated."),
+    ] = None
+    read_only: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("readOnly", "read_only"),
+            description="Whether this property is marked read-only.",
+        ),
+    ] = None
+    write_only: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("writeOnly", "write_only"),
+            description="Whether this property is marked write-only.",
+        ),
+    ] = None
+    ref: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("$ref", "ref"),
+            description="Optional JSON Schema $ref pointer string.",
+        ),
+    ] = None
 
 
 MCPToolSchemaPropertyDTO.model_rebuild()
@@ -228,6 +333,7 @@ class MCPToolInputSchemaDTO(V2CoreBase):
         required: List of required top-level parameter names.
         additional_properties: Optional flag restricting additional top-level properties.
         schema_uri: Optional JSON Schema Draft URI specification.
+        defs: Optional reusable sub-schema definitions map ($defs).
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -260,6 +366,15 @@ class MCPToolInputSchemaDTO(V2CoreBase):
             default=None,
             validation_alias=AliasChoices("$schema", "schema_uri", "schema"),
             description="JSON Schema Draft URI specification.",
+        ),
+    ] = None
+    # Phase 1, Step 1: Add reusable sub-schema definitions map ($defs)
+    defs: Annotated[
+        dict[str, MCPToolSchemaPropertyDTO] | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("$defs", "definitions", "defs"),
+            description="Optional reusable sub-schema definitions map ($defs).",
         ),
     ] = None
 

@@ -72,21 +72,13 @@ def test_mcp_tool_declaration_dto() -> None:
 
 def test_mcp_tool_schema_property_dto_aliases_and_recursion() -> None:
     """Test MCPToolSchemaPropertyDTO AliasChoices for enum/enum_values and additionalProperties."""
-    raw_prop = {
-        "type": "object",
-        "title": "FilterOptions",
-        "description": "Nested object filter",
-        "enum": ["a", "b"],
-        "additionalProperties": False,
-        "properties": {
-            "limit": {
-                "type": "integer",
-                "description": "Max items",
-            }
-        },
-        "required": ["limit"],
-    }
-    prop = MCPToolSchemaPropertyDTO.model_validate(raw_prop)
+    raw_prop_json = (
+        '{"type":"object","title":"FilterOptions","description":"Nested object filter",'
+        '"enum":["a","b"],"additionalProperties":false,'
+        '"properties":{"limit":{"type":"integer","description":"Max items"}},'
+        '"required":["limit"]}'
+    )
+    prop = MCPToolSchemaPropertyDTO.model_validate_json(raw_prop_json)
     assert prop.type == JSONSchemaPropertyType.OBJECT
     assert prop.title == "FilterOptions"
     assert prop.enum_values == ["a", "b"]
@@ -94,8 +86,8 @@ def test_mcp_tool_schema_property_dto_aliases_and_recursion() -> None:
     assert prop.properties is not None
     assert prop.properties["limit"].type == JSONSchemaPropertyType.INTEGER
 
-    dumped = prop.model_dump(mode="json")
-    rehydrated = MCPToolSchemaPropertyDTO.model_validate(dumped)
+    dumped_json = prop.model_dump_json()
+    rehydrated = MCPToolSchemaPropertyDTO.model_validate_json(dumped_json)
     assert rehydrated == prop
 
 
@@ -147,40 +139,25 @@ def test_mcp_json_rpc_wire_dtos_roundtrip() -> None:
     )
     assert call_req.id == "req-2"
 
-    wire_tools_resp = {
-        "jsonrpc": "2.0",
-        "id": 2,
-        "result": {
-            "tools": [
-                {
-                    "name": "mcp_search",
-                    "description": "Search via MCP",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {"query": {"type": "string"}},
-                        "required": ["query"],
-                        "additionalProperties": False,
-                    },
-                }
-            ]
-        },
-    }
-    parsed_tools_resp = MCPJsonRpcResponseDTO.model_validate(wire_tools_resp)
+    wire_tools_resp_json = (
+        '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"mcp_search",'
+        '"description":"Search via MCP","inputSchema":{"type":"object",'
+        '"properties":{"query":{"type":"string"}},"required":["query"],'
+        '"additionalProperties":false}}]}}'
+    )
+    parsed_tools_resp = MCPJsonRpcResponseDTO.model_validate_json(wire_tools_resp_json)
     assert isinstance(parsed_tools_resp.result, MCPToolsListResultDTO)
     assert len(parsed_tools_resp.result.tools) == 1
     discovered: MCPDiscoveredToolWireDTO = parsed_tools_resp.result.tools[0]
     assert discovered.name == "mcp_search"
     assert discovered.input_schema.additional_properties is False
 
-    wire_call_resp = {
-        "jsonrpc": "2.0",
-        "id": 3,
-        "result": {
-            "content": [{"type": "text", "text": "Result payload", "mimeType": "text/plain"}],
-            "isError": False,
-        },
-    }
-    parsed_call_resp = MCPJsonRpcResponseDTO.model_validate(wire_call_resp)
+    wire_call_resp_json = (
+        '{"jsonrpc":"2.0","id":3,"result":{"content":['
+        '{"type":"text","text":"Result payload","mimeType":"text/plain"}],'
+        '"isError":false}}'
+    )
+    parsed_call_resp = MCPJsonRpcResponseDTO.model_validate_json(wire_call_resp_json)
     assert isinstance(parsed_call_resp.result, MCPToolCallResultDTO)
     assert parsed_call_resp.result.is_error is False
     block: MCPContentBlockDTO = parsed_call_resp.result.content[0]
@@ -199,38 +176,31 @@ def test_mcp_json_rpc_wire_dtos_roundtrip() -> None:
 
 def test_mcp_dto_missing_required() -> None:
     """Test validation errors when required arguments are missing."""
-    empty_payload: dict[str, str] = {}
     with pytest.raises(ValidationError):
-        _ = ParsedMCPToolAliasDTO.model_validate(empty_payload)
+        _ = ParsedMCPToolAliasDTO.model_validate_json("{}")
 
     with pytest.raises(ValidationError):
-        _ = MCPToolDeclarationDTO.model_validate(empty_payload)
+        _ = MCPToolDeclarationDTO.model_validate_json("{}")
 
 
 def test_parsed_mcp_tool_alias_dto_negative_extra_forbid() -> None:
     """Test ParsedMCPToolAliasDTO rejects extra forbidden fields."""
-    invalid_req: dict[str, str] = {"gateway_slug": "gw", "tool_id": "t1", "extra_field": "bad"}
     with pytest.raises(ValidationError):
-        ParsedMCPToolAliasDTO.model_validate(invalid_req)
+        ParsedMCPToolAliasDTO.model_validate_json('{"gateway_slug":"gw","tool_id":"t1","extra_field":"bad"}')
 
 
 def test_mcp_function_definition_dto_negative_extra_forbid() -> None:
     """Test MCPFunctionDefinitionDTO rejects extra forbidden fields."""
-    invalid_fn = {
-        "name": "fn",
-        "description": "desc",
-        "parameters": {},
-        "extra_field": "bad",
-    }
     with pytest.raises(ValidationError):
-        MCPFunctionDefinitionDTO.model_validate(invalid_fn)
+        MCPFunctionDefinitionDTO.model_validate_json(
+            '{"name":"fn","description":"desc","parameters":{},"extra_field":"bad"}'
+        )
 
 
 def test_parsed_mcp_tool_alias_dto_negative_strict_type() -> None:
     """Test strict type validation rejects integer for tool_id string."""
-    invalid_type_payload: dict[str, str | int] = {"gateway_slug": "gw", "tool_id": 12345}
     with pytest.raises(ValidationError):
-        ParsedMCPToolAliasDTO.model_validate(invalid_type_payload)
+        ParsedMCPToolAliasDTO.model_validate_json('{"gateway_slug":"gw","tool_id":12345}')
 
 
 def test_mcp_tool_invocation_dto_negative_invalid_gateway_id() -> None:
@@ -266,10 +236,10 @@ def test_mcp_validation_context_dto_positive_and_negative() -> None:
     assert ctx.alias_registry["src_0"] == "doc_0195f3a0000070088172bda70c8641c5"
 
     with pytest.raises(ValidationError):
-        MCPValidationContextDTO.model_validate({"strictness_level": "not_a_number"})
+        MCPValidationContextDTO.model_validate_json('{"strictness_level":"not_a_number"}')
 
     with pytest.raises(ValidationError):
-        MCPValidationContextDTO.model_validate({"unexpected_key": True})
+        MCPValidationContextDTO.model_validate_json('{"unexpected_key":true}')
 
 
 def test_mcp_initialize_result_dto_with_complex_server_info_metadata() -> None:
@@ -279,39 +249,18 @@ def test_mcp_initialize_result_dto_with_complex_server_info_metadata() -> None:
     with icons and metadata. Exa AI and other MCP servers return serverInfo with
     lists of icons and strings, which must not fail validation with string_type errors.
     """
-    raw_response = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {
-                "tools": {"listChanged": True},
-                "prompts": {"listChanged": True},
-                "resources": {"listChanged": True},
-            },
-            "serverInfo": {
-                "name": "exa-search-server",
-                "title": "Exa",
-                "version": "3.5.0",
-                "description": "Exa web search, page fetching and research-agent tools for AI agents over MCP.",
-                "websiteUrl": "https://exa.ai",
-                "icons": [
-                    {
-                        "src": "https://exa.ai/images/logo/exa-logomark-blue.svg",
-                        "mimeType": "image/svg+xml",
-                        "sizes": ["any"],
-                    },
-                    {
-                        "src": "https://exa.ai/images/favicon-32x32.png",
-                        "mimeType": "image/png",
-                        "sizes": ["32x32"],
-                    },
-                ],
-            },
-            "instructions": "Only use tools returned by tools/list.",
-        },
-    }
-    parsed = MCPJsonRpcResponseDTO.model_validate(raw_response)
+    raw_response_json = (
+        '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05",'
+        '"capabilities":{"tools":{"listChanged":true},"prompts":{"listChanged":true},'
+        '"resources":{"listChanged":true}},'
+        '"serverInfo":{"name":"exa-search-server","title":"Exa","version":"3.5.0",'
+        '"description":"Exa web search, page fetching and research-agent tools for AI agents over MCP.",'
+        '"websiteUrl":"https://exa.ai",'
+        '"icons":[{"src":"https://exa.ai/images/logo/exa-logomark-blue.svg","mimeType":"image/svg+xml","sizes":["any"]},'
+        '{"src":"https://exa.ai/images/favicon-32x32.png","mimeType":"image/png","sizes":["32x32"]}]},'
+        '"instructions":"Only use tools returned by tools/list."}}'
+    )
+    parsed = MCPJsonRpcResponseDTO.model_validate_json(raw_response_json)
     assert isinstance(parsed.result, MCPInitializeResultDTO)
     assert parsed.result.server_info.name == "exa-search-server"
     assert parsed.result.server_info.title == "Exa"
@@ -323,16 +272,16 @@ def test_mcp_initialize_result_dto_with_complex_server_info_metadata() -> None:
     assert parsed.result.server_info.icons[0].sizes == ["any"]
 
     with pytest.raises(ValidationError):
-        MCPServerInfoDTO.model_validate({"name": "exa", "unexpected_field": "forbidden"})
+        MCPServerInfoDTO.model_validate_json('{"name":"exa","unexpected_field":"forbidden"}')
 
     with pytest.raises(ValidationError):
-        MCPIconDTO.model_validate({"src": "https://exa.ai/icon.png", "unexpected_icon_field": True})
+        MCPIconDTO.model_validate_json('{"src":"https://exa.ai/icon.png","unexpected_icon_field":true}')
 
     with pytest.raises(ValidationError):
-        MCPIconDTO.model_validate({"mimeType": "image/png"})
+        MCPIconDTO.model_validate_json('{"mimeType":"image/png"}')
 
     with pytest.raises(ValidationError):
-        MCPIconDTO.model_validate({"src": 12345})
+        MCPIconDTO.model_validate_json('{"src":12345}')
 
 
 def test_mcp_tools_list_result_dto_with_exa_metadata() -> None:
@@ -342,80 +291,26 @@ def test_mcp_tools_list_result_dto_with_exa_metadata() -> None:
     containing $schema, minLength, maxLength, and execution metadata without failing
     with extra_forbidden validation errors.
     """
-    raw_response = {
-        "jsonrpc": "2.0",
-        "id": 2,
-        "result": {
-            "tools": [
-                {
-                    "name": "web_search_exa",
-                    "title": "Web Search",
-                    "description": "Search the web for any topic.",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": "Natural language search query.",
-                            },
-                            "numResults": {
-                                "type": "number",
-                                "description": "Number of search results.",
-                            },
-                            "objective": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 4096,
-                                "description": "Goal for this search turn.",
-                            },
-                        },
-                        "required": ["query", "objective"],
-                        "additionalProperties": False,
-                        "$schema": "http://json-schema.org/draft-07/schema#",
-                    },
-                    "annotations": {
-                        "readOnlyHint": True,
-                        "destructiveHint": False,
-                        "openWorldHint": True,
-                        "idempotentHint": True,
-                    },
-                    "execution": {"taskSupport": "forbidden"},
-                },
-                {
-                    "name": "web_fetch_exa",
-                    "title": "Fetch Web Pages",
-                    "description": "Read a webpage's full content as clean markdown.",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "urls": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "URLs to read.",
-                            },
-                            "maxCharacters": {
-                                "type": "number",
-                                "minimum": 1,
-                                "description": "Maximum characters to extract.",
-                            },
-                        },
-                        "required": ["urls"],
-                        "additionalProperties": False,
-                        "$schema": "http://json-schema.org/draft-07/schema#",
-                    },
-                    "annotations": {
-                        "readOnlyHint": True,
-                        "destructiveHint": False,
-                        "openWorldHint": True,
-                        "idempotentHint": True,
-                    },
-                    "execution": {"taskSupport": "forbidden"},
-                },
-            ]
-        },
-    }
-    parsed = MCPJsonRpcResponseDTO.model_validate(raw_response)
+    raw_response_json = (
+        '{"jsonrpc":"2.0","id":2,"result":{"tools":['
+        '{"name":"web_search_exa","title":"Web Search","description":"Search the web for any topic.",'
+        '"inputSchema":{"type":"object","properties":{'
+        '"query":{"type":"string","minLength":1,"description":"Natural language search query."},'
+        '"numResults":{"type":"number","description":"Number of search results."},'
+        '"objective":{"type":"string","minLength":1,"maxLength":4096,"description":"Goal for this search turn."}'
+        '},"required":["query","objective"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"},'
+        '"annotations":{"readOnlyHint":true,"destructiveHint":false,"openWorldHint":true,"idempotentHint":true},'
+        '"execution":{"taskSupport":"forbidden"}},'
+        '{"name":"web_fetch_exa","title":"Fetch Web Pages","description":"Read a webpage\'s full content as clean markdown.",'
+        '"inputSchema":{"type":"object","properties":{'
+        '"urls":{"type":"array","items":{"type":"string"},"description":"URLs to read."},'
+        '"maxCharacters":{"type":"number","minimum":1,"description":"Maximum characters to extract."}'
+        '},"required":["urls"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"},'
+        '"annotations":{"readOnlyHint":true,"destructiveHint":false,"openWorldHint":true,"idempotentHint":true},'
+        '"execution":{"taskSupport":"forbidden"}}'
+        "]}}"
+    )
+    parsed = MCPJsonRpcResponseDTO.model_validate_json(raw_response_json)
     assert isinstance(parsed.result, MCPToolsListResultDTO)
     assert len(parsed.result.tools) == 2
 
@@ -434,36 +329,26 @@ def test_mcp_tools_list_result_dto_with_exa_metadata() -> None:
     assert tool_1.execution.task_support == "forbidden"
 
     with pytest.raises(ValidationError):
-        MCPToolExecutionDTO.model_validate({"taskSupport": "forbidden", "unknownField": "invalid"})
+        MCPToolExecutionDTO.model_validate_json('{"taskSupport":"forbidden","unknownField":"invalid"}')
 
     with pytest.raises(ValidationError):
-        MCPToolInputSchemaDTO.model_validate({"type": "object", "unexpectedSchemaField": True})
+        MCPToolInputSchemaDTO.model_validate_json('{"type":"object","unexpectedSchemaField":true}')
 
     with pytest.raises(ValidationError):
-        MCPToolSchemaPropertyDTO.model_validate({"type": "string", "minLength": -1})
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"string","minLength":-1}')
 
     with pytest.raises(ValidationError):
-        MCPToolSchemaPropertyDTO.model_validate({"type": "string", "maxLength": -5})
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"string","maxLength":-5}')
 
 
 def test_mcp_tool_call_result_with_content_execution_meta() -> None:
     """Verify MCPToolCallResultDTO and MCPJsonRpcResponseDTO accept content _meta from search tools."""
-    wire_call_resp = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Search results from Exa",
-                    "_meta": {"searchTime": 906.5},
-                }
-            ],
-            "isError": False,
-            "_meta": {"searchTime": 906.5},
-        },
-    }
-    parsed = MCPJsonRpcResponseDTO.model_validate(wire_call_resp)
+    wire_call_resp_json = (
+        '{"jsonrpc":"2.0","id":1,"result":{"content":['
+        '{"type":"text","text":"Search results from Exa","_meta":{"searchTime":906.5}}],'
+        '"isError":false,"_meta":{"searchTime":906.5}}}'
+    )
+    parsed = MCPJsonRpcResponseDTO.model_validate_json(wire_call_resp_json)
     assert isinstance(parsed.result, MCPToolCallResultDTO)
     assert parsed.result.content[0].meta is not None
     assert parsed.result.content[0].meta.search_time == 906.5
@@ -475,59 +360,26 @@ def test_mcp_structured_content_and_meta_dtos_positive_and_negative() -> None:
     assert tool_meta.fastmcp is not None
     assert tool_meta.fastmcp.tags == ["search", "web"]
 
-    annotations = MCPToolAnnotationsDTO.model_validate(
-        {
-            "destructiveHint": False,
-            "readOnlyHint": True,
-            "openInNewTab": True,
-            "idempotentHint": True,
-            "openWorldHint": True,
-        }
+    annotations = MCPToolAnnotationsDTO.model_validate_json(
+        '{"destructiveHint":false,"readOnlyHint":true,"openInNewTab":true,"idempotentHint":true,"openWorldHint":true}'
     )
     assert annotations.open_in_new_tab is True
 
-    exec_meta = MCPExecutionMetaDTO.model_validate(
-        {
-            "searchTime": 120.5,
-            "responseTime": 0.42,
-            "requestId": "req_123",
-            "totalCost": 0.005,
-            "progress": 100,
-            "total": 10,
-            "ai.exa/rateLimited": False,
-        }
+    exec_meta = MCPExecutionMetaDTO.model_validate_json(
+        '{"searchTime":120.5,"responseTime":0.42,"requestId":"req_123","totalCost":0.005,'
+        '"progress":100,"total":10,"ai.exa/rateLimited":false}'
     )
     assert exec_meta.cost == 0.005
     assert exec_meta.rate_limited is False
 
-    structured = MCPStructuredContentDTO.model_validate(
-        {
-            "query": "quorum architecture",
-            "followUpQuestions": ["What is Quorum V2?"],
-            "answer": "Synthesized answer.",
-            "summary": "Summary text.",
-            "description": "Description text.",
-            "text": "Body text.",
-            "message": "OK",
-            "finding": "Key finding.",
-            "images": ["https://example.com/img.png"],
-            "results": [
-                {
-                    "id": "res_1",
-                    "url": "https://example.com/doc",
-                    "title": "Quorum Doc",
-                    "content": "Extracted content.",
-                    "snippet": "Short snippet.",
-                    "text": "Plain text.",
-                    "summary": "Item summary.",
-                    "rawContent": "<html></html>",
-                    "score": 0.98,
-                }
-            ],
-            "authMode": "bearer",
-            "responseTime": 0.35,
-            "requestId": "req_abc",
-        }
+    structured = MCPStructuredContentDTO.model_validate_json(
+        '{"query":"quorum architecture","followUpQuestions":["What is Quorum V2?"],'
+        '"answer":"Synthesized answer.","summary":"Summary text.","description":"Description text.",'
+        '"text":"Body text.","message":"OK","finding":"Key finding.","images":["https://example.com/img.png"],'
+        '"results":[{"id":"res_1","url":"https://example.com/doc","title":"Quorum Doc",'
+        '"content":"Extracted content.","snippet":"Short snippet.","text":"Plain text.",'
+        '"summary":"Item summary.","rawContent":"<html></html>","score":0.98}],'
+        '"authMode":"bearer","responseTime":0.35,"requestId":"req_abc"}'
     )
     assert structured.query == "quorum architecture"
     assert structured.follow_up_questions == ["What is Quorum V2?"]
@@ -536,27 +388,24 @@ def test_mcp_structured_content_and_meta_dtos_positive_and_negative() -> None:
     assert structured.results[0].score == 0.98
 
     with pytest.raises(ValidationError):
-        FastMCPMetaDTO.model_validate({"tags": "not_a_list"})
+        FastMCPMetaDTO.model_validate_json('{"tags":"not_a_list"}')
 
     with pytest.raises(ValidationError):
-        MCPToolMetaDTO.model_validate({"unexpected": True})
+        MCPToolMetaDTO.model_validate_json('{"unexpected":true}')
 
     with pytest.raises(ValidationError):
-        MCPExecutionMetaDTO.model_validate({"cost": "not_a_float"})
+        MCPExecutionMetaDTO.model_validate_json('{"cost":"not_a_float"}')
 
     with pytest.raises(ValidationError):
-        MCPSearchResultItemDTO.model_validate({"score": "not_a_number"})
+        MCPSearchResultItemDTO.model_validate_json('{"score":"not_a_number"}')
 
     with pytest.raises(ValidationError):
-        MCPStructuredContentDTO.model_validate({"unknown_key": "forbidden"})
+        MCPStructuredContentDTO.model_validate_json('{"unknown_key":"forbidden"}')
 
-    err_structured = MCPStructuredContentDTO.model_validate(
-        {
-            "error": "Upstream quota exceeded",
-            "statusCode": 429,
-            "detail": {"error": "Rate limit reached", "message": "Retry after 60s"},
-            "documentationUrl": "https://docs.example.com/errors/429",
-        }
+    err_structured = MCPStructuredContentDTO.model_validate_json(
+        '{"error":"Upstream quota exceeded","statusCode":429,'
+        '"detail":{"error":"Rate limit reached","message":"Retry after 60s"},'
+        '"documentationUrl":"https://docs.example.com/errors/429"}'
     )
     assert err_structured.error == "Upstream quota exceeded"
     assert err_structured.status == 429
@@ -566,10 +415,10 @@ def test_mcp_structured_content_and_meta_dtos_positive_and_negative() -> None:
     assert err_structured.documentation == "https://docs.example.com/errors/429"
 
     with pytest.raises(ValidationError):
-        MCPStructuredErrorDetailDTO.model_validate({"error": "bad", "extra_key": "forbidden"})
+        MCPStructuredErrorDetailDTO.model_validate_json('{"error":"bad","extra_key":"forbidden"}')
 
     with pytest.raises(ValidationError):
-        MCPStructuredErrorDetailDTO.model_validate({"error": 12345})
+        MCPStructuredErrorDetailDTO.model_validate_json('{"error":12345}')
 
 
 def test_mcp_tools_list_result_dto_with_tavily_research_max_items_and_const_positive_and_negative() -> None:
@@ -601,11 +450,70 @@ def test_mcp_tools_list_result_dto_with_tavily_research_max_items_and_const_posi
 
     # Negative 1 (BVA min-1): minItems < 0 and maxItems < 0 must raise ValidationError
     with pytest.raises(ValidationError):
-        MCPToolSchemaPropertyDTO.model_validate({"type": "array", "minItems": -1})
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"array","minItems":-1}')
 
     with pytest.raises(ValidationError):
-        MCPToolSchemaPropertyDTO.model_validate({"type": "array", "maxItems": -1})
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"array","maxItems":-1}')
 
     # Negative 2 (Type Violation): non-scalar const value (dict) must raise ValidationError
     with pytest.raises(ValidationError):
-        MCPToolSchemaPropertyDTO.model_validate({"type": "string", "const": {"nested": "invalid"}})
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"string","const":{"nested":"invalid"}}')
+
+
+def test_mcp_tool_schema_draft_2020_12_vocabulary_and_jina_format_positive_and_negative() -> None:
+    """Verify MCPToolSchemaPropertyDTO and MCPToolInputSchemaDTO parse JSON Schema Draft 2020-12 keywords."""
+    jina_frame = (
+        '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"read_url",'
+        '"description":"Extract clean content from a web URL.",'
+        '"inputSchema":{"type":"object",'
+        '"$defs":{"UrlRef":{"type":"string","format":"uri"}},'
+        '"properties":{'
+        '"url":{"anyOf":['
+        '{"type":"string","format":"uri","pattern":"^https?://",'
+        '"examples":["https://jina.ai"],"deprecated":false,"readOnly":false,"writeOnly":false},'
+        '{"type":"array","items":{"$ref":"#/$defs/UrlRef"},"uniqueItems":true,'
+        '"minItems":1,"maxItems":10}'
+        ']},"score_step":{"type":"number","exclusiveMinimum":0.0,'
+        '"exclusiveMaximum":100.0,"multipleOf":0.5,'
+        '"oneOf":[{"type":"number"},{"type":"integer"}],'
+        '"allOf":[{"type":"number"}]}},'
+        '"required":["url"],"additionalProperties":false,'
+        '"$schema":"http://json-schema.org/draft-07/schema#"}}]}}'
+    )
+    parsed = MCPJsonRpcResponseDTO.model_validate_json(jina_frame)
+    assert isinstance(parsed.result, MCPToolsListResultDTO)
+    tool = parsed.result.tools[0]
+    assert tool.input_schema.defs is not None
+    assert tool.input_schema.defs["UrlRef"].format == "uri"
+
+    url_prop = tool.input_schema.properties["url"]
+    assert url_prop.any_of is not None
+    assert url_prop.any_of[0].format == "uri"
+    assert url_prop.any_of[0].pattern == "^https?://"
+    assert url_prop.any_of[0].examples == ["https://jina.ai"]
+    assert url_prop.any_of[0].deprecated is False
+    assert url_prop.any_of[0].read_only is False
+    assert url_prop.any_of[0].write_only is False
+    assert url_prop.any_of[1].unique_items is True
+    assert url_prop.any_of[1].items is not None
+    assert url_prop.any_of[1].items.ref == "#/$defs/UrlRef"
+
+    score_prop = tool.input_schema.properties["score_step"]
+    assert score_prop.exclusive_minimum == 0.0
+    assert score_prop.exclusive_maximum == 100.0
+    assert score_prop.multiple_of == 0.5
+    assert score_prop.one_of is not None
+    assert len(score_prop.one_of) == 2
+    assert score_prop.all_of is not None
+    assert len(score_prop.all_of) == 1
+
+    # Negative 1 (BVA): multipleOf <= 0 must raise ValidationError
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"number","multipleOf":0}')
+
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"number","multipleOf":-2}')
+
+    # Negative 2 (Extra Forbid): unknown vendor keyword must still raise ValidationError
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate_json('{"type":"string","nonStandardVendorKey":true}')

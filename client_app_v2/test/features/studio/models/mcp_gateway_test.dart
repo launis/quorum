@@ -224,5 +224,84 @@ void main() {
         );
       },
     );
+
+    test(
+      'test_mcp_tool_schema_draft_2020_12_fields_and_defs_positive_and_negative',
+      () {
+        // Phase 2, Step 2: Positive hydration of all 14 JSON Schema Draft 2020-12 fields
+        final schemaJson = <String, dynamic>{
+          'type': 'object',
+          'defs': <String, dynamic>{
+            'UrlRef': <String, dynamic>{'type': 'string', 'format': 'uri'},
+          },
+          'properties': <String, dynamic>{
+            'url': <String, dynamic>{
+              'type': 'string',
+              'format': 'uri',
+              'pattern': r'^https?://',
+              'unique_items': true,
+              'exclusive_minimum': 0,
+              'exclusive_maximum': 100,
+              'multiple_of': 0.5,
+              'one_of': <Map<String, dynamic>>[
+                <String, dynamic>{'type': 'string'},
+              ],
+              'all_of': <Map<String, dynamic>>[
+                <String, dynamic>{'type': 'string'},
+              ],
+              'examples': <Object?>['https://jina.ai'],
+              'deprecated': false,
+              'read_only': false,
+              'write_only': false,
+              'ref': r'#/$defs/UrlRef',
+            },
+          },
+        };
+
+        final parsed = McpToolInputSchemaDto.fromJson(schemaJson);
+        expect(parsed.defs?['UrlRef']?.format, equals('uri'));
+        final urlProp = parsed.properties['url']!;
+        expect(urlProp.format, equals('uri'));
+        expect(urlProp.pattern, equals(r'^https?://'));
+        expect(urlProp.uniqueItems, isTrue);
+        expect(urlProp.exclusiveMinimum, equals(0));
+        expect(urlProp.exclusiveMaximum, equals(100));
+        expect(urlProp.multipleOf, equals(0.5));
+        expect(urlProp.oneOf?.length, equals(1));
+        expect(urlProp.allOf?.length, equals(1));
+        expect(urlProp.examples, equals(<Object?>['https://jina.ai']));
+        expect(urlProp.deprecated, isFalse);
+        expect(urlProp.readOnly, isFalse);
+        expect(urlProp.writeOnly, isFalse);
+        expect(urlProp.ref, equals(r'#/$defs/UrlRef'));
+
+        // Negative 1: Unrecognized key rejected by disallowUnrecognizedKeys: true
+        expect(
+          () => McpToolSchemaPropertyDto.fromJson(<String, dynamic>{
+            'type': 'string',
+            'format': 'uri',
+            'unknown_vendor_key': true,
+          }),
+          throwsA(
+            anyOf(isA<FormatException>(), isA<CheckedFromJsonException>()),
+          ),
+        );
+
+        // Negative 2: Invalid type for unique_items (String instead of bool) rejected
+        expect(
+          () => McpToolSchemaPropertyDto.fromJson(<String, dynamic>{
+            'type': 'array',
+            'unique_items': 'not_a_bool',
+          }),
+          throwsA(
+            anyOf(
+              isA<TypeError>(),
+              isA<FormatException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+      },
+    );
   });
 }

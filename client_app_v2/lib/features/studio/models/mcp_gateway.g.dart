@@ -32,6 +32,19 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
         'max_items',
         'const',
         'any_of',
+        'format',
+        'pattern',
+        'unique_items',
+        'exclusive_minimum',
+        'exclusive_maximum',
+        'multiple_of',
+        'one_of',
+        'all_of',
+        'examples',
+        'deprecated',
+        'read_only',
+        'write_only',
+        'ref',
       ],
     );
     final val = _McpToolSchemaPropertyDto(
@@ -85,6 +98,35 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
             )
             .toList(),
       ),
+      format: $checkedConvert('format', (v) => v as String?),
+      pattern: $checkedConvert('pattern', (v) => v as String?),
+      uniqueItems: $checkedConvert('unique_items', (v) => v as bool?),
+      exclusiveMinimum: $checkedConvert('exclusive_minimum', (v) => v as num?),
+      exclusiveMaximum: $checkedConvert('exclusive_maximum', (v) => v as num?),
+      multipleOf: $checkedConvert('multiple_of', (v) => v as num?),
+      oneOf: $checkedConvert(
+        'one_of',
+        (v) => (v as List<dynamic>?)
+            ?.map(
+              (e) =>
+                  McpToolSchemaPropertyDto.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      ),
+      allOf: $checkedConvert(
+        'all_of',
+        (v) => (v as List<dynamic>?)
+            ?.map(
+              (e) =>
+                  McpToolSchemaPropertyDto.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      ),
+      examples: $checkedConvert('examples', (v) => v as List<dynamic>?),
+      deprecated: $checkedConvert('deprecated', (v) => v as bool?),
+      readOnly: $checkedConvert('read_only', (v) => v as bool?),
+      writeOnly: $checkedConvert('write_only', (v) => v as bool?),
+      ref: $checkedConvert('ref', (v) => v as String?),
     );
     return val;
   },
@@ -99,6 +141,14 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
     'maxItems': 'max_items',
     'constValue': 'const',
     'anyOf': 'any_of',
+    'uniqueItems': 'unique_items',
+    'exclusiveMinimum': 'exclusive_minimum',
+    'exclusiveMaximum': 'exclusive_maximum',
+    'multipleOf': 'multiple_of',
+    'oneOf': 'one_of',
+    'allOf': 'all_of',
+    'readOnly': 'read_only',
+    'writeOnly': 'write_only',
   },
 );
 
@@ -122,6 +172,19 @@ Map<String, dynamic> _$McpToolSchemaPropertyDtoToJson(
   'max_items': instance.maxItems,
   'const': instance.constValue,
   'any_of': instance.anyOf?.map((e) => e.toJson()).toList(),
+  'format': instance.format,
+  'pattern': instance.pattern,
+  'unique_items': instance.uniqueItems,
+  'exclusive_minimum': instance.exclusiveMinimum,
+  'exclusive_maximum': instance.exclusiveMaximum,
+  'multiple_of': instance.multipleOf,
+  'one_of': instance.oneOf?.map((e) => e.toJson()).toList(),
+  'all_of': instance.allOf?.map((e) => e.toJson()).toList(),
+  'examples': instance.examples,
+  'deprecated': instance.deprecated,
+  'read_only': instance.readOnly,
+  'write_only': instance.writeOnly,
+  'ref': instance.ref,
 };
 
 const _$JsonSchemaPropertyTypeEnumMap = {
@@ -150,6 +213,7 @@ _McpToolInputSchemaDto _$McpToolInputSchemaDtoFromJson(
         'required',
         'additional_properties',
         'schema_uri',
+        'defs',
       ],
     );
     final val = _McpToolInputSchemaDto(
@@ -178,6 +242,15 @@ _McpToolInputSchemaDto _$McpToolInputSchemaDtoFromJson(
         (v) => v as bool?,
       ),
       schemaUri: $checkedConvert('schema_uri', (v) => v as String?),
+      defs: $checkedConvert(
+        'defs',
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(
+            k,
+            McpToolSchemaPropertyDto.fromJson(e as Map<String, dynamic>),
+          ),
+        ),
+      ),
     );
     return val;
   },
@@ -198,6 +271,7 @@ Map<String, dynamic> _$McpToolInputSchemaDtoToJson(
   'required': instance.requiredFields,
   'additional_properties': instance.additionalProperties,
   'schema_uri': instance.schemaUri,
+  'defs': instance.defs?.map((k, e) => MapEntry(k, e.toJson())),
 };
 
 _McpToolExecutionDto _$McpToolExecutionDtoFromJson(Map<String, dynamic> json) =>

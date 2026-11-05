@@ -14264,12 +14264,27 @@
             ],
             "title": "$Schema",
             "description": "JSON Schema Draft URI specification."
+          },
+          "$defs": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Input"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "$Defs",
+            "description": "Optional reusable sub-schema definitions map ($defs)."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "MCPToolInputSchemaDTO",
-        "description": "Root JSON Schema object definition for an MCP tool's input parameters.\n\nAttributes:\n    type: Root schema type literal ('object').\n    title: Optional root JSON Schema title.\n    description: Optional root JSON Schema description.\n    properties: Mapping of parameter names to recursive property schemas.\n    required: List of required top-level parameter names.\n    additional_properties: Optional flag restricting additional top-level properties.\n    schema_uri: Optional JSON Schema Draft URI specification."
+        "description": "Root JSON Schema object definition for an MCP tool's input parameters.\n\nAttributes:\n    type: Root schema type literal ('object').\n    title: Optional root JSON Schema title.\n    description: Optional root JSON Schema description.\n    properties: Mapping of parameter names to recursive property schemas.\n    required: List of required top-level parameter names.\n    additional_properties: Optional flag restricting additional top-level properties.\n    schema_uri: Optional JSON Schema Draft URI specification.\n    defs: Optional reusable sub-schema definitions map ($defs)."
       },
       "MCPToolInputSchemaDTO-Output": {
         "properties": {
@@ -14337,12 +14352,27 @@
             ],
             "title": "Schema Uri",
             "description": "JSON Schema Draft URI specification."
+          },
+          "defs": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Output"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Defs",
+            "description": "Optional reusable sub-schema definitions map ($defs)."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "MCPToolInputSchemaDTO",
-        "description": "Root JSON Schema object definition for an MCP tool's input parameters.\n\nAttributes:\n    type: Root schema type literal ('object').\n    title: Optional root JSON Schema title.\n    description: Optional root JSON Schema description.\n    properties: Mapping of parameter names to recursive property schemas.\n    required: List of required top-level parameter names.\n    additional_properties: Optional flag restricting additional top-level properties.\n    schema_uri: Optional JSON Schema Draft URI specification."
+        "description": "Root JSON Schema object definition for an MCP tool's input parameters.\n\nAttributes:\n    type: Root schema type literal ('object').\n    title: Optional root JSON Schema title.\n    description: Optional root JSON Schema description.\n    properties: Mapping of parameter names to recursive property schemas.\n    required: List of required top-level parameter names.\n    additional_properties: Optional flag restricting additional top-level properties.\n    schema_uri: Optional JSON Schema Draft URI specification.\n    defs: Optional reusable sub-schema definitions map ($defs)."
       },
       "MCPToolParamOverrides": {
         "additionalProperties": {
@@ -14567,12 +14597,191 @@
             ],
             "title": "Anyof",
             "description": "Alternative sub-schemas."
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format",
+            "description": "Optional string semantic format hint (for example 'uri', 'date-time', 'email')."
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern",
+            "description": "Optional ECMA-262 regular expression pattern for string validation."
+          },
+          "uniqueItems": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uniqueitems",
+            "description": "Whether array items must be unique."
+          },
+          "exclusiveMinimum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusiveminimum",
+            "description": "Optional exclusive lower numeric bound."
+          },
+          "exclusiveMaximum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusivemaximum",
+            "description": "Optional exclusive upper numeric bound."
+          },
+          "multipleOf": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Multipleof",
+            "description": "Optional numeric divisor constraint (must be strictly positive)."
+          },
+          "oneOf": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oneof",
+            "description": "Optional list of mutually exclusive sub-schemas (oneOf)."
+          },
+          "allOf": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allof",
+            "description": "Optional list of intersected sub-schemas (allOf)."
+          },
+          "examples": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPArgumentValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Examples",
+            "description": "Optional list of example values for this property."
+          },
+          "deprecated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecated",
+            "description": "Whether this parameter is marked deprecated."
+          },
+          "readOnly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readonly",
+            "description": "Whether this property is marked read-only."
+          },
+          "writeOnly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Writeonly",
+            "description": "Whether this property is marked write-only."
+          },
+          "$ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "$Ref",
+            "description": "Optional JSON Schema $ref pointer string."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "MCPToolSchemaPropertyDTO",
-        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    min_items: Minimum array length constraint when type is array.\n    max_items: Maximum array length constraint when type is array.\n    const: Optional JSON Schema constant literal value.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
+        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    min_items: Minimum array length constraint when type is array.\n    max_items: Maximum array length constraint when type is array.\n    const: Optional JSON Schema constant literal value.\n    any_of: Optional list of alternative sub-schemas (anyOf).\n    format: Optional string semantic format hint (for example 'uri', 'date-time', 'email').\n    pattern: Optional ECMA-262 regular expression pattern for string validation.\n    unique_items: Whether array items must be unique.\n    exclusive_minimum: Optional exclusive lower numeric bound.\n    exclusive_maximum: Optional exclusive upper numeric bound.\n    multiple_of: Optional numeric divisor constraint (must be strictly positive).\n    one_of: Optional list of mutually exclusive sub-schemas (oneOf).\n    all_of: Optional list of intersected sub-schemas (allOf).\n    examples: Optional list of example values for this property.\n    deprecated: Whether this parameter is marked deprecated.\n    read_only: Whether this property is marked read-only.\n    write_only: Whether this property is marked write-only.\n    ref: Optional JSON Schema $ref pointer string."
       },
       "MCPToolSchemaPropertyDTO-Output": {
         "properties": {
@@ -14791,12 +15000,191 @@
             ],
             "title": "Any Of",
             "description": "Alternative sub-schemas."
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format",
+            "description": "Optional string semantic format hint (for example 'uri', 'date-time', 'email')."
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern",
+            "description": "Optional ECMA-262 regular expression pattern for string validation."
+          },
+          "unique_items": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unique Items",
+            "description": "Whether array items must be unique."
+          },
+          "exclusive_minimum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusive Minimum",
+            "description": "Optional exclusive lower numeric bound."
+          },
+          "exclusive_maximum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusive Maximum",
+            "description": "Optional exclusive upper numeric bound."
+          },
+          "multiple_of": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Multiple Of",
+            "description": "Optional numeric divisor constraint (must be strictly positive)."
+          },
+          "one_of": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Output"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "One Of",
+            "description": "Optional list of mutually exclusive sub-schemas (oneOf)."
+          },
+          "all_of": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Output"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Of",
+            "description": "Optional list of intersected sub-schemas (allOf)."
+          },
+          "examples": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPArgumentValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Examples",
+            "description": "Optional list of example values for this property."
+          },
+          "deprecated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecated",
+            "description": "Whether this parameter is marked deprecated."
+          },
+          "read_only": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Only",
+            "description": "Whether this property is marked read-only."
+          },
+          "write_only": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Write Only",
+            "description": "Whether this property is marked write-only."
+          },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref",
+            "description": "Optional JSON Schema $ref pointer string."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "MCPToolSchemaPropertyDTO",
-        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    min_items: Minimum array length constraint when type is array.\n    max_items: Maximum array length constraint when type is array.\n    const: Optional JSON Schema constant literal value.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
+        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    min_items: Minimum array length constraint when type is array.\n    max_items: Maximum array length constraint when type is array.\n    const: Optional JSON Schema constant literal value.\n    any_of: Optional list of alternative sub-schemas (anyOf).\n    format: Optional string semantic format hint (for example 'uri', 'date-time', 'email').\n    pattern: Optional ECMA-262 regular expression pattern for string validation.\n    unique_items: Whether array items must be unique.\n    exclusive_minimum: Optional exclusive lower numeric bound.\n    exclusive_maximum: Optional exclusive upper numeric bound.\n    multiple_of: Optional numeric divisor constraint (must be strictly positive).\n    one_of: Optional list of mutually exclusive sub-schemas (oneOf).\n    all_of: Optional list of intersected sub-schemas (allOf).\n    examples: Optional list of example values for this property.\n    deprecated: Whether this parameter is marked deprecated.\n    read_only: Whether this property is marked read-only.\n    write_only: Whether this property is marked write-only.\n    ref: Optional JSON Schema $ref pointer string."
       },
       "MCPTransportType": {
         "type": "string",

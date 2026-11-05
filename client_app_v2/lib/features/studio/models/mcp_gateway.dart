@@ -31,6 +31,20 @@ abstract class McpToolSchemaPropertyDto with _$McpToolSchemaPropertyDto {
     @JsonKey(name: 'max_items') int? maxItems,
     @JsonKey(name: 'const') Object? constValue,
     @JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf,
+    // Phase 2, Step 2: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
+    String? format,
+    String? pattern,
+    @JsonKey(name: 'unique_items') bool? uniqueItems,
+    @JsonKey(name: 'exclusive_minimum') num? exclusiveMinimum,
+    @JsonKey(name: 'exclusive_maximum') num? exclusiveMaximum,
+    @JsonKey(name: 'multiple_of') num? multipleOf,
+    @JsonKey(name: 'one_of') List<McpToolSchemaPropertyDto>? oneOf,
+    @JsonKey(name: 'all_of') List<McpToolSchemaPropertyDto>? allOf,
+    List<Object?>? examples,
+    bool? deprecated,
+    @JsonKey(name: 'read_only') bool? readOnly,
+    @JsonKey(name: 'write_only') bool? writeOnly,
+    String? ref,
   }) = _McpToolSchemaPropertyDto;
 
   factory McpToolSchemaPropertyDto.fromJson(Map<String, dynamic> json) =>
@@ -52,6 +66,8 @@ abstract class McpToolInputSchemaDto with _$McpToolInputSchemaDto {
     @Default(<String>[]) @JsonKey(name: 'required') List<String> requiredFields,
     @JsonKey(name: 'additional_properties') bool? additionalProperties,
     @JsonKey(name: 'schema_uri') String? schemaUri,
+    // Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
+    Map<String, McpToolSchemaPropertyDto>? defs,
   }) = _McpToolInputSchemaDto;
 
   factory McpToolInputSchemaDto.fromJson(Map<String, dynamic> json) =>

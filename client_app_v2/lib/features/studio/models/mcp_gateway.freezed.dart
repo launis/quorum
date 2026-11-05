@@ -16,7 +16,8 @@ T _$identity<T>(T value) => value;
 mixin _$McpToolSchemaPropertyDto {
 
  JsonSchemaPropertyType? get type; String? get title; String get description;@JsonKey(name: 'enum_values') List<String>? get enumValues; McpToolSchemaPropertyDto? get items; Map<String, McpToolSchemaPropertyDto>? get properties;@JsonKey(name: 'required') List<String>? get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'default') Object? get defaultValue; num? get minimum; num? get maximum;@JsonKey(name: 'min_length') int? get minLength;@JsonKey(name: 'max_length') int? get maxLength;// Step 2: Add JSON Schema Draft 2020-12 array bounds and constant literal fields for 1:1 DTO parity
-@JsonKey(name: 'min_items') int? get minItems;@JsonKey(name: 'max_items') int? get maxItems;@JsonKey(name: 'const') Object? get constValue;@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? get anyOf;
+@JsonKey(name: 'min_items') int? get minItems;@JsonKey(name: 'max_items') int? get maxItems;@JsonKey(name: 'const') Object? get constValue;@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? get anyOf;// Phase 2, Step 2: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
+ String? get format; String? get pattern;@JsonKey(name: 'unique_items') bool? get uniqueItems;@JsonKey(name: 'exclusive_minimum') num? get exclusiveMinimum;@JsonKey(name: 'exclusive_maximum') num? get exclusiveMaximum;@JsonKey(name: 'multiple_of') num? get multipleOf;@JsonKey(name: 'one_of') List<McpToolSchemaPropertyDto>? get oneOf;@JsonKey(name: 'all_of') List<McpToolSchemaPropertyDto>? get allOf; List<Object?>? get examples; bool? get deprecated;@JsonKey(name: 'read_only') bool? get readOnly;@JsonKey(name: 'write_only') bool? get writeOnly; String? get ref;
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -31,7 +32,7 @@ $McpToolSchemaPropertyDtoCopyWith<McpToolSchemaPropertyDto> get copyWith => _$Mc
 
 @override
 String toString() {
-  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, minLength: $minLength, maxLength: $maxLength, minItems: $minItems, maxItems: $maxItems, constValue: $constValue, anyOf: $anyOf)';
+  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, minLength: $minLength, maxLength: $maxLength, minItems: $minItems, maxItems: $maxItems, constValue: $constValue, anyOf: $anyOf, format: $format, pattern: $pattern, uniqueItems: $uniqueItems, exclusiveMinimum: $exclusiveMinimum, exclusiveMaximum: $exclusiveMaximum, multipleOf: $multipleOf, oneOf: $oneOf, allOf: $allOf, examples: $examples, deprecated: $deprecated, readOnly: $readOnly, writeOnly: $writeOnly, ref: $ref)';
 }
 
 
@@ -42,7 +43,7 @@ abstract mixin class $McpToolSchemaPropertyDtoCopyWith<$Res>  {
   factory $McpToolSchemaPropertyDtoCopyWith(McpToolSchemaPropertyDto value, $Res Function(McpToolSchemaPropertyDto) _then) = _$McpToolSchemaPropertyDtoCopyWithImpl;
 @useResult
 $Res call({
- JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'min_length') int? minLength,@JsonKey(name: 'max_length') int? maxLength,@JsonKey(name: 'min_items') int? minItems,@JsonKey(name: 'max_items') int? maxItems,@JsonKey(name: 'const') Object? constValue,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf
+ JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'min_length') int? minLength,@JsonKey(name: 'max_length') int? maxLength,@JsonKey(name: 'min_items') int? minItems,@JsonKey(name: 'max_items') int? maxItems,@JsonKey(name: 'const') Object? constValue,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf, String? format, String? pattern,@JsonKey(name: 'unique_items') bool? uniqueItems,@JsonKey(name: 'exclusive_minimum') num? exclusiveMinimum,@JsonKey(name: 'exclusive_maximum') num? exclusiveMaximum,@JsonKey(name: 'multiple_of') num? multipleOf,@JsonKey(name: 'one_of') List<McpToolSchemaPropertyDto>? oneOf,@JsonKey(name: 'all_of') List<McpToolSchemaPropertyDto>? allOf, List<Object?>? examples, bool? deprecated,@JsonKey(name: 'read_only') bool? readOnly,@JsonKey(name: 'write_only') bool? writeOnly, String? ref
 });
 
 
@@ -59,7 +60,7 @@ class _$McpToolSchemaPropertyDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? minLength = freezed,Object? maxLength = freezed,Object? minItems = freezed,Object? maxItems = freezed,Object? constValue = freezed,Object? anyOf = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? minLength = freezed,Object? maxLength = freezed,Object? minItems = freezed,Object? maxItems = freezed,Object? constValue = freezed,Object? anyOf = freezed,Object? format = freezed,Object? pattern = freezed,Object? uniqueItems = freezed,Object? exclusiveMinimum = freezed,Object? exclusiveMaximum = freezed,Object? multipleOf = freezed,Object? oneOf = freezed,Object? allOf = freezed,Object? examples = freezed,Object? deprecated = freezed,Object? readOnly = freezed,Object? writeOnly = freezed,Object? ref = freezed,}) {
   return _then(_self.copyWith(
 type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as JsonSchemaPropertyType?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -76,7 +77,20 @@ as int?,maxLength: freezed == maxLength ? _self.maxLength : maxLength // ignore:
 as int?,minItems: freezed == minItems ? _self.minItems : minItems // ignore: cast_nullable_to_non_nullable
 as int?,maxItems: freezed == maxItems ? _self.maxItems : maxItems // ignore: cast_nullable_to_non_nullable
 as int?,constValue: freezed == constValue ? _self.constValue : constValue ,anyOf: freezed == anyOf ? _self.anyOf : anyOf // ignore: cast_nullable_to_non_nullable
-as List<McpToolSchemaPropertyDto>?,
+as List<McpToolSchemaPropertyDto>?,format: freezed == format ? _self.format : format // ignore: cast_nullable_to_non_nullable
+as String?,pattern: freezed == pattern ? _self.pattern : pattern // ignore: cast_nullable_to_non_nullable
+as String?,uniqueItems: freezed == uniqueItems ? _self.uniqueItems : uniqueItems // ignore: cast_nullable_to_non_nullable
+as bool?,exclusiveMinimum: freezed == exclusiveMinimum ? _self.exclusiveMinimum : exclusiveMinimum // ignore: cast_nullable_to_non_nullable
+as num?,exclusiveMaximum: freezed == exclusiveMaximum ? _self.exclusiveMaximum : exclusiveMaximum // ignore: cast_nullable_to_non_nullable
+as num?,multipleOf: freezed == multipleOf ? _self.multipleOf : multipleOf // ignore: cast_nullable_to_non_nullable
+as num?,oneOf: freezed == oneOf ? _self.oneOf : oneOf // ignore: cast_nullable_to_non_nullable
+as List<McpToolSchemaPropertyDto>?,allOf: freezed == allOf ? _self.allOf : allOf // ignore: cast_nullable_to_non_nullable
+as List<McpToolSchemaPropertyDto>?,examples: freezed == examples ? _self.examples : examples // ignore: cast_nullable_to_non_nullable
+as List<Object?>?,deprecated: freezed == deprecated ? _self.deprecated : deprecated // ignore: cast_nullable_to_non_nullable
+as bool?,readOnly: freezed == readOnly ? _self.readOnly : readOnly // ignore: cast_nullable_to_non_nullable
+as bool?,writeOnly: freezed == writeOnly ? _self.writeOnly : writeOnly // ignore: cast_nullable_to_non_nullable
+as bool?,ref: freezed == ref ? _self.ref : ref // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of McpToolSchemaPropertyDto
@@ -173,10 +187,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'min_items')  int? minItems, @JsonKey(name: 'max_items')  int? maxItems, @JsonKey(name: 'const')  Object? constValue, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'min_items')  int? minItems, @JsonKey(name: 'max_items')  int? maxItems, @JsonKey(name: 'const')  Object? constValue, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf,  String? format,  String? pattern, @JsonKey(name: 'unique_items')  bool? uniqueItems, @JsonKey(name: 'exclusive_minimum')  num? exclusiveMinimum, @JsonKey(name: 'exclusive_maximum')  num? exclusiveMaximum, @JsonKey(name: 'multiple_of')  num? multipleOf, @JsonKey(name: 'one_of')  List<McpToolSchemaPropertyDto>? oneOf, @JsonKey(name: 'all_of')  List<McpToolSchemaPropertyDto>? allOf,  List<Object?>? examples,  bool? deprecated, @JsonKey(name: 'read_only')  bool? readOnly, @JsonKey(name: 'write_only')  bool? writeOnly,  String? ref)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _McpToolSchemaPropertyDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.minItems,_that.maxItems,_that.constValue,_that.anyOf);case _:
+return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.minItems,_that.maxItems,_that.constValue,_that.anyOf,_that.format,_that.pattern,_that.uniqueItems,_that.exclusiveMinimum,_that.exclusiveMaximum,_that.multipleOf,_that.oneOf,_that.allOf,_that.examples,_that.deprecated,_that.readOnly,_that.writeOnly,_that.ref);case _:
   return orElse();
 
 }
@@ -194,10 +208,10 @@ return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'min_items')  int? minItems, @JsonKey(name: 'max_items')  int? maxItems, @JsonKey(name: 'const')  Object? constValue, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'min_items')  int? minItems, @JsonKey(name: 'max_items')  int? maxItems, @JsonKey(name: 'const')  Object? constValue, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf,  String? format,  String? pattern, @JsonKey(name: 'unique_items')  bool? uniqueItems, @JsonKey(name: 'exclusive_minimum')  num? exclusiveMinimum, @JsonKey(name: 'exclusive_maximum')  num? exclusiveMaximum, @JsonKey(name: 'multiple_of')  num? multipleOf, @JsonKey(name: 'one_of')  List<McpToolSchemaPropertyDto>? oneOf, @JsonKey(name: 'all_of')  List<McpToolSchemaPropertyDto>? allOf,  List<Object?>? examples,  bool? deprecated, @JsonKey(name: 'read_only')  bool? readOnly, @JsonKey(name: 'write_only')  bool? writeOnly,  String? ref)  $default,) {final _that = this;
 switch (_that) {
 case _McpToolSchemaPropertyDto():
-return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.minItems,_that.maxItems,_that.constValue,_that.anyOf);case _:
+return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.minItems,_that.maxItems,_that.constValue,_that.anyOf,_that.format,_that.pattern,_that.uniqueItems,_that.exclusiveMinimum,_that.exclusiveMaximum,_that.multipleOf,_that.oneOf,_that.allOf,_that.examples,_that.deprecated,_that.readOnly,_that.writeOnly,_that.ref);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -214,10 +228,10 @@ return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'min_items')  int? minItems, @JsonKey(name: 'max_items')  int? maxItems, @JsonKey(name: 'const')  Object? constValue, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'min_items')  int? minItems, @JsonKey(name: 'max_items')  int? maxItems, @JsonKey(name: 'const')  Object? constValue, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf,  String? format,  String? pattern, @JsonKey(name: 'unique_items')  bool? uniqueItems, @JsonKey(name: 'exclusive_minimum')  num? exclusiveMinimum, @JsonKey(name: 'exclusive_maximum')  num? exclusiveMaximum, @JsonKey(name: 'multiple_of')  num? multipleOf, @JsonKey(name: 'one_of')  List<McpToolSchemaPropertyDto>? oneOf, @JsonKey(name: 'all_of')  List<McpToolSchemaPropertyDto>? allOf,  List<Object?>? examples,  bool? deprecated, @JsonKey(name: 'read_only')  bool? readOnly, @JsonKey(name: 'write_only')  bool? writeOnly,  String? ref)?  $default,) {final _that = this;
 switch (_that) {
 case _McpToolSchemaPropertyDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.minItems,_that.maxItems,_that.constValue,_that.anyOf);case _:
+return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.minItems,_that.maxItems,_that.constValue,_that.anyOf,_that.format,_that.pattern,_that.uniqueItems,_that.exclusiveMinimum,_that.exclusiveMaximum,_that.multipleOf,_that.oneOf,_that.allOf,_that.examples,_that.deprecated,_that.readOnly,_that.writeOnly,_that.ref);case _:
   return null;
 
 }
@@ -229,7 +243,7 @@ return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _McpToolSchemaPropertyDto implements McpToolSchemaPropertyDto {
-  const _McpToolSchemaPropertyDto({this.type, this.title, this.description = '', @JsonKey(name: 'enum_values') final  List<String>? enumValues, this.items, final  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required') final  List<String>? requiredFields, @JsonKey(name: 'additional_properties') this.additionalProperties, @JsonKey(name: 'default') this.defaultValue, this.minimum, this.maximum, @JsonKey(name: 'min_length') this.minLength, @JsonKey(name: 'max_length') this.maxLength, @JsonKey(name: 'min_items') this.minItems, @JsonKey(name: 'max_items') this.maxItems, @JsonKey(name: 'const') this.constValue, @JsonKey(name: 'any_of') final  List<McpToolSchemaPropertyDto>? anyOf}): _enumValues = enumValues,_properties = properties,_requiredFields = requiredFields,_anyOf = anyOf;
+  const _McpToolSchemaPropertyDto({this.type, this.title, this.description = '', @JsonKey(name: 'enum_values') final  List<String>? enumValues, this.items, final  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required') final  List<String>? requiredFields, @JsonKey(name: 'additional_properties') this.additionalProperties, @JsonKey(name: 'default') this.defaultValue, this.minimum, this.maximum, @JsonKey(name: 'min_length') this.minLength, @JsonKey(name: 'max_length') this.maxLength, @JsonKey(name: 'min_items') this.minItems, @JsonKey(name: 'max_items') this.maxItems, @JsonKey(name: 'const') this.constValue, @JsonKey(name: 'any_of') final  List<McpToolSchemaPropertyDto>? anyOf, this.format, this.pattern, @JsonKey(name: 'unique_items') this.uniqueItems, @JsonKey(name: 'exclusive_minimum') this.exclusiveMinimum, @JsonKey(name: 'exclusive_maximum') this.exclusiveMaximum, @JsonKey(name: 'multiple_of') this.multipleOf, @JsonKey(name: 'one_of') final  List<McpToolSchemaPropertyDto>? oneOf, @JsonKey(name: 'all_of') final  List<McpToolSchemaPropertyDto>? allOf, final  List<Object?>? examples, this.deprecated, @JsonKey(name: 'read_only') this.readOnly, @JsonKey(name: 'write_only') this.writeOnly, this.ref}): _enumValues = enumValues,_properties = properties,_requiredFields = requiredFields,_anyOf = anyOf,_oneOf = oneOf,_allOf = allOf,_examples = examples;
   factory _McpToolSchemaPropertyDto.fromJson(Map<String, dynamic> json) => _$McpToolSchemaPropertyDtoFromJson(json);
 
 @override final  JsonSchemaPropertyType? type;
@@ -282,6 +296,44 @@ class _McpToolSchemaPropertyDto implements McpToolSchemaPropertyDto {
   return EqualUnmodifiableListView(value);
 }
 
+// Phase 2, Step 2: Add closed JSON Schema Draft 2020-12 validation and composition vocabulary
+@override final  String? format;
+@override final  String? pattern;
+@override@JsonKey(name: 'unique_items') final  bool? uniqueItems;
+@override@JsonKey(name: 'exclusive_minimum') final  num? exclusiveMinimum;
+@override@JsonKey(name: 'exclusive_maximum') final  num? exclusiveMaximum;
+@override@JsonKey(name: 'multiple_of') final  num? multipleOf;
+ final  List<McpToolSchemaPropertyDto>? _oneOf;
+@override@JsonKey(name: 'one_of') List<McpToolSchemaPropertyDto>? get oneOf {
+  final value = _oneOf;
+  if (value == null) return null;
+  if (_oneOf is EqualUnmodifiableListView) return _oneOf;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+ final  List<McpToolSchemaPropertyDto>? _allOf;
+@override@JsonKey(name: 'all_of') List<McpToolSchemaPropertyDto>? get allOf {
+  final value = _allOf;
+  if (value == null) return null;
+  if (_allOf is EqualUnmodifiableListView) return _allOf;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+ final  List<Object?>? _examples;
+@override List<Object?>? get examples {
+  final value = _examples;
+  if (value == null) return null;
+  if (_examples is EqualUnmodifiableListView) return _examples;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+@override final  bool? deprecated;
+@override@JsonKey(name: 'read_only') final  bool? readOnly;
+@override@JsonKey(name: 'write_only') final  bool? writeOnly;
+@override final  String? ref;
 
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
@@ -298,7 +350,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, minLength: $minLength, maxLength: $maxLength, minItems: $minItems, maxItems: $maxItems, constValue: $constValue, anyOf: $anyOf)';
+  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, minLength: $minLength, maxLength: $maxLength, minItems: $minItems, maxItems: $maxItems, constValue: $constValue, anyOf: $anyOf, format: $format, pattern: $pattern, uniqueItems: $uniqueItems, exclusiveMinimum: $exclusiveMinimum, exclusiveMaximum: $exclusiveMaximum, multipleOf: $multipleOf, oneOf: $oneOf, allOf: $allOf, examples: $examples, deprecated: $deprecated, readOnly: $readOnly, writeOnly: $writeOnly, ref: $ref)';
 }
 
 
@@ -309,7 +361,7 @@ abstract mixin class _$McpToolSchemaPropertyDtoCopyWith<$Res> implements $McpToo
   factory _$McpToolSchemaPropertyDtoCopyWith(_McpToolSchemaPropertyDto value, $Res Function(_McpToolSchemaPropertyDto) _then) = __$McpToolSchemaPropertyDtoCopyWithImpl;
 @override @useResult
 $Res call({
- JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'min_length') int? minLength,@JsonKey(name: 'max_length') int? maxLength,@JsonKey(name: 'min_items') int? minItems,@JsonKey(name: 'max_items') int? maxItems,@JsonKey(name: 'const') Object? constValue,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf
+ JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'min_length') int? minLength,@JsonKey(name: 'max_length') int? maxLength,@JsonKey(name: 'min_items') int? minItems,@JsonKey(name: 'max_items') int? maxItems,@JsonKey(name: 'const') Object? constValue,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf, String? format, String? pattern,@JsonKey(name: 'unique_items') bool? uniqueItems,@JsonKey(name: 'exclusive_minimum') num? exclusiveMinimum,@JsonKey(name: 'exclusive_maximum') num? exclusiveMaximum,@JsonKey(name: 'multiple_of') num? multipleOf,@JsonKey(name: 'one_of') List<McpToolSchemaPropertyDto>? oneOf,@JsonKey(name: 'all_of') List<McpToolSchemaPropertyDto>? allOf, List<Object?>? examples, bool? deprecated,@JsonKey(name: 'read_only') bool? readOnly,@JsonKey(name: 'write_only') bool? writeOnly, String? ref
 });
 
 
@@ -326,7 +378,7 @@ class __$McpToolSchemaPropertyDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? minLength = freezed,Object? maxLength = freezed,Object? minItems = freezed,Object? maxItems = freezed,Object? constValue = freezed,Object? anyOf = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? minLength = freezed,Object? maxLength = freezed,Object? minItems = freezed,Object? maxItems = freezed,Object? constValue = freezed,Object? anyOf = freezed,Object? format = freezed,Object? pattern = freezed,Object? uniqueItems = freezed,Object? exclusiveMinimum = freezed,Object? exclusiveMaximum = freezed,Object? multipleOf = freezed,Object? oneOf = freezed,Object? allOf = freezed,Object? examples = freezed,Object? deprecated = freezed,Object? readOnly = freezed,Object? writeOnly = freezed,Object? ref = freezed,}) {
   return _then(_McpToolSchemaPropertyDto(
 type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as JsonSchemaPropertyType?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -343,7 +395,20 @@ as int?,maxLength: freezed == maxLength ? _self.maxLength : maxLength // ignore:
 as int?,minItems: freezed == minItems ? _self.minItems : minItems // ignore: cast_nullable_to_non_nullable
 as int?,maxItems: freezed == maxItems ? _self.maxItems : maxItems // ignore: cast_nullable_to_non_nullable
 as int?,constValue: freezed == constValue ? _self.constValue : constValue ,anyOf: freezed == anyOf ? _self._anyOf : anyOf // ignore: cast_nullable_to_non_nullable
-as List<McpToolSchemaPropertyDto>?,
+as List<McpToolSchemaPropertyDto>?,format: freezed == format ? _self.format : format // ignore: cast_nullable_to_non_nullable
+as String?,pattern: freezed == pattern ? _self.pattern : pattern // ignore: cast_nullable_to_non_nullable
+as String?,uniqueItems: freezed == uniqueItems ? _self.uniqueItems : uniqueItems // ignore: cast_nullable_to_non_nullable
+as bool?,exclusiveMinimum: freezed == exclusiveMinimum ? _self.exclusiveMinimum : exclusiveMinimum // ignore: cast_nullable_to_non_nullable
+as num?,exclusiveMaximum: freezed == exclusiveMaximum ? _self.exclusiveMaximum : exclusiveMaximum // ignore: cast_nullable_to_non_nullable
+as num?,multipleOf: freezed == multipleOf ? _self.multipleOf : multipleOf // ignore: cast_nullable_to_non_nullable
+as num?,oneOf: freezed == oneOf ? _self._oneOf : oneOf // ignore: cast_nullable_to_non_nullable
+as List<McpToolSchemaPropertyDto>?,allOf: freezed == allOf ? _self._allOf : allOf // ignore: cast_nullable_to_non_nullable
+as List<McpToolSchemaPropertyDto>?,examples: freezed == examples ? _self._examples : examples // ignore: cast_nullable_to_non_nullable
+as List<Object?>?,deprecated: freezed == deprecated ? _self.deprecated : deprecated // ignore: cast_nullable_to_non_nullable
+as bool?,readOnly: freezed == readOnly ? _self.readOnly : readOnly // ignore: cast_nullable_to_non_nullable
+as bool?,writeOnly: freezed == writeOnly ? _self.writeOnly : writeOnly // ignore: cast_nullable_to_non_nullable
+as bool?,ref: freezed == ref ? _self.ref : ref // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -366,7 +431,8 @@ $McpToolSchemaPropertyDtoCopyWith<$Res>? get items {
 /// @nodoc
 mixin _$McpToolInputSchemaDto {
 
- String get type; String? get title; String get description; Map<String, McpToolSchemaPropertyDto> get properties;@JsonKey(name: 'required') List<String> get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'schema_uri') String? get schemaUri;
+ String get type; String? get title; String get description; Map<String, McpToolSchemaPropertyDto> get properties;@JsonKey(name: 'required') List<String> get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'schema_uri') String? get schemaUri;// Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
+ Map<String, McpToolSchemaPropertyDto>? get defs;
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -381,7 +447,7 @@ $McpToolInputSchemaDtoCopyWith<McpToolInputSchemaDto> get copyWith => _$McpToolI
 
 @override
 String toString() {
-  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, schemaUri: $schemaUri)';
+  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, schemaUri: $schemaUri, defs: $defs)';
 }
 
 
@@ -392,7 +458,7 @@ abstract mixin class $McpToolInputSchemaDtoCopyWith<$Res>  {
   factory $McpToolInputSchemaDtoCopyWith(McpToolInputSchemaDto value, $Res Function(McpToolInputSchemaDto) _then) = _$McpToolInputSchemaDtoCopyWithImpl;
 @useResult
 $Res call({
- String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'schema_uri') String? schemaUri
+ String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'schema_uri') String? schemaUri, Map<String, McpToolSchemaPropertyDto>? defs
 });
 
 
@@ -409,7 +475,7 @@ class _$McpToolInputSchemaDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,Object? schemaUri = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,Object? schemaUri = freezed,Object? defs = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -418,7 +484,8 @@ as String,properties: null == properties ? _self.properties : properties // igno
 as Map<String, McpToolSchemaPropertyDto>,requiredFields: null == requiredFields ? _self.requiredFields : requiredFields // ignore: cast_nullable_to_non_nullable
 as List<String>,additionalProperties: freezed == additionalProperties ? _self.additionalProperties : additionalProperties // ignore: cast_nullable_to_non_nullable
 as bool?,schemaUri: freezed == schemaUri ? _self.schemaUri : schemaUri // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,defs: freezed == defs ? _self.defs : defs // ignore: cast_nullable_to_non_nullable
+as Map<String, McpToolSchemaPropertyDto>?,
   ));
 }
 
@@ -503,10 +570,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri,  Map<String, McpToolSchemaPropertyDto>? defs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _McpToolInputSchemaDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri);case _:
+return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri,_that.defs);case _:
   return orElse();
 
 }
@@ -524,10 +591,10 @@ return $default(_that.type,_that.title,_that.description,_that.properties,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri,  Map<String, McpToolSchemaPropertyDto>? defs)  $default,) {final _that = this;
 switch (_that) {
 case _McpToolInputSchemaDto():
-return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri);case _:
+return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri,_that.defs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -544,10 +611,10 @@ return $default(_that.type,_that.title,_that.description,_that.properties,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri,  Map<String, McpToolSchemaPropertyDto>? defs)?  $default,) {final _that = this;
 switch (_that) {
 case _McpToolInputSchemaDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri);case _:
+return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri,_that.defs);case _:
   return null;
 
 }
@@ -559,7 +626,7 @@ return $default(_that.type,_that.title,_that.description,_that.properties,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _McpToolInputSchemaDto implements McpToolInputSchemaDto {
-  const _McpToolInputSchemaDto({this.type = 'object', this.title, this.description = '', final  Map<String, McpToolSchemaPropertyDto> properties = const <String, McpToolSchemaPropertyDto>{}, @JsonKey(name: 'required') final  List<String> requiredFields = const <String>[], @JsonKey(name: 'additional_properties') this.additionalProperties, @JsonKey(name: 'schema_uri') this.schemaUri}): _properties = properties,_requiredFields = requiredFields;
+  const _McpToolInputSchemaDto({this.type = 'object', this.title, this.description = '', final  Map<String, McpToolSchemaPropertyDto> properties = const <String, McpToolSchemaPropertyDto>{}, @JsonKey(name: 'required') final  List<String> requiredFields = const <String>[], @JsonKey(name: 'additional_properties') this.additionalProperties, @JsonKey(name: 'schema_uri') this.schemaUri, final  Map<String, McpToolSchemaPropertyDto>? defs}): _properties = properties,_requiredFields = requiredFields,_defs = defs;
   factory _McpToolInputSchemaDto.fromJson(Map<String, dynamic> json) => _$McpToolInputSchemaDtoFromJson(json);
 
 @override@JsonKey() final  String type;
@@ -581,6 +648,17 @@ class _McpToolInputSchemaDto implements McpToolInputSchemaDto {
 
 @override@JsonKey(name: 'additional_properties') final  bool? additionalProperties;
 @override@JsonKey(name: 'schema_uri') final  String? schemaUri;
+// Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
+ final  Map<String, McpToolSchemaPropertyDto>? _defs;
+// Phase 2, Step 2: Add reusable sub-schema definitions map (defs)
+@override Map<String, McpToolSchemaPropertyDto>? get defs {
+  final value = _defs;
+  if (value == null) return null;
+  if (_defs is EqualUnmodifiableMapView) return _defs;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
 
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
@@ -597,7 +675,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, schemaUri: $schemaUri)';
+  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, schemaUri: $schemaUri, defs: $defs)';
 }
 
 
@@ -608,7 +686,7 @@ abstract mixin class _$McpToolInputSchemaDtoCopyWith<$Res> implements $McpToolIn
   factory _$McpToolInputSchemaDtoCopyWith(_McpToolInputSchemaDto value, $Res Function(_McpToolInputSchemaDto) _then) = __$McpToolInputSchemaDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'schema_uri') String? schemaUri
+ String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'schema_uri') String? schemaUri, Map<String, McpToolSchemaPropertyDto>? defs
 });
 
 
@@ -625,7 +703,7 @@ class __$McpToolInputSchemaDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,Object? schemaUri = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,Object? schemaUri = freezed,Object? defs = freezed,}) {
   return _then(_McpToolInputSchemaDto(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -634,7 +712,8 @@ as String,properties: null == properties ? _self._properties : properties // ign
 as Map<String, McpToolSchemaPropertyDto>,requiredFields: null == requiredFields ? _self._requiredFields : requiredFields // ignore: cast_nullable_to_non_nullable
 as List<String>,additionalProperties: freezed == additionalProperties ? _self.additionalProperties : additionalProperties // ignore: cast_nullable_to_non_nullable
 as bool?,schemaUri: freezed == schemaUri ? _self.schemaUri : schemaUri // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,defs: freezed == defs ? _self._defs : defs // ignore: cast_nullable_to_non_nullable
+as Map<String, McpToolSchemaPropertyDto>?,
   ));
 }
 
