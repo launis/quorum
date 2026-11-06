@@ -270,6 +270,7 @@ class AllowedMCPTool(V2CoreBase):
         description: English-only LLM description for function calling schema.
         input_schema: Strict recursive JSON Schema for tool parameters.
         enabled: Whether this discovered tool is enabled for agent execution.
+        execution: Optional tool execution configuration and task support policy.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -393,7 +394,6 @@ class SystemConfigMCPGateways(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="mcp_gateways")
 
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")]
-    # Phase 1, Step 1: Require canonical human-readable gateway name with zero default value
     name: Annotated[str, Field(min_length=1, description="Human-readable gateway title.")]
     type: Annotated[
         Literal["mcp_gateways"],
