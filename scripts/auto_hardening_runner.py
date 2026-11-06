@@ -72,6 +72,8 @@ if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
 from scripts._script_base import ANSIColors, get_repo_root, setup_script_environment
+from scripts.backend_audit_loop import discover_companion_test_targets
+from scripts.flutter_audit_loop import resolve_flutter_unit_test_files
 
 GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
@@ -92,14 +94,6 @@ DEFAULT_FRONTEND_AGENT_TEMPLATE: Final[str] = (
 )
 # Phase 2, Step 4: Content-addressed SHA-256 hardening cache path and historical completed trackers
 DEFAULT_HARDENING_CACHE_PATH: Final[Path] = Path("data/hardening_cache.json")
-HISTORICAL_COMPLETED_TRACKERS: Final[tuple[str, ...]] = (
-    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md",
-    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md",
-    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md",
-    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md",
-    "docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md",
-    "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md",
-)
 
 __all__ = [
     "CheckpointResultDTO",
@@ -129,9 +123,13 @@ __all__ = [
     "compute_file_sha256",
     "compute_rules_sha256",
     "compute_target_cache_entry",
+    "discover_completed_trackers",
+    "discover_tracker_files",
+    "discover_unhardened_targets",
     "execute_circuit_breaker_rollback",
     "execute_subagent_pass",
     "execute_subprocess_with_tree_kill",
+    "expand_dynamic_target_paths",
     "fetch_unhardened_targets",
     "load_or_seed_hardening_cache",
     "main",
@@ -250,6 +248,14 @@ class HardeningRunnerArgsDTO(BaseModel):
         Path,
         Field(default=DEFAULT_HARDENING_CACHE_PATH, description="Path to SHA-256 hardening cache JSON."),
     ] = DEFAULT_HARDENING_CACHE_PATH
+    # Phase 1C, Step 3: Add dynamic unhardened target discovery flag
+    discover: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Dynamically discover unhardened target files across trackers and workspace directories.",
+        ),
+    ] = False
 
 
 class HardeningIterationResultDTO(BaseModel):
@@ -464,9 +470,10 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
             raw_path = (m.group(1) or m.group(2) or "").replace("\\", "/").strip()
             clean_path = raw_path.split("#")[0].strip()
             if clean_path and not clean_path.startswith("["):
-                if gate == HardeningGate.BACKEND and not clean_path.endswith(".py"):
+                has_ext = "." in Path(clean_path).name
+                if gate == HardeningGate.BACKEND and has_ext and not clean_path.endswith(".py"):
                     continue
-                if gate == HardeningGate.FRONTEND and not clean_path.endswith(".dart"):
+                if gate == HardeningGate.FRONTEND and has_ext and not clean_path.endswith(".dart"):
                     continue
                 unhardened.append(clean_path)
 
@@ -525,6 +532,56 @@ def parse_tracker_hardened_targets(tracker_content: str, gate: HardeningGate) ->
     return hardened
 
 
+def discover_tracker_files(repo_root: Path | None = None) -> tuple[str, ...]:
+    """Recursively discover tracker markdown files across docs/implementationplans and docs/epic.
+
+    Args:
+        repo_root: Optional workspace root directory; defaults to get_repo_root().
+
+    Returns:
+        Sorted tuple of workspace-relative POSIX tracker file paths.
+    """
+    # Phase 1C, Step 3: Dynamically discover tracker markdown files across implementationplans and epic directories
+    root = repo_root or get_repo_root()
+    discovered: set[str] = set()
+    for rel_dir in ("docs/implementationplans", "docs/epic"):
+        scan_dir = root / rel_dir
+        if scan_dir.is_dir():
+            for md_file in scan_dir.rglob("*.md"):
+                if md_file.is_file() and (
+                    md_file.name.startswith("TRACKER_") or md_file.name.lower().endswith("_tracker.md")
+                ):
+                    discovered.add(md_file.relative_to(root).as_posix())
+    return tuple(sorted(discovered))
+
+
+def discover_completed_trackers(repo_root: Path | None = None) -> tuple[str, ...]:
+    """Discover tracker markdown files containing at least one checked (`- [x]`) hardening target.
+
+    Args:
+        repo_root: Optional workspace root directory; defaults to get_repo_root().
+
+    Returns:
+        Sorted tuple of workspace-relative POSIX paths for trackers with checked hardening items.
+    """
+    # Phase 1C, Step 3: Dynamically resolve completed trackers containing checked Tier 2 Hardening items
+    root = repo_root or get_repo_root()
+    completed: list[str] = []
+    for rel_tracker in discover_tracker_files(root):
+        t_path = root / rel_tracker
+        if t_path.is_file():
+            try:
+                content = t_path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if bool(parse_tracker_hardened_targets(content, HardeningGate.ALL)):
+                completed.append(rel_tracker)
+    return tuple(sorted(completed))
+
+
+HISTORICAL_COMPLETED_TRACKERS: tuple[str, ...] = discover_completed_trackers()
+
+
 def compute_file_sha256(file_path: Path) -> str:
     """Compute the SHA-256 hexadecimal digest of a file on disk.
 
@@ -548,39 +605,29 @@ def resolve_target_unit_test_files(target_file: str, repo_root: Path) -> list[Pa
     Returns:
         Sorted list of existing unit test Paths corresponding to target_file.
     """
-    # Phase 2, Step 4: Resolve unit test files for composite SHA-256 cache invalidation
+    # Phase 1C, Step 3: Delegate companion unit test discovery to backend_audit_loop and flutter_audit_loop SSOTs
     norm_target = target_file.replace("\\", "/").strip()
     candidates: set[Path] = set()
 
-    if norm_target.startswith("backend_v2/tests/"):
+    if norm_target.startswith("backend_v2/tests/") and norm_target.endswith(".py"):
         direct = repo_root / norm_target
-        if direct.is_file():
+        if direct.is_file() and direct.name.startswith("test_"):
             candidates.add(direct)
-    elif norm_target.startswith("backend_v2/") and norm_target.endswith(".py"):
-        rel = Path(norm_target).relative_to("backend_v2")
-        unit_root = repo_root / "backend_v2" / "tests" / "unit"
-        direct_candidate = unit_root / rel.parent / f"test_{rel.name}"
-        if direct_candidate.is_file():
-            candidates.add(direct_candidate)
-        if rel.name == "__init__.py":
-            for suffix in ("facade", "init"):
-                pkg_candidate = unit_root / rel.parent / f"test_{rel.parent.name}_{suffix}.py"
-                if pkg_candidate.is_file():
-                    candidates.add(pkg_candidate)
-    elif norm_target.startswith("scripts/") and norm_target.endswith(".py"):
-        script_name = Path(norm_target).name
-        if script_name.startswith("_"):
-            script_test = repo_root / "backend_v2" / "tests" / "unit" / "scripts" / f"test{script_name}"
-        else:
-            script_test = repo_root / "backend_v2" / "tests" / "unit" / "scripts" / f"test_{script_name}"
-        if script_test.is_file():
-            candidates.add(script_test)
-    elif norm_target.startswith("client_app_v2/lib/") and norm_target.endswith(".dart"):
-        rel = Path(norm_target).relative_to("client_app_v2/lib")
-        for prefix in (repo_root / "client_app_v2" / "test" / "unit", repo_root / "client_app_v2" / "test"):
-            dart_test = prefix / rel.parent / f"{rel.stem}_test.dart"
-            if dart_test.is_file():
-                candidates.add(dart_test)
+        for comp_rel in discover_companion_test_targets([norm_target], repo_root=repo_root):
+            comp_path = repo_root / comp_rel
+            if comp_path.is_file():
+                candidates.add(comp_path)
+    elif (norm_target.startswith("backend_v2/") or norm_target.startswith("scripts/")) and norm_target.endswith(".py"):
+        for comp_rel in discover_companion_test_targets([norm_target], repo_root=repo_root):
+            comp_path = repo_root / comp_rel
+            if comp_path.is_file():
+                candidates.add(comp_path)
+    elif norm_target.startswith("client_app_v2/"):
+        client_app_dir = repo_root / "client_app_v2"
+        for dart_rel in resolve_flutter_unit_test_files(norm_target, client_app_dir):
+            dart_path = client_app_dir / dart_rel
+            if dart_path.is_file():
+                candidates.add(dart_path)
 
     return sorted(candidates, key=lambda p: p.as_posix())
 
@@ -696,19 +743,8 @@ def load_or_seed_hardening_cache(
             entries = {}
 
     rules_digest = compute_rules_sha256(repo_root)
-    tracker_rel_paths: list[str] = list(HISTORICAL_COMPLETED_TRACKERS)
-    impl_dir = repo_root / "docs" / "implementationplans"
-    if impl_dir.is_dir():
-        for p in sorted(impl_dir.glob("TRACKER_*.md")):
-            rel_p = p.relative_to(repo_root).as_posix()
-            if rel_p not in tracker_rel_paths:
-                tracker_rel_paths.append(rel_p)
-    epic_dir = repo_root / "docs" / "epic"
-    if epic_dir.is_dir():
-        for p in sorted(epic_dir.glob("*_tracker.md")):
-            rel_p = p.relative_to(repo_root).as_posix()
-            if rel_p not in tracker_rel_paths:
-                tracker_rel_paths.append(rel_p)
+    # Phase 1C, Step 3: Dynamically discover all tracker files under repo_root
+    tracker_rel_paths: list[str] = list(discover_tracker_files(repo_root))
 
     # Collect any target currently marked unchecked `- [ ]` in any tracker so in-progress files are not auto-seeded
     unchecked_targets: set[str] = set()
@@ -831,11 +867,167 @@ def mark_tracker_target_done(tracker_path: Path, target_file: str) -> bool:
     return True
 
 
-def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
-    """Resolve target list from explicit arguments, tracker markdown, or persistent state file.
+def _matches_gate_and_exclusions(rel_posix: str, gate: HardeningGate, allow_tests: bool = False) -> bool:
+    """Check whether a workspace-relative POSIX file path matches the target gate and exclusion rules.
+
+    Args:
+        rel_posix: Workspace-relative POSIX file path.
+        gate: Hardening gate filter (backend, frontend, or all).
+        allow_tests: Whether test directories were explicitly requested by the caller.
+
+    Returns:
+        True if the file matches the gate and is not excluded, False otherwise.
+    """
+    if gate == HardeningGate.BACKEND and not rel_posix.endswith(".py"):
+        return False
+    if gate == HardeningGate.FRONTEND and not rel_posix.endswith(".dart"):
+        return False
+    if gate == HardeningGate.ALL and not (rel_posix.endswith(".py") or rel_posix.endswith(".dart")):
+        return False
+
+    parts = rel_posix.split("/")
+    if rel_posix.endswith(".py"):
+        if "__pycache__" in parts or ".venv" in parts or "venv" in parts or "alembic/versions" in rel_posix:
+            return False
+        if not allow_tests and rel_posix.startswith("backend_v2/tests/"):
+            return False
+    elif rel_posix.endswith(".dart"):
+        if rel_posix.endswith((".g.dart", ".freezed.dart")):
+            return False
+        if "build" in parts or ".dart_tool" in parts:
+            return False
+        if not allow_tests and rel_posix.startswith("client_app_v2/test/"):
+            return False
+    return True
+
+
+def expand_dynamic_target_paths(
+    raw_targets: list[str],
+    gate: HardeningGate,
+    repo_root: Path | None = None,
+) -> list[str]:
+    """Expand directory paths and glob patterns into sorted, deduplicated workspace-relative file paths.
+
+    Args:
+        raw_targets: Raw target file, directory, or glob pattern strings.
+        gate: Hardening gate category to filter expanded files against.
+        repo_root: Optional workspace root directory; defaults to get_repo_root().
+
+    Returns:
+        Deduplicated list of workspace-relative POSIX file paths matching gate.
+    """
+    # Phase 1C, Step 3: Dynamically expand directories and glob patterns into target file paths
+    root = repo_root or get_repo_root()
+    expanded: list[str] = []
+
+    for raw in raw_targets:
+        norm = raw.replace("\\", "/").strip().rstrip("/")
+        if not norm:
+            continue
+        allow_tests = (
+            "/tests" in norm
+            or norm.startswith("backend_v2/tests")
+            or "/test" in norm
+            or norm.startswith("client_app_v2/test")
+        )
+        if any(ch in norm for ch in ("*", "?", "[")):
+            for matched in sorted(p for p in root.glob(norm) if p.is_file()):
+                rel_m = matched.relative_to(root).as_posix()
+                if _matches_gate_and_exclusions(rel_m, gate, allow_tests=allow_tests) and rel_m not in expanded:
+                    expanded.append(rel_m)
+            continue
+
+        raw_path = Path(norm)
+        cand_path = raw_path if raw_path.is_absolute() else (root / norm)
+        if cand_path.is_dir():
+            dir_files: list[str] = []
+            for f_path in sorted(cand_path.rglob("*")):
+                if f_path.is_file():
+                    try:
+                        rel_f = f_path.relative_to(root).as_posix()
+                    except ValueError:
+                        rel_f = f_path.as_posix()
+                    if _matches_gate_and_exclusions(rel_f, gate, allow_tests=allow_tests):
+                        dir_files.append(rel_f)
+            for df in sorted(dir_files):
+                if df not in expanded:
+                    expanded.append(df)
+        else:
+            if gate == HardeningGate.BACKEND and norm.endswith(".dart"):
+                continue
+            if gate == HardeningGate.FRONTEND and norm.endswith(".py"):
+                continue
+            if norm not in expanded:
+                expanded.append(norm)
+
+    return expanded
+
+
+def discover_unhardened_targets(
+    gate: HardeningGate,
+    repo_root: Path | None = None,
+    include_workspace: bool = False,
+    cache_file: Path = DEFAULT_HARDENING_CACHE_PATH,
+    no_cache: bool = False,
+) -> list[str]:
+    """Dynamically discover unhardened target files across tracker checklists and workspace directories.
+
+    Args:
+        gate: Hardening gate category (backend, frontend, or all).
+        repo_root: Optional workspace root directory; defaults to get_repo_root().
+        include_workspace: Whether to also scan canonical workspace directories (backend_v2, scripts, client_app_v2/lib).
+        cache_file: Path to SHA-256 hardening cache JSON manifest.
+        no_cache: Whether to bypass SHA-256 cache filtering.
+
+    Returns:
+        Deduplicated list of unhardened workspace-relative POSIX file paths.
+    """
+    # Phase 1C, Step 3: Dynamically discover unhardened targets across trackers and workspace with SHA-256 cache filtering
+    root = repo_root or get_repo_root()
+    raw_candidates: list[str] = []
+
+    for rel_tracker in discover_tracker_files(root):
+        t_path = root / rel_tracker
+        if t_path.is_file():
+            try:
+                content = t_path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            for ut in parse_tracker_unhardened_targets(content, gate):
+                if ut not in raw_candidates:
+                    raw_candidates.append(ut)
+
+    if include_workspace:
+        for ws_dir in ("backend_v2", "scripts", "client_app_v2/lib"):
+            if (root / ws_dir).is_dir() and ws_dir not in raw_candidates:
+                raw_candidates.append(ws_dir)
+
+    expanded = expand_dynamic_target_paths(raw_candidates, gate, repo_root=root)
+    existing_targets = [t for t in expanded if (root / t).is_file()]
+
+    if no_cache:
+        return existing_targets
+
+    manifest = load_or_seed_hardening_cache(cache_file, root)
+    rules_digest = compute_rules_sha256(root)
+    unhardened: list[str] = []
+    for target_rel in existing_targets:
+        cached = manifest.entries[target_rel] if target_rel in manifest.entries else None
+        if cached is not None:
+            current_entry = compute_target_cache_entry(target_rel, root, rules_sha256=rules_digest)
+            if current_entry is not None and cached.composite_sha256 == current_entry.composite_sha256:
+                continue
+        unhardened.append(target_rel)
+
+    return unhardened
+
+
+def fetch_unhardened_targets(args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> list[str]:
+    """Resolve target list from explicit arguments, tracker markdown, state file, or dynamic discovery.
 
     Args:
         args: Hardening runner configuration parameters.
+        repo_root: Optional workspace root directory.
 
     Returns:
         List of unhardened target file paths.
@@ -844,8 +1036,10 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
         FileNotFoundError: If tracker or state_file does not exist.
         ValueError: If no target source is specified.
     """
+    root = repo_root or get_repo_root()
+
     # Target resolution hierarchy:
-    # 1. Explicit CLI arguments: --targets path1 path2
+    # 1. Explicit CLI arguments: --targets path1 path2 (supports files, directories, and globs)
     if args.targets:
         cleaned_targets: list[str] = []
         for t in args.targets:
@@ -853,13 +1047,28 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
                 p = clean_path_arg(sub_t.strip())
                 if p is not None:
                     cleaned_targets.append(str(p).replace("\\", "/"))
-        return cleaned_targets
+        return expand_dynamic_target_paths(cleaned_targets, args.gate, repo_root=root)
 
-    # 2. Markdown tracker checklist: --tracker path/to/tracker.md
+    # 2. Markdown tracker checklist or tracker directory: --tracker path/to/tracker.md
     if args.tracker:
         cleaned_tracker = clean_path_arg(args.tracker)
+        if cleaned_tracker is not None and not cleaned_tracker.is_absolute():
+            candidate_tracker = root / cleaned_tracker
+            if candidate_tracker.exists() or repo_root is not None:
+                cleaned_tracker = candidate_tracker
         if cleaned_tracker is None or not cleaned_tracker.exists():
             raise FileNotFoundError(f"Tracker file not found: {args.tracker}")
+        if cleaned_tracker.is_dir():
+            dir_targets: list[str] = []
+            for md_path in sorted(cleaned_tracker.rglob("*.md")):
+                if md_path.is_file() and (
+                    md_path.name.startswith("TRACKER_") or md_path.name.lower().endswith("_tracker.md")
+                ):
+                    for ut in parse_tracker_unhardened_targets(md_path.read_text(encoding="utf-8"), args.gate):
+                        if ut not in dir_targets:
+                            dir_targets.append(ut)
+            return expand_dynamic_target_paths(dir_targets, args.gate, repo_root=root)
+
         content = cleaned_tracker.read_text(encoding="utf-8")
         targets = parse_tracker_unhardened_targets(content, args.gate)
         if not targets and check_tracker_has_unparsed_hardening_items(content, args.gate):
@@ -868,20 +1077,35 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
                 f"Tracker {args.tracker} has pending Tier 2 Hardening ({gate_str}) checklist items, "
                 f"but zero targets could be parsed into valid file paths."
             )
-        return targets
+        return expand_dynamic_target_paths(targets, args.gate, repo_root=root)
 
     # 3. Persistent sandbox state JSON: --state-file scratch/hardening_state.json
     #    Computes pending targets dynamically: REMAINING = TARGETS - DONE
     if args.state_file:
         cleaned_state = clean_path_arg(args.state_file)
+        if cleaned_state is not None and not cleaned_state.is_absolute():
+            candidate_state = root / cleaned_state
+            if candidate_state.exists() or repo_root is not None:
+                cleaned_state = candidate_state
         if cleaned_state is None or not cleaned_state.exists():
             raise FileNotFoundError(f"State file not found: {args.state_file}")
         content = cleaned_state.read_text(encoding="utf-8")
         state = HardeningStateFileDTO.model_validate_json(content)
         done_set = set(state.done)
-        return [t for t in state.targets if t not in done_set]
+        remaining = [t for t in state.targets if t not in done_set]
+        return expand_dynamic_target_paths(remaining, args.gate, repo_root=root)
 
-    raise ValueError("No target source provided. Specify --targets, --tracker, or --state-file.")
+    # 4. Dynamic unhardened target discovery across trackers and workspace: --discover
+    if args.discover:
+        return discover_unhardened_targets(
+            args.gate,
+            repo_root=root,
+            include_workspace=True,
+            cache_file=args.cache_file,
+            no_cache=args.no_cache,
+        )
+
+    raise ValueError("No target source provided. Specify --targets, --tracker, --state-file, or --discover.")
 
 
 def execute_subprocess_with_tree_kill(
@@ -1618,7 +1842,7 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
             iterations=b_iters + f_iters,
         )
 
-    all_targets = fetch_unhardened_targets(args)
+    all_targets = fetch_unhardened_targets(args, repo_root=root)
     total_targets = len(all_targets)
 
     if args.max_files is not None and args.max_files >= 0:
@@ -1867,6 +2091,12 @@ Key Behavioral Invariants for Autonomous AI Agents:
         default=DEFAULT_HARDENING_CACHE_PATH,
         help="Path to SHA-256 hardening cache JSON manifest (default: data/hardening_cache.json).",
     )
+    parser.add_argument(
+        "--discover",
+        action="store_true",
+        default=False,
+        help="Dynamically discover unhardened target files across trackers and workspace directories.",
+    )
 
     parsed = parser.parse_args(argv)
 
@@ -1879,10 +2109,10 @@ Key Behavioral Invariants for Autonomous AI Agents:
             if p is not None:
                 clean_targets.append(str(p).replace("\\", "/"))
 
-    if not (tracker_arg or clean_targets or state_file_arg):
+    if not (tracker_arg or clean_targets or state_file_arg or parsed.discover):
         sys.stderr.write(
             f"{ANSIColors.RED}❌ Error: No target sources specified. "
-            f"Provide at least one of --tracker, --targets, or --state-file.{ANSIColors.RESET}\n"
+            f"Provide at least one of --tracker, --targets, --state-file, or --discover.{ANSIColors.RESET}\n"
         )
         return 1
 
@@ -1923,6 +2153,7 @@ Key Behavioral Invariants for Autonomous AI Agents:
             micro_audit=parsed.micro_audit,
             no_cache=parsed.no_cache,
             cache_file=clean_path_arg(parsed.cache_file) or DEFAULT_HARDENING_CACHE_PATH,
+            discover=parsed.discover,
         )
     except (ValidationError, ValueError) as err:
         sys.stderr.write(f"{ANSIColors.RED}❌ Argument Validation Error: {err}{ANSIColors.RESET}\n")

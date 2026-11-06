@@ -646,9 +646,10 @@ def test_backend_audit_loop_runs_all_stages(mock_sub: MagicMock, mock_scan: Magi
         assert any("run_seed.py" in cmd for cmd in invoked_cmds)
         assert any("audit_database_atoms.py" in cmd for cmd in invoked_cmds)
         assert any("audit_clean_imports.py" in cmd for cmd in invoked_cmds)
-        assert any("audit_dto_parity.py" in cmd for cmd in invoked_cmds)
+        assert any("audit_dto_parity.py --fail-on-mismatch" in cmd for cmd in invoked_cmds)
         assert any("audit_warning_baseline.py" in cmd for cmd in invoked_cmds)
         assert any("audit_dict_eradication.py backend_v2 scripts --strict" in cmd for cmd in invoked_cmds)
+        assert any("audit_skills_architecture.py" in cmd for cmd in invoked_cmds)
 
 
 @patch("subprocess.run", return_value=_mock_completed_process(0))
@@ -680,7 +681,7 @@ def test_coverage_runner_directory_with_parent_glob_and_sub_candidates(mock_sub:
 def test_backend_audit_loop_micro_mode_skips_stages_5_to_10_and_disables_logfire(
     mock_sub: MagicMock, mock_scan: MagicMock, mock_run_tests: MagicMock
 ) -> None:
-    """Verify --micro executes Stages 1-4 and disables logfire by default while skipping Stages 5-10."""
+    """Verify --micro executes Stages 1-4 plus target-scoped dict eradication & tech debt while skipping repository Stages 5-10."""
     main(["scripts/backend_audit_loop.py", "--micro", "--test"])
     assert mock_scan.called
     invoked_cmds = [" ".join(str(c) for c in call[0][0]) for call in mock_sub.call_args_list]
@@ -692,8 +693,39 @@ def test_backend_audit_loop_micro_mode_skips_stages_5_to_10_and_disables_logfire
     assert not any("audit_clean_imports.py" in cmd for cmd in invoked_cmds)
     assert not any("audit_dto_parity.py" in cmd for cmd in invoked_cmds)
     assert not any("audit_warning_baseline.py" in cmd for cmd in invoked_cmds)
-    assert not any("audit_dict_eradication.py" in cmd for cmd in invoked_cmds)
+    assert not any("audit_dict_eradication.py backend_v2 scripts --strict" in cmd for cmd in invoked_cmds)
+    assert any("audit_dict_eradication.py scripts/backend_audit_loop.py --strict" in cmd for cmd in invoked_cmds)
+    assert any(
+        "audit_technical_debt.py --targets scripts/backend_audit_loop.py --strict" in cmd for cmd in invoked_cmds
+    )
     mock_run_tests.assert_called_once_with("scripts/backend_audit_loop.py", logfire=False)
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("sys.exit")
+def test_micro_mode_dict_eradication_or_tech_debt_failure_exits(mock_exit: MagicMock, mock_scan: MagicMock) -> None:
+    """Verify --micro exits with code 1 when target-scoped dict eradication or technical debt fails."""
+    mock_exit.side_effect = SystemExit(1)
+
+    def fail_dict(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "python" in cmd and any("audit_dict_eradication.py" in str(c) for c in cmd):
+            return _mock_completed_process(1)
+        return _mock_completed_process(0)
+
+    with patch("subprocess.run", side_effect=fail_dict):
+        with pytest.raises(SystemExit) as exc_dict:
+            main(["scripts/backend_audit_loop.py", "--micro"])
+        assert exc_dict.value.code == 1
+
+    def fail_td(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "python" in cmd and any("audit_technical_debt.py" in str(c) for c in cmd):
+            return _mock_completed_process(1)
+        return _mock_completed_process(0)
+
+    with patch("subprocess.run", side_effect=fail_td):
+        with pytest.raises(SystemExit) as exc_td:
+            main(["scripts/backend_audit_loop.py", "--micro"])
+        assert exc_td.value.code == 1
 
 
 @patch("scripts.backend_audit_loop.run_tests_with_strict_coverage")
@@ -868,3 +900,31 @@ def test_discover_companion_test_targets_returns_empty_for_nonexistent_or_root_t
         ]
     )
     assert companions == []
+
+
+def test_discover_companion_test_targets_with_custom_repo_root_and_init_candidate(tmp_path: Path) -> None:
+    """Verify discover_companion_test_targets resolves probes against repo_root and finds test_{pkg}_init.py."""
+    pkg_init = tmp_path / "backend_v2" / "services" / "custom_pkg" / "__init__.py"
+    pkg_init.parent.mkdir(parents=True)
+    pkg_init.write_text("# init\n", encoding="utf-8")
+
+    init_test = tmp_path / "backend_v2" / "tests" / "unit" / "services" / "custom_pkg" / "test_custom_pkg_init.py"
+    init_test.parent.mkdir(parents=True)
+    init_test.write_text("# init test\n", encoding="utf-8")
+
+    script_file = tmp_path / "scripts" / "_custom_guard.py"
+    script_file.parent.mkdir(parents=True)
+    script_file.write_text("# script\n", encoding="utf-8")
+    script_test = tmp_path / "backend_v2" / "tests" / "unit" / "scripts" / "test_custom_guard.py"
+    script_test.parent.mkdir(parents=True)
+    script_test.write_text("# script test\n", encoding="utf-8")
+
+    companions = discover_companion_test_targets(
+        [
+            "backend_v2/services/custom_pkg/__init__.py",
+            "scripts/_custom_guard.py",
+        ],
+        repo_root=tmp_path,
+    )
+    assert "backend_v2/tests/unit/services/custom_pkg/test_custom_pkg_init.py" in companions
+    assert "backend_v2/tests/unit/scripts/test_custom_guard.py" in companions

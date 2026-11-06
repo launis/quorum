@@ -30,9 +30,13 @@ from scripts.auto_hardening_runner import (
     check_tracker_has_unparsed_hardening_items,
     clean_path_arg,
     compute_target_cache_entry,
+    discover_completed_trackers,
+    discover_tracker_files,
+    discover_unhardened_targets,
     execute_circuit_breaker_rollback,
     execute_subagent_pass,
     execute_subprocess_with_tree_kill,
+    expand_dynamic_target_paths,
     fetch_unhardened_targets,
     load_or_seed_hardening_cache,
     main,
@@ -1624,3 +1628,140 @@ def test_no_cache_flag_bypasses_sha256_cache(tmp_path: Path, monkeypatch: pytest
     assert res.cache_hit is False
     assert res.attempts == 1
     assert subagent_called is True
+
+
+def test_dynamic_tracker_and_target_discovery_and_ssot_delegation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify discover_tracker_files, discover_completed_trackers, expand_dynamic_target_paths, and --discover."""
+    # 1. Empty workspace returns empty tracker tuples
+    assert discover_tracker_files(tmp_path) == ()
+    assert discover_completed_trackers(tmp_path) == ()
+
+    # 2. Populate implementationplan and epic trackers (one completed, one pending)
+    impl_dir = tmp_path / "docs" / "implementationplans"
+    impl_dir.mkdir(parents=True)
+    epic_dir = tmp_path / "docs" / "epic" / "epic_99"
+    epic_dir.mkdir(parents=True)
+
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True)
+    (rules_dir / "00-antigravity-core.md").write_text("# Core\n", encoding="utf-8")
+
+    # Create backend, script, test, and frontend files
+    svc_a = tmp_path / "backend_v2" / "services" / "svc_a.py"
+    svc_b = tmp_path / "backend_v2" / "services" / "svc_b.py"
+    svc_a.parent.mkdir(parents=True)
+    svc_a.write_text('"""Service A."""\n', encoding="utf-8")
+    svc_b.write_text('"""Service B."""\n', encoding="utf-8")
+
+    pkg_init = tmp_path / "backend_v2" / "services" / "pkg" / "__init__.py"
+    pkg_init.parent.mkdir(parents=True)
+    pkg_init.write_text('"""Pkg init."""\n', encoding="utf-8")
+    pkg_init_test = tmp_path / "backend_v2" / "tests" / "unit" / "services" / "pkg" / "test_pkg_init.py"
+    pkg_init_test.parent.mkdir(parents=True)
+    pkg_init_test.write_text('"""Pkg init test."""\n', encoding="utf-8")
+
+    direct_test = tmp_path / "backend_v2" / "tests" / "unit" / "services" / "test_svc_a.py"
+    direct_test.write_text('"""Direct test."""\n', encoding="utf-8")
+
+    dart_view = tmp_path / "client_app_v2" / "lib" / "features" / "home_view.dart"
+    dart_gen = tmp_path / "client_app_v2" / "lib" / "features" / "home_view.freezed.dart"
+    dart_view.parent.mkdir(parents=True)
+    dart_view.write_text("class HomeView {}\n", encoding="utf-8")
+    dart_gen.write_text("// generated\n", encoding="utf-8")
+    dart_test = tmp_path / "client_app_v2" / "test" / "unit" / "features" / "home_view_test.dart"
+    dart_test.parent.mkdir(parents=True)
+    dart_test.write_text("void main() {}\n", encoding="utf-8")
+
+    done_tracker = impl_dir / "TRACKER_Completed.md"
+    done_tracker.write_text(
+        "# Completed\n- [x] **[OK] Tier 2 Hardening (Backend)**:\n  - [x] @[backend_v2/services/svc_a.py]\n",
+        encoding="utf-8",
+    )
+    pending_tracker = epic_dir / "phase1_tracker.md"
+    pending_tracker.write_text(
+        "# Pending\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**:\n"
+        "  - [ ] @[backend_v2/services/svc_b.py]\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**:\n"
+        "  - [ ] @[client_app_v2/lib/features]\n",
+        encoding="utf-8",
+    )
+
+    assert discover_tracker_files(tmp_path) == (
+        "docs/epic/epic_99/phase1_tracker.md",
+        "docs/implementationplans/TRACKER_Completed.md",
+    )
+    assert discover_completed_trackers(tmp_path) == ("docs/implementationplans/TRACKER_Completed.md",)
+
+    # 3. Verify expand_dynamic_target_paths across directories, globs, and explicit test dirs
+    expanded_backend = expand_dynamic_target_paths(
+        ["backend_v2/services", "backend_v2/services/*.py", "client_app_v2/lib/features/home_view.dart"],
+        HardeningGate.BACKEND,
+        repo_root=tmp_path,
+    )
+    assert expanded_backend == [
+        "backend_v2/services/pkg/__init__.py",
+        "backend_v2/services/svc_a.py",
+        "backend_v2/services/svc_b.py",
+    ]
+
+    expanded_frontend = expand_dynamic_target_paths(
+        ["client_app_v2/lib/features", "backend_v2/services/svc_a.py"],
+        HardeningGate.FRONTEND,
+        repo_root=tmp_path,
+    )
+    assert expanded_frontend == ["client_app_v2/lib/features/home_view.dart"]
+
+    expanded_tests = expand_dynamic_target_paths(
+        ["backend_v2/tests/unit/services"],
+        HardeningGate.ALL,
+        repo_root=tmp_path,
+    )
+    assert "backend_v2/tests/unit/services/test_svc_a.py" in expanded_tests
+
+    # 4. Verify resolve_target_unit_test_files SSOT delegation
+    assert resolve_target_unit_test_files("backend_v2/services/pkg/__init__.py", tmp_path) == [pkg_init_test]
+    assert resolve_target_unit_test_files("backend_v2/tests/unit/services/test_svc_a.py", tmp_path) == [direct_test]
+    assert resolve_target_unit_test_files("client_app_v2/lib/features", tmp_path) == [dart_test]
+
+    # 5. Verify discover_unhardened_targets & fetch_unhardened_targets (--discover & tracker directory)
+    cache_file = tmp_path / "data" / "hardening_cache.json"
+    unhardened_all = discover_unhardened_targets(
+        HardeningGate.ALL,
+        repo_root=tmp_path,
+        include_workspace=True,
+        cache_file=cache_file,
+        no_cache=False,
+    )
+    # svc_a.py was marked [x] in TRACKER_Completed.md so it is seeded into cache and filtered out!
+    assert "backend_v2/services/svc_a.py" not in unhardened_all
+    assert "backend_v2/services/svc_b.py" in unhardened_all
+    assert "backend_v2/services/pkg/__init__.py" in unhardened_all
+    assert "client_app_v2/lib/features/home_view.dart" in unhardened_all
+
+    # With no_cache=True, svc_a.py is included
+    unhardened_no_cache = discover_unhardened_targets(
+        HardeningGate.BACKEND,
+        repo_root=tmp_path,
+        include_workspace=True,
+        cache_file=cache_file,
+        no_cache=True,
+    )
+    assert "backend_v2/services/svc_a.py" in unhardened_no_cache
+
+    # Tracker directory support in fetch_unhardened_targets
+    dir_args = HardeningRunnerArgsDTO(tracker=Path("docs/epic"), gate=HardeningGate.ALL)
+    assert fetch_unhardened_targets(dir_args, repo_root=tmp_path) == [
+        "backend_v2/services/svc_b.py",
+        "client_app_v2/lib/features/home_view.dart",
+    ]
+
+    # Discover mode via fetch_unhardened_targets and main(--discover --dry-run)
+    disc_args = HardeningRunnerArgsDTO(discover=True, gate=HardeningGate.FRONTEND, cache_file=cache_file)
+    assert fetch_unhardened_targets(disc_args, repo_root=tmp_path) == ["client_app_v2/lib/features/home_view.dart"]
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.get_repo_root", lambda: tmp_path)
+    exit_code = main(["--discover", "--gate", "frontend", "--cache-file", str(cache_file), "--dry-run"])
+    assert exit_code == 0

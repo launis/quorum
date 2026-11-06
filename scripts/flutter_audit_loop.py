@@ -89,6 +89,22 @@ def resolve_flutter_unit_test_files(target_dir: str, client_app_dir: Path) -> li
                 candidates.add(candidate_rel)
         return sorted(candidates)
 
+    # Phase 1C, Step 3: Resolve unit tests for lib/ leaf directories in --micro mode
+    if norm.startswith("lib/") and not norm.endswith(".dart"):
+        dir_path = client_app_dir / norm.rstrip("/")
+        if dir_path.is_dir():
+            dir_candidates: set[str] = set()
+            lib_root = client_app_dir / "lib"
+            for dart_file in dir_path.rglob("*.dart"):
+                if dart_file.name.endswith((".g.dart", ".freezed.dart")):
+                    continue
+                rel = dart_file.relative_to(lib_root)
+                for prefix in (Path("test/unit"), Path("test")):
+                    candidate_rel = (prefix / rel.parent / f"{rel.stem}_test.dart").as_posix()
+                    if (client_app_dir / candidate_rel).is_file():
+                        dir_candidates.add(candidate_rel)
+            return sorted(dir_candidates)
+
     return []
 
 
@@ -267,7 +283,12 @@ Executes a five-stage code hygiene and validation sequence:
         sys.exit(res.returncode)
     print("✅ Analysis complete.")
 
-    if run_micro and cmd_dir.endswith(".dart"):
+    is_micro_target = cmd_dir.endswith(".dart") or (
+        target_scan_dir.is_dir()
+        and cmd_dir.replace("\\", "/").startswith("lib/")
+        and any(not p.name.endswith((".g.dart", ".freezed.dart")) for p in target_scan_dir.rglob("*.dart"))
+    )
+    if run_micro and is_micro_target:
         resolved_tests = resolve_flutter_unit_test_files(cmd_dir, client_app_dir)
         if not resolved_tests:
             print(

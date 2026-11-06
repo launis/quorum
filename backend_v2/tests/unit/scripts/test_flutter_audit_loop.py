@@ -456,6 +456,38 @@ def test_cli_micro_unit_test_failure_triggers_exit(mock_sub: MagicMock, mock_exi
             assert exc.value.code == 1
 
 
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_cli_micro_lib_leaf_directory_positive_and_negative(mock_sub: MagicMock, tmp_path: Path) -> None:
+    """Verify resolve_flutter_unit_test_files and --micro handle lib/ leaf directories positively and negatively."""
+    client_app = tmp_path / "client_app_v2"
+    feature_dir = client_app / "lib" / "features" / "studio"
+    feature_dir.mkdir(parents=True)
+    (feature_dir / "studio_view.dart").write_text("class StudioView {}\n", encoding="utf-8")
+    (feature_dir / "studio_view.freezed.dart").write_text("// generated\n", encoding="utf-8")
+
+    test_dir = client_app / "test" / "unit" / "features" / "studio"
+    test_dir.mkdir(parents=True)
+    (test_dir / "studio_view_test.dart").write_text("void main() {}\n", encoding="utf-8")
+
+    resolved = resolve_flutter_unit_test_files("client_app_v2/lib/features/studio", client_app)
+    assert resolved == ["test/unit/features/studio/studio_view_test.dart"]
+
+    with patch("os.getcwd", return_value=str(tmp_path)):
+        main(["client_app_v2/lib/features/studio", "--micro"])
+        calls = [c[0][0] for c in mock_sub.call_args_list]
+        assert ["flutter", "test", "test/unit/features/studio/studio_view_test.dart"] in calls
+
+    untested_dir = client_app / "lib" / "features" / "untested_leaf"
+    untested_dir.mkdir(parents=True)
+    (untested_dir / "widget.dart").write_text("class UntestedWidget {}\n", encoding="utf-8")
+    assert resolve_flutter_unit_test_files("lib/features/untested_leaf", client_app) == []
+
+    with patch("os.getcwd", return_value=str(tmp_path)):
+        with pytest.raises(SystemExit) as exc:
+            main(["client_app_v2/lib/features/untested_leaf", "--micro"])
+        assert exc.value.code == 1
+
+
 @patch("sys.exit")
 @patch("subprocess.run")
 def test_cli_flutter_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:

@@ -138,9 +138,11 @@ def _build_py_file_test_candidates(parts: list[str], filename: str) -> list[str]
     if len(parts) >= 2 and filename == "__init__.py":
         pkg_name = parts[-2]
         clean_base = filename.removesuffix(".py").lstrip("_")
+        # Phase 1C, Step 3: Include test_{pkg_name}_init.py candidate for package __init__.py targets
         return [
             f"test_{pkg_name}.py",
             f"test_{pkg_name}_facade.py",
+            f"test_{pkg_name}_init.py",
             "test_facade.py",
             f"test__{pkg_name}.py",
             f"test_{clean_base}.py",
@@ -160,13 +162,19 @@ def _build_py_file_test_candidates(parts: list[str], filename: str) -> list[str]
     return candidates
 
 
-def _discover_existing_py_test_paths(parts: list[str], filename: str, candidates: list[str]) -> list[str]:
+def _discover_existing_py_test_paths(
+    parts: list[str],
+    filename: str,
+    candidates: list[str],
+    repo_root: Path | None = None,
+) -> list[str]:
     """Resolve existing unit test file paths on disk for a Python source file.
 
     Args:
         parts: Path components split by '/'.
         filename: Base filename with .py extension.
         candidates: Ordered candidate test filenames to probe.
+        repo_root: Optional repository root directory to resolve probes against.
 
     Returns:
         List of existing test file paths in POSIX format.
@@ -175,35 +183,39 @@ def _discover_existing_py_test_paths(parts: list[str], filename: str, candidates
         OSError: If directory globbing fails on the filesystem.
     """
     clean_base = filename.removesuffix(".py").lstrip("_")
+    sib_glob_prefix = parts[-2] if (len(parts) >= 2 and filename == "__init__.py") else clean_base
     test_paths: list[str] = []
     if parts[0] == "scripts":
         for cand in candidates:
-            cand_path = Path("backend_v2/tests/unit/scripts") / cand
+            rel_cand = Path("backend_v2/tests/unit/scripts") / cand
+            cand_path = (repo_root / rel_cand) if repo_root is not None else rel_cand
             if cand_path.exists():
-                test_paths.append(str(cand_path).replace("\\", "/"))
-                for sib in sorted(cand_path.parent.glob(f"test_{clean_base}_*.py")):
-                    sib_str = str(sib).replace("\\", "/")
+                test_paths.append(str(rel_cand).replace("\\", "/"))
+                for sib in sorted(cand_path.parent.glob(f"test_{sib_glob_prefix}_*.py")):
+                    sib_str = str(rel_cand.parent / sib.name).replace("\\", "/")
                     if sib_str not in test_paths:
                         test_paths.append(sib_str)
                 break
     elif parts[0] == "backend_v2":
         for cand in candidates:
             # 1. Direct subfolder match
-            p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
+            rel_p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
+            p = (repo_root / rel_p) if repo_root is not None else rel_p
             if p.exists():
-                test_paths.append(str(p).replace("\\", "/"))
-                for sib in sorted(p.parent.glob(f"test_{clean_base}_*.py")):
-                    sib_str = str(sib).replace("\\", "/")
+                test_paths.append(str(rel_p).replace("\\", "/"))
+                for sib in sorted(p.parent.glob(f"test_{sib_glob_prefix}_*.py")):
+                    sib_str = str(rel_p.parent / sib.name).replace("\\", "/")
                     if sib_str not in test_paths:
                         test_paths.append(sib_str)
                 break
             # 1b. Parent package subfolder test file
             for i in range(len(parts) - 2, 0, -1):
-                parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / cand
+                rel_parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / cand
+                parent_cand = (repo_root / rel_parent_cand) if repo_root is not None else rel_parent_cand
                 if parent_cand.exists():
-                    test_paths.append(str(parent_cand).replace("\\", "/"))
-                    for sib in sorted(parent_cand.parent.glob(f"test_{clean_base}_*.py")):
-                        sib_str = str(sib).replace("\\", "/")
+                    test_paths.append(str(rel_parent_cand).replace("\\", "/"))
+                    for sib in sorted(parent_cand.parent.glob(f"test_{sib_glob_prefix}_*.py")):
+                        sib_str = str(rel_parent_cand.parent / sib.name).replace("\\", "/")
                         if sib_str not in test_paths:
                             test_paths.append(sib_str)
                     break
@@ -212,30 +224,38 @@ def _discover_existing_py_test_paths(parts: list[str], filename: str, candidates
             # 2. Parent package test file
             for i in range(len(parts) - 2, 0, -1):
                 parent_pkg = parts[i]
-                parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / f"test_{parent_pkg}.py"
+                rel_parent_pkg_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / f"test_{parent_pkg}.py"
+                parent_cand = (repo_root / rel_parent_pkg_cand) if repo_root is not None else rel_parent_pkg_cand
                 if parent_cand.exists():
-                    test_paths.append(str(parent_cand).replace("\\", "/"))
+                    test_paths.append(str(rel_parent_pkg_cand).replace("\\", "/"))
                     break
             if test_paths:
                 break
             # 3. Flat unit test match (direct or package-prefixed)
-            flat = Path("backend_v2/tests/unit") / cand
+            rel_flat = Path("backend_v2/tests/unit") / cand
+            flat = (repo_root / rel_flat) if repo_root is not None else rel_flat
             if flat.exists():
-                test_paths.append(str(flat).replace("\\", "/"))
+                test_paths.append(str(rel_flat).replace("\\", "/"))
                 break
-            pkg_prefix_cand = Path("backend_v2/tests/unit") / f"test_{'_'.join(parts[1:-1])}_{cand[5:]}"
+            rel_pkg_prefix_cand = Path("backend_v2/tests/unit") / f"test_{'_'.join(parts[1:-1])}_{cand[5:]}"
+            pkg_prefix_cand = (repo_root / rel_pkg_prefix_cand) if repo_root is not None else rel_pkg_prefix_cand
             if pkg_prefix_cand.exists():
-                test_paths.append(str(pkg_prefix_cand).replace("\\", "/"))
+                test_paths.append(str(rel_pkg_prefix_cand).replace("\\", "/"))
                 break
     return test_paths
 
 
-def _discover_existing_dir_test_paths(target_clean: str, parts: list[str]) -> list[str]:
+def _discover_existing_dir_test_paths(
+    target_clean: str,
+    parts: list[str],
+    repo_root: Path | None = None,
+) -> list[str]:
     """Discover existing unit test directories or files for a backend_v2 directory target.
 
     Args:
         target_clean: Normalized POSIX path to a backend_v2 directory.
         parts: Path components split by '/'.
+        repo_root: Optional repository root directory to resolve probes against.
 
     Returns:
         List of existing test directory or file paths in POSIX format.
@@ -244,29 +264,35 @@ def _discover_existing_dir_test_paths(target_clean: str, parts: list[str]) -> li
         OSError: If directory traversal fails on the filesystem.
     """
     target_stem = Path(target_clean).stem
-    target_dir = Path(target_clean.strip("/"))
-    test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
-    test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{target_stem}.py"
+    rel_target_dir = Path(target_clean.strip("/"))
+    target_dir = (repo_root / rel_target_dir) if repo_root is not None else rel_target_dir
+    rel_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
+    test_dir = (repo_root / rel_test_dir) if repo_root is not None else rel_test_dir
+    rel_test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{target_stem}.py"
+    test_file = (repo_root / rel_test_file) if repo_root is not None else rel_test_file
     has_test_dir = test_dir.exists()
     if has_test_dir and len(parts) <= 2:
-        return [str(test_dir).replace("\\", "/")]
+        return [str(rel_test_dir).replace("\\", "/")]
     if test_file.exists() and not has_test_dir:
-        return [str(test_file).replace("\\", "/")]
+        return [str(rel_test_file).replace("\\", "/")]
 
     discovered_tests: list[str] = []
     if has_test_dir:
-        discovered_tests.append(str(test_dir).replace("\\", "/"))
-    parent_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:-1])
+        discovered_tests.append(str(rel_test_dir).replace("\\", "/"))
+    rel_parent_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:-1])
+    parent_test_dir = (repo_root / rel_parent_test_dir) if repo_root is not None else rel_parent_test_dir
     if parent_test_dir.exists():
         for m in sorted(parent_test_dir.glob(f"test_{target_stem}*.py")):
-            s = str(m).replace("\\", "/")
+            s = str(rel_parent_test_dir / m.name).replace("\\", "/")
             if s not in discovered_tests:
                 discovered_tests.append(s)
 
-    flat_unit = Path("backend_v2/tests/unit")
-    flat_pkg_test = flat_unit / f"test_{target_stem}.py"
+    rel_flat_unit = Path("backend_v2/tests/unit")
+    flat_unit = (repo_root / rel_flat_unit) if repo_root is not None else rel_flat_unit
+    rel_flat_pkg_test = rel_flat_unit / f"test_{target_stem}.py"
+    flat_pkg_test = (repo_root / rel_flat_pkg_test) if repo_root is not None else rel_flat_pkg_test
     if flat_pkg_test.exists():
-        s = str(flat_pkg_test).replace("\\", "/")
+        s = str(rel_flat_pkg_test).replace("\\", "/")
         if s not in discovered_tests:
             discovered_tests.append(s)
 
@@ -277,19 +303,22 @@ def _discover_existing_dir_test_paths(target_clean: str, parts: list[str]) -> li
             stem = sub_py.stem
             sub_cand1 = parent_test_dir / f"test_{stem}.py"
             if sub_cand1.exists():
-                s = str(sub_cand1).replace("\\", "/")
+                s = str(rel_parent_test_dir / f"test_{stem}.py").replace("\\", "/")
                 if s not in discovered_tests:
                     discovered_tests.append(s)
             sub_cand2 = flat_unit / f"test_{stem}.py"
             if sub_cand2.exists():
-                s = str(sub_cand2).replace("\\", "/")
+                s = str(rel_flat_unit / f"test_{stem}.py").replace("\\", "/")
                 if s not in discovered_tests:
                     discovered_tests.append(s)
 
     return discovered_tests
 
 
-def discover_companion_test_targets(targets: list[str]) -> list[str]:
+def discover_companion_test_targets(
+    targets: list[str],
+    repo_root: Path | None = None,
+) -> list[str]:
     """Discover existing companion unit test files or directories for target paths.
 
     Used when --test is enabled so that Stage 1 (ruff check --fix) and Stage 2
@@ -298,6 +327,7 @@ def discover_companion_test_targets(targets: list[str]) -> list[str]:
 
     Args:
         targets: Target file or directory paths passed to the audit loop.
+        repo_root: Optional repository root directory to resolve probes against.
 
     Returns:
         Deduplicated list of existing companion test paths not already in targets.
@@ -314,14 +344,15 @@ def discover_companion_test_targets(targets: list[str]) -> list[str]:
             parts = target_clean.split("/")
             filename = parts[-1]
             if "tests" in parts:
-                sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
+                rel_sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
+                sibling_test = (repo_root / rel_sibling_test) if repo_root is not None else rel_sibling_test
                 if not filename.startswith("test_") and sibling_test.exists():
-                    cand_str = str(sibling_test).replace("\\", "/")
+                    cand_str = str(rel_sibling_test).replace("\\", "/")
                     if cand_str not in normalized_inputs and cand_str not in discovered:
                         discovered.append(cand_str)
             else:
                 candidates = _build_py_file_test_candidates(parts, filename)
-                for path_str in _discover_existing_py_test_paths(parts, filename, candidates):
+                for path_str in _discover_existing_py_test_paths(parts, filename, candidates, repo_root=repo_root):
                     if path_str not in normalized_inputs and path_str not in discovered:
                         discovered.append(path_str)
         else:
@@ -329,13 +360,14 @@ def discover_companion_test_targets(targets: list[str]) -> list[str]:
             if "tests" in parts or parts == ["backend_v2"]:
                 continue
             if parts[0] == "scripts":
-                scripts_test_dir = Path("backend_v2/tests/unit/scripts")
+                rel_scripts_test_dir = Path("backend_v2/tests/unit/scripts")
+                scripts_test_dir = (repo_root / rel_scripts_test_dir) if repo_root is not None else rel_scripts_test_dir
                 if scripts_test_dir.exists():
-                    dir_str = str(scripts_test_dir).replace("\\", "/")
+                    dir_str = str(rel_scripts_test_dir).replace("\\", "/")
                     if dir_str not in normalized_inputs and dir_str not in discovered:
                         discovered.append(dir_str)
             elif parts[0] == "backend_v2":
-                for dir_test_path in _discover_existing_dir_test_paths(target_clean, parts):
+                for dir_test_path in _discover_existing_dir_test_paths(target_clean, parts, repo_root=repo_root):
                     if dir_test_path not in normalized_inputs and dir_test_path not in discovered:
                         discovered.append(dir_test_path)
 
@@ -751,8 +783,9 @@ Optional steps:
             sys.exit(res_scripts_imports.returncode)
         print("✅ Clean imports verified.")
 
-        print("\n⏳ 8/10: Verifying DTO Parity (scripts/audit_dto_parity.py)...")
-        res_dto = subprocess.run(["uv", "run", "python", "scripts/audit_dto_parity.py"])
+        print("\n⏳ 8/10: Verifying DTO Parity (scripts/audit_dto_parity.py --fail-on-mismatch)...")
+        # Phase 1C, Step 3: Enforce --fail-on-mismatch on DTO parity audit
+        res_dto = subprocess.run(["uv", "run", "python", "scripts/audit_dto_parity.py", "--fail-on-mismatch"])
         if res_dto.returncode != 0:
             print(
                 "\n❌ DTO Parity Audit failed! Discrepancies between backend Pydantic models and frontend Freezed models.\n"
@@ -784,7 +817,23 @@ Optional steps:
             sys.exit(res_skills.returncode)
         print("✅ Dict eradication, Zero-ORM, and Skills architecture verified.")
     else:
-        print("\n⚡ Micro-audit mode active (--micro): Skipping whole-repository Stages 5-10.")
+        print(
+            "\n⚡ Micro-audit mode active (--micro): Running target-scoped Dict Eradication & Technical Debt gates..."
+        )
+        # Phase 1C, Step 3: Enforce target-scoped dict eradication and technical debt checks in --micro mode
+        res_micro_dict = subprocess.run(
+            ["uv", "run", "python", "scripts/audit_dict_eradication.py", *stage_targets, "--strict"]
+        )
+        if res_micro_dict.returncode != 0:
+            print("\n❌ Micro-mode Dict eradication audit failed! Eliminate naked dicts/casts in target files.\n")
+            sys.exit(res_micro_dict.returncode)
+        res_micro_td = subprocess.run(
+            ["uv", "run", "python", "scripts/audit_technical_debt.py", "--targets", *stage_targets, "--strict"]
+        )
+        if res_micro_td.returncode != 0:
+            print("\n❌ Micro-mode Technical Debt audit failed! Resolve technical debt in target files.\n")
+            sys.exit(res_micro_td.returncode)
+        print("✅ Micro-mode Dict Eradication and Technical Debt verified (skipping repository-wide Stages 5-10).")
 
     if run_openapi:
         print("\n⏳ Option: Generating OpenAPI documentation (--openapi)...")
