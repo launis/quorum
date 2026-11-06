@@ -327,53 +327,46 @@ void main() {
       },
     );
 
-    test(
-      'test_mcp_tool_execution_dto_positive_and_negative',
-      () {
-        final toolJson = <String, dynamic>{
-          'tool_id': 'async_task_tool',
-          'name': <String, dynamic>{
-            'translations': <String, dynamic>{'en': 'Async Task Tool'},
-          },
-          'description': 'Executes background task',
-          'execution': <String, dynamic>{
-            'task_support': 'optional',
-          },
-        };
+    test('test_mcp_tool_execution_dto_positive_and_negative', () {
+      final toolJson = <String, dynamic>{
+        'tool_id': 'async_task_tool',
+        'name': <String, dynamic>{
+          'translations': <String, dynamic>{'en': 'Async Task Tool'},
+        },
+        'description': 'Executes background task',
+        'execution': <String, dynamic>{'task_support': 'optional'},
+      };
 
-        final tool = AllowedMcpTool.fromJson(toolJson);
-        expect(tool.execution, isNotNull);
-        expect(tool.execution!.taskSupport, equals('optional'));
-        expect(
-          tool.execution!.toJson(),
-          equals(<String, dynamic>{'task_support': 'optional'}),
-        );
+      final tool = AllowedMcpTool.fromJson(toolJson);
+      expect(tool.execution, isNotNull);
+      expect(tool.execution!.taskSupport, equals('optional'));
+      expect(
+        tool.execution!.toJson(),
+        equals(<String, dynamic>{'task_support': 'optional'}),
+      );
 
-        // Negative 1: Unrecognized key in McpToolExecutionDto rejected by disallowUnrecognizedKeys: true
-        expect(
-          () => McpToolExecutionDto.fromJson(<String, dynamic>{
-            'task_support': 'required',
-            'unknown_execution_flag': true,
-          }),
-          throwsA(
-            anyOf(isA<FormatException>(), isA<CheckedFromJsonException>()),
+      // Negative 1: Unrecognized key in McpToolExecutionDto rejected by disallowUnrecognizedKeys: true
+      expect(
+        () => McpToolExecutionDto.fromJson(<String, dynamic>{
+          'task_support': 'required',
+          'unknown_execution_flag': true,
+        }),
+        throwsA(anyOf(isA<FormatException>(), isA<CheckedFromJsonException>())),
+      );
+
+      // Negative 2: Invalid type for task_support (int instead of String) rejected
+      expect(
+        () => McpToolExecutionDto.fromJson(<String, dynamic>{
+          'task_support': 123,
+        }),
+        throwsA(
+          anyOf(
+            isA<TypeError>(),
+            isA<FormatException>(),
+            isA<CheckedFromJsonException>(),
           ),
-        );
-
-        // Negative 2: Invalid type for task_support (int instead of String) rejected
-        expect(
-          () => McpToolExecutionDto.fromJson(<String, dynamic>{
-            'task_support': 123,
-          }),
-          throwsA(
-            anyOf(
-              isA<TypeError>(),
-              isA<FormatException>(),
-              isA<CheckedFromJsonException>(),
-            ),
-          ),
-        );
-      },
-    );
+        ),
+      );
+    });
   });
 }

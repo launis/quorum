@@ -10,17 +10,19 @@ from pydantic import ValidationError
 from backend_v2.models.auth import (
     ExecutionAssignmentBatchCreateDTO,
     ExecutionAssignmentRecipientDTO,
+    Invitation,
     InvitationBatchCreateDTO,
     InvitationCreateDTO,
     Organization,
     SubscriptionStatus,
+    TenantSecretDTO,
     TokenExchangeRequestDTO,
     User,
     UserAdminView,
     UserRole,
 )
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import AssignmentResultVisibility, SystemLocale
+from backend_v2.models.enums import AssignmentResultVisibility, SecretScope, SystemLocale
 
 VALID_ORG_ID = "org_0195f3a0000070008000000000000001"
 VALID_USER_ID = "usr_0195f3a0000070008000000000000002"
@@ -316,4 +318,77 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
             locked_inputs=WorkflowInputs(),
             assignee_input_keys=[],
             hard_deadline_at=deadline,
+        )
+
+
+def test_invitation_and_tenant_secret_datetime_parsing() -> None:
+    """Verify Invitation and TenantSecretDTO parse ISO 8601 strings and pass through datetime objects."""
+    ts = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    inv_from_str = Invitation.model_validate(
+        {
+            "organization_id": VALID_ORG_ID,
+            "email": "invitee@example.com",
+            "token_hash": "a" * 64,
+            "invited_by": VALID_USER_ID,
+            "expires_at": "2026-12-01T00:00:00Z",
+            "created_at": "2026-11-01T00:00:00Z",
+        }
+    )
+    assert inv_from_str.id.startswith("inv_")
+    assert inv_from_str.expires_at == datetime(2026, 12, 1, 0, 0, tzinfo=timezone.utc)
+
+    inv_from_dt = Invitation(
+        organization_id=VALID_ORG_ID,
+        email="invitee@example.com",
+        token_hash="b" * 64,
+        invited_by=VALID_USER_ID,
+        expires_at=ts,
+        created_at=ts,
+    )
+    assert inv_from_dt.expires_at == ts
+
+    with pytest.raises(ValidationError):
+        Invitation.model_validate(
+            {
+                "organization_id": VALID_ORG_ID,
+                "email": "invitee@example.com",
+                "token_hash": "a" * 64,
+                "invited_by": VALID_USER_ID,
+                "expires_at": "malformed-iso-date",
+            }
+        )
+
+    sec_from_str = TenantSecretDTO.model_validate(
+        {
+            "organization_id": VALID_ORG_ID,
+            "scope": SecretScope.LLM_PROVIDER,
+            "target_identifier": "gemini",
+            "kek_version": "kek-v1",
+            "masked_hint": "...1234",
+            "updated_at": "2026-11-06T12:00:00Z",
+        }
+    )
+    assert sec_from_str.id.startswith("sec_")
+    assert sec_from_str.updated_at == ts
+
+    sec_from_dt = TenantSecretDTO(
+        organization_id=VALID_ORG_ID,
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="gemini",
+        kek_version="kek-v1",
+        masked_hint="...1234",
+        updated_at=ts,
+    )
+    assert sec_from_dt.updated_at == ts
+
+    with pytest.raises(ValidationError):
+        TenantSecretDTO.model_validate(
+            {
+                "organization_id": VALID_ORG_ID,
+                "scope": SecretScope.LLM_PROVIDER,
+                "target_identifier": "gemini",
+                "kek_version": "kek-v1",
+                "masked_hint": "...1234",
+                "updated_at": "invalid-timestamp",
+            }
         )
