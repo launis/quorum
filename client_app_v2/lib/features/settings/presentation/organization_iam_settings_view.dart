@@ -1,4 +1,5 @@
 import 'package:client_app/core/api/execution_client.dart';
+import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
@@ -9,6 +10,7 @@ import 'package:client_app/features/auth/data/repositories/user_repository.dart'
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/router.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +19,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'organization_iam_settings_view.g.dart';
+
+// Phase 3, Step 3: Fetch configured MCP gateways for BYOK target dropdown (REQ-013)
+@riverpod
+Future<List<McpGateway>> availableMcpGateways(Ref ref) async =>
+    ref.watch(studioClientProvider).getMcpGateways();
 
 // Phase 2, Step 2: Provide organization list for ROOT cross-organization selector
 @riverpod
@@ -1299,23 +1306,55 @@ class _ByokSecretsCard extends HookConsumerWidget {
     required this.theme,
   });
 
+  static String _llmProviderBackendValue(LLMProvider provider) =>
+      switch (provider) {
+        LLMProvider.vertexAi => 'vertex_ai',
+        LLMProvider.aiStudio => 'ai_studio',
+        LLMProvider.openai => 'openai',
+        LLMProvider.anthropic => 'anthropic',
+        LLMProvider.azureOpenai => 'azure_openai',
+        LLMProvider.local => 'local',
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final secretsAsync = ref.watch(organizationSecretsProvider(orgId));
+    final gatewaysAsync = ref.watch(availableMcpGatewaysProvider);
     final selectedScope = useState<SecretScope>(SecretScope.llmProvider);
     final selectedStorageMode = useState<SecretStorageMode>(
       SecretStorageMode.envelopeKms,
     );
-    final targetController = useTextEditingController();
+    final selectedTarget = useState<String?>(
+      _llmProviderBackendValue(LLMProvider.openai),
+    );
     final secretValueController = useTextEditingController();
     final mutation = useMutation<void>();
 
+    final String? effectiveTarget = switch (selectedScope.value) {
+      SecretScope.llmProvider =>
+        LLMProvider.values.any(
+              (p) => _llmProviderBackendValue(p) == selectedTarget.value,
+            )
+            ? selectedTarget.value
+            : _llmProviderBackendValue(LLMProvider.openai),
+      SecretScope.mcpGateway => switch (gatewaysAsync) {
+        AsyncData(:final value) =>
+          value.any((gw) => gw.id == selectedTarget.value)
+              ? selectedTarget.value
+              : (value.isNotEmpty ? value.first.id : null),
+        _ => null,
+      },
+    };
+
     Future<void> saveSecret() async {
-      final target = targetController.text.trim();
+      final target = (effectiveTarget ?? '').trim();
       final plaintext = secretValueController.text.trim();
-      if (target.isEmpty || plaintext.isEmpty) return;
 
       await mutation.mutate(() async {
+        // Phase 3, Step 3: Fail-Fast on missing target or secret and forward storageMode (REQ-013)
+        if (target.isEmpty || plaintext.isEmpty) {
+          throw AppException.validation(l10n.errorValidation);
+        }
         final result = await ref
             .read(userRepositoryProvider)
             .upsertSecret(
@@ -1324,10 +1363,10 @@ class _ByokSecretsCard extends HookConsumerWidget {
                 scope: selectedScope.value,
                 targetIdentifier: target,
                 plaintextSecret: plaintext,
+                storageMode: selectedStorageMode.value,
               ),
             );
         result.fold((err) => throw err, (_) {
-          targetController.clear();
           secretValueController.clear();
           ref.invalidate(organizationSecretsProvider(orgId));
         });
@@ -1375,7 +1414,20 @@ class _ByokSecretsCard extends HookConsumerWidget {
                         ),
                     ],
                     onChanged: (val) {
-                      if (val != null) selectedScope.value = val;
+                      if (val != null) {
+                        selectedScope.value = val;
+                        if (val == SecretScope.llmProvider) {
+                          selectedTarget.value = _llmProviderBackendValue(
+                            LLMProvider.openai,
+                          );
+                        } else {
+                          selectedTarget.value = switch (gatewaysAsync) {
+                            AsyncData(:final value) when value.isNotEmpty =>
+                              value.first.id,
+                            _ => null,
+                          };
+                        }
+                      }
                     },
                   ),
                 ),
@@ -1407,15 +1459,71 @@ class _ByokSecretsCard extends HookConsumerWidget {
               ],
             ),
             AppSpacing.h12,
-            TextFormField(
-              key: const Key('org_secret_target_field'),
-              controller: targetController,
-              decoration: InputDecoration(
-                labelText: l10n.orgSecretTargetIdentifierLabel,
-                prefixIcon: const Icon(Icons.hub_outlined),
-                border: const OutlineInputBorder(),
+            // Phase 3, Step 3: Scope-aware target selector binding canonical LLMProvider or McpGateway.id (REQ-013)
+            switch (selectedScope.value) {
+              SecretScope.llmProvider => KeyedSubtree(
+                key: const ValueKey<String>('scope_llm_target_subtree'),
+                child: DropdownButtonFormField<String>(
+                  key: const ValueKey<String>('org_secret_target_dropdown'),
+                  isExpanded: true,
+                  initialValue: effectiveTarget,
+                  decoration: InputDecoration(
+                    labelText: l10n.orgSecretTargetIdentifierLabel,
+                    prefixIcon: const Icon(Icons.hub_outlined),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final provider in LLMProvider.values)
+                      DropdownMenuItem<String>(
+                        value: _llmProviderBackendValue(provider),
+                        child: Text(
+                          _llmProviderBackendValue(provider),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (val) {
+                    selectedTarget.value = val;
+                  },
+                ),
               ),
-            ),
+              SecretScope.mcpGateway => KeyedSubtree(
+                key: const ValueKey<String>('scope_mcp_target_subtree'),
+                child: switch (gatewaysAsync) {
+                  AsyncLoading() => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  AsyncError(:final error, :final stackTrace) => ErrorView(
+                    error: error,
+                    stackTrace: stackTrace,
+                    compact: true,
+                  ),
+                  AsyncData(:final value) => DropdownButtonFormField<String>(
+                    key: const ValueKey<String>('org_secret_target_dropdown'),
+                    isExpanded: true,
+                    initialValue: effectiveTarget,
+                    decoration: InputDecoration(
+                      labelText: l10n.orgSecretTargetIdentifierLabel,
+                      prefixIcon: const Icon(Icons.hub_outlined),
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      for (final gw in value)
+                        DropdownMenuItem<String>(
+                          value: gw.id,
+                          child: Text(
+                            '${gw.name} (${gw.id})',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (val) {
+                      selectedTarget.value = val;
+                    },
+                  ),
+                },
+              ),
+            },
             AppSpacing.h12,
             TextFormField(
               key: const Key('org_secret_value_field'),

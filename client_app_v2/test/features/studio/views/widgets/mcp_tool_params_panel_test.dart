@@ -16,6 +16,7 @@ void main() {
       mockGateways = <McpGateway>[
         const McpGateway(
           id: 'sys_0195f3a0000070008000111122223333',
+          name: 'Exa MCP Gateway',
           slug: 'exa_gateway',
           endpointUrl: 'https://mcp.exa.ai/mcp',
           transportType: McpTransportType.streamableHttp,
@@ -52,6 +53,7 @@ void main() {
         ),
         const McpGateway(
           id: 'sys_0195f3a0000070008000555566667777',
+          name: 'Tavily MCP Gateway',
           slug: 'tavily_gateway',
           endpointUrl: 'https://mcp.tavily.com/mcp',
           transportType: McpTransportType.streamableHttp,
@@ -359,6 +361,7 @@ void main() {
         const List<McpGateway> brokenGateways = <McpGateway>[
           McpGateway(
             id: 'sys_0195f3a0000070008000999988887777',
+            name: 'Broken MCP Gateway',
             slug: 'broken_gateway',
             endpointUrl: 'https://mcp.example.com/mcp',
             transportType: McpTransportType.streamableHttp,
@@ -410,6 +413,7 @@ void main() {
         const List<McpGateway> stringGateways = <McpGateway>[
           McpGateway(
             id: 'sys_0195f3a0000070008000123412341234',
+            name: 'Custom MCP Gateway',
             slug: 'custom_gateway',
             endpointUrl: 'https://mcp.example.com/mcp',
             transportType: McpTransportType.streamableHttp,
@@ -531,6 +535,7 @@ void main() {
         const List<McpGateway> tavilyGateways = <McpGateway>[
           McpGateway(
             id: 'sys_0195f3a00000700080008172bda70c86',
+            name: 'Tavily MCP Gateway',
             slug: 'default_mcp_gateway',
             endpointUrl: 'https://mcp.tavily.com/mcp',
             transportType: McpTransportType.streamableHttp,

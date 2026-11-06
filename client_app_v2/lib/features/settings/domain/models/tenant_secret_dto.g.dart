@@ -414,7 +414,12 @@ _TenantSecretCreateDto _$TenantSecretCreateDtoFromJson(
   ($checkedConvert) {
     $checkKeys(
       json,
-      allowedKeys: const ['scope', 'target_identifier', 'plaintext_secret'],
+      allowedKeys: const [
+        'scope',
+        'target_identifier',
+        'plaintext_secret',
+        'storage_mode',
+      ],
     );
     final val = _TenantSecretCreateDto(
       scope: $checkedConvert(
@@ -426,12 +431,17 @@ _TenantSecretCreateDto _$TenantSecretCreateDtoFromJson(
         (v) => v as String,
       ),
       plaintextSecret: $checkedConvert('plaintext_secret', (v) => v as String),
+      storageMode: $checkedConvert(
+        'storage_mode',
+        (v) => $enumDecode(_$SecretStorageModeEnumMap, v),
+      ),
     );
     return val;
   },
   fieldKeyMap: const {
     'targetIdentifier': 'target_identifier',
     'plaintextSecret': 'plaintext_secret',
+    'storageMode': 'storage_mode',
   },
 );
 
@@ -441,11 +451,17 @@ Map<String, dynamic> _$TenantSecretCreateDtoToJson(
   'scope': _$SecretScopeEnumMap[instance.scope]!,
   'target_identifier': instance.targetIdentifier,
   'plaintext_secret': instance.plaintextSecret,
+  'storage_mode': _$SecretStorageModeEnumMap[instance.storageMode]!,
 };
 
 const _$SecretScopeEnumMap = {
   SecretScope.llmProvider: 'llm_provider',
   SecretScope.mcpGateway: 'mcp_gateway',
+};
+
+const _$SecretStorageModeEnumMap = {
+  SecretStorageMode.cloudSecretManager: 'cloud_secret_manager',
+  SecretStorageMode.envelopeKms: 'envelope_kms',
 };
 
 _TenantSecretResponseDto _$TenantSecretResponseDtoFromJson(
@@ -523,11 +539,6 @@ Map<String, dynamic> _$TenantSecretResponseDtoToJson(
   'masked_hint': instance.maskedHint,
   'kek_version': instance.kekVersion,
   'updated_at': instance.updatedAt.toIso8601String(),
-};
-
-const _$SecretStorageModeEnumMap = {
-  SecretStorageMode.cloudSecretManager: 'cloud_secret_manager',
-  SecretStorageMode.envelopeKms: 'envelope_kms',
 };
 
 _ExecutionAssignmentCreateDto _$ExecutionAssignmentCreateDtoFromJson(

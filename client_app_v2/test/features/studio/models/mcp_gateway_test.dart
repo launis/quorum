@@ -10,6 +10,7 @@ void main() {
       // Input: Valid JSON matching SystemConfigMCPGateways SSOT
       final validJson = {
         'id': 'gw_0195f3a0000070008000000000000001',
+        'name': 'Filesystem MCP Gateway',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
         'endpoint_url': 'https://mcp.example.com/v1',
@@ -46,6 +47,7 @@ void main() {
 
       // Expected: Instantiates McpGateway with correct tools list and recursive schema DTOs
       expect(gateway.id, 'gw_0195f3a0000070008000000000000001');
+      expect(gateway.name, 'Filesystem MCP Gateway');
       expect(gateway.type, 'stdio');
       expect(gateway.slug, 'filesystem_gateway');
       expect(gateway.endpointUrl, 'https://mcp.example.com/v1');
@@ -73,6 +75,7 @@ void main() {
     test('test_mcp_gateway_with_explicit_capability', () {
       final validJson = {
         'id': 'gw_0195f3a0000070008000000000000001',
+        'name': 'Wikipedia MCP Gateway',
         'type': 'stdio',
         'tools': [
           {
@@ -88,6 +91,7 @@ void main() {
       };
 
       final gateway = McpGateway.fromJson(validJson);
+      expect(gateway.name, 'Wikipedia MCP Gateway');
       expect(gateway.tools.first.capability, ToolCapability.documentReader);
     });
 
@@ -95,6 +99,7 @@ void main() {
       // Input: JSON containing hallucinated 'allowed_tools' or 'is_active'
       final hallucinatedJson1 = {
         'id': 'gw_0195f3a0000070008000000000000001',
+        'name': 'Filesystem MCP Gateway',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
         'allowed_tools': <Object?>[], // Hallucinated key
@@ -103,6 +108,7 @@ void main() {
 
       final hallucinatedJson2 = {
         'id': 'gw_0195f3a0000070008000000000000001',
+        'name': 'Filesystem MCP Gateway',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
         'is_active': true, // Hallucinated key
@@ -124,6 +130,7 @@ void main() {
     test('test_mcp_gateway_invalid_opaque_id_fails_fast', () {
       final invalidIdJson = {
         'id': 'gw_short_id', // Fails 32-hex UUIDv7 boundary check
+        'name': 'Filesystem MCP Gateway',
         'type': 'mcp_gateways',
         'slug': 'filesystem_gateway',
         'tools': <Object?>[],
@@ -144,6 +151,7 @@ void main() {
     test('test_allowed_mcp_tool_missing_required_fields_fails_fast', () {
       final missingRequiredJson = {
         'id': 'gw_0195f3a0000070008000000000000001',
+        'name': 'Filesystem MCP Gateway',
         'tools': [
           {
             // Missing required 'tool_id', 'name', and 'description'
@@ -154,6 +162,23 @@ void main() {
 
       expect(
         () => McpGateway.fromJson(missingRequiredJson),
+        throwsA(
+          anyOf(
+            isA<TypeError>(),
+            isA<CheckedFromJsonException>(),
+            isA<FormatException>(),
+          ),
+        ),
+      );
+
+      final missingGatewayNameJson = {
+        'id': 'gw_0195f3a0000070008000000000000001',
+        'slug': 'filesystem_gateway',
+        'tools': <Object?>[],
+      };
+
+      expect(
+        () => McpGateway.fromJson(missingGatewayNameJson),
         throwsA(
           anyOf(
             isA<TypeError>(),

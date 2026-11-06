@@ -83,6 +83,7 @@ void main() {
 
     final validGatewayJson = <String, Object?>{
       'id': testGatewayId,
+      'name': 'Default MCP Gateway',
       'type': 'mcp_gateways',
       'slug': 'default_mcp_gateway',
       'endpoint_url': 'https://mcp.example.com/v1',

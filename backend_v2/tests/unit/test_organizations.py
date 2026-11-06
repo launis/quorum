@@ -41,7 +41,13 @@ from backend_v2.models.auth import (
     User,
     UserRole,
 )
-from backend_v2.models.enums import InvitationStatus, LLMProvider, SecretScope, SystemLocale
+from backend_v2.models.enums import (
+    InvitationStatus,
+    LLMProvider,
+    SecretScope,
+    SecretStorageMode,
+    SystemLocale,
+)
 from backend_v2.services.auth import AuthService
 from backend_v2.services.auth.secret_service import SecretService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -170,6 +176,7 @@ async def test_organizations_router_byok_secrets_endpoints_positive_and_negative
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.OPENAI.value,
             plaintext_secret=SecretStr("sk-org-router-unit-9876"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
         current_user=mock_current_user,
         secret_service=secret_service,

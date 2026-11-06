@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:client_app/core/api/execution_client.dart';
+import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/auth/data/repositories/user_repository.dart';
@@ -9,6 +10,7 @@ import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/settings/presentation/organization_iam_settings_view.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:flutter/material.dart';
@@ -225,7 +227,7 @@ class _FakeUserRepository implements UserRepository {
         organizationId: orgId,
         scope: payload.scope,
         targetIdentifier: payload.targetIdentifier,
-        storageMode: SecretStorageMode.envelopeKms,
+        storageMode: payload.storageMode,
         configured: true,
         maskedHint: '****9999',
         kekVersion: 'v1',
@@ -233,6 +235,27 @@ class _FakeUserRepository implements UserRepository {
       ),
     );
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeStudioClient implements StudioClient {
+  List<McpGateway> gateways;
+
+  _FakeStudioClient({
+    this.gateways = const <McpGateway>[
+      McpGateway(
+        id: 'sys_0195f3a00000700080008172bda70c86',
+        name: 'Tavily MCP Gateway',
+        slug: 'default_mcp_gateway',
+        type: 'mcp_gateways',
+      ),
+    ],
+  });
+
+  @override
+  Future<List<McpGateway>> getMcpGateways() async => gateways;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -272,6 +295,7 @@ Widget _buildIamViewForRole({
   required User user,
   required _FakeUserRepository userRepo,
   required _FakeExecutionClient execClient,
+  _FakeStudioClient? studioClient,
 }) {
   return ProviderScope(
     key: UniqueKey(),
@@ -279,6 +303,9 @@ Widget _buildIamViewForRole({
       authControllerProvider.overrideWith(() => _StubAuthController(user)),
       userRepositoryProvider.overrideWithValue(userRepo),
       executionClientProvider.overrideWithValue(execClient),
+      studioClientProvider.overrideWithValue(
+        studioClient ?? _FakeStudioClient(),
+      ),
     ],
     child: const MaterialApp(
       localizationsDelegates: [
@@ -765,6 +792,138 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byIcon(Icons.error_outline), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'Positive: BYOK secrets card selects MCP gateway by canonical gw.id displaying gw.name and submits storageMode',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1440, 2000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final userRepo = _FakeUserRepository();
+        final execClient = _FakeExecutionClient();
+        final studioClient = _FakeStudioClient();
+
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: userWithRole(UserRole.admin),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: studioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Legacy free-text target field is eradicated
+        expect(find.byKey(const Key('org_secret_target_field')), findsNothing);
+        expect(
+          find.byKey(const ValueKey<String>('org_secret_target_dropdown')),
+          findsOneWidget,
+        );
+
+        // Switch scope from LLM Provider to MCP Gateway
+        final scopeDropdown = find.byKey(
+          const Key('org_secret_scope_dropdown'),
+        );
+        await tester.ensureVisible(scopeDropdown);
+        await tester.tap(scopeDropdown);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(SecretScope.mcpGateway.name).last);
+        await tester.pumpAndSettle();
+
+        // Verify MCP gateway dropdown displays '${gw.name} (${gw.id})' and never gw.slug
+        expect(
+          find.text(
+            'Tavily MCP Gateway (sys_0195f3a00000700080008172bda70c86)',
+          ),
+          findsWidgets,
+        );
+
+        // Switch storage mode to Cloud Secret Manager
+        final storageDropdown = find.byKey(
+          const Key('org_secret_storage_mode_dropdown'),
+        );
+        await tester.ensureVisible(storageDropdown);
+        await tester.tap(storageDropdown);
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.text(SecretStorageMode.cloudSecretManager.name).last,
+        );
+        await tester.pumpAndSettle();
+
+        // Enter secret URI and submit
+        await tester.enterText(
+          find.byKey(const Key('org_secret_value_field')),
+          'projects/p/secrets/s/versions/1',
+        );
+        final saveBtn = find.byKey(const Key('org_save_secret_btn'));
+        await tester.ensureVisible(saveBtn);
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(userRepo.lastSavedSecret, isNotNull);
+        expect(userRepo.lastSavedSecret!.scope, equals(SecretScope.mcpGateway));
+        expect(
+          userRepo.lastSavedSecret!.targetIdentifier,
+          equals('sys_0195f3a00000700080008172bda70c86'),
+        );
+        expect(
+          userRepo.lastSavedSecret!.storageMode,
+          equals(SecretStorageMode.cloudSecretManager),
+        );
+        expect(
+          userRepo.lastSavedSecret!.plaintextSecret,
+          equals('projects/p/secrets/s/versions/1'),
+        );
+      },
+    );
+
+    testWidgets(
+      'Negative & Boundary: BYOK secrets card fails fast when secret value is empty or no MCP gateway is configured',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1440, 2000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final userRepo = _FakeUserRepository();
+        final execClient = _FakeExecutionClient();
+        final emptyStudioClient = _FakeStudioClient(gateways: const []);
+
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: userWithRole(UserRole.admin),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: emptyStudioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Negative 1: Submitting with empty secret value throws AppException.validation and renders ErrorView
+        final saveBtn = find.byKey(const Key('org_save_secret_btn'));
+        await tester.ensureVisible(saveBtn);
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(userRepo.lastSavedSecret, isNull);
+        expect(find.byIcon(Icons.error_outline), findsWidgets);
+
+        // Boundary 2: Switching to MCP Gateway scope when 0 gateways exist disables dropdown without crashing
+        final scopeDropdown = find.byKey(
+          const Key('org_secret_scope_dropdown'),
+        );
+        await tester.ensureVisible(scopeDropdown);
+        await tester.tap(scopeDropdown);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(SecretScope.mcpGateway.name).last);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey<String>('org_secret_target_dropdown')),
+          findsOneWidget,
+        );
       },
     );
   });

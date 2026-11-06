@@ -27,6 +27,7 @@ void main() {
 
   const validGateway = McpGateway(
     id: 'mcp_0123456789abcdef',
+    name: 'Default MCP Gateway',
     type: 'mcp_gateways',
     slug: 'default-mcp',
     tools: [validTool],
@@ -246,6 +247,7 @@ void main() {
 
       const cloned = McpGateway(
         id: 'mcp_cloned12345678',
+        name: 'Default MCP Gateway (Copy)',
         type: 'mcp_gateways',
         slug: 'default-mcp-copy',
         tools: [validTool],
@@ -287,6 +289,7 @@ void main() {
 
       const draft = McpGateway(
         id: 'mcp_draft123456789',
+        name: 'New MCP Gateway Draft',
         type: 'mcp_gateways',
         slug: 'draft-gateway',
         tools: [],
@@ -460,6 +463,7 @@ void main() {
         // Force rebuild
         const modified = McpGateway(
           id: 'mcp_0123456789abcdef',
+          name: 'Rebuilt MCP Gateway',
           type: 'mcp_gateways',
           slug: 'rebuilt-gateway',
           tools: [],

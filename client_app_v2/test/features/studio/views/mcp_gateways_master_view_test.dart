@@ -52,7 +52,7 @@ class MockMcpGatewaysController extends McpGatewaysController {
     if (onClone != null) {
       return await onClone!(id);
     }
-    return McpGateway(id: '${id}_clone');
+    return McpGateway(id: '${id}_clone', name: '${id}_clone');
   }
 
   @override
@@ -62,6 +62,7 @@ class MockMcpGatewaysController extends McpGatewaysController {
     }
     return const McpGateway(
       id: 'mgw_01950000000070008000000000000099',
+      name: 'New MCP Gateway Draft',
       slug: 'draft-gateway',
     );
   }
@@ -155,8 +156,16 @@ void main() {
     ) async {
       String clonedId = '';
       final gateways = [
-        const McpGateway(id: 'gw_web_search', slug: 'web-search-gateway'),
-        const McpGateway(id: 'gw_database_query', slug: 'db-query-gateway'),
+        const McpGateway(
+          id: 'gw_web_search',
+          name: 'gw_web_search',
+          slug: 'web-search-gateway',
+        ),
+        const McpGateway(
+          id: 'gw_database_query',
+          name: 'gw_database_query',
+          slug: 'db-query-gateway',
+        ),
       ];
 
       await tester.pumpWidget(
@@ -164,7 +173,7 @@ void main() {
           gateways,
           onClone: (id) async {
             clonedId = id;
-            return McpGateway(id: '${id}_clone');
+            return McpGateway(id: '${id}_clone', name: '${id}_clone');
           },
         ),
       );
@@ -200,7 +209,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final gateways = [const McpGateway(id: 'gw_1')];
+      final gateways = [const McpGateway(id: 'gw_1', name: 'gw_1')];
       await tester.pumpWidget(
         createTestWidget(gateways, screenSize: const Size(3840, 2160)),
       );
@@ -221,7 +230,10 @@ void main() {
     ) async {
       final mockList = List.generate(
         30,
-        (i) => McpGateway(id: 'gw_${i.toString().padLeft(3, '0')}'),
+        (i) => McpGateway(
+          id: 'gw_${i.toString().padLeft(3, '0')}',
+          name: 'gw_${i.toString().padLeft(3, '0')}',
+        ),
       );
 
       await tester.pumpWidget(createTestWidget(mockList));
@@ -251,7 +263,7 @@ void main() {
     testWidgets('renders search miss when query matches 0 items', (
       tester,
     ) async {
-      final gateways = [const McpGateway(id: 'gw_1')];
+      final gateways = [const McpGateway(id: 'gw_1', name: 'gw_1')];
       await tester.pumpWidget(createTestWidget(gateways));
       await tester.pumpAndSettle();
 
@@ -326,7 +338,9 @@ void main() {
     testWidgets(
       'displays error SnackBar and logs telemetry when cloneGateway fails',
       (tester) async {
-        final gateways = [const McpGateway(id: 'gw_web_search')];
+        final gateways = [
+          const McpGateway(id: 'gw_web_search', name: 'gw_web_search'),
+        ];
 
         await tester.pumpWidget(
           createTestWidget(
@@ -358,7 +372,7 @@ void main() {
         final originalOnError = FlutterError.onError;
         FlutterError.onError = (FlutterErrorDetails details) {};
         try {
-          final gateways = [const McpGateway(id: '')];
+          final gateways = [const McpGateway(id: '', name: 'Empty ID Gateway')];
 
           await tester.pumpWidget(createTestWidget(gateways));
           await tester.pumpAndSettle();

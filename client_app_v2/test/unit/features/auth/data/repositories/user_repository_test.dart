@@ -374,6 +374,7 @@ void main() {
           scope: SecretScope.llmProvider,
           targetIdentifier: 'GOOGLE_AI_STUDIO',
           plaintextSecret: 'test-secret-placeholder',
+          storageMode: SecretStorageMode.envelopeKms,
         );
         final expectedCreateSecretJson = createSecretDto.toJson();
 

@@ -99,9 +99,12 @@ void main() {
           'scope': 'llm_provider',
           'target_identifier': 'google',
           'plaintext_secret': 'test-placeholder-value',
+          'storage_mode': 'envelope_kms',
         });
         expect(secretCreate.scope, equals(SecretScope.llmProvider));
+        expect(secretCreate.storageMode, equals(SecretStorageMode.envelopeKms));
         expect(secretCreate.toJson()['target_identifier'], equals('google'));
+        expect(secretCreate.toJson()['storage_mode'], equals('envelope_kms'));
 
         final secretRes = TenantSecretResponseDto.fromJson({
           'id': validSecId,
@@ -240,9 +243,19 @@ void main() {
             'scope': 'llm_provider',
             'target_identifier': 'openai',
             'plaintext_secret': 'placeholder',
+            'storage_mode': 'envelope_kms',
             'extra_field': 'forbidden',
           }),
           throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        expect(
+          () => TenantSecretCreateDto.fromJson({
+            'scope': 'llm_provider',
+            'target_identifier': 'openai',
+            'plaintext_secret': 'placeholder',
+          }),
+          throwsA(anyOf(isA<CheckedFromJsonException>(), isA<TypeError>())),
         );
 
         expect(
@@ -323,6 +336,7 @@ void main() {
               scope: SecretScope.llmProvider,
               targetIdentifier: target,
               plaintextSecret: 'placeholder',
+              storageMode: SecretStorageMode.envelopeKms,
             );
 
         final first = buildRuntimeSecret('openai');

@@ -107,6 +107,7 @@ void main() {
   group('McpGatewayView Widget Tests', () {
     const testGateway = McpGateway(
       id: 'gw_search',
+      name: 'Search MCP Gateway',
       slug: 'search_gateway',
       type: 'mcp_gateways',
       endpointUrl: 'https://mcp.example.com/v1',
@@ -150,6 +151,11 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('gw_search'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('gateway_name_field')),
+          findsOneWidget,
+        );
+        expect(find.text('Search MCP Gateway'), findsOneWidget);
         expect(find.text('search_gateway'), findsOneWidget);
         expect(find.text('mcp_gateways'), findsOneWidget);
         expect(find.text('https://mcp.example.com/v1'), findsOneWidget);

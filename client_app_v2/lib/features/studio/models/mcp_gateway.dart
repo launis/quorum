@@ -115,6 +115,7 @@ abstract class McpGateway with _$McpGateway {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory McpGateway({
     @StrictOpaqueIdConverter() required String id,
+    required String name,
     @Default('mcp_gateways') String type,
     @Default('default_mcp_gateway') String slug,
     @JsonKey(name: 'endpoint_url') @Default('') String endpointUrl,

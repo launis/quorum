@@ -268,6 +268,7 @@ void main() {
         );
         const gateway = McpGateway(
           id: 'sys_1234567890abcdef',
+          name: 'Default MCP Gateway',
           slug: 'default_mcp_gateway',
           tools: [
             AllowedMcpTool(
@@ -449,11 +450,11 @@ class MockMcpGatewaysController extends AsyncNotifier<List<McpGateway>>
   Future<void> deleteGateway(String id) async {}
   @override
   Future<McpGateway> cloneGateway(String id) async =>
-      const McpGateway(id: 'gw_cloned', slug: 'cloned');
+      const McpGateway(id: 'gw_cloned', name: 'Cloned Gateway', slug: 'cloned');
   @override
   Future<McpGateway> createMcpGatewayDraft() async =>
-      const McpGateway(id: 'gw_draft', slug: 'draft');
+      const McpGateway(id: 'gw_draft', name: 'Draft Gateway', slug: 'draft');
   @override
   Future<McpGateway> discoverTools(String id) async =>
-      McpGateway(id: id, slug: 'discovered');
+      McpGateway(id: id, name: 'Discovered Gateway', slug: 'discovered');
 }

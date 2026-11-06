@@ -40,8 +40,9 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
       if (_searchQuery.isEmpty) return true;
       final query = _searchQuery.toLowerCase();
       final id = g.id.toLowerCase();
+      final name = g.name.toLowerCase();
       final slug = g.slug.toLowerCase();
-      return id.contains(query) || slug.contains(query);
+      return id.contains(query) || name.contains(query) || slug.contains(query);
     }).toList();
 
     return AppErrorBoundary(
@@ -165,7 +166,7 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                                       ).colorScheme.onSurfaceVariant,
                                     ),
                                     title: Text(
-                                      gateway.id,
+                                      gateway.name,
                                       overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context)
                                           .textTheme
@@ -175,10 +176,7 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                                           ),
                                     ),
                                     subtitle: Text(
-                                      l10n.gatewaySubtitle(
-                                        tools,
-                                        l10n.activeStatus,
-                                      ),
+                                      '${gateway.id} • ${gateway.slug} • ${l10n.gatewaySubtitle(tools, l10n.activeStatus)}',
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     trailing: Row(

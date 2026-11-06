@@ -83,8 +83,8 @@ class McpGatewayView extends HookConsumerWidget {
       final String idToDelete = payload.id;
       if (idToDelete.isEmpty) return;
 
-      final String nameToDisplay = payload.slug.isNotEmpty
-          ? payload.slug
+      final String nameToDisplay = payload.name.isNotEmpty
+          ? payload.name
           : idToDelete;
 
       final confirm = await showDialog<bool>(
@@ -291,6 +291,35 @@ class McpGatewayView extends HookConsumerWidget {
               initialValue: data.id,
               decoration: InputDecoration(labelText: l10n.configIdLabel),
               readOnly: true,
+            ),
+            AppSpacing.h8,
+            // Phase 3, Step 3: Bind gateway_name_field to McpGateway.name (REQ-011)
+            TextFormField(
+              key: const ValueKey('gateway_name_field'),
+              initialValue: data.name,
+              decoration: InputDecoration(labelText: l10n.nameLabel),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return l10n.errorValidation;
+                }
+                return null;
+              },
+              onChanged: (val) {
+                _updateGateway(
+                  ref,
+                  (current) => current.copyWith(name: val.trim()),
+                );
+              },
+              onSaved: (val) {
+                _updateGateway(
+                  ref,
+                  (current) => current.copyWith(
+                    name: val != null && val.trim().isNotEmpty
+                        ? val.trim()
+                        : current.name,
+                  ),
+                );
+              },
             ),
             AppSpacing.h8,
             TextFormField(

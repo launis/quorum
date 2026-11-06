@@ -362,6 +362,7 @@ _McpGateway _$McpGatewayFromJson(Map<String, dynamic> json) => $checkedCreate(
       json,
       allowedKeys: const [
         'id',
+        'name',
         'type',
         'slug',
         'endpoint_url',
@@ -378,6 +379,7 @@ _McpGateway _$McpGatewayFromJson(Map<String, dynamic> json) => $checkedCreate(
         'id',
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
+      name: $checkedConvert('name', (v) => v as String),
       type: $checkedConvert('type', (v) => v as String? ?? 'mcp_gateways'),
       slug: $checkedConvert(
         'slug',
@@ -424,6 +426,7 @@ _McpGateway _$McpGatewayFromJson(Map<String, dynamic> json) => $checkedCreate(
 Map<String, dynamic> _$McpGatewayToJson(_McpGateway instance) =>
     <String, dynamic>{
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
+      'name': instance.name,
       'type': instance.type,
       'slug': instance.slug,
       'endpoint_url': instance.endpointUrl,

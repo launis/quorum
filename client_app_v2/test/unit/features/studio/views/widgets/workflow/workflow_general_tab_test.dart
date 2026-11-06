@@ -112,6 +112,7 @@ void main() {
     mockGateways = [
       const McpGateway(
         id: validGwId,
+        name: 'Tavily MCP Gateway',
         slug: 'tavily_gw',
         tools: [
           AllowedMcpTool(

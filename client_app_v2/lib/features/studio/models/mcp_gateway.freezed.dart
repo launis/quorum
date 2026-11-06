@@ -1293,7 +1293,7 @@ $McpToolExecutionDtoCopyWith<$Res>? get execution {
 /// @nodoc
 mixin _$McpGateway {
 
-@StrictOpaqueIdConverter() String get id; String get type; String get slug;@JsonKey(name: 'endpoint_url') String get endpointUrl;@JsonKey(name: 'transport_type') McpTransportType get transportType;@JsonKey(name: 'auth_type') McpAuthType get authType;@JsonKey(name: 'auth_header_name') String? get authHeaderName;@JsonKey(name: 'auth_env_var') String? get authEnvVar;@JsonKey(name: 'timeout_seconds') int get timeoutSeconds; List<AllowedMcpTool> get tools;
+@StrictOpaqueIdConverter() String get id; String get name; String get type; String get slug;@JsonKey(name: 'endpoint_url') String get endpointUrl;@JsonKey(name: 'transport_type') McpTransportType get transportType;@JsonKey(name: 'auth_type') McpAuthType get authType;@JsonKey(name: 'auth_header_name') String? get authHeaderName;@JsonKey(name: 'auth_env_var') String? get authEnvVar;@JsonKey(name: 'timeout_seconds') int get timeoutSeconds; List<AllowedMcpTool> get tools;
 /// Create a copy of McpGateway
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1308,7 +1308,7 @@ $McpGatewayCopyWith<McpGateway> get copyWith => _$McpGatewayCopyWithImpl<McpGate
 
 @override
 String toString() {
-  return 'McpGateway(id: $id, type: $type, slug: $slug, endpointUrl: $endpointUrl, transportType: $transportType, authType: $authType, authHeaderName: $authHeaderName, authEnvVar: $authEnvVar, timeoutSeconds: $timeoutSeconds, tools: $tools)';
+  return 'McpGateway(id: $id, name: $name, type: $type, slug: $slug, endpointUrl: $endpointUrl, transportType: $transportType, authType: $authType, authHeaderName: $authHeaderName, authEnvVar: $authEnvVar, timeoutSeconds: $timeoutSeconds, tools: $tools)';
 }
 
 
@@ -1319,7 +1319,7 @@ abstract mixin class $McpGatewayCopyWith<$Res>  {
   factory $McpGatewayCopyWith(McpGateway value, $Res Function(McpGateway) _then) = _$McpGatewayCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String type, String slug,@JsonKey(name: 'endpoint_url') String endpointUrl,@JsonKey(name: 'transport_type') McpTransportType transportType,@JsonKey(name: 'auth_type') McpAuthType authType,@JsonKey(name: 'auth_header_name') String? authHeaderName,@JsonKey(name: 'auth_env_var') String? authEnvVar,@JsonKey(name: 'timeout_seconds') int timeoutSeconds, List<AllowedMcpTool> tools
+@StrictOpaqueIdConverter() String id, String name, String type, String slug,@JsonKey(name: 'endpoint_url') String endpointUrl,@JsonKey(name: 'transport_type') McpTransportType transportType,@JsonKey(name: 'auth_type') McpAuthType authType,@JsonKey(name: 'auth_header_name') String? authHeaderName,@JsonKey(name: 'auth_env_var') String? authEnvVar,@JsonKey(name: 'timeout_seconds') int timeoutSeconds, List<AllowedMcpTool> tools
 });
 
 
@@ -1336,9 +1336,10 @@ class _$McpGatewayCopyWithImpl<$Res>
 
 /// Create a copy of McpGateway
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? slug = null,Object? endpointUrl = null,Object? transportType = null,Object? authType = null,Object? authHeaderName = freezed,Object? authEnvVar = freezed,Object? timeoutSeconds = null,Object? tools = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? slug = null,Object? endpointUrl = null,Object? transportType = null,Object? authType = null,Object? authHeaderName = freezed,Object? authEnvVar = freezed,Object? timeoutSeconds = null,Object? tools = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,endpointUrl: null == endpointUrl ? _self.endpointUrl : endpointUrl // ignore: cast_nullable_to_non_nullable
@@ -1433,10 +1434,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String type,  String slug, @JsonKey(name: 'endpoint_url')  String endpointUrl, @JsonKey(name: 'transport_type')  McpTransportType transportType, @JsonKey(name: 'auth_type')  McpAuthType authType, @JsonKey(name: 'auth_header_name')  String? authHeaderName, @JsonKey(name: 'auth_env_var')  String? authEnvVar, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds,  List<AllowedMcpTool> tools)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String name,  String type,  String slug, @JsonKey(name: 'endpoint_url')  String endpointUrl, @JsonKey(name: 'transport_type')  McpTransportType transportType, @JsonKey(name: 'auth_type')  McpAuthType authType, @JsonKey(name: 'auth_header_name')  String? authHeaderName, @JsonKey(name: 'auth_env_var')  String? authEnvVar, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds,  List<AllowedMcpTool> tools)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _McpGateway() when $default != null:
-return $default(_that.id,_that.type,_that.slug,_that.endpointUrl,_that.transportType,_that.authType,_that.authHeaderName,_that.authEnvVar,_that.timeoutSeconds,_that.tools);case _:
+return $default(_that.id,_that.name,_that.type,_that.slug,_that.endpointUrl,_that.transportType,_that.authType,_that.authHeaderName,_that.authEnvVar,_that.timeoutSeconds,_that.tools);case _:
   return orElse();
 
 }
@@ -1454,10 +1455,10 @@ return $default(_that.id,_that.type,_that.slug,_that.endpointUrl,_that.transport
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String type,  String slug, @JsonKey(name: 'endpoint_url')  String endpointUrl, @JsonKey(name: 'transport_type')  McpTransportType transportType, @JsonKey(name: 'auth_type')  McpAuthType authType, @JsonKey(name: 'auth_header_name')  String? authHeaderName, @JsonKey(name: 'auth_env_var')  String? authEnvVar, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds,  List<AllowedMcpTool> tools)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String name,  String type,  String slug, @JsonKey(name: 'endpoint_url')  String endpointUrl, @JsonKey(name: 'transport_type')  McpTransportType transportType, @JsonKey(name: 'auth_type')  McpAuthType authType, @JsonKey(name: 'auth_header_name')  String? authHeaderName, @JsonKey(name: 'auth_env_var')  String? authEnvVar, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds,  List<AllowedMcpTool> tools)  $default,) {final _that = this;
 switch (_that) {
 case _McpGateway():
-return $default(_that.id,_that.type,_that.slug,_that.endpointUrl,_that.transportType,_that.authType,_that.authHeaderName,_that.authEnvVar,_that.timeoutSeconds,_that.tools);case _:
+return $default(_that.id,_that.name,_that.type,_that.slug,_that.endpointUrl,_that.transportType,_that.authType,_that.authHeaderName,_that.authEnvVar,_that.timeoutSeconds,_that.tools);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1474,10 +1475,10 @@ return $default(_that.id,_that.type,_that.slug,_that.endpointUrl,_that.transport
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String type,  String slug, @JsonKey(name: 'endpoint_url')  String endpointUrl, @JsonKey(name: 'transport_type')  McpTransportType transportType, @JsonKey(name: 'auth_type')  McpAuthType authType, @JsonKey(name: 'auth_header_name')  String? authHeaderName, @JsonKey(name: 'auth_env_var')  String? authEnvVar, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds,  List<AllowedMcpTool> tools)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String name,  String type,  String slug, @JsonKey(name: 'endpoint_url')  String endpointUrl, @JsonKey(name: 'transport_type')  McpTransportType transportType, @JsonKey(name: 'auth_type')  McpAuthType authType, @JsonKey(name: 'auth_header_name')  String? authHeaderName, @JsonKey(name: 'auth_env_var')  String? authEnvVar, @JsonKey(name: 'timeout_seconds')  int timeoutSeconds,  List<AllowedMcpTool> tools)?  $default,) {final _that = this;
 switch (_that) {
 case _McpGateway() when $default != null:
-return $default(_that.id,_that.type,_that.slug,_that.endpointUrl,_that.transportType,_that.authType,_that.authHeaderName,_that.authEnvVar,_that.timeoutSeconds,_that.tools);case _:
+return $default(_that.id,_that.name,_that.type,_that.slug,_that.endpointUrl,_that.transportType,_that.authType,_that.authHeaderName,_that.authEnvVar,_that.timeoutSeconds,_that.tools);case _:
   return null;
 
 }
@@ -1489,10 +1490,11 @@ return $default(_that.id,_that.type,_that.slug,_that.endpointUrl,_that.transport
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _McpGateway implements McpGateway {
-  const _McpGateway({@StrictOpaqueIdConverter() required this.id, this.type = 'mcp_gateways', this.slug = 'default_mcp_gateway', @JsonKey(name: 'endpoint_url') this.endpointUrl = '', @JsonKey(name: 'transport_type') this.transportType = McpTransportType.streamableHttp, @JsonKey(name: 'auth_type') this.authType = McpAuthType.none, @JsonKey(name: 'auth_header_name') this.authHeaderName, @JsonKey(name: 'auth_env_var') this.authEnvVar, @JsonKey(name: 'timeout_seconds') this.timeoutSeconds = 30, final  List<AllowedMcpTool> tools = const []}): _tools = tools;
+  const _McpGateway({@StrictOpaqueIdConverter() required this.id, required this.name, this.type = 'mcp_gateways', this.slug = 'default_mcp_gateway', @JsonKey(name: 'endpoint_url') this.endpointUrl = '', @JsonKey(name: 'transport_type') this.transportType = McpTransportType.streamableHttp, @JsonKey(name: 'auth_type') this.authType = McpAuthType.none, @JsonKey(name: 'auth_header_name') this.authHeaderName, @JsonKey(name: 'auth_env_var') this.authEnvVar, @JsonKey(name: 'timeout_seconds') this.timeoutSeconds = 30, final  List<AllowedMcpTool> tools = const []}): _tools = tools;
   factory _McpGateway.fromJson(Map<String, dynamic> json) => _$McpGatewayFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
+@override final  String name;
 @override@JsonKey() final  String type;
 @override@JsonKey() final  String slug;
 @override@JsonKey(name: 'endpoint_url') final  String endpointUrl;
@@ -1524,7 +1526,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'McpGateway(id: $id, type: $type, slug: $slug, endpointUrl: $endpointUrl, transportType: $transportType, authType: $authType, authHeaderName: $authHeaderName, authEnvVar: $authEnvVar, timeoutSeconds: $timeoutSeconds, tools: $tools)';
+  return 'McpGateway(id: $id, name: $name, type: $type, slug: $slug, endpointUrl: $endpointUrl, transportType: $transportType, authType: $authType, authHeaderName: $authHeaderName, authEnvVar: $authEnvVar, timeoutSeconds: $timeoutSeconds, tools: $tools)';
 }
 
 
@@ -1535,7 +1537,7 @@ abstract mixin class _$McpGatewayCopyWith<$Res> implements $McpGatewayCopyWith<$
   factory _$McpGatewayCopyWith(_McpGateway value, $Res Function(_McpGateway) _then) = __$McpGatewayCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String type, String slug,@JsonKey(name: 'endpoint_url') String endpointUrl,@JsonKey(name: 'transport_type') McpTransportType transportType,@JsonKey(name: 'auth_type') McpAuthType authType,@JsonKey(name: 'auth_header_name') String? authHeaderName,@JsonKey(name: 'auth_env_var') String? authEnvVar,@JsonKey(name: 'timeout_seconds') int timeoutSeconds, List<AllowedMcpTool> tools
+@StrictOpaqueIdConverter() String id, String name, String type, String slug,@JsonKey(name: 'endpoint_url') String endpointUrl,@JsonKey(name: 'transport_type') McpTransportType transportType,@JsonKey(name: 'auth_type') McpAuthType authType,@JsonKey(name: 'auth_header_name') String? authHeaderName,@JsonKey(name: 'auth_env_var') String? authEnvVar,@JsonKey(name: 'timeout_seconds') int timeoutSeconds, List<AllowedMcpTool> tools
 });
 
 
@@ -1552,9 +1554,10 @@ class __$McpGatewayCopyWithImpl<$Res>
 
 /// Create a copy of McpGateway
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? slug = null,Object? endpointUrl = null,Object? transportType = null,Object? authType = null,Object? authHeaderName = freezed,Object? authEnvVar = freezed,Object? timeoutSeconds = null,Object? tools = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? slug = null,Object? endpointUrl = null,Object? transportType = null,Object? authType = null,Object? authHeaderName = freezed,Object? authEnvVar = freezed,Object? timeoutSeconds = null,Object? tools = null,}) {
   return _then(_McpGateway(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,endpointUrl: null == endpointUrl ? _self.endpointUrl : endpointUrl // ignore: cast_nullable_to_non_nullable

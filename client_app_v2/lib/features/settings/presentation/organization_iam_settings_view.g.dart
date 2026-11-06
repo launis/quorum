@@ -9,6 +9,46 @@ part of 'organization_iam_settings_view.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(availableMcpGateways)
+final availableMcpGatewaysProvider = AvailableMcpGatewaysProvider._();
+
+final class AvailableMcpGatewaysProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<McpGateway>>,
+          List<McpGateway>,
+          FutureOr<List<McpGateway>>
+        >
+    with $FutureModifier<List<McpGateway>>, $FutureProvider<List<McpGateway>> {
+  AvailableMcpGatewaysProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'availableMcpGatewaysProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$availableMcpGatewaysHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<McpGateway>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<McpGateway>> create(Ref ref) {
+    return availableMcpGateways(ref);
+  }
+}
+
+String _$availableMcpGatewaysHash() =>
+    r'1d646403e8d7213f924d688b4aa5ca0f3124ce6b';
+
 @ProviderFor(availableOrganizations)
 final availableOrganizationsProvider = AvailableOrganizationsProvider._();
 

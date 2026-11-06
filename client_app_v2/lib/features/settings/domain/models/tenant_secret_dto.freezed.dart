@@ -2135,7 +2135,8 @@ as List<InvitationResponseDto>,
 /// @nodoc
 mixin _$TenantSecretCreateDto {
 
- SecretScope get scope;@JsonKey(name: 'target_identifier') String get targetIdentifier;@JsonKey(name: 'plaintext_secret') String get plaintextSecret;
+ SecretScope get scope;@JsonKey(name: 'target_identifier') String get targetIdentifier;@JsonKey(name: 'plaintext_secret') String get plaintextSecret;// Phase 3, Step 3: Add required storageMode with zero default value (REQ-012)
+@JsonKey(name: 'storage_mode') SecretStorageMode get storageMode;
 /// Create a copy of TenantSecretCreateDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2150,7 +2151,7 @@ $TenantSecretCreateDtoCopyWith<TenantSecretCreateDto> get copyWith => _$TenantSe
 
 @override
 String toString() {
-  return 'TenantSecretCreateDto(scope: $scope, targetIdentifier: $targetIdentifier, plaintextSecret: $plaintextSecret)';
+  return 'TenantSecretCreateDto(scope: $scope, targetIdentifier: $targetIdentifier, plaintextSecret: $plaintextSecret, storageMode: $storageMode)';
 }
 
 
@@ -2161,7 +2162,7 @@ abstract mixin class $TenantSecretCreateDtoCopyWith<$Res>  {
   factory $TenantSecretCreateDtoCopyWith(TenantSecretCreateDto value, $Res Function(TenantSecretCreateDto) _then) = _$TenantSecretCreateDtoCopyWithImpl;
 @useResult
 $Res call({
- SecretScope scope,@JsonKey(name: 'target_identifier') String targetIdentifier,@JsonKey(name: 'plaintext_secret') String plaintextSecret
+ SecretScope scope,@JsonKey(name: 'target_identifier') String targetIdentifier,@JsonKey(name: 'plaintext_secret') String plaintextSecret,@JsonKey(name: 'storage_mode') SecretStorageMode storageMode
 });
 
 
@@ -2178,12 +2179,13 @@ class _$TenantSecretCreateDtoCopyWithImpl<$Res>
 
 /// Create a copy of TenantSecretCreateDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? scope = null,Object? targetIdentifier = null,Object? plaintextSecret = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? scope = null,Object? targetIdentifier = null,Object? plaintextSecret = null,Object? storageMode = null,}) {
   return _then(_self.copyWith(
 scope: null == scope ? _self.scope : scope // ignore: cast_nullable_to_non_nullable
 as SecretScope,targetIdentifier: null == targetIdentifier ? _self.targetIdentifier : targetIdentifier // ignore: cast_nullable_to_non_nullable
 as String,plaintextSecret: null == plaintextSecret ? _self.plaintextSecret : plaintextSecret // ignore: cast_nullable_to_non_nullable
-as String,
+as String,storageMode: null == storageMode ? _self.storageMode : storageMode // ignore: cast_nullable_to_non_nullable
+as SecretStorageMode,
   ));
 }
 
@@ -2268,10 +2270,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( SecretScope scope, @JsonKey(name: 'target_identifier')  String targetIdentifier, @JsonKey(name: 'plaintext_secret')  String plaintextSecret)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( SecretScope scope, @JsonKey(name: 'target_identifier')  String targetIdentifier, @JsonKey(name: 'plaintext_secret')  String plaintextSecret, @JsonKey(name: 'storage_mode')  SecretStorageMode storageMode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TenantSecretCreateDto() when $default != null:
-return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret);case _:
+return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret,_that.storageMode);case _:
   return orElse();
 
 }
@@ -2289,10 +2291,10 @@ return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( SecretScope scope, @JsonKey(name: 'target_identifier')  String targetIdentifier, @JsonKey(name: 'plaintext_secret')  String plaintextSecret)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( SecretScope scope, @JsonKey(name: 'target_identifier')  String targetIdentifier, @JsonKey(name: 'plaintext_secret')  String plaintextSecret, @JsonKey(name: 'storage_mode')  SecretStorageMode storageMode)  $default,) {final _that = this;
 switch (_that) {
 case _TenantSecretCreateDto():
-return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret);case _:
+return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret,_that.storageMode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2309,10 +2311,10 @@ return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( SecretScope scope, @JsonKey(name: 'target_identifier')  String targetIdentifier, @JsonKey(name: 'plaintext_secret')  String plaintextSecret)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( SecretScope scope, @JsonKey(name: 'target_identifier')  String targetIdentifier, @JsonKey(name: 'plaintext_secret')  String plaintextSecret, @JsonKey(name: 'storage_mode')  SecretStorageMode storageMode)?  $default,) {final _that = this;
 switch (_that) {
 case _TenantSecretCreateDto() when $default != null:
-return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret);case _:
+return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret,_that.storageMode);case _:
   return null;
 
 }
@@ -2324,12 +2326,14 @@ return $default(_that.scope,_that.targetIdentifier,_that.plaintextSecret);case _
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _TenantSecretCreateDto extends TenantSecretCreateDto {
-  const _TenantSecretCreateDto({required this.scope, @JsonKey(name: 'target_identifier') required this.targetIdentifier, @JsonKey(name: 'plaintext_secret') required this.plaintextSecret}): super._();
+  const _TenantSecretCreateDto({required this.scope, @JsonKey(name: 'target_identifier') required this.targetIdentifier, @JsonKey(name: 'plaintext_secret') required this.plaintextSecret, @JsonKey(name: 'storage_mode') required this.storageMode}): super._();
   factory _TenantSecretCreateDto.fromJson(Map<String, dynamic> json) => _$TenantSecretCreateDtoFromJson(json);
 
 @override final  SecretScope scope;
 @override@JsonKey(name: 'target_identifier') final  String targetIdentifier;
 @override@JsonKey(name: 'plaintext_secret') final  String plaintextSecret;
+// Phase 3, Step 3: Add required storageMode with zero default value (REQ-012)
+@override@JsonKey(name: 'storage_mode') final  SecretStorageMode storageMode;
 
 /// Create a copy of TenantSecretCreateDto
 /// with the given fields replaced by the non-null parameter values.
@@ -2346,7 +2350,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'TenantSecretCreateDto(scope: $scope, targetIdentifier: $targetIdentifier, plaintextSecret: $plaintextSecret)';
+  return 'TenantSecretCreateDto(scope: $scope, targetIdentifier: $targetIdentifier, plaintextSecret: $plaintextSecret, storageMode: $storageMode)';
 }
 
 
@@ -2357,7 +2361,7 @@ abstract mixin class _$TenantSecretCreateDtoCopyWith<$Res> implements $TenantSec
   factory _$TenantSecretCreateDtoCopyWith(_TenantSecretCreateDto value, $Res Function(_TenantSecretCreateDto) _then) = __$TenantSecretCreateDtoCopyWithImpl;
 @override @useResult
 $Res call({
- SecretScope scope,@JsonKey(name: 'target_identifier') String targetIdentifier,@JsonKey(name: 'plaintext_secret') String plaintextSecret
+ SecretScope scope,@JsonKey(name: 'target_identifier') String targetIdentifier,@JsonKey(name: 'plaintext_secret') String plaintextSecret,@JsonKey(name: 'storage_mode') SecretStorageMode storageMode
 });
 
 
@@ -2374,12 +2378,13 @@ class __$TenantSecretCreateDtoCopyWithImpl<$Res>
 
 /// Create a copy of TenantSecretCreateDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? scope = null,Object? targetIdentifier = null,Object? plaintextSecret = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? scope = null,Object? targetIdentifier = null,Object? plaintextSecret = null,Object? storageMode = null,}) {
   return _then(_TenantSecretCreateDto(
 scope: null == scope ? _self.scope : scope // ignore: cast_nullable_to_non_nullable
 as SecretScope,targetIdentifier: null == targetIdentifier ? _self.targetIdentifier : targetIdentifier // ignore: cast_nullable_to_non_nullable
 as String,plaintextSecret: null == plaintextSecret ? _self.plaintextSecret : plaintextSecret // ignore: cast_nullable_to_non_nullable
-as String,
+as String,storageMode: null == storageMode ? _self.storageMode : storageMode // ignore: cast_nullable_to_non_nullable
+as SecretStorageMode,
   ));
 }
 
