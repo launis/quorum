@@ -39,13 +39,16 @@ __all__ = [
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
     "_function_has_error_log",
+    "_has_annotated_field",
     "_is_annotated_subscript",
     "_is_dict_type_node",
+    "_is_field_call",
     "_is_pytest_fixture_decorator",
     "_is_repository_identifier",
     "_matches_residual_set",
     "format_violations_table",
     "is_boundary_exempt",
+    "is_exempt_dict_get_call",
     "is_open_json_exempt",
     "main",
     "scan_file_for_guardrails",
@@ -756,6 +759,88 @@ def _is_annotated_subscript(annotation: ast.AST | None) -> bool:
     return False
 
 
+_EXEMPT_DICT_GET_RECEIVER_NAMES: frozenset[str] = frozenset(
+    {
+        "client",
+        "http",
+        "requests",
+        "session",
+        "httpx",
+        "driver",
+        "router",
+        "app",
+        "redis",
+        "redis_client",
+        "registry",
+        "TaskRegistry",
+        "_LABEL_MAP",
+        "LABEL_MAP",
+        "_VALUE_MAP",
+        "_NAME_MAP",
+        "_L10N_MAP",
+        "L10N_MAP",
+        "table",
+    }
+)
+_EXEMPT_DICT_GET_RECEIVER_SUFFIXES: tuple[str, ...] = (
+    "_router",
+    "_subrouter",
+    "_client",
+    "_table",
+    "_driver",
+)
+_EXEMPT_DICT_GET_NETWORK_KWARGS: frozenset[str] = frozenset(
+    {"params", "headers", "timeout", "auth", "cookies", "model"}
+)
+
+
+def is_exempt_dict_get_call(node: ast.Call) -> bool:
+    """Determine whether a `.get(...)` call is exempt from dictionary fallback guardrails (QGR002 / TD_DICT_GET).
+
+    Args:
+        node: AST Call node where `node.func` is an attribute named `get`.
+
+    Returns:
+        True if the `.get()` call targets an exempt receiver or signature, False otherwise.
+    """
+    # Phase 1A, Step 1: Canonical .get() receiver and signature exemption SSOT
+    if not (isinstance(node.func, ast.Attribute) and node.func.attr == "get"):
+        return True
+
+    # 3. Standard Library Exclusion: 0-argument .get() (specifically ContextVar .get()) is exempt
+    if len(node.args) == 0 and not any(
+        kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
+    ):
+        return True
+
+    # 1. Receiver Exclusion: Exempt legitimate network and storage clients
+    receiver = node.func.value
+    match receiver:
+        case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
+            return True
+        case ast.Attribute(attr="headers") | ast.Name(id="headers"):
+            return True
+        case ast.Name(id=name) if (
+            name in _EXEMPT_DICT_GET_RECEIVER_NAMES
+            or name.startswith("client_")
+            or name.endswith(_EXEMPT_DICT_GET_RECEIVER_SUFFIXES)
+        ):
+            return True
+        case ast.Attribute(attr=attr_name) if (
+            attr_name in _EXEMPT_DICT_GET_RECEIVER_NAMES
+            or attr_name.startswith("client_")
+            or attr_name.endswith(_EXEMPT_DICT_GET_RECEIVER_SUFFIXES)
+        ):
+            return True
+        case ast.Call(func=ast.Name(id="_get_table") | ast.Attribute(attr="_get_table")):
+            return True
+        case _:
+            pass
+
+    # 2. Signature Exclusion: Exempt calls containing network keyword arguments
+    return any(kw.arg in _EXEMPT_DICT_GET_NETWORK_KWARGS for kw in node.keywords)
+
+
 def _function_has_error_log(fn_node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """Check whether a function body contains a structured error logging call.
 
@@ -1401,100 +1486,21 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 pass
 
         # QGR002: 1-argument and 2-argument .get(key) / .get(key, default) fallback in domain code
+        # Phase 1A, Step 1: Delegate .get() exemption checks to canonical is_exempt_dict_get_call SSOT
         if self._is_domain_code and isinstance(node.func, ast.Attribute) and node.func.attr == "get":
-            # 3. Standard Library Exclusion: 0-argument .get() (specifically ContextVar .get()) is exempt
-            if len(node.args) == 0 and not any(
-                kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
-            ):
-                pass
-            else:
-                # 1. Receiver Exclusion: Exempt legitimate network and storage clients
-                exempt = False
-                receiver = node.func.value
-                match receiver:
-                    case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
-                        exempt = True
-                    case ast.Attribute(attr="headers") | ast.Name(id="headers"):
-                        exempt = True
-                    case ast.Name(id=name) if (
-                        name
-                        in {
-                            "client",
-                            "http",
-                            "requests",
-                            "session",
-                            "httpx",
-                            "driver",
-                            "router",
-                            "app",
-                            "redis",
-                            "redis_client",
-                            "registry",
-                            "TaskRegistry",
-                            "_LABEL_MAP",
-                            "LABEL_MAP",
-                            "_VALUE_MAP",
-                            "_NAME_MAP",
-                            "_L10N_MAP",
-                            "L10N_MAP",
-                        }
-                        or name.startswith("client_")
-                        or name.endswith(("_router", "_subrouter", "_client", "_table", "_driver"))
-                        or name == "table"
-                    ):
-                        exempt = True
-                    case ast.Attribute(attr=attr_name) if (
-                        attr_name
-                        in {
-                            "client",
-                            "http",
-                            "requests",
-                            "session",
-                            "httpx",
-                            "driver",
-                            "router",
-                            "app",
-                            "redis",
-                            "redis_client",
-                            "registry",
-                            "TaskRegistry",
-                            "_LABEL_MAP",
-                            "LABEL_MAP",
-                            "_VALUE_MAP",
-                            "_NAME_MAP",
-                            "_L10N_MAP",
-                            "L10N_MAP",
-                        }
-                        or attr_name.startswith("client_")
-                        or attr_name.endswith(("_router", "_subrouter", "_client", "_table", "_driver"))
-                        or attr_name == "table"
-                    ):
-                        exempt = True
-                    case ast.Call(func=ast.Name(id="_get_table") | ast.Attribute(attr="_get_table")):
-                        exempt = True
-                    case _:
-                        exempt = False
-
-                # 2. Signature Exclusion: Exempt calls containing network keyword arguments
-                if not exempt:
-                    for kw in node.keywords:
-                        if kw.arg in {"params", "headers", "timeout", "auth", "cookies", "model"}:
-                            exempt = True
-                            break
-
-                if not exempt:
-                    qgr002_sev = GuardrailSeverity.FATAL
-                    if len(node.args) >= 2:
-                        msg = "Banned lazy fallback call: `.get(key, default)` in domain code."
-                    else:
-                        msg = "Banned dictionary lookup call: `.get(key)` in domain code."
-                    self._add_violation(
-                        node,
-                        "QGR002",
-                        msg,
-                        "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
-                        severity=qgr002_sev,
-                    )
+            if not is_exempt_dict_get_call(node):
+                qgr002_sev = GuardrailSeverity.FATAL
+                if len(node.args) >= 2:
+                    msg = "Banned lazy fallback call: `.get(key, default)` in domain code."
+                else:
+                    msg = "Banned dictionary lookup call: `.get(key)` in domain code."
+                self._add_violation(
+                    node,
+                    "QGR002",
+                    msg,
+                    "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
+                    severity=qgr002_sev,
+                )
 
         # QGR006: asyncio.gather() calls
         match node.func:

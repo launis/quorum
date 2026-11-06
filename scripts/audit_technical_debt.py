@@ -28,7 +28,15 @@ if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
 from scripts._ast_boundary_utils import extract_target_files
-from scripts._ast_guardrails import RESIDUAL_BARE_FIELD_FILES, _matches_residual_set, is_boundary_exempt
+from scripts._ast_guardrails import (
+    RESIDUAL_BARE_FIELD_FILES,
+    _has_annotated_field,
+    _is_annotated_subscript,
+    _is_field_call,
+    _matches_residual_set,
+    is_boundary_exempt,
+    is_exempt_dict_get_call,
+)
 from scripts._dart_guardrails import scan_dart_source
 from scripts._script_base import ANSIColors, GuardrailSeverity, get_repo_root, setup_script_environment
 
@@ -71,18 +79,34 @@ class TechnicalDebtScanResultDTO(BaseModel):
 
 
 class _ImportExtractor(ast.NodeVisitor):
-    """AST visitor collecting imported modules and imported symbols."""
+    """AST visitor collecting imported modules and imported symbols.
+
+    Attributes:
+        imported_modules: Set of imported module dotted names.
+        imported_from_pairs: Set of `(module, symbol)` pairs imported via `from ... import ...`.
+    """
 
     def __init__(self) -> None:
+        """Initialize _ImportExtractor with empty module and symbol sets."""
         self.imported_modules: set[str] = set()
         self.imported_from_pairs: set[tuple[str, str]] = set()
 
     def visit_Import(self, node: ast.Import) -> None:
+        """Record modules imported via `import ...` statements.
+
+        Args:
+            node: AST Import statement node.
+        """
         for alias in node.names:
             self.imported_modules.add(alias.name)
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Record modules and symbols imported via `from ... import ...` statements.
+
+        Args:
+            node: AST ImportFrom statement node.
+        """
         if node.module:
             self.imported_modules.add(node.module)
             for alias in node.names:
@@ -172,44 +196,15 @@ def find_one_hop_callers(
     return sorted(callers)
 
 
-def _is_field_call(node: ast.AST | None) -> bool:
-    """Checks whether an AST node is a Call to Field()."""
-    if isinstance(node, ast.Call):
-        match node.func:
-            case ast.Name(id="Field") | ast.Attribute(attr="Field"):
-                return True
-    return False
-
-
-def _has_annotated_field(node: ast.AST | None) -> bool:
-    """Checks whether an annotation is an Annotated subscript containing Field()."""
-    if isinstance(node, ast.Subscript):
-        is_annotated = False
-        match node.value:
-            case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
-                is_annotated = True
-            case _:
-                pass
-        if is_annotated:
-            for child in ast.walk(node.slice):
-                if _is_field_call(child):
-                    return True
-    return False
-
-
-def _is_annotated_subscript(node: ast.AST | None) -> bool:
-    """Checks whether an annotation is an Annotated[...] subscript."""
-    if isinstance(node, ast.Subscript):
-        match node.value:
-            case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
-                return True
-            case _:
-                return False
-    return False
-
-
 def _is_empty_or_pass_body(body: list[ast.stmt]) -> bool:
-    """Checks if an AST statement list consists solely of pass or docstrings."""
+    """Checks if an AST statement list consists solely of pass or docstrings.
+
+    Args:
+        body: List of AST statements in a block body.
+
+    Returns:
+        True if the body contains only `pass` or docstring constants, False otherwise.
+    """
     if not body:
         return True
     for stmt in body:
@@ -221,22 +216,70 @@ def _is_empty_or_pass_body(body: list[ast.stmt]) -> bool:
     return True
 
 
+def _has_pytest_raises_item(items: list[ast.withitem]) -> bool:
+    """Checks whether a `with` or `async with` statement enters a `pytest.raises(...)` block.
+
+    Args:
+        items: List of `ast.withitem` context manager entries on a With/AsyncWith node.
+
+    Returns:
+        True if any context expression is a call to `pytest.raises(...)` or `raises(...)`.
+    """
+    # Phase 1A, Step 1: Detect pytest.raises negative validation blocks
+    for item in items:
+        if isinstance(item.context_expr, ast.Call):
+            match item.context_expr.func:
+                case ast.Attribute(value=ast.Name(id="pytest"), attr="raises") | ast.Name(id="raises"):
+                    return True
+                case _:
+                    pass
+    return False
+
+
 class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
-    """AST visitor inspecting a Python source file for 7-item technical debt patterns."""
+    """AST visitor inspecting a Python source file for 7-item technical debt patterns.
+
+    Attributes:
+        filepath: Original file path string.
+        findings: Accumulated list of TechnicalDebtFindingDTO instances.
+        normalized_path: Forward-slash normalized file path.
+        is_test: Whether the file resides in a test directory.
+        is_domain_code: Whether the file is non-test backend_v2 domain code.
+        is_exempt: Whether the file is a persistence/network boundary exemption.
+        current_class_name: Name of the enclosing class definition, if any.
+        test_function_names: List of discovered `test_*` function names.
+    """
 
     def __init__(self, filepath: str) -> None:
+        """Initialize _PythonTechnicalDebtVisitor for the given file path.
+
+        Args:
+            filepath: Target Python file path string.
+        """
         self.filepath = filepath
         self.findings: list[TechnicalDebtFindingDTO] = []
         normalized = filepath.replace("\\", "/")
         self.normalized_path = normalized
         path_parts = set(normalized.strip("/").split("/"))
         self.is_test = "backend_v2/tests/" in normalized or "tests" in path_parts
+        # Phase 1A, Step 1: Scope TD_DICT_GET strictly to backend_v2 domain code
+        self.is_domain_code = (
+            ("backend_v2/" in normalized or normalized.startswith("backend_v2/"))
+            and not self.is_test
+            and "scripts" not in path_parts
+        )
         self.is_exempt = is_boundary_exempt(filepath)
         self.current_class_name: str | None = None
         self.test_function_names: list[str] = []
         self._dict_literal_vars: set[str] = set()
+        self._in_pytest_raises: bool = False
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Inspect class definitions for mutable defaults and duplicate Annotated Field() calls.
+
+        Args:
+            node: AST ClassDef node.
+        """
         prev_class = self.current_class_name
         self.current_class_name = node.name
 
@@ -297,6 +340,11 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self.current_class_name = prev_class
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        """Track local variables bound to raw dictionary literals.
+
+        Args:
+            node: AST Assign node.
+        """
         is_dict_lit = isinstance(node.value, ast.Dict)
         for t in node.targets:
             if isinstance(t, ast.Name):
@@ -307,6 +355,11 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        """Track annotated local variables bound to raw dictionary literals.
+
+        Args:
+            node: AST AnnAssign node.
+        """
         if isinstance(node.target, ast.Name):
             if isinstance(node.value, ast.Dict):
                 self._dict_literal_vars.add(node.target.id)
@@ -315,6 +368,11 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        """Inspect synchronous function definitions for mutable defaults and test names.
+
+        Args:
+            node: AST FunctionDef node.
+        """
         self._check_function_defaults(node)
         if node.name.startswith("test_"):
             self.test_function_names.append(node.name)
@@ -324,6 +382,11 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self._dict_literal_vars = saved_dict_vars
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        """Inspect asynchronous function definitions for mutable defaults and test names.
+
+        Args:
+            node: AST AsyncFunctionDef node.
+        """
         self._check_function_defaults(node)
         if node.name.startswith("test_"):
             self.test_function_names.append(node.name)
@@ -333,6 +396,11 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self._dict_literal_vars = saved_dict_vars
 
     def _check_function_defaults(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Check function parameter defaults for mutable literal containers.
+
+        Args:
+            node: Function or async function definition AST node.
+        """
         # Item 4: Mutable default arguments
         all_defaults = list(node.args.defaults) + [d for d in node.args.kw_defaults if d is not None]
         for default in all_defaults:
@@ -351,6 +419,11 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                 )
 
     def visit_Try(self, node: ast.Try) -> None:
+        """Inspect try-except blocks for silent exception swallowing.
+
+        Args:
+            node: AST Try statement node.
+        """
         # Item 3: Exception swallowing (except Exception: pass)
         for handler in node.handlers:
             is_generic_exception = False
@@ -377,7 +450,38 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_With(self, node: ast.With) -> None:
+        """Track synchronous `with pytest.raises(...):` negative validation blocks.
+
+        Args:
+            node: AST With statement node.
+        """
+        # Phase 1A, Step 1: Exempt negative validation blocks inside pytest.raises from TD_MODEL_FACTORY
+        prev_raises = self._in_pytest_raises
+        if _has_pytest_raises_item(node.items):
+            self._in_pytest_raises = True
+        self.generic_visit(node)
+        self._in_pytest_raises = prev_raises
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        """Track asynchronous `async with pytest.raises(...):` negative validation blocks.
+
+        Args:
+            node: AST AsyncWith statement node.
+        """
+        # Phase 1A, Step 1: Exempt negative validation blocks inside pytest.raises from TD_MODEL_FACTORY
+        prev_raises = self._in_pytest_raises
+        if _has_pytest_raises_item(node.items):
+            self._in_pytest_raises = True
+        self.generic_visit(node)
+        self._in_pytest_raises = prev_raises
+
     def visit_Call(self, node: ast.Call) -> None:
+        """Inspect function and method calls for reflection, `.get()` fallbacks, and raw dict `model_validate`.
+
+        Args:
+            node: AST Call expression node.
+        """
         # Item 1: Reflection (getattr, hasattr, setattr)
         if not self.is_exempt and not self.is_test:
             match node.func:
@@ -398,32 +502,10 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                     pass
 
         # Item 2: Dict fallbacks (.get() lookups)
-        if not self.is_exempt and not self.is_test:
+        # Phase 1A, Step 1: Gate TD_DICT_GET to domain code and use canonical is_exempt_dict_get_call
+        if self.is_domain_code and not self.is_exempt:
             if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
-                receiver = node.func.value
-                exempt = False
-                match receiver:
-                    case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
-                        exempt = True
-                    case ast.Attribute(attr="headers" | "driver") | ast.Name(id="headers"):
-                        exempt = True
-                    case ast.Name(id=name) if name in {
-                        "client",
-                        "http",
-                        "requests",
-                        "session",
-                        "httpx",
-                        "driver",
-                        "router",
-                        "app",
-                        "redis",
-                        "redis_client",
-                    } or name.endswith(("_router", "_subrouter", "_client")):
-                        exempt = True
-                    case _:
-                        pass
-
-                if not exempt and (len(node.args) >= 1 or len(node.keywords) >= 1):
+                if not is_exempt_dict_get_call(node):
                     self.findings.append(
                         TechnicalDebtFindingDTO(
                             rule_code="TD_DICT_GET",
@@ -438,7 +520,13 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                     )
 
         # Item 7: Model Factory Parity (in touched test files)
-        if self.is_test and "scripts" not in self.filepath and "factories" not in self.filepath:
+        # Phase 1A, Step 1: Exempt negative schema validation tests inside pytest.raises
+        if (
+            self.is_test
+            and not self._in_pytest_raises
+            and "scripts" not in self.filepath
+            and "factories" not in self.filepath
+        ):
             if (
                 isinstance(node.func, ast.Attribute)
                 and node.func.attr == "model_validate"
@@ -701,7 +789,15 @@ def format_technical_debt_markdown(result: TechnicalDebtScanResultDTO) -> str:
 
 
 def main(argv: list[str] | None = None, repo_root: Path | None = None) -> int:
-    """CLI entrypoint for technical debt and 1-hop caller scanner."""
+    """CLI entrypoint for technical debt and 1-hop caller scanner.
+
+    Args:
+        argv: Optional list of CLI argument strings.
+        repo_root: Optional repository root path override.
+
+    Returns:
+        Exit code (`0` on success, `1` on failure).
+    """
     setup_script_environment()
 
     parser = argparse.ArgumentParser(

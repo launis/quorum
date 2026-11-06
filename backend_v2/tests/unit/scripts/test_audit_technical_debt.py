@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from scripts._ast_guardrails import is_exempt_dict_get_call
 from scripts._script_base import GuardrailSeverity
 from scripts.audit_technical_debt import (
     TechnicalDebtFindingDTO,
@@ -103,16 +104,92 @@ def read_state(state):
 
 
 def test_scan_python_technical_debt_dict_fallback_exemptions() -> None:
-    """Verifies that os.environ.get and client.get are exempted from dict fallback check."""
+    """Verifies that os.environ.get, client.get, _LABEL_MAP.get, table.get, and network kwargs are exempted."""
     code = """
 import os
-def fetch(client):
+def fetch(client, table, _LABEL_MAP, ctx_var, api):
     env_val = os.environ.get("MY_VAR")
     resp = client.get("https://example.com")
-    return env_val, resp
+    lbl = _LABEL_MAP.get("k")
+    row = table.get("id_1")
+    ctx = ctx_var.get()
+    net = api.get("/v1/items", timeout=5)
+    return env_val, resp, lbl, row, ctx, net
 """
     findings = scan_python_technical_debt("backend_v2/services/sample.py", source_text=code)
     assert not any(f.rule_code == "TD_DICT_GET" for f in findings)
+
+
+def test_is_exempt_dict_get_call_positive_and_negative() -> None:
+    """Verifies canonical is_exempt_dict_get_call AST helper on exempt and non-exempt calls."""
+    import ast
+
+    exempt_call = ast.parse("_LABEL_MAP.get('key')").body[0].value  # type: ignore[attr-defined]
+    non_exempt_call = ast.parse("state_dict.get('key', 'fallback')").body[0].value  # type: ignore[attr-defined]
+    assert isinstance(exempt_call, ast.Call)
+    assert isinstance(non_exempt_call, ast.Call)
+    assert is_exempt_dict_get_call(exempt_call) is True
+    assert is_exempt_dict_get_call(non_exempt_call) is False
+
+
+def test_scan_python_technical_debt_scripts_non_domain_dict_get_exempt() -> None:
+    """Verifies that non-domain scripts/ utilities using .get() do not trigger TD_DICT_GET."""
+    code = """
+def parse_cli_payload(raw_map: dict[str, str]) -> str:
+    return raw_map.get("key", "default")
+"""
+    findings = scan_python_technical_debt("scripts/diff_executions.py", source_text=code)
+    assert not any(f.rule_code == "TD_DICT_GET" for f in findings)
+
+
+def test_scan_python_technical_debt_pytest_raises_model_validate_exempt() -> None:
+    """Verifies that negative validation tests inside sync/async pytest.raises are exempt from TD_MODEL_FACTORY."""
+    code = """
+import contextlib
+import pytest
+from pydantic import ValidationError
+from backend_v2.models.domain.workflow import Workflow
+
+async def test_invalid_workflow_failure():
+    with pytest.raises(ValidationError):
+        Workflow.model_validate({"id": "invalid_id"})
+    async with pytest.raises(ValidationError):
+        raw: dict[str, str] = {"id": "invalid_id_2"}
+        Workflow.model_validate(raw)
+    with contextlib.nullcontext():
+        pass
+"""
+    findings = scan_python_technical_debt("backend_v2/tests/unit/test_workflow.py", source_text=code)
+    assert not any(f.rule_code == "TD_MODEL_FACTORY" for f in findings)
+
+
+def test_scan_python_technical_debt_additional_ast_branches() -> None:
+    """Verifies bare except, qualified Exception, non-empty except body, and unannotated class mutable default."""
+    code = """
+import builtins
+
+class LegacyClass:
+    unannotated_list = []
+
+def check_handlers():
+    try:
+        do_a()
+    except:
+        "docstring only"
+        pass
+    try:
+        do_b()
+    except builtins.Exception:
+        pass
+    try:
+        do_c()
+    except Exception:
+        return 1
+"""
+    findings = scan_python_technical_debt("backend_v2/services/handlers.py", source_text=code)
+    rule_codes = [f.rule_code for f in findings]
+    assert "QGR020" in rule_codes
+    assert rule_codes.count("TD_EXCEPT_PASS") == 2
 
 
 def test_scan_python_technical_debt_exception_swallowing_detected() -> None:
