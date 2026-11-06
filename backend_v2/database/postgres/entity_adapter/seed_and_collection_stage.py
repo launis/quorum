@@ -124,17 +124,18 @@ def _log_storage_error(msg: str, table: str, *, exc_info: bool = True) -> AppExc
     )
 
 
-def _log_validation_error(msg: str) -> AppException:
+def _log_validation_error(msg: str, *, exc_info: bool = True) -> AppException:
     """Log a VALIDATION_FAILED error and construct the corresponding AppException.
 
     Args:
         msg: Human-readable validation error message.
+        exc_info: Whether to attach active exception traceback information to the log entry.
 
     Returns:
         Configured AppException with HTTP 400 status and VALIDATION_FAILED error code.
     """
     code = ErrorCodes.VALIDATION_FAILED
-    logger.error("[PostgresEntityAdapter] %s: %s", code.name, msg, extra={"error_code": code.value})
+    logger.error("[PostgresEntityAdapter] %s: %s", code.name, msg, exc_info=exc_info, extra={"error_code": code.value})
     return AppException(message=msg, status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": code.value})
 
 
@@ -251,7 +252,7 @@ async def verify_seed_table_counts_rows(conn: _Conn, timeout: float, expected: M
             msg = f"Seed count verification failed for '{target_table}': expected >= {min_expected}."
             raise _log_storage_error(msg, target_table, exc_info=False)
 
-    # Phase 1, Step 1: Validate full Pydantic V2 hydration of system_configs rows during preflight and post-seed checks
+    # Validate full Pydantic V2 hydration of system_configs rows during preflight and post-seed checks
     if ("system_configs" in expected and expected["system_configs"] >= 1) or (
         "system_config" in expected and expected["system_config"] >= 1
     ):
