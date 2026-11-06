@@ -1,6 +1,6 @@
 """Unit and ISTQB negative boundary tests for scripts/audit_zero_orm_strictness.py.
 
-Verifies ZORM001 through ZORM006 detection, clean module passes, directory traversal,
+Verifies ZORM001 through ZORM007 detection, clean module passes, directory traversal,
 missing path handling, syntax error reporting, and CLI exit code semantics.
 """
 
@@ -246,7 +246,7 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
 
 def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(tmp_path: Path) -> None:
     """Verify ZORM004 and ZORM007 enforce canonical UUIDv7 PK, display columns, FK REFERENCES (id), SQL DEFAULT bans, and slug query bans."""
-    # Phase 2, Step 2 (REQ-006): Positive path on compliant SQL migration and canonical id SELECT query
+    # Positive path on compliant SQL migration and canonical id SELECT query
     assert "workflows" in CANONICAL_ENTITY_PK_TABLES
     assert CANONICAL_NAMED_ENTITY_TABLES["workflows"] == "name"
     assert CANONICAL_NAMED_ENTITY_TABLES["prompt_blocks"] == "label"

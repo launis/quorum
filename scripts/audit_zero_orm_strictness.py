@@ -57,7 +57,7 @@ __all__ = [
     "run_zero_orm_audit",
 ]
 
-# Phase 2, Step 2 (REQ-005): Canonical entity primary-key and display-name table contracts
+# Canonical entity primary-key and display-name table contracts
 CANONICAL_ENTITY_PK_TABLES: frozenset[str] = frozenset(
     {
         "organizations",
@@ -364,7 +364,7 @@ _BANNED_TEXT_PK_REGEX = re.compile(
     re.IGNORECASE,
 )
 
-# Phase 2, Step 2 (REQ-005): Canonical UUIDv7 PK, FK REFERENCES, SQL DEFAULT, and slug SQL filter regexes
+# Canonical UUIDv7 PK, FK REFERENCES, SQL DEFAULT, and slug SQL filter regexes
 _CANONICAL_UUID_PK_REGEX = re.compile(
     r"\bid\s+UUID\s+PRIMARY\s+KEY\s+DEFAULT\s+uuidv7\(\)",
     re.IGNORECASE,
@@ -729,8 +729,12 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Constant(self, node: ast.Constant) -> None:
-        """Inspect string constants in database scope for banned SQL slug WHERE/JOIN predicates."""
-        # Phase 2, Step 2 (REQ-005): Ban SQL WHERE/JOIN predicates on informational slug column
+        """Inspect string constants in database scope for banned SQL slug WHERE/JOIN predicates.
+
+        Args:
+            node: AST Constant node.
+        """
+        # Ban SQL WHERE/JOIN predicates on informational slug column
         if self.is_db_scope and isinstance(node.value, str) and _SQL_SLUG_FILTER_REGEX.search(node.value):
             self._record(
                 node.lineno,
@@ -874,7 +878,7 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
         table_columns[t_name] = _extract_create_table_columns(t_body)
         table_linenos[t_name] = t_lineno
 
-        # Phase 2, Step 2 (REQ-005): Enforce ZORM004 canonical PK, UUIDv7 check, display column, and SQL DEFAULT bans
+        # Enforce ZORM004 canonical PK, UUIDv7 check, display column, and SQL DEFAULT bans
         if t_name in CANONICAL_ENTITY_PK_TABLES and not _BANNED_TEXT_PK_REGEX.search(t_body):
             if not _CANONICAL_UUID_PK_REGEX.search(t_body):
                 findings.append(
@@ -929,7 +933,7 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
                     )
                 )
 
-    # Phase 2, Step 2 (REQ-005): Enforce ZORM004 foreign-key REFERENCES <table>(id)
+    # Enforce ZORM004 foreign-key REFERENCES <table>(id)
     for ref_match in _SQL_REFERENCES_REGEX.finditer(uncommented):
         target_table = ref_match.group(1).lower()
         ref_col = ref_match.group(2).lower()
@@ -947,7 +951,7 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
                 )
             )
 
-    # Phase 2, Step 2 (REQ-005): Enforce ZORM007 bans on SQL UNIQUE (... slug ...) and WHERE/JOIN slug predicates
+    # Enforce ZORM007 bans on SQL UNIQUE (... slug ...) and WHERE/JOIN slug predicates
     for uq_match in _BANNED_SLUG_UNIQUE_REGEX.finditer(uncommented):
         uq_lineno = content.count("\n", 0, uq_match.start()) + 1
         findings.append(
@@ -1096,7 +1100,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Zero-ORM Strictness & Closed PostgreSQL 19 Topology AST Auditor.\n\n"
-            "Enforces ZORM001-ZORM006 across backend_v2/database/postgres/, "
+            "Enforces ZORM001-ZORM007 across backend_v2/database/postgres/, "
             "proposition_graph.py, and 001_pg19_uuidv7_schema.sql."
         ),
         epilog=(
