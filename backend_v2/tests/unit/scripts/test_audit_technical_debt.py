@@ -124,8 +124,8 @@ def test_is_exempt_dict_get_call_positive_and_negative() -> None:
     """Verifies canonical is_exempt_dict_get_call AST helper on exempt and non-exempt calls."""
     import ast
 
-    exempt_call = ast.parse("_LABEL_MAP.get('key')").body[0].value  # type: ignore[attr-defined]
-    non_exempt_call = ast.parse("state_dict.get('key', 'fallback')").body[0].value  # type: ignore[attr-defined]
+    exempt_call = ast.parse("_LABEL_MAP.get('key')", mode="eval").body
+    non_exempt_call = ast.parse("state_dict.get('key', 'fallback')", mode="eval").body
     assert isinstance(exempt_call, ast.Call)
     assert isinstance(non_exempt_call, ast.Call)
     assert is_exempt_dict_get_call(exempt_call) is True

@@ -18,7 +18,7 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]`
   - [x] Step 1: Phase 1A: Unify AST Predicates and Dict .get() Exemption SSOT Between _ast_guardrails.py and audit_technical_debt.py
   - [x] Step 2: Phase 1B: Extend audit_skills_architecture.py (SKL003) to Enforce 4-Way Dynamic KI, Rule, and Script Coverage
   - [x] Step 3: Phase 1C: Harden backend_audit_loop.py, flutter_audit_loop.py, and auto_hardening_runner.py Companion Test SSOT, Dynamic Tracker/Target Discovery, and Micro/Macro Gates
@@ -27,7 +27,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/audit_skills_architecture.py]
@@ -36,8 +36,8 @@
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/flutter_audit_loop.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -89,20 +89,21 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Tier 8 Feature Audit (`feature_audit_tier2_hardening_coverage.md`) and 4-way SSOT analysis across `scripts/`, `.agents/rules/`, `.agents/skills/`, and Knowledge Items (`knowledge/`).
-- Created and validated `@[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md]` and `@[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]`.
-- Verified pre-implementation baseline (`0` technical debt findings across all target Python modules and 1-hop callers).
+- Executed Step 1 (Phase 1A — commit `8503ef65a`): Extracted canonical `is_exempt_dict_get_call` in `@[scripts/_ast_guardrails.py]`, unified AST helpers in `@[scripts/audit_technical_debt.py]`, scoped `TD_DICT_GET` to `self.is_domain_code`, and exempted `pytest.raises` blocks from `TD_MODEL_FACTORY`.
+- Executed Step 2 (Phase 1B — commit `b0d6129e7`): Extended `@[scripts/audit_skills_architecture.py]` (`SKL003`) with `discover_canonical_ki_artifacts`, `CANONICAL_KI_ARTIFACTS`, `PLACEHOLDER_KI_TOKENS`, and 4-way KI/rule/script coverage enforcement across `.agents/skills/*/SKILL.md` and `.agents/rules/*.md`.
+- Executed Step 3 (Phase 1C — commit `1a75d1c68`): Added `repo_root` and `f"test_{pkg_name}_init.py"` support to `discover_companion_test_targets`, wired `audit_dto_parity.py --fail-on-mismatch`, `audit_skills_architecture.py`, and `--micro` target-scoped `audit_dict_eradication.py` + `audit_technical_debt.py` in `@[scripts/backend_audit_loop.py]`; added `lib/` leaf directory `--micro` test resolution in `@[scripts/flutter_audit_loop.py]`; and replaced hardcoded `HISTORICAL_COMPLETED_TRACKERS` in `@[scripts/auto_hardening_runner.py]` with `discover_tracker_files`, `discover_completed_trackers`, `expand_dynamic_target_paths`, `discover_unhardened_targets` (`--discover`), and companion test SSOT delegation.
+- Executed Step 4 (Phase 2 — commit `c972c978f`): Synchronized `@[.agents/rules/00-antigravity-core.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, and `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, passing the 10-stage macro audit loop with `0` violations and >90% test coverage across all modified modules.
 
 ## Learned
-- `scripts/audit_technical_debt.py` already delegates 100% of Dart checks to `scripts/_dart_guardrails.py` (`scan_dart_source`), whereas Python AST predicates (`_is_field_call`, `_has_annotated_field`, `_is_annotated_subscript`) and `.get()` exemptions were duplicated from `scripts/_ast_guardrails.py`.
-- `scripts/auto_hardening_runner.py` previously relied on a hardcoded 6-element `HISTORICAL_COMPLETED_TRACKERS` tuple, static file-only target handling in `fetch_unhardened_targets`, and bespoke unit test resolution in `resolve_target_unit_test_files`.
-- `scripts/audit_skills_architecture.py` (`SKL003`) serves as the automated 4-way synchronization gate across `scripts/`, `.agents/rules/`, `.agents/skills/`, and `CANONICAL_KI_ARTIFACTS`.
+- Using `ast.parse(..., mode="eval").body` in AST unit test assertions avoids `ast.Expr` `.value` attribute narrowing issues without requiring `# type: ignore[attr-defined]`, preserving Census `T = 0` in `scripts/audit_warning_baseline.py`.
+- `parse_tracker_unhardened_targets` in `scripts/auto_hardening_runner.py` must check `has_ext = "." in Path(clean_path).name` before filtering by `.py`/`.dart` so extensionless directory targets in tracker checklists flow into `expand_dynamic_target_paths`.
+- `discover_canonical_ki_artifacts` must use `rglob("ki_*.md")` because Antigravity Knowledge Item artifacts reside in nested `knowledge/<ki_name>/artifacts/` subdirectories.
 
 ## Remaining
-- Execute Step 1 through Step 4 in `@[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md]` via `/tier2-execute --full-auto`.
-- Complete Post-Implementation Gates (`Golden Master & Test Restoration Audit`, `Tier 2 Hardening`, `Pre-Delete Audit`, `Semantic Coverage & Zero-Loss Audit`), `/tier7-describe-architecture`, and `/tier8-audit-plan`.
+- Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]`.
+- Execute `Tier 2 Hardening (Backend)` via `scripts/auto_hardening_runner.py` and `/tier7-describe-architecture` as listed in the Tracker gates.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]
 ```
