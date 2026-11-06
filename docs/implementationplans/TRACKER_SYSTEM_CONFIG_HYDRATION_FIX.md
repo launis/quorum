@@ -21,7 +21,7 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`.
   - [ ] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
   - [ ] @[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]
   - [ ] @[backend_v2/seed/run_seed.py]
