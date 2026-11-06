@@ -7045,7 +7045,7 @@
           "description"
         ],
         "title": "AllowedMCPTool",
-        "description": "Declares a single MCP tool available for LLM function calling.\n\nAttributes:\n    tool_id: The unique technical identifier of the MCP tool.\n    capability: Operational capability category of the tool.\n    name: Localized display name.\n    description: English-only LLM description for function calling schema.\n    input_schema: Strict recursive JSON Schema for tool parameters.\n    enabled: Whether this discovered tool is enabled for agent execution."
+        "description": "Declares a single MCP tool available for LLM function calling.\n\nAttributes:\n    tool_id: The unique technical identifier of the MCP tool.\n    capability: Operational capability category of the tool.\n    name: Localized display name.\n    description: English-only LLM description for function calling schema.\n    input_schema: Strict recursive JSON Schema for tool parameters.\n    enabled: Whether this discovered tool is enabled for agent execution.\n    execution: Optional tool execution configuration and task support policy."
       },
       "AllowedMCPTool-Output": {
         "properties": {
@@ -7099,7 +7099,7 @@
           "description"
         ],
         "title": "AllowedMCPTool",
-        "description": "Declares a single MCP tool available for LLM function calling.\n\nAttributes:\n    tool_id: The unique technical identifier of the MCP tool.\n    capability: Operational capability category of the tool.\n    name: Localized display name.\n    description: English-only LLM description for function calling schema.\n    input_schema: Strict recursive JSON Schema for tool parameters.\n    enabled: Whether this discovered tool is enabled for agent execution."
+        "description": "Declares a single MCP tool available for LLM function calling.\n\nAttributes:\n    tool_id: The unique technical identifier of the MCP tool.\n    capability: Operational capability category of the tool.\n    name: Localized display name.\n    description: English-only LLM description for function calling schema.\n    input_schema: Strict recursive JSON Schema for tool parameters.\n    enabled: Whether this discovered tool is enabled for agent execution.\n    execution: Optional tool execution configuration and task support policy."
       },
       "AnalystOutput": {
         "properties": {
@@ -24129,6 +24129,12 @@
             "title": "Id",
             "description": "System config ID"
           },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name",
+            "description": "Human-readable gateway title."
+          },
           "type": {
             "type": "string",
             "const": "mcp_gateways",
@@ -24204,10 +24210,11 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id"
+          "id",
+          "name"
         ],
         "title": "mcp_gateways",
-        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
+        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable gateway title.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
       },
       "SystemConfigMCPGateways-Output": {
         "properties": {
@@ -24216,6 +24223,12 @@
             "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "System config ID"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name",
+            "description": "Human-readable gateway title."
           },
           "type": {
             "type": "string",
@@ -24292,10 +24305,11 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id"
+          "id",
+          "name"
         ],
         "title": "mcp_gateways",
-        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
+        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable gateway title.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
       },
       "SystemConfigModelRegistry": {
         "properties": {
@@ -24863,6 +24877,10 @@
             "title": "Plaintext Secret",
             "description": "Raw secret value to encrypt at rest",
             "writeOnly": true
+          },
+          "storage_mode": {
+            "$ref": "#/components/schemas/SecretStorageMode",
+            "description": "Cryptographic storage mode (ENVELOPE_KMS or CLOUD_SECRET_MANAGER)."
           }
         },
         "additionalProperties": false,
@@ -24870,10 +24888,11 @@
         "required": [
           "scope",
           "target_identifier",
-          "plaintext_secret"
+          "plaintext_secret",
+          "storage_mode"
         ],
         "title": "TenantSecretCreateDTO",
-        "description": "Ingress payload for provisioning or rotating a tenant-scoped BYOK secret.\n\nAttributes:\n    scope: Capability scope ('llm_provider' or 'mcp_gateway').\n    target_identifier: Target LLMProvider value or MCP Gateway ID.\n    plaintext_secret: Raw secret value wrapped in SecretStr so it never leaks in logs."
+        "description": "Ingress payload for provisioning or rotating a tenant-scoped BYOK secret.\n\nAttributes:\n    scope: Capability scope ('llm_provider' or 'mcp_gateway').\n    target_identifier: Target LLMProvider value or MCP Gateway ID.\n    plaintext_secret: Raw secret value wrapped in SecretStr so it never leaks in logs.\n    storage_mode: Cryptographic storage mode (ENVELOPE_KMS or CLOUD_SECRET_MANAGER)."
       },
       "TenantSecretResponseDTO": {
         "properties": {
