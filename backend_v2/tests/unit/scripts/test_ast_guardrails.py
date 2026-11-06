@@ -19,8 +19,10 @@ from scripts._ast_guardrails import (
     OPEN_JSON_EXEMPTION_FILES,
     REPO_ROOT,
     RESIDUAL_BARE_FIELD_FILES,
+    RESIDUAL_DEFAULT_VALUE_MODEL_FILES,
     RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
     RESIDUAL_FUTURE_PHASE_QGR028_FILES,
+    RESIDUAL_LOCAL_SHADOW_STATE_FILES,
     RESIDUAL_MISSING_DOCSTRING_FILES,
     RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES,
     GuardrailSeverity,
@@ -2485,6 +2487,8 @@ def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
         ("RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES", RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES),
         ("RESIDUAL_FUTURE_PHASE_QGR028_FILES", RESIDUAL_FUTURE_PHASE_QGR028_FILES),
         ("RESIDUAL_BARE_FIELD_FILES", RESIDUAL_BARE_FIELD_FILES),
+        ("RESIDUAL_DEFAULT_VALUE_MODEL_FILES", RESIDUAL_DEFAULT_VALUE_MODEL_FILES),
+        ("RESIDUAL_LOCAL_SHADOW_STATE_FILES", RESIDUAL_LOCAL_SHADOW_STATE_FILES),
         ("RESIDUAL_MISSING_DOCSTRING_FILES", RESIDUAL_MISSING_DOCSTRING_FILES),
         ("RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES", RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES),
     ]
@@ -3017,3 +3021,157 @@ def test_ast_guardrail_flags_string_literal_in_from_tier_as_fatal() -> None:
 
     valid_snippet = "client = await LLMClient.from_tier(CognitiveTier.FAST, repository=repo)\n"
     assert _scan_snippet(valid_snippet, filepath="backend_v2/services/chat_parser.py") == []
+
+
+# ==============================================================================
+# Partition 32: Canonical ID, Zero-Slug, Zero-Default & Zero-Fallback Guardrails
+# ==============================================================================
+
+
+def test_audit_database_atoms_removed_from_residual_bare_field_files() -> None:
+    """Verify scripts/audit_database_atoms.py is migrated to PEP 593 Annotated and removed from RESIDUAL_BARE_FIELD_FILES."""
+    # Phase 1, Step 1 (REQ-001): Confirm removal from RESIDUAL_BARE_FIELD_FILES and 0 AST violations
+    assert "scripts/audit_database_atoms.py" not in RESIDUAL_BARE_FIELD_FILES
+    violations = scan_file_for_guardrails(REPO_ROOT / "scripts/audit_database_atoms.py")
+    assert violations == []
+
+
+def test_qgr020_and_qgr016_canonical_id_zero_default_and_fallback_positive_paths() -> None:
+    """Positive path: explicit required DTO fields, None nullable FKs, .id queries/dicts, and .slug == .slug pass."""
+    # Phase 1, Step 1 (REQ-003): Happy path for explicit required fields and canonical .id relations
+    model_code = '''"""Compliant model module."""
+
+from typing import Annotated, Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class CompliantSecretDTO(BaseModel):
+    """Compliant DTO with explicit required fields and nullable None defaults."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    id: Annotated[str, Field(description="Canonical ID")]
+    name: Annotated[str, Field(min_length=1, description="Display name")]
+    storage_mode: Annotated[str, Field(description="Explicit storage mode")]
+    organization_id: Annotated[str | None, Field(default=None, description="Optional org ID")] = None
+    category_id: Annotated[Literal["matrix"], Field(description="Discriminator")] = "matrix"
+'''
+    assert _scan_snippet(model_code, filepath="backend_v2/models/dtos/compliant_secret.py") == []
+
+    service_code = '''"""Compliant service module."""
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class CompliantExampleService:
+    """Service using canonical .id lookups, .slug == .slug metadata comparison, and injected uow."""
+
+    def __init__(self, uow: object) -> None:
+        """Initialize with uow."""
+        self.uow = uow
+
+    def process(self, items: list[object], existing: object, payload: object, entity_id: str) -> object:
+        """Process items by canonical ID."""
+        query_filter = Filter("id", "==", entity_id)
+        indexed = {x.id: x for x in items}
+        if existing.slug == payload.slug:
+            logger.info("Entity %s metadata unchanged", existing.id)
+        return (query_filter, indexed)
+'''
+    assert _scan_snippet(service_code, filepath="backend_v2/services/example_service.py") == []
+
+
+def test_qgr020_and_qgr016_banned_field_defaults_and_service_none_fallbacks_negative_paths() -> None:
+    """Negative path 1: non-None defaults on identity/relational/naming/mode fields trigger QGR020; None fallback triggers QGR016."""
+    # Phase 1, Step 1 (REQ-002, REQ-003): Verify QGR020 and QGR016 fatal violations
+    bad_model_code = '''"""Non-compliant model module."""
+
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class BadDefaultDTO(BaseModel):
+    """DTO with banned non-None defaults on identity, relational, naming, and storage_mode fields."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    storage_mode: Annotated[str, Field(default="database")] = "database"
+    workflow_id: Annotated[str, Field(default="wf_default")] = "wf_default"
+    name: Annotated[str, Field(default="Default Name")] = "Default Name"
+    slug: Annotated[str, Field(default="default_slug")] = "default_slug"
+'''
+    model_violations = _scan_snippet(bad_model_code, filepath="backend_v2/models/dtos/bad_default.py")
+    qgr020 = [v for v in model_violations if v.rule_code == "QGR020"]
+    assert len(qgr020) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr020)
+    assert all("zero default values or fallback expressions" in v.remediation for v in qgr020)
+
+    bad_service_code = '''"""Non-compliant service fallback."""
+
+
+def resolve_mode(mode: str | None) -> str:
+    """Mutate None into default string."""
+    if mode is None:
+        mode = "database"
+    return mode
+'''
+    service_violations = _scan_snippet(bad_service_code, filepath="backend_v2/services/example_service.py")
+    qgr016 = [v for v in service_violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 1
+    assert qgr016[0].severity == GuardrailSeverity.FATAL
+    assert "if x is None: x = <default>" in qgr016[0].message
+
+
+def test_qgr031_slug_bans_and_qgr030_pipeline_shadow_state_bans_negative_paths() -> None:
+    """Negative path 2: .slug in Filter, dict keys, comparisons, and logger triggers QGR031; PYTEST_CURRENT_TEST and _local_* trigger QGR030."""
+    # Phase 1, Step 1 (REQ-002, REQ-003): Verify QGR031 and QGR030 fatal violations
+    bad_slug_code = '''"""Non-compliant slug usage."""
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def misuse_slug(blocks: list[object], step: object, target_id: str, allowed_set: set[str]) -> object:
+    """Misuse informational slug for filtering, indexing, comparison, and logging."""
+    f1 = Filter("slug", "==", "abc")
+    f2 = QueryCondition(field="slug", op="==", value="abc")
+    by_slug = {b.slug: b for b in blocks}
+    literal_map = {step.slug: step}
+    if step.slug == "main_step":
+        logger.error(f"Failed {step.slug}")
+    if step.slug == target_id:
+        pass
+    if step.slug in allowed_set:
+        pass
+    return f1, f2, by_slug, literal_map
+'''
+    slug_violations = _scan_snippet(bad_slug_code, filepath="backend_v2/services/example_service.py")
+    qgr031 = [v for v in slug_violations if v.rule_code == "QGR031"]
+    assert len(qgr031) == 8
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr031)
+
+    bad_pipeline_code = '''"""Non-compliant service with PYTEST_CURRENT_TEST and shadow state."""
+
+import os
+
+
+class ShadowService:
+    """Service with banned shadow state and pytest branching."""
+
+    def __init__(self) -> None:
+        """Initialize shadow state."""
+        self._local_records = {}
+        self._deleted_ids: set[str] = set()
+        self._memory_cache = {}
+
+    def check_env(self) -> bool:
+        """Branch on PYTEST_CURRENT_TEST."""
+        return "PYTEST_CURRENT_TEST" in os.environ
+'''
+    pipeline_violations = _scan_snippet(bad_pipeline_code, filepath="backend_v2/services/example_service.py")
+    qgr030 = [v for v in pipeline_violations if v.rule_code == "QGR030"]
+    assert len(qgr030) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)

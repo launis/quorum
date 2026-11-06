@@ -32,7 +32,7 @@ import re
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -80,12 +80,13 @@ class AuditIssue(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    collection: str = Field(description="The database collection name.")
-    entity_id: str = Field(description="Unique ID of the entity.")
-    field_path: str = Field(description="Path to the affected field.")
-    issue_type: str = Field(description="Type/category of the issue.")
-    message: str = Field(description="Human-readable issue description.")
-    severity: str = Field(default="ERROR", description="Severity level.")
+    # Phase 1, Step 1: Migrate AuditIssue fields to PEP 593 Annotated[T, Field(...)]
+    collection: Annotated[str, Field(description="The database collection name.")]
+    entity_id: Annotated[str, Field(description="Unique ID of the entity.")]
+    field_path: Annotated[str, Field(description="Path to the affected field.")]
+    issue_type: Annotated[str, Field(description="Type/category of the issue.")]
+    message: Annotated[str, Field(description="Human-readable issue description.")]
+    severity: Annotated[str, Field(default="ERROR", description="Severity level.")] = "ERROR"
 
 
 class FullDatabaseAuditReport(V2CoreBase):
@@ -103,13 +104,14 @@ class FullDatabaseAuditReport(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    total_matrices: int = Field(description="Total matrices checked.")
-    total_atoms: int = Field(description="Total TDA assertion atoms checked.")
-    total_steps: int = Field(description="Total step blueprints checked.")
-    total_workflows: int = Field(description="Total workflow DAGs checked.")
-    total_profiles: int = Field(description="Total output profiles checked.")
-    issues: list[AuditIssue] = Field(default_factory=list, description="List of issues.")
-    all_passed: bool = Field(description="Whether the full audit passed cleanly.")
+    # Phase 1, Step 1: Migrate FullDatabaseAuditReport fields to PEP 593 Annotated[T, Field(...)]
+    total_matrices: Annotated[int, Field(description="Total matrices checked.")]
+    total_atoms: Annotated[int, Field(description="Total TDA assertion atoms checked.")]
+    total_steps: Annotated[int, Field(description="Total step blueprints checked.")]
+    total_workflows: Annotated[int, Field(description="Total workflow DAGs checked.")]
+    total_profiles: Annotated[int, Field(description="Total output profiles checked.")]
+    issues: Annotated[list[AuditIssue], Field(default_factory=list, description="List of issues.")]
+    all_passed: Annotated[bool, Field(description="Whether the full audit passed cleanly.")]
 
 
 # Banned tokens and patterns for prompt atom inspection

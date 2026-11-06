@@ -1,0 +1,94 @@
+# Tracker: Canonical `id` Relational Sovereignty, Universal Entity Naming, `slug` Identification Ban, Zero-Default & Zero-Fallback Static Guardrails
+
+**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]
+
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+</required_context_rules>
+
+## Step Execution Status
+
+**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]
+
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]`
+  - [x] Step 1: Phase 1: Enforce PEP 593 Annotated Fields & Expand Canonical ID / Slug / Zero-Default / Zero-Fallback AST Guardrails in _ast_guardrails.py
+  - [ ] Step 2: Phase 2: Enforce Canonical id Primary Keys, Universal Entity Display Names (name/label/title), Foreign Key REFERENCES (id), SQL Default Bans, and SQL slug Filter Bans in audit_zero_orm_strictness.py
+  - [ ] Step 3: Phase 3: Enforce 7-Collection Canonical id, Required Human-Readable Display Name (name/label), & Cross-Collection id Referential Integrity in audit_database_atoms.py
+  - [ ] Step 4: Phase 4: Codify Canonical ID Relations, Universal Entity Naming, Zero-Default & Zero-Fallback Inspection Mandate in tier2-hardening-backend SKILL.md
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]`
+
+### Post-Implementation Gates
+
+- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+  - [ ] @[scripts/_ast_guardrails.py]
+  - [ ] @[scripts/audit_zero_orm_strictness.py]
+  - [ ] @[scripts/audit_database_atoms.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+
+### Documentation & Knowledge Item Update
+
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+  ```powershell
+  /tier7-describe-architecture @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[ki_god_code_prevention.md]
+  ```
+
+  #### Directives for Tier 7 Agent:
+  1. **Target KIs to Synchronize:**
+     - `@[ki_god_code_prevention.md]`: Document the expanded `QGR016`, `QGR020`, `QGR030`, and `QGR031` AST guardrails in `@[scripts/_ast_guardrails.py]` (banning non-`None` defaults on identity/relational/naming/mode fields, `if x is None: x = <default>` service fallbacks, `Filter("slug", ...)` / `QueryCondition("slug", ...)`, `{x.slug: ...}` dict keys, `.slug` literal/ID comparisons, `.slug` in `logger.*`/`AppException`, `"PYTEST_CURRENT_TEST"` branching, and `self._local_*`/`self._deleted_*`/`self._memory_*` shadow state attributes), the `ZORM004` and `ZORM007` DDL/SQL checks in `@[scripts/audit_zero_orm_strictness.py]` (`CANONICAL_ENTITY_PK_TABLES`, `CANONICAL_NAMED_ENTITY_TABLES`, `REFERENCES <table>(id)`, SQL `DEFAULT` bans, and SQL `slug` `UNIQUE`/`WHERE`/`JOIN` bans), and the 7-collection `audit_canonical_entity_ids` verification in `@[scripts/audit_database_atoms.py]`.
+  2. **Directory Reference Sync:**
+     - Update `@[.agents/rules/04_directory_reference.md]` to register the expanded canonical `id`, universal entity naming, zero-default, and zero-`slug` verification contracts in `scripts/_ast_guardrails.py`, `scripts/audit_zero_orm_strictness.py`, and `scripts/audit_database_atoms.py`.
+  3. **Pillar Documentation Sync:**
+     - Update timeless narratives in `docs/architecture/` describing the canonical `id` primary key and foreign key sovereignty, universal human-readable entity naming (`name`, `label`, `title`), informational-only `slug` boundaries, and zero-default / zero-fallback static guardrails in present tense without historical language or plan IDs.
+
+### Final Plan Audit
+
+- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+
+## Instructions for the Execution Agent
+
+- **Atomic Commit Mandate**: After completing each cohesive logical step and passing quality gates, execute an atomic git commit using strict Conventional Commits (`<type>(<scope>): <imperative summary in lowercase, max 72 chars>`).
+- **Universal Quality Gate Loops**:
+  - Backend / Scripts: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py <target_path> --test --ast-strict`
+  - Frontend / Flutter: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build`
+- **File Reference Syntax**: Normalize all codebase file references to workspace-relative POSIX paths (`@[scripts/_ast_guardrails.py]`).
+- **Session Handover Protocol**: Trigger `/tier5-session-handover` if processing >8 user prompts in a session, completing 3 atomic git commits, or modifying >5 distinct complex modules.
+
+## Requirements Traceability Matrix
+
+| Requirement | Description | Plan Step | Status |
+| :--- | :--- | :--- | :--- |
+| REQ-001 | Migrate `AuditIssue` and `FullDatabaseAuditReport` in `@[scripts/audit_database_atoms.py#L69-L88]` and `@[scripts/audit_database_atoms.py#L91-L112]` to PEP 593 `Annotated[T, Field(...)]` and remove `"scripts/audit_database_atoms.py"` from `RESIDUAL_BARE_FIELD_FILES` in `@[scripts/_ast_guardrails.py#L788-L3564]`. | Step 1 | [x] Completed |
+| REQ-002 | Define and export `RESIDUAL_LOCAL_SHADOW_STATE_FILES` and `RESIDUAL_DEFAULT_VALUE_MODEL_FILES` in `@[scripts/_ast_guardrails.py#L788-L3564]`, sanitize default-value remediation strings in `QGR002` (`#L1375`), `QGR016` (`#L2284`, `#L3399`), and `QGR020` (`#L2618`), and enforce `FATAL` AST bans for non-`None` defaults on identity/relational/naming/mode fields (`QGR020`), `if x is None: x = <default>` service/router fallbacks (`QGR016`), `Filter("slug", ...)` / `QueryCondition("slug", ...)` (`QGR031`), `.slug` in `logger.*`/`AppException` (`QGR031`), `.slug` literal/ID comparisons (`QGR031`), `{x.slug: ...}` dictionary keys (`QGR031`), `"PYTEST_CURRENT_TEST"` branching (`QGR030`), and `self._local_*`/`self._deleted_*`/`self._memory_*` shadow state attributes (`QGR030`). | Step 1 | [x] Completed |
+| REQ-003 | Add ISTQB positive and negative unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L3002-L3019]` verifying `QGR016`, `QGR020`, `QGR030`, and `QGR031` AST violations and compliant `.id` / `.slug == .slug` metadata checks. | Step 1 | [x] Completed |
+| REQ-004 | Enforce `name TEXT NOT NULL` (without SQL `DEFAULT`) on `system_configs` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L82-L98]`. | Step 2 | [ ] Pending |
+| REQ-005 | Define and export `CANONICAL_ENTITY_PK_TABLES` and `CANONICAL_NAMED_ENTITY_TABLES` in `@[scripts/audit_zero_orm_strictness.py#L755-L845]` and enforce `id UUID PRIMARY KEY DEFAULT uuidv7()`, `CHECK (uuid_extract_version(id) = 7)`, required human-readable display column (`name`, `label`, `title`), `REFERENCES <table>(id)` foreign key targeting, SQL `DEFAULT` bans on `*_id`/`name`/`label`/`title`/`slug`/`storage_mode` columns (`ZORM004`), and `slug` bans in SQL `UNIQUE`, `WHERE`, and `JOIN ... ON` clauses (`ZORM007`). | Step 2 | [ ] Pending |
+| REQ-006 | Add ISTQB positive and negative unit tests in `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py#L201-L242]` covering `ZORM004` and `ZORM007` DDL and SQL AST checks. | Step 2 | [ ] Pending |
+| REQ-007 | Ensure `"name": "Tavily MCP Gateway"` is present on `sys_0195f3a00000700080008172bda70c86` in `@[backend_v2/seed/seed_data.json#L209-L218]`. | Step 3 | [ ] Pending |
+| REQ-008 | Define and export `SEED_COLLECTION_ALLOWED_PREFIXES`, `SEED_COLLECTION_REQUIRED_DISPLAY_FIELD`, `BANNED_ALTERNATIVE_PK_KEYS`, and `audit_canonical_entity_ids(data)` in `@[scripts/audit_database_atoms.py#L1041-L1090]`, wiring `audit_canonical_entity_ids` into `run_full_database_audit` to verify 7-collection `OPAQUE_STRIPE_ID_REGEX` primary keys, non-empty `name`/`label` display fields, absence of banned alternative PK keys, and cross-collection `id` referential integrity. | Step 3 | [ ] Pending |
+| REQ-009 | Add ISTQB positive and negative unit tests in `@[backend_v2/tests/unit/scripts/test_audit_database_atoms.py#L700-L708]` covering `audit_canonical_entity_ids`, `MISSING_CANONICAL_NAME`, `INVALID_CANONICAL_ID`, `DUPLICATE_CANONICAL_ID`, `BANNED_ALTERNATIVE_PK_FIELD`, and orphan foreign key detection. | Step 3 | [ ] Pending |
+| REQ-010 | Expand Invariant 2 under `EVIDENCE_BASED_INSPECTION_MANDATE` in `@[.agents/skills/tier2-hardening-backend/SKILL.md#L64-L74]` to `2. CANONICAL ID RELATIONS, UNIVERSAL ENTITY NAMING, ZERO-SLUG, ZERO-DEFAULT & ZERO-FALLBACK BAN` with zero ambiguous terms. | Step 4 | [ ] Pending |
+
+# Session Handover Context
+
+## Achieved
+- Completed `/tier0-research-plan` for `@[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` (`CONVERGENCE ACHIEVED: 0 architectural defects found`).
+- Generated standalone execution tracker `@[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` with 100% requirements traceability (`REQ-001` through `REQ-010`) and granular Tier 2 Backend Hardening checklist.
+
+## Learned
+- `AuditIssue` (`#L69-L89`) and `FullDatabaseAuditReport` (`#L91-L113`) in `@[scripts/audit_database_atoms.py]` are the final remaining models in `scripts/audit_database_atoms.py` using bare `= Field(...)` assignments; migrating them to PEP 593 `Annotated[T, Field(...)]` in Step 1 allows `"scripts/audit_database_atoms.py"` to be cleanly removed from `RESIDUAL_BARE_FIELD_FILES` in `@[scripts/_ast_guardrails.py]`.
+- `001_pg19_uuidv7_schema.sql#L82-L98` (`name TEXT NOT NULL` on `system_configs`) and `seed_data.json#L209-L218` (`"name": "Tavily MCP Gateway"` on `sys_0195f3a00000700080008172bda70c86`) already satisfy the target schema state on disk and will be locked in permanently by the new `ZORM004` and `audit_canonical_entity_ids` guardrails in Steps 2 and 3.
+
+## Remaining
+- Execute Steps 1, 2, 3, and 4 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` via `/tier2-execute --full-auto`.
+
+## Resume Command
+```powershell
+/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]
+```

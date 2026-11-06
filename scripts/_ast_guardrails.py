@@ -29,8 +29,10 @@ __all__ = [
     "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
     "RESIDUAL_BARE_FIELD_FILES",
+    "RESIDUAL_DEFAULT_VALUE_MODEL_FILES",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
     "RESIDUAL_FUTURE_PHASE_QGR028_FILES",
+    "RESIDUAL_LOCAL_SHADOW_STATE_FILES",
     "RESIDUAL_MISSING_DOCSTRING_FILES",
     "RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES",
     "_find_direct_app_exception_raises",
@@ -239,9 +241,45 @@ RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
         "backend_v2/services/execution/ingress_service.py",
         "backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py",
         "scripts/ablation_live_executor.py",
-        "scripts/audit_database_atoms.py",
         "scripts/diff_executions.py",
         "scripts/reconcile_storage.py",
+    }
+)
+
+# Phase 1, Step 1: Residual exemption sets for QGR030 local shadow state and QGR020 model field defaults
+RESIDUAL_LOCAL_SHADOW_STATE_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/services/auth/organization_service.py",
+        "backend_v2/services/auth/secret_service.py",
+        "backend_v2/services/cache/typed_cache.py",
+        "backend_v2/services/execution/assignment_service.py",
+    }
+)
+
+RESIDUAL_DEFAULT_VALUE_MODEL_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/models/auth.py",
+        "backend_v2/models/domain/metadata.py",
+        "backend_v2/models/domain/system_config.py",
+        "backend_v2/models/dtos/mcp.py",
+        "backend_v2/models/dtos/studio.py",
+        "backend_v2/models/view/sdui.py",
+        "backend_v2/utils/finops_trace_analyzer.py",
+        "scripts/ablation_live_executor.py",
+    }
+)
+
+_ZERO_DEFAULT_FIELD_NAMES: frozenset[str] = frozenset(
+    {
+        "id",
+        "slug",
+        "name",
+        "label",
+        "title",
+        "storage_mode",
+        "updated_by",
+        "created_by",
+        "target_identifier",
     }
 )
 
@@ -605,6 +643,77 @@ def _is_field_call(node: ast.AST | None) -> bool:
     return False
 
 
+def _has_non_none_field_default(node: ast.AST | None) -> bool:
+    """Check whether an AST node or Annotated metadata contains a Field() call with a non-None default.
+
+    Args:
+        node: AST expression or annotation node to inspect.
+
+    Returns:
+        True if any Field() call inside node specifies a non-None/non-Ellipsis default, False otherwise.
+    """
+    # Phase 1, Step 1: Detect Field(default=...) with non-None default values for QGR020
+    if node is None:
+        return False
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Call) and _is_field_call(sub):
+            if sub.args:
+                first_arg = sub.args[0]
+                if not (isinstance(first_arg, ast.Constant) and first_arg.value in (None, Ellipsis)):
+                    return True
+            for kw in sub.keywords:
+                if kw.arg == "default":
+                    if not (isinstance(kw.value, ast.Constant) and kw.value.value in (None, Ellipsis)):
+                        return True
+    return False
+
+
+def _is_literal_discriminator_annotation(annotation: ast.AST | None) -> bool:
+    """Check whether a type annotation is a Literal[...] discriminated union tag (unwrapping Annotated).
+
+    Args:
+        annotation: AST annotation node or None to inspect.
+
+    Returns:
+        True if the base type annotation is Literal[...], False otherwise.
+    """
+    # Phase 1, Step 1: Exempt Literal[...] discriminated union tags from QGR020 default value ban
+    if not isinstance(annotation, ast.Subscript):
+        return False
+    match annotation.value:
+        case ast.Name(id="Literal") | ast.Attribute(attr="Literal"):
+            return True
+        case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
+            if isinstance(annotation.slice, ast.Tuple) and annotation.slice.elts:
+                return _is_literal_discriminator_annotation(annotation.slice.elts[0])
+            return _is_literal_discriminator_annotation(annotation.slice)
+        case _:
+            return False
+
+
+def _is_fallback_default_expr(node: ast.AST | None) -> bool:
+    """Check whether an assigned expression in an `if x is None: x = ...` body is a scalar, string, or Enum constant.
+
+    Args:
+        node: Assigned value AST node or None to inspect.
+
+    Returns:
+        True if the expression is a non-None constant, Enum attribute, or uppercase constant.
+    """
+    # Phase 1, Step 1: Identify literal/Enum fallback assignments in `if x is None: x = <default>`
+    if node is None:
+        return False
+    match node:
+        case ast.Constant(value=val):
+            return val is not None
+        case ast.Attribute(value=ast.Name(id=cls_name)) if cls_name[:1].isupper():
+            return True
+        case ast.Name(id=const_name) if const_name.isupper():
+            return True
+        case _:
+            return False
+
+
 def _has_annotated_field(node: ast.AST | None) -> bool:
     """Check whether an annotation is an Annotated subscript containing Field().
 
@@ -820,6 +929,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._bool_condition_nodes: set[ast.AST] = set()
         self._function_stack: list[str] = []
         self._current_class_name: str | None = None
+        self._current_class_is_settings: bool = False
         self._function_depth: int = 0
         self._in_finally: bool = False
         self._in_update_lock: bool = False
@@ -1132,12 +1242,22 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 value_node = kw.value
 
         if isinstance(field_node, ast.Constant) and isinstance(field_node.value, str):
-            if not field_node.value.strip():
+            stripped_field = field_node.value.strip()
+            if not stripped_field:
                 self._add_violation(
                     field_node,
                     "QGR031",
                     f"Empty or whitespace-only `{call_target_name}` field literal `{field_node.value!r}` detected.",
                     f"Provide a non-empty document field path string to `{call_target_name}(field, op, value)`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif stripped_field.lower() == "slug" or stripped_field.lower().endswith(".slug"):
+                # Phase 1, Step 1: Ban Filter("slug", ...) and QueryCondition("slug", ...) under QGR031
+                self._add_violation(
+                    field_node,
+                    "QGR031",
+                    f"Banned `{call_target_name}` query on informational field `{field_node.value!r}`; query by canonical `id` or dedicated indexed column instead of `slug`.",
+                    "Query entities exclusively by canonical `.id` or dedicated indexed relational columns instead of informational `slug`.",
                     severity=GuardrailSeverity.FATAL,
                 )
 
@@ -1372,7 +1492,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         node,
                         "QGR002",
                         msg,
-                        "Use strict Pydantic model validation with default schema fields or direct DTO property access instead of lazy fallbacks or dictionary `.get()` calls.",
+                        "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
                         severity=qgr002_sev,
                     )
 
@@ -1816,6 +1936,43 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                 severity=GuardrailSeverity.FATAL,
                             )
 
+            # Phase 1, Step 1: QGR031 Ban .slug inside logger.* and AppException arguments in domain code
+            if self._is_domain_code:
+                is_logger_or_app_exc = False
+                match node.func:
+                    case ast.Name(id="AppException") | ast.Attribute(attr="AppException"):
+                        is_logger_or_app_exc = True
+                    case ast.Attribute(
+                        attr="debug" | "info" | "warning" | "warn" | "error" | "critical" | "exception",
+                        value=recv_expr,
+                    ):
+                        root_logger_id = _get_root_identifier(recv_expr)
+                        if root_logger_id in {"logger", "logging", "log"} or (
+                            isinstance(recv_expr, ast.Attribute) and recv_expr.attr in {"logger", "_logger"}
+                        ):
+                            is_logger_or_app_exc = True
+                    case _:
+                        is_logger_or_app_exc = False
+
+                if is_logger_or_app_exc:
+                    call_arg_nodes: list[ast.expr] = list(node.args) + [kw.value for kw in node.keywords]
+                    has_id_attr = any(
+                        isinstance(sub_node, ast.Attribute) and sub_node.attr == "id"
+                        for arg_node in call_arg_nodes
+                        for sub_node in ast.walk(arg_node)
+                    )
+                    if not has_id_attr:
+                        for arg_node in call_arg_nodes:
+                            for sub_node in ast.walk(arg_node):
+                                if isinstance(sub_node, ast.Attribute) and sub_node.attr == "slug":
+                                    self._add_violation(
+                                        sub_node,
+                                        "QGR031",
+                                        "Informational `.slug` attribute passed to logger or AppException; log canonical `.id` instead.",
+                                        "Log and report canonical `.id` identifiers in `logger.*` and `AppException` calls instead of informational `.slug` attributes per `slug_data_relation_ban`.",
+                                        severity=GuardrailSeverity.FATAL,
+                                    )
+
         self.generic_visit(node)
 
     def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
@@ -2060,7 +2217,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         break
 
         prev_class = self._current_class_name
+        prev_is_settings = self._current_class_is_settings
         self._current_class_name = node.name
+        is_settings = any(
+            (isinstance(b, ast.Name) and b.id == "BaseSettings")
+            or (isinstance(b, ast.Attribute) and b.attr == "BaseSettings")
+            for b in node.bases
+        )
+        self._current_class_is_settings = is_settings
 
         # Check if class is a BaseModel / DTO / Model
         is_pydantic = False
@@ -2180,14 +2344,16 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
         self._current_class_name = prev_class
+        self._current_class_is_settings = prev_is_settings
 
     def visit_Compare(self, node: ast.Compare) -> None:
-        """Audits comparison expressions for raw string discriminator comparisons (QGR005).
+        """Audits comparison expressions for raw string discriminator (QGR005) and `.slug` relational comparisons (QGR031).
 
         Args:
             node: The `ast.Compare` AST node.
         """
         # QGR005: Raw string literals in category discriminator routing
+        left_operand: ast.expr = node.left
         for comp_op, comparator in zip(node.ops, node.comparators, strict=False):
             if isinstance(comp_op, (ast.Eq, ast.NotEq)):
                 # Check if left is a category/discriminator attribute and right is a raw category string
@@ -2209,6 +2375,69 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "Use strict Enum members (e.g. PromptBlockCategory.MATRIX) instead of raw string literals for category routing.",
                         )
 
+            # Phase 1, Step 1: QGR031 .slug identifier & string literal comparison ban in domain code
+            if not self.is_guardrail_self and self._is_domain_code:
+                left_is_slug = isinstance(left_operand, ast.Attribute) and left_operand.attr == "slug"
+                right_is_slug = isinstance(comparator, ast.Attribute) and comparator.attr == "slug"
+                if left_is_slug != right_is_slug:
+                    other_op = comparator if left_is_slug else left_operand
+                    other_is_str_literal = isinstance(other_op, ast.Constant) and isinstance(other_op.value, str)
+                    other_ident_name: str | None = None
+                    if isinstance(other_op, ast.Name):
+                        other_ident_name = other_op.id.lower()
+                    elif isinstance(other_op, ast.Attribute):
+                        other_ident_name = other_op.attr.lower()
+                    other_is_id_ident = other_ident_name is not None and (
+                        other_ident_name == "id" or other_ident_name.endswith(("_id", "_ids", "_identifier"))
+                    )
+                    is_in_comparison = left_is_slug and isinstance(comp_op, (ast.In, ast.NotIn))
+                    if other_is_str_literal or other_is_id_ident or is_in_comparison:
+                        self._add_violation(
+                            node,
+                            "QGR031",
+                            "Banned relational or literal comparison against informational `.slug` attribute; compare canonical `.id` attributes instead.",
+                            "Compare entities by canonical `.id` attributes instead of informational `.slug` strings per `slug_data_relation_ban`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+            left_operand = comparator
+
+        self.generic_visit(node)
+
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        """Audits dictionary comprehensions for `.slug` dictionary keys (QGR031).
+
+        Args:
+            node: The `ast.DictComp` AST node.
+        """
+        # Phase 1, Step 1: QGR031 {x.slug: ...} dictionary comprehension key ban
+        if not self.is_guardrail_self and self._is_domain_code:
+            if isinstance(node.key, ast.Attribute) and node.key.attr == "slug":
+                self._add_violation(
+                    node.key,
+                    "QGR031",
+                    "Banned use of informational `.slug` attribute as dictionary key; index entity mappings by canonical `.id` instead.",
+                    "Use canonical `.id` attributes as dictionary keys instead of informational `.slug` attributes per `slug_data_relation_ban`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+        self.generic_visit(node)
+
+    def visit_Dict(self, node: ast.Dict) -> None:
+        """Audits dictionary literals for `.slug` dictionary keys (QGR031).
+
+        Args:
+            node: The `ast.Dict` AST node.
+        """
+        # Phase 1, Step 1: QGR031 {x.slug: ...} dictionary literal key ban
+        if not self.is_guardrail_self and self._is_domain_code:
+            for key_node in node.keys:
+                if isinstance(key_node, ast.Attribute) and key_node.attr == "slug":
+                    self._add_violation(
+                        key_node,
+                        "QGR031",
+                        "Banned use of informational `.slug` attribute as dictionary key; index entity mappings by canonical `.id` instead.",
+                        "Use canonical `.id` attributes as dictionary keys instead of informational `.slug` attributes per `slug_data_relation_ban`.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
         self.generic_visit(node)
 
     def _is_type_checking_guard(self, test: ast.AST) -> bool:
@@ -2242,6 +2471,49 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             for stmt in node.orelse:
                 self.visit(stmt)
             return
+
+        # Phase 1, Step 1: QGR016 Ban `if x is None: x = <default>` fallback assignments in services/API
+        if (
+            not self.is_guardrail_self
+            and not self._is_test_file
+            and (
+                self._normalized_path.startswith(("backend_v2/services/", "backend_v2/api/"))
+                or "/backend_v2/services/" in self._normalized_path
+                or "/backend_v2/api/" in self._normalized_path
+            )
+            and isinstance(node.test, ast.Compare)
+            and len(node.test.ops) == 1
+            and isinstance(node.test.ops[0], ast.Is)
+            and len(node.test.comparators) == 1
+            and isinstance(node.test.comparators[0], ast.Constant)
+            and node.test.comparators[0].value is None
+            and isinstance(node.test.left, ast.Name)
+        ):
+            checked_var = node.test.left.id
+            has_raise = any(isinstance(sub, ast.Raise) for stmt in node.body for sub in ast.walk(stmt))
+            if not has_raise:
+                for stmt in node.body:
+                    assigned_target_name: str | None = None
+                    assigned_val: ast.AST | None = None
+                    if (
+                        isinstance(stmt, ast.Assign)
+                        and len(stmt.targets) == 1
+                        and isinstance(stmt.targets[0], ast.Name)
+                    ):
+                        assigned_target_name = stmt.targets[0].id
+                        assigned_val = stmt.value
+                    elif isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                        assigned_target_name = stmt.target.id
+                        assigned_val = stmt.value
+                    if assigned_target_name == checked_var and _is_fallback_default_expr(assigned_val):
+                        self._add_violation(
+                            stmt,
+                            "QGR016",
+                            "Banned `if x is None: x = <default>` fallback assignment in service/API layer; enforce explicit required DTO fields or raise Fail-Fast AppException per `zero_service_layer_fallbacks`.",
+                            "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
         self.generic_visit(node)
 
     def visit_While(self, node: ast.While) -> None:
@@ -2281,7 +2553,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR016",
                     f"Banned ternary lazy fallback `{ast.unparse(node)}` detected in domain code.",
-                    "Enforce strict Pydantic V2 schema defaults, typed DTO fields, or raise explicit AppException instead of ternary fallbacks.",
+                    "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
                     severity=GuardrailSeverity.FATAL,
                 )
 
@@ -2615,7 +2887,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR020",
                     f"Duplicate `Field()` assignment on Annotated field `{ast.unparse(node.target)}`.",
-                    "Remove redundant `= Field(...)` assignment or replace with literal/factory default per `pydantic_annotated_fields_mandate`.",
+                    "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
                     severity=GuardrailSeverity.FATAL,
                 )
             # Phase 1, Step 1: QGR020 Check 20B - Bare Field(...) assignment without Annotated[T, Field(...)] on Pydantic classes
@@ -2634,6 +2906,35 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Wrap the field annotation in PEP 593 `Annotated[T, Field(...)]` per `pydantic_annotated_fields_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
+            # Phase 1, Step 1: QGR020 Ban non-None default values on identity, relational, slug, name, label, title, and storage_mode fields
+            if (
+                not self.is_guardrail_self
+                and self._current_class_name in self._pydantic_base_classes_in_file
+                and not self._current_class_is_settings
+                and self._function_depth == 0
+                and isinstance(node.target, ast.Name)
+                and not _is_literal_discriminator_annotation(node.annotation)
+                and not _matches_residual_set(self._normalized_path, RESIDUAL_DEFAULT_VALUE_MODEL_FILES)
+            ):
+                target_attr = node.target.id
+                if target_attr in _ZERO_DEFAULT_FIELD_NAMES or target_attr.endswith(("_id", "_ids")):
+                    has_non_none_val = (
+                        node.value is not None
+                        and not (isinstance(node.value, ast.Constant) and node.value.value in (None, Ellipsis))
+                        and not (_is_field_call(node.value) and not _has_non_none_field_default(node.value))
+                    )
+                    if (
+                        has_non_none_val
+                        or _has_non_none_field_default(node.annotation)
+                        or _has_non_none_field_default(node.value)
+                    ):
+                        self._add_violation(
+                            node,
+                            "QGR020",
+                            "Banned default value on identity, relational, slug, name, label, title, or storage_mode field; require explicit caller input or use `None` exclusively on nullable `T | None` fields per `zero_defaults_mandate`.",
+                            "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
             # QGR020: Class-level mutable default in class definitions (only directly in class body)
             if (
                 self._current_class_name is not None
@@ -2648,6 +2949,27 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "Use PEP 593 Annotated with `Field(default_factory=list/dict)` or initialize as `= None`.",
                         severity=GuardrailSeverity.FATAL,
                     )
+
+        # Phase 1, Step 1: QGR030 In-memory shadow state fallback attribute ban on AnnAssign in services
+        if (
+            not self.is_guardrail_self
+            and (
+                self._normalized_path.startswith("backend_v2/services/")
+                or "/backend_v2/services/" in self._normalized_path
+            )
+            and not _matches_residual_set(self._normalized_path, RESIDUAL_LOCAL_SHADOW_STATE_FILES)
+            and isinstance(node.target, ast.Attribute)
+            and isinstance(node.target.value, ast.Name)
+            and node.target.value.id == "self"
+            and node.target.attr.startswith(("_local_", "_deleted_", "_memory_"))
+        ):
+            self._add_violation(
+                node,
+                "QGR030",
+                "Banned in-memory shadow state fallback attribute on service class; persist all state exclusively via QuorumUnitOfWork repositories.",
+                "Remove in-memory `self._local_*`, `self._deleted_*`, and `self._memory_*` shadow dictionaries and persist all state through `QuorumUnitOfWork` repositories per `single_pipeline_invariant_mandate`.",
+                severity=GuardrailSeverity.FATAL,
+            )
         self.generic_visit(node)
 
     def visit_Assign(self, node: ast.Assign) -> None:
@@ -2722,6 +3044,30 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR020",
                         f"Banned mutable class-level default in `{self._current_class_name}` on field `{target_name}`: `{ast.unparse(node.value)}`.",
                         "Use PEP 593 Annotated with `Field(default_factory=list/dict)` or initialize as `= None`.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+
+        # Phase 1, Step 1: QGR030 In-memory shadow state fallback attribute ban on Assign in services
+        if (
+            not self.is_guardrail_self
+            and (
+                self._normalized_path.startswith("backend_v2/services/")
+                or "/backend_v2/services/" in self._normalized_path
+            )
+            and not _matches_residual_set(self._normalized_path, RESIDUAL_LOCAL_SHADOW_STATE_FILES)
+        ):
+            for target in node.targets:
+                if (
+                    isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "self"
+                    and target.attr.startswith(("_local_", "_deleted_", "_memory_"))
+                ):
+                    self._add_violation(
+                        node,
+                        "QGR030",
+                        "Banned in-memory shadow state fallback attribute on service class; persist all state exclusively via QuorumUnitOfWork repositories.",
+                        "Remove in-memory `self._local_*`, `self._deleted_*`, and `self._memory_*` shadow dictionaries and persist all state through `QuorumUnitOfWork` repositories per `single_pipeline_invariant_mandate`.",
                         severity=GuardrailSeverity.FATAL,
                     )
 
@@ -3333,6 +3679,25 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
 
+        # Phase 1, Step 1: QGR030 Ban PYTEST_CURRENT_TEST environment branching in service/API layers
+        if (
+            isinstance(node.value, str)
+            and node.value == "PYTEST_CURRENT_TEST"
+            and not self.is_guardrail_self
+            and (
+                self._normalized_path.startswith(("backend_v2/services/", "backend_v2/api/"))
+                or "/backend_v2/services/" in self._normalized_path
+                or "/backend_v2/api/" in self._normalized_path
+            )
+        ):
+            self._add_violation(
+                node,
+                "QGR030",
+                "Banned `PYTEST_CURRENT_TEST` environment branching in service/API layer; route all persistence through injected QuorumUnitOfWork / InMemoryUnitOfWork.",
+                "Remove `PYTEST_CURRENT_TEST` checks and route all service/API persistence through injected `QuorumUnitOfWork` or `InMemoryUnitOfWork` per `single_pipeline_invariant_mandate`.",
+                severity=GuardrailSeverity.FATAL,
+            )
+
         # QGR030: Ban non-hexadecimal or non-32-hex entity ID string literals
         if isinstance(node.value, str) and not self.is_guardrail_self:
             id_match = _QGR030_MOCK_ID_REGEX.match(node.value)
@@ -3396,7 +3761,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR016",
                     f"Banned lazy literal fallback `{ast.unparse(node)}` in domain code.",
-                    "Enforce strict Pydantic V2 schema defaults or raise explicit AppException instead of inline `or` fallbacks.",
+                    "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
                     severity=GuardrailSeverity.FATAL,
                 )
 
