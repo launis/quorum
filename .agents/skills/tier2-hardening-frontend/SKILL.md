@@ -13,7 +13,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read the root configuration `@[AGENTS.md]`, then read the Antigravity ruleset `@[.agents/rules/02_flutter_desktop.md]` and `@[.agents/rules/00-antigravity-core.md]`. Obey these instructions absolutely. Ensure code synchronization with the system's Knowledge Item (KI) guidelines (e.g. Strict ICU Markdown Parity, AppErrorBoundary). Read `@[.agents/rules/04_directory_reference.md]` if necessary.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read the root configuration `@[AGENTS.md]`, then read the Antigravity ruleset `@[.agents/rules/00-antigravity-core.md]`, `@[.agents/rules/02_flutter_desktop.md]`, and `@[.agents/rules/04_directory_reference.md]`. Obey these instructions absolutely and ensure code synchronization with the system's Knowledge Item (KI) guidelines (Strict ICU Markdown Parity, AppErrorBoundary).</mandatory_pattern>
       <catastrophic_reason>If architectural rules or KI guidelines are not loaded, the agent will accidentally refactor code back to the V1-legacy state, destroying the Desktop UI performance.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">
@@ -22,7 +22,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
     </rule_block>
     <rule_block id="anti_laziness_mandate">
       <banned_pattern>Fabricating justifications, rubber-stamping rules, or bypassing the automated verification gate to save time.</banned_pattern>
-      <mandatory_pattern>Every target file MUST be verified programmatically via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path>`. To prevent context window bloat and truncation crashes, you MUST NOT print a 50-row matrix table into chat. Output ONLY the substantive code evidence for the 7 Architecture Invariants (6 Profile-Specific + Subsystem KI Contract) into the chat.</mandatory_pattern>
+      <mandatory_pattern>Every target file MUST be verified programmatically via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build --strict --micro` and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets client_app_v2/<target_path> --include-one-hop`. To prevent context window bloat and truncation crashes, you MUST NOT print a 50-row matrix table into chat. Output ONLY the substantive code evidence for the 7 Architecture Invariants (6 Profile-Specific + Subsystem KI Contract) into the chat.</mandatory_pattern>
       <catastrophic_reason>Dumping 50-row tables per file into chat exhausts context tokens and triggers Context Amnesia, while bypassing the audit loop allows unvalidated code into production.</catastrophic_reason>
     </rule_block>
     <rule_block id="audit_loop_circuit_breaker">
@@ -60,46 +60,54 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
       <action>Unpack the virtual list autonomously in a continuous loop. Select the FIRST undone subdirectory OR single file from the list and read its `.dart` files.</action>
 
       <constraint name="DOMAIN_KI_RESOLUTION_GATE">
-        BEFORE auditing or modifying ANY target file, inspect the Knowledge Item (KI) summaries injected at the start of the conversation (`ki_dumb_painter_sdui.md`, `ki_desktop_pro_tool_studio_ux.md`, `ki_dual_axis_localization_architecture.md`, `ki_deterministic_hardening_state.md`), read the relevant KI artifact, and enforce its constraints alongside the 6 Profile-Specific Architecture Invariants.
+        BEFORE auditing or modifying ANY target file, inspect the Knowledge Item (KI) summaries injected at the start of the conversation using the active Frontend KI routing map (`ki_god_code_prevention.md`, `ki_zero_permissive_typing.md`, `ki_router_ssot_and_crud_clone_lifecycle.md`, `ki_frontend_iam_role_segregation.md`, `ki_deterministic_hardening_state.md`, and pillar KIs `client_application_development`, `cognitive_studio_system`, `unified_reporting_and_sdui`, `identity_and_access_management`, `universal_architecture_and_system_standards`), read the relevant KI artifact via `view_file`, and enforce its constraints alongside the 6 Profile-Specific Architecture Invariants.
       </constraint>
 
       <constraint name="TWO_PROFILE_INSPECTION_MANDATE">
         Every audited file MUST be physically read line-by-line using `view_file` and classified into ONE of the two inspection profiles:
 
-        PROFILE A: MODELS, CONTROLLERS, REPOSITORIES &amp; DATA SERVICES (`models`, `controllers`, `repositories`, `providers`, `services`):
+        PROFILE A: MODELS, CONTROLLERS, REPOSITORIES, ROUTER &amp; DATA SERVICES (`models`, `controllers`, `repositories`, `providers`, `services`, `router`):
         1. ZERO-FALLBACK, STRICT JSON CONFORMITY &amp; 32-HEX UUIDV7: Ban silent null-coalescing defaults (`?? 'default'`), `Uuid().v4()`, and `.substring(0, 16)` / `.take(16)` ID truncations (`DGR008`); mandate `@JsonSerializable(disallowUnrecognizedKeys: true)`, `StrictOpaqueIdConverter`, and `generateOpaqueUuid7(prefix)`.
         2. FREEZED &amp; ENUM PARITY: Mandate `@freezed(equal: false)` and camelCase `@JsonKey(name: 'snake_case')` 1:1 with Python Pydantic V2 schemas; centralize enums in `lib/core/models/enums.dart` using `@JsonEnum()`.
-        3. RIVERPOD CODE-GEN &amp; SRP: Mandate `@riverpod` code generation; offload JSON decoding >100KB via `Isolate.run`.
+        3. RIVERPOD CODE-GEN, LIFECYCLE ISOLATION &amp; GO_ROUTER REACTIVITY (`DGR011`, `DGR012`): Mandate `@riverpod` code generation (`autoDispose` by default; `keepAlive: true` exclusively for global auth/session/theme/router state); enforce `ref.read` inside callbacks vs `ref.watch` inside `build()`; enforce `DGR011` (`if (!context.mounted) return ...;` guard immediately after every `await` inside `useMutation` / `HookConsumerWidget` callbacks with a `Completer` in-flight unmount unit test); enforce `DGR012` (`GoRouter` `refreshListenable` + `ValueNotifier` bridge and ban passing complex objects via `$extra`); offload JSON decoding &gt;100KB via `Isolate.run`.
         4. PATTERN MATCHING STATE UNWRAPPING: Mandate Dart 3 native `switch (state)` with pattern matching (`AsyncData(:final value)`, `AsyncError(:final error)`, `AsyncLoading()`); ban `.when()` / `.maybeWhen()`.
         5. CROSS-DOMAIN DTO PARITY GATE: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_dto_parity.py --fail-on-mismatch`.
-        6. ISTQB UNIT &amp; REPOSITORY TEST PROOF: Verify >=2 negative/boundary test cases in `client_app_v2/test/unit/` and passing execution via `flutter_audit_loop.py`.
+        6. ISTQB UNIT &amp; REPOSITORY TEST PROOF: Verify &gt;=2 negative/boundary test cases in `client_app_v2/test/unit/` and passing execution via `flutter_audit_loop.py`.
         7. SUBSYSTEM KI INVARIANT PARITY: Cite exact line evidence for applicable KI or state `NA - Generic Model/Service (No Subsystem KI applies)`.
 
         PROFILE B: DUMB PAINTER VIEWS, WIDGETS &amp; RENDERERS (`views`, `widgets`, `renderers`, `components`):
-        1. FLUTTER THEME SOVEREIGNTY: Total ban on direct `Color(0x...)` and naked `TextStyle(...)`; resolve strictly via `Theme.of(context).colorScheme`, `Theme.of(context).extension<AppSemanticColors>()`, or `AppSpacing`.
-        2. DUAL-AXIS LOCALIZATION (ICU/ARB): Mandate `context.l10n.<key>` or `AppLocalizations.of(context)`; ban single-line and multi-line hardcoded UI strings (`DGR003`), and ban passing raw `e.toString()`, `error.toString()`, or `'$e'` into `Text(...)` or `l10n.*(...)` (always use `AppExceptionX.extractLocalizedHint(error, l10n)`).
-        3. DESKTOP PRO UX &amp; OVERFLOW CONTAINMENT: Wrap dynamic text/dropdowns inside `Row`/grid layouts in `Expanded` or `Flexible` with `overflow: TextOverflow.ellipsis`; set `isExpanded: true` on dropdowns.
+        1. FLUTTER THEME SOVEREIGNTY: Total ban on direct `Color(0x...)` and naked `TextStyle(...)`; resolve strictly via `Theme.of(context).colorScheme`, `Theme.of(context).extension&lt;AppSemanticColors&gt;()`, or `AppSpacing`.
+        2. DUAL-AXIS LOCALIZATION (ICU/ARB): Mandate `context.l10n.&lt;key&gt;` or `AppLocalizations.of(context)`; ban single-line and multi-line hardcoded UI strings (`DGR003`), and ban passing raw `e.toString()`, `error.toString()`, or `'$e'` into `Text(...)` or `l10n.*(...)` (always use `AppExceptionX.extractLocalizedHint(error, l10n)`).
+        3. DESKTOP PRO UX, MACRO-BREAKPOINTS &amp; ACCESSIBILITY SANDBOXING: Wrap dynamic text/dropdowns inside `Row`/grid layouts in `Expanded` or `Flexible` with `overflow: TextOverflow.ellipsis`; set `isExpanded: true` on dropdowns; enforce `LayoutBuilder` 1200/800 macro-breakpoints (`flexbox_native_engine_standard`) on multi-pane views; wrap `CustomPaint` / `fl_chart` canvases in `ExcludeSemantics` or summary `Semantics(label: ...)` (`exclude_semantics_chart_mandate`).
         4. DUMB PAINTER SDUI CONTRACT &amp; 32-HEX UUIDV7: Zero business/semantic math in widgets; parse SDUI blocks via `SduiBlockDTO` wrapped in `AppErrorBoundary`; ban `Uuid().v4()`, `.substring(0, 16)`, and `.take(16)` in favor of `generateOpaqueUuid7(prefix)` (`DGR008`).
         5. FAIL-FAST UI BOUNDARY DEFENSE: Total ban on `SizedBox.shrink()` masking broken UI or empty `catch (e) {}` blocks.
-        6. ISTQB WIDGET TEST PROOF: Verify >=2 negative/boundary widget tests and passing execution via `flutter_audit_loop.py`.
+        6. ISTQB WIDGET &amp; SDUI PARITY TEST PROOF: Verify &gt;=2 negative/boundary widget tests (and `sdui_semantic_parity_test.dart` for SDUI widgets/renderers) and passing execution via `flutter_audit_loop.py`.
         7. SUBSYSTEM KI INVARIANT PARITY: Cite exact line evidence for applicable KI or state `NA - Generic Widget/Component (No Subsystem KI applies)`.
       </constraint>
 
       <constraint name="DETERMINISTIC_AUDIT_GATE">
-        For EVERY audited file, run the Frontend Quality Gate in fast single-file micro mode: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build --strict --micro` (which automatically skips `build_runner` when codegen directives are absent and runs the target's isolated unit test). Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.
+        For EVERY audited file, run BOTH the Targeted Technical Debt &amp; 1-Hop Caller Audit and the Frontend Quality Gate in fast single-file micro mode:
+        1. `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets client_app_v2/<target_path> --include-one-hop`
+        2. `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build --strict --micro` (which automatically skips `build_runner` when codegen directives are absent and runs the target's isolated unit test).
+        3. When updating a Tracker file, run: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_tracker_output.py --tracker <tracker_path>`
+        4. Upon completing an interactive batch or session, execute the final Macro Gate: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/ --build --strict --test`
+        Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.
       </constraint>
 
       <constraint name="DTO_SDUI_PARITY_GATE">
-        If the target file is classified under Profile A and defines or modifies Freezed DTO models shared with the Python backend, run:
-        `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_dto_parity.py --fail-on-mismatch`
+        If the target file defines or modifies Freezed DTO models shared with the Python backend or SDUI models/renderers/widgets, trigger the 4-gate `sdui-parity-sync` verification:
+        1. `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_dto_parity.py --fail-on-mismatch`
+        2. `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`
+        3. `Set-Location client_app_v2; flutter test test/features/execution/sdui_semantic_parity_test.dart; Set-Location ..`
+        4. `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build --strict --micro`
       </constraint>
 
       <action name="AUTONOMOUS REMEDIATION PIPELINE">
         STAGE 2A: STATIC STRUCTURAL, THEME &amp; LOCALIZATION HARDENING:
-        - Execute direct surgical code fixes. Use `@[.agents/plugins/flutter-dart/mcp_config.json]` (`quorum-dart-mcp`: `analyze_files`, `resolve_workspace_symbol`, `hover`) for rapid sub-second analyzer feedback during edits, and consult `retrieving-developer-knowledge` (`google-developer-knowledge` plugin) when verifying official Flutter/Dart 3 APIs. Verify completion via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path>` (append `--build` ONLY when `@freezed`, `@riverpod`, `@JsonSerializable`, or `.arb` files were modified).
+        - Execute direct surgical code fixes. Use `@[.agents/plugins/flutter-dart/mcp_config.json]` (`quorum-dart-mcp`: `analyze_files`, `resolve_workspace_symbol`, `hover`) for rapid sub-second analyzer feedback during edits, and consult `retrieving-developer-knowledge` (`google-developer-knowledge` plugin) when verifying official Flutter/Dart 3 APIs. Verify completion via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build --strict --micro`.
 
         STAGE 2B: RUNTIME BEHAVIORAL &amp; WIDGET TEST HARDENING:
-        - Execute TDD RED-GREEN-REFACTOR in `client_app_v2/test/` (using `quorum-dart-mcp` `run_tests` for fast iteration) and verify final compliance via `flutter_audit_loop.py`.
+        - Execute TDD RED-GREEN-REFACTOR in `client_app_v2/test/` (using `quorum-dart-mcp` `run_tests` for fast iteration) and verify final compliance via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build --strict --micro`.
       </action>
 
       <constraint name="DESTRUCTIVE VETO">You operate autonomously EXCEPT for deleting physical files, discarding user-facing routes, or altering public network schemas without authorization.</constraint>
