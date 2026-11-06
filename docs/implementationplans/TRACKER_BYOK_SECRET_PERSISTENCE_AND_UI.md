@@ -24,14 +24,14 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/models/domain/system_config.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
   - [x] @[backend_v2/database/interfaces.py]
   - [x] @[backend_v2/database/factory.py]
   - [x] @[backend_v2/models/auth.py]
   - [x] @[backend_v2/services/auth/secret_service.py]
-  - [ ] @[backend_v2/services/studio/system_config_service.py]
+  - [x] @[backend_v2/services/studio/system_config_service.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
