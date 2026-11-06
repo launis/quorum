@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import logging
 import re
 import sys
 from collections.abc import Sequence
@@ -47,12 +48,14 @@ if isinstance(sys.stderr, io.TextIOWrapper):
 
 from pydantic import ConfigDict, Field, ValidationError
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "BANNED_ALTERNATIVE_PK_KEYS",
@@ -130,7 +133,7 @@ class AuditIssue(V2CoreBase):
     field_path: Annotated[str, Field(description="Path to the affected field.")]
     issue_type: Annotated[str, Field(description="Type/category of the issue.")]
     message: Annotated[str, Field(description="Human-readable issue description.")]
-    severity: Annotated[str, Field(default="ERROR", description="Severity level.")] = "ERROR"
+    severity: Annotated[str, Field(description="Severity level.")] = "ERROR"
 
 
 class FullDatabaseAuditReport(V2CoreBase):
@@ -394,7 +397,7 @@ def audit_prompt_blocks(
                 for claim_idx, claim in enumerate(scale.claims):
                     for tda_idx, assertion in enumerate(claim.tda_assertions):
                         total_atoms += 1
-                        tda_id = assertion.tda_id or f"tda_s{scale_idx}_c{claim_idx}_a{tda_idx}"
+                        tda_id = assertion.tda_id if assertion.tda_id else f"tda_s{scale_idx}_c{claim_idx}_a{tda_idx}"
                         prefix_path = f"scales[{scale_idx}].claims[{claim_idx}].tda_assertions[{tda_idx}]"
 
                         concept_desc = assertion.concept_description
@@ -945,8 +948,8 @@ def audit_workflows(
         known_wf_step_ids: set[str] = {s.id for s in wf_model.steps if s.id}
 
         for s_idx, step_rule in enumerate(wf_model.steps):
-            s_id = step_rule.id or f"step_rule_{s_idx}"
-            blueprint_id = step_rule.task_blueprint or ""
+            s_id = step_rule.id if step_rule.id else f"step_rule_{s_idx}"
+            blueprint_id = step_rule.task_blueprint if step_rule.task_blueprint else ""
 
             if blueprint_id and blueprint_id not in step_blueprint_ids:
                 issues.append(
@@ -1317,9 +1320,35 @@ def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
 
     Returns:
         A validated FullDatabaseAuditReport DTO.
+
+    Raises:
+        AppException: With ``ErrorCodes.VALIDATION_FAILED`` if ``seed_data_path`` cannot
+            be read, contains malformed JSON, or does not decode to a top-level JSON object.
     """
-    raw_text = seed_data_path.read_text(encoding="utf-8")
-    data = json.loads(raw_text)
+    try:
+        raw_text = seed_data_path.read_text(encoding="utf-8")
+        data = json.loads(raw_text)
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.error(
+            "Failed to read or parse seed data JSON file",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "seed_path": str(seed_data_path)},
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"Failed to read or parse seed data file: {seed_data_path}",
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from exc
+
+    if data is None or isinstance(data, (str, int, float, bool, list, tuple, set)):
+        logger.error(
+            "Seed data root payload must be a JSON object mapping collection names to record arrays",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "seed_path": str(seed_data_path)},
+            exc_info=True,
+        )
+        raise AppException(
+            message="Seed data root payload must be a JSON object.",
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
     steps = data["steps"] if "steps" in data else []

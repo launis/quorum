@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from scripts.audit_database_atoms import (
     AuditIssue,
     FullDatabaseAuditReport,
@@ -884,3 +885,48 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
     assert "ORPHAN_DEFAULT_PROFILE_ID" in neg2_types
     assert "ORPHAN_WORKFLOW_ID" in neg2_types
     assert "ORPHAN_TARGET_BLOCK" in neg2_types
+
+
+def test_run_full_database_audit_negative_and_boundary_partitions(tmp_path: Path) -> None:
+    """Verify AppException on missing/corrupt seed files, non-object JSON roots, and ISTQB BVA bounds."""
+    # Negative Case 1: Non-existent file raises AppException(VALIDATION_FAILED)
+    missing_file = tmp_path / "missing_seed_data.json"
+    with pytest.raises(AppException) as exc_missing:
+        run_full_database_audit(missing_file)
+    assert exc_missing.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # Negative Case 2: Malformed JSON syntax raises AppException(VALIDATION_FAILED)
+    corrupt_json_file = tmp_path / "corrupt_syntax.json"
+    corrupt_json_file.write_text("{not valid json", encoding="utf-8")
+    with pytest.raises(AppException) as exc_syntax:
+        run_full_database_audit(corrupt_json_file)
+    assert exc_syntax.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # Negative Case 3: Non-object JSON root (list instead of mapping) raises AppException(VALIDATION_FAILED)
+    list_root_file = tmp_path / "list_root.json"
+    list_root_file.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
+    with pytest.raises(AppException) as exc_root:
+        run_full_database_audit(list_root_file)
+    assert exc_root.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # ISTQB Boundary Value Analysis on concept_description (min=10, max=180) and extraction_rule (min=10)
+    b_concept_min_minus_1 = _create_clean_matrix_block()
+    b_concept_min_minus_1["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "A" * 9
+    issues_concept_below, _, _ = audit_prompt_blocks([b_concept_min_minus_1])
+    assert any(i.issue_type == "SCHEMA_VALIDATION_ERROR" for i in issues_concept_below)
+
+    b_rule_min_minus_1 = _create_clean_matrix_block()
+    b_rule_min_minus_1["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = "B" * 9
+    issues_rule_below, _, _ = audit_prompt_blocks([b_rule_min_minus_1])
+    assert any(i.issue_type == "EMPTY_EXTRACTION_RULE" for i in issues_rule_below)
+
+    b_exact_bounds = _create_clean_matrix_block()
+    b_exact_bounds["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "A" * 180
+    b_exact_bounds["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = "B" * 10
+    issues_exact, _, _ = audit_prompt_blocks([b_exact_bounds])
+    assert not any(i.issue_type in {"SHORT_CONCEPT", "BLOATED_CONCEPT", "EMPTY_EXTRACTION_RULE"} for i in issues_exact)
+
+    b_max_plus_1 = _create_clean_matrix_block()
+    b_max_plus_1["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "A" * 181
+    issues_above, _, _ = audit_prompt_blocks([b_max_plus_1])
+    assert any(i.issue_type == "BLOATED_CONCEPT" for i in issues_above)
