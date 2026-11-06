@@ -43,7 +43,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_BYOK_SECRET_PERSISTENCE_AND_UI.md] @[ki_god_code_prevention.md]
   ```
@@ -93,14 +93,14 @@
 - Completed Steps 1, 2, and 3 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_BYOK_SECRET_PERSISTENCE_AND_UI.md]` (`REQ-001` through `REQ-013`).
 - Implemented protocol-level `UnitOfWorkFactory` registration in `@[backend_v2/database/interfaces.py]` and `@[backend_v2/database/factory.py]`, eradicated `_local_secrets` and `_deleted_secret_ids` from `@[backend_v2/services/auth/secret_service.py]`, enforced physical deletion via `delete_collection_document("tenant_secrets", secret_id)`, and validated `target_identifier` against `LLMProvider` values or `EntityPrefix.SYSTEM_CONFIG` (`sys_<hex32>`).
 - Added required `storage_mode` (`SecretStorageMode`) to `TenantSecretCreateDTO` and `TenantSecretCreateDto`, required `name` (`min_length=1`) to `SystemConfigMCPGateways` and `McpGateway` (`name TEXT NOT NULL` in `001_pg19_uuidv7_schema.sql`), updated `StudioSystemConfigService.list_mcp_gateways` to allow `[UserRole.ROOT, UserRole.ADMIN]`, and replaced `org_secret_target_field` with `org_secret_target_dropdown` in `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`.
-- Synchronized `@[.agents/rules/04_directory_reference.md]` and `@[ki_god_code_prevention.md]`, and verified 100% pass across `backend_audit_loop.py` and `flutter_audit_loop.py`.
+- Executed `/tier7-describe-architecture`: synchronized `@[ki_god_code_prevention.md]`, `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/01_SYSTEM_CONTEXT_AND_INVARIANTS.md]`, `@[docs/architecture/02_DATA_SEEDING_AND_ONTOLOGY.md]`, and `@[docs/architecture/04_SERVER_DRIVEN_UI_AND_PRESENTATION.md]`.
 
 ## Learned
 - Wrapping `DropdownButtonFormField<String>` (`org_secret_target_dropdown`) in a scope-keyed `KeyedSubtree(key: ValueKey<SecretScope>(selectedScope.value))` in `_ByokSecretsCard` guarantees clean `FormField` state reset when switching between `SecretScope.llmProvider` and `SecretScope.mcpGateway`.
 - Registering `create_unit_of_work` via `register_default_uow_factory` in `backend_v2/database/interfaces.py` and binding an isolated `InMemoryUnitOfWork` in `backend_v2/tests/conftest.py` keeps `SecretService` 100% compliant with `QGR017` while ensuring deterministic roundtrip persistence across both production and unit test suites.
 
 ## Remaining
-- Run the Tier 2 Hardening pipelines (`scripts/auto_hardening_runner.py`), `/tier7-describe-architecture`, and `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_BYOK_SECRET_PERSISTENCE_AND_UI.md] @[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md]`.
+- Run the Tier 2 Hardening pipelines (`scripts/auto_hardening_runner.py`) and `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_BYOK_SECRET_PERSISTENCE_AND_UI.md] @[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md]`.
 
 ## Resume Command
 ```powershell
