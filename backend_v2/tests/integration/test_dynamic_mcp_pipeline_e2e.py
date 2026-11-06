@@ -368,6 +368,7 @@ async def test_dynamic_mcp_multi_gateway_namespace_isolation_e2e(root_token: Tok
 
     gw_alpha = SystemConfigMCPGateways(
         id="sys_0195f3a00000700a8aaa111122223333",
+        name="Alpha Gateway",
         slug="alpha_gw",
         type="mcp_gateways",
         endpoint_url="https://alpha.mcp.example.com/rpc",
@@ -375,6 +376,7 @@ async def test_dynamic_mcp_multi_gateway_namespace_isolation_e2e(root_token: Tok
     )
     gw_beta = SystemConfigMCPGateways(
         id="sys_0195f3a00000700b8bbb444455556666",
+        name="Beta Gateway",
         slug="beta_gw",
         type="mcp_gateways",
         endpoint_url="https://beta.mcp.example.com/rpc",

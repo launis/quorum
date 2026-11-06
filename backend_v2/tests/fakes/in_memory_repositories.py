@@ -995,7 +995,11 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             "sys_0195f3a00000700b81c2d3e4f5a60718": default_reg,
             "sys_0195f3a0000070068f8b1c4a2e0d49f1": default_reg,
         }
-        self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
+        self._mcp_gateways = SystemConfigMCPGateways(
+            id="sys_abcdef1234567890abcdef1234567890",
+            name="Default MCP Gateway",
+            tools=[],
+        )
         self._mcp_gateways_map: dict[str, SystemConfigMCPGateways] = {
             self._mcp_gateways.id: self._mcp_gateways,
         }

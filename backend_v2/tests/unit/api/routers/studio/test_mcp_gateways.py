@@ -199,6 +199,7 @@ async def test_mcp_gateways_router_negative_cases(
 
     duplicate_gw = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Duplicate Gateway",
         slug="default_mcp_gateway",
         type="mcp_gateways",
         tools=[],

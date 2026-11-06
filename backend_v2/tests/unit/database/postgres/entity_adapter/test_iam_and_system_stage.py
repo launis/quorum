@@ -54,7 +54,7 @@ from backend_v2.models.auth import (
     UserRole,
 )
 from backend_v2.models.core_base import I18nText, generate_opaque_id
-from backend_v2.models.domain.execution import WorkflowInputs
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     ModelProfile,
@@ -242,8 +242,10 @@ def _build_mcp_gateway() -> SystemConfigMCPGateways:
     Returns:
         Validated SystemConfigMCPGateways instance.
     """
+    # Phase 1, Step 1: Include required canonical name on SystemConfigMCPGateways test fixture
     return SystemConfigMCPGateways(
         id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        name="Exa Search MCP Gateway",
         type="mcp_gateways",
         slug="exa_search_gateway",
         endpoint_url="https://mcp.exa.example.com/v1",
@@ -314,6 +316,7 @@ async def test_iam_system_and_studio_entities_roundtrip_parity() -> None:
         assert saved_mcp_id == mcp_cfg.id
         fetched_mcp = await get_system_config_row(conn, _TIMEOUT, mcp_cfg.id)
         assert isinstance(fetched_mcp, SystemConfigMCPGateways)
+        assert fetched_mcp.name == mcp_cfg.name
         assert fetched_mcp == mcp_cfg
     finally:
         await pool.release(conn)
@@ -394,6 +397,10 @@ async def test_postgres_entity_adapter_invalid_prefix_uuid_negative() -> None:
             email="bad@acme.example.com",
             role=UserRole.MEMBER,
             organization_id=SystemOrganizations.ROOT_SYSTEM,
+            is_active=True,
+            language=SystemLocale.EN,
+            theme_mode="dark",
+            created_at=datetime.now(UTC),
         )
 
     with pytest.raises(ValidationError):
@@ -404,6 +411,7 @@ async def test_postgres_entity_adapter_invalid_prefix_uuid_negative() -> None:
             role=UserRole.MEMBER,
             token_hash="a" * 64,
             invited_by=SYSTEM_ROOT_USER_ID,
+            created_at=datetime.now(UTC),
             expires_at=datetime.now(UTC) + timedelta(days=1),
         )
 

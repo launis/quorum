@@ -36,6 +36,7 @@ def sample_mcp_gateways() -> SystemConfigMCPGateways:
     """Provides a sample SystemConfigMCPGateways model."""
     return SystemConfigMCPGateways(
         id="cfg_0195f3a0000070088172bda70c8641c5",
+        name="Sample MCP Gateway",
         slug="mcp_gateways",
         type="mcp_gateways",
         tools=[],

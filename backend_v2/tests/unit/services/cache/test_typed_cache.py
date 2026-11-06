@@ -150,6 +150,7 @@ async def test_mcp_gateway_cache_memory_and_redis_roundtrip() -> None:
     """Verify MCPGatewayCache stores, retrieves, and invalidates gateway records."""
     gateway = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Tavily MCP Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[
@@ -184,6 +185,7 @@ async def test_mcp_gateway_cache_redis_hit_hydrates_memory() -> None:
     """Verify MCPGatewayCache populates in-memory cache when Redis returns a hit."""
     gateway = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Tavily MCP Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],

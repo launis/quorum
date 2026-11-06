@@ -49,6 +49,7 @@ def configured_dispatcher() -> ToolDispatcher:
     """Returns a ToolDispatcher with an enabled search tool."""
     gateway = SystemConfigMCPGateways(
         id="sys_0195f3a00000700a81b2c3d4e5f60718",
+        name="Default MCP Gateway",
         slug="default_mcp_gateway",
         endpoint_url="https://mcp.example.com/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,

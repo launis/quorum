@@ -7,7 +7,7 @@ All methods return strictly typed Pydantic Domain models (ConfigDict(frozen=True
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from types import TracebackType
 from typing import Protocol, Self, runtime_checkable
 
@@ -99,6 +99,9 @@ __all__ = [
     "IWorkflowRepository",
     "QuorumUnitOfWork",
     "TopologyResolutionPort",
+    "UnitOfWorkFactory",
+    "get_registered_uow_factory",
+    "register_default_uow_factory",
 ]
 
 
@@ -423,6 +426,8 @@ class EntityPersistencePort(Protocol):
     async def upsert_execution_assignment(self, assignment: ExecutionAssignment) -> str: ...
     async def get_execution_assignment(self, assignment_id: str) -> ExecutionAssignment | None: ...
     async def list_execution_assignments(self, organization_id: str | None = None) -> list[ExecutionAssignment]: ...
+    # Phase 1, Step 1: Add physical collection deletion contract to EntityPersistencePort
+    async def delete_collection_document(self, collection_name: str, doc_id: str) -> bool: ...
     async def seed_collection_batch(self, collection_name: str, items: Sequence[BaseModel]) -> int: ...
     async def verify_seed_table_counts(self, expected_counts: Mapping[str, int]) -> dict[str, int]: ...
 
@@ -471,3 +476,28 @@ class QuorumUnitOfWork(Protocol):
 
     async def commit(self) -> None: ...
     async def rollback(self) -> None: ...
+
+
+# Phase 1, Step 1: Protocol-level UnitOfWorkFactory registration for Tripartite Layer isolation (QGR017)
+type UnitOfWorkFactory = Callable[[], QuorumUnitOfWork]
+
+_registered_uow_factory: UnitOfWorkFactory | None = None
+
+
+def register_default_uow_factory(factory: UnitOfWorkFactory | None) -> None:
+    """Register or reset the default process-scoped UnitOfWorkFactory.
+
+    Args:
+        factory: Zero-argument callable returning a QuorumUnitOfWork, or None to clear.
+    """
+    global _registered_uow_factory
+    _registered_uow_factory = factory
+
+
+def get_registered_uow_factory() -> UnitOfWorkFactory | None:
+    """Return the currently registered process-scoped UnitOfWorkFactory if configured.
+
+    Returns:
+        Registered UnitOfWorkFactory callable or None.
+    """
+    return _registered_uow_factory

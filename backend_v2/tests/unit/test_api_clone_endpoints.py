@@ -106,6 +106,7 @@ def mock_studio_service() -> AsyncMock:
     )
     service.clone_mcp_gateways.return_value = SystemConfigMCPGateways(
         id="mcp_0195f3a0000070018111111111111112",
+        name="Test MCP Clone",
         slug="test_mcp_clone",
         type="mcp_gateways",
         tools=[],

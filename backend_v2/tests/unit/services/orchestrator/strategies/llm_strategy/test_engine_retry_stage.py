@@ -431,6 +431,7 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
     """Verify MCP tool retrieval enrichment, synthesis/matrix branches, CausalGraph output, and max retry limit."""
     gateway = SystemConfigMCPGateways(
         id="sys_0195f3a0000070008123456789abcdef",
+        name="Search Gateway",
         slug="search_gateway",
         endpoint_url="https://mcp.example.com/sse",
         tools=[],
@@ -648,6 +649,7 @@ async def test_execute_engine_retry_stage_accumulates_token_usage_across_retries
     """Verify usage_agg accumulates retrieval_usage and all retry engine_usage attempts (100 + 200 + 300 = 600)."""
     gateway = SystemConfigMCPGateways(
         id="sys_0195f3a0000070008123456789abcdef",
+        name="Search Gateway",
         slug="search_gateway",
         endpoint_url="https://mcp.example.com/sse",
         tools=[],

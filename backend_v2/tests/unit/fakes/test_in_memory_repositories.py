@@ -443,7 +443,9 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert reg.id == "sys_1234567890abcdef1234567890abcdef"
     await sys_repo.update_model_registry(reg.model_copy(update={"name": "Updated Registry"}))
     assert (await sys_repo.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
-    await sys_repo.update_mcp_gateways(SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[]))
+    await sys_repo.update_mcp_gateways(
+        SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", name="Gateway", tools=[])
+    )
     settings_dto = SystemSettingsDTO(environment="production")
     cfg_id = await sys_repo.create_system_config(SystemConfigCreateDTO(type="system_settings", content=settings_dto))
     assert await sys_repo.get_system_config(cfg_id) is not None
@@ -676,7 +678,9 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert u_reg.id == "sys_1234567890abcdef1234567890abcdef"
     await unified.update_model_registry(u_reg.model_copy(update={"name": "U Reg"}))
     assert (await unified.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
-    await unified.update_mcp_gateways(SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[]))
+    await unified.update_mcp_gateways(
+        SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", name="Gateway", tools=[])
+    )
     assert await unified.get_system_settings() is None
     await unified.update_system_settings(
         SystemConfigUpdateDTO(system_settings=SystemSettingsDTO(environment="production"))
@@ -768,7 +772,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await unified.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")
 
     gw = SystemConfigMCPGateways(
-        id="cfg_0195f3a0000070088172bda70c8641c5", slug="mcp_gateways", type="mcp_gateways", tools=[]
+        id="cfg_0195f3a0000070088172bda70c8641c5", name="Gateway", slug="mcp_gateways", type="mcp_gateways", tools=[]
     )
     await unified.update_mcp_gateways(gw)
     all_gws = await unified.get_all_mcp_gateways()

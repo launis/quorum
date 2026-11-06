@@ -81,7 +81,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 -- 3. System Configs (Model Registry & Dynamic MCP Gateways with AllowedMCPTool / MCPServerInfoDTO / MCPToolExecutionDTO)
 CREATE TABLE IF NOT EXISTS system_configs (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    name TEXT DEFAULT 'Default Model Registry',
+    -- Phase 1, Step 1: Enforce required non-null name on system_configs with zero SQL DEFAULT
+    name TEXT NOT NULL,
     type TEXT NOT NULL,
     slug TEXT,
     default_provider TEXT,

@@ -25,6 +25,7 @@ def test_system_config_discriminator_mcp_gateways() -> None:
     )
     data = {
         "id": "cfg_0195f3a0000070008123456789abcdef",
+        "name": "Tavily MCP Gateway",
         "type": "mcp_gateways",
         "tools": [tool.model_dump(mode="json")],
     }
@@ -45,6 +46,7 @@ def test_system_config_discriminator_model_registry() -> None:
     )
     data = {
         "id": "cfg_0195f3a0000070008123456789abcdef",
+        "name": "Tavily MCP Gateway",
         "type": "model_registry",
         "tier_definitions": {tier.value: profile.model_dump(mode="json") for tier in CognitiveTier},
     }

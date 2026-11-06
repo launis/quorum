@@ -35,7 +35,7 @@ from backend_v2.models.auth import (
     UserRole,
 )
 from backend_v2.models.core_base import I18nText, generate_opaque_id
-from backend_v2.models.domain.execution import WorkflowInputs
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import (
@@ -86,6 +86,7 @@ def _build_org(org_id: str | None = None) -> Organization:
         quota_limit=500.0,
         tpm_limit=100000,
         rpm_limit=1000,
+        allowed_email_domains=[],
     )
 
 
@@ -122,6 +123,7 @@ def _build_mcp_config() -> SystemConfigMCPGateways:
     """Build a valid SystemConfigMCPGateways for testing."""
     return SystemConfigMCPGateways(
         id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        name="Seed MCP Gateway",
         type="mcp_gateways",
         slug="seed_mcp_gateway",
         endpoint_url="https://mcp.quorum.local/v1",
@@ -152,6 +154,7 @@ def _build_step(block_id: str, org_id: str) -> Step:
         cognitive_tier=CognitiveTier.FAST,
         engine_type=EngineType.PROMPT,
         zone=StepZone.ZONE_B,
+        mcp_tool_params={},
     )
 
 

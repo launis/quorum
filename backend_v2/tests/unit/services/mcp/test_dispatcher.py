@@ -57,6 +57,7 @@ def _build_gateway(
 
     return SystemConfigMCPGateways(
         id=gateway_id,
+        name=f"Gateway {slug}",
         slug=slug,
         endpoint_url="https://mcp.example.com/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -451,6 +452,7 @@ def test_tool_dispatcher_build_search_arguments_exa_web_search() -> None:
     )
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a0000070098c2093907e2d4d24",
+        name="Exa Gateway",
         slug="exa_gateway",
         endpoint_url="https://mcp.exa.ai/mcp",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -787,6 +789,7 @@ async def test_tool_dispatcher_execute_tool_authenticated_gateway_and_non_string
     )
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a0000070018111222233334444",
+        name="Auth Gateway",
         slug="auth_gw",
         endpoint_url="https://mcp.example.com/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,

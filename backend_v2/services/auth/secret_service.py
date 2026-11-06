@@ -48,6 +48,7 @@ __all__ = [
     "CloudSecretManagerFetcherProtocol",
     "SecretService",
     "get_secret_service",
+    "reset_secret_service",
 ]
 
 _SECRET_MANAGER_URI_PATTERN: re.Pattern[str] = re.compile(r"^projects/[^/\s]+/secrets/[^/\s]+/versions/[^/\s]+$")
@@ -971,3 +972,9 @@ def get_secret_service() -> SecretService:
     if _default_secret_service is None:
         _default_secret_service = SecretService()
     return _default_secret_service
+
+
+def reset_secret_service() -> None:
+    """Reset the process-scoped SecretService singleton instance for hermetic test isolation."""
+    global _default_secret_service
+    _default_secret_service = None

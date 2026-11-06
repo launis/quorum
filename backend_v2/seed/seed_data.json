@@ -208,6 +208,7 @@
     },
     {
       "id": "sys_0195f3a00000700080008172bda70c86",
+      "name": "Tavily MCP Gateway",
       "slug": "default_mcp_gateway",
       "endpoint_url": "https://mcp.tavily.com/mcp",
       "transport_type": "streamable_http",

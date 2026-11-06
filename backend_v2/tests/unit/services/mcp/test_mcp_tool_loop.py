@@ -80,6 +80,7 @@ def _make_gateway_fixture() -> SystemConfigMCPGateways:
     )
     return SystemConfigMCPGateways(
         id="sys_0195f3a00000700a81b2c3d4e5f60718",
+        name="Default MCP Gateway",
         slug="default_mcp_gateway",
         endpoint_url="https://mcp.example.com/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -1234,6 +1235,7 @@ async def test_execute_mcp_retrieval_with_mcp_tool_params_and_jit_synthesis() ->
     )
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a0000070098999888877776666",
+        name="Complex Gateway",
         slug="complex_gw",
         endpoint_url="https://mcp.example.com/complex",
         transport_type=MCPTransportType.STREAMABLE_HTTP,

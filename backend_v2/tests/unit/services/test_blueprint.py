@@ -258,6 +258,7 @@ def mock_repo_transformer() -> Any:
     repo.set_mcp_gateways(
         SystemConfigMCPGateways(
             id="sys_0195f3a0000070008000000000000001",
+            name="Default MCP Gateway",
             type="mcp_gateways",
             tools=[],
         )
@@ -3125,6 +3126,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
     mock_repo_transformer.set_mcp_gateways(
         {
             "id": "sys_0195f3a00000700080008172bda70c86",
+            "name": "Tavily MCP Gateway",
             "type": "mcp_gateways",
             "tools": [
                 {
@@ -3711,7 +3713,12 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 
     mock_repo_transformer.set_mcp_gateways(
-        SystemConfigMCPGateways(id="sys_0195f3a0000070008000000000000001", type="mcp_gateways", tools=[])
+        SystemConfigMCPGateways(
+            id="sys_0195f3a0000070008000000000000001",
+            name="Default MCP Gateway",
+            type="mcp_gateways",
+            tools=[],
+        )
     )
 
     # 2. Corrupt scoring payload in results
@@ -3921,7 +3928,12 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     repo.set_workflow(wf)
     repo.set_prompt_blocks([])
     repo.set_mcp_gateways(
-        SystemConfigMCPGateways(id="sys_0195f3a0000070008000000000000001", type="mcp_gateways", tools=[])
+        SystemConfigMCPGateways(
+            id="sys_0195f3a0000070008000000000000001",
+            name="Default MCP Gateway",
+            type="mcp_gateways",
+            tools=[],
+        )
     )
     repo.set_organization(
         Organization(

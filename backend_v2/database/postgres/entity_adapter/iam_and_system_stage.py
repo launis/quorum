@@ -924,9 +924,11 @@ def hydrate_system_config_row(
     """
     cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
     if row["type"] == "mcp_gateways":
+        # Phase 1, Step 1: Hydrate canonical human-readable name for SystemConfigMCPGateways
         return SystemConfigMCPGateways.model_validate(
             {
                 "id": cfg_id,
+                "name": row["name"],
                 "type": "mcp_gateways",
                 "slug": row["slug"],
                 "endpoint_url": row["endpoint_url"],
@@ -971,7 +973,9 @@ async def upsert_system_config_row(
     """
     cfg_uuid = parse_prefixed_uuid7(cfg.id, EntityPrefix.SYSTEM_CONFIG)
     dumped = cfg.model_dump(mode="json")
-    name = slug = provider = tiers_json = endpoint_url = transport = auth_type = auth_hdr = auth_env = tools_json = None
+    # Phase 1, Step 1: Persist canonical name for both SystemConfigModelRegistry and SystemConfigMCPGateways
+    name = cfg.name
+    slug = provider = tiers_json = endpoint_url = transport = auth_type = auth_hdr = auth_env = tools_json = None
     timeout_sec: int | None = None
     if isinstance(cfg, SystemConfigMCPGateways):
         slug = cfg.slug
@@ -983,7 +987,6 @@ async def upsert_system_config_row(
         timeout_sec = cfg.timeout_seconds
         tools_json = to_json(dumped["tools"]).decode("utf-8")
     else:
-        name = cfg.name
         provider = str(cfg.default_provider)
         tiers_json = to_json(dumped["tier_definitions"]).decode("utf-8")
     return await execute_entity_upsert(

@@ -531,7 +531,13 @@ class StudioSystemConfigService:
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         draft_slug = f"gateway_{new_id.removeprefix('sys_')[:8]}"
-        draft = SystemConfigMCPGateways(id=new_id, slug=draft_slug, type="mcp_gateways", tools=[])
+        draft = SystemConfigMCPGateways(
+            id=new_id,
+            name="New MCP Gateway Draft",
+            slug=draft_slug,
+            type="mcp_gateways",
+            tools=[],
+        )
         return await self.save_mcp_gateways(initiator, new_id, draft)
 
     async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:

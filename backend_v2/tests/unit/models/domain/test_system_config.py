@@ -205,7 +205,7 @@ def test_mcp_audit_trace_provenance_fields() -> None:
     assert trace.source_urls == []
     assert trace.impacted_axis_names == []
     with pytest.raises(ValidationError):
-        trace.duration_ms = 200
+        delattr(trace, "duration_ms")
 
     with pytest.raises(ValidationError):
         MCPAuditTrace(
@@ -220,6 +220,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
     """Verify SystemConfigMCPGateways validates single-underscore slug and timeout bounds."""
     gw_min = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Tavily MCP Gateway",
         slug="tavily_mcp_gateway",
         endpoint_url="https://mcp.tavily.com/mcp",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -228,6 +229,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
         timeout_seconds=1,
         tools=[],
     )
+    assert gw_min.name == "Tavily MCP Gateway"
     assert gw_min.slug == "tavily_mcp_gateway"
     assert gw_min.transport_type == MCPTransportType.STREAMABLE_HTTP
     assert gw_min.auth_type == MCPAuthType.BEARER
@@ -235,6 +237,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 
     gw_max = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Valid Gateway",
         slug="valid_slug",
         timeout_seconds=300,
         tools=[],
@@ -244,6 +247,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
             id="sys_0195f3a00000700080008172bda70c86",
+            name="Bad Slug Gateway",
             slug="bad__double_underscore",
             tools=[],
         )
@@ -251,6 +255,15 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
             id="sys_0195f3a00000700080008172bda70c86",
+            name="",
+            slug="valid_slug",
+            tools=[],
+        )
+
+    with pytest.raises(ValidationError):
+        SystemConfigMCPGateways(
+            id="sys_0195f3a00000700080008172bda70c86",
+            name="Zero Timeout Gateway",
             slug="valid_slug",
             timeout_seconds=0,
             tools=[],
@@ -259,6 +272,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
             id="sys_0195f3a00000700080008172bda70c86",
+            name="Excessive Timeout Gateway",
             slug="valid_slug",
             timeout_seconds=301,
             tools=[],

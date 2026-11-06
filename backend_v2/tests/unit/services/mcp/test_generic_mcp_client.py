@@ -71,6 +71,7 @@ def _make_gateway(
     """
     return SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Remote Search Gateway",
         slug="remote_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
         transport_type=transport_type,

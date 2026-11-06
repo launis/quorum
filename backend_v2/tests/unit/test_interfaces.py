@@ -42,7 +42,15 @@ def test_interfaces_are_protocols() -> None:
         interfaces.TopologyResolutionPort,
     ]
 
-    assert len(protocol_classes) == len(interfaces.__all__)
+    helper_exports = [
+        interfaces.UnitOfWorkFactory,
+        interfaces.get_registered_uow_factory,
+        interfaces.register_default_uow_factory,
+    ]
+    assert len(protocol_classes) + len(helper_exports) == len(interfaces.__all__)
+    assert callable(interfaces.register_default_uow_factory)
+    assert callable(interfaces.get_registered_uow_factory)
+    assert interfaces.get_registered_uow_factory() is not None
     for protocol_class in protocol_classes:
         assert inspect.isclass(protocol_class)
         assert any(base.__name__ == "Protocol" for base in protocol_class.__mro__)
@@ -111,3 +119,23 @@ async def test_graph_mutation_port_rejects_dangling_edge_draft() -> None:
         with pytest.raises(AppException) as exc_info:
             await active_uow.graph.materialize_wave(run_id, [], [dangling_edge])
         assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_in_memory_entity_adapter_delete_collection_document_positive_and_negative() -> None:
+    """Verify InMemoryEntityAdapter.delete_collection_document deletes records and rejects invalid prefixes."""
+    uow = InMemoryUnitOfWork()
+    sec_id = generate_uuid7_opaque_id(EntityPrefix.TENANT_SECRET)
+    sys_id = generate_uuid7_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    uow.store.seed_tables["tenant_secrets"][sec_id] = (sec_id,)
+    uow.store.seed_tables["system_configs"][sys_id] = (sys_id,)
+
+    assert await uow.entities.delete_collection_document("tenant_secrets", sec_id) is True
+    assert await uow.entities.delete_collection_document("tenant_secrets", sec_id) is False
+    assert await uow.entities.delete_collection_document("system_config", sys_id) is True
+    assert await uow.entities.delete_collection_document("system_config", sys_id) is False
+
+    assert (
+        await uow.entities.delete_collection_document("tenant_secrets", "usr_0195f3a0000070008000000000000001") is False
+    )
+    assert await uow.entities.delete_collection_document("unknown_collection", sec_id) is False

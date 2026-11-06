@@ -10,7 +10,10 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
 
+from backend_v2.database.interfaces import register_default_uow_factory
 from backend_v2.models.dtos.export import ExportPayloadDTO as _ExportPayloadDTO
+from backend_v2.services.auth.secret_service import reset_secret_service
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 _ = _ExportPayloadDTO
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
@@ -45,11 +48,13 @@ def patch_pydantic_base_model_cache() -> None:
 
     import pydantic._internal._import_utils as import_utils
 
-    import_utils.import_cached_base_model = custom_import_cached_base_model
+    import_utils_mod: Any = import_utils
+    import_utils_mod.import_cached_base_model = custom_import_cached_base_model
 
     import pydantic._internal._model_construction as model_construction
 
-    model_construction.import_cached_base_model = custom_import_cached_base_model
+    model_construction_mod: Any = model_construction
+    model_construction_mod.import_cached_base_model = custom_import_cached_base_model
 
     class NameMatcherMeta(type):
         def __instancecheck__(self, instance: Any) -> bool:
@@ -65,7 +70,7 @@ def patch_pydantic_base_model_cache() -> None:
         orig = orig_default_ignored_types()
         return orig + (PydanticIgnoreMatcher,)
 
-    model_construction.default_ignored_types = custom_default_ignored_types
+    model_construction_mod.default_ignored_types = custom_default_ignored_types
 
     from pydantic._internal._generate_schema import GenerateSchema
     from pydantic_core import core_schema
@@ -77,7 +82,8 @@ def patch_pydantic_base_model_cache() -> None:
             return core_schema.is_instance_schema(obj)
         return orig_unknown(self, obj)
 
-    GenerateSchema._unknown_type_schema = custom_unknown
+    generate_schema_cls: Any = GenerateSchema
+    generate_schema_cls._unknown_type_schema = custom_unknown
 
 
 patch_pydantic_base_model_cache()
@@ -124,7 +130,7 @@ def block_live_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(scope="session")
-def seed_data():
+def seed_data() -> Any:
     """Loads the authentic SSOT seed_data.json into memory once for all tests."""
     seed_path = Path(__file__).parent.parent / "seed" / "seed_data.json"
     with open(seed_path, encoding="utf-8") as f:
@@ -146,6 +152,18 @@ def clear_litellm_provider_caches() -> Generator[None]:
     LiteLLMProvider._router_cache.clear()
     LiteLLMProvider._semaphores.clear()
     LiteLLMProvider._httpx_clients.clear()
+
+
+@pytest.fixture(autouse=True)
+def isolate_default_uow_and_secret_service() -> Generator[None]:
+    """Bind an isolated InMemoryUnitOfWork as the default UoW factory and reset SecretService per test."""
+    # Phase 1, Step 1: Hermetic InMemoryUnitOfWork factory and SecretService singleton reset per test
+    uow = InMemoryUnitOfWork()
+    register_default_uow_factory(lambda: uow)
+    reset_secret_service()
+    yield
+    reset_secret_service()
+    register_default_uow_factory(None)
 
 
 def _cleanup_pymupdf_layout() -> None:

@@ -378,6 +378,7 @@ class SystemConfigMCPGateways(V2CoreBase):
 
     Attributes:
         id: System config Opaque Stripe ID.
+        name: Human-readable gateway title.
         type: Config type discriminator ('mcp_gateways').
         slug: Collision-free gateway namespace slug without double underscores.
         endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.
@@ -392,6 +393,8 @@ class SystemConfigMCPGateways(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="mcp_gateways")
 
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")]
+    # Phase 1, Step 1: Require canonical human-readable gateway name with zero default value
+    name: Annotated[str, Field(min_length=1, description="Human-readable gateway title.")]
     type: Annotated[
         Literal["mcp_gateways"],
         Field(default="mcp_gateways", description="Config type discriminator."),

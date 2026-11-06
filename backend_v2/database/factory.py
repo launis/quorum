@@ -10,7 +10,7 @@ import asyncio
 import logging
 
 from backend_v2.database.driver import StorageDriver
-from backend_v2.database.interfaces import QuorumUnitOfWork
+from backend_v2.database.interfaces import QuorumUnitOfWork, register_default_uow_factory
 from backend_v2.database.postgres.pool import PostgresPoolManager
 from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.postgres.uow import PostgresUnitOfWork
@@ -170,3 +170,7 @@ def create_unit_of_work(
     else:
         resolved_pool_manager = get_shared_pool_manager(resolved_settings)
     return PostgresUnitOfWork(pool_manager=resolved_pool_manager)
+
+
+# Phase 1, Step 1: Register create_unit_of_work as the default UnitOfWorkFactory in interfaces
+register_default_uow_factory(create_unit_of_work)

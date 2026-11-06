@@ -675,6 +675,7 @@ def test_schema_dto_naming_parity() -> None:
 
     mcp_gateway = SystemConfigMCPGateways(
         id=generate_uuid7_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        name="Exa Search Gateway",
         slug="exa_search",
         endpoint_url="https://mcp.exa.ai/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,

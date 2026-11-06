@@ -1160,6 +1160,78 @@ class InMemoryEntityAdapter:
             table_bucket[str(raw_id)] = item
         return len(items)
 
+    async def delete_collection_document(self, collection_name: str, doc_id: str) -> bool:
+        """Delete a stored document by ID from its canonical in-memory table.
+
+        Args:
+            collection_name: Canonical collection or table name.
+            doc_id: Primary Opaque Stripe ID of the document to delete.
+
+        Returns:
+            True if a matching document existed and was removed, else False.
+        """
+        # Phase 1, Step 1: Stateful in-memory deletion matching PostgresEntityAdapter.delete_collection_document
+        collection_map: dict[str, str] = {
+            "organizations": "organizations",
+            "users": "users",
+            "invitations": "invitations",
+            "tenant_secrets": "tenant_secrets",
+            "execution_assignments": "execution_assignments",
+            "system_config": "system_configs",
+            "system_configs": "system_configs",
+            "prompt_blocks": "prompt_blocks",
+            "components": "prompt_blocks",
+            "agents": "prompt_blocks",
+            "steps": "steps",
+            "task_blueprints": "steps",
+            "workflows": "workflows",
+            "output_profiles": "output_profiles",
+            "executions": "executions",
+            "report_artifacts": "report_artifacts",
+            "report_binaries": "report_binaries",
+        }
+        if collection_name not in collection_map:
+            return False
+        canonical = collection_map[collection_name]
+        prefix_map: dict[str, EntityPrefix] = {
+            "organizations": EntityPrefix.ORGANIZATION,
+            "users": EntityPrefix.USER,
+            "invitations": EntityPrefix.INVITATION,
+            "tenant_secrets": EntityPrefix.TENANT_SECRET,
+            "execution_assignments": EntityPrefix.ASSIGNMENT,
+            "system_configs": EntityPrefix.SYSTEM_CONFIG,
+            "prompt_blocks": EntityPrefix.PROMPT_BLOCK,
+            "steps": EntityPrefix.STEP,
+            "workflows": EntityPrefix.WORKFLOW,
+            "output_profiles": EntityPrefix.OUTPUT_PROFILE,
+            "executions": EntityPrefix.EXECUTION,
+            "report_artifacts": EntityPrefix.REPORT,
+            "report_binaries": EntityPrefix.REPORT,
+        }
+        if canonical not in prefix_map:
+            return False
+        try:
+            _ = parse_prefixed_uuid7(doc_id, prefix_map[canonical])
+        except AppException:
+            return False
+
+        if canonical == "executions":
+            if doc_id in self._store.executions:
+                del self._store.executions[doc_id]
+                return True
+            return False
+
+        if canonical == "report_binaries":
+            if doc_id in self._store.report_binaries:
+                del self._store.report_binaries[doc_id]
+                return True
+            return False
+
+        if canonical in self._store.seed_tables and doc_id in self._store.seed_tables[canonical]:
+            del self._store.seed_tables[canonical][doc_id]
+            return True
+        return False
+
     async def verify_seed_table_counts(
         self,
         expected_counts: Mapping[str, int],
