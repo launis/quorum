@@ -14,13 +14,17 @@ import pytest
 from pydantic import ValidationError
 
 from scripts.audit_skills_architecture import (
+    CANONICAL_KI_ARTIFACTS,
+    DEFAULT_CANONICAL_KI_ARTIFACTS,
     MAX_ALWAYS_ON_BYTES,
     MAX_SINGLE_RULE_FILE_BYTES,
+    PLACEHOLDER_KI_TOKENS,
     REQUIRED_QUORUM_SKILLS,
     REQUIRED_WORKSPACE_PLUGINS,
     SkillsArchitectureAuditor,
     SkillsAuditFindingDTO,
     SkillsAuditSummaryDTO,
+    discover_canonical_ki_artifacts,
     main,
 )
 
@@ -49,14 +53,21 @@ def _populate_compliant_workspace(root: Path) -> None:
     workflows_dir.mkdir(parents=True, exist_ok=True)
 
     skills_dir = root / ".agents" / "skills"
+    ki_refs_str = " ".join(sorted(CANONICAL_KI_ARTIFACTS))
     for skill_name in REQUIRED_QUORUM_SKILLS:
         s_dir = skills_dir / skill_name
         res_dir = s_dir / "resources"
         res_dir.mkdir(parents=True, exist_ok=True)
         (res_dir / "template.md").write_text("# Template\n", encoding="utf-8")
+        extra_hardening_refs = ""
+        if skill_name in {"tier2-hardening-backend", "tier2-hardening-frontend"}:
+            extra_hardening_refs = (
+                f"Covers {ki_refs_str}, placeholder ki_name.md, and @[.agents/rules/05_llm_architecture.md].\n"
+            )
         (s_dir / "SKILL.md").write_text(
             f"---\nname: {skill_name}\ndescription: Canonical skill {skill_name}\n---\n"
-            f"See [template](./resources/template.md) and @[.agents/rules/00-antigravity-core.md].\n",
+            f"See [template](./resources/template.md) and @[.agents/rules/00-antigravity-core.md].\n"
+            f"{extra_hardening_refs}",
             encoding="utf-8",
         )
 
@@ -259,3 +270,68 @@ def test_scenario_6_negative_plugin_hardcoded_credentials_localhost_and_readonly
 
     skl005_findings = [f for f in summary.findings if f.rule_code == "SKL005"]
     assert len(skl005_findings) >= 5
+
+
+def test_discover_canonical_ki_artifacts_positive_and_fallback(tmp_path: Path) -> None:
+    """Verify discover_canonical_ki_artifacts resolves ki_*.md files or falls back when missing/empty."""
+    missing_dir = tmp_path / "does_not_exist"
+    assert discover_canonical_ki_artifacts(missing_dir) == DEFAULT_CANONICAL_KI_ARTIFACTS
+
+    empty_dir = tmp_path / "empty_knowledge"
+    empty_dir.mkdir(parents=True)
+    assert discover_canonical_ki_artifacts(empty_dir) == DEFAULT_CANONICAL_KI_ARTIFACTS
+
+    custom_dir = tmp_path / "custom_knowledge" / "sub" / "artifacts"
+    custom_dir.mkdir(parents=True)
+    (custom_dir / "ki_custom_one.md").write_text("# Custom 1\n", encoding="utf-8")
+    (custom_dir / "ki_custom_two.md").write_text("# Custom 2\n", encoding="utf-8")
+    discovered = discover_canonical_ki_artifacts(tmp_path / "custom_knowledge")
+    assert discovered == frozenset({"ki_custom_one.md", "ki_custom_two.md"})
+    assert "ki_name.md" in PLACEHOLDER_KI_TOKENS
+
+
+def test_scenario_7_negative_phantom_ki_missing_script_and_omitted_hardening_ki_skl003(
+    tmp_path: Path,
+) -> None:
+    """Verify phantom ki_*.md in skills/rules, missing scripts/*.py, and omitted canonical KIs trigger SKL003."""
+    _populate_compliant_workspace(tmp_path)
+
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    (scripts_dir / "existing_script.py").write_text("# Existing\n", encoding="utf-8")
+
+    # 1. Skill referencing a phantom deleted KI and a non-existent script
+    sdui_skill_md = tmp_path / ".agents" / "skills" / "sdui-parity-sync" / "SKILL.md"
+    sdui_skill_md.write_text(
+        "---\nname: sdui-parity-sync\ndescription: SDUI parity\n---\n"
+        "See [template](./resources/template.md), ki_phantom_deleted_artifact.md, "
+        "scripts/existing_script.py, and scripts/missing_script.py.\n",
+        encoding="utf-8",
+    )
+
+    # 2. Rule file referencing a phantom deleted KI
+    core_rule_md = tmp_path / ".agents" / "rules" / "00-antigravity-core.md"
+    core_rule_md.write_text(
+        "---\ntrigger: always_on\n---\n# Core Rules\nReferences @[ki_sdui_matrix_synthesis.md] and ki_name.md.\n",
+        encoding="utf-8",
+    )
+
+    # 3. Hardening skills omitting ki_zero_permissive_typing.md and a rule file
+    partial_kis = " ".join(sorted(CANONICAL_KI_ARTIFACTS - {"ki_zero_permissive_typing.md"}))
+    for h_skill in ("tier2-hardening-backend", "tier2-hardening-frontend"):
+        (tmp_path / ".agents" / "skills" / h_skill / "SKILL.md").write_text(
+            f"---\nname: {h_skill}\ndescription: Hardening {h_skill}\n---\n"
+            f"See [template](./resources/template.md), @[.agents/rules/00-antigravity-core.md], and {partial_kis}.\n",
+            encoding="utf-8",
+        )
+
+    auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
+    summary = auditor.run_audit()
+
+    skl003_findings = [f for f in summary.findings if f.rule_code == "SKL003"]
+    messages = [f.message for f in skl003_findings]
+    assert any("ki_phantom_deleted_artifact.md" in m for m in messages)
+    assert any("scripts/missing_script.py" in m for m in messages)
+    assert any("ki_sdui_matrix_synthesis.md" in m for m in messages)
+    assert any("ki_zero_permissive_typing.md" in m for m in messages)
+    assert any("05_llm_architecture.md" in m for m in messages)

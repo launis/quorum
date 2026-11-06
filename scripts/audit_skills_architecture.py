@@ -80,18 +80,68 @@ _FRONTMATTER_TRIGGER_RE: Final[re.Pattern[str]] = re.compile(r"^trigger:\s*(.+?)
 _RELATIVE_SKILL_LINK_RE: Final[re.Pattern[str]] = re.compile(r"\]\((\./(?:resources|references)/[^)#\s]+)\)")
 _AT_SKILL_REF_RE: Final[re.Pattern[str]] = re.compile(r"@\[(\.agents/(?:rules|skills|plugins)/[^\]#\s<>]+)\]")
 _ENV_PLACEHOLDER_RE: Final[re.Pattern[str]] = re.compile(r"\$\{[A-Z0-9_]+\}")
+_KI_FILENAME_RE: Final[re.Pattern[str]] = re.compile(r"\b(ki_[a-z0-9_]+\.md)\b")
+_SCRIPT_REF_RE: Final[re.Pattern[str]] = re.compile(r"\bscripts/([a-zA-Z0-9_]+\.py)\b")
+
+# Phase 1B, Step 2: Canonical Knowledge Item artifacts and dynamic discovery
+DEFAULT_CANONICAL_KI_ARTIFACTS: Final[frozenset[str]] = frozenset(
+    {
+        "ki_api_router_ssot_governance.md",
+        "ki_deterministic_hardening_state.md",
+        "ki_frontend_iam_role_segregation.md",
+        "ki_global_config_sovereignty.md",
+        "ki_god_code_prevention.md",
+        "ki_mcp_gateway_architecture.md",
+        "ki_router_ssot_and_crud_clone_lifecycle.md",
+        "ki_zero_permissive_typing.md",
+    }
+)
+
+PLACEHOLDER_KI_TOKENS: Final[frozenset[str]] = frozenset(
+    {
+        "ki_name.md",
+        "ki_filename.md",
+        "ki_1.md",
+        "ki_2.md",
+    }
+)
+
+
+def discover_canonical_ki_artifacts(knowledge_dir: Path | None = None) -> frozenset[str]:
+    """Discover canonical `ki_*.md` artifact filenames from the Antigravity knowledge directory.
+
+    Args:
+        knowledge_dir: Optional override path to the knowledge root directory.
+
+    Returns:
+        Frozenset of discovered `ki_*.md` filenames, or `DEFAULT_CANONICAL_KI_ARTIFACTS` when absent.
+    """
+    resolved_dir = (
+        knowledge_dir if knowledge_dir is not None else (Path.home() / ".gemini" / "antigravity" / "knowledge")
+    )
+    if not resolved_dir.is_dir():
+        return DEFAULT_CANONICAL_KI_ARTIFACTS
+    discovered = frozenset(p.name for p in resolved_dir.rglob("ki_*.md") if p.is_file())
+    return discovered if discovered else DEFAULT_CANONICAL_KI_ARTIFACTS
+
+
+CANONICAL_KI_ARTIFACTS: frozenset[str] = discover_canonical_ki_artifacts()
 
 __all__ = [
+    "CANONICAL_KI_ARTIFACTS",
+    "DEFAULT_CANONICAL_KI_ARTIFACTS",
     "MAX_ALWAYS_ON_BYTES",
     "MAX_SINGLE_RULE_FILE_BYTES",
     "McpConfigFileDTO",
     "McpServerEntryDTO",
+    "PLACEHOLDER_KI_TOKENS",
     "PluginManifestDTO",
     "REQUIRED_QUORUM_SKILLS",
     "REQUIRED_WORKSPACE_PLUGINS",
     "SkillsArchitectureAuditor",
     "SkillsAuditFindingDTO",
     "SkillsAuditSummaryDTO",
+    "discover_canonical_ki_artifacts",
     "main",
 ]
 
@@ -205,17 +255,20 @@ class SkillsArchitectureAuditor:
         repo_root: Path,
         required_skills: tuple[str, ...] = REQUIRED_QUORUM_SKILLS,
         required_plugins: tuple[str, ...] = REQUIRED_WORKSPACE_PLUGINS,
+        allowed_ki_artifacts: frozenset[str] = CANONICAL_KI_ARTIFACTS,
     ) -> None:
-        """Initialize the auditor with repository root and required skill/plugin names.
+        """Initialize the auditor with repository root and required skill/plugin/KI names.
 
         Args:
             repo_root: Root directory of the workspace to audit.
             required_skills: Tuple of required skill directory names.
             required_plugins: Tuple of required workspace plugin directory names.
+            allowed_ki_artifacts: Frozenset of canonical `ki_*.md` artifact filenames.
         """
         self.repo_root = repo_root.resolve()
         self.required_skills = required_skills
         self.required_plugins = required_plugins
+        self.allowed_ki_artifacts = allowed_ki_artifacts
 
     def run_audit(self) -> SkillsAuditSummaryDTO:
         """Execute all five verification stages and return an immutable summary DTO.
@@ -300,6 +353,51 @@ class SkillsArchitectureAuditor:
             if not skill_findings:
                 verified_count += 1
             findings.extend(skill_findings)
+
+        # Phase 1B, Step 2: Verify tier2-hardening-* skills collectively cover all canonical KIs and rules
+        backend_hardening_md = skills_dir / "tier2-hardening-backend" / "SKILL.md"
+        frontend_hardening_md = skills_dir / "tier2-hardening-frontend" / "SKILL.md"
+        if backend_hardening_md.is_file() and frontend_hardening_md.is_file():
+            combined_hardening_text = (
+                backend_hardening_md.read_text(encoding="utf-8", errors="replace")
+                + "\n"
+                + frontend_hardening_md.read_text(encoding="utf-8", errors="replace")
+            )
+            covered_kis = {m.group(1) for m in _KI_FILENAME_RE.finditer(combined_hardening_text)}
+            for missing_ki in sorted(self.allowed_ki_artifacts - covered_kis):
+                findings.append(
+                    SkillsAuditFindingDTO(
+                        rule_code="SKL003",
+                        file_path=".agents/skills/tier2-hardening-backend/SKILL.md",
+                        message=(
+                            f"Canonical Knowledge Item '{missing_ki}' is not referenced in either "
+                            "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
+                        ),
+                        remediation=(
+                            f"Add '{missing_ki}' to DOMAIN_KI_RESOLUTION_GATE in tier2-hardening-backend/SKILL.md "
+                            "or tier2-hardening-frontend/SKILL.md."
+                        ),
+                    )
+                )
+
+            rules_dir = self.repo_root / ".agents" / "rules"
+            if rules_dir.is_dir():
+                for rule_file in sorted(rules_dir.glob("[0-9]*.md")):
+                    if rule_file.name not in combined_hardening_text:
+                        findings.append(
+                            SkillsAuditFindingDTO(
+                                rule_code="SKL003",
+                                file_path=".agents/skills/tier2-hardening-backend/SKILL.md",
+                                message=(
+                                    f"Rule file '.agents/rules/{rule_file.name}' is not referenced in either "
+                                    "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
+                                ),
+                                remediation=(
+                                    f"Reference '.agents/rules/{rule_file.name}' in core_rules_routing of "
+                                    "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
+                                ),
+                            )
+                        )
 
         return verified_count, findings
 
@@ -419,6 +517,44 @@ class SkillsArchitectureAuditor:
                         remediation=f"Ensure '{repo_rel_target}' exists in the workspace or update the reference.",
                     )
                 )
+
+        # Phase 1B, Step 2: Validate ki_*.md and scripts/*.py references in skill playbooks
+        seen_bad_kis: set[str] = set()
+        for match in _KI_FILENAME_RE.finditer(content):
+            ki_name = match.group(1)
+            if (
+                ki_name not in PLACEHOLDER_KI_TOKENS
+                and ki_name not in self.allowed_ki_artifacts
+                and ki_name not in seen_bad_kis
+            ):
+                seen_bad_kis.add(ki_name)
+                findings.append(
+                    SkillsAuditFindingDTO(
+                        rule_code="SKL003",
+                        file_path=rel_skill_md,
+                        message=f"Stale or non-existent Knowledge Item reference '{ki_name}' in '{rel_skill_md}'.",
+                        remediation=(
+                            f"Replace '{ki_name}' with an active canonical KI artifact from "
+                            f"{sorted(self.allowed_ki_artifacts)}."
+                        ),
+                    )
+                )
+
+        scripts_dir = self.repo_root / "scripts"
+        if scripts_dir.is_dir():
+            seen_bad_scripts: set[str] = set()
+            for match in _SCRIPT_REF_RE.finditer(content):
+                script_name = match.group(1)
+                if not (scripts_dir / script_name).is_file() and script_name not in seen_bad_scripts:
+                    seen_bad_scripts.add(script_name)
+                    findings.append(
+                        SkillsAuditFindingDTO(
+                            rule_code="SKL003",
+                            file_path=rel_skill_md,
+                            message=f"Broken script reference 'scripts/{script_name}' in '{rel_skill_md}'.",
+                            remediation=f"Ensure 'scripts/{script_name}' exists on disk or update the reference.",
+                        )
+                    )
         return findings
 
     def _check_plugins_directory(self) -> tuple[int, list[SkillsAuditFindingDTO]]:
@@ -638,19 +774,47 @@ class SkillsArchitectureAuditor:
             2-tuple of (always_on_total_bytes, findings).
         """
         always_on_files: list[Path] = []
+        all_rule_files: list[Path] = []
         for root_file_name in ("AGENTS.md", "GEMINI.md"):
             candidate = self.repo_root / root_file_name
             if candidate.is_file():
                 always_on_files.append(candidate)
+                all_rule_files.append(candidate)
 
         rules_dir = self.repo_root / ".agents" / "rules"
         if rules_dir.is_dir():
             for rule_path in sorted(rules_dir.glob("*.md")):
+                all_rule_files.append(rule_path)
                 if self._is_always_on_rule(rule_path):
                     always_on_files.append(rule_path)
 
         total_bytes = 0
         findings: list[SkillsAuditFindingDTO] = []
+
+        # Phase 1B, Step 2: Validate ki_*.md references across all rule markdown files
+        for rule_doc in all_rule_files:
+            rel_rule_path = rule_doc.relative_to(self.repo_root).as_posix()
+            rule_content = rule_doc.read_text(encoding="utf-8", errors="replace")
+            seen_rule_bad_kis: set[str] = set()
+            for match in _KI_FILENAME_RE.finditer(rule_content):
+                ki_name = match.group(1)
+                if (
+                    ki_name not in PLACEHOLDER_KI_TOKENS
+                    and ki_name not in self.allowed_ki_artifacts
+                    and ki_name not in seen_rule_bad_kis
+                ):
+                    seen_rule_bad_kis.add(ki_name)
+                    findings.append(
+                        SkillsAuditFindingDTO(
+                            rule_code="SKL003",
+                            file_path=rel_rule_path,
+                            message=f"Stale or non-existent Knowledge Item reference '{ki_name}' in '{rel_rule_path}'.",
+                            remediation=(
+                                f"Replace '{ki_name}' with an active canonical KI artifact from "
+                                f"{sorted(self.allowed_ki_artifacts)}."
+                            ),
+                        )
+                    )
         for rule_file in always_on_files:
             size_bytes = len(rule_file.read_bytes())
             total_bytes += size_bytes
