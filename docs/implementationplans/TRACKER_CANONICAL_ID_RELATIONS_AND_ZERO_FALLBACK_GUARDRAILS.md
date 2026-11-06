@@ -64,7 +64,7 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-001 | Migrate `AuditIssue` and `FullDatabaseAuditReport` in `@[scripts/audit_database_atoms.py#L116-L136]` and `@[scripts/audit_database_atoms.py#L116-L136]` to PEP 593 `Annotated[T, Field(...)]` and remove `"scripts/audit_database_atoms.py"` from `RESIDUAL_BARE_FIELD_FILES` in `@[scripts/_ast_guardrails.py#L897-L3929]`. | Step 1 | [x] Completed |
+| REQ-001 | Migrate `AuditIssue` and `FullDatabaseAuditReport` in `@[scripts/audit_database_atoms.py#L116-L136]` and `@[scripts/audit_database_atoms.py#L139-L161]` to PEP 593 `Annotated[T, Field(...)]` and remove `"scripts/audit_database_atoms.py"` from `RESIDUAL_BARE_FIELD_FILES` in `@[scripts/_ast_guardrails.py#L897-L3929]`. | Step 1 | [x] Completed |
 | REQ-002 | Define and export `RESIDUAL_LOCAL_SHADOW_STATE_FILES` and `RESIDUAL_DEFAULT_VALUE_MODEL_FILES` in `@[scripts/_ast_guardrails.py#L897-L3929]`, sanitize default-value remediation strings in `QGR002` (`#L1375`), `QGR016` (`#L2284`, `#L3399`), and `QGR020` (`#L2618`), and enforce `FATAL` AST bans for non-`None` defaults on identity/relational/naming/mode fields (`QGR020`), `if x is None: x = <default>` service/router fallbacks (`QGR016`), `Filter("slug", ...)` / `QueryCondition("slug", ...)` (`QGR031`), `.slug` in `logger.*`/`AppException` (`QGR031`), `.slug` literal/ID comparisons (`QGR031`), `{x.slug: ...}` dictionary keys (`QGR031`), `"PYTEST_CURRENT_TEST"` branching (`QGR030`), and `self._local_*`/`self._deleted_*`/`self._memory_*` shadow state attributes (`QGR030`). | Step 1 | [x] Completed |
 | REQ-003 | Add ISTQB positive and negative unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L3006-L3023]` verifying `QGR016`, `QGR020`, `QGR030`, and `QGR031` AST violations and compliant `.id` / `.slug == .slug` metadata checks. | Step 1 | [x] Completed |
 | REQ-004 | Enforce `name TEXT NOT NULL` (without SQL `DEFAULT`) on `system_configs` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L82-L98]`. | Step 2 | [x] Completed (VERIFIED_EXISTING) |
@@ -78,12 +78,12 @@
 # Session Handover Context
 
 ## Achieved
-- Executed all 4 steps (`REQ-001` through `REQ-010`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` and verified 100% physical compliance via `/tier8-audit-plan` (`red_team_audit_canonical_id_relations_and_zero_fallback_guardrails.md`) with 100% Universal Quality Gate pass and line coverage >90% (`scripts/_ast_guardrails.py`: 95%, `scripts/audit_zero_orm_strictness.py`: 99%, `scripts/audit_database_atoms.py`: 98%).
-- Executed `/tier7-describe-architecture` (`commit da0b2b62d`), synchronizing `@[ki_god_code_prevention.md]` and its `metadata.json`, `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/01_SYSTEM_CONTEXT_AND_INVARIANTS.md]`, and `@[docs/architecture/02_DATA_SEEDING_AND_ONTOLOGY.md]`.
-- Executed `Tier 2 Hardening (Backend)` across all 3 production script targets via `scripts/auto_hardening_runner.py` with 100% Micro-Audit and Final Macro-Audit Completion Gate pass:
-  - `@[scripts/_ast_guardrails.py]` (`commit 9d9936fb8`, attempt 1, 138.5s)
-  - `@[scripts/audit_zero_orm_strictness.py]` (`commit aa1112ab6`, attempt 1, 160.9s)
-  - `@[scripts/audit_database_atoms.py]` (`commit 7372acbd1`, attempt 1, 386.7s)
+- Executed all 4 steps (`REQ-001` through `REQ-010`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` and verified 100% physical compliance via `/tier8-audit-plan` (`red_team_audit_canonical_id_relations_and_zero_fallback_guardrails.md`, Commit `a808cf475`) with 100% Universal Quality Gate pass and line coverage >90% (`scripts/_ast_guardrails.py`: 95%, `scripts/audit_zero_orm_strictness.py`: 99%, `scripts/audit_database_atoms.py`: 98%).
+- Executed `Tier 2 Hardening (Backend)` via `scripts/auto_hardening_runner.py` across all 3 target scripts:
+  - `@[scripts/_ast_guardrails.py]` (Commit `9d9936fb8`): Verified 7-invariant hardening compliance and 95% line coverage.
+  - `@[scripts/audit_zero_orm_strictness.py]` (Commit `aa1112ab6`): Hardened PEP 257 docstrings (`visit_Constant`), cleaned phase markers, updated CLI parser documentation to `ZORM001-ZORM007`, and verified 99% line coverage in `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]`.
+  - `@[scripts/audit_database_atoms.py]` (Commit `7372acbd1`): Removed redundant `Field(default="ERROR")` in `AuditIssue`, replaced `or` fallback operators with explicit ternary checks, added RFC 7807 Dual-Reporting (`logger.error(..., exc_info=True)` + `AppException` with `ErrorCodes.VALIDATION_FAILED`) on corrupt/non-object seed files in `run_full_database_audit`, and added ISTQB negative boundary tests in `@[backend_v2/tests/unit/scripts/test_audit_database_atoms.py]`.
+- Executed `/tier7-describe-architecture` (Commit `da0b2b62d`), synchronizing `@[ki_god_code_prevention.md]` and its `metadata.json`, `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/01_system_context_and_invariants.md]`, and `@[docs/architecture/02_data_seeding_and_ontology.md]`.
 - **Step 1 (`REQ-001`, `REQ-002`, `REQ-003` — Commit `298865116`):** Migrated `AuditIssue` (`#L116-L136`) and `FullDatabaseAuditReport` (`#L139-L161`) in `@[scripts/audit_database_atoms.py]` to PEP 593 `Annotated[T, Field(...)]`, removed `"scripts/audit_database_atoms.py"` from `RESIDUAL_BARE_FIELD_FILES`, sanitized remediation strings in `QGR002`/`QGR016`/`QGR020`, and enforced `QGR016`, `QGR020`, `QGR030`, and `QGR031` in `@[scripts/_ast_guardrails.py]` with ISTQB tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`.
 - **Step 2 (`REQ-004`, `REQ-005`, `REQ-006` — Commit `784d2a6dd`):** Verified `name TEXT NOT NULL` on `system_configs` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L82-L98]` and enforced `CANONICAL_ENTITY_PK_TABLES`, `CANONICAL_NAMED_ENTITY_TABLES`, `ZORM004`, and `ZORM007` in `@[scripts/audit_zero_orm_strictness.py]` with ISTQB tests in `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]`.
 - **Step 3 (`REQ-007`, `REQ-008`, `REQ-009` — Commit `6ab29042e`):** Verified `"name": "Tavily MCP Gateway"` in `@[backend_v2/seed/seed_data.json#L209-L218]` and implemented `SEED_COLLECTION_ALLOWED_PREFIXES`, `SEED_COLLECTION_REQUIRED_DISPLAY_FIELD`, `BANNED_ALTERNATIVE_PK_KEYS`, and `audit_canonical_entity_ids` in `@[scripts/audit_database_atoms.py#L1119-L1312]` with ISTQB tests in `@[backend_v2/tests/unit/scripts/test_audit_database_atoms.py]`.
@@ -95,9 +95,9 @@
 - `scripts/audit_markdown_boundaries.py --fix` writes Windows CRLF (`\r\n`) line endings via `Path.write_text()`; using `write_file(Overwrite=True)` avoids `edit_file` LF/CRLF target mismatches on tracker updates.
 
 ## Remaining
-- None — all implementation steps (`REQ-001` through `REQ-010`), Tier 2 Backend Hardening passes across all 3 script targets (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_zero_orm_strictness.py]`, `@[scripts/audit_database_atoms.py]`), Tier 7 As-Built Architectural Sync, and Tier 8 System 2 Red-Team Audit are 100% completed.
+- None — all implementation steps (`REQ-001` through `REQ-010`), Tier 2 Backend Hardening passes, Tier 7 As-Built Architectural Sync, and Tier 8 Final Plan Audit are 100% complete.
 
 ## Resume Command
 ```powershell
-$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_plan_tracker_parity.py --plan docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md --tracker docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]
 ```
