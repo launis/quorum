@@ -19,7 +19,7 @@
   - [x] Step 2: Phase 2: Enforce Canonical id Primary Keys, Universal Entity Display Names (name/label/title), Foreign Key REFERENCES (id), SQL Default Bans, and SQL slug Filter Bans in audit_zero_orm_strictness.py
   - [x] Step 3: Phase 3: Enforce 7-Collection Canonical id, Required Human-Readable Display Name (name/label), & Cross-Collection id Referential Integrity in audit_database_atoms.py
   - [x] Step 4: Phase 4: Codify Canonical ID Relations, Universal Entity Naming, Zero-Default & Zero-Fallback Inspection Mandate in tier2-hardening-backend SKILL.md
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]`
 
 ### Post-Implementation Gates
 
@@ -49,7 +49,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -78,7 +78,7 @@
 # Session Handover Context
 
 ## Achieved
-- Executed all 4 steps (`REQ-001` through `REQ-010`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` with 100% Universal Quality Gate pass and line coverage >90% (`scripts/_ast_guardrails.py`: 95%, `scripts/audit_zero_orm_strictness.py`: 99%, `scripts/audit_database_atoms.py`: 98%).
+- Executed all 4 steps (`REQ-001` through `REQ-010`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]` and verified 100% physical compliance via `/tier8-audit-plan` (`red_team_audit_canonical_id_relations_and_zero_fallback_guardrails.md`) with 100% Universal Quality Gate pass and line coverage >90% (`scripts/_ast_guardrails.py`: 95%, `scripts/audit_zero_orm_strictness.py`: 99%, `scripts/audit_database_atoms.py`: 98%).
 - **Step 1 (`REQ-001`, `REQ-002`, `REQ-003` — Commit `298865116`):** Migrated `AuditIssue` (`#L113-L133`) and `FullDatabaseAuditReport` (`#L136-L158`) in `@[scripts/audit_database_atoms.py]` to PEP 593 `Annotated[T, Field(...)]`, removed `"scripts/audit_database_atoms.py"` from `RESIDUAL_BARE_FIELD_FILES`, sanitized remediation strings in `QGR002`/`QGR016`/`QGR020`, and enforced `QGR016`, `QGR020`, `QGR030`, and `QGR031` in `@[scripts/_ast_guardrails.py]` with ISTQB tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`.
 - **Step 2 (`REQ-004`, `REQ-005`, `REQ-006` — Commit `784d2a6dd`):** Verified `name TEXT NOT NULL` on `system_configs` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L82-L98]` and enforced `CANONICAL_ENTITY_PK_TABLES`, `CANONICAL_NAMED_ENTITY_TABLES`, `ZORM004`, and `ZORM007` in `@[scripts/audit_zero_orm_strictness.py]` with ISTQB tests in `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]`.
 - **Step 3 (`REQ-007`, `REQ-008`, `REQ-009` — Commit `6ab29042e`):** Verified `"name": "Tavily MCP Gateway"` in `@[backend_v2/seed/seed_data.json#L209-L218]` and implemented `SEED_COLLECTION_ALLOWED_PREFIXES`, `SEED_COLLECTION_REQUIRED_DISPLAY_FIELD`, `BANNED_ALTERNATIVE_PK_KEYS`, and `audit_canonical_entity_ids` in `@[scripts/audit_database_atoms.py#L1116-L1309]` with ISTQB tests in `@[backend_v2/tests/unit/scripts/test_audit_database_atoms.py]`.
@@ -90,9 +90,9 @@
 - `scripts/audit_markdown_boundaries.py --fix` writes Windows CRLF (`\r\n`) line endings via `Path.write_text()`; using `write_file(Overwrite=True)` avoids `edit_file` LF/CRLF target mismatches on tracker updates.
 
 ## Remaining
-- Execute Tier 2 Backend Hardening on the 3 modified script targets (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_zero_orm_strictness.py]`, `@[scripts/audit_database_atoms.py]`), run `/tier7-describe-architecture`, and run `/tier8-audit-plan`.
+- Execute Tier 2 Backend Hardening on the 3 modified script targets (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_zero_orm_strictness.py]`, `@[scripts/audit_database_atoms.py]`) via `scripts/auto_hardening_runner.py`, and run `/tier7-describe-architecture`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md] @[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 ```
