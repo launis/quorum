@@ -32,12 +32,12 @@
   - [x] @[backend_v2/models/auth.py]
   - [x] @[backend_v2/services/auth/secret_service.py]
   - [x] @[backend_v2/services/studio/system_config_service.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
   - [x] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
-  - [ ] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
+  - [x] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 

@@ -20,12 +20,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'organization_iam_settings_view.g.dart';
 
-// Phase 3, Step 3: Fetch configured MCP gateways for BYOK target dropdown (REQ-013)
 @riverpod
 Future<List<McpGateway>> availableMcpGateways(Ref ref) async =>
     ref.watch(studioClientProvider).getMcpGateways();
 
-// Phase 2, Step 2: Provide organization list for ROOT cross-organization selector
 @riverpod
 Future<List<Organization>> availableOrganizations(Ref ref) async {
   final result = await ref.watch(userRepositoryProvider).listOrganizations();
@@ -77,7 +75,6 @@ class OrganizationIamSettingsView extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final authState = ref.watch(authControllerProvider);
-    // Phase 2, Step 2: Hold active target organization state for ROOT cross-organization switching
     final selectedOrgId = useState<String?>(null);
 
     return AppErrorBoundary(
@@ -763,7 +760,6 @@ class _InvitationsAndMembersCard extends HookConsumerWidget {
       });
     }
 
-    // Phase 2, Step 2: Direct user creation (POST /iam/users/) with >= 6 character password validation
     Future<void> createDirectUser() async {
       await mutation.mutate(() async {
         final email = createEmailController.text.trim();
@@ -1351,7 +1347,6 @@ class _ByokSecretsCard extends HookConsumerWidget {
       final plaintext = secretValueController.text.trim();
 
       await mutation.mutate(() async {
-        // Phase 3, Step 3: Fail-Fast on missing target or secret and forward storageMode (REQ-013)
         if (target.isEmpty || plaintext.isEmpty) {
           throw AppException.validation(l10n.errorValidation);
         }
@@ -1459,7 +1454,6 @@ class _ByokSecretsCard extends HookConsumerWidget {
               ],
             ),
             AppSpacing.h12,
-            // Phase 3, Step 3: Scope-aware target selector binding canonical LLMProvider or McpGateway.id (REQ-013)
             switch (selectedScope.value) {
               SecretScope.llmProvider => KeyedSubtree(
                 key: const ValueKey<String>('scope_llm_target_subtree'),
