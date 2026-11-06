@@ -28,7 +28,7 @@
   - [x] @[backend_v2/models/domain/system_config.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
   - [x] @[backend_v2/database/interfaces.py]
-  - [ ] @[backend_v2/database/factory.py]
+  - [x] @[backend_v2/database/factory.py]
   - [ ] @[backend_v2/models/auth.py]
   - [ ] @[backend_v2/services/auth/secret_service.py]
   - [ ] @[backend_v2/services/studio/system_config_service.py]
