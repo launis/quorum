@@ -18,7 +18,6 @@ void main() {
     test(
       'Positive: serializes and deserializes Organization, Invitation, TenantSecret, and ExecutionAssignment DTOs with 1:1 snake_case parity',
       () {
-        // Step 2: Use canonical lowercase snake_case enum tokens matching backend_v2/models/enums.py.
         final org = Organization.fromJson({
           'id': validOrgId,
           'slug': 'quorum-ent',

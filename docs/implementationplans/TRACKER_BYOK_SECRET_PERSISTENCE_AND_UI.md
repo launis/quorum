@@ -36,7 +36,7 @@
   - [x] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
-  - [ ] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
+  - [x] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.

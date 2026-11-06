@@ -179,7 +179,6 @@ abstract class TenantSecretCreateDto with _$TenantSecretCreateDto {
     required SecretScope scope,
     @JsonKey(name: 'target_identifier') required String targetIdentifier,
     @JsonKey(name: 'plaintext_secret') required String plaintextSecret,
-    // Phase 3, Step 3: Add required storageMode with zero default value (REQ-012)
     @JsonKey(name: 'storage_mode') required SecretStorageMode storageMode,
   }) = _TenantSecretCreateDto;
 

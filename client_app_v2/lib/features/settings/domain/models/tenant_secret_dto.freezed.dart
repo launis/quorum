@@ -2135,8 +2135,7 @@ as List<InvitationResponseDto>,
 /// @nodoc
 mixin _$TenantSecretCreateDto {
 
- SecretScope get scope;@JsonKey(name: 'target_identifier') String get targetIdentifier;@JsonKey(name: 'plaintext_secret') String get plaintextSecret;// Phase 3, Step 3: Add required storageMode with zero default value (REQ-012)
-@JsonKey(name: 'storage_mode') SecretStorageMode get storageMode;
+ SecretScope get scope;@JsonKey(name: 'target_identifier') String get targetIdentifier;@JsonKey(name: 'plaintext_secret') String get plaintextSecret;@JsonKey(name: 'storage_mode') SecretStorageMode get storageMode;
 /// Create a copy of TenantSecretCreateDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2332,7 +2331,6 @@ class _TenantSecretCreateDto extends TenantSecretCreateDto {
 @override final  SecretScope scope;
 @override@JsonKey(name: 'target_identifier') final  String targetIdentifier;
 @override@JsonKey(name: 'plaintext_secret') final  String plaintextSecret;
-// Phase 3, Step 3: Add required storageMode with zero default value (REQ-012)
 @override@JsonKey(name: 'storage_mode') final  SecretStorageMode storageMode;
 
 /// Create a copy of TenantSecretCreateDto
