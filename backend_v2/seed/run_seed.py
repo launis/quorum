@@ -328,6 +328,9 @@ async def _seed_postgres(
                 print(f"[Seeder V2] Upserted {upserted_count} items to '{col_key}'.")
 
             actual_counts = await verify_seed_table_counts(active_uow, expected_counts)
+        # Phase 1, Step 1: Re-apply migrations after seeding to lock SET NOT NULL on system_configs.name
+        if isinstance(resolved_uow, PostgresUnitOfWork):
+            await resolved_uow.pool_manager.apply_migrations()
     except AppException:
         raise
     except Exception as exc:

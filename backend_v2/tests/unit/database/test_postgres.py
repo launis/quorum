@@ -1993,13 +1993,33 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
     assert "alter table organizations add column if not exists allowed_email_domains" in normalized_sql
     assert "alter table users add column if not exists firebase_uid" in normalized_sql
     assert "alter table users add column if not exists deleted_at" in normalized_sql
+    # Phase 1, Step 1: Verify idempotent NULL-name purge, DROP DEFAULT, and SET NOT NULL evolution on system_configs.name
+    assert "delete from system_configs where name is null;" in normalized_sql
+    assert "alter table system_configs alter column name drop default;" in normalized_sql
+    assert "alter table system_configs alter column name set not null;" in normalized_sql
 
     # 2. Verify _validate_database_preflight and _seed_postgres apply migrations on PostgresUnitOfWork before table checks
     pool = InMemoryAsyncPgPool()
-    for table in ("organizations", "users", "system_configs", "workflows", "prompt_blocks", "steps", "output_profiles"):
+    for table in ("organizations", "users", "workflows", "prompt_blocks", "steps", "output_profiles"):
         pool.store.seed_tables[table][f"{table[:3]}_0195f3a0000070008000111111111111"] = (
             f"{table[:3]}_0195f3a0000070008000111111111111",
         )
+    sys_cfg_uuid = parse_prefixed_uuid7("sys_0195f3a0000070008000111111111111", EntityPrefix.SYSTEM_CONFIG)
+    pool.store.seed_tables["system_configs"][str(sys_cfg_uuid)] = (
+        sys_cfg_uuid,
+        "Tavily MCP Gateway",
+        "mcp_gateways",
+        "default_mcp_gateway",
+        None,
+        None,
+        "https://mcp.tavily.com/mcp",
+        "streamable_http",
+        "bearer",
+        None,
+        "TAVILY_API_KEY",
+        30,
+        "[]",
+    )
     settings = Settings(
         storage_backend=StorageBackend.POSTGRES,
         postgres_host="db.internal",
@@ -2016,7 +2036,7 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
     assert pool.store.migrations_applied == 1
 
     await _seed_postgres({}, dry_run=False, uow=pg_uow)
-    assert pool.store.migrations_applied == 2
+    assert pool.store.migrations_applied == 3
 
     # 3. Verify IdentityRepositoryImpl.get_user and get_organization use O(1) driver.get instead of full-table query
     mock_driver = AsyncMock(spec=StorageDriver)

@@ -250,6 +250,12 @@ async def verify_seed_table_counts_rows(conn: _Conn, timeout: float, expected: M
         if actual_counts[target_table] < min_expected:
             msg = f"Seed count verification failed for '{target_table}': expected >= {min_expected}."
             raise _log_storage_error(msg, target_table, exc_info=False)
+
+    # Phase 1, Step 1: Validate full Pydantic V2 hydration of system_configs rows during preflight and post-seed checks
+    if ("system_configs" in expected and expected["system_configs"] >= 1) or (
+        "system_config" in expected and expected["system_config"] >= 1
+    ):
+        await list_collection_documents_rows(conn, timeout, "system_configs")
     return actual_counts
 
 

@@ -39,6 +39,9 @@ from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     upsert_tenant_secret_row,
     upsert_user_row,
 )
+from backend_v2.database.postgres.entity_adapter.seed_and_collection_stage import (
+    verify_seed_table_counts_rows,
+)
 from backend_v2.database.postgres.pool import PostgresPoolManager
 from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -53,7 +56,7 @@ from backend_v2.models.auth import (
     User,
     UserRole,
 )
-from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.core_base import I18nText, generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
@@ -76,7 +79,11 @@ from backend_v2.models.enums import (
     SystemLocale,
 )
 from backend_v2.settings import get_settings
-from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryUnitOfWork
+from backend_v2.tests.fakes.in_memory_uow import (
+    InMemoryAsyncPgPool,
+    InMemoryAsyncPgRecord,
+    InMemoryUnitOfWork,
+)
 
 _TIMEOUT: float = 5.0
 
@@ -571,3 +578,81 @@ async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() ->
     assert callable(list_invitation_rows)
     assert callable(list_tenant_secret_rows)
     assert callable(list_execution_assignment_rows)
+
+
+@pytest.mark.asyncio
+async def test_hydrate_system_config_null_name_and_preflight_verification_raises_app_exception() -> None:
+    """Regression test: un-reseeded system_configs row with NULL name raises AppException in hydration and preflight."""
+    cfg_id = "sys_0195f3a00000700080008172bda70c86"
+    cfg_uuid = parse_prefixed_uuid7(cfg_id, EntityPrefix.SYSTEM_CONFIG)
+    legacy_null_name_row = InMemoryAsyncPgRecord(
+        {
+            "id": cfg_uuid,
+            "name": None,
+            "type": "mcp_gateways",
+            "slug": "tavily_mcp_gateway",
+            "default_provider": None,
+            "tier_definitions": None,
+            "endpoint_url": "https://mcp.tavily.com/mcp",
+            "transport_type": "streamable_http",
+            "auth_type": "bearer",
+            "auth_header_name": None,
+            "auth_env_var": "TAVILY_API_KEY",
+            "timeout_seconds": 30,
+            "tools": "[]",
+        }
+    )
+
+    with pytest.raises(AppException) as hydrate_exc:
+        hydrate_system_config_row(legacy_null_name_row)
+    assert hydrate_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert hydrate_exc.value.details["entity_id"] == cfg_id
+
+    # Phase 1, Step 1: Verify negative hydration boundary on model_registry row with name=None
+    reg_id = "sys_0195f3a0000070008000000000000001"
+    reg_uuid = parse_prefixed_uuid7(reg_id, EntityPrefix.SYSTEM_CONFIG)
+    null_name_registry_row = InMemoryAsyncPgRecord(
+        {
+            "id": reg_uuid,
+            "name": None,
+            "type": "model_registry",
+            "slug": None,
+            "default_provider": "ai_studio",
+            "tier_definitions": "{}",
+            "endpoint_url": None,
+            "transport_type": None,
+            "auth_type": None,
+            "auth_header_name": None,
+            "auth_env_var": None,
+            "timeout_seconds": None,
+            "tools": None,
+        }
+    )
+    with pytest.raises(AppException) as reg_exc:
+        hydrate_system_config_row(null_name_registry_row)
+    assert reg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert reg_exc.value.details["entity_id"] == reg_id
+
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        pool.store.seed_tables["system_configs"][str(cfg_uuid)] = (
+            cfg_uuid,
+            None,
+            "mcp_gateways",
+            "tavily_mcp_gateway",
+            None,
+            None,
+            "https://mcp.tavily.com/mcp",
+            "streamable_http",
+            "bearer",
+            None,
+            "TAVILY_API_KEY",
+            30,
+            "[]",
+        )
+        with pytest.raises(AppException) as preflight_exc:
+            await verify_seed_table_counts_rows(conn, _TIMEOUT, {"system_configs": 1})
+        assert preflight_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    finally:
+        await pool.release(conn)

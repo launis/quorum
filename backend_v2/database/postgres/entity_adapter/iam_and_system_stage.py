@@ -6,6 +6,7 @@ import logging
 from collections.abc import Sequence
 
 from fastapi import status
+from pydantic import ValidationError
 from pydantic_core import to_json
 
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
@@ -920,37 +921,53 @@ def hydrate_system_config_row(
         Validated SystemConfigModelRegistry or SystemConfigMCPGateways instance.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the system_config UUID cannot be formatted.
+        AppException: With VALIDATION_FAILED if the system_config UUID cannot be formatted or row validation fails.
     """
     cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
-    if row["type"] == "mcp_gateways":
-        # Phase 1, Step 1: Hydrate canonical human-readable name for SystemConfigMCPGateways
-        return SystemConfigMCPGateways.model_validate(
+    # Phase 1, Step 1: Catch ValidationError and raise AppException with RFC 7807 logger.error
+    try:
+        if row["type"] == "mcp_gateways":
+            # Phase 1, Step 1: Hydrate canonical human-readable name for SystemConfigMCPGateways
+            return SystemConfigMCPGateways.model_validate(
+                {
+                    "id": cfg_id,
+                    "name": row["name"],
+                    "type": "mcp_gateways",
+                    "slug": row["slug"],
+                    "endpoint_url": row["endpoint_url"],
+                    "transport_type": row["transport_type"],
+                    "auth_type": row["auth_type"],
+                    "auth_header_name": row["auth_header_name"],
+                    "auth_env_var": row["auth_env_var"],
+                    "timeout_seconds": row["timeout_seconds"],
+                    "tools": _decode_jsonb_column(row["tools"]),
+                },
+                strict=False,
+            )
+        return SystemConfigModelRegistry.model_validate(
             {
                 "id": cfg_id,
                 "name": row["name"],
-                "type": "mcp_gateways",
-                "slug": row["slug"],
-                "endpoint_url": row["endpoint_url"],
-                "transport_type": row["transport_type"],
-                "auth_type": row["auth_type"],
-                "auth_header_name": row["auth_header_name"],
-                "auth_env_var": row["auth_env_var"],
-                "timeout_seconds": row["timeout_seconds"],
-                "tools": _decode_jsonb_column(row["tools"]),
+                "type": "model_registry",
+                "default_provider": row["default_provider"],
+                "tier_definitions": _decode_jsonb_column(row["tier_definitions"]),
             },
             strict=False,
         )
-    return SystemConfigModelRegistry.model_validate(
-        {
-            "id": cfg_id,
-            "name": row["name"],
-            "type": "model_registry",
-            "default_provider": row["default_provider"],
-            "tier_definitions": _decode_jsonb_column(row["tier_definitions"]),
-        },
-        strict=False,
-    )
+    except ValidationError as exc:
+        msg = f"Failed to hydrate system_config '{cfg_id}': {exc}"
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": cfg_id},
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": cfg_id},
+        ) from exc
 
 
 async def upsert_system_config_row(

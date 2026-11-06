@@ -97,6 +97,10 @@ CREATE TABLE IF NOT EXISTS system_configs (
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     CONSTRAINT enforce_system_config_uuidv7 CHECK (uuid_extract_version(id) = 7)
 );
+-- Phase 1, Step 1: Purge corrupt pre-migration NULL-name rows and enforce DROP DEFAULT / SET NOT NULL on system_configs.name
+DELETE FROM system_configs WHERE name IS NULL;
+ALTER TABLE system_configs ALTER COLUMN name DROP DEFAULT;
+ALTER TABLE system_configs ALTER COLUMN name SET NOT NULL;
 
 -- 4. Prompt Blocks (Polymorphic Matrix, SystemRule, Persona & Protocol Blocks)
 CREATE TABLE IF NOT EXISTS prompt_blocks (
