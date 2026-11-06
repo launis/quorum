@@ -47,15 +47,20 @@ if isinstance(sys.stderr, io.TextIOWrapper):
 
 from pydantic import ConfigDict, Field, ValidationError
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.enums import PromptBlockCategory
+from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
 
 __all__ = [
+    "BANNED_ALTERNATIVE_PK_KEYS",
+    "SEED_COLLECTION_ALLOWED_PREFIXES",
+    "SEED_COLLECTION_REQUIRED_DISPLAY_FIELD",
     "AuditIssue",
     "FullDatabaseAuditReport",
+    "audit_canonical_entity_ids",
     "audit_output_profiles",
     "audit_prompt_blocks",
     "audit_steps",
@@ -64,6 +69,45 @@ __all__ = [
     "print_audit_report",
     "run_full_database_audit",
 ]
+
+# Phase 3, Step 3 (REQ-008): 7-collection canonical Opaque Stripe ID prefix and display field contracts
+SEED_COLLECTION_ALLOWED_PREFIXES: dict[str, frozenset[str]] = {
+    "organizations": frozenset({EntityPrefix.ORGANIZATION}),
+    "users": frozenset({EntityPrefix.USER}),
+    "system_config": frozenset({EntityPrefix.SYSTEM_CONFIG}),
+    "prompt_blocks": frozenset({EntityPrefix.PROMPT_BLOCK, EntityPrefix.STEP_REFERENCE}),
+    "steps": frozenset({EntityPrefix.STEP}),
+    "workflows": frozenset({EntityPrefix.WORKFLOW}),
+    "output_profiles": frozenset({EntityPrefix.OUTPUT_PROFILE}),
+}
+
+SEED_COLLECTION_REQUIRED_DISPLAY_FIELD: dict[str, str] = {
+    "organizations": "name",
+    "users": "name",
+    "system_config": "name",
+    "prompt_blocks": "label",
+    "steps": "name",
+    "workflows": "name",
+    "output_profiles": "name",
+}
+
+BANNED_ALTERNATIVE_PK_KEYS: frozenset[str] = frozenset(
+    {
+        "uuid",
+        "pk",
+        "primary_key",
+        "entity_id",
+        "node_id",
+        "edge_id",
+        "report_id",
+        "workflow_key",
+        "step_key",
+        "block_key",
+    }
+)
+
+_OPAQUE_STRIPE_ID_COMPILED = re.compile(OPAQUE_STRIPE_ID_REGEX)
+_SYSTEM_ORGANIZATION_SENTINELS: frozenset[str] = frozenset({"SYSTEM", "ROOT_SYSTEM"})
 
 
 class AuditIssue(V2CoreBase):
@@ -1040,8 +1084,233 @@ def audit_output_profiles(
     return issues, total_profiles
 
 
+def _has_valid_display_value(collection: str, display_val: Any) -> bool:
+    """Verify whether a seed record provides a non-empty canonical human-readable display field.
+
+    Args:
+        collection: Seed collection name.
+        display_val: Raw value of the required display field (`name` or `label`).
+
+    Returns:
+        True if the display field is present and non-empty.
+    """
+    if collection in {"organizations", "users", "system_config"}:
+        return isinstance(display_val, str) and bool(display_val.strip())
+    if display_val is None or isinstance(display_val, (str, int, float, bool, list, tuple, set)):
+        return False
+    try:
+        parsed_i18n = I18nText.model_validate(display_val)
+        return any(isinstance(v, str) and bool(v.strip()) for v in parsed_i18n.translations.values())
+    except ValidationError, AppException:
+        if "translations" not in display_val:
+            return False
+        raw_translations = display_val["translations"]
+        if raw_translations is None or isinstance(raw_translations, (str, int, float, bool, list, tuple, set)):
+            return False
+        try:
+            return any(isinstance(v, str) and bool(v.strip()) for v in raw_translations.values())
+        except AttributeError, TypeError:
+            return False
+
+
+def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
+    """Audit all 7 seed collections for canonical Opaque Stripe IDs, display names, and FK integrity.
+
+    Args:
+        data: Top-level seed dictionary mapping collection names to record sequences.
+
+    Returns:
+        List of AuditIssue violations discovered across the 7 collections.
+    """
+    # Phase 3, Step 3 (REQ-008): Enforce 7-collection canonical id, display name, and FK referential integrity
+    issues: list[AuditIssue] = []
+    seen_ids: set[str] = set()
+    collection_ids: dict[str, set[str]] = {col: set() for col in SEED_COLLECTION_ALLOWED_PREFIXES}
+
+    for collection, allowed_prefixes in SEED_COLLECTION_ALLOWED_PREFIXES.items():
+        records = data[collection] if collection in data else []
+        display_field = SEED_COLLECTION_REQUIRED_DISPLAY_FIELD[collection]
+
+        for idx, record in enumerate(records):
+            raw_id = record["id"] if "id" in record else None
+            entity_id = str(raw_id) if isinstance(raw_id, str) and raw_id.strip() else f"{collection}[{idx}]"
+
+            id_match = _OPAQUE_STRIPE_ID_COMPILED.match(raw_id) if isinstance(raw_id, str) else None
+            if id_match is None or id_match.group(1) not in allowed_prefixes:
+                issues.append(
+                    AuditIssue(
+                        collection=collection,
+                        entity_id=entity_id,
+                        field_path="id",
+                        issue_type="INVALID_CANONICAL_ID",
+                        message=(
+                            f"Entity '{entity_id}' in '{collection}' has invalid canonical id; "
+                            f"expected 32-hex UUIDv7 with prefix in {sorted(allowed_prefixes)}."
+                        ),
+                    )
+                )
+            else:
+                canonical_id = str(raw_id)
+                if canonical_id in seen_ids:
+                    issues.append(
+                        AuditIssue(
+                            collection=collection,
+                            entity_id=canonical_id,
+                            field_path="id",
+                            issue_type="DUPLICATE_CANONICAL_ID",
+                            message=f"Duplicate canonical id '{canonical_id}' detected in '{collection}'.",
+                        )
+                    )
+                seen_ids.add(canonical_id)
+                collection_ids[collection].add(canonical_id)
+
+            for banned_key in sorted(BANNED_ALTERNATIVE_PK_KEYS):
+                if banned_key in record:
+                    issues.append(
+                        AuditIssue(
+                            collection=collection,
+                            entity_id=entity_id,
+                            field_path=banned_key,
+                            issue_type="BANNED_ALTERNATIVE_PK_FIELD",
+                            message=(
+                                f"Entity '{entity_id}' in '{collection}' declares banned alternative "
+                                f"primary key field '{banned_key}'."
+                            ),
+                        )
+                    )
+
+            display_val = record[display_field] if display_field in record else None
+            if not _has_valid_display_value(collection, display_val):
+                issues.append(
+                    AuditIssue(
+                        collection=collection,
+                        entity_id=entity_id,
+                        field_path=display_field,
+                        issue_type="MISSING_CANONICAL_NAME",
+                        message=(
+                            f"Entity '{entity_id}' in '{collection}' is missing required non-empty "
+                            f"canonical display field '{display_field}'."
+                        ),
+                    )
+                )
+
+    organization_ids = collection_ids["organizations"] | set(_SYSTEM_ORGANIZATION_SENTINELS)
+    system_config_ids = collection_ids["system_config"]
+    output_profile_ids = collection_ids["output_profiles"]
+    workflow_ids = collection_ids["workflows"]
+    prompt_block_ids = collection_ids["prompt_blocks"]
+
+    users = data["users"] if "users" in data else []
+    for idx, usr in enumerate(users):
+        usr_id = str(usr["id"]) if "id" in usr else f"users[{idx}]"
+        org_id = usr["organization_id"] if "organization_id" in usr else None
+        if org_id is not None and str(org_id) not in organization_ids:
+            issues.append(
+                AuditIssue(
+                    collection="users",
+                    entity_id=usr_id,
+                    field_path="organization_id",
+                    issue_type="ORPHAN_ORGANIZATION_ID",
+                    message=f"User '{usr_id}' references unknown organization_id '{org_id}'.",
+                )
+            )
+
+    workflows = data["workflows"] if "workflows" in data else []
+    for idx, wf in enumerate(workflows):
+        wf_id = str(wf["id"]) if "id" in wf else f"workflows[{idx}]"
+        model_reg_id = wf["model_registry_id"] if "model_registry_id" in wf else None
+        if not isinstance(model_reg_id, str) or model_reg_id not in system_config_ids:
+            issues.append(
+                AuditIssue(
+                    collection="workflows",
+                    entity_id=wf_id,
+                    field_path="model_registry_id",
+                    issue_type="ORPHAN_MODEL_REGISTRY_ID",
+                    message=f"Workflow '{wf_id}' references unknown model_registry_id '{model_reg_id}'.",
+                )
+            )
+
+        mcp_gw_id = wf["mcp_gateway_id"] if "mcp_gateway_id" in wf else None
+        if mcp_gw_id is not None and str(mcp_gw_id) not in system_config_ids:
+            issues.append(
+                AuditIssue(
+                    collection="workflows",
+                    entity_id=wf_id,
+                    field_path="mcp_gateway_id",
+                    issue_type="ORPHAN_MCP_GATEWAY_ID",
+                    message=f"Workflow '{wf_id}' references unknown mcp_gateway_id '{mcp_gw_id}'.",
+                )
+            )
+
+        default_prof_id = wf["default_profile_id"] if "default_profile_id" in wf else None
+        if default_prof_id is not None and str(default_prof_id) not in output_profile_ids:
+            issues.append(
+                AuditIssue(
+                    collection="workflows",
+                    entity_id=wf_id,
+                    field_path="default_profile_id",
+                    issue_type="ORPHAN_DEFAULT_PROFILE_ID",
+                    message=f"Workflow '{wf_id}' references unknown default_profile_id '{default_prof_id}'.",
+                )
+            )
+
+        org_id = wf["organization_id"] if "organization_id" in wf else None
+        if org_id is not None and str(org_id) not in organization_ids:
+            issues.append(
+                AuditIssue(
+                    collection="workflows",
+                    entity_id=wf_id,
+                    field_path="organization_id",
+                    issue_type="ORPHAN_ORGANIZATION_ID",
+                    message=f"Workflow '{wf_id}' references unknown organization_id '{org_id}'.",
+                )
+            )
+
+    output_profiles = data["output_profiles"] if "output_profiles" in data else []
+    for idx, prof in enumerate(output_profiles):
+        prof_id = str(prof["id"]) if "id" in prof else f"output_profiles[{idx}]"
+        wf_ref_id = prof["workflow_id"] if "workflow_id" in prof else None
+        if not isinstance(wf_ref_id, str) or wf_ref_id not in workflow_ids:
+            issues.append(
+                AuditIssue(
+                    collection="output_profiles",
+                    entity_id=prof_id,
+                    field_path="workflow_id",
+                    issue_type="ORPHAN_WORKFLOW_ID",
+                    message=f"OutputProfile '{prof_id}' references unknown workflow_id '{wf_ref_id}'.",
+                )
+            )
+
+        org_id = prof["organization_id"] if "organization_id" in prof else None
+        if org_id is not None and str(org_id) not in organization_ids:
+            issues.append(
+                AuditIssue(
+                    collection="output_profiles",
+                    entity_id=prof_id,
+                    field_path="organization_id",
+                    issue_type="ORPHAN_ORGANIZATION_ID",
+                    message=f"OutputProfile '{prof_id}' references unknown organization_id '{org_id}'.",
+                )
+            )
+
+        for target_field in ("variance_target_block", "user_role_target_block"):
+            target_blk = prof[target_field] if target_field in prof else None
+            if target_blk is not None and str(target_blk) not in prompt_block_ids:
+                issues.append(
+                    AuditIssue(
+                        collection="output_profiles",
+                        entity_id=prof_id,
+                        field_path=target_field,
+                        issue_type="ORPHAN_TARGET_BLOCK",
+                        message=f"OutputProfile '{prof_id}' references unknown {target_field} '{target_blk}'.",
+                    )
+                )
+
+    return issues
+
+
 def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
-    """Executes the full database prompt audit across all 4 collections.
+    """Executes the full database prompt audit across all 7 collections.
 
     Args:
         seed_data_path: Absolute or relative Path to seed_data.json.
@@ -1061,6 +1330,9 @@ def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
     step_blueprint_ids: set[str] = {str(s["id"]) for s in steps if "id" in s}
 
     all_issues: list[AuditIssue] = []
+
+    # Gate 0: 7-collection canonical ID, display name, and cross-collection FK integrity
+    all_issues.extend(audit_canonical_entity_ids(data))
 
     # Gate 1: prompt_blocks
     block_issues, total_matrices, total_atoms = audit_prompt_blocks(prompt_blocks)

@@ -1,6 +1,6 @@
 """Unit tests for the Full Database Prompt Verification Engine (audit_database_atoms.py).
 
-Tests all 4-collection inspection gates, Pydantic V2 DTOs, CLI behavior,
+Tests all 7-collection inspection gates, Pydantic V2 DTOs, CLI behavior,
 and AST zero-reflection enforcement according to ISTQB test partition design.
 """
 
@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -37,11 +38,11 @@ def test_audit_dto_structure() -> None:
     )
     assert issue.collection == "prompt_blocks"
     assert issue.severity == "ERROR"
+    assert AuditIssue.model_config["frozen"] is True
 
-    # Test immutability (frozen=True)
+    # Test extra='forbid' strictness
     with pytest.raises(ValidationError):
-        # Mutating frozen field should fail
-        issue.collection = "steps"
+        AuditIssue.model_validate({**issue.model_dump(), "extra_field": "banned"})
 
     report = FullDatabaseAuditReport(
         total_matrices=1,
@@ -62,7 +63,7 @@ def test_audit_dto_structure() -> None:
 def _create_clean_matrix_block(
     block_id: str = "blk_0195f3a0000070008123456789abcdef",
     tda_id: str = "tda_0123456789abcdef0123456789abcdef",
-):
+) -> Any:
     """Helper to generate a structurally clean matrix prompt block."""
     return {
         "id": block_id,
@@ -597,7 +598,7 @@ def test_audit_steps_all_edge_cases() -> None:
 
 
 def test_audit_workflow_validation_error_and_orphan_blueprint() -> None:
-    """Test workflow validation error, raw XML in input description, and orphan task blueprint."""
+    """Test workflow validation error, raw XML in input description, and orphan step blueprint."""
     # 1. Schema validation error
     wf1 = {
         "id": "wor_invalid",
@@ -704,5 +705,182 @@ def test_audit_database_atoms_all_exports() -> None:
     assert "__all__" in dir(mod)
     assert "AuditIssue" in mod.__all__
     assert "FullDatabaseAuditReport" in mod.__all__
+    assert "SEED_COLLECTION_ALLOWED_PREFIXES" in mod.__all__
+    assert "SEED_COLLECTION_REQUIRED_DISPLAY_FIELD" in mod.__all__
+    assert "BANNED_ALTERNATIVE_PK_KEYS" in mod.__all__
+    assert "audit_canonical_entity_ids" in mod.__all__
     assert "run_full_database_audit" in mod.__all__
     assert "main" in mod.__all__
+
+
+def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: Path) -> None:
+    """Verify 7-collection canonical id, required display name/label, banned alternative PKs, and FK referential integrity."""
+    from scripts.audit_database_atoms import (
+        BANNED_ALTERNATIVE_PK_KEYS,
+        SEED_COLLECTION_ALLOWED_PREFIXES,
+        SEED_COLLECTION_REQUIRED_DISPLAY_FIELD,
+        audit_canonical_entity_ids,
+    )
+
+    # Phase 3, Step 3 (REQ-009): Positive path across all 7 collections
+    assert "wf" in SEED_COLLECTION_ALLOWED_PREFIXES["workflows"]
+    assert SEED_COLLECTION_REQUIRED_DISPLAY_FIELD["prompt_blocks"] == "label"
+    assert "node_id" in BANNED_ALTERNATIVE_PK_KEYS
+
+    org_id = "org_0195f3a0000070008000000000000001"
+    usr_id = "usr_0195f3a0000070008000000000000002"
+    sys_reg_id = "sys_0195f3a0000070008000000000000003"
+    sys_mcp_id = "sys_0195f3a0000070008000000000000004"
+    blk_id = "blk_0195f3a0000070008123456789abcdef"
+    blk_proto_id = "blk_0195f3a0000070008123456789abcde0"
+    stp_id = "stp_0195f3a0000070008000000000000005"
+    wf_id = "wf_0195f3a0000070008000000000000006"
+    prf_id = "prf_0195f3a0000070008000000000000007"
+
+    clean_7_col_seed = {
+        "organizations": [{"id": org_id, "name": "Quorum Org"}],
+        "users": [{"id": usr_id, "name": "Root User", "organization_id": org_id}],
+        "system_config": [
+            {"id": sys_reg_id, "name": "Default Model Registry"},
+            {"id": sys_mcp_id, "name": "Tavily MCP Gateway"},
+        ],
+        "prompt_blocks": [
+            _create_clean_matrix_block(block_id=blk_id),
+            {
+                "id": blk_proto_id,
+                "category_id": "extraction_protocol",
+                "slug": "clean-protocol",
+                "label": {"translations": {"en": "Clean Protocol"}},
+                "description": {"translations": {"en": "Desc"}},
+                "protocol_instructions": "Extract exact sentences from the source document.",
+            },
+        ],
+        "steps": [
+            {
+                "id": stp_id,
+                "slug": "clean-step",
+                "name": {"translations": {"en": "Clean Step"}},
+                "type": "llm",
+                "cognitive_tier": "fast",
+                "criteria_block_ids": [blk_id],
+                "extraction_protocol_block_id": blk_proto_id,
+                "expected_inputs": ["document_text"],
+            }
+        ],
+        "workflows": [
+            {
+                "id": wf_id,
+                "slug": "clean-workflow",
+                "name": {"translations": {"en": "Clean Workflow"}},
+                "description": {"translations": {"en": "Workflow description"}},
+                "status": "ACTIVE",
+                "version": 1,
+                "organization_id": org_id,
+                "model_registry_id": sys_reg_id,
+                "mcp_gateway_id": sys_mcp_id,
+                "default_profile_id": prf_id,
+                "historical_context_mode": "DISABLED",
+                "expected_inputs": [
+                    {
+                        "input_key": "document_text",
+                        "label": {"translations": {"en": "Document"}},
+                        "description": {"translations": {"en": "Input doc"}},
+                        "required": True,
+                        "ai_description": "Source document for analysis.",
+                        "input_modes": ["text"],
+                    }
+                ],
+                "steps": [
+                    {
+                        "id": "sr_0195f3a0000070008000000000000008",
+                        "task_blueprint": stp_id,
+                        "input_mappings": {"document_text": "$inputs.document_text"},
+                    }
+                ],
+            }
+        ],
+        "output_profiles": [
+            {
+                "id": prf_id,
+                "workflow_id": wf_id,
+                "organization_id": org_id,
+                "name": {"translations": {"en": "Clean Output Profile"}},
+                "slug": "clean-profile",
+                "description": {"translations": {"en": "Profile description"}},
+                "variance_target_block": blk_id,
+                "user_role_target_block": blk_id,
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_0195f3a0000070008000000000000009",
+                        "title": {"translations": {"en": "Group 1"}},
+                        "target_blocks": [blk_id],
+                    }
+                ],
+            }
+        ],
+    }
+
+    seed_path = tmp_path / "valid_7_col_seed.json"
+    seed_path.write_text(json.dumps(clean_7_col_seed), encoding="utf-8")
+    report = run_full_database_audit(seed_path)
+    assert report.all_passed is True
+    assert report.issues == []
+
+    # Negative path 1: Invalid ID, wrong prefix, duplicate ID, banned alternative PK key, and missing canonical name/label
+    bad_pk_and_name_data = {
+        "organizations": [
+            {"id": org_id, "name": "Org 1"},
+            {"id": org_id, "name": "   ", "node_id": "nod_legacy"},
+        ],
+        "users": [{"id": "usr_legacy_slug", "name": ""}],
+        "system_config": [{"id": sys_reg_id}],
+        "prompt_blocks": [{"id": blk_id, "label": {"translations": {}}}],
+        "steps": [{"id": stp_id, "name": "not-an-i18n-dict"}],
+        "workflows": [
+            {"id": stp_id, "name": {"translations": {"en": "Wrong Prefix Workflow"}}, "model_registry_id": sys_reg_id}
+        ],
+        "output_profiles": [],
+    }
+    neg1_issues = audit_canonical_entity_ids(bad_pk_and_name_data)
+    neg1_types = {i.issue_type for i in neg1_issues}
+    assert "INVALID_CANONICAL_ID" in neg1_types
+    assert "DUPLICATE_CANONICAL_ID" in neg1_types
+    assert "BANNED_ALTERNATIVE_PK_FIELD" in neg1_types
+    assert "MISSING_CANONICAL_NAME" in neg1_types
+
+    # Negative path 2: Relational slug or orphan foreign keys across users, workflows, and output_profiles
+    bad_fk_data = {
+        "organizations": [{"id": org_id, "name": "Org 1"}],
+        "users": [{"id": usr_id, "name": "User 1", "organization_id": "org_unknown"}],
+        "system_config": [{"id": sys_reg_id, "name": "Registry"}],
+        "prompt_blocks": [_create_clean_matrix_block(block_id=blk_id)],
+        "steps": [],
+        "workflows": [
+            {
+                "id": wf_id,
+                "name": {"translations": {"en": "Workflow"}},
+                "organization_id": "org_missing",
+                "model_registry_id": "default_model_registry",
+                "mcp_gateway_id": "default_mcp_gateway",
+                "default_profile_id": "prf_missing",
+            }
+        ],
+        "output_profiles": [
+            {
+                "id": prf_id,
+                "name": {"translations": {"en": "Profile"}},
+                "workflow_id": "wf_missing",
+                "organization_id": "org_missing",
+                "variance_target_block": "blk_missing_slug",
+                "user_role_target_block": "blk_missing_role_slug",
+            }
+        ],
+    }
+    neg2_issues = audit_canonical_entity_ids(bad_fk_data)
+    neg2_types = {i.issue_type for i in neg2_issues}
+    assert "ORPHAN_ORGANIZATION_ID" in neg2_types
+    assert "ORPHAN_MODEL_REGISTRY_ID" in neg2_types
+    assert "ORPHAN_MCP_GATEWAY_ID" in neg2_types
+    assert "ORPHAN_DEFAULT_PROFILE_ID" in neg2_types
+    assert "ORPHAN_WORKFLOW_ID" in neg2_types
+    assert "ORPHAN_TARGET_BLOCK" in neg2_types
