@@ -412,7 +412,7 @@ class UserAdminView(User):
 
     model_config = ConfigDict(from_attributes=True, extra="forbid", frozen=True, strict=True)
 
-    # Phase 1, Step 1: Inherit all 13 persisted User fields (including firebase_uid and deleted_at)
+    # Inherit all 13 persisted User fields (including firebase_uid and deleted_at) for unified client hydration.
     last_login_at: Annotated[datetime | None, Field(default=None, description="Timestamp of last login")] = None
     execution_count: Annotated[int, Field(default=0, description="Total number of executions run")] = 0
 
@@ -1367,7 +1367,7 @@ class TenantSecretDTO(V2CoreBase):
         scope: Capability scope ('llm_provider' or 'mcp_gateway').
         target_identifier: Provider enum value or MCP Gateway ID (sys_<hex32>).
         storage_mode: Cryptographic storage mode ('envelope_kms' or 'cloud_secret_manager').
-        secret_manager_Version_uri: Optional Cloud Secret Manager version URI.
+        secret_manager_version_uri: Optional Cloud Secret Manager version URI.
         encrypted_dek: KMS-wrapped AES-256 Data Encryption Key bytes.
         ciphertext: AES-256-GCM encrypted secret payload bytes.
         nonce: 12-byte AES-256-GCM initialization vector.
@@ -1452,7 +1452,7 @@ class TenantSecretCreateDTO(BaseDTO):
     scope: Annotated[LaxSecretScope, Field(description="Capability scope ('llm_provider' or 'mcp_gateway')")]
     target_identifier: Annotated[str, Field(min_length=1, max_length=128, description="Target provider or gateway ID")]
     plaintext_secret: Annotated[SecretStr, Field(description="Raw secret value to encrypt at rest")]
-    # Phase 2, Step 2: Add required storage_mode with zero default fallback (REQ-007)
+    # Require explicit storage_mode selection at ingress with zero default fallback.
     storage_mode: Annotated[
         LaxSecretStorageMode,
         Field(description="Cryptographic storage mode (ENVELOPE_KMS or CLOUD_SECRET_MANAGER)."),
