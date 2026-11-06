@@ -148,6 +148,7 @@ def _make_mcp_gateway(
     """Create a valid SystemConfigMCPGateways instance for unit testing."""
     return SystemConfigMCPGateways(
         id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        name="Enterprise Search Gateway",
         slug="enterprise_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -171,13 +172,13 @@ async def test_secret_service_envelope_kms_roundtrip_positive() -> None:
         scope=SecretScope.LLM_PROVIDER,
         target_identifier=LLMProvider.OPENAI.value,
         plaintext_secret=SecretStr("sk-proj-tenant-secret-abcd"),
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
     )
 
     response = await service.upsert_tenant_secret(
         initiator=admin_token,
         organization_id=org_id,
         payload=create_dto,
-        storage_mode=SecretStorageMode.ENVELOPE_KMS,
         kek_version="kms-kek-v2",
     )
 
@@ -237,6 +238,7 @@ async def test_byok_cross_tenant_isolation_negative(monkeypatch: pytest.MonkeyPa
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.OPENAI.value,
             plaintext_secret=SecretStr("sk-tenant-a-exclusive-9999"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
     )
 
@@ -273,6 +275,7 @@ async def test_secret_service_corrupted_ciphertext_no_fallback_negative(
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.OPENAI.value,
             plaintext_secret=SecretStr("sk-tenant-a-secret-1234"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
     )
 
@@ -280,7 +283,6 @@ async def test_secret_service_corrupted_ciphertext_no_fallback_negative(
     assert original_record is not None
     corrupted_record = original_record.model_copy(update={"ciphertext": b"corrupted-aes-gcm-bytes"})
     await uow.entities.upsert_tenant_secret(corrupted_record)
-    service._local_secrets[created.id] = corrupted_record
 
     with pytest.raises(ConfigurationError) as exc_info:
         await service.resolve_llm_key(organization_id=tenant_a_org, provider=LLMProvider.OPENAI)
@@ -290,7 +292,6 @@ async def test_secret_service_corrupted_ciphertext_no_fallback_negative(
 
     corrupted_dek_record = original_record.model_copy(update={"encrypted_dek": b"bad-dek"})
     await uow.entities.upsert_tenant_secret(corrupted_dek_record)
-    service._local_secrets[created.id] = corrupted_dek_record
 
     with pytest.raises(ConfigurationError) as dek_exc:
         await service.resolve_llm_key(organization_id=tenant_a_org, provider=LLMProvider.OPENAI)
@@ -331,8 +332,8 @@ async def test_secret_service_cloud_secret_manager_and_mcp_resolution_positive(
             scope=SecretScope.MCP_GATEWAY,
             target_identifier=gateway.id,
             plaintext_secret=SecretStr(uri),
+            storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
         ),
-        storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
     )
     assert created.storage_mode == SecretStorageMode.CLOUD_SECRET_MANAGER
 
@@ -347,8 +348,8 @@ async def test_secret_service_cloud_secret_manager_and_mcp_resolution_positive(
             scope=SecretScope.MCP_GATEWAY,
             target_identifier=gateway.id,
             plaintext_secret=SecretStr("short"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
-        storage_mode=SecretStorageMode.ENVELOPE_KMS,
         kek_version="kms-v3",
     )
     assert rotated.id == created.id
@@ -364,6 +365,7 @@ async def test_secret_service_cloud_secret_manager_and_mcp_resolution_positive(
         secret_id=created.id,
     )
     assert deleted is True
+    assert await uow.entities.get_tenant_secret(created.id) is None
     assert await service.list_tenant_secrets(initiator=root_token, organization_id=org_id) == []
     assert audit_logger.events[-1][1] == "TENANT_SECRET_DELETED"
 
@@ -403,6 +405,7 @@ async def test_secret_service_rbac_and_validation_failures_negative() -> None:
                 scope=SecretScope.LLM_PROVIDER,
                 target_identifier=LLMProvider.OPENAI.value,
                 plaintext_secret=SecretStr("   "),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
             ),
         )
     assert empty_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -416,12 +419,57 @@ async def test_secret_service_rbac_and_validation_failures_negative() -> None:
                 scope=SecretScope.LLM_PROVIDER,
                 target_identifier=LLMProvider.OPENAI.value,
                 plaintext_secret=SecretStr("invalid-uri-format"),
+                storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
             ),
-            storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
         )
     assert uri_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-    # 5. Deleting a non-existent secret ID
+    # 5. Informational slug passed as target_identifier for MCP_GATEWAY (slug_data_relation_ban)
+    with pytest.raises(AppException) as slug_exc:
+        await service.upsert_tenant_secret(
+            initiator=admin_a,
+            organization_id=org_a,
+            payload=TenantSecretCreateDTO(
+                scope=SecretScope.MCP_GATEWAY,
+                target_identifier="default_mcp_gateway",
+                plaintext_secret=SecretStr("tvly-dev-key-1234"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            ),
+        )
+    assert slug_exc.value.status_code == 400
+    assert slug_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # 6. Wrong entity prefix passed as target_identifier for MCP_GATEWAY
+    with pytest.raises(AppException) as prefix_exc:
+        await service.upsert_tenant_secret(
+            initiator=admin_a,
+            organization_id=org_a,
+            payload=TenantSecretCreateDTO(
+                scope=SecretScope.MCP_GATEWAY,
+                target_identifier=generate_opaque_id(EntityPrefix.WORKFLOW),
+                plaintext_secret=SecretStr("tvly-dev-key-1234"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            ),
+        )
+    assert prefix_exc.value.status_code == 400
+    assert prefix_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # 7. Unknown provider string passed as target_identifier for LLM_PROVIDER
+    with pytest.raises(AppException) as provider_exc:
+        await service.upsert_tenant_secret(
+            initiator=admin_a,
+            organization_id=org_a,
+            payload=TenantSecretCreateDTO(
+                scope=SecretScope.LLM_PROVIDER,
+                target_identifier="unknown_provider_slug",
+                plaintext_secret=SecretStr("sk-invalid-provider"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            ),
+        )
+    assert provider_exc.value.status_code == 400
+    assert provider_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # 8. Deleting a non-existent secret ID
     missing_sec_id = generate_opaque_id(EntityPrefix.TENANT_SECRET)
     with pytest.raises(ResourceNotFoundError) as not_found_exc:
         await service.delete_tenant_secret(
@@ -433,16 +481,93 @@ async def test_secret_service_rbac_and_validation_failures_negative() -> None:
 
 
 @pytest.mark.asyncio
+async def test_secret_service_uow_factory_roundtrip_and_unconfigured_fail_fast() -> None:
+    """Positive & Negative: Verify uow_factory cross-instance persistence, physical deletion, and unconfigured Fail-Fast."""
+    uow = InMemoryUnitOfWork()
+    writer_service = SecretService(uow_factory=lambda: uow)
+    reader_service = SecretService(uow_factory=lambda: uow)
+
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_token = _make_token_data(role=UserRole.ADMIN, organization_id=org_id)
+    gateway = _make_mcp_gateway(auth_type=MCPAuthType.BEARER, auth_env_var="MCP_GATEWAY_TOKEN")
+
+    created = await writer_service.upsert_tenant_secret(
+        initiator=admin_token,
+        organization_id=org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.MCP_GATEWAY,
+            target_identifier=gateway.id,
+            plaintext_secret=SecretStr("tvly-dev-key-1234"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    assert await uow.entities.get_tenant_secret(created.id) is not None
+
+    # Second SecretService instance resolves persisted secret without any process-local RAM cache
+    resolved = await reader_service.resolve_mcp_credential(organization_id=org_id, gateway=gateway)
+    assert resolved.is_tenant_byok is True
+    assert resolved.secret_value.get_secret_value() == "tvly-dev-key-1234"
+
+    # Physical deletion removes record from uow.entities
+    deleted = await writer_service.delete_tenant_secret(
+        initiator=admin_token,
+        organization_id=org_id,
+        secret_id=created.id,
+    )
+    assert deleted is True
+    assert await uow.entities.get_tenant_secret(created.id) is None
+
+    # Deleting an already-deleted secret raises ResourceNotFoundError
+    with pytest.raises(ResourceNotFoundError):
+        await reader_service.delete_tenant_secret(
+            initiator=admin_token,
+            organization_id=org_id,
+            secret_id=created.id,
+        )
+
+    # Unconfigured SecretService (both entity_adapter=None and uow_factory=None) fails fast with ConfigurationError
+    unconfigured = SecretService(entity_adapter=None, uow_factory=None)
+    with pytest.raises(ConfigurationError) as list_exc:
+        await unconfigured.list_tenant_secrets(initiator=admin_token, organization_id=org_id)
+    assert list_exc.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    with pytest.raises(ConfigurationError) as upsert_exc:
+        await unconfigured.upsert_tenant_secret(
+            initiator=admin_token,
+            organization_id=org_id,
+            payload=TenantSecretCreateDTO(
+                scope=SecretScope.LLM_PROVIDER,
+                target_identifier=LLMProvider.OPENAI.value,
+                plaintext_secret=SecretStr("sk-test-1234"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            ),
+        )
+    assert upsert_exc.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    with pytest.raises(ConfigurationError) as del_exc:
+        await unconfigured.delete_tenant_secret(
+            initiator=admin_token,
+            organization_id=org_id,
+            secret_id=created.id,
+        )
+    assert del_exc.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+@pytest.mark.asyncio
 async def test_secret_service_kms_and_platform_mcp_failures_negative(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Negative: Verify KMS encrypt/decrypt failures, Secret Manager missing fetcher, and missing MCP env var fail fast."""
     monkeypatch.delenv("MISSING_GATEWAY_ENV", raising=False)
+    uow = InMemoryUnitOfWork()
     org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     admin_token = _make_token_data(role=UserRole.ADMIN, organization_id=org_id)
 
     # 1. KMS encrypt failure on upsert
-    failing_kms_service = SecretService(kms_wrapper=_FakeKMSWrapper(fail_encrypt=True))
+    failing_kms_service = SecretService(
+        entity_adapter=uow.entities,
+        kms_wrapper=_FakeKMSWrapper(fail_encrypt=True),
+    )
     with pytest.raises(ConfigurationError) as kms_enc_exc:
         await failing_kms_service.upsert_tenant_secret(
             initiator=admin_token,
@@ -451,12 +576,16 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
                 scope=SecretScope.LLM_PROVIDER,
                 target_identifier=LLMProvider.ANTHROPIC.value,
                 plaintext_secret=SecretStr("sk-ant-valid-1234"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
             ),
         )
     assert kms_enc_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
 
     # 2. KMS decrypt returning invalid DEK byte length
-    bad_len_kms_service = SecretService(kms_wrapper=_FakeKMSWrapper(bad_length=True))
+    bad_len_kms_service = SecretService(
+        entity_adapter=uow.entities,
+        kms_wrapper=_FakeKMSWrapper(bad_length=True),
+    )
     await bad_len_kms_service.upsert_tenant_secret(
         initiator=admin_token,
         organization_id=org_id,
@@ -464,6 +593,7 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.ANTHROPIC.value,
             plaintext_secret=SecretStr("sk-ant-valid-1234"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
     )
     with pytest.raises(ConfigurationError) as kms_dec_exc:
@@ -471,7 +601,7 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
     assert kms_dec_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
 
     # 3. Cloud Secret Manager record resolved without a configured fetcher
-    no_fetcher_service = SecretService()
+    no_fetcher_service = SecretService(entity_adapter=uow.entities)
     await no_fetcher_service.upsert_tenant_secret(
         initiator=admin_token,
         organization_id=org_id,
@@ -479,8 +609,8 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.AI_STUDIO.value,
             plaintext_secret=SecretStr("projects/p1/secrets/s1/versions/1"),
+            storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
         ),
-        storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
     )
     with pytest.raises(ConfigurationError) as sm_exc:
         await no_fetcher_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.AI_STUDIO)
@@ -511,7 +641,7 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
         masked_hint="****",
         updated_at=datetime.now(UTC),
     )
-    no_fetcher_service._local_secrets[incomplete_record.id] = incomplete_record
+    await uow.entities.upsert_tenant_secret(incomplete_record)
     with pytest.raises(ConfigurationError) as inc_exc:
         await no_fetcher_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.LOCAL)
     assert inc_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
@@ -550,6 +680,7 @@ async def test_llm_factory_and_dispatcher_byok_request_scoped_injection_positive
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.OPENAI.value,
             plaintext_secret=SecretStr("sk-tenant-a-byok-1111"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
     )
     await service.upsert_tenant_secret(
@@ -559,6 +690,7 @@ async def test_llm_factory_and_dispatcher_byok_request_scoped_injection_positive
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.OPENAI.value,
             plaintext_secret=SecretStr("sk-tenant-b-byok-2222"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
     )
 
@@ -601,6 +733,7 @@ async def test_llm_factory_and_dispatcher_byok_request_scoped_injection_positive
     )
     gateway = SystemConfigMCPGateways(
         id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        name="Enterprise Search Gateway",
         slug="ent_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -617,6 +750,7 @@ async def test_llm_factory_and_dispatcher_byok_request_scoped_injection_positive
             scope=SecretScope.MCP_GATEWAY,
             target_identifier=gateway.id,
             plaintext_secret=SecretStr("mcp-bearer-secret-9999"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
     )
 
@@ -675,6 +809,7 @@ async def test_organizations_byok_router_endpoints_positive_and_negative() -> No
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=LLMProvider.OPENAI.value,
             plaintext_secret=SecretStr("sk-org-router-test-7777"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
         ),
         current_user=admin_a,
         secret_service=service,

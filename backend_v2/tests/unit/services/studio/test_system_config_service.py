@@ -24,6 +24,7 @@ from backend_v2.models.dtos.mcp import (
     MCPInitializeResultDTO,
     MCPJsonRpcRequestDTO,
     MCPJsonRpcResponseDTO,
+    MCPServerInfoDTO,
     MCPToolInputSchemaDTO,
     MCPToolSchemaPropertyDTO,
     MCPToolsListResultDTO,
@@ -392,14 +393,20 @@ async def test_list_system_configs(
 async def test_list_mcp_gateways(
     service: StudioSystemConfigService,
     root_token: TokenData,
+    admin_token: TokenData,
     member_token: TokenData,
     system_repo: InMemorySystemRepository,
 ) -> None:
-    """Return list of MCP gateways for ROOT, empty for non-ROOT."""
+    """Return list of MCP gateways for ROOT and ADMIN, empty for MEMBER."""
     res = await service.list_mcp_gateways(root_token)
     assert len(res) == 1
     current = await system_repo.get_mcp_gateways()
     assert res[0].id == current.id
+    assert res[0].name == current.name
+
+    res_admin = await service.list_mcp_gateways(admin_token)
+    assert len(res_admin) == 1
+    assert res_admin[0].id == current.id
 
     res_member = await service.list_mcp_gateways(member_token)
     assert res_member == []
@@ -440,6 +447,7 @@ async def test_save_mcp_gateways_success(
     """Save MCP gateways and verify true stateful roundtrip."""
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Tavily Search Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[
@@ -447,12 +455,13 @@ async def test_save_mcp_gateways_success(
                 tool_id="mcp_tavily_search",
                 name=I18nText(translations={"en": "Tavily Search"}),
                 description="Tavily search",
-                input_schema=MCPToolInputSchemaDTO(),
+                input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
             )
         ],
     )
     res = await service.save_mcp_gateways(root_token, "sys_0195f3a00000700080008172bda70c86", gw)
     assert res.id == "sys_0195f3a00000700080008172bda70c86"
+    assert res.name == "Tavily Search Gateway"
     assert res.slug == "tavily_gateway"
     assert len(res.tools) == 1
     assert res.tools[0].tool_id == "mcp_tavily_search"
@@ -471,6 +480,7 @@ async def test_save_mcp_gateways_duplicate_slug_raises_validation_error(
     """Assert saving a gateway with a slug already in use by another gateway raises AppException."""
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Duplicate Slug Gateway",
         slug="default_mcp_gateway",
         type="mcp_gateways",
         tools=[],
@@ -487,6 +497,7 @@ async def test_save_mcp_gateways_invalid_slug_format_raises_validation_error(
     """Assert saving a gateway with malformed double-underscore slug raises AppException."""
     malformed = SystemConfigMCPGateways.model_construct(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Malformed Slug Gateway",
         slug="bad__slug",
         type="mcp_gateways",
         tools=[],
@@ -501,6 +512,7 @@ async def test_save_mcp_gateways_permission_denied(service: StudioSystemConfigSe
     """Assert non-ROOT user raises PermissionDeniedError on save."""
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Tavily Search Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],
@@ -517,6 +529,7 @@ async def test_create_mcp_gateway_draft(
     res = await service.create_mcp_gateway_draft(root_token)
     assert res.id.startswith("sys_")
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
+    assert res.name == "New MCP Gateway Draft"
     assert res.slug == f"gateway_{res.id.removeprefix('sys_')[:8]}"
     assert res.type == "mcp_gateways"
 
@@ -545,6 +558,7 @@ async def test_clone_mcp_gateways_success_and_repeated_suffix(
     res = await service.clone_mcp_gateways(root_token, original.id)
     assert res.id != original.id
     assert res.id.startswith("sys_")
+    assert res.name == f"{original.name} (Copy)"
     assert res.slug == f"{original.slug}_copy"
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
 
@@ -622,8 +636,9 @@ async def test_discover_mcp_gateway_tools_preserves_existing_settings(
             init_resp = MCPJsonRpcResponseDTO(
                 id=rpc_req.id,
                 result=MCPInitializeResultDTO(
-                    protocolVersion="2025-03-26",
-                    serverInfo={"name": "tavily-mcp", "version": "1.0.0"},
+                    protocol_version="2025-03-26",
+                    capabilities={},
+                    server_info=MCPServerInfoDTO(name="tavily-mcp", version="1.0.0", icons=[]),
                 ),
             )
             return httpx.Response(200, json=init_resp.model_dump(mode="json", by_alias=True))
@@ -637,7 +652,7 @@ async def test_discover_mcp_gateway_tools_preserves_existing_settings(
                     MCPDiscoveredToolWireDTO(
                         name="tavily_search",
                         description="Updated remote description",
-                        inputSchema=MCPToolInputSchemaDTO(
+                        input_schema=MCPToolInputSchemaDTO(
                             properties={
                                 "query": MCPToolSchemaPropertyDTO(
                                     type=JSONSchemaPropertyType.STRING,
@@ -650,7 +665,7 @@ async def test_discover_mcp_gateway_tools_preserves_existing_settings(
                     MCPDiscoveredToolWireDTO(
                         name="tavily_extract",
                         description="Extract URL content",
-                        inputSchema=MCPToolInputSchemaDTO(),
+                        input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
                     ),
                 ]
             ),
@@ -663,6 +678,7 @@ async def test_discover_mcp_gateway_tools_preserves_existing_settings(
 
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Tavily Search Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         endpoint_url="https://mcp.tavily.example.com/mcp",
@@ -674,7 +690,7 @@ async def test_discover_mcp_gateway_tools_preserves_existing_settings(
                 description="Old description",
                 enabled=False,
                 capability=ToolCapability.DOCUMENT_READER,
-                input_schema=MCPToolInputSchemaDTO(),
+                input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
             )
         ],
     )
@@ -736,6 +752,7 @@ async def test_save_mcp_gateways_id_mismatch_updates_id(
     """Assert saving MCP gateways with mismatched ID updates to target ID parameter."""
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
+        name="Tavily Search Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],

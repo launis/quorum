@@ -9,12 +9,16 @@ import os
 import re
 import secrets
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import NoReturn, Protocol
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import SecretStr
 
-from backend_v2.database.interfaces import EntityPersistencePort
+from backend_v2.database.interfaces import (
+    EntityPersistencePort,
+    UnitOfWorkFactory,
+    get_registered_uow_factory,
+)
 from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
@@ -29,7 +33,11 @@ from backend_v2.models.auth import (
     TenantSecretResponseDTO,
     TokenData,
 )
-from backend_v2.models.core_base import PrefixedUUID7, generate_opaque_id
+from backend_v2.models.core_base import (
+    PrefixedUUID7,
+    generate_opaque_id,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.enums import (
     EntityPrefix,
@@ -56,6 +64,7 @@ _DEFAULT_LOCAL_KEK_VERSION: str = "local-kms-v1"
 _DEK_BYTE_LENGTH: int = 32
 _AES_GCM_NONCE_BYTE_LENGTH: int = 12
 _MIN_WRAPPED_DEK_BYTE_LENGTH: int = 28
+_VALID_LLM_PROVIDER_IDS: frozenset[str] = frozenset(provider.value for provider in LLMProvider)
 
 
 class AuditLoggerProtocol(Protocol):
@@ -111,6 +120,7 @@ class SecretService:
         audit_service: AuditLoggerProtocol | None = None,
         kms_wrapper: CloudKMSKeyWrapperProtocol | None = None,
         secret_manager_fetcher: CloudSecretManagerFetcherProtocol | None = None,
+        uow_factory: UnitOfWorkFactory | None = None,
     ) -> None:
         """Initialize the SecretService with persistence and cryptographic adapters.
 
@@ -119,13 +129,14 @@ class SecretService:
             audit_service: Optional structured audit logger for secret lifecycle events.
             kms_wrapper: Optional Cloud KMS key wrapper for DEK encryption/decryption.
             secret_manager_fetcher: Optional GCP Secret Manager version accessor.
+            uow_factory: Optional UnitOfWorkFactory for transactional persistence when entity_adapter is None.
         """
+        # Phase 2, Step 2: Single-pipeline persistence via entity_adapter or uow_factory with zero RAM fallback (REQ-008)
         self._entity_adapter = entity_adapter
         self.audit_service = audit_service
         self._kms_wrapper = kms_wrapper
         self._secret_manager_fetcher = secret_manager_fetcher
-        self._local_secrets: dict[str, TenantSecretDTO] = {}
-        self._deleted_secret_ids: set[str] = set()
+        self._uow_factory = uow_factory
 
     async def list_tenant_secrets(
         self,
@@ -145,6 +156,7 @@ class SecretService:
 
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks tenant admin rights.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         self._verify_tenant_admin_access(initiator=initiator, organization_id=organization_id)
         records = await self._list_org_secret_records(organization_id)
@@ -156,19 +168,17 @@ class SecretService:
         organization_id: PrefixedUUID7,
         payload: TenantSecretCreateDTO,
         *,
-        storage_mode: SecretStorageMode = SecretStorageMode.ENVELOPE_KMS,
         secret_manager_version_uri: str | None = None,
         kek_version: str | None = None,
     ) -> TenantSecretResponseDTO:
         """Provision or rotate a tenant-scoped BYOK secret and emit a TENANT_SECRET_UPSERTED audit event.
 
-        # Phase 3, Step 3.1 & 3.3: Dual-Tier BYOK encryption and TENANT_SECRET_UPSERTED audit logging
+        # Phase 2, Step 2: Single-pipeline BYOK upsert reading payload.storage_mode and validating target_identifier
 
         Args:
             initiator: Authenticated caller token data.
             organization_id: Target organization identifier (org_<hex32>).
-            payload: Validated TenantSecretCreateDTO containing the SecretStr secret.
-            storage_mode: Cryptographic storage mode (ENVELOPE_KMS or CLOUD_SECRET_MANAGER).
+            payload: Validated TenantSecretCreateDTO containing the SecretStr secret and storage_mode.
             secret_manager_version_uri: Optional GCP Secret Manager version URI when mode is CLOUD_SECRET_MANAGER.
             kek_version: Optional KEK version identifier override.
 
@@ -177,10 +187,15 @@ class SecretService:
 
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks tenant admin rights.
-            AppException: With ErrorCodes.VALIDATION_FAILED if secret payload or URI is invalid.
-            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if KMS wrapping fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED if secret payload, target_identifier, or URI is invalid.
+            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if KMS wrapping fails or ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         self._verify_tenant_admin_access(initiator=initiator, organization_id=organization_id)
+        self._validate_target_identifier(
+            organization_id=organization_id,
+            scope=payload.scope,
+            target_identifier=payload.target_identifier,
+        )
         raw_secret = payload.plaintext_secret.get_secret_value().strip()
         if not raw_secret:
             msg = "Tenant secret plaintext value cannot be empty or whitespace."
@@ -218,17 +233,14 @@ class SecretService:
             organization_id=organization_id,
             payload=payload,
             raw_secret=raw_secret,
-            storage_mode=storage_mode,
+            storage_mode=payload.storage_mode,
             secret_manager_version_uri=secret_manager_version_uri,
             kek_version=resolved_kek_version,
             masked_hint=masked_hint,
             updated_by=initiator.id,
         )
 
-        self._deleted_secret_ids.discard(secret_id)
-        self._local_secrets[secret_id] = record
-        if self._entity_adapter is not None:
-            await self._entity_adapter.upsert_tenant_secret(record)
+        await self._persist_secret_record(record)
 
         await self._record_audit_event(
             actor_id=initiator.id,
@@ -246,7 +258,7 @@ class SecretService:
     ) -> bool:
         """Delete a tenant-scoped BYOK secret and emit a TENANT_SECRET_DELETED audit event.
 
-        # Phase 3, Step 3.3: Tenant-isolated BYOK secret deletion and audit logging
+        # Phase 2, Step 2: Physical deletion via EntityPersistencePort.delete_collection_document
 
         Args:
             initiator: Authenticated caller token data.
@@ -254,11 +266,12 @@ class SecretService:
             secret_id: Canonical tenant secret identifier (sec_<hex32>).
 
         Returns:
-            True once the secret has been removed and audited.
+            True once the secret has been physically removed and audited.
 
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks tenant admin rights.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if secret does not exist in organization.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         self._verify_tenant_admin_access(initiator=initiator, organization_id=organization_id)
         record = await self._get_secret_record_by_id(secret_id)
@@ -280,9 +293,7 @@ class SecretService:
                 },
             )
 
-        self._deleted_secret_ids.add(secret_id)
-        if secret_id in self._local_secrets:
-            del self._local_secrets[secret_id]
+        await self._delete_secret_record(secret_id)
 
         await self._record_audit_event(
             actor_id=initiator.id,
@@ -837,25 +848,148 @@ class SecretService:
             )
         return os.environ[clean_env_name].strip()
 
+    @staticmethod
+    def _validate_target_identifier(
+        *,
+        organization_id: str,
+        scope: SecretScope,
+        target_identifier: str,
+    ) -> None:
+        """Validate that target_identifier matches the canonical contract for the selected SecretScope.
+
+        # Phase 2, Step 2: Enforce LLMProvider values or canonical sys_<hex32> Opaque Stripe IDs (slug_data_relation_ban)
+
+        Args:
+            organization_id: Target organization identifier (org_<hex32>).
+            scope: Capability scope (LLM_PROVIDER or MCP_GATEWAY).
+            target_identifier: Candidate provider identifier or MCP gateway ID.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if target_identifier violates the scope contract.
+        """
+        if scope == SecretScope.LLM_PROVIDER:
+            if target_identifier not in _VALID_LLM_PROVIDER_IDS:
+                msg = (
+                    f"Target identifier '{target_identifier}' is not a valid LLMProvider value "
+                    f"for organization '{organization_id}'."
+                )
+                logger.error(
+                    "[SecretService] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={
+                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                        "organization_id": organization_id,
+                        "target_identifier": target_identifier,
+                    },
+                )
+            return
+
+        try:
+            parse_prefixed_uuid7(target_identifier, expected_prefix=EntityPrefix.SYSTEM_CONFIG)
+        except AppException as exc:
+            msg = (
+                f"MCP gateway target_identifier '{target_identifier}' must be a canonical "
+                f"'sys_<hex32>' Opaque Stripe ID for organization '{organization_id}'."
+            )
+            logger.error(
+                "[SecretService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "organization_id": organization_id,
+                    "target_identifier": target_identifier,
+                },
+            ) from exc
+
+    @staticmethod
+    def _raise_unconfigured_persistence_error() -> NoReturn:
+        """Fail fast when neither entity_adapter nor uow_factory is configured on SecretService.
+
+        Raises:
+            ConfigurationError: Always raised with ErrorCodes.CONFIGURATION_ERROR.
+        """
+        msg = "SecretService requires either entity_adapter or uow_factory to be configured for persistence."
+        logger.error(
+            "[SecretService] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+        )
+        raise ConfigurationError(
+            message=msg,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+
+    async def _persist_secret_record(self, record: TenantSecretDTO) -> None:
+        """Persist a TenantSecretDTO record via entity_adapter or uow_factory transaction.
+
+        Args:
+            record: Validated TenantSecretDTO to upsert.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
+        """
+        if self._entity_adapter is not None:
+            await self._entity_adapter.upsert_tenant_secret(record)
+            return
+        if self._uow_factory is not None:
+            async with self._uow_factory() as uow:
+                await uow.entities.upsert_tenant_secret(record)
+                await uow.commit()
+            return
+        self._raise_unconfigured_persistence_error()
+
+    async def _delete_secret_record(self, secret_id: str) -> None:
+        """Physically delete a tenant secret row via entity_adapter or uow_factory transaction.
+
+        Args:
+            secret_id: Canonical sec_<hex32> identifier to delete.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
+        """
+        if self._entity_adapter is not None:
+            await self._entity_adapter.delete_collection_document("tenant_secrets", secret_id)
+            return
+        if self._uow_factory is not None:
+            async with self._uow_factory() as uow:
+                await uow.entities.delete_collection_document("tenant_secrets", secret_id)
+                await uow.commit()
+            return
+        self._raise_unconfigured_persistence_error()
+
     async def _list_org_secret_records(self, organization_id: str) -> list[TenantSecretDTO]:
-        """List active TenantSecretDTO records for an organization across adapter and memory cache.
+        """List active TenantSecretDTO records for an organization from persistent storage.
 
         Args:
             organization_id: Target organization identifier.
 
         Returns:
-            List of non-deleted TenantSecretDTO records belonging strictly to organization_id.
+            List of TenantSecretDTO records belonging strictly to organization_id.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
-        merged: dict[str, TenantSecretDTO] = {}
         if self._entity_adapter is not None:
             persisted = await self._entity_adapter.list_tenant_secrets(organization_id=organization_id)
-            for item in persisted:
-                if item.organization_id == organization_id and item.id not in self._deleted_secret_ids:
-                    merged[item.id] = item
-        for secret_id, local_item in self._local_secrets.items():
-            if local_item.organization_id == organization_id and secret_id not in self._deleted_secret_ids:
-                merged[secret_id] = local_item
-        return list(merged.values())
+        elif self._uow_factory is not None:
+            async with self._uow_factory() as uow:
+                persisted = await uow.entities.list_tenant_secrets(organization_id=organization_id)
+        else:
+            self._raise_unconfigured_persistence_error()
+        return [item for item in persisted if item.organization_id == organization_id]
 
     async def _find_secret_record(
         self,
@@ -873,6 +1007,9 @@ class SecretService:
 
         Returns:
             Matching TenantSecretDTO if configured for the organization, otherwise None.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         records = await self._list_org_secret_records(organization_id)
         for record in records:
@@ -881,21 +1018,23 @@ class SecretService:
         return None
 
     async def _get_secret_record_by_id(self, secret_id: str) -> TenantSecretDTO | None:
-        """Fetch a single TenantSecretDTO record by its primary ID.
+        """Fetch a single TenantSecretDTO record by its primary ID from persistent storage.
 
         Args:
             secret_id: Canonical sec_<hex32> identifier.
 
         Returns:
-            Matching TenantSecretDTO if present and not deleted, otherwise None.
+            Matching TenantSecretDTO if present, otherwise None.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
-        if secret_id in self._deleted_secret_ids:
-            return None
-        if secret_id in self._local_secrets:
-            return self._local_secrets[secret_id]
         if self._entity_adapter is not None:
             return await self._entity_adapter.get_tenant_secret(secret_id)
-        return None
+        if self._uow_factory is not None:
+            async with self._uow_factory() as uow:
+                return await uow.entities.get_tenant_secret(secret_id)
+        self._raise_unconfigured_persistence_error()
 
     @staticmethod
     def _to_response_dto(record: TenantSecretDTO) -> TenantSecretResponseDTO:
@@ -966,11 +1105,11 @@ def get_secret_service() -> SecretService:
     """Return the process-scoped SecretService singleton instance for dependency injection.
 
     Returns:
-        Configured SecretService instance.
+        Configured SecretService instance bound to the registered UnitOfWorkFactory.
     """
     global _default_secret_service
     if _default_secret_service is None:
-        _default_secret_service = SecretService()
+        _default_secret_service = SecretService(uow_factory=get_registered_uow_factory())
     return _default_secret_service
 
 

@@ -391,7 +391,9 @@ class StudioSystemConfigService:
         await self.system_repo.delete_system_config(id)
 
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
-        """List all MCP gateway configurations.
+        """List all MCP gateway configurations for ROOT and ADMIN users.
+
+        # Phase 2, Step 2: Allow UserRole.ROOT and UserRole.ADMIN to list MCP gateways for BYOK target selection (REQ-009)
 
         Args:
             initiator: The authenticated user.
@@ -399,7 +401,7 @@ class StudioSystemConfigService:
         Returns:
             A list containing all MCP gateway configurations if accessible.
         """
-        if initiator.role != UserRole.ROOT:
+        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
             return []
         return await self.system_repo.get_all_mcp_gateways()
 
@@ -577,7 +579,10 @@ class StudioSystemConfigService:
             suffix += 1
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
-        cloned_obj = existing.model_copy(update={"id": new_id, "slug": candidate_slug})
+        # Phase 2, Step 2: Append " (Copy)" suffix to cloned MCP gateway name (REQ-009)
+        cloned_obj = existing.model_copy(
+            update={"id": new_id, "name": f"{existing.name} (Copy)", "slug": candidate_slug}
+        )
 
         return await self.save_mcp_gateways(initiator, new_id, cloned_obj)
 

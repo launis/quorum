@@ -1444,6 +1444,7 @@ class TenantSecretCreateDTO(BaseDTO):
         scope: Capability scope ('llm_provider' or 'mcp_gateway').
         target_identifier: Target LLMProvider value or MCP Gateway ID.
         plaintext_secret: Raw secret value wrapped in SecretStr so it never leaks in logs.
+        storage_mode: Cryptographic storage mode (ENVELOPE_KMS or CLOUD_SECRET_MANAGER).
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -1451,6 +1452,11 @@ class TenantSecretCreateDTO(BaseDTO):
     scope: Annotated[LaxSecretScope, Field(description="Capability scope ('llm_provider' or 'mcp_gateway')")]
     target_identifier: Annotated[str, Field(min_length=1, max_length=128, description="Target provider or gateway ID")]
     plaintext_secret: Annotated[SecretStr, Field(description="Raw secret value to encrypt at rest")]
+    # Phase 2, Step 2: Add required storage_mode with zero default fallback (REQ-007)
+    storage_mode: Annotated[
+        LaxSecretStorageMode,
+        Field(description="Cryptographic storage mode (ENVELOPE_KMS or CLOUD_SECRET_MANAGER)."),
+    ]
 
 
 class TenantSecretResponseDTO(BaseResponseDTO):
