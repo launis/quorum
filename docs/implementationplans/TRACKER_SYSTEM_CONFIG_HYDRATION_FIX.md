@@ -16,7 +16,7 @@
 
 - [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]`
   - [x] Step 1: Phase 1: Fail-Fast SystemConfig Hydration, Preflight Schema Verification, Idempotent DDL Constraint Evolution & Live PostgreSQL 19 Re-Seed
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]`
 
 ### Post-Implementation Gates
 
@@ -45,7 +45,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -74,15 +74,16 @@
   4. Executed `uv run --no-sync --offline python backend_v2/seed/run_seed.py local`, purging an orphaned pre-migration draft row (`sys_01a18adecd8e723d87a53fe3fee83fd3` with `name = NULL`), updating all 4 canonical `system_configs` rows (including `sys_0195f3a00000700080008172bda70c86` with `name = 'Tavily MCP Gateway'`), and locking `system_configs.name SET NOT NULL` on the live local PostgreSQL 19 database.
   5. Verified 100% quality gate pass via `scripts/backend_audit_loop.py --test --ast-strict` across all modified production and unit test files (`@[backend_v2/tests/unit/database/postgres/entity_adapter/test_iam_and_system_stage.py#L583-L658]` and `@[backend_v2/tests/unit/database/test_postgres.py#L1983-L2080]`).
 - Synchronized `@[ki_god_code_prevention.md]`.
+- Executed `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]`: verified 100% implementation fidelity across REQ-001 through REQ-004, exact AST definition bounds (`#L912-L970` in `iam_and_system_stage.py`, `#L219-L259` in `seed_and_collection_stage.py`, `#L276-L340` in `run_seed.py`), 0 technical debt findings (`audit_technical_debt.py`), 0 ZORM violations (`audit_zero_orm_strictness.py`), 100% DTO parity (81/81 models), and 10/10 stages of `backend_audit_loop.py --test --ast-strict`.
 
 ## Learned
 - Our new `verify_seed_table_counts_rows` schema hydration check immediately caught an additional orphaned pre-migration draft row (`sys_01a18adecd8e723d87a53fe3fee83fd3` with `name = NULL`) in the live PostgreSQL 19 `system_configs` table that was not part of `seed_data.json`.
 - Adding `DELETE FROM system_configs WHERE name IS NULL;` prior to `ALTER TABLE system_configs ALTER COLUMN name DROP DEFAULT;` and `ALTER TABLE system_configs ALTER COLUMN name SET NOT NULL;` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L100-L103]` deterministically purges any corrupt pre-migration `NULL`-name row before seeding and locks the `NOT NULL` constraint immediately.
 
 ## Remaining
-- Execute `Tier 2 Hardening (Backend)` on the 3 modified production files (`@[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]`, `@[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]`, `@[backend_v2/seed/run_seed.py]`), run `/tier7-describe-architecture @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[ki_god_code_prevention.md]`, and run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]`.
+- Execute `Tier 2 Hardening (Backend)` on the 3 modified production files (`@[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]`, `@[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]`, `@[backend_v2/seed/run_seed.py]`) and run `/tier7-describe-architecture @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[ki_god_code_prevention.md]`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SYSTEM_CONFIG_HYDRATION_FIX.md] @[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"
 ```
