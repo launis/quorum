@@ -12,6 +12,8 @@ import pytest
 from pydantic import ValidationError
 
 from scripts.audit_zero_orm_strictness import (
+    CANONICAL_ENTITY_PK_TABLES,
+    CANONICAL_NAMED_ENTITY_TABLES,
     ZeroOrmAuditReportDTO,
     ZeroOrmFindingDTO,
     ZeroOrmRuleCode,
@@ -240,3 +242,80 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
     missing_findings = audit_sql_migration_file(missing_alter_sql)
     zorm007_sql = [f for f in missing_findings if f.rule_code == ZeroOrmRuleCode.ZORM007]
     assert len(zorm007_sql) == 4
+
+
+def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(tmp_path: Path) -> None:
+    """Verify ZORM004 and ZORM007 enforce canonical UUIDv7 PK, display columns, FK REFERENCES (id), SQL DEFAULT bans, and slug query bans."""
+    # Phase 2, Step 2 (REQ-006): Positive path on compliant SQL migration and canonical id SELECT query
+    assert "workflows" in CANONICAL_ENTITY_PK_TABLES
+    assert CANONICAL_NAMED_ENTITY_TABLES["workflows"] == "name"
+    assert CANONICAL_NAMED_ENTITY_TABLES["prompt_blocks"] == "label"
+    assert CANONICAL_NAMED_ENTITY_TABLES["report_artifacts"] == "title"
+
+    canonical_migration = Path("backend_v2/database/migrations/001_pg19_uuidv7_schema.sql")
+    assert audit_sql_migration_file(canonical_migration) == []
+
+    good_adapter = tmp_path / "workflow_and_profile_stage.py"
+    good_adapter.write_text(
+        "SELECT_WORKFLOW_SQL = 'SELECT id, name, slug FROM workflows WHERE id = $1'\n",
+        encoding="utf-8",
+    )
+    assert audit_python_file(good_adapter, is_db_scope=True) == []
+
+    # Negative path 1 (ZORM004): non-id PK, missing display column, non-id FK REFERENCES, and banned SQL DEFAULT
+    bad_ddl = tmp_path / "bad_entity_ddl.sql"
+    bad_ddl.write_text(
+        "CREATE TABLE workflows (\n"
+        "    workflow_id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    slug TEXT NOT NULL DEFAULT 'default_slug',\n"
+        "    CONSTRAINT enforce_workflow_uuidv7 CHECK (uuid_extract_version(id) = 7)\n"
+        ");\n"
+        "CREATE TABLE system_configs (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    name TEXT DEFAULT 'Default',\n"
+        "    CONSTRAINT enforce_system_config_uuidv7 CHECK (uuid_extract_version(id) = 7)\n"
+        ");\n"
+        "CREATE TABLE tenant_secrets (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    storage_mode TEXT NOT NULL DEFAULT 'database',\n"
+        "    organization_id UUID NOT NULL REFERENCES workflows(slug),\n"
+        "    CONSTRAINT enforce_tenant_secret_uuidv7 CHECK (uuid_extract_version(id) = 7)\n"
+        ");\n",
+        encoding="utf-8",
+    )
+    ddl_findings = audit_sql_migration_file(bad_ddl)
+    zorm004_msgs = [f.message for f in ddl_findings if f.rule_code == ZeroOrmRuleCode.ZORM004]
+    assert any("must declare canonical 'id UUID PRIMARY KEY DEFAULT uuidv7()'" in m for m in zorm004_msgs)
+    assert any("must declare canonical human-readable display column 'name'" in m for m in zorm004_msgs)
+    assert any(
+        "Foreign key REFERENCES 'workflows(slug)' violates canonical ID relational policy" in m for m in zorm004_msgs
+    )
+    assert sum(1 for m in zorm004_msgs if "Banned SQL DEFAULT clause" in m) == 3
+
+    # Negative path 2 (ZORM007): SQL UNIQUE (organization_id, slug) and WHERE slug = $1 in SQL/Python
+    bad_slug_sql = tmp_path / "bad_slug.sql"
+    bad_slug_sql.write_text(
+        "CREATE TABLE steps (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    name JSONB NOT NULL,\n"
+        "    slug TEXT NOT NULL,\n"
+        "    CONSTRAINT enforce_step_uuidv7 CHECK (uuid_extract_version(id) = 7),\n"
+        "    CONSTRAINT uq_org_slug UNIQUE (organization_id, slug)\n"
+        ");\n"
+        "SELECT * FROM workflows WHERE slug = 'my_slug';\n",
+        encoding="utf-8",
+    )
+    slug_sql_findings = audit_sql_migration_file(bad_slug_sql)
+    zorm007_sql_msgs = [f.message for f in slug_sql_findings if f.rule_code == ZeroOrmRuleCode.ZORM007]
+    assert any("Informational column 'slug' must never have a UNIQUE constraint" in m for m in zorm007_sql_msgs)
+    assert any("SQL query filters or joins on informational column 'slug'" in m for m in zorm007_sql_msgs)
+
+    bad_slug_py = tmp_path / "bad_repo_query.py"
+    bad_slug_py.write_text(
+        "BAD_QUERY = 'SELECT * FROM workflows WHERE slug = $1'\n",
+        encoding="utf-8",
+    )
+    slug_py_findings = audit_python_file(bad_slug_py, is_db_scope=True)
+    assert len(slug_py_findings) == 1
+    assert slug_py_findings[0].rule_code == ZeroOrmRuleCode.ZORM007
+    assert "SQL query filters or joins on informational column 'slug'" in slug_py_findings[0].message

@@ -43,6 +43,8 @@ __all__ = [
     "APPROVED_ADAPTER_RECORD_COLUMNS",
     "BANNED_LLM_IDENTIFIERS",
     "BANNED_ORM_IMPORTS",
+    "CANONICAL_ENTITY_PK_TABLES",
+    "CANONICAL_NAMED_ENTITY_TABLES",
     "CLOSED_POSTGRES_TABLES",
     "REQUIRED_IDEMPOTENT_ALTER_COLUMNS",
     "ZeroOrmAuditReportDTO",
@@ -54,6 +56,35 @@ __all__ = [
     "main",
     "run_zero_orm_audit",
 ]
+
+# Phase 2, Step 2 (REQ-005): Canonical entity primary-key and display-name table contracts
+CANONICAL_ENTITY_PK_TABLES: frozenset[str] = frozenset(
+    {
+        "organizations",
+        "users",
+        "invitations",
+        "tenant_secrets",
+        "execution_assignments",
+        "workflows",
+        "steps",
+        "prompt_blocks",
+        "output_profiles",
+        "system_configs",
+        "executions",
+        "report_artifacts",
+    }
+)
+
+CANONICAL_NAMED_ENTITY_TABLES: dict[str, str] = {
+    "organizations": "name",
+    "users": "name",
+    "system_configs": "name",
+    "prompt_blocks": "label",
+    "steps": "name",
+    "workflows": "name",
+    "output_profiles": "name",
+    "report_artifacts": "title",
+}
 
 # Define closed 15-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
@@ -330,6 +361,32 @@ _ALTER_ADD_COLUMN_REGEX = re.compile(
 # Ban TEXT primary keys across the 15-table PostgreSQL 19 topology
 _BANNED_TEXT_PK_REGEX = re.compile(
     r"\bid\s+TEXT\s+PRIMARY\s+KEY\b",
+    re.IGNORECASE,
+)
+
+# Phase 2, Step 2 (REQ-005): Canonical UUIDv7 PK, FK REFERENCES, SQL DEFAULT, and slug SQL filter regexes
+_CANONICAL_UUID_PK_REGEX = re.compile(
+    r"\bid\s+UUID\s+PRIMARY\s+KEY\s+DEFAULT\s+uuidv7\(\)",
+    re.IGNORECASE,
+)
+_UUID_VERSION_7_CHECK_REGEX = re.compile(
+    r"uuid_extract_version\(\s*id\s*\)\s*=\s*7",
+    re.IGNORECASE,
+)
+_BANNED_SQL_COLUMN_DEFAULT_REGEX = re.compile(
+    r"^\s*(?:[a-zA-Z0-9_]+_id|name|label|title|slug|storage_mode)\s+(?!UUID\s+PRIMARY\s+KEY\b)[^\n,]*\bDEFAULT\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+_SQL_REFERENCES_REGEX = re.compile(
+    r"\bREFERENCES\s+([a-zA-Z0-9_]+)\s*\(\s*([a-zA-Z0-9_]+)\s*\)",
+    re.IGNORECASE,
+)
+_BANNED_SLUG_UNIQUE_REGEX = re.compile(
+    r"(?:\bUNIQUE\s*\([^)]*\bslug\b[^)]*\)|\bslug\s+TEXT\s+[^\n,]*\bUNIQUE\b)",
+    re.IGNORECASE,
+)
+_SQL_SLUG_FILTER_REGEX = re.compile(
+    r"\b(?:WHERE|AND|OR|ON)\s+(?:[a-zA-Z0-9_]+\.)?slug\s*(?:=|!=|<>|IN\b|LIKE\b|ILIKE\b)",
     re.IGNORECASE,
 )
 
@@ -671,6 +728,18 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
                     )
         self.generic_visit(node)
 
+    def visit_Constant(self, node: ast.Constant) -> None:
+        """Inspect string constants in database scope for banned SQL slug WHERE/JOIN predicates."""
+        # Phase 2, Step 2 (REQ-005): Ban SQL WHERE/JOIN predicates on informational slug column
+        if self.is_db_scope and isinstance(node.value, str) and _SQL_SLUG_FILTER_REGEX.search(node.value):
+            self._record(
+                node.lineno,
+                ZeroOrmRuleCode.ZORM007,
+                "SQL query filters or joins on informational column 'slug'; "
+                "all relational lookups and joins must use canonical 'id' columns.",
+            )
+        self.generic_visit(node)
+
 
 def audit_python_file(filepath: Path, *, is_db_scope: bool = True) -> list[ZeroOrmFindingDTO]:
     """Parse and audit a single Python file against Zero-ORM AST rules.
@@ -795,13 +864,117 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
             )
         )
 
-    # ZORM007: Verify CREATE TABLE <-> ALTER TABLE ADD COLUMN IF NOT EXISTS schema evolution parity
+    # ZORM004 & ZORM007: Verify canonical PK/display columns, SQL DEFAULT bans, and CREATE/ALTER column parity
     table_columns: dict[str, set[str]] = {}
     table_linenos: dict[str, int] = {}
     for block_match in _CREATE_TABLE_BLOCK_REGEX.finditer(uncommented):
         t_name = block_match.group(1).lower()
-        table_columns[t_name] = _extract_create_table_columns(block_match.group(2))
-        table_linenos[t_name] = content.count("\n", 0, block_match.start()) + 1
+        t_body = block_match.group(2)
+        t_lineno = content.count("\n", 0, block_match.start()) + 1
+        table_columns[t_name] = _extract_create_table_columns(t_body)
+        table_linenos[t_name] = t_lineno
+
+        # Phase 2, Step 2 (REQ-005): Enforce ZORM004 canonical PK, UUIDv7 check, display column, and SQL DEFAULT bans
+        if t_name in CANONICAL_ENTITY_PK_TABLES and not _BANNED_TEXT_PK_REGEX.search(t_body):
+            if not _CANONICAL_UUID_PK_REGEX.search(t_body):
+                findings.append(
+                    ZeroOrmFindingDTO(
+                        filepath=str(filepath),
+                        lineno=t_lineno,
+                        rule_code=ZeroOrmRuleCode.ZORM004,
+                        message=(
+                            f"Entity table '{t_name}' must declare canonical 'id UUID PRIMARY KEY DEFAULT uuidv7()'."
+                        ),
+                    )
+                )
+            if not _UUID_VERSION_7_CHECK_REGEX.search(t_body):
+                findings.append(
+                    ZeroOrmFindingDTO(
+                        filepath=str(filepath),
+                        lineno=t_lineno,
+                        rule_code=ZeroOrmRuleCode.ZORM004,
+                        message=(
+                            f"Entity table '{t_name}' is missing 'CHECK (uuid_extract_version(id) = 7)' "
+                            "constraint on primary key 'id'."
+                        ),
+                    )
+                )
+            if t_name in CANONICAL_NAMED_ENTITY_TABLES:
+                required_display_col = CANONICAL_NAMED_ENTITY_TABLES[t_name]
+                if not re.search(
+                    rf"^\s*{required_display_col}\s+(?:TEXT|JSONB)\b", t_body, re.IGNORECASE | re.MULTILINE
+                ):
+                    findings.append(
+                        ZeroOrmFindingDTO(
+                            filepath=str(filepath),
+                            lineno=t_lineno,
+                            rule_code=ZeroOrmRuleCode.ZORM004,
+                            message=(
+                                f"Named entity table '{t_name}' must declare canonical human-readable "
+                                f"display column '{required_display_col}'."
+                            ),
+                        )
+                    )
+            for default_match in _BANNED_SQL_COLUMN_DEFAULT_REGEX.finditer(t_body):
+                def_lineno = content.count("\n", 0, block_match.start(2) + default_match.start()) + 1
+                findings.append(
+                    ZeroOrmFindingDTO(
+                        filepath=str(filepath),
+                        lineno=def_lineno,
+                        rule_code=ZeroOrmRuleCode.ZORM004,
+                        message=(
+                            "Banned SQL DEFAULT clause on relational foreign-key, name, label, title, slug, "
+                            f"or storage_mode column in table '{t_name}'."
+                        ),
+                    )
+                )
+
+    # Phase 2, Step 2 (REQ-005): Enforce ZORM004 foreign-key REFERENCES <table>(id)
+    for ref_match in _SQL_REFERENCES_REGEX.finditer(uncommented):
+        target_table = ref_match.group(1).lower()
+        ref_col = ref_match.group(2).lower()
+        if (target_table in CANONICAL_ENTITY_PK_TABLES and ref_col != "id") or ref_col in {"slug", "name"}:
+            ref_lineno = content.count("\n", 0, ref_match.start()) + 1
+            findings.append(
+                ZeroOrmFindingDTO(
+                    filepath=str(filepath),
+                    lineno=ref_lineno,
+                    rule_code=ZeroOrmRuleCode.ZORM004,
+                    message=(
+                        f"Foreign key REFERENCES '{target_table}({ref_col})' violates canonical ID relational policy; "
+                        "foreign keys to entity tables must reference '(id)' exclusively."
+                    ),
+                )
+            )
+
+    # Phase 2, Step 2 (REQ-005): Enforce ZORM007 bans on SQL UNIQUE (... slug ...) and WHERE/JOIN slug predicates
+    for uq_match in _BANNED_SLUG_UNIQUE_REGEX.finditer(uncommented):
+        uq_lineno = content.count("\n", 0, uq_match.start()) + 1
+        findings.append(
+            ZeroOrmFindingDTO(
+                filepath=str(filepath),
+                lineno=uq_lineno,
+                rule_code=ZeroOrmRuleCode.ZORM007,
+                message=(
+                    "Informational column 'slug' must never have a UNIQUE constraint; "
+                    "only canonical 'id' (or cryptographic token_hash/email/firebase_uid) identifies entities."
+                ),
+            )
+        )
+
+    for slug_q_match in _SQL_SLUG_FILTER_REGEX.finditer(uncommented):
+        sq_lineno = content.count("\n", 0, slug_q_match.start()) + 1
+        findings.append(
+            ZeroOrmFindingDTO(
+                filepath=str(filepath),
+                lineno=sq_lineno,
+                rule_code=ZeroOrmRuleCode.ZORM007,
+                message=(
+                    "SQL query filters or joins on informational column 'slug'; "
+                    "all relational lookups and joins must use canonical 'id' columns."
+                ),
+            )
+        )
 
     alter_columns_by_table: dict[str, set[str]] = {}
     for alter_match in _ALTER_ADD_COLUMN_REGEX.finditer(uncommented):
