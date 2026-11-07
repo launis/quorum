@@ -7,11 +7,14 @@ false-positive immunity for non-UI/test scopes, CLI table formatting, and --stri
 from __future__ import annotations
 
 from pathlib import Path
+from types import MappingProxyType
 from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.validation import ValidationHookPayloadDTO
+from scripts._ast_guardrails import scan_file_for_guardrails
 from scripts._dart_guardrails import (
     DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES,
     DartViolation,
@@ -732,19 +735,57 @@ class StudioMasterView extends ConsumerWidget {
 
 
 def test_dgr010_guarded_async_value_allowed() -> None:
+    # Phase 7, Step 7.1: Use Dart 3 switch expression on AsyncValue state
     code = """
 Widget build(BuildContext context, WidgetRef ref) {
   final state = ref.watch(workflowProvider);
-  return state.when(
-    data: (w) => Text(w.id),
-    loading: () => const CircularProgressIndicator(),
-    error: (e, st) => Text(e.toString()),
-  );
+  return switch (state) {
+    AsyncData(:final value) => Text(value.id),
+    AsyncLoading() => const CircularProgressIndicator(),
+    AsyncError(:final error) => Text(error.toString()),
+  };
 }
 """
     violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/my_consumer.dart")
     dgr010 = [v for v in violations if v.rule_code == "DGR010"]
     assert len(dgr010) == 0
+
+
+def test_validation_hook_payload_dto_model_validate_has_pep257_docstring() -> None:
+    """Verify ValidationHookPayloadDTO.model_validate satisfies QGR001 and QGR033."""
+    validation_path = Path("backend_v2/models/domain/validation.py")
+    violations = scan_file_for_guardrails(validation_path)
+    qgr001_or_033 = [v for v in violations if v.rule_code in {"QGR001", "QGR033"}]
+    assert len(qgr001_or_033) == 0
+    doc = ValidationHookPayloadDTO.model_validate.__doc__
+    assert doc is not None
+    assert "Args:" in doc
+    assert "Returns:" in doc
+
+
+def test_dgr010_guarded_async_value_allowed_uses_dart3_switch() -> None:
+    """Verify guarded AsyncValue Dart 3 switch snippet produces 0 DGR010 and 0 DGR013 violations."""
+    code = """
+Widget build(BuildContext context, WidgetRef ref) {
+  final state = ref.watch(workflowProvider);
+  return switch (state) {
+    AsyncData(:final value) => Text(value.id),
+    AsyncLoading() => const CircularProgressIndicator(),
+    AsyncError(:final error) => Text(error.toString()),
+  };
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/my_consumer.dart")
+    flagged = [v for v in violations if v.rule_code in {"DGR010", "DGR013"}]
+    assert len(flagged) == 0
+
+
+def test_validation_hook_payload_dto_rejects_extra_fields() -> None:
+    """Verify ValidationHookPayloadDTO.model_validate fails fast on unrecognized extra fields."""
+    with pytest.raises(ValidationError):
+        ValidationHookPayloadDTO.model_validate(MappingProxyType({"root": {}, "unrecognized_extra_key": "forbidden"}))
+    with pytest.raises(ValidationError):
+        ValidationHookPayloadDTO.model_validate({"invalid_value": object()})
 
 
 def test_dgr010_require_value_on_state_detected() -> None:

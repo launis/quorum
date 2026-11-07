@@ -57,6 +57,21 @@ class ValidationHookPayloadDTO(V2CoreBase):
         by_name: bool | None = None,
         extra: Any | None = None,
     ) -> ValidationHookPayloadDTO:
+        """Validate raw state input payloads into a structured validation DTO.
+
+        Args:
+            obj: Input payload or mapping to validate.
+            strict: Whether to enforce strict Pydantic type checking.
+            from_attributes: Whether to extract attributes from arbitrary objects.
+            context: Optional validation context mapping.
+            by_alias: Whether to validate fields by alias.
+            by_name: Whether to validate fields by field name.
+            extra: Optional override for handling extra fields.
+
+        Returns:
+            Validated hook payload container instance.
+        """
+        # Phase 7, Step 7.1: Preserve runtime validation logic while enforcing PEP 257 docstring
         if type(obj) is dict:
             return cls(root=obj)
         return super().model_validate(

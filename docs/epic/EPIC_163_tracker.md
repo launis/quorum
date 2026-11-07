@@ -78,7 +78,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_163/06_phase6_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/06_phase6_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-- [x] **[OK] Execution (NEEDS_E2E):** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]` (`115e332ab`)
   - [x] Step 6.1: Migrate `test_worker.py`, `test_worker_synthesis.py` & `test_worker_synthesis_accumulation.py` to Stateful `InMemoryUnifiedWorkflowRepository`
   - [x] Step 6.2: Migrate `test_report_worker.py`, `test_synthesis_reducers.py` & `test_synthesis_worker.py` and Lock `Census F = 0`
   - [x] Step 6.3: Full-Stack Global Quality Gates & Live E2E Verification
@@ -90,7 +90,7 @@
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/07_phase7_plan.md`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-  - [ ] Step 7.1: Pre-Implementation Docstring (`ValidationHookPayloadDTO.model_validate`) & Dart Test Fixture (`test_dgr010_guarded_async_value_allowed`) Cleanups
+  - [x] Step 7.1: Pre-Implementation Docstring (`ValidationHookPayloadDTO.model_validate`) & Dart Test Fixture (`test_dgr010_guarded_async_value_allowed`) Cleanups
   - [ ] Step 7.2: Dart 3.11+ Freezed Switch (`DGR013`) & Riverpod 3.1 (`DGR014`) Guardrails
   - [ ] Step 7.3: Python 3.14 PEP 695 `TypeAlias` (`QGR013`) & Public Function / Module Docstring Ordering (`QGR033` Check 33B) Guardrails
   - [ ] Step 7.4: Tier 2 Hardening Skills, Phase 1 Learnings & `auto_hardening_runner.py` `.agents/rules/` Enforcement
@@ -256,7 +256,7 @@
 | `REQ-163-015` | Replace 35 `UnifiedWorkflowRepository` patches across `test_worker.py`, `test_worker_synthesis.py`, and `test_worker_synthesis_accumulation.py` with stateful `InMemoryUnifiedWorkflowRepository` fixtures | Phase 6, Step 6.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-016` | Replace 9 `UnifiedWorkflowRepository` patches across `tests/unit/workers/` with stateful `InMemoryUnifiedWorkflowRepository` fixtures and lock `CURRENT_RESIDUAL_CEILINGS["f"] = 0` | Phase 6, Step 6.2 | `audit_warning_baseline.py --verify-ceilings` | `[x]` |
 | `REQ-163-017` | Execute global Backend, Frontend, Dict Eradication, Warning Baseline, DTO Parity, SDUI Semantic Parity, and Live E2E verification gates | Phase 6, Step 6.3 | Full-Stack & Live E2E Gates | `[x]` |
-| `REQ-163-018` | Add PEP 257 docstring to `ValidationHookPayloadDTO.model_validate` (`validation.py`) and migrate `test_dgr010_guarded_async_value_allowed` (`test_dart_guardrails.py`) to Dart 3 `switch (state)` | Phase 7, Step 7.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-018` | Add PEP 257 docstring to `ValidationHookPayloadDTO.model_validate` (`validation.py`) and migrate `test_dgr010_guarded_async_value_allowed` (`test_dart_guardrails.py`) to Dart 3 `switch (state)` | Phase 7, Step 7.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-019` | Enforce `DGR013` (`freezed_when_ban`) and `DGR014` (`manual_riverpod_providers` & `riverpod_read_vs_watch_ban`) at `GuardrailSeverity.FATAL` in `scripts/_dart_guardrails.py` (`C901 <= 10`) | Phase 7, Step 7.2 | `backend_audit_loop.py --test --ast-strict` & `_dart_guardrails.py --strict` | `[ ]` |
 | `REQ-163-020` | Extend `QGR013` (`TypeAlias` ban) and `QGR033` Check 33B (public function/method docstrings and line-1 module docstring ordering before `from __future__ import annotations`) in `scripts/_ast_guardrails.py` (`C901 <= 10`) | Phase 7, Step 7.3 | `backend_audit_loop.py --test --ast-strict` & `_ast_guardrails.py --strict` | `[ ]` |
 | `REQ-163-021` | Synchronize Tier 2 hardening `SKILL.md` playbooks and `scripts/auto_hardening_runner.py` (`resolve_target_rule_files`, `execute_subagent_pass` `C901 <= 10`, and `compute_rules_sha256` hashing `AGENTS.md` + `SKILL.md`) | Phase 7, Step 7.4 | `audit_skills_architecture.py` & `backend_audit_loop.py --test --ast-strict` | `[ ]` |
