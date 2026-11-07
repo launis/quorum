@@ -3,7 +3,7 @@
 Verifies CLI argument parsing, working directory validation, code generator (--build),
 Dart static guardrail execution (_dart_guardrails.py & audit_flutter_theme_sovereignty.py),
 dart format, dart analyze, Flutter unit tests (--test), and error status handling.
-Enforces 100% hermetic isolation via @patch('subprocess.run') and @patch('sys.exit').
+Enforces 100% hermetic isolation via module-scoped @patch('scripts.flutter_audit_loop.*').
 """
 
 from __future__ import annotations
@@ -26,7 +26,16 @@ from scripts.flutter_audit_loop import (
 def _mock_completed_process(
     returncode: int = 0, stdout: str = "", stderr: str = ""
 ) -> subprocess.CompletedProcess[str]:
-    """Helper creating a hermetic subprocess.CompletedProcess mock."""
+    """Create a hermetic subprocess.CompletedProcess mock.
+
+    Args:
+        returncode: Process exit status code.
+        stdout: Captured standard output string.
+        stderr: Captured standard error string.
+
+    Returns:
+        Configured CompletedProcess instance.
+    """
     return subprocess.CompletedProcess(args=[], returncode=returncode, stdout=stdout, stderr=stderr)
 
 
@@ -35,7 +44,7 @@ def _mock_completed_process(
 # ==============================================================================
 
 
-@patch("sys.exit")
+@patch("scripts.flutter_audit_loop.sys.exit")
 def test_cli_no_args_triggers_exit(mock_exit: MagicMock) -> None:
     """Verify that calling without target argument triggers usage exit."""
     mock_exit.side_effect = SystemExit(1)
@@ -45,11 +54,11 @@ def test_cli_no_args_triggers_exit(mock_exit: MagicMock) -> None:
         assert exc.value.code == 1
 
 
-@patch("sys.exit")
+@patch("scripts.flutter_audit_loop.sys.exit")
 def test_cli_invalid_root_directory_exit(mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify exit when executed outside repository root where client_app_v2 does not exist."""
     mock_exit.side_effect = SystemExit(1)
-    with patch("os.getcwd", return_value=str(tmp_path)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(tmp_path)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
             with pytest.raises(SystemExit) as exc:
                 main()
@@ -61,8 +70,8 @@ def test_cli_invalid_root_directory_exit(mock_exit: MagicMock, tmp_path: Path) -
 # ==============================================================================
 
 
-@patch("subprocess.run", return_value=_mock_completed_process(0))
-@patch("os.chdir")
+@patch("scripts.flutter_audit_loop.subprocess.run", return_value=_mock_completed_process(0))
+@patch("scripts.flutter_audit_loop.os.chdir")
 def test_cli_executed_from_root_navigates_to_client_app(
     mock_chdir: MagicMock, mock_sub: MagicMock, tmp_path: Path
 ) -> None:
@@ -70,14 +79,14 @@ def test_cli_executed_from_root_navigates_to_client_app(
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
 
-    with patch("os.getcwd", return_value=str(tmp_path)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(tmp_path)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
             main()
             mock_chdir.assert_called_once_with(client_app)
 
 
-@patch("subprocess.run", return_value=_mock_completed_process(0))
-@patch("os.chdir")
+@patch("scripts.flutter_audit_loop.subprocess.run", return_value=_mock_completed_process(0))
+@patch("scripts.flutter_audit_loop.os.chdir")
 def test_cli_executed_inside_client_app_v2_does_not_chdir(
     mock_chdir: MagicMock, mock_sub: MagicMock, tmp_path: Path
 ) -> None:
@@ -85,24 +94,45 @@ def test_cli_executed_inside_client_app_v2_does_not_chdir(
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "client_app_v2/lib/features"]):
             main()
             mock_chdir.assert_not_called()
 
 
-@patch("subprocess.run", return_value=_mock_completed_process(0))
+@patch("scripts.flutter_audit_loop.subprocess.run", return_value=_mock_completed_process(0))
 def test_cli_target_dir_prefix_stripping(mock_sub: MagicMock, tmp_path: Path) -> None:
-    """Verify client_app_v2 prefix is stripped cleanly for format and analyze commands."""
+    """Verify client_app_v2 prefix and trailing slash are stripped cleanly to '.' for format and analyze."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "client_app_v2"]):
             main()
             calls = mock_sub.call_args_list
-            # Verify dart format received "."
             assert any(c[0][0] == ["dart", "format", "."] for c in calls)
+
+        mock_sub.reset_mock()
+        with patch.object(sys, "argv", ["flutter_audit_loop.py", "client_app_v2/"]):
+            main()
+            calls_slash = mock_sub.call_args_list
+            assert any(c[0][0] == ["dart", "format", "."] for c in calls_slash)
+
+
+@patch("scripts.flutter_audit_loop.subprocess.run", return_value=_mock_completed_process(0))
+def test_cli_absolute_target_path_resolution(mock_sub: MagicMock, tmp_path: Path) -> None:
+    """Verify absolute target path is passed directly to guardrail scanners without rewriting."""
+    client_app = tmp_path / "client_app_v2"
+    lib_dir = client_app / "lib"
+    lib_dir.mkdir(parents=True)
+    abs_target = (lib_dir / "widget.dart").resolve()
+    abs_target.write_text("class MyWidget {}\n", encoding="utf-8")
+
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
+        main([str(abs_target)])
+        guardrail_calls = [c[0][0] for c in mock_sub.call_args_list if "_dart_guardrails.py" in str(c[0][0])]
+        assert len(guardrail_calls) == 1
+        assert str(abs_target) in guardrail_calls[0]
 
 
 # ==============================================================================
@@ -110,14 +140,14 @@ def test_cli_target_dir_prefix_stripping(mock_sub: MagicMock, tmp_path: Path) ->
 # ==============================================================================
 
 
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_build_flag_triggers_l10n_and_build_runner(mock_sub: MagicMock, tmp_path: Path) -> None:
     """Verify --build flag runs flutter gen-l10n and build_runner build."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
 
     mock_sub.return_value = _mock_completed_process(0)
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib", "--build"]):
             main()
             calls = [c[0][0] for c in mock_sub.call_args_list]
@@ -178,7 +208,7 @@ def test_resolve_flutter_unit_test_files_positive_and_negative_partitions(tmp_pa
     assert resolve_flutter_unit_test_files("lib/features/studio", client_app) == []
 
 
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_micro_skips_codegen_for_plain_widget_and_runs_isolated_test(mock_sub: MagicMock, tmp_path: Path) -> None:
     """Verify --micro skips gen-l10n and build_runner for plain widget and executes isolated unit test."""
     client_app = tmp_path / "client_app_v2"
@@ -192,7 +222,7 @@ def test_cli_micro_skips_codegen_for_plain_widget_and_runs_isolated_test(mock_su
     (test_dir / "app_test.dart").write_text("void main() {}\n", encoding="utf-8")
 
     mock_sub.return_value = _mock_completed_process(0)
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(
             sys,
             "argv",
@@ -205,7 +235,7 @@ def test_cli_micro_skips_codegen_for_plain_widget_and_runs_isolated_test(mock_su
             assert ["flutter", "test", "test/unit/app_test.dart"] in calls
 
 
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_micro_runs_codegen_when_target_contains_freezed_directive(mock_sub: MagicMock, tmp_path: Path) -> None:
     """Verify --micro executes gen-l10n and build_runner when target file contains codegen directives."""
     client_app = tmp_path / "client_app_v2"
@@ -219,7 +249,7 @@ def test_cli_micro_runs_codegen_when_target_contains_freezed_directive(mock_sub:
     (test_dir / "model_test.dart").write_text("void main() {}\n", encoding="utf-8")
 
     mock_sub.return_value = _mock_completed_process(0)
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(
             sys,
             "argv",
@@ -232,8 +262,8 @@ def test_cli_micro_runs_codegen_when_target_contains_freezed_directive(mock_sub:
             assert ["flutter", "test", "test/unit/model_test.dart"] in calls
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_build_l10n_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify failure during l10n generation exits immediately."""
     client_app = tmp_path / "client_app_v2"
@@ -241,15 +271,15 @@ def test_cli_build_l10n_failure_triggers_exit(mock_sub: MagicMock, mock_exit: Ma
     mock_exit.side_effect = SystemExit(1)
     mock_sub.return_value = _mock_completed_process(1)
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib", "--build"]):
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 1
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_build_runner_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify failure during build_runner generation exits immediately."""
     client_app = tmp_path / "client_app_v2"
@@ -260,7 +290,7 @@ def test_cli_build_runner_failure_triggers_exit(mock_sub: MagicMock, mock_exit: 
         _mock_completed_process(2),  # build_runner fails
     ]
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib", "--build"]):
             with pytest.raises(SystemExit) as exc:
                 main()
@@ -272,24 +302,23 @@ def test_cli_build_runner_failure_triggers_exit(mock_sub: MagicMock, mock_exit: 
 # ==============================================================================
 
 
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_strict_flag_propagates_to_dart_guardrails(mock_sub: MagicMock, tmp_path: Path) -> None:
     """Verify --strict flag appends --strict to the _dart_guardrails.py invocation."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
     mock_sub.return_value = _mock_completed_process(0)
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib", "--strict"]):
             main()
-            # Find guardrail call
             guardrail_calls = [c[0][0] for c in mock_sub.call_args_list if "_dart_guardrails.py" in str(c[0][0])]
             assert len(guardrail_calls) == 1
             assert "--strict" in guardrail_calls[0]
 
 
-@patch("subprocess.run")
-@patch("os.chdir")
+@patch("scripts.flutter_audit_loop.subprocess.run")
+@patch("scripts.flutter_audit_loop.os.chdir")
 def test_cli_guardrails_targets_specific_file_when_provided(
     mock_chdir: MagicMock, mock_sub: MagicMock, tmp_path: Path
 ) -> None:
@@ -301,7 +330,7 @@ def test_cli_guardrails_targets_specific_file_when_provided(
     target_file.write_text("// test", encoding="utf-8")
     mock_sub.return_value = _mock_completed_process(0)
 
-    with patch("os.getcwd", return_value=str(tmp_path)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(tmp_path)):
         with patch.object(
             sys, "argv", ["flutter_audit_loop.py", "client_app_v2/lib/features/studio/models/workflow.dart", "--strict"]
         ):
@@ -312,8 +341,8 @@ def test_cli_guardrails_targets_specific_file_when_provided(
             mock_chdir.assert_called_once_with(client_app)
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_guardrail_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify fatal guardrail violations trigger script exit."""
     client_app = tmp_path / "client_app_v2"
@@ -321,15 +350,15 @@ def test_cli_guardrail_failure_triggers_exit(mock_sub: MagicMock, mock_exit: Mag
     mock_exit.side_effect = SystemExit(1)
     mock_sub.return_value = _mock_completed_process(1)
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 1
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_theme_sovereignty_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify Flutter Theme Sovereignty violations trigger script exit."""
     client_app = tmp_path / "client_app_v2"
@@ -340,7 +369,7 @@ def test_cli_theme_sovereignty_failure_triggers_exit(mock_sub: MagicMock, mock_e
         _mock_completed_process(1),  # audit_flutter_theme_sovereignty.py fails
     ]
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
             with pytest.raises(SystemExit) as exc:
                 main()
@@ -352,8 +381,8 @@ def test_cli_theme_sovereignty_failure_triggers_exit(mock_sub: MagicMock, mock_e
 # ==============================================================================
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_format_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify dart format failure triggers exit."""
     client_app = tmp_path / "client_app_v2"
@@ -365,15 +394,15 @@ def test_cli_format_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicM
         _mock_completed_process(1),  # dart format fails
     ]
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 1
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_analyze_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify dart analyze failure triggers exit."""
     client_app = tmp_path / "client_app_v2"
@@ -386,29 +415,29 @@ def test_cli_analyze_failure_triggers_exit(mock_sub: MagicMock, mock_exit: Magic
         _mock_completed_process(3),  # dart analyze fails
     ]
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 3
 
 
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_test_flag_executes_flutter_test(mock_sub: MagicMock, tmp_path: Path) -> None:
     """Verify --test flag runs flutter test --coverage."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
     mock_sub.return_value = _mock_completed_process(0)
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib", "--test"]):
             main()
             calls = [c[0][0] for c in mock_sub.call_args_list]
             assert ["flutter", "test", "--coverage"] in calls
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_micro_missing_unit_test_triggers_fail_fast_exit(
     mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
 ) -> None:
@@ -421,15 +450,15 @@ def test_cli_micro_missing_unit_test_triggers_fail_fast_exit(
     mock_exit.side_effect = SystemExit(1)
     mock_sub.return_value = _mock_completed_process(0)
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "client_app_v2/lib/untested.dart", "--micro"]):
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 1
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_micro_unit_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify --micro exits with the failing test returncode when the isolated unit test fails."""
     client_app = tmp_path / "client_app_v2"
@@ -449,14 +478,14 @@ def test_cli_micro_unit_test_failure_triggers_exit(mock_sub: MagicMock, mock_exi
         _mock_completed_process(1),  # isolated flutter test fails
     ]
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "client_app_v2/lib/app.dart", "--micro"]):
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 1
 
 
-@patch("subprocess.run", return_value=_mock_completed_process(0))
+@patch("scripts.flutter_audit_loop.subprocess.run", return_value=_mock_completed_process(0))
 def test_cli_micro_lib_leaf_directory_positive_and_negative(mock_sub: MagicMock, tmp_path: Path) -> None:
     """Verify resolve_flutter_unit_test_files and --micro handle lib/ leaf directories positively and negatively."""
     client_app = tmp_path / "client_app_v2"
@@ -472,7 +501,7 @@ def test_cli_micro_lib_leaf_directory_positive_and_negative(mock_sub: MagicMock,
     resolved = resolve_flutter_unit_test_files("client_app_v2/lib/features/studio", client_app)
     assert resolved == ["test/unit/features/studio/studio_view_test.dart"]
 
-    with patch("os.getcwd", return_value=str(tmp_path)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(tmp_path)):
         main(["client_app_v2/lib/features/studio", "--micro"])
         calls = [c[0][0] for c in mock_sub.call_args_list]
         assert ["flutter", "test", "test/unit/features/studio/studio_view_test.dart"] in calls
@@ -482,14 +511,14 @@ def test_cli_micro_lib_leaf_directory_positive_and_negative(mock_sub: MagicMock,
     (untested_dir / "widget.dart").write_text("class UntestedWidget {}\n", encoding="utf-8")
     assert resolve_flutter_unit_test_files("lib/features/untested_leaf", client_app) == []
 
-    with patch("os.getcwd", return_value=str(tmp_path)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(tmp_path)):
         with pytest.raises(SystemExit) as exc:
             main(["client_app_v2/lib/features/untested_leaf", "--micro"])
         assert exc.value.code == 1
 
 
-@patch("sys.exit")
-@patch("subprocess.run")
+@patch("scripts.flutter_audit_loop.sys.exit")
+@patch("scripts.flutter_audit_loop.subprocess.run")
 def test_cli_flutter_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify flutter test failure triggers exit."""
     client_app = tmp_path / "client_app_v2"
@@ -503,7 +532,7 @@ def test_cli_flutter_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: 
         _mock_completed_process(1),  # flutter test fails
     ]
 
-    with patch("os.getcwd", return_value=str(client_app)):
+    with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
         with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib", "--test"]):
             with pytest.raises(SystemExit) as exc:
                 main()
@@ -515,7 +544,7 @@ def test_cli_flutter_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: 
 # ==============================================================================
 
 
-@patch("subprocess.run", return_value=_mock_completed_process(0))
+@patch("scripts.flutter_audit_loop.subprocess.run", return_value=_mock_completed_process(0))
 def test_stdout_stderr_reconfigure_exception_resilience(mock_sub: MagicMock, tmp_path: Path) -> None:
     """Verify stdout/stderr reconfigure exceptions (UnsupportedOperation) are swallowed gracefully."""
     client_app = tmp_path / "client_app_v2"
@@ -528,7 +557,7 @@ def test_stdout_stderr_reconfigure_exception_resilience(mock_sub: MagicMock, tmp
 
     with patch.object(sys, "stdout", mock_stdout):
         with patch.object(sys, "stderr", mock_stderr):
-            with patch("os.getcwd", return_value=str(client_app)):
+            with patch("scripts.flutter_audit_loop.os.getcwd", return_value=str(client_app)):
                 with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
                     main()
                     assert mock_sub.called

@@ -25,7 +25,7 @@ __all__ = [
     "resolve_flutter_unit_test_files",
 ]
 
-_CODEGEN_MARKERS: tuple[str, ...] = (
+_CODEGEN_DIRECTIVES: tuple[str, ...] = (
     ".g.dart",
     ".freezed.dart",
     "@freezed",
@@ -38,8 +38,6 @@ _CODEGEN_MARKERS: tuple[str, ...] = (
 
 def requires_dart_codegen(target_path: Path) -> bool:
     """Determine whether a Flutter target requires l10n or build_runner code generation.
-
-    # Phase 1, Step 1: Deterministic code generation directive check for --micro mode.
 
     Args:
         target_path: Resolved filesystem path to the target file or directory.
@@ -55,14 +53,12 @@ def requires_dart_codegen(target_path: Path) -> bool:
         return True
     if target_path.is_file() and name_lower.endswith(".dart"):
         source_text = target_path.read_text(encoding="utf-8", errors="replace")
-        return any(marker in source_text for marker in _CODEGEN_MARKERS)
+        return any(directive in source_text for directive in _CODEGEN_DIRECTIVES)
     return False
 
 
 def resolve_flutter_unit_test_files(target_dir: str, client_app_dir: Path) -> list[str]:
     """Resolve existing Flutter unit test files corresponding to a single Dart target file.
-
-    # Phase 1, Step 1: Isolated unit test path resolution for single-file --micro mode.
 
     Args:
         target_dir: Target file path relative to workspace root or `client_app_v2`.
@@ -89,7 +85,7 @@ def resolve_flutter_unit_test_files(target_dir: str, client_app_dir: Path) -> li
                 candidates.add(candidate_rel)
         return sorted(candidates)
 
-    # Phase 1C, Step 3: Resolve unit tests for lib/ leaf directories in --micro mode
+    # Resolve unit tests for lib/ leaf directories in --micro mode
     if norm.startswith("lib/") and not norm.endswith(".dart"):
         dir_path = client_app_dir / norm.rstrip("/")
         if dir_path.is_dir():
@@ -120,6 +116,10 @@ def main(argv: list[str] | None = None) -> None:
 
     Returns:
         None.
+
+    Raises:
+        SystemExit: If CLI arguments are missing, working directory is invalid, or any
+            validation stage returns a non-zero exit code.
     """
     if isinstance(sys.stdout, io.TextIOWrapper):
         try:
