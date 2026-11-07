@@ -15,17 +15,23 @@ from pydantic import ValidationError
 
 from scripts.audit_skills_architecture import (
     CANONICAL_KI_ARTIFACTS,
+    CANONICAL_RULE_SYNTAX_WITNESSES,
     DEFAULT_CANONICAL_KI_ARTIFACTS,
     MAX_ALWAYS_ON_BYTES,
     MAX_SINGLE_RULE_FILE_BYTES,
     PLACEHOLDER_KI_TOKENS,
+    PLANNING_AND_EXECUTION_FACTORY_SKILLS,
     REQUIRED_QUORUM_SKILLS,
     REQUIRED_WORKSPACE_PLUGINS,
+    RuleBlockSpecDTO,
     SkillsArchitectureAuditor,
     SkillsAuditFindingDTO,
     SkillsAuditSummaryDTO,
     discover_canonical_ki_artifacts,
+    extract_rule_blocks_from_text,
     main,
+    verify_candidate_rule_against_all,
+    verify_static_checker_orthogonality,
 )
 
 
@@ -64,10 +70,21 @@ def _populate_compliant_workspace(root: Path) -> None:
             extra_hardening_refs = (
                 f"Covers {ki_refs_str}, placeholder ki_name.md, and @[.agents/rules/05_llm_architecture.md].\n"
             )
+        extra_factory_refs = ""
+        if skill_name in PLANNING_AND_EXECUTION_FACTORY_SKILLS:
+            extra_factory_refs = (
+                '<rule_block id="schema_blast_radius_and_factory_mandate">\n'
+                "  <mandatory_pattern>ALWAYS use `ModelFactory.build(...)` from "
+                "backend_v2/tests/factories/model_factories.py.</mandatory_pattern>\n"
+                "</rule_block>\n"
+                '<rule_block id="pairwise_rule_and_guardrail_orthogonality_mandate">\n'
+                "  <mandatory_pattern>ALWAYS run `scripts/audit_skills_architecture.py`.</mandatory_pattern>\n"
+                "</rule_block>\n"
+            )
         (s_dir / "SKILL.md").write_text(
             f"---\nname: {skill_name}\ndescription: Canonical skill {skill_name}\n---\n"
             f"See [template](./resources/template.md) and @[.agents/rules/00-antigravity-core.md].\n"
-            f"{extra_hardening_refs}",
+            f"{extra_hardening_refs}{extra_factory_refs}",
             encoding="utf-8",
         )
 
@@ -335,3 +352,124 @@ def test_scenario_7_negative_phantom_ki_missing_script_and_omitted_hardening_ki_
     assert any("ki_sdui_matrix_synthesis.md" in m for m in messages)
     assert any("ki_zero_permissive_typing.md" in m for m in messages)
     assert any("05_llm_architecture.md" in m for m in messages)
+
+
+def test_scenario_8_negative_missing_schema_blast_radius_and_factory_mandate_skl003(
+    tmp_path: Path,
+) -> None:
+    """Verify omitting schema_blast_radius_and_factory_mandate or model_factories.py in planning/execution skills emits SKL003."""
+    _populate_compliant_workspace(tmp_path)
+
+    create_plan_md = tmp_path / ".agents" / "skills" / "tier0-create-plan" / "SKILL.md"
+    create_plan_md.write_text(
+        "---\nname: tier0-create-plan\ndescription: Create plan\n---\n"
+        "See [template](./resources/template.md) and @[.agents/rules/00-antigravity-core.md].\n",
+        encoding="utf-8",
+    )
+
+    execute_md = tmp_path / ".agents" / "skills" / "tier2-execute" / "SKILL.md"
+    execute_md.write_text(
+        "---\nname: tier2-execute\ndescription: Execute plan\n---\n"
+        "See [template](./resources/template.md), schema_blast_radius_and_factory_mandate, "
+        "and pairwise_rule_and_guardrail_orthogonality_mandate.\n",
+        encoding="utf-8",
+    )
+
+    auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
+    summary = auditor.run_audit()
+
+    skl003_findings = [f for f in summary.findings if f.rule_code == "SKL003"]
+    assert any(
+        f.file_path == ".agents/skills/tier0-create-plan/SKILL.md"
+        and "schema_blast_radius_and_factory_mandate" in f.message
+        for f in skl003_findings
+    )
+    assert any(
+        f.file_path == ".agents/skills/tier0-create-plan/SKILL.md"
+        and "pairwise_rule_and_guardrail_orthogonality_mandate" in f.message
+        for f in skl003_findings
+    )
+    assert any(
+        f.file_path == ".agents/skills/tier2-execute/SKILL.md" and "model_factories.py" in f.message
+        for f in skl003_findings
+    )
+
+
+def test_scenario_9_negative_pairwise_rule_conflict_detection_skl003(
+    tmp_path: Path,
+) -> None:
+    """Verify verify_candidate_rule_against_all and run_audit emit SKL003 when two rules contradict each other."""
+    _populate_compliant_workspace(tmp_path)
+
+    core_rule_md = tmp_path / ".agents" / "rules" / "00-antigravity-core.md"
+    core_rule_md.write_text(
+        "---\ntrigger: always_on\n---\n"
+        '<rule_block id="legacy_helper_ban">\n'
+        "  <banned_pattern>NEVER use `legacy_helper()` in services.</banned_pattern>\n"
+        "  <mandatory_pattern>ALWAYS use `modern_helper()` in services.</mandatory_pattern>\n"
+        "</rule_block>\n",
+        encoding="utf-8",
+    )
+
+    backend_rule_md = tmp_path / ".agents" / "rules" / "01-python-backend.md"
+    backend_rule_md.write_text(
+        "# Backend Rules\n"
+        '<rule_block id="contradictory_new_rule">\n'
+        "  <mandatory_pattern>ALWAYS use `legacy_helper()` for service calls.</mandatory_pattern>\n"
+        "</rule_block>\n",
+        encoding="utf-8",
+    )
+
+    # Also ensure hardening skill references 01-python-backend.md so hardening coverage stays satisfied
+    ki_refs_str = " ".join(sorted(CANONICAL_KI_ARTIFACTS))
+    (tmp_path / ".agents" / "skills" / "tier2-hardening-backend" / "SKILL.md").write_text(
+        "---\nname: tier2-hardening-backend\ndescription: Backend hardening\n---\n"
+        f"Covers {ki_refs_str}, @[.agents/rules/00-antigravity-core.md], "
+        "@[.agents/rules/01-python-backend.md], and @[.agents/rules/05_llm_architecture.md].\n",
+        encoding="utf-8",
+    )
+
+    parsed_core = extract_rule_blocks_from_text(
+        core_rule_md.read_text(encoding="utf-8"), ".agents/rules/00-antigravity-core.md"
+    )
+    parsed_new = extract_rule_blocks_from_text(
+        backend_rule_md.read_text(encoding="utf-8"), ".agents/rules/01-python-backend.md"
+    )
+    assert len(parsed_core) == 1
+    assert len(parsed_new) == 1
+    assert isinstance(parsed_new[0], RuleBlockSpecDTO)
+
+    direct_findings = verify_candidate_rule_against_all(parsed_new[0], parsed_core)
+    assert len(direct_findings) == 1
+    assert direct_findings[0].rule_code == "SKL003"
+    assert "legacy_helper()" in direct_findings[0].message
+    assert "contradictory_new_rule" in direct_findings[0].message
+    assert "legacy_helper_ban" in direct_findings[0].message
+
+    auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
+    summary = auditor.run_audit()
+    assert any(
+        f.rule_code == "SKL003" and "legacy_helper()" in f.message and "contradictory_new_rule" in f.message
+        for f in summary.findings
+    )
+
+
+def test_scenario_10_static_checker_orthogonality_witness_verification_skl003() -> None:
+    """Verify verify_static_checker_orthogonality passes on canonical witnesses and emits SKL003 on conflicting syntax."""
+    assert verify_static_checker_orthogonality(CANONICAL_RULE_SYNTAX_WITNESSES) == []
+
+    conflicting_witness = {
+        "qgr020_vs_dict_eradication_conflict": (
+            '"""Conflicting witness module."""\n\n'
+            "from typing import Annotated\n"
+            "from pydantic import BaseModel, ConfigDict, Field\n\n\n"
+            "class ConflictingWitnessDTO(BaseModel):\n"
+            '    """Witness with duplicate Field() on Annotated default_factory."""\n\n'
+            '    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)\n\n'
+            '    items: Annotated[list[str], Field(default_factory=list, description="Items")] = Field(default_factory=list)\n'
+        )
+    }
+    findings = verify_static_checker_orthogonality(conflicting_witness)
+    assert len(findings) >= 1
+    assert all(f.rule_code == "SKL003" for f in findings)
+    assert any("qgr020_vs_dict_eradication_conflict" in f.message for f in findings)

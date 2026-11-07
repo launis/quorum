@@ -9,13 +9,22 @@ always_on rules token/byte budget stays within Antigravity inline limits.
 from __future__ import annotations
 
 import argparse
+import ast
 import io
 import re
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Annotated, Final
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
+from scripts._ast_guardrails import scan_source_code_for_guardrails
+from scripts.audit_dict_eradication import AuditViolation, DictEradicationVisitor
 
 # Force UTF-8 encoding for stdout/stderr on Windows
 if isinstance(sys.stdout, io.TextIOWrapper):
@@ -82,6 +91,50 @@ _AT_SKILL_REF_RE: Final[re.Pattern[str]] = re.compile(r"@\[(\.agents/(?:rules|sk
 _ENV_PLACEHOLDER_RE: Final[re.Pattern[str]] = re.compile(r"\$\{[A-Z0-9_]+\}")
 _KI_FILENAME_RE: Final[re.Pattern[str]] = re.compile(r"\b(ki_[a-z0-9_]+\.md)\b")
 _SCRIPT_REF_RE: Final[re.Pattern[str]] = re.compile(r"\bscripts/([a-zA-Z0-9_]+\.py)\b")
+_RULE_BLOCK_RE: Final[re.Pattern[str]] = re.compile(r'<rule_block\s+id="([^"]+)">([\s\S]*?)</rule_block>')
+_BANNED_TAG_RE: Final[re.Pattern[str]] = re.compile(r"<banned_pattern>([\s\S]*?)</banned_pattern>")
+_MANDATORY_TAG_RE: Final[re.Pattern[str]] = re.compile(
+    r"<(?:mandatory_pattern|mandate)>([\s\S]*?)</(?:mandatory_pattern|mandate)>"
+)
+_BAN_CLAUSE_CONSTRUCT_RE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:NEVER\s+(?:exclusively\s+)?(?:use|call|invoke|import|write|allow|combine)"
+    r"|(?:Using|Calling|Invoking|Importing)\b)\s+`([^`\n]{3,80})`"
+)
+_MANDATE_CLAUSE_CONSTRUCT_RE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:ALWAYS|MUST)\s+(?:exclusively\s+)?(?:use|call|invoke|import|enforce)\s+`([^`\n]{3,80})`"
+)
+
+# Phase 1, Step 3: Planning, execution, and red-teaming skills enforcing factory & orthogonality mandates
+PLANNING_AND_EXECUTION_FACTORY_SKILLS: Final[tuple[str, ...]] = (
+    "tier0-create-epic",
+    "tier0-create-plan",
+    "tier0-research-plan",
+    "tier1-planner",
+    "tier2-execute",
+    "tier8-red-teaming-audit",
+)
+
+REQUIRED_FACTORY_SKILL_TOKENS: Final[tuple[str, ...]] = (
+    "schema_blast_radius_and_factory_mandate",
+    "pairwise_rule_and_guardrail_orthogonality_mandate",
+    "model_factories.py",
+)
+
+CANONICAL_RULE_SYNTAX_WITNESSES: Final[dict[str, str]] = {
+    "qgr018_and_qgr020_strict_model_witness": (
+        '"""Canonical syntax witness module for cross-checker orthogonality verification."""\n\n'
+        "from __future__ import annotations\n\n"
+        "from typing import Annotated\n\n"
+        "from pydantic import BaseModel, ConfigDict, Field\n\n\n"
+        "class CanonicalOrthogonalityWitnessDTO(BaseModel):\n"
+        '    """Canonical strict Pydantic V2 witness model."""\n\n'
+        '    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)\n\n'
+        '    id: Annotated[str, Field(min_length=1, description="Canonical entity identifier")]\n'
+        '    name: Annotated[str, Field(min_length=1, description="Canonical display name")]\n'
+        '    tags: Annotated[list[str], Field(default_factory=list, description="Tag collection")]\n'
+        '    notes: Annotated[str | None, Field(default=None, description="Optional notes")] = None\n'
+    ),
+}
 
 # Phase 1B, Step 2: Canonical Knowledge Item artifacts and dynamic discovery
 DEFAULT_CANONICAL_KI_ARTIFACTS: Final[frozenset[str]] = frozenset(
@@ -129,21 +182,28 @@ CANONICAL_KI_ARTIFACTS: frozenset[str] = discover_canonical_ki_artifacts()
 
 __all__ = [
     "CANONICAL_KI_ARTIFACTS",
+    "CANONICAL_RULE_SYNTAX_WITNESSES",
     "DEFAULT_CANONICAL_KI_ARTIFACTS",
     "MAX_ALWAYS_ON_BYTES",
     "MAX_SINGLE_RULE_FILE_BYTES",
     "McpConfigFileDTO",
     "McpServerEntryDTO",
     "PLACEHOLDER_KI_TOKENS",
+    "PLANNING_AND_EXECUTION_FACTORY_SKILLS",
     "PluginManifestDTO",
+    "REQUIRED_FACTORY_SKILL_TOKENS",
     "REQUIRED_QUORUM_SKILLS",
     "REQUIRED_WORKSPACE_PLUGINS",
+    "RuleBlockSpecDTO",
     "SkillsArchitectureAuditor",
     "SkillsAuditFindingDTO",
     "SkillsAuditSummaryDTO",
     "build_arg_parser",
     "discover_canonical_ki_artifacts",
+    "extract_rule_blocks_from_text",
     "main",
+    "verify_candidate_rule_against_all",
+    "verify_static_checker_orthogonality",
 ]
 
 
@@ -242,6 +302,187 @@ class SkillsAuditSummaryDTO(BaseModel):
     findings: Annotated[list[SkillsAuditFindingDTO], Field(description="Accumulated audit findings")]
 
 
+# Phase 1, Step 3: Pairwise Rule Conflict & Static Checker Orthogonality DTO and Verifiers
+class RuleBlockSpecDTO(BaseModel):
+    """Immutable DTO representing a parsed <rule_block> specification for pairwise conflict auditing.
+
+    Attributes:
+        rule_id: Rule block identifier.
+        file_path: Workspace-relative file path.
+        banned_constructs: Normalized backticked constructs explicitly banned by this rule.
+        mandatory_constructs: Normalized backticked constructs explicitly mandated by this rule.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    rule_id: Annotated[str, Field(min_length=1, description="Rule block identifier")]
+    file_path: Annotated[str, Field(min_length=1, description="Workspace-relative file path")]
+    banned_constructs: Annotated[
+        frozenset[str],
+        Field(description="Normalized backticked constructs explicitly banned by this rule"),
+    ]
+    mandatory_constructs: Annotated[
+        frozenset[str],
+        Field(description="Normalized backticked constructs explicitly mandated by this rule"),
+    ]
+
+
+def _normalize_construct_tokens(matches: list[str]) -> set[str]:
+    """Normalize extracted backticked construct tokens while filtering generic path/meta tokens.
+
+    Args:
+        matches: Raw backticked strings extracted from rule clauses.
+
+    Returns:
+        Normalized set of construct strings.
+    """
+    normalized: set[str] = set()
+    for raw in matches:
+        token = raw.strip()
+        if len(token) >= 3 and not token.startswith(("@[", "./", "../", "<", "--")):
+            normalized.add(token)
+    return normalized
+
+
+def extract_rule_blocks_from_text(content: str, file_path: str) -> list[RuleBlockSpecDTO]:
+    """Extract <rule_block> definitions and their banned/mandatory constructs from Markdown/XML text.
+
+    Args:
+        content: Raw UTF-8 text of a rule or skill file.
+        file_path: Workspace-relative POSIX path of the file.
+
+    Returns:
+        List of parsed RuleBlockSpecDTO instances.
+    """
+    specs: list[RuleBlockSpecDTO] = []
+    for match in _RULE_BLOCK_RE.finditer(content):
+        rule_id = match.group(1).strip()
+        body = match.group(2)
+        banned_sections = "\n".join(m.group(1) for m in _BANNED_TAG_RE.finditer(body))
+        mandatory_sections = "\n".join(m.group(1) for m in _MANDATORY_TAG_RE.finditer(body))
+        banned_raw = _normalize_construct_tokens(_BAN_CLAUSE_CONSTRUCT_RE.findall(banned_sections or body))
+        mandatory_raw = _normalize_construct_tokens(_MANDATE_CLAUSE_CONSTRUCT_RE.findall(mandatory_sections or body))
+        overlap = banned_raw & mandatory_raw
+        specs.append(
+            RuleBlockSpecDTO(
+                rule_id=rule_id,
+                file_path=file_path,
+                banned_constructs=frozenset(banned_raw - overlap),
+                mandatory_constructs=frozenset(mandatory_raw - overlap),
+            )
+        )
+    return specs
+
+
+def _rules_share_domain_scope(rule_a: RuleBlockSpecDTO, rule_b: RuleBlockSpecDTO) -> bool:
+    """Determine whether two rules apply to overlapping language/domain scopes.
+
+    Args:
+        rule_a: First rule specification.
+        rule_b: Second rule specification.
+
+    Returns:
+        True if the two rules govern overlapping domain scopes.
+    """
+    if rule_a.file_path == rule_b.file_path:
+        return True
+    isolated_pair = {".agents/rules/01-python-backend.md", ".agents/rules/02_flutter_desktop.md"}
+    return {rule_a.file_path, rule_b.file_path} != isolated_pair
+
+
+def verify_candidate_rule_against_all(
+    candidate: RuleBlockSpecDTO,
+    existing_rules: Sequence[RuleBlockSpecDTO],
+) -> list[SkillsAuditFindingDTO]:
+    """Verify a candidate rule one-by-one against all existing rules for mandate-vs-ban conflicts (SKL003).
+
+    Args:
+        candidate: Newly attached or inspected rule block specification.
+        existing_rules: Sequence of existing rule block specifications to compare against.
+
+    Returns:
+        List of SKL003 findings for any detected pairwise polarity conflict.
+    """
+    findings: list[SkillsAuditFindingDTO] = []
+    for other in existing_rules:
+        if other.rule_id == candidate.rule_id and other.file_path == candidate.file_path:
+            continue
+        if not _rules_share_domain_scope(candidate, other):
+            continue
+        conflicts = sorted(
+            (candidate.mandatory_constructs & other.banned_constructs)
+            | (candidate.banned_constructs & other.mandatory_constructs)
+        )
+        if conflicts:
+            joined = ", ".join(f"`{c}`" for c in conflicts)
+            findings.append(
+                SkillsAuditFindingDTO(
+                    rule_code="SKL003",
+                    file_path=candidate.file_path,
+                    message=(
+                        f"Pairwise rule conflict between '{candidate.rule_id}' ({candidate.file_path}) and "
+                        f"'{other.rule_id}' ({other.file_path}): mutually contradictory mandate/ban on {joined}."
+                    ),
+                    remediation=(
+                        f"Align '{candidate.rule_id}' and '{other.rule_id}' so neither mandates a construct "
+                        "explicitly banned by the other."
+                    ),
+                )
+            )
+    return findings
+
+
+def verify_static_checker_orthogonality(
+    witnesses: Mapping[str, str] = CANONICAL_RULE_SYNTAX_WITNESSES,
+) -> list[SkillsAuditFindingDTO]:
+    """Verify canonical compliant syntax witnesses pass both _ast_guardrails.py and DictEradicationVisitor (SKL003).
+
+    Args:
+        witnesses: Mapping of witness identifiers to compliant Python source snippets.
+
+    Returns:
+        List of SKL003 findings if any static checker rejects a canonical compliant syntax witness.
+    """
+    findings: list[SkillsAuditFindingDTO] = []
+    synthetic_path = "backend_v2/models/domain/_orthogonality_witness.py"
+    for witness_id, source_text in witnesses.items():
+        source_bytes = source_text.encode("utf-8")
+        qgr_violations = scan_source_code_for_guardrails(synthetic_path, source_bytes)
+        dict_violations = _run_dict_visitor_on_witness(synthetic_path, source_bytes)
+        if qgr_violations or dict_violations:
+            qgr_msgs = [f"{v.rule_code}: {v.message}" for v in qgr_violations]
+            dict_msgs = [f"{v.metric}: {v.message}" for v in dict_violations]
+            combined = "; ".join([*qgr_msgs, *dict_msgs])
+            findings.append(
+                SkillsAuditFindingDTO(
+                    rule_code="SKL003",
+                    file_path="scripts/audit_skills_architecture.py",
+                    message=(f"Static checker orthogonality failure on witness '{witness_id}': {combined}"),
+                    remediation=(
+                        "Reconcile scripts/_ast_guardrails.py and scripts/audit_dict_eradication.py so "
+                        "canonical compliant syntax passes all static checkers simultaneously."
+                    ),
+                )
+            )
+    return findings
+
+
+def _run_dict_visitor_on_witness(synthetic_path: str, source_bytes: bytes) -> list[AuditViolation]:
+    """Parse and run DictEradicationVisitor on a witness source snippet.
+
+    Args:
+        synthetic_path: Synthetic model file path for domain classification.
+        source_bytes: UTF-8 encoded Python source code.
+
+    Returns:
+        List of AuditViolation records discovered by DictEradicationVisitor.
+    """
+    tree = ast.parse(source_bytes.decode("utf-8"), filename=synthetic_path)
+    visitor = DictEradicationVisitor(synthetic_path, source_bytes, strict=True)
+    visitor.visit(tree)
+    return list(visitor.violations)
+
+
 class SkillsArchitectureAuditor:
     """Static verifier for Antigravity Skills, Workspace Plugins, and always_on rule budget.
 
@@ -272,7 +513,7 @@ class SkillsArchitectureAuditor:
         self.allowed_ki_artifacts = allowed_ki_artifacts
 
     def run_audit(self) -> SkillsAuditSummaryDTO:
-        """Execute all five verification stages and return an immutable summary DTO.
+        """Execute all verification stages and return an immutable summary DTO.
 
         Returns:
             Immutable summary containing verified counts, byte totals, and findings.
@@ -285,6 +526,7 @@ class SkillsArchitectureAuditor:
         findings.extend(plugin_findings)
         total_bytes, budget_findings = self._check_rule_budget()
         findings.extend(budget_findings)
+        findings.extend(self._check_pairwise_rule_orthogonality())
         return SkillsAuditSummaryDTO(
             verified_skills_count=verified_count,
             verified_plugins_count=verified_plugins,
@@ -355,52 +597,100 @@ class SkillsArchitectureAuditor:
                 verified_count += 1
             findings.extend(skill_findings)
 
-        # Phase 1B, Step 2: Verify tier2-hardening-* skills collectively cover all canonical KIs and rules
+        findings.extend(self._check_hardening_skill_coverage(skills_dir))
+        findings.extend(self._check_planning_and_execution_skill_contracts(skills_dir))
+        return verified_count, findings
+
+    def _check_hardening_skill_coverage(self, skills_dir: Path) -> list[SkillsAuditFindingDTO]:
+        """Verify tier2-hardening-* skills collectively cover all canonical KIs and rules (SKL003).
+
+        Args:
+            skills_dir: Path to `.agents/skills`.
+
+        Returns:
+            List of SKL003 findings for omitted canonical KIs or rule files.
+        """
+        findings: list[SkillsAuditFindingDTO] = []
         backend_hardening_md = skills_dir / "tier2-hardening-backend" / "SKILL.md"
         frontend_hardening_md = skills_dir / "tier2-hardening-frontend" / "SKILL.md"
-        if backend_hardening_md.is_file() and frontend_hardening_md.is_file():
-            combined_hardening_text = (
-                backend_hardening_md.read_text(encoding="utf-8", errors="replace")
-                + "\n"
-                + frontend_hardening_md.read_text(encoding="utf-8", errors="replace")
-            )
-            covered_kis = {m.group(1) for m in _KI_FILENAME_RE.finditer(combined_hardening_text)}
-            for missing_ki in sorted(self.allowed_ki_artifacts - covered_kis):
-                findings.append(
-                    SkillsAuditFindingDTO(
-                        rule_code="SKL003",
-                        file_path=".agents/skills/tier2-hardening-backend/SKILL.md",
-                        message=(
-                            f"Canonical Knowledge Item '{missing_ki}' is not referenced in either "
-                            "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
-                        ),
-                        remediation=(
-                            f"Add '{missing_ki}' to DOMAIN_KI_RESOLUTION_GATE in tier2-hardening-backend/SKILL.md "
-                            "or tier2-hardening-frontend/SKILL.md."
-                        ),
-                    )
+        if not (backend_hardening_md.is_file() and frontend_hardening_md.is_file()):
+            return findings
+
+        combined_hardening_text = (
+            backend_hardening_md.read_text(encoding="utf-8", errors="replace")
+            + "\n"
+            + frontend_hardening_md.read_text(encoding="utf-8", errors="replace")
+        )
+        covered_kis = {m.group(1) for m in _KI_FILENAME_RE.finditer(combined_hardening_text)}
+        for missing_ki in sorted(self.allowed_ki_artifacts - covered_kis):
+            findings.append(
+                SkillsAuditFindingDTO(
+                    rule_code="SKL003",
+                    file_path=".agents/skills/tier2-hardening-backend/SKILL.md",
+                    message=(
+                        f"Canonical Knowledge Item '{missing_ki}' is not referenced in either "
+                        "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
+                    ),
+                    remediation=(
+                        f"Add '{missing_ki}' to DOMAIN_KI_RESOLUTION_GATE in tier2-hardening-backend/SKILL.md "
+                        "or tier2-hardening-frontend/SKILL.md."
+                    ),
                 )
+            )
 
-            rules_dir = self.repo_root / ".agents" / "rules"
-            if rules_dir.is_dir():
-                for rule_file in sorted(rules_dir.glob("[0-9]*.md")):
-                    if rule_file.name not in combined_hardening_text:
-                        findings.append(
-                            SkillsAuditFindingDTO(
-                                rule_code="SKL003",
-                                file_path=".agents/skills/tier2-hardening-backend/SKILL.md",
-                                message=(
-                                    f"Rule file '.agents/rules/{rule_file.name}' is not referenced in either "
-                                    "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
-                                ),
-                                remediation=(
-                                    f"Reference '.agents/rules/{rule_file.name}' in core_rules_routing of "
-                                    "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
-                                ),
-                            )
+        rules_dir = self.repo_root / ".agents" / "rules"
+        if rules_dir.is_dir():
+            for rule_file in sorted(rules_dir.glob("[0-9]*.md")):
+                if rule_file.name not in combined_hardening_text:
+                    findings.append(
+                        SkillsAuditFindingDTO(
+                            rule_code="SKL003",
+                            file_path=".agents/skills/tier2-hardening-backend/SKILL.md",
+                            message=(
+                                f"Rule file '.agents/rules/{rule_file.name}' is not referenced in either "
+                                "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
+                            ),
+                            remediation=(
+                                f"Reference '.agents/rules/{rule_file.name}' in core_rules_routing of "
+                                "tier2-hardening-backend/SKILL.md or tier2-hardening-frontend/SKILL.md."
+                            ),
                         )
+                    )
+        return findings
 
-        return verified_count, findings
+    def _check_planning_and_execution_skill_contracts(self, skills_dir: Path) -> list[SkillsAuditFindingDTO]:
+        """Verify planning, execution, and red-teaming skills declare factory and orthogonality mandates (SKL003).
+
+        Args:
+            skills_dir: Path to `.agents/skills`.
+
+        Returns:
+            List of SKL003 findings when required rule block IDs or factory references are missing.
+        """
+        findings: list[SkillsAuditFindingDTO] = []
+        for skill_name in PLANNING_AND_EXECUTION_FACTORY_SKILLS:
+            skill_md = skills_dir / skill_name / "SKILL.md"
+            if not skill_md.is_file():
+                continue
+            rel_path = skill_md.relative_to(self.repo_root).as_posix()
+            content = skill_md.read_text(encoding="utf-8", errors="replace")
+            for required_token in REQUIRED_FACTORY_SKILL_TOKENS:
+                if required_token not in content:
+                    findings.append(
+                        SkillsAuditFindingDTO(
+                            rule_code="SKL003",
+                            file_path=rel_path,
+                            message=(
+                                f"Skill '{rel_path}' is missing required architectural contract token "
+                                f"'{required_token}'."
+                            ),
+                            remediation=(
+                                f"Add '{required_token}' to '{rel_path}' to enforce Polyfactory blast-radius "
+                                "and pairwise rule/guardrail orthogonality governance."
+                            ),
+                        )
+                    )
+        return findings
 
     def _audit_single_skill(self, skill_folder: Path) -> list[SkillsAuditFindingDTO]:
         """Audit a single skill directory for SKL002 frontmatter and SKL003 links.
@@ -847,6 +1137,50 @@ class SkillsArchitectureAuditor:
                 )
             )
         return total_bytes, findings
+
+    def _check_pairwise_rule_orthogonality(self) -> list[SkillsAuditFindingDTO]:
+        """Verify all discovered <rule_block> specs pairwise and validate static checker witnesses (SKL003).
+
+        Returns:
+            List of SKL003 findings for any pairwise rule contradiction or static checker conflict.
+        """
+        rule_specs: list[RuleBlockSpecDTO] = []
+        for doc_path in self._collect_rule_and_skill_markdown_files():
+            rel_path = doc_path.relative_to(self.repo_root).as_posix()
+            content = doc_path.read_text(encoding="utf-8", errors="replace")
+            rule_specs.extend(extract_rule_blocks_from_text(content, rel_path))
+
+        findings: list[SkillsAuditFindingDTO] = []
+        seen_pairs: set[tuple[str, str]] = set()
+        for idx, candidate in enumerate(rule_specs):
+            prior_specs = rule_specs[:idx]
+            for finding in verify_candidate_rule_against_all(candidate, prior_specs):
+                pair_key = (candidate.file_path, finding.message)
+                if pair_key not in seen_pairs:
+                    seen_pairs.add(pair_key)
+                    findings.append(finding)
+
+        findings.extend(verify_static_checker_orthogonality())
+        return findings
+
+    def _collect_rule_and_skill_markdown_files(self) -> list[Path]:
+        """Collect all root, .agents/rules/*.md, and .agents/skills/*/SKILL.md files in deterministic order.
+
+        Returns:
+            Ordered list of existing Markdown files containing rule blocks.
+        """
+        files: list[Path] = []
+        for root_name in ("AGENTS.md", "GEMINI.md"):
+            candidate = self.repo_root / root_name
+            if candidate.is_file():
+                files.append(candidate)
+        rules_dir = self.repo_root / ".agents" / "rules"
+        if rules_dir.is_dir():
+            files.extend(sorted(rules_dir.glob("*.md")))
+        skills_dir = self.repo_root / ".agents" / "skills"
+        if skills_dir.is_dir():
+            files.extend(sorted(skills_dir.glob("*/SKILL.md")))
+        return files
 
     @staticmethod
     def _is_always_on_rule(rule_path: Path) -> bool:
