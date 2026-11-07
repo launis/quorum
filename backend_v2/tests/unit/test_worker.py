@@ -6,9 +6,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
+import backend_v2.worker as worker_mod
+import backend_v2.workers.synthesis_worker as synthesis_worker_mod
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.metadata import MetadataHookPayloadDTO
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
@@ -16,7 +19,6 @@ from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -46,6 +48,7 @@ from backend_v2.workers import (
     VarianceExplanationResult,
     execute_workflow_job,
     generate_profile_synthesis_and_pdf_task,
+    generate_report_artifact_job,
 )
 
 __all__ = [
@@ -62,6 +65,11 @@ __all__ = [
     "test_worker_synthesis_missing_metrics_remains_none",
     "test_worker_synthesis_multi_section_aggregation",
 ]
+
+
+def _empty_inputs() -> WorkflowInputs:
+    """Return empty validated WorkflowInputs for worker entrypoint tests."""
+    return WorkflowInputs.model_validate({})
 
 
 def _get_base_model_registry() -> SystemConfigModelRegistry:
@@ -171,9 +179,11 @@ def test_worker_settings() -> None:
     """Verify WorkerSettings contains mandatory configuration and registered functions."""
     assert health_check in WorkerSettings.functions
     assert execute_workflow_job in WorkerSettings.functions
-    registered_names = {f.__name__ for f in WorkerSettings.functions}
-    assert "generate_pdf_job" not in registered_names
-    assert "render_profile_job" not in registered_names
+    assert generate_report_artifact_job in WorkerSettings.functions
+    assert len(WorkerSettings.functions) == 3
+    assert WorkerSettings.functions[0] is health_check
+    assert WorkerSettings.functions[1] is execute_workflow_job
+    assert WorkerSettings.functions[2] is generate_report_artifact_job
     assert WorkerSettings.on_startup == startup
     assert WorkerSettings.on_shutdown == shutdown
 
@@ -191,11 +201,11 @@ async def test_startup() -> None:
     """Verify worker startup initializes repos, registries, and context dependencies."""
     with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             with patch("backend_v2.worker.LLMClient"):
                 with patch("backend_v2.worker.PromptCompilerAdapter"):
                     with patch("backend_v2.worker.DAGExecutor"):
-                        ctx = {}
+                        ctx: dict[str, MagicMock | InMemoryUnifiedWorkflowRepository] = {}
                         await startup(ctx)
                         assert "engine" in ctx
                         assert "repository" in ctx
@@ -210,7 +220,7 @@ async def test_execute_workflow_job_not_found() -> None:
 
     ctx = {"repository": mock_repo, "engine": mock_engine}
 
-    res = await execute_workflow_job(ctx, "nonexistent", {})
+    res = await execute_workflow_job(ctx, "nonexistent", _empty_inputs())
     assert res.status == "FAILED/DLQ"
 
 
@@ -238,7 +248,9 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
     )
 
     ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_missing")
+    res = await execute_workflow_job(
+        ctx, "wf_0195f3a0000070018234567890123456", _empty_inputs(), execution_id="exe_missing"
+    )
     assert res.status == "FAILED/DLQ"
 
 
@@ -246,35 +258,34 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
 async def test_execute_workflow_job_missing_strictness_level() -> None:
     """Negative test: verify missing strictness level triggers Fail-Fast AppException."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
-    wf = Workflow.model_construct(
-        id="wf_0195f3a0000070018234567890123456",
-        name="Test WF",
-        slug="test-wf",
-        description="desc",
-        status="draft",
-        version=1,
-        steps=[],
-        default_profile_id=None,
-        model_registry_id="sys_0195f3a0000070018111222233334444",
-        historical_context_mode="DISABLED",
-        default_strictness_level=None,
+    wf = _get_base_workflow().model_copy(
+        update={
+            "default_profile_id": None,
+            "default_strictness_level": None,
+        }
     )
     await mock_repo.save_workflow(wf)
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            status=ExecutionStatus.PENDING,
-            target_locale="en",
-            metadata=ExecutionMetadata(),
-            step_states={},
-            output_profile_id=None,
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "status": ExecutionStatus.PENDING,
+                "target_locale": "en",
+                "metadata": {},
+                "step_states": {},
+                "output_profile_id": None,
+            },
+            strict=False,
         )
     )
 
     ctx = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(
-        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+        ctx,
+        "wf_0195f3a0000070018234567890123456",
+        _empty_inputs(),
+        execution_id="exe_0195f3a0000070018234567890123456",
     )
     assert res.status == "FAILED/DLQ"
 
@@ -316,19 +327,25 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
             )
         ]
     )
-    rec = ExecutionRecord.model_construct(
-        id="exe_0195f3a0000070018234567890123456",
-        workflow_id="wf_0195f3a0000070018234567890123456",
-        status=ExecutionStatus.PENDING,
-        step_states={},
-        target_locale="",  # Empty target_locale triggers fail-fast
-        metadata=ExecutionMetadata(),
-    )
+    rec = ExecutionRecord.model_validate(
+        {
+            "id": "exe_0195f3a0000070018234567890123456",
+            "workflow_id": "wf_0195f3a0000070018234567890123456",
+            "status": ExecutionStatus.PENDING,
+            "step_states": {},
+            "target_locale": "en",
+            "metadata": {},
+        },
+        strict=False,
+    ).model_copy(update={"target_locale": ""})
     await mock_repo.save_execution(rec)
     ctx = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
 
     res = await execute_workflow_job(
-        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+        ctx,
+        "wf_0195f3a0000070018234567890123456",
+        _empty_inputs(),
+        execution_id="exe_0195f3a0000070018234567890123456",
     )
     assert res.status == "FAILED/DLQ"
 
@@ -337,11 +354,29 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
 async def test_execute_workflow_job_cancelled() -> None:
     """Verify execute_workflow_job handles asyncio.CancelledError gracefully."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
-    mock_repo.inject_fault("get_workflow", asyncio.CancelledError())
-
-    ctx = {"repository": mock_repo, "engine": AsyncMock()}
+    await mock_repo.save_workflow(_get_base_workflow())
+    await mock_repo.save_execution(
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.PENDING,
+                "target_locale": "fi",
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
+        )
+    )
+    mock_engine = AsyncMock()
+    mock_engine.execute_workflow.side_effect = asyncio.CancelledError()
+    ctx = {"repository": mock_repo, "engine": mock_engine}
     res = await execute_workflow_job(
-        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+        ctx,
+        "wf_0195f3a0000070018234567890123456",
+        _empty_inputs(),
+        execution_id="exe_0195f3a0000070018234567890123456",
     )
     assert res.status == "FAILED/DLQ"
 
@@ -352,26 +387,52 @@ async def test_execute_workflow_job_failure_update_error() -> None:
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_repo.inject_fault("get_workflow", RuntimeError("Initial crash"))
     mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
-
-    ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(
-        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
-    )
-    assert res.status == "FAILED/DLQ"
+    try:
+        ctx = {"repository": mock_repo, "engine": AsyncMock()}
+        res = await execute_workflow_job(
+            ctx,
+            "wf_0195f3a0000070018234567890123456",
+            _empty_inputs(),
+            execution_id="exe_0195f3a0000070018234567890123456",
+        )
+        assert res.status == "FAILED/DLQ"
+    finally:
+        mock_repo.clear_faults()
 
 
 @pytest.mark.asyncio
 async def test_execute_workflow_job_cancelled_update_error() -> None:
     """Negative test: verify execute_workflow_job logs error when cancellation update raises exception."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
-    mock_repo.inject_fault("get_workflow", asyncio.CancelledError())
-    mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
-
-    ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(
-        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+    await mock_repo.save_workflow(_get_base_workflow())
+    await mock_repo.save_execution(
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.PENDING,
+                "target_locale": "fi",
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
+        )
     )
-    assert res.status == "FAILED/DLQ"
+    mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
+    try:
+        mock_engine = AsyncMock()
+        mock_engine.execute_workflow.side_effect = asyncio.CancelledError()
+        ctx = {"repository": mock_repo, "engine": mock_engine}
+        res = await execute_workflow_job(
+            ctx,
+            "wf_0195f3a0000070018234567890123456",
+            _empty_inputs(),
+            execution_id="exe_0195f3a0000070018234567890123456",
+        )
+        assert res.status == "FAILED/DLQ"
+    finally:
+        mock_repo.clear_faults()
 
 
 @pytest.mark.asyncio
@@ -412,72 +473,87 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         ]
     )
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.PENDING,
-            target_locale="fi",
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.PENDING,
+                "target_locale": "fi",
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
 
     mock_trace = [
-        TraceEvent(
-            v=1,
-            timestamp=datetime.now(UTC),
-            event_type="error",
-            step_name="step_err",
-            content={"error": "Non-fatal warning"},
-        ),
-        TraceEvent(
-            v=1,
-            timestamp=datetime.now(UTC),
-            event_type="output",
-            step_name="step_synth",
-            content={
-                "_step_metadata": {
-                    "token_usage": {
-                        "prompt_tokens": 100,
-                        "completion_tokens": 50,
-                        "total_tokens": 150,
-                        "cached_tokens": 20,
-                        "reasoning_tokens": 10,
-                        "cost_usd": 0.005,
-                    },
-                    "model_strategy": "synthesis",
-                    "chunk_size": 2,
-                }
+        TraceEvent.model_validate(
+            {
+                "v": 1,
+                "timestamp": datetime.now(UTC),
+                "event_type": "error",
+                "step_name": "step_err",
+                "content": {"error": "Non-fatal warning"},
             },
+            strict=False,
         ),
-        TraceEvent(
-            v=1,
-            timestamp=datetime.now(UTC),
-            event_type="output",
-            step_name="step_no_usage",
-            content={
-                "_step_metadata": {
-                    "token_usage": None,
-                    "model_strategy": "fast",
-                    "physical_model": "gemini-2.5-pro",
-                    "system_fingerprint": "fp_test",
-                    "chunk_size": 1,
-                }
+        TraceEvent.model_validate(
+            {
+                "v": 1,
+                "timestamp": datetime.now(UTC),
+                "event_type": "output",
+                "step_name": "step_synth",
+                "content": {
+                    "_step_metadata": {
+                        "token_usage": {
+                            "prompt_tokens": 100,
+                            "completion_tokens": 50,
+                            "total_tokens": 150,
+                            "cached_tokens": 20,
+                            "reasoning_tokens": 10,
+                            "cost_usd": 0.005,
+                        },
+                        "model_strategy": "synthesis",
+                        "chunk_size": 2,
+                    }
+                },
             },
+            strict=False,
+        ),
+        TraceEvent.model_validate(
+            {
+                "v": 1,
+                "timestamp": datetime.now(UTC),
+                "event_type": "output",
+                "step_name": "step_no_usage",
+                "content": {
+                    "_step_metadata": {
+                        "token_usage": None,
+                        "model_strategy": "fast",
+                        "physical_model": "gemini-2.5-pro",
+                        "system_fingerprint": "fp_test",
+                        "chunk_size": 1,
+                    }
+                },
+            },
+            strict=False,
         ),
     ]
 
-    mock_exec_record = ExecutionRecord(
-        id="exe_0195f3a0000070018234567890123456",
-        workflow_id="wf_0195f3a0000070018234567890123456",
-        output_profile_id="prof_0195f3a0000070018111222233334444",
-        status=ExecutionStatus.PENDING,
-        target_locale="fi",
-        metadata=ExecutionMetadata(),
-        steps=[ExecutionStep(id="step_other", label="Other step", status=ExecutionStatus.PASSED)],
-        step_states={},
-        execution_trace=mock_trace,
+    mock_exec_record = ExecutionRecord.model_validate(
+        {
+            "id": "exe_0195f3a0000070018234567890123456",
+            "workflow_id": "wf_0195f3a0000070018234567890123456",
+            "output_profile_id": "prof_0195f3a0000070018111222233334444",
+            "status": ExecutionStatus.PENDING,
+            "target_locale": "fi",
+            "metadata": {},
+            "steps": [{"id": "step_other", "label": "Other step", "status": ExecutionStatus.PASSED}],
+            "step_states": {},
+            "execution_trace": mock_trace,
+        },
+        strict=False,
     )
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record
@@ -487,7 +563,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     res = await execute_workflow_job(
         ctx,
         workflow_id="wf_0195f3a0000070018234567890123456",
-        inputs={},
+        inputs=_empty_inputs(),
         execution_id="exe_0195f3a0000070018234567890123456",
     )
 
@@ -504,7 +580,7 @@ async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
     """Verify generate_profile_synthesis_and_pdf_task gracefully exits when execution missing."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await generate_profile_synthesis_and_pdf_task("exe_0195f3a0000070018234567890123456", "en")
             assert (await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")) is None
 
@@ -527,24 +603,30 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached(
     mock_redis = AsyncMock()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_0195f3a0000070018234567890123456",
-                    workflow_id="wf_0195f3a0000070018234567890123456",
-                    output_profile_id="prof_0195f3a0000070018111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="fi",
-                    metadata=ExecutionMetadata(),
-                    step_states={},
-                    profile_syntheses={
-                        "prof_0195f3a0000070018111222233334444": RenderedSynthesisCache(
-                            section_syntheses={},
-                            row_explanations={},
-                            cited_sources=[],
-                            xai_highlights=[],
-                        )
+                ExecutionRecord.model_validate(
+                    {
+                        "id": "exe_0195f3a0000070018234567890123456",
+                        "workflow_id": "wf_0195f3a0000070018234567890123456",
+                        "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "status": ExecutionStatus.RUNNING,
+                        "target_locale": "fi",
+                        "metadata": {},
+                        "step_states": {},
+                        "profile_syntheses": {
+                            "prof_0195f3a0000070018111222233334444": RenderedSynthesisCache.model_validate(
+                                {
+                                    "section_syntheses": {},
+                                    "row_explanations": {},
+                                    "cited_sources": [],
+                                    "xai_highlights": [],
+                                },
+                                strict=False,
+                            )
+                        },
                     },
+                    strict=False,
                 )
             )
 
@@ -569,17 +651,20 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
     mock_redis = AsyncMock()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_0195f3a0000070018234567890123456",
-                    workflow_id="wf_0195f3a0000070018234567890123456",
-                    output_profile_id="prof_0195f3a0000070018111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="fi",
-                    metadata=ExecutionMetadata(),
-                    step_states={},
-                    profile_syntheses={},
+                ExecutionRecord.model_validate(
+                    {
+                        "id": "exe_0195f3a0000070018234567890123456",
+                        "workflow_id": "wf_0195f3a0000070018234567890123456",
+                        "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "status": ExecutionStatus.RUNNING,
+                        "target_locale": "fi",
+                        "metadata": {},
+                        "step_states": {},
+                        "profile_syntheses": {},
+                    },
+                    strict=False,
                 )
             )
             mock_repo.set_output_profiles(
@@ -621,7 +706,8 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
             ) as mock_distiller:
                 mock_distiller.return_value = HookResult(
-                    success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"})
+                    success=True,
+                    state_delta=HookDeltaDTO.model_validate({"delta": {"distilled_inputs": "Data"}}, strict=False),
                 )
                 await generate_profile_synthesis_and_pdf_task(
                     "exe_0195f3a0000070018234567890123456",
@@ -642,33 +728,36 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
     """Negative test: verify visible extensions with missing max_extension_items triggers AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_0195f3a0000070018234567890123456",
-                    workflow_id="wf_0195f3a0000070018234567890123456",
-                    output_profile_id="prof_0195f3a0000070018111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="fi",
-                    metadata=ExecutionMetadata(),
-                    step_states={},
-                    profile_syntheses={},
+                ExecutionRecord.model_validate(
+                    {
+                        "id": "exe_0195f3a0000070018234567890123456",
+                        "workflow_id": "wf_0195f3a0000070018234567890123456",
+                        "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "status": ExecutionStatus.RUNNING,
+                        "target_locale": "fi",
+                        "metadata": {},
+                        "step_states": {},
+                        "profile_syntheses": {},
+                    },
+                    strict=False,
                 )
             )
-            mock_repo.set_output_profiles(
-                [
-                    OutputProfile.model_construct(
-                        id="prof_0195f3a0000070018111222233334444",
-                        slug="prof-1",
-                        workflow_id="wf_0195f3a0000070018234567890123456",
-                        name={"translations": {"en": "Profile"}},
-                        visible_workflow_extensions=["authenticity_evaluation"],
-                        max_extension_items=None,
-                        matrix_synthesis_groups=[],
-                        target_block_order=[],
-                    )
-                ]
+            base_prof = OutputProfile.model_validate(
+                {
+                    "id": "prof_0195f3a0000070018111222233334444",
+                    "slug": "prof-1",
+                    "workflow_id": "wf_0195f3a0000070018234567890123456",
+                    "name": {"translations": {"en": "Profile"}},
+                    "visible_workflow_extensions": ["authenticity_evaluation"],
+                    "max_extension_items": 3,
+                    "matrix_synthesis_groups": [],
+                    "target_block_order": [],
+                },
+                strict=False,
             )
+            mock_repo.set_output_profiles([base_prof.model_copy(update={"max_extension_items": None})])
             mock_repo.set_prompt_blocks(
                 [
                     {
@@ -705,7 +794,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
             ) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}),
+                    state_delta=HookDeltaDTO.model_validate({"delta": {"distilled_inputs": "Data"}}, strict=False),
                 )
                 with pytest.raises(AppException):
                     await generate_profile_synthesis_and_pdf_task(
@@ -728,42 +817,45 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_0195f3a0000070018234567890123456",
-                    workflow_id="wf_0195f3a0000070018234567890123456",
-                    output_profile_id="prof_0195f3a0000070018111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="fi",
-                    metadata=ExecutionMetadata(),
-                    step_states={},
-                    profile_syntheses={},
-                    context_variables={
-                        "variables": {
-                            "step_linguistics": {
-                                "performative_patterns": [
-                                    {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}
-                                ],
+                ExecutionRecord.model_validate(
+                    {
+                        "id": "exe_0195f3a0000070018234567890123456",
+                        "workflow_id": "wf_0195f3a0000070018234567890123456",
+                        "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "status": ExecutionStatus.RUNNING,
+                        "target_locale": "fi",
+                        "metadata": {},
+                        "step_states": {},
+                        "profile_syntheses": {},
+                        "context_variables": {
+                            "variables": {
+                                "step_linguistics": {
+                                    "performative_patterns": [
+                                        {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}
+                                    ],
+                                }
                             }
-                        }
-                    },
-                    execution_trace=[
-                        TraceEvent(
-                            v=1,
-                            timestamp=datetime.now(UTC),
-                            event_type="output",
-                            step_name="step_perf",
-                            content={
-                                "_step_metadata": {"task_blueprint": "step_perf"},
-                                "blk_0195f3a0000070018111222233334444": {
-                                    "raw_score": 85.0,
-                                    "normalized_score": 85.0,
-                                    "level_breakdown": {"1.0": {"hits": 1, "total": 1}},
+                        },
+                        "execution_trace": [
+                            {
+                                "v": 1,
+                                "timestamp": datetime.now(UTC),
+                                "event_type": "output",
+                                "step_name": "step_perf",
+                                "content": {
+                                    "_step_metadata": {"task_blueprint": "step_perf"},
+                                    "blk_0195f3a0000070018111222233334444": {
+                                        "raw_score": 85.0,
+                                        "normalized_score": 85.0,
+                                        "level_breakdown": {"1.0": {"hits": 1, "total": 1}},
+                                    },
                                 },
-                            },
-                        )
-                    ],
+                            }
+                        ],
+                    },
+                    strict=False,
                 )
             )
 
@@ -849,21 +941,24 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
             ) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(
-                        delta={
-                            "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [
-                                {
-                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
-                                    "matrix_id": "m0",
-                                    "matrix_label": "Target Matrix",
-                                    "score": 85.0,
-                                    "justification": "Evidence verified.",
-                                }
-                            ],
-                            "target_locale": "fi",
-                            "title_map": {"blk_0195f3a0000070018111222233334444": "Kohdematriisi"},
-                        }
+                    state_delta=HookDeltaDTO.model_validate(
+                        {
+                            "delta": {
+                                "distilled_inputs": "Sample analytical summary data.",
+                                "matrices_to_explain": [
+                                    {
+                                        "real_matrix_id": "blk_0195f3a0000070018111222233334444",
+                                        "matrix_id": "m0",
+                                        "matrix_label": "Target Matrix",
+                                        "score": 85.0,
+                                        "justification": "Evidence verified.",
+                                    }
+                                ],
+                                "target_locale": "fi",
+                                "title_map": {"blk_0195f3a0000070018111222233334444": "Kohdematriisi"},
+                            }
+                        },
+                        strict=False,
                     ),
                 )
 
@@ -919,25 +1014,31 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         ]
     )
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.PENDING,
-            target_locale="fi",
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.PENDING,
+                "target_locale": "fi",
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
 
-    mock_exec_record = ExecutionRecord(
-        id="exe_0195f3a0000070018234567890123456",
-        workflow_id="wf_0195f3a0000070018234567890123456",
-        status=ExecutionStatus.PENDING,
-        target_locale="fi",
-        metadata=ExecutionMetadata(),
-        step_states={},
-        output_profile_id="prof_0195f3a0000070018111222233334444",
+    mock_exec_record = ExecutionRecord.model_validate(
+        {
+            "id": "exe_0195f3a0000070018234567890123456",
+            "workflow_id": "wf_0195f3a0000070018234567890123456",
+            "status": ExecutionStatus.PENDING,
+            "target_locale": "fi",
+            "metadata": {},
+            "step_states": {},
+            "output_profile_id": "prof_0195f3a0000070018111222233334444",
+        },
+        strict=False,
     )
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record
@@ -948,7 +1049,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     res = await execute_workflow_job(
         ctx,
         workflow_id="wf_0195f3a0000070018234567890123456",
-        inputs={},
+        inputs=_empty_inputs(),
         execution_id="exe_0195f3a0000070018234567890123456",
     )
 
@@ -968,34 +1069,40 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_0195f3a0000070018234567890123456",
-                    workflow_id="wf_0195f3a0000070018234567890123456",
-                    output_profile_id="prof_0195f3a0000070018111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="fi",
-                    metadata=ExecutionMetadata(),
-                    step_states={},
-                    profile_syntheses={},
-                    context_variables={},
-                    execution_trace=[
-                        TraceEvent(
-                            v=1,
-                            timestamp=datetime.now(UTC),
-                            event_type="output",
-                            step_name="sr_matrix_step",
-                            content={
-                                "blk_0195f3a0000070018111222233334444": {
-                                    "raw_score": 3.0,
-                                    "normalized_score": 50.0,
-                                    "level_breakdown": {"1.0": {"hits": 1, "total": 2}, "5.0": {"hits": 1, "total": 2}},
-                                    "atom_quotes": ["Evidence quote"],
-                                }
-                            },
-                        )
-                    ],
+                ExecutionRecord.model_validate(
+                    {
+                        "id": "exe_0195f3a0000070018234567890123456",
+                        "workflow_id": "wf_0195f3a0000070018234567890123456",
+                        "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "status": ExecutionStatus.RUNNING,
+                        "target_locale": "fi",
+                        "metadata": {},
+                        "step_states": {},
+                        "profile_syntheses": {},
+                        "context_variables": {},
+                        "execution_trace": [
+                            {
+                                "v": 1,
+                                "timestamp": datetime.now(UTC),
+                                "event_type": "output",
+                                "step_name": "sr_matrix_step",
+                                "content": {
+                                    "blk_0195f3a0000070018111222233334444": {
+                                        "raw_score": 3.0,
+                                        "normalized_score": 50.0,
+                                        "level_breakdown": {
+                                            "1.0": {"hits": 1, "total": 2},
+                                            "5.0": {"hits": 1, "total": 2},
+                                        },
+                                        "atom_quotes": ["Evidence quote"],
+                                    }
+                                },
+                            }
+                        ],
+                    },
+                    strict=False,
                 )
             )
 
@@ -1091,11 +1198,14 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
             ) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(
-                        delta={
-                            "distilled_inputs": "Sample summary data.",
-                            "matrices_to_explain": [],
-                        }
+                    state_delta=HookDeltaDTO.model_validate(
+                        {
+                            "delta": {
+                                "distilled_inputs": "Sample summary data.",
+                                "matrices_to_explain": [],
+                            }
+                        },
+                        strict=False,
                     ),
                 )
 
@@ -1115,13 +1225,16 @@ async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
         mock_repo.inject_fault("get_execution", RuntimeError("DB connection lost"))
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
-            with pytest.raises(RuntimeError):
-                await generate_profile_synthesis_and_pdf_task(
-                    "exe_0195f3a0000070018234567890123456",
-                    accept_language="fi",
-                    profile_id="prof_0195f3a0000070018111222233334444",
-                )
+        try:
+            with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
+                with pytest.raises(RuntimeError):
+                    await generate_profile_synthesis_and_pdf_task(
+                        "exe_0195f3a0000070018234567890123456",
+                        accept_language="fi",
+                        profile_id="prof_0195f3a0000070018111222233334444",
+                    )
+        finally:
+            mock_repo.clear_faults()
 
 
 @pytest.mark.asyncio
@@ -1129,16 +1242,19 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
     """Negative test: verify missing workflow in synthesis task raises Fail-Fast AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_0195f3a0000070018234567890123456",
-                    workflow_id="wf_nonexistent_1234",
-                    output_profile_id="prof_0195f3a0000070018111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="fi",
-                    metadata=ExecutionMetadata(),
-                    step_states={},
+                ExecutionRecord.model_validate(
+                    {
+                        "id": "exe_0195f3a0000070018234567890123456",
+                        "workflow_id": "wf_nonexistent_1234",
+                        "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "status": ExecutionStatus.RUNNING,
+                        "target_locale": "fi",
+                        "metadata": {},
+                        "step_states": {},
+                    },
+                    strict=False,
                 )
             )
             mock_repo.set_output_profiles(
@@ -1174,31 +1290,34 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
     """Tests that data starvation in trace short-circuits synthesis and saves starvation cache."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_0195f3a0000070018234567890123456",
-                    workflow_id="wf_0195f3a0000070018234567890123456",
-                    output_profile_id="prof_0195f3a0000070018111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="en",
-                    execution_trace=[
-                        TraceEvent(
-                            v=1,
-                            timestamp=datetime.now(UTC),
-                            step_name="synthesis_step",
-                            event_type="output",
-                            content={"event_type": "starvation", "total_atoms": 0, "reason": "No atoms"},
-                        )
-                    ],
-                    step_states={
-                        "sys_render_prof_1": {
-                            "id": "sys_render_prof_1",
-                            "label": "Rendering",
-                            "status": ExecutionStatus.RUNNING,
-                        }
+                ExecutionRecord.model_validate(
+                    {
+                        "id": "exe_0195f3a0000070018234567890123456",
+                        "workflow_id": "wf_0195f3a0000070018234567890123456",
+                        "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "status": ExecutionStatus.RUNNING,
+                        "target_locale": "en",
+                        "execution_trace": [
+                            {
+                                "v": 1,
+                                "timestamp": datetime.now(UTC),
+                                "step_name": "synthesis_step",
+                                "event_type": "output",
+                                "content": {"event_type": "starvation", "total_atoms": 0, "reason": "No atoms"},
+                            }
+                        ],
+                        "step_states": {
+                            "sys_render_prof_1": {
+                                "id": "sys_render_prof_1",
+                                "label": "Rendering",
+                                "status": ExecutionStatus.RUNNING,
+                            }
+                        },
+                        "metadata": {},
                     },
-                    metadata=ExecutionMetadata(),
+                    strict=False,
                 )
             )
 
@@ -1262,50 +1381,59 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         ]
     )
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.PENDING,
-            target_locale="fi",
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.PENDING,
+                "target_locale": "fi",
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
 
     in_memory_trace = [
-        TraceEvent(
-            v=1,
-            timestamp=datetime.now(UTC),
-            event_type="progress",
-            step_name="stp_preflight",
-            content={"message": "running", "percentage": 50},
+        TraceEvent.model_validate(
+            {
+                "v": 1,
+                "timestamp": datetime.now(UTC),
+                "event_type": "progress",
+                "step_name": "stp_preflight",
+                "content": {"message": "running", "percentage": 50},
+            },
+            strict=False,
         )
     ]
 
-    mock_exec_record = ExecutionRecord(
-        id="exe_0195f3a0000070018234567890123456",
-        workflow_id="wf_0195f3a0000070018234567890123456",
-        output_profile_id="prof_0195f3a0000070018111222233334444",
-        status=ExecutionStatus.PENDING,
-        target_locale="fi",
-        metadata=ExecutionMetadata(),
-        step_states={
-            "step_dag": {
-                "id": "step_dag",
-                "label": "Step DAG",
-                "status": ExecutionStatus.PASSED,
-            }
+    mock_exec_record = ExecutionRecord.model_validate(
+        {
+            "id": "exe_0195f3a0000070018234567890123456",
+            "workflow_id": "wf_0195f3a0000070018234567890123456",
+            "output_profile_id": "prof_0195f3a0000070018111222233334444",
+            "status": ExecutionStatus.PENDING,
+            "target_locale": "fi",
+            "metadata": {},
+            "step_states": {
+                "step_dag": {
+                    "id": "step_dag",
+                    "label": "Step DAG",
+                    "status": ExecutionStatus.PASSED,
+                }
+            },
+            "steps": [
+                {
+                    "id": "step_dag",
+                    "label": "Step DAG",
+                    "status": ExecutionStatus.PENDING,
+                }
+            ],
+            "execution_trace": in_memory_trace,
+            "execution_trace_storage_path": "executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
         },
-        steps=[
-            {
-                "id": "step_dag",
-                "label": "Step DAG",
-                "status": ExecutionStatus.PENDING,
-            }
-        ],
-        execution_trace=in_memory_trace,
-        execution_trace_storage_path="executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
+        strict=False,
     )
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record
@@ -1326,7 +1454,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         res = await execute_workflow_job(
             ctx,
             workflow_id="wf_0195f3a0000070018234567890123456",
-            inputs={},
+            inputs=_empty_inputs(),
             execution_id="exe_0195f3a0000070018234567890123456",
             organization_id="org_test",
             user_id="usr_test",
@@ -1391,28 +1519,31 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     mock_repo.set_prompt_blocks([])
     mock_repo.set_model_registry(_get_base_model_registry())
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="en",
-            dag_cost_usd=0.0,
-            cost_estimate=0.0,
-            prompt_tokens=0,
-            completion_tokens=0,
-            cumulative_synthesis_cost=0.0,
-            cumulative_synthesis_tokens=0,
-            execution_trace=[],
-            execution_trace_storage_path="executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
-            step_states={
-                "sys_render_prof_1": {
-                    "id": "sys_render_prof_1",
-                    "label": "Rendering",
-                    "status": ExecutionStatus.RUNNING,
-                }
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "en",
+                "dag_cost_usd": 0.0,
+                "cost_estimate": 0.0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "cumulative_synthesis_cost": 0.0,
+                "cumulative_synthesis_tokens": 0,
+                "execution_trace": [],
+                "execution_trace_storage_path": "executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
+                "step_states": {
+                    "sys_render_prof_1": {
+                        "id": "sys_render_prof_1",
+                        "label": "Rendering",
+                        "status": ExecutionStatus.RUNNING,
+                    }
+                },
+                "metadata": {},
             },
-            metadata=ExecutionMetadata(),
+            strict=False,
         )
     )
 
@@ -1429,12 +1560,15 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch("backend_v2.workers.synthesis_reducers.get_storage_driver", return_value=mock_storage),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO.model_validate({"delta": {"distilled_inputs": "Data"}}, strict=False),
+                )
             ),
         ),
     ):
@@ -1499,32 +1633,38 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     mock_repo.set_prompt_blocks([])
     mock_repo.set_model_registry(_get_base_model_registry())
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="en",
-            dag_cost_usd=0.0,
-            cost_estimate=1.25,
-            prompt_tokens=0,
-            completion_tokens=0,
-            cumulative_synthesis_cost=0.25,
-            cumulative_synthesis_tokens=100,
-            execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "en",
+                "dag_cost_usd": 0.0,
+                "cost_estimate": 1.25,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "cumulative_synthesis_cost": 0.25,
+                "cumulative_synthesis_tokens": 100,
+                "execution_trace": [],
+                "execution_trace_storage_path": None,
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO.model_validate({"delta": {"distilled_inputs": "Data"}}, strict=False),
+                )
             ),
         ),
     ):
@@ -1548,16 +1688,19 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
     """Positive: Verify missing matrix 1D directive skips matrix group synthesis gracefully."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="fi",
-            execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "fi",
+                "execution_trace": [],
+                "execution_trace_storage_path": None,
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
     await mock_repo.save_workflow(_get_base_workflow())
@@ -1567,27 +1710,30 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(
-                        delta={
-                            "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [
-                                {
-                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
-                                    "matrix_id": "m0",
-                                    "matrix_label": "Target Matrix",
-                                    "score": 85.0,
-                                    "justification": "Evidence verified.",
-                                }
-                            ],
-                            "target_locale": "fi",
-                            "title_map": {},
-                        }
+                    state_delta=HookDeltaDTO.model_validate(
+                        {
+                            "delta": {
+                                "distilled_inputs": "Sample analytical summary data.",
+                                "matrices_to_explain": [
+                                    {
+                                        "real_matrix_id": "blk_0195f3a0000070018111222233334444",
+                                        "matrix_id": "m0",
+                                        "matrix_label": "Target Matrix",
+                                        "score": 85.0,
+                                        "justification": "Evidence verified.",
+                                    }
+                                ],
+                                "target_locale": "fi",
+                                "title_map": {},
+                            }
+                        },
+                        strict=False,
                     ),
                 )
             ),
@@ -1606,16 +1752,19 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
     """Positive: Verify missing XAI directive skips XAI highlight synthesis gracefully."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="fi",
-            execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "fi",
+                "execution_trace": [],
+                "execution_trace_storage_path": None,
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
     await mock_repo.save_workflow(_get_base_workflow())
@@ -1625,27 +1774,30 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(
-                        delta={
-                            "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [
-                                {
-                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
-                                    "matrix_id": "m0",
-                                    "matrix_label": "Target Matrix",
-                                    "score": 85.0,
-                                    "justification": "Evidence verified.",
-                                }
-                            ],
-                            "target_locale": "fi",
-                            "title_map": {},
-                        }
+                    state_delta=HookDeltaDTO.model_validate(
+                        {
+                            "delta": {
+                                "distilled_inputs": "Sample analytical summary data.",
+                                "matrices_to_explain": [
+                                    {
+                                        "real_matrix_id": "blk_0195f3a0000070018111222233334444",
+                                        "matrix_id": "m0",
+                                        "matrix_label": "Target Matrix",
+                                        "score": 85.0,
+                                        "justification": "Evidence verified.",
+                                    }
+                                ],
+                                "target_locale": "fi",
+                                "title_map": {},
+                            }
+                        },
+                        strict=False,
                     ),
                 )
             ),
@@ -1664,16 +1816,19 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
     """Positive: Verify missing row explanation directive skips row explanation synthesis gracefully."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="fi",
-            execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "fi",
+                "execution_trace": [],
+                "execution_trace_storage_path": None,
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
     await mock_repo.save_workflow(_get_base_workflow())
@@ -1688,27 +1843,30 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(
-                        delta={
-                            "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [
-                                {
-                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
-                                    "matrix_id": "m0",
-                                    "matrix_label": "Target Matrix",
-                                    "score": 85.0,
-                                    "justification": "Evidence verified.",
-                                }
-                            ],
-                            "target_locale": "fi",
-                            "title_map": {},
-                        }
+                    state_delta=HookDeltaDTO.model_validate(
+                        {
+                            "delta": {
+                                "distilled_inputs": "Sample analytical summary data.",
+                                "matrices_to_explain": [
+                                    {
+                                        "real_matrix_id": "blk_0195f3a0000070018111222233334444",
+                                        "matrix_id": "m0",
+                                        "matrix_label": "Target Matrix",
+                                        "score": 85.0,
+                                        "justification": "Evidence verified.",
+                                    }
+                                ],
+                                "target_locale": "fi",
+                                "title_map": {},
+                            }
+                        },
+                        strict=False,
                     ),
                 )
             ),
@@ -1727,16 +1885,19 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
     """Negative: Verify missing state_delta from distiller hook raises AppException."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="fi",
-            execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "fi",
+                "execution_trace": [],
+                "execution_trace_storage_path": None,
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
     await mock_repo.save_workflow(_get_base_workflow())
@@ -1744,7 +1905,7 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(return_value=HookResult(success=True, state_delta=None)),
@@ -1765,16 +1926,19 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
     """Negative: Verify missing distilled_inputs from state_delta raises AppException."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="fi",
-            execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "fi",
+                "execution_trace": [],
+                "execution_trace_storage_path": None,
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
     await mock_repo.save_workflow(_get_base_workflow())
@@ -1782,13 +1946,16 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(delta=MetadataHookPayloadDTO(_sys_initiator_id="system")),
+                    state_delta=HookDeltaDTO.model_validate(
+                        {"delta": MetadataHookPayloadDTO.model_validate({"_sys_initiator_id": "system"}, strict=False)},
+                        strict=False,
+                    ),
                 )
             ),
         ),
@@ -1808,16 +1975,19 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
     """Positive: Verify missing output profile when synthesizing row explanations skips gracefully with a warning."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
-        ExecutionRecord(
-            id="exe_0195f3a0000070018234567890123456",
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            output_profile_id="prof_0195f3a0000070018111222233334444",
-            status=ExecutionStatus.RUNNING,
-            target_locale="fi",
-            execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
-            metadata=ExecutionMetadata(),
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018234567890123456",
+                "workflow_id": "wf_0195f3a0000070018234567890123456",
+                "output_profile_id": "prof_0195f3a0000070018111222233334444",
+                "status": ExecutionStatus.RUNNING,
+                "target_locale": "fi",
+                "execution_trace": [],
+                "execution_trace_storage_path": None,
+                "step_states": {},
+                "metadata": {},
+            },
+            strict=False,
         )
     )
     await mock_repo.save_workflow(_get_base_workflow())
@@ -1825,27 +1995,30 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
-        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(
-                        delta={
-                            "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [
-                                {
-                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
-                                    "matrix_id": "m0",
-                                    "matrix_label": "Target Matrix",
-                                    "score": 85.0,
-                                    "justification": "Evidence verified.",
-                                }
-                            ],
-                            "target_locale": "fi",
-                            "title_map": {},
-                        }
+                    state_delta=HookDeltaDTO.model_validate(
+                        {
+                            "delta": {
+                                "distilled_inputs": "Sample analytical summary data.",
+                                "matrices_to_explain": [
+                                    {
+                                        "real_matrix_id": "blk_0195f3a0000070018111222233334444",
+                                        "matrix_id": "m0",
+                                        "matrix_label": "Target Matrix",
+                                        "score": 85.0,
+                                        "justification": "Evidence verified.",
+                                    }
+                                ],
+                                "target_locale": "fi",
+                                "title_map": {},
+                            }
+                        },
+                        strict=False,
                     ),
                 )
             ),
@@ -1858,3 +2031,82 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
                 profile_id="prof_0195f3a0000070018111222233334444",
                 redis=AsyncMock(),
             )
+
+
+@pytest.mark.asyncio
+async def test_worker_execution_persists_completed_record_in_memory_roundtrip() -> None:
+    """Phase 6, Step 6.1: Verify seeded workflow and execution record persist completed roundtrip in memory."""
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    workflow = _get_base_workflow()
+    await mock_repo.save_workflow(workflow)
+    mock_repo.set_output_profiles([_get_base_profile()])
+
+    initial_record = ExecutionRecord.model_validate(
+        {
+            "id": "exe_0195f3a0000070018234567890123456",
+            "workflow_id": workflow.id,
+            "output_profile_id": "prof_0195f3a0000070018111222233334444",
+            "status": ExecutionStatus.PENDING,
+            "target_locale": "fi",
+            "step_states": {},
+            "metadata": {},
+        },
+        strict=False,
+    )
+    await mock_repo.save_execution(initial_record)
+
+    mock_engine = AsyncMock()
+    mock_engine.execute_workflow.return_value = initial_record.model_copy(
+        update={
+            "status": ExecutionStatus.PASSED,
+            "step_states": {
+                "stp_0195f3a0000070018234567890123456": ExecutionStep.model_validate(
+                    {
+                        "id": "stp_0195f3a0000070018234567890123456",
+                        "label": "Step 1",
+                        "status": ExecutionStatus.PASSED,
+                    },
+                    strict=False,
+                )
+            },
+        }
+    )
+
+    ctx = {"repository": mock_repo, "engine": mock_engine, "redis": None}
+    res = await execute_workflow_job(
+        ctx,
+        workflow_id=workflow.id,
+        inputs=_empty_inputs(),
+        execution_id=initial_record.id,
+    )
+    assert res.status == "COMPLETED"
+
+    reconstituted = await mock_repo.get_execution(initial_record.id)
+    assert reconstituted is not None
+    validated = ExecutionRecord.model_validate_json(reconstituted.model_dump_json())
+    assert validated.status == ExecutionStatus.PASSED
+
+
+@pytest.mark.asyncio
+async def test_worker_handles_injected_repository_fault_and_clears_faults() -> None:
+    """Phase 6, Step 6.1: Verify injected repository fault routes failure and clear_faults restores clean state."""
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    workflow = _get_base_workflow()
+    await mock_repo.save_workflow(workflow)
+
+    mock_repo.inject_fault("get_workflow", RuntimeError("Injected repository fault"))
+    try:
+        ctx = {"repository": mock_repo, "engine": AsyncMock()}
+        res = await execute_workflow_job(
+            ctx,
+            workflow_id=workflow.id,
+            inputs=_empty_inputs(),
+            execution_id="exe_0195f3a0000070018234567890123456",
+        )
+        assert res.status == "FAILED/DLQ"
+    finally:
+        mock_repo.clear_faults()
+
+    restored_wf = await mock_repo.get_workflow(workflow.id)
+    assert restored_wf is not None
+    assert restored_wf.id == workflow.id

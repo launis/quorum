@@ -6,8 +6,8 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import JsonValue
 
+import backend_v2.workers.synthesis_worker as synthesis_worker_mod
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -16,6 +16,7 @@ from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
     MatrixExplanationsResult,
@@ -23,8 +24,7 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
-from backend_v2.models.enums import ExecutionStatus, RoleClassification
-from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.enums import ExecutionStatus, RoleClassification, XaiExtensionType
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
@@ -77,24 +77,27 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
-    mock_execution = ExecutionRecord(
-        id="exec_0195f3a0000070018234567812345678",
-        workflow_id="wf_0195f3a0000070018234567812345678",
-        output_profile_id="prof_0195f3a0000070018111111111111111",
-        status=ExecutionStatus.PASSED,
-        target_locale="fi",
-        metadata=ExecutionMetadata(),
-        progress=None,
-        status_message=None,
-        execution_trace=[
-            TraceEvent(
-                v=1,
-                timestamp=datetime.now(timezone.utc),
-                event_type="output",
-                step_name="sr_0195f3a0000070018234567812345678",
-                content={"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
-            )
-        ],
+    mock_execution = ExecutionRecord.model_validate(
+        {
+            "id": "exec_0195f3a0000070018234567812345678",
+            "workflow_id": "wf_0195f3a0000070018234567812345678",
+            "output_profile_id": "prof_0195f3a0000070018111111111111111",
+            "status": ExecutionStatus.PASSED,
+            "target_locale": "fi",
+            "metadata": {},
+            "progress": None,
+            "status_message": None,
+            "execution_trace": [
+                {
+                    "v": 1,
+                    "timestamp": datetime.now(timezone.utc),
+                    "event_type": "output",
+                    "step_name": "sr_0195f3a0000070018234567812345678",
+                    "content": {"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
+                }
+            ],
+        },
+        strict=False,
     )
     await mock_repo.save_execution(mock_execution)
 
@@ -170,7 +173,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
     }
     mock_repo.set_output_profiles([output_prof])
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -185,42 +188,51 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
 
 async def _setup_mock_repo_for_metrics(
     mock_repo: InMemoryUnifiedWorkflowRepository,
-    trace_content_ling: Mapping[str, JsonValue] | None,
-    trace_content_det: Mapping[str, JsonValue] | None,
+    trace_content_ling: Mapping[str, JsonSchemaNode] | None,
+    trace_content_det: Mapping[str, JsonSchemaNode] | None,
 ) -> None:
-    trace_events = []
+    trace_events: list[TraceEvent] = []
     if trace_content_ling is not None:
         trace_events.append(
-            TraceEvent(
-                v=1,
-                timestamp=datetime.now(timezone.utc),
-                event_type="decision",
-                step_name="ling",
-                content={"step_linguistics": trace_content_ling},
+            TraceEvent.model_validate(
+                {
+                    "v": 1,
+                    "timestamp": datetime.now(timezone.utc),
+                    "event_type": "decision",
+                    "step_name": "ling",
+                    "content": {"step_linguistics": trace_content_ling},
+                },
+                strict=False,
             )
         )
     if trace_content_det is not None:
         trace_events.append(
-            TraceEvent(
-                v=1,
-                timestamp=datetime.now(timezone.utc),
-                event_type="output",
-                step_name="sr_det_step12345678",
-                content=trace_content_det,
+            TraceEvent.model_validate(
+                {
+                    "v": 1,
+                    "timestamp": datetime.now(timezone.utc),
+                    "event_type": "output",
+                    "step_name": "sr_det_step12345678",
+                    "content": trace_content_det,
+                },
+                strict=False,
             )
         )
 
-    mock_execution = ExecutionRecord(
-        id="exec_0195f3a0000070018234567812345678",
-        workflow_id="wf_0195f3a0000070018234567812345678",
-        output_profile_id="prof_0195f3a0000070018111111111111111",
-        status=ExecutionStatus.PASSED,
-        target_locale="fi",
-        metadata=ExecutionMetadata(),
-        progress=None,
-        status_message=None,
-        execution_trace=trace_events,
-        context_variables={},
+    mock_execution = ExecutionRecord.model_validate(
+        {
+            "id": "exec_0195f3a0000070018234567812345678",
+            "workflow_id": "wf_0195f3a0000070018234567812345678",
+            "output_profile_id": "prof_0195f3a0000070018111111111111111",
+            "status": ExecutionStatus.PASSED,
+            "target_locale": "fi",
+            "metadata": {},
+            "progress": None,
+            "status_message": None,
+            "execution_trace": trace_events,
+            "context_variables": {},
+        },
+        strict=False,
     )
     await mock_repo.save_execution(mock_execution)
 
@@ -330,7 +342,7 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
         },
     )
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -385,7 +397,7 @@ async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
         },
     )
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -414,7 +426,7 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 
     await _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -459,7 +471,7 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
         },
     )
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -492,7 +504,7 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
         },
     )
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -536,7 +548,7 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
         },
     )
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -614,34 +626,39 @@ async def test_worker_synthesis_matrix_layout_directives(
         "3d_matrix": ["blk_1", "blk_2", "blk_3"],
         "text_only": ["blk_1"],
     }
-    prof_dict: dict[str, JsonValue] = {
-        "id": "prof_0195f3a0000070018111111111111111",
-        "slug": "prof_test",
-        "name": {"translations": {"en": "Test Profile"}},
-        "workflow_id": "wf_0195f3a0000070018234567812345678",
-        "display_scale": "original",
-        "synthesis_length_constraint": 1000,
-        "tone_instruction": "Professional",
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0195f3a0000070018234567890123456",
-                "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
-                "target_blocks": target_blocks_map[view_type] if view_type in target_blocks_map else ["blk_1"],
-                "view_type": view_type,
-            }
-        ],
-        "target_block_order": ["matrix_graphs_block"],
-    }
+    prof_obj = OutputProfile.model_validate(
+        {
+            "id": "prof_0195f3a0000070018111111111111111",
+            "slug": "prof_test",
+            "name": {"translations": {"en": "Test Profile"}},
+            "workflow_id": "wf_0195f3a0000070018234567812345678",
+            "display_scale": "original",
+            "synthesis_length_constraint": 1000,
+            "tone_instruction": "Professional",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_0195f3a0000070018234567890123456",
+                    "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
+                    "target_blocks": target_blocks_map[view_type] if view_type in target_blocks_map else ["blk_1"],
+                    "view_type": view_type,
+                }
+            ],
+            "target_block_order": ["matrix_graphs_block"],
+        },
+        strict=False,
+    )
     if directive_value is not None:
-        prof_dict[directive_field] = directive_value
+        prof_obj = prof_obj.model_copy(update={directive_field: directive_value})
 
-    mock_repo.set_output_profiles([prof_dict])
+    mock_repo.set_output_profiles([prof_obj])
 
     mock_client = AsyncMock()
 
     async def _mock_run_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         resp_model = kwargs["response_model"] if "response_model" in kwargs else None
-        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
+        usage = TokenUsage.model_validate(
+            {"prompt_tokens": 50, "completion_tokens": 50, "total_tokens": 100, "cost_usd": 0.001}
+        )
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
@@ -676,7 +693,7 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_client.run_structured_task.side_effect = _mock_run_structured_task
     mock_from_tier.return_value = mock_client
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         if not should_execute_group:
             await generate_profile_synthesis_and_pdf_task(
                 execution_id="exec_0195f3a0000070018234567812345678",
@@ -705,8 +722,8 @@ async def test_worker_synthesis_matrix_layout_directives(
             messages = call.kwargs["messages"]
             all_user_content += " ".join(
                 m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if type(m) is dict and "content" in m else "")
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
+                else (str(m["content"]) if type(m) is dict and "content" in m else "")
                 for m in messages
             )
 
@@ -768,7 +785,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_disabled
     mock_from_tier.return_value = mock_client
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="fi",
@@ -783,8 +800,8 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
             messages = call.kwargs["messages"]
             all_user_content += " ".join(
                 m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if type(m) is dict and "content" in m else "")
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
+                else (str(m["content"]) if type(m) is dict and "content" in m else "")
                 for m in messages
             )
     assert "2D COMPARISON SYNTHESIS MANDATE:" not in all_user_content
@@ -848,7 +865,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_exec
     mock_from_tier.return_value = mock_client
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="fi",
@@ -863,8 +880,8 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
             messages = call.kwargs["messages"]
             all_user_content += " ".join(
                 m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if type(m) is dict and "content" in m else "")
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
+                else (str(m["content"]) if type(m) is dict and "content" in m else "")
                 for m in messages
             )
     assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
@@ -957,7 +974,7 @@ async def test_worker_synthesis_multi_section_aggregation(
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_multi
     mock_from_tier.return_value = mock_client
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="fi",
@@ -1041,7 +1058,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_empty
     mock_from_tier.return_value = mock_client
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="fi",
@@ -1143,7 +1160,7 @@ async def test_worker_synthesis_custom_directives_resolution(
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_custom
     mock_from_tier.return_value = mock_client
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="fi",
@@ -1157,8 +1174,8 @@ async def test_worker_synthesis_custom_directives_resolution(
             messages = call.kwargs["messages"]
             all_user_content += " ".join(
                 m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if type(m) is dict and "content" in m else "")
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
+                else (str(m["content"]) if type(m) is dict and "content" in m else "")
                 for m in messages
             )
 
@@ -1182,23 +1199,27 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
     )
 
     # Override profile without variance_target_block
-    mock_repo.set_output_profiles(
-        [
-            OutputProfile.model_construct(
-                id="prof_0195f3a0000070018111111111111111",
-                slug="prof_missing_target",
-                name={"translations": {"en": "Missing Target"}},
-                workflow_id="wf_0195f3a0000070018234567812345678",
-                display_scale="original",
-                visible_workflow_extensions=["variance_validation"],
-                variance_target_block=None,
-                target_block_order=["variance_validation_block"],
-                matrix_synthesis_groups=[],
-            )
-        ]
+    prof_missing = OutputProfile.model_validate(
+        {
+            "id": "prof_0195f3a0000070018111111111111111",
+            "slug": "prof_missing_target",
+            "name": {"translations": {"en": "Missing Target"}},
+            "workflow_id": "wf_0195f3a0000070018234567812345678",
+            "display_scale": "original",
+            "target_block_order": ["variance_validation_block"],
+            "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
+            "matrix_synthesis_groups": [],
+        },
+        strict=False,
+    ).model_copy(
+        update={
+            "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+            "variance_target_block": None,
+        }
     )
+    mock_repo.set_output_profiles([prof_missing])
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         with pytest.raises(AppException) as exc_info:
             await generate_profile_synthesis_and_pdf_task(
                 execution_id="exec_0195f3a0000070018234567812345678",
@@ -1235,7 +1256,7 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
         },
     )
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
@@ -1286,7 +1307,7 @@ async def test_worker_synthesis_extracts_user_role_from_target_block_determinist
         ]
     )
 
-    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+    with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
             execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",

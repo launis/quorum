@@ -67,7 +67,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_163/05_phase5_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/05_phase5_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/05_phase5_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/05_phase5_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/05_phase5_plan.md] @[docs/epic/EPIC_163_tracker.md]` (`18cdee79a`)
   - [x] Step 5.1: Migrate Group 2 Execution & Studio Freezed DTO Models
   - [x] Step 5.2: Migrate Group 3 Execution & Studio Controllers, Utilities & Views
   - [x] Step 5.3: Migrate Group 3 Shared Widgets & Shrink `DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES` to 9 Transport Files
@@ -79,7 +79,7 @@
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/06_phase6_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-  - [ ] Step 6.1: Migrate `test_worker.py`, `test_worker_synthesis.py` & `test_worker_synthesis_accumulation.py` to Stateful `InMemoryUnifiedWorkflowRepository`
+  - [x] Step 6.1: Migrate `test_worker.py`, `test_worker_synthesis.py` & `test_worker_synthesis_accumulation.py` to Stateful `InMemoryUnifiedWorkflowRepository`
   - [ ] Step 6.2: Migrate `test_report_worker.py`, `test_synthesis_reducers.py` & `test_synthesis_worker.py` and Lock `Census F = 0`
   - [ ] Step 6.3: Full-Stack Global Quality Gates & Live E2E Verification
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -253,7 +253,7 @@
 | `REQ-163-012` | Replace `Map<String, Object?>` fields across all 13 Group 2 Execution and Studio Freezed DTO models (`DGR005`) | Phase 5, Step 5.1 | `flutter_audit_loop.py --build` | `[x]` |
 | `REQ-163-013` | Refactor all 12 Group 3 Execution and Studio controllers, cloner utilities, and views to consume typed Freezed DTOs (`DGR005`) | Phase 5, Step 5.2 | `flutter_audit_loop.py --build` | `[x]` |
 | `REQ-163-014` | Refactor all 11 Group 3 shared widgets to consume typed Freezed DTOs and shrink `DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES` to the 9 transport boundary files (`DGR005`) | Phase 5, Step 5.3 | `flutter_audit_loop.py --build` & `test_dart_guardrails.py` | `[x]` |
-| `REQ-163-015` | Replace 35 `UnifiedWorkflowRepository` patches across `test_worker.py`, `test_worker_synthesis.py`, and `test_worker_synthesis_accumulation.py` with stateful `InMemoryUnifiedWorkflowRepository` fixtures | Phase 6, Step 6.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-015` | Replace 35 `UnifiedWorkflowRepository` patches across `test_worker.py`, `test_worker_synthesis.py`, and `test_worker_synthesis_accumulation.py` with stateful `InMemoryUnifiedWorkflowRepository` fixtures | Phase 6, Step 6.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-016` | Replace 9 `UnifiedWorkflowRepository` patches across `tests/unit/workers/` with stateful `InMemoryUnifiedWorkflowRepository` fixtures and lock `CURRENT_RESIDUAL_CEILINGS["f"] = 0` | Phase 6, Step 6.2 | `audit_warning_baseline.py --verify-ceilings` | `[ ]` |
 | `REQ-163-017` | Execute global Backend, Frontend, Dict Eradication, Warning Baseline, DTO Parity, SDUI Semantic Parity, and Live E2E verification gates | Phase 6, Step 6.3 | Full-Stack & Live E2E Gates | `[ ]` |
 | `REQ-163-018` | Add PEP 257 docstring to `ValidationHookPayloadDTO.model_validate` (`validation.py`) and migrate `test_dgr010_guarded_async_value_allowed` (`test_dart_guardrails.py`) to Dart 3 `switch (state)` | Phase 7, Step 7.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
