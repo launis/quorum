@@ -20,6 +20,7 @@ from scripts.backend_audit_loop import (
     discover_companion_test_targets,
     find_transitional_strangler_proxy_files,
     main,
+    run_audit_loop,
     run_tests_with_strict_coverage,
 )
 
@@ -928,3 +929,22 @@ def test_discover_companion_test_targets_with_custom_repo_root_and_init_candidat
     )
     assert "backend_v2/tests/unit/services/custom_pkg/test_custom_pkg_init.py" in companions
     assert "backend_v2/tests/unit/scripts/test_custom_guard.py" in companions
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_run_audit_loop_executes_micro_stages_for_parsed_args(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
+    """Verify run_audit_loop executes linting, typing, AST guardrails, and micro stages cleanly."""
+    import argparse
+
+    args = argparse.Namespace(
+        targets=["scripts/backend_audit_loop.py"],
+        openapi=False,
+        test=False,
+        ast_strict=True,
+        micro=True,
+        logfire=False,
+    )
+    run_audit_loop(args)
+    assert mock_scan.called
+    assert mock_sub.called

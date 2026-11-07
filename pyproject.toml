@@ -98,10 +98,6 @@ ignore = [
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.ruff.lint.per-file-ignores]
-"scripts/backend_audit_loop.py" = ["E501", "D415"]
-"scripts/flutter_audit_loop.py" = ["E501", "D415"]
-
 [tool.mypy]
 python_version = "3.14"
 plugins = ["pydantic.mypy"]

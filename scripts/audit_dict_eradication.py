@@ -72,12 +72,7 @@ FROZEN_APPROVED_RUFF_IGNORES: frozenset[str] = frozenset(
     }
 )
 
-FROZEN_APPROVED_PER_FILE_IGNORE_PATHS: frozenset[str] = frozenset(
-    {
-        "scripts/backend_audit_loop.py",
-        "scripts/flutter_audit_loop.py",
-    }
-)
+FROZEN_APPROVED_PER_FILE_IGNORE_PATHS: frozenset[str] = frozenset()
 
 FROZEN_APPROVED_DART_ANALYZER_ERRORS: frozenset[str] = frozenset(
     {

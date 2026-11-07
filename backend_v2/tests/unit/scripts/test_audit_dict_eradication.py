@@ -474,20 +474,32 @@ def test_check_config_suppression_ratchet_detects_unapproved_dart_analyzer_error
 
 
 def test_check_config_suppression_ratchet_passes_production_config() -> None:
-    """Verifies that production pyproject.toml and analysis_options.yaml pass with 0 violations and exact pruned set."""
+    """Verifies that production pyproject.toml and analysis_options.yaml pass with 0 violations and empty per-file-ignores."""
     from scripts.audit_dict_eradication import FROZEN_APPROVED_PER_FILE_IGNORE_PATHS
 
-    assert FROZEN_APPROVED_PER_FILE_IGNORE_PATHS == frozenset(
-        {
-            "scripts/backend_audit_loop.py",
-            "scripts/flutter_audit_loop.py",
-        }
-    )
-    for rel_path in FROZEN_APPROVED_PER_FILE_IGNORE_PATHS:
-        assert Path(rel_path).is_file(), f"Missing per-file-ignore target: {rel_path}"
+    assert FROZEN_APPROVED_PER_FILE_IGNORE_PATHS == frozenset()
 
     violations = check_config_suppression_ratchet()
     assert len(violations) == 0, f"Unexpected production config violations: {violations}"
+
+
+def test_audit_dict_eradication_rejects_any_per_file_ignore_in_pyproject(tmp_path: Path) -> None:
+    """Verifies that check_config_suppression_ratchet rejects any per-file-ignores entry when the ledger is empty."""
+    from scripts.audit_dict_eradication import FROZEN_APPROVED_PER_FILE_IGNORE_PATHS
+
+    assert FROZEN_APPROVED_PER_FILE_IGNORE_PATHS == frozenset()
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[tool.ruff.lint]\nignore = ["E501"]\n\n'
+        "[tool.ruff.lint.per-file-ignores]\n"
+        '"scripts/backend_audit_loop.py" = ["E501", "D415"]\n\n'
+        '[tool.mypy]\nwarn_unused_ignores = true\ndisable_error_code = ["prop-decorator"]\n',
+        encoding="utf-8",
+    )
+    violations = check_config_suppression_ratchet(repo_root=tmp_path)
+    assert any(
+        v.metric == "unauthorized_suppressions" and "scripts/backend_audit_loop.py" in v.message for v in violations
+    )
 
 
 def test_audit_dict_eradication_detects_mapping_naked_dict(tmp_path: Path) -> None:

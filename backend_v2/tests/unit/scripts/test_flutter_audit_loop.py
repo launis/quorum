@@ -561,3 +561,13 @@ def test_stdout_stderr_reconfigure_exception_resilience(mock_sub: MagicMock, tmp
                 with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
                     main()
                     assert mock_sub.called
+
+
+def test_normalize_cmd_dir_handles_empty_and_prefixed_paths() -> None:
+    """Verify _normalize_cmd_dir strips client_app_v2 prefix and defaults empty strings to dot."""
+    from scripts.flutter_audit_loop import _normalize_cmd_dir
+
+    assert _normalize_cmd_dir("client_app_v2/lib/main.dart") == "lib/main.dart"
+    assert _normalize_cmd_dir("client_app_v2/") == "."
+    assert _normalize_cmd_dir("client_app_v2") == "."
+    assert _normalize_cmd_dir("lib/features") == "lib/features"
