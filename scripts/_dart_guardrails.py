@@ -1,10 +1,11 @@
-"""Automated Dart Codebase Guardrails Engine (DGR001-DGR012).
+"""Automated Dart Codebase Guardrails Engine (DGR001-DGR014).
 
 Single Source of Truth for static Dart architectural rules enforcement across Quorum Flutter client.
 Scans handwritten client code across full multi-line source text for loose Map types, anonymous HTTP
 payloads, UI error concealment, unlocalized strings, lint suppressions, hardcoded hex colors, manual
 string clippings, missing error boundaries, unguarded async values, deprecated useIsMounted() or
-unguarded post-await hook ValueNotifier mutations, and GoRouter provider ref.watch disposal hazards.
+unguarded post-await hook ValueNotifier mutations, GoRouter provider ref.watch disposal hazards,
+banned Freezed .when()/.maybeWhen()/.map() chains, and manual Riverpod providers or ref.read/ref.watch misuse.
 Guarantees 100% false-positive immunity for generated files (*.freezed.dart, *.g.dart, .dart_tool/, build/).
 """
 
@@ -38,6 +39,9 @@ setup_script_environment()
 
 __all__ = [
     "DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES",
+    "DGR013_FREEZED_WHEN_PATTERN",
+    "DGR014_CALLBACK_REF_WATCH_PATTERN",
+    "DGR014_LEGACY_PROVIDER_PATTERN",
     "DartViolation",
     "GuardrailSeverity",
     "format_dart_violations_table",
@@ -164,6 +168,27 @@ _CUSTOM_HOOK_HEADER_PATTERN = re.compile(
 # DGR012: GoRouter provider direct ref.watch disposal hazard & mandatory refreshListenable
 _GOROUTER_PROVIDER_HEADER_PATTERN = re.compile(r"\bGoRouter\s+router\s*\(\s*[A-Za-z0-9_]*Ref\s+\w+\s*\)\s*\{")
 DGR012_REF_WATCH_PATTERN = re.compile(r"\bref\s*\.\s*watch\s*\(")
+
+# Phase 7, Step 7.2: DGR013 Freezed .when() / .maybeWhen() / .maybeMap() / .map(data: ...) ban
+DGR013_FREEZED_WHEN_PATTERN = re.compile(
+    r"\.\s*(?:when|maybeWhen|maybeMap|whenOrNull|mapOrNull)\s*\("
+    r"|\.\s*map\s*\(\s*[a-zA-Z_][a-zA-Z0-9_]*\s*:"
+)
+
+# Phase 7, Step 7.2: DGR014 Riverpod 3.1 manual provider ban & ref.read / ref.watch discipline
+DGR014_LEGACY_PROVIDER_PATTERN = re.compile(
+    r"\b(?:StateProvider|ChangeNotifierProvider|StateNotifierProvider|ChangeNotifier)\b"
+)
+DGR014_CALLBACK_REF_WATCH_PATTERN = re.compile(
+    r"\bon[A-Z][A-Za-z0-9_]*\s*:\s*(?:\([^)]*\)\s*(?:async\s*)?\{[^}]*?\bref\s*\.\s*watch\s*\("
+    r"|\([^)]*\)\s*(?:async\s*)?=>[^\n;]*?\bref\s*\.\s*watch\s*\()",
+    re.DOTALL,
+)
+_WIDGET_BUILD_HEADER_PATTERN = re.compile(
+    r"\bWidget\s+build\s*\([^)]*\)\s*\{",
+    re.DOTALL,
+)
+_DGR014_REF_READ_CALL_PATTERN = re.compile(r"\bref\s*\.\s*read\s*\(([^)]*)\)")
 
 # Ignored trivial string literals for DGR003 (pure symbols or separators)
 PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9→←↑↓↳•×+%=<>]*$")
@@ -688,6 +713,150 @@ def _check_hook_and_router_lifecycle_rules(
     return violations
 
 
+def _check_dgr014_build_method_body(
+    filepath: str,
+    source_text: str,
+    build_body: str,
+    body_start: int,
+) -> list[DartViolation]:
+    """Evaluate DGR014 Check 14B top-level ref.read(...) usage inside a Widget build(...) body.
+
+    Args:
+        filepath: Target file path being scanned.
+        source_text: Original decoded UTF-8 source text.
+        build_body: Extracted brace-enclosed body of the build method.
+        body_start: Character offset of build_body within source_text.
+
+    Returns:
+        List of DGR014 DartViolation instances for top-level ref.read calls in build().
+    """
+    violations: list[DartViolation] = []
+    for read_match in _DGR014_REF_READ_CALL_PATTERN.finditer(build_body):
+        read_arg = read_match.group(1)
+        if ".notifier" in read_arg or "loggerServiceProvider" in read_arg:
+            continue
+        prefix = build_body[: read_match.start()]
+        brace_depth = prefix.count("{") - prefix.count("}")
+        last_statement = prefix.rsplit(";", maxsplit=1)[-1]
+        if brace_depth == 1 and "=>" not in last_statement:
+            lineno, col_offset = _offset_to_line_col(source_text, body_start + read_match.start())
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=col_offset,
+                    rule_code="DGR014",
+                    message=(
+                        "Banned `ref.read(...)` inside `Widget build(...)`; reactive state in `build()` "
+                        "must use `ref.watch(...)` (`riverpod_read_vs_watch_ban`)."
+                    ),
+                    remediation=(
+                        "Replace `ref.read(provider)` with `ref.watch(provider)` inside `build()`, and "
+                        "reserve `ref.read` for event callbacks (`onPressed`)."
+                    ),
+                    severity=GuardrailSeverity.FATAL,
+                    is_suppressed=False,
+                )
+            )
+    return violations
+
+
+def _check_freezed_and_riverpod_rules(
+    filepath: str,
+    source_text: str,
+    uncommented_text: str,
+    *,
+    is_test_scope: bool,
+) -> list[DartViolation]:
+    """Evaluate DGR013 (freezed_when_ban) and DGR014 (Riverpod 3.1 provider & ref rules) across Dart source.
+
+    Args:
+        filepath: Target file path being scanned.
+        source_text: Original decoded UTF-8 source text.
+        uncommented_text: Source text with comments replaced by spaces preserving line breaks.
+        is_test_scope: Whether the file resides in a test directory.
+
+    Returns:
+        List of DartViolation instances for DGR013 and DGR014.
+    """
+    if is_test_scope:
+        return []
+
+    violations: list[DartViolation] = []
+
+    # Phase 7, Step 7.2: Enforce DGR013 freezed_when_ban
+    for when_match in DGR013_FREEZED_WHEN_PATTERN.finditer(uncommented_text):
+        lineno, col_offset = _offset_to_line_col(source_text, when_match.start())
+        violations.append(
+            DartViolation(
+                filepath=filepath,
+                lineno=lineno,
+                col_offset=col_offset,
+                rule_code="DGR013",
+                message=(
+                    "Banned Freezed/AsyncValue `.when()` / `.maybeWhen()` / `.map()` chain detected "
+                    "(`freezed_when_ban`)."
+                ),
+                remediation=(
+                    "Use Dart 3 native `switch` expressions with pattern matching destructuring "
+                    "(`switch (state) { AsyncData(:final value) => ..., AsyncLoading() => ... }`)."
+                ),
+                severity=GuardrailSeverity.FATAL,
+                is_suppressed=False,
+            )
+        )
+
+    # Phase 7, Step 7.2: Enforce DGR014 Check 14A manual_riverpod_providers
+    for legacy_match in DGR014_LEGACY_PROVIDER_PATTERN.finditer(uncommented_text):
+        lineno, col_offset = _offset_to_line_col(source_text, legacy_match.start())
+        violations.append(
+            DartViolation(
+                filepath=filepath,
+                lineno=lineno,
+                col_offset=col_offset,
+                rule_code="DGR014",
+                message=(
+                    f"Banned legacy manual provider or notifier `{legacy_match.group(0)}` detected "
+                    "(`manual_riverpod_providers`)."
+                ),
+                remediation=(
+                    "Use `@riverpod` code generation (`Notifier` / `AsyncNotifier`) for all "
+                    "Riverpod 3.1 state providers."
+                ),
+                severity=GuardrailSeverity.FATAL,
+                is_suppressed=False,
+            )
+        )
+
+    # Phase 7, Step 7.2: Enforce DGR014 Check 14B riverpod_read_vs_watch_ban
+    for build_match in _WIDGET_BUILD_HEADER_PATTERN.finditer(uncommented_text):
+        body_start = build_match.end() - 1
+        build_body = _extract_brace_block(uncommented_text, body_start)
+        violations.extend(_check_dgr014_build_method_body(filepath, source_text, build_body, body_start))
+
+    for cb_match in DGR014_CALLBACK_REF_WATCH_PATTERN.finditer(uncommented_text):
+        watch_pos = cb_match.group(0).rfind("ref")
+        offset = cb_match.start() + max(0, watch_pos)
+        lineno, col_offset = _offset_to_line_col(source_text, offset)
+        violations.append(
+            DartViolation(
+                filepath=filepath,
+                lineno=lineno,
+                col_offset=col_offset,
+                rule_code="DGR014",
+                message="Banned `ref.watch(...)` inside UI event callback (`riverpod_read_vs_watch_ban`).",
+                remediation=(
+                    "Use `ref.read(provider)` or `ref.read(provider.notifier)` for one-time execution "
+                    "inside UI event callbacks (`onPressed`)."
+                ),
+                severity=GuardrailSeverity.FATAL,
+                is_suppressed=False,
+            )
+        )
+
+    return violations
+
+
 def _check_master_view_error_boundary(
     filepath: str,
     normalized_path: str,
@@ -845,6 +1014,14 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
             is_test_scope=is_test_scope,
         )
     )
+    violations.extend(
+        _check_freezed_and_riverpod_rules(
+            filepath,
+            source_text,
+            uncommented_text,
+            is_test_scope=is_test_scope,
+        )
+    )
 
     violations.sort(key=lambda v: (v.lineno, v.col_offset, v.rule_code))
     return violations
@@ -951,7 +1128,7 @@ def main(argv: list[str] | None = None) -> int:
         Exit code 0 if no fatal violations (or warnings under --strict) were found, 1 otherwise.
     """
     parser = argparse.ArgumentParser(
-        description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR012).
+        description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR014).
 
 Enforces Flutter client architecture and static type safety invariants across full multi-line source:
   DGR001: Loose Map return types in API clients, models, controllers, data, repositories, or providers (FATAL)
@@ -966,6 +1143,8 @@ Enforces Flutter client architecture and static type safety invariants across fu
   DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers (WARNING)
   DGR011: Banned deprecated useIsMounted() and unguarded post-await hook ValueNotifier mutations (FATAL)
   DGR012: Banned direct ref.watch(...) inside GoRouter provider and missing refreshListenable (FATAL)
+  DGR013: Banned Freezed/AsyncValue .when() / .maybeWhen() / .maybeMap() / .map(data: ...) chains (FATAL)
+  DGR014: Banned manual StateProvider/ChangeNotifier, ref.read in build(), and ref.watch in callbacks (FATAL)
 
 Immunity: Generated files (*.g.dart, *.freezed.dart) are automatically exempted.
 """,

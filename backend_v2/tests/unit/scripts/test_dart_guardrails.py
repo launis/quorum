@@ -1096,3 +1096,97 @@ GoRouter router(Ref ref) {
     violations = _scan_snippet(code, filepath="client_app_v2/lib/router/router.dart")
     dgr012 = [v for v in violations if v.rule_code == "DGR012"]
     assert len(dgr012) == 0
+
+
+# ==============================================================================
+# Partition 13: DGR013 Freezed Switch Ban & DGR014 Riverpod 3.1 Rules
+# ==============================================================================
+
+
+def test_dgr013_allows_dart3_switch_and_iterable_map() -> None:
+    """Verify Dart 3 switch expressions and Iterable.map((item) => ...) produce 0 DGR013 violations."""
+    # Phase 7, Step 7.2: DGR013 positive immunity for Dart 3 switch and Iterable.map
+    code = """
+Widget build(BuildContext context, WidgetRef ref) {
+  final state = ref.watch(workflowProvider);
+  final items = ['a', 'b'];
+  final mapped = items.map((item) => Text(item)).toList();
+  return switch (state) {
+    AsyncData(:final value) => Column(children: mapped),
+    AsyncLoading() => const CircularProgressIndicator(),
+    AsyncError(:final error) => Text(error.toString()),
+  };
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/workflow_view.dart")
+    dgr013 = [v for v in violations if v.rule_code == "DGR013"]
+    assert len(dgr013) == 0
+
+
+def test_dgr013_flags_freezed_when_maybe_when_and_named_map_as_fatal() -> None:
+    """Verify DGR013 flags .when, .maybeWhen, .maybeMap, and named .map(data: ...) as FATAL."""
+    # Phase 7, Step 7.2: DGR013 negative test for banned Freezed/AsyncValue methods
+    code = """
+Widget build(BuildContext context, WidgetRef ref) {
+  final a = state.when(data: (v) => v, loading: () => null, error: (e, s) => null);
+  final b = state.maybeWhen(data: (v) => v, orElse: () => null);
+  final c = block.maybeMap(hero: (h) => h, orElse: () => null);
+  final d = state.map(data: (d) => d.value, loading: (_) => null, error: (_) => null);
+  return Container();
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/workflow_view.dart")
+    dgr013 = [v for v in violations if v.rule_code == "DGR013"]
+    assert len(dgr013) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in dgr013)
+
+
+def test_dgr014_flags_legacy_providers_build_ref_read_and_callback_ref_watch() -> None:
+    """Verify DGR014 flags StateProvider, ChangeNotifier, build() ref.read, and callback ref.watch."""
+    # Phase 7, Step 7.2: DGR014 boundary test for Check 14A and Check 14B
+    code = """
+final counterProvider = StateProvider<int>((ref) => 0);
+class LegacyController extends ChangeNotifier {}
+
+class MyConsumerWidget extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final invalidRead = ref.read(workflowProvider);
+    final validWatch = ref.watch(workflowProvider);
+    final validNotifier = ref.read(workflowProvider.notifier);
+    final validLogger = ref.read(loggerServiceProvider);
+    return ElevatedButton(
+      onPressed: () {
+        final badWatch = ref.watch(workflowProvider);
+        ref.read(workflowProvider.notifier).save();
+      },
+      child: TextButton(
+        onPressed: () => ref.read(workflowProvider.notifier).reset(),
+        child: const Text('Save'),
+      ),
+    );
+  }
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/workflow_view.dart")
+    dgr014 = [v for v in violations if v.rule_code == "DGR014"]
+    assert len(dgr014) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in dgr014)
+    assert any("StateProvider" in v.message for v in dgr014)
+    assert any("ChangeNotifier" in v.message for v in dgr014)
+    assert any("ref.read(...)" in v.message for v in dgr014)
+    assert any("ref.watch(...)" in v.message for v in dgr014)
+
+
+def test_dgr013_and_dgr014_exempt_test_scope_files() -> None:
+    """Verify DGR013 and DGR014 are skipped for test directory files."""
+    code = """
+final legacy = StateProvider<int>((ref) => 0);
+Widget build(BuildContext context, WidgetRef ref) {
+  final v = ref.read(workflowProvider);
+  return state.when(data: (_) => Container(), loading: () => Container(), error: (_, __) => Container());
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/test/unit/widget_test.dart")
+    flagged = [v for v in violations if v.rule_code in {"DGR013", "DGR014"}]
+    assert len(flagged) == 0
