@@ -126,12 +126,11 @@ async def generate_profile_synthesis_and_pdf_task(
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
 
-        execution_data = await repo.get_execution(execution_id)
-        if not execution_data:
+        execution: ExecutionRecord | None = await repo.get_execution(execution_id)
+        if execution is None:
             logger.warning("[Task] Execution %s no longer exists. Skipping render.", execution_id)
             return
 
-        execution = ExecutionRecord.model_validate(execution_data, strict=False)
         accept_language = accept_language.strip()
         v_step_id = f"sys_render_{profile_id}"
 
@@ -160,12 +159,13 @@ async def generate_profile_synthesis_and_pdf_task(
                 msg: Status label message to persist on the execution step.
             """
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
-            if exec_record_local:
-                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
+            if exec_record_local is not None:
                 old_state: ExecutionStep | None = None
-                if v_step_id in exec_record_local.step_states:
+                if v_step_id in exec_record_local.step_states and isinstance(
+                    exec_record_local.step_states[v_step_id], ExecutionStep
+                ):
                     old_state = exec_record_local.step_states[v_step_id]
-                if old_state:
+                if old_state is not None:
                     updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING})
                 else:
                     updated_state = ExecutionStep(
@@ -176,19 +176,10 @@ async def generate_profile_synthesis_and_pdf_task(
                         has_warning=False,
                         scorecard_atoms={},
                     )
-                new_states: dict[str, ExecutionStep] = {
-                    k: v for k, v in exec_record_local.step_states.items() if isinstance(v, ExecutionStep)
-                }
-                new_states[v_step_id] = updated_state
-                new_steps = [
-                    s.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING}) if s.id == v_step_id else s
-                    for s in exec_record_local.steps
-                ]
-                if not any(s.id == v_step_id for s in exec_record_local.steps):
-                    new_steps.append(updated_state)
+                updated_record = exec_record_local.with_updated_step_state(v_step_id, updated_state)
                 await repo.update_execution(
                     execution_id,
-                    ExecutionUpdateDTO(steps=new_steps, step_states=new_states),
+                    ExecutionUpdateDTO(steps=updated_record.steps, step_states=updated_record.step_states),
                 )
 
         await _update_render_status("Calculating dynamic results...")
@@ -216,22 +207,20 @@ async def generate_profile_synthesis_and_pdf_task(
             resolved_pid = execution.output_profile_id
 
         if resolved_pid:
-            p_dict = await repo.get_output_profile_by_id(resolved_pid)
-            if not p_dict:
+            active_profile_dto: OutputProfile | None = await repo.get_output_profile_by_id(resolved_pid)
+            if active_profile_dto is None:
                 msg = f"Strict Fail-Fast Enforced: OutputProfile '{resolved_pid}' not found in repository."
                 logger.error("[Worker] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg, exc_info=True)
                 raise ResourceNotFoundError(resource_type="output_profile", resource_id=resolved_pid)
-            active_profile_dto: OutputProfile | None = OutputProfile.model_validate(p_dict, strict=False)
             profile_id = resolved_pid
         else:
             active_profile_dto = None
 
-        w_dict = await repo.get_workflow_by_id(execution.workflow_id)
-        if not w_dict:
+        workflow_def: Workflow | None = await repo.get_workflow_by_id(execution.workflow_id)
+        if workflow_def is None:
             msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{execution.workflow_id}'."
             logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        workflow_def = Workflow.model_validate(w_dict)
         hook_metadata = execution.metadata if execution.metadata is not None else ExecutionMetadata()
         hook_state = HookState(
             execution_id=execution_id,
@@ -569,13 +558,10 @@ async def generate_profile_synthesis_and_pdf_task(
             created_at=datetime.now(timezone.utc),
         )
 
-        current_syntheses: dict[str, RenderedSynthesisCache] = {}
-        if execution.profile_syntheses is not None:
-            current_syntheses = dict(execution.profile_syntheses)
         pid = "default"
         if profile_id is not None:
             pid = profile_id
-        current_syntheses[pid] = cache
+        updated_execution = execution.with_updated_profile_synthesis(pid, cache)
 
         prev_tokens = execution.cumulative_synthesis_tokens
         prev_cost = execution.cumulative_synthesis_cost
@@ -593,7 +579,7 @@ async def generate_profile_synthesis_and_pdf_task(
         rec_r = recovered_telem.reasoning_tokens
         total_cost = dag_cost + new_cum_cost
         dto = ExecutionUpdateDTO(
-            profile_syntheses=current_syntheses,
+            profile_syntheses=updated_execution.profile_syntheses,
             cumulative_synthesis_tokens=new_cum_tokens,
             cumulative_synthesis_cost=new_cum_cost,
             cost_estimate=total_cost,

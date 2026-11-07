@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Self
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
@@ -377,19 +377,70 @@ class ExecutionRecord(ExecutionCoreFields):
         Field(default=None, description="ID of the organization for this execution"),
     ] = None
 
-    def without_profile_synthesis(self, profile_id: str) -> ExecutionRecord:
+    def without_profile_synthesis(self, profile_id: str) -> Self:
         """Return an immutable copy with the specified profile synthesis removed.
 
         Args:
             profile_id: Identifier of the presentation profile to invalidate.
 
         Returns:
-            ExecutionRecord: Cloned execution record without the cached profile synthesis.
+            Cloned execution record without the cached profile synthesis.
         """
         if profile_id not in self.profile_syntheses:
             return self
         updated_syntheses = {k: v for k, v in self.profile_syntheses.items() if k != profile_id}
         return self.model_copy(update={"profile_syntheses": updated_syntheses})
+
+    def with_updated_step_state(self, step_id: str, step_state: ExecutionStep) -> Self:
+        """Return an immutable copy with an updated step state and synchronized steps list.
+
+        Args:
+            step_id: Canonical identifier of the execution step to update.
+            step_state: New immutable ExecutionStep state instance.
+
+        Returns:
+            Cloned execution record with updated step_states and steps.
+        """
+        updated_step_states: dict[str, ExecutionStep] = {
+            k: v for k, v in self.step_states.items() if isinstance(v, ExecutionStep)
+        }
+        updated_step_states[step_id] = step_state
+        updated_steps = [step_state if s.id == step_id else s for s in self.steps]
+        if not any(s.id == step_id for s in self.steps):
+            updated_steps.append(step_state)
+        return self.model_copy(update={"step_states": updated_step_states, "steps": updated_steps})
+
+    def with_updated_profile_synthesis(
+        self,
+        profile_id: str,
+        cache: RenderedSynthesisCache,
+        step_id: str | None = None,
+        step_state: ExecutionStep | None = None,
+    ) -> Self:
+        """Return an immutable copy with the specified profile synthesis cache updated.
+
+        Args:
+            profile_id: Canonical identifier of the output profile.
+            cache: Rendered synthesis cache entry to bind to the profile.
+            step_id: Optional virtual render step identifier to update atomically.
+            step_state: Optional virtual render step state to synchronize atomically.
+
+        Returns:
+            Cloned execution record with updated profile_syntheses and optional step state.
+        """
+        updated_syntheses = {**self.profile_syntheses, profile_id: cache}
+        record = self.model_copy(update={"profile_syntheses": updated_syntheses})
+        if step_id is not None and step_state is not None:
+            return record.with_updated_step_state(step_id, step_state)
+        return record
+
+    def with_cleared_profile_syntheses(self) -> Self:
+        """Return an immutable copy with all cached profile syntheses cleared.
+
+        Returns:
+            Cloned execution record with an empty profile_syntheses mapping.
+        """
+        return self.model_copy(update={"profile_syntheses": {}})
 
     def transition_step(
         self,
@@ -400,7 +451,7 @@ class ExecutionRecord(ExecutionCoreFields):
         last_error: str | None = None,
         has_warning: bool | None = None,
         input_merkle_hash: str | None = None,
-    ) -> ExecutionRecord:
+    ) -> Self:
         """Atomically transition step state across steps list and step_states dictionary.
 
         Args:
@@ -413,7 +464,7 @@ class ExecutionRecord(ExecutionCoreFields):
             input_merkle_hash: Optional canonical SHA-256 Merkle hash of step inputs.
 
         Returns:
-            ExecutionRecord: Cloned execution record with atomically synchronized steps.
+            Cloned execution record with atomically synchronized steps.
         """
         existing_step: ExecutionStep | None = (
             self.step_states[step_id]
@@ -450,14 +501,9 @@ class ExecutionRecord(ExecutionCoreFields):
                 }
             )
 
-        new_step_states = {**self.step_states, step_id: step_item}
-        new_steps = [step_item if s.id == step_id else s for s in self.steps]
-        if not any(s.id == step_id for s in self.steps):
-            new_steps.append(step_item)
+        return self.with_updated_step_state(step_id, step_item)
 
-        return self.model_copy(update={"step_states": new_step_states, "steps": new_steps})
-
-    def with_step_passed(self, step_id: str, label: str = "Report Render") -> ExecutionRecord:
+    def with_step_passed(self, step_id: str, label: str = "Report Render") -> Self:
         """Return an immutable copy with the designated step marked PASSED at 100%.
 
         Args:
@@ -465,7 +511,7 @@ class ExecutionRecord(ExecutionCoreFields):
             label: Human-readable display label for the step.
 
         Returns:
-            ExecutionRecord: Cloned execution record with updated steps and step_states.
+            Cloned execution record with updated steps and step_states.
         """
         return self.transition_step(
             step_id=step_id,

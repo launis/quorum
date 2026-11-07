@@ -443,14 +443,11 @@ async def handle_starvation_if_detected(
         data_starvation=starvation_dto,
         created_at=datetime.now(timezone.utc),
     )
-    current_syntheses: dict[str, RenderedSynthesisCache] = {}
-    if execution.profile_syntheses is not None:
-        current_syntheses = dict(execution.profile_syntheses)
     starvation_pid = "default"
     if profile_id is not None:
         starvation_pid = profile_id
-    current_syntheses[starvation_pid] = cache
-    await repo.update_execution(execution.id, ExecutionUpdateDTO(profile_syntheses=current_syntheses))
+    updated_execution = execution.with_updated_profile_synthesis(starvation_pid, cache)
+    await repo.update_execution(execution.id, ExecutionUpdateDTO(profile_syntheses=updated_execution.profile_syntheses))
     await update_render_status_fn("Compiling output documents...")
     report_svc = ReportService(repo)
     artifact = await report_svc.get_or_create_default_artifact(
@@ -583,38 +580,19 @@ async def handle_synthesis_failure_state(
         fail_step_states = None
         fail_steps = None
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
-        if exec_record_local:
-            exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
-            if v_step_id in exec_record_local.step_states:
-                old_state = exec_record_local.step_states[v_step_id]
-                updated_state = old_state.model_copy(
-                    update={
-                        "status": ExecutionStatus.FAILED,
-                        "last_error": str(error),
-                        "progress": None,
-                        "has_warning": True,
-                    }
-                )
-                new_step_states = dict(exec_record_local.step_states)
-                new_step_states[v_step_id] = updated_state
-                new_steps = [
-                    s.model_copy(
-                        update={
-                            "status": ExecutionStatus.FAILED,
-                            "last_error": str(error),
-                            "progress": None,
-                            "has_warning": True,
-                        }
-                    )
-                    if s.id == v_step_id
-                    else s
-                    for s in exec_record_local.steps
-                ]
-                exec_record_local = exec_record_local.model_copy(
-                    update={"step_states": new_step_states, "steps": new_steps}
-                )
-                fail_step_states = exec_record_local.step_states
-                fail_steps = exec_record_local.steps
+        if exec_record_local is not None and v_step_id in exec_record_local.step_states:
+            old_state = exec_record_local.step_states[v_step_id]
+            updated_state = old_state.model_copy(
+                update={
+                    "status": ExecutionStatus.FAILED,
+                    "last_error": str(error),
+                    "progress": None,
+                    "has_warning": True,
+                }
+            )
+            exec_record_local = exec_record_local.with_updated_step_state(v_step_id, updated_state)
+            fail_step_states = exec_record_local.step_states
+            fail_steps = exec_record_local.steps
 
         # REQ-02 / Phase 3 Failure Quarantine:
         # Do NOT update ExecutionRecord.status to FAILED. Preserve Phase 1 PASSED status.

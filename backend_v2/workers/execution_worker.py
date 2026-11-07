@@ -132,8 +132,8 @@ async def _fetch_and_validate_workflow(repository: Any, workflow_id: str) -> Wor
         ValidationError: If the stored workflow fails Pydantic schema validation.
         AppException: With ErrorCodes.CONFIGURATION_ERROR if default_strictness_level is missing.
     """
-    workflow_dict = await repository.get_workflow(workflow_id)
-    if not workflow_dict:
+    workflow_def: Workflow | None = await repository.get_workflow(workflow_id)
+    if workflow_def is None:
         missing_msg = f"Workflow '{workflow_id}' not found."
         logger.error(
             "[Worker] %s: %s",
@@ -143,7 +143,6 @@ async def _fetch_and_validate_workflow(repository: Any, workflow_id: str) -> Wor
             extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": workflow_id},
         )
         raise WorkflowNotFoundError(workflow_id)
-    workflow_def = Workflow.model_validate(workflow_dict)
     if workflow_def.default_strictness_level is None:
         msg = f"Strict Fail-Fast Enforced: Workflow '{workflow_id}' is missing mandatory 'default_strictness_level'."
         logger.error(
@@ -182,8 +181,8 @@ async def _fetch_and_validate_execution(
     """
     exec_record = existing_record
     if exec_record is None:
-        execution_data = await repository.get_execution(exec_id)
-        if not execution_data:
+        exec_record = await repository.get_execution(exec_id)
+        if exec_record is None:
             msg = f"Execution {exec_id} not found in DB before execution! Cannot resolve dynamic strictness."
             logger.error(
                 "[Job] %s: %s",
@@ -197,11 +196,6 @@ async def _fetch_and_validate_execution(
                 status_code=500,
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
-        exec_record = (
-            execution_data
-            if isinstance(execution_data, ExecutionRecord)
-            else ExecutionRecord.model_validate(execution_data, strict=False)
-        )
 
     if not exec_record.target_locale:
         msg = f"Strict Fail-Fast Enforced: Execution '{exec_record.id}' is missing mandatory 'target_locale'."

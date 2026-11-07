@@ -8,8 +8,9 @@ from pydantic import JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
@@ -531,8 +532,6 @@ async def test_handle_synthesis_failure_state_none_profile() -> None:
 @pytest.mark.asyncio
 async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
     """Test handle_synthesis_failure_state updates virtual step and execution record."""
-    from backend_v2.models.domain.execution import ExecutionStep
-
     prof_id = "pro_0195f3a00000700283456789abcdef01"
     v_step_id = f"sys_render_{prof_id}"
     v_step = ExecutionStep(id=v_step_id, label="Render", status=ExecutionStatus.PENDING)
@@ -575,3 +574,68 @@ async def test_handle_synthesis_failure_state_db_error_raises() -> None:
                 assert exc_info.value.status_code == 500
     finally:
         mock_repo.clear_faults()
+
+
+def test_execution_record_with_updated_step_state_returns_new_frozen_instance() -> None:
+    """Verify with_updated_step_state returns a new ExecutionRecord with synchronized step_states and steps."""
+    step_id = "stp_0195f3a00000700283456789abcdef01"
+    initial_step = ExecutionStep(id=step_id, label="Initial Step", status=ExecutionStatus.PENDING, progress=0)
+    record = _make_execution().model_copy(
+        update={
+            "step_states": {step_id: initial_step},
+            "steps": [initial_step],
+        }
+    )
+
+    updated_step = initial_step.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100})
+    new_record = record.with_updated_step_state(step_id, updated_step)
+
+    assert new_record is not record
+    assert new_record.step_states[step_id] == updated_step
+    assert new_record.steps == [updated_step]
+    assert record.step_states[step_id] == initial_step
+    assert record.steps == [initial_step]
+
+    # Also verify appending a step not yet present in steps list
+    second_step_id = "sys_render_pro_0195f3a00000700283456789abcdef01"
+    second_step = ExecutionStep(id=second_step_id, label="Render Step", status=ExecutionStatus.RUNNING, progress=50)
+    new_record_with_append = new_record.with_updated_step_state(second_step_id, second_step)
+    assert new_record_with_append.step_states[second_step_id] == second_step
+    assert len(new_record_with_append.steps) == 2
+    assert new_record_with_append.steps[1] == second_step
+
+
+def test_execution_record_with_updated_profile_synthesis_preserves_existing_profiles() -> None:
+    """Verify with_updated_profile_synthesis preserves existing profile caches and adds the new profile cache."""
+    existing_pid = "pro_0195f3a00000700283456789abcdef01"
+    new_pid = "pro_0195f3a00000700283456789abcdef02"
+    existing_cache = RenderedSynthesisCache(cited_sources=["doc_existing"])
+    new_cache = RenderedSynthesisCache(cited_sources=["doc_new"])
+
+    record = _make_execution().model_copy(update={"profile_syntheses": {existing_pid: existing_cache}})
+    updated_record = record.with_updated_profile_synthesis(new_pid, new_cache)
+
+    assert updated_record is not record
+    assert updated_record.profile_syntheses[existing_pid] == existing_cache
+    assert updated_record.profile_syntheses[new_pid] == new_cache
+    assert new_pid not in record.profile_syntheses
+
+    # Verify optional atomic step_state update
+    v_step_id = f"sys_render_{new_pid}"
+    v_step = ExecutionStep(id=v_step_id, label="Done", status=ExecutionStatus.PASSED, progress=100)
+    updated_with_step = record.with_updated_profile_synthesis(new_pid, new_cache, step_id=v_step_id, step_state=v_step)
+    assert updated_with_step.profile_syntheses[new_pid] == new_cache
+    assert updated_with_step.step_states[v_step_id] == v_step
+
+
+def test_execution_record_with_cleared_profile_syntheses_empties_cache() -> None:
+    """Verify with_cleared_profile_syntheses returns a new ExecutionRecord with empty profile_syntheses."""
+    existing_pid = "pro_0195f3a00000700283456789abcdef01"
+    existing_cache = RenderedSynthesisCache(cited_sources=["doc_existing"])
+    record = _make_execution().model_copy(update={"profile_syntheses": {existing_pid: existing_cache}})
+
+    cleared_record = record.with_cleared_profile_syntheses()
+
+    assert cleared_record is not record
+    assert cleared_record.profile_syntheses == {}
+    assert record.profile_syntheses == {existing_pid: existing_cache}
