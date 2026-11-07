@@ -626,6 +626,14 @@ async def generate_profile_synthesis_and_pdf_task(
             )
             e = AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         else:
+            if isinstance(e, ExceptionGroup):
+                app_errors, _ = e.split(AppException)
+                if (
+                    app_errors
+                    and len(app_errors.exceptions) >= 1
+                    and isinstance(app_errors.exceptions[0], AppException)
+                ):
+                    e = app_errors.exceptions[0]
             logger.error(
                 "[Task] Text Synthesis generation failed for %s: %s",
                 execution_id,

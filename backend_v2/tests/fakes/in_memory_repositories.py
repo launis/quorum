@@ -70,7 +70,12 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Role, Step
-from backend_v2.models.domain.system_config import ModelProfile, SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import (
+    ModelProfile,
+    ProviderExtraParamsDTO,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
@@ -425,10 +430,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         if not s:
             return None
         payload = s.model_dump(mode="python") if isinstance(s, BaseModel) else s
-        try:
-            return Step.model_validate(payload, strict=False)
-        except ValidationError:
-            return s
+        return Step.model_validate(payload, strict=False)
 
     async def get_step(self, step_id: str) -> Step | None:
         self._check_fault("get_step")
@@ -982,10 +984,30 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             type="model_registry",
             default_provider=LLMProvider.AI_STUDIO,
             tier_definitions={
-                CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
-                CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
-                CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
-                CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+                CognitiveTier.FAST: ModelProfile(
+                    provider="ai_studio",
+                    model_name="gemini-2.5-flash",
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
+                ),
+                CognitiveTier.BALANCED: ModelProfile(
+                    provider="ai_studio",
+                    model_name="gemini-2.5-flash",
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
+                ),
+                CognitiveTier.DEEP: ModelProfile(
+                    provider="ai_studio",
+                    model_name="gemini-2.5-pro",
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
+                ),
+                CognitiveTier.REASONING: ModelProfile(
+                    provider="ai_studio",
+                    model_name="gemini-2.5-pro",
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
+                ),
             },
         )
         self._model_registries: dict[str, SystemConfigModelRegistry] = {
