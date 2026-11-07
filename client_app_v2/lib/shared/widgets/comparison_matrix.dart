@@ -9,6 +9,44 @@ import 'package:client_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+@immutable
+class ComparisonSideScore {
+  final num? score;
+  final String? reasoning;
+
+  const ComparisonSideScore({required this.score, this.reasoning});
+}
+
+@immutable
+class ComparisonRowData {
+  final String observation;
+  final ComparisonSideScore? left;
+  final ComparisonSideScore? right;
+  final num? delta;
+
+  const ComparisonRowData({
+    required this.observation,
+    required this.left,
+    required this.right,
+    required this.delta,
+  });
+}
+
+@immutable
+class ComparisonMatrixData {
+  final String? leftLabel;
+  final String? rightLabel;
+  final List<ComparisonRowData>? rows;
+  final bool isCorrupted;
+
+  const ComparisonMatrixData({
+    this.leftLabel,
+    this.rightLabel,
+    this.rows,
+    this.isCorrupted = false,
+  });
+}
+
 class _ParsedComparisonRow {
   final String observation;
   final num leftScore;
@@ -28,7 +66,7 @@ class _ParsedComparisonRow {
 }
 
 class ComparisonMatrix extends ConsumerWidget {
-  final Map<String, Object?> comparisonData;
+  final ComparisonMatrixData comparisonData;
 
   const ComparisonMatrix({super.key, required this.comparisonData});
 
@@ -38,29 +76,26 @@ class ComparisonMatrix extends ConsumerWidget {
     final theme = Theme.of(context);
 
     try {
-      final rowsRaw = comparisonData['rows'];
-      if (rowsRaw == null) {
-        return _buildEmptyCard(l10n);
-      }
-      if (rowsRaw is! List) {
+      if (comparisonData.isCorrupted) {
         throw AppException.validation(
-          'Fail-Fast: comparisonData["rows"] must be a List.',
+          'Fail-Fast: comparisonData payload is corrupted.',
         );
       }
 
-      if (rowsRaw.isEmpty) {
+      final rowsRaw = comparisonData.rows;
+      if (rowsRaw == null || rowsRaw.isEmpty) {
         return _buildEmptyCard(l10n);
       }
 
-      final leftLabelRaw = comparisonData['left_label'];
-      if (leftLabelRaw is! String || leftLabelRaw.trim().isEmpty) {
+      final leftLabelRaw = comparisonData.leftLabel;
+      if (leftLabelRaw == null || leftLabelRaw.trim().isEmpty) {
         throw AppException.validation(
           'Fail-Fast: Missing or invalid left_label in comparisonData.',
         );
       }
 
-      final rightLabelRaw = comparisonData['right_label'];
-      if (rightLabelRaw is! String || rightLabelRaw.trim().isEmpty) {
+      final rightLabelRaw = comparisonData.rightLabel;
+      if (rightLabelRaw == null || rightLabelRaw.trim().isEmpty) {
         throw AppException.validation(
           'Fail-Fast: Missing or invalid right_label in comparisonData.',
         );
@@ -69,65 +104,46 @@ class ComparisonMatrix extends ConsumerWidget {
       final parsedRows = <_ParsedComparisonRow>[];
       for (var i = 0; i < rowsRaw.length; i++) {
         final rawRow = rowsRaw[i];
-        if (rawRow is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: Row at index $i must be a Map<String, Object?>.',
-          );
-        }
 
-        final observation = rawRow['observation'];
-        if (observation is! String || observation.trim().isEmpty) {
+        final observation = rawRow.observation;
+        if (observation.trim().isEmpty) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid observation at row $i.',
           );
         }
 
-        final left = rawRow['left'];
-        if (left is! Map<String, Object?>) {
+        final left = rawRow.left;
+        if (left == null) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid left payload at row $i.',
           );
         }
 
-        final right = rawRow['right'];
-        if (right is! Map<String, Object?>) {
+        final right = rawRow.right;
+        if (right == null) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid right payload at row $i.',
           );
         }
 
-        final leftScore = left['score'];
-        if (leftScore is! num) {
+        final leftScore = left.score;
+        if (leftScore == null) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid numeric left.score at row $i.',
           );
         }
 
-        final rightScore = right['score'];
-        if (rightScore is! num) {
+        final rightScore = right.score;
+        if (rightScore == null) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid numeric right.score at row $i.',
           );
         }
 
-        final deltaRaw = rawRow['delta'];
-        if (deltaRaw is! num) {
+        final deltaRaw = rawRow.delta;
+        if (deltaRaw == null) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid numeric delta at row $i.',
-          );
-        }
-
-        final leftReasoning = left['reasoning'];
-        if (leftReasoning != null && leftReasoning is! String) {
-          throw AppException.validation(
-            'Fail-Fast: Invalid left.reasoning type at row $i.',
-          );
-        }
-
-        final rightReasoning = right['reasoning'];
-        if (rightReasoning != null && rightReasoning is! String) {
-          throw AppException.validation(
-            'Fail-Fast: Invalid right.reasoning type at row $i.',
           );
         }
 
@@ -137,8 +153,8 @@ class ComparisonMatrix extends ConsumerWidget {
             leftScore: leftScore,
             rightScore: rightScore,
             delta: deltaRaw.toDouble(),
-            leftReasoning: leftReasoning as String?,
-            rightReasoning: rightReasoning as String?,
+            leftReasoning: left.reasoning,
+            rightReasoning: right.reasoning,
           ),
         );
       }

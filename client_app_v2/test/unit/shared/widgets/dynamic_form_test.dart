@@ -36,9 +36,9 @@ class _RecordingLoggerService extends LoggerService {
 
 void main() {
   Widget buildTestHarness({
-    required Map<String, Object?> schema,
-    Map<String, Object?> initialData = const {},
-    ValueChanged<Map<String, Object?>>? onChanged,
+    required DynamicFormSchema schema,
+    DynamicFormValues initialData = const DynamicFormValues(),
+    ValueChanged<DynamicFormValues>? onChanged,
     ThemeData? theme,
     Locale locale = const Locale('en'),
     double? width,
@@ -71,34 +71,36 @@ void main() {
     testWidgets(
       'Positive: renders string, integer, and boolean schema properties, populates initialData, and emits updated map via onChanged',
       (WidgetTester tester) async {
-        Map<String, Object?>? latestEmitted;
-        final schema = <String, Object?>{
-          'properties': <String, Object?>{
-            'agent_name': <String, Object?>{
-              'type': 'string',
-              'title': 'Agent Name',
-              'description': 'Primary identifier',
-            },
-            'max_retries': <String, Object?>{
-              'type': 'integer',
-              'title': 'Max Retries',
-            },
-            'strict_mode': <String, Object?>{
-              'type': 'boolean',
-              'title': 'Strict Mode',
-            },
+        DynamicFormValues? latestEmitted;
+        const schema = DynamicFormSchema(
+          properties: <String, SchemaFieldDefinition>{
+            'agent_name': SchemaFieldDefinition(
+              type: 'string',
+              title: 'Agent Name',
+              description: 'Primary identifier',
+            ),
+            'max_retries': SchemaFieldDefinition(
+              type: 'integer',
+              title: 'Max Retries',
+            ),
+            'strict_mode': SchemaFieldDefinition(
+              type: 'boolean',
+              title: 'Strict Mode',
+            ),
           },
-          'required': <Object?>['agent_name'],
-        };
+          requiredFields: <String>['agent_name'],
+        );
 
         await tester.pumpWidget(
           buildTestHarness(
             schema: schema,
-            initialData: const <String, Object?>{
-              'agent_name': 'Logician',
-              'max_retries': 3,
-              'strict_mode': true,
-            },
+            initialData: const DynamicFormValues(
+              entries: <String, DynamicFormFieldValue?>{
+                'agent_name': DynamicFormFieldValue.string('Logician'),
+                'max_retries': DynamicFormFieldValue.integer(3),
+                'strict_mode': DynamicFormFieldValue.boolean(true),
+              },
+            ),
             onChanged: (updated) => latestEmitted = updated,
           ),
         );
@@ -130,20 +132,24 @@ void main() {
     testWidgets(
       'Boundary 1: didUpdateWidget synchronizes internal state when initialData map changes and narrow 280px dark viewport renders without overflow',
       (WidgetTester tester) async {
-        final schema = <String, Object?>{
-          'properties': <String, Object?>{
-            'mode': <String, Object?>{
-              'type': 'string',
-              'title': 'Execution Mode',
-              'enum': <Object?>['deterministic', 'exploratory'],
-            },
+        const schema = DynamicFormSchema(
+          properties: <String, SchemaFieldDefinition>{
+            'mode': SchemaFieldDefinition(
+              type: 'string',
+              title: 'Execution Mode',
+              enumOptions: <String>['deterministic', 'exploratory'],
+            ),
           },
-        };
+        );
 
         await tester.pumpWidget(
           buildTestHarness(
             schema: schema,
-            initialData: const <String, Object?>{'mode': 'deterministic'},
+            initialData: const DynamicFormValues(
+              entries: <String, DynamicFormFieldValue?>{
+                'mode': DynamicFormFieldValue.string('deterministic'),
+              },
+            ),
             theme: AppTheme.dark,
             width: 280,
           ),
@@ -156,7 +162,11 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             schema: schema,
-            initialData: const <String, Object?>{'mode': 'exploratory'},
+            initialData: const DynamicFormValues(
+              entries: <String, DynamicFormFieldValue?>{
+                'mode': DynamicFormFieldValue.string('exploratory'),
+              },
+            ),
             theme: AppTheme.dark,
             width: 280,
           ),
@@ -174,7 +184,7 @@ void main() {
         final logger = _RecordingLoggerService();
 
         await tester.pumpWidget(
-          buildTestHarness(schema: const <String, Object?>{}, logger: logger),
+          buildTestHarness(schema: const DynamicFormSchema(), logger: logger),
         );
         await tester.pumpAndSettle();
 
@@ -194,10 +204,12 @@ void main() {
       'Negative 2: malformed property definition or invalid required list logs error via LoggerService and renders compact ErrorView without silent fallback',
       (WidgetTester tester) async {
         final logger = _RecordingLoggerService();
-        final corruptedSchema = <String, Object?>{
-          'properties': <String, Object?>{'broken_field': 'not_a_map_schema'},
-          'required': 'invalid_non_list_required',
-        };
+        const corruptedSchema = DynamicFormSchema(
+          properties: <String, SchemaFieldDefinition>{
+            'broken_field': SchemaFieldDefinition(type: 'unsupported_type'),
+          },
+          requiredFields: <String>['   '],
+        );
 
         await tester.pumpWidget(
           buildTestHarness(schema: corruptedSchema, logger: logger),

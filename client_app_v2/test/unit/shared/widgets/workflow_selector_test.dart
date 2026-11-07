@@ -37,7 +37,7 @@ class _RecordingLoggerService extends LoggerService {
 
 void main() {
   Widget buildTestHarness({
-    required List<Map<String, Object?>> workflows,
+    required List<WorkflowSelectorItem> workflows,
     String? selectedId,
     ValueChanged<String?>? onChanged,
     bool isLoading = false,
@@ -78,29 +78,29 @@ void main() {
       'Positive: renders localized I18nText and String workflow names, highlights selectedId, and emits selection change',
       (WidgetTester tester) async {
         String? emittedId;
-        final workflows = <Map<String, Object?>>[
-          <String, Object?>{
-            'id': 'wf_0195f000000070008000000000000001',
-            'name': const I18nText(
+        final workflows = <WorkflowSelectorItem>[
+          const WorkflowSelectorItem(
+            id: 'wf_0195f000000070008000000000000001',
+            localizedName: I18nText(
               translations: <String, String>{
                 'en': 'Executive Coaching Synthesis',
                 'fi': 'Johdon valmennussynteesi',
               },
             ),
-          },
-          <String, Object?>{
-            'id': 'wf_0195f000000070008000000000000002',
-            'name': <String, Object?>{
-              'translations': <String, String>{
+          ),
+          const WorkflowSelectorItem(
+            id: 'wf_0195f000000070008000000000000002',
+            localizedName: I18nText(
+              translations: <String, String>{
                 'en': 'Causal Discovery Audit',
                 'fi': 'Kausaalinen auditointi',
               },
-            },
-          },
-          <String, Object?>{
-            'id': 'wf_0195f000000070008000000000000003',
-            'name': 'Direct String Workflow',
-          },
+            ),
+          ),
+          const WorkflowSelectorItem(
+            id: 'wf_0195f000000070008000000000000003',
+            directName: 'Direct String Workflow',
+          ),
         ];
 
         await tester.pumpWidget(
@@ -131,12 +131,12 @@ void main() {
     testWidgets(
       'Boundary 1: renders loading indicator, unmapped selectedId as null, and extreme long workflow name in narrow 240px dark viewport without overflow',
       (WidgetTester tester) async {
-        final workflows = <Map<String, Object?>>[
-          <String, Object?>{
-            'id': 'wf_0195f000000070008000000000000010',
-            'name':
+        final workflows = <WorkflowSelectorItem>[
+          const WorkflowSelectorItem(
+            id: 'wf_0195f000000070008000000000000010',
+            directName:
                 'ExtraordinarilyLongEnterpriseExecutiveCoachingWorkflowNameWithoutSpaces_v2026_Final',
-          },
+          ),
         ];
 
         await tester.pumpWidget(
@@ -168,8 +168,11 @@ void main() {
 
         await tester.pumpWidget(
           buildTestHarness(
-            workflows: const <Map<String, Object?>>[
-              <String, Object?>{'id': '   ', 'name': 'Invalid ID Workflow'},
+            workflows: const <WorkflowSelectorItem>[
+              WorkflowSelectorItem(
+                id: '   ',
+                directName: 'Invalid ID Workflow',
+              ),
             ],
             logger: logger,
           ),
@@ -189,15 +192,15 @@ void main() {
         logger.loggedErrors.clear();
         await tester.pumpWidget(
           buildTestHarness(
-            workflows: const <Map<String, Object?>>[
-              <String, Object?>{
-                'id': 'wf_0195f000000070008000000000000001',
-                'name': 'First',
-              },
-              <String, Object?>{
-                'id': 'wf_0195f000000070008000000000000001',
-                'name': 'Duplicate',
-              },
+            workflows: const <WorkflowSelectorItem>[
+              WorkflowSelectorItem(
+                id: 'wf_0195f000000070008000000000000001',
+                directName: 'First',
+              ),
+              WorkflowSelectorItem(
+                id: 'wf_0195f000000070008000000000000001',
+                directName: 'Duplicate',
+              ),
             ],
             logger: logger,
           ),
@@ -215,7 +218,7 @@ void main() {
         logger.loggedErrors.clear();
         await tester.pumpWidget(
           buildTestHarness(
-            workflows: const <Map<String, Object?>>[],
+            workflows: const <WorkflowSelectorItem>[],
             selectedId: '   ',
             logger: logger,
           ),
@@ -239,11 +242,11 @@ void main() {
 
         await tester.pumpWidget(
           buildTestHarness(
-            workflows: const <Map<String, Object?>>[
-              <String, Object?>{
-                'id': 'wf_0195f000000070008000000000000001',
-                'name': '',
-              },
+            workflows: const <WorkflowSelectorItem>[
+              WorkflowSelectorItem(
+                id: 'wf_0195f000000070008000000000000001',
+                directName: '',
+              ),
             ],
             logger: logger,
           ),
@@ -261,11 +264,11 @@ void main() {
         logger.loggedErrors.clear();
         await tester.pumpWidget(
           buildTestHarness(
-            workflows: const <Map<String, Object?>>[
-              <String, Object?>{
-                'id': 'wf_0195f000000070008000000000000002',
-                'name': <String, Object?>{'translations': <String, String>{}},
-              },
+            workflows: const <WorkflowSelectorItem>[
+              WorkflowSelectorItem(
+                id: 'wf_0195f000000070008000000000000002',
+                localizedName: I18nText(translations: <String, String>{}),
+              ),
             ],
             logger: logger,
           ),

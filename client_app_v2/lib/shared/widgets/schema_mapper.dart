@@ -4,6 +4,21 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+@immutable
+class SchemaFieldDefinition {
+  final String? type;
+  final String? title;
+  final String? description;
+  final List<String>? enumOptions;
+
+  const SchemaFieldDefinition({
+    this.type,
+    this.title,
+    this.description,
+    this.enumOptions,
+  });
+}
+
 /// **Schema Mapper**
 ///
 /// Utility class to map JSON Schema definitions to Flutter Input Widgets.
@@ -22,7 +37,7 @@ class SchemaMapper {
   static Widget mapFieldToWidget({
     required BuildContext context,
     required String key,
-    required Map<String, Object?> schema,
+    required SchemaFieldDefinition schema,
     required Object? value,
     required ValueChanged<Object?> onChanged,
     required bool isRequired,
@@ -33,40 +48,31 @@ class SchemaMapper {
       );
     }
 
-    final rawType = schema['type'];
-    if (rawType != null &&
-        (rawType is! String || !_supportedTypes.contains(rawType))) {
+    final type = schema.type;
+    if (type != null && !_supportedTypes.contains(type)) {
       throw AppException.validation(
-        'Fail-Fast: SchemaMapper property "$key" has unsupported or invalid type "$rawType".',
+        'Fail-Fast: SchemaMapper property "$key" has unsupported or invalid type "$type".',
       );
     }
-    final type = rawType as String?;
 
-    final rawTitle = schema['title'];
-    if (rawTitle != null && (rawTitle is! String || rawTitle.trim().isEmpty)) {
+    final rawTitle = schema.title;
+    if (rawTitle != null && rawTitle.trim().isEmpty) {
       throw AppException.validation(
         'Fail-Fast: SchemaMapper property "$key" title must be a non-empty String.',
       );
     }
-    final title = (rawTitle as String?) ?? key;
+    final title = rawTitle ?? key;
 
-    final rawDescription = schema['description'];
-    if (rawDescription != null && rawDescription is! String) {
-      throw AppException.validation(
-        'Fail-Fast: SchemaMapper property "$key" description must be a String.',
-      );
-    }
-    final description = rawDescription as String?;
+    final description = schema.description;
 
-    final rawEnum = schema['enum'];
-    if (rawEnum != null && (rawEnum is! List<Object?> || rawEnum.isEmpty)) {
+    final enumValues = schema.enumOptions;
+    if (enumValues != null && enumValues.isEmpty) {
       throw AppException.validation(
         'Fail-Fast: SchemaMapper property "$key" enum must be a non-empty List.',
       );
     }
-    final enumValues = rawEnum as List<Object?>?;
 
-    if (rawType == null && enumValues == null) {
+    if (type == null && enumValues == null) {
       throw AppException.validation(
         'Fail-Fast: SchemaMapper property "$key" must declare a valid "type" or "enum".',
       );
@@ -82,7 +88,7 @@ class SchemaMapper {
     if (enumValues != null) {
       final optionStrings = <String>[];
       for (final item in enumValues) {
-        final strVal = item?.toString().trim() ?? '';
+        final strVal = item.trim();
         if (strVal.isEmpty) {
           throw AppException.validation(
             'Fail-Fast: SchemaMapper property "$key" contains an empty enum option.',

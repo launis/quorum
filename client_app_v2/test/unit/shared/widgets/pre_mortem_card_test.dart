@@ -38,7 +38,7 @@ class _RecordingLoggerService extends LoggerService {
 
 void main() {
   Widget buildTestHarness({
-    required Map<String, Object?> report,
+    required PreMortemReportData report,
     ThemeData? theme,
     Locale locale = const Locale('en'),
     double? width,
@@ -69,15 +69,15 @@ void main() {
       (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestHarness(
-            report: {
-              'pre_mortem_analyysi': <String, Object?>{
-                'suoritettu': true,
-                'hiljaiset_signaalit': <Object?>[
+            report: const PreMortemReportData(
+              preMortemAnalyysi: PreMortemAnalysisData(
+                suoritettu: true,
+                hiljaisetSignaalit: <String>[
                   'Vendor lock-in risk on proprietary schema',
                   'Single point of failure in ingress queue',
                 ],
-              },
-            },
+              ),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -118,12 +118,12 @@ void main() {
       (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestHarness(
-            report: {
-              'pre_mortem_analyysi': <String, Object?>{
-                'suoritettu': false,
-                'hiljaiset_signaalit': <Object?>[],
-              },
-            },
+            report: const PreMortemReportData(
+              preMortemAnalyysi: PreMortemAnalysisData(
+                suoritettu: false,
+                hiljaisetSignaalit: <String>[],
+              ),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -144,7 +144,7 @@ void main() {
       'Boundary 1: returns empty SizedBox when report is empty or pre_mortem_analyysi is null',
       (WidgetTester tester) async {
         await tester.pumpWidget(
-          buildTestHarness(report: const <String, Object?>{}),
+          buildTestHarness(report: const PreMortemReportData()),
         );
         await tester.pumpAndSettle();
 
@@ -153,7 +153,7 @@ void main() {
 
         await tester.pumpWidget(
           buildTestHarness(
-            report: const <String, Object?>{'pre_mortem_analyysi': null},
+            report: const PreMortemReportData(preMortemAnalyysi: null),
           ),
         );
         await tester.pumpAndSettle();
@@ -171,14 +171,14 @@ void main() {
             theme: AppTheme.dark,
             locale: const Locale('fi'),
             width: 280,
-            report: {
-              'pre_mortem_analyysi': <String, Object?>{
-                'suoritettu': true,
-                'hiljaiset_signaalit': <Object?>[
+            report: const PreMortemReportData(
+              preMortemAnalyysi: PreMortemAnalysisData(
+                suoritettu: true,
+                hiljaisetSignaalit: <String>[
                   'ErittäinPitkäHiljainenSignaaliIlmanVälilyöntejäTaiRivinvaihtojaTestaamaanKapeaaNäkymää',
                 ],
-              },
-            },
+              ),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -196,16 +196,19 @@ void main() {
     );
 
     testWidgets(
-      'Negative 1: non-map pre_mortem_analyysi logs error via LoggerService and renders compact ErrorView',
+      'Negative 1: corrupted pre_mortem_analyysi logs error via LoggerService and renders compact ErrorView',
       (WidgetTester tester) async {
         final logger = _RecordingLoggerService();
 
         await tester.pumpWidget(
           buildTestHarness(
             logger: logger,
-            report: const <String, Object?>{
-              'pre_mortem_analyysi': 'invalid_scalar_payload',
-            },
+            report: const PreMortemReportData(
+              preMortemAnalyysi: PreMortemAnalysisData(
+                suoritettu: null,
+                isCorrupted: true,
+              ),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -230,9 +233,9 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             logger: logger,
-            report: {
-              'pre_mortem_analyysi': <String, Object?>{'suoritettu': 'yes'},
-            },
+            report: const PreMortemReportData(
+              preMortemAnalyysi: PreMortemAnalysisData(suoritettu: null),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -257,12 +260,12 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             logger: logger,
-            report: {
-              'pre_mortem_analyysi': <String, Object?>{
-                'suoritettu': true,
-                'hiljaiset_signaalit': <Object?>['   '],
-              },
-            },
+            report: const PreMortemReportData(
+              preMortemAnalyysi: PreMortemAnalysisData(
+                suoritettu: true,
+                hiljaisetSignaalit: <String>['   '],
+              ),
+            ),
           ),
         );
         await tester.pumpAndSettle();

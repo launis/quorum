@@ -7,6 +7,42 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/widgets/deep_dive_expander.dart';
 
+@immutable
+class AuditTrailStepMetadata {
+  final int step;
+  final String agent;
+  final String version;
+  final String timestamp;
+
+  const AuditTrailStepMetadata({
+    required this.step,
+    required this.agent,
+    required this.version,
+    required this.timestamp,
+  });
+}
+
+@immutable
+class AuditTrailStepEntry {
+  final AuditTrailStepMetadata? metadata;
+  final String? reasoningTrace;
+  final String? methodologicalLog;
+
+  const AuditTrailStepEntry({
+    this.metadata,
+    this.reasoningTrace,
+    this.methodologicalLog,
+  });
+}
+
+@immutable
+class AuditTrailData {
+  final Map<String, AuditTrailStepEntry>? rawSteps;
+  final bool isCorrupted;
+
+  const AuditTrailData({this.rawSteps, this.isCorrupted = false});
+}
+
 class _ParsedAuditStep {
   final int stepNumber;
   final String agent;
@@ -26,15 +62,14 @@ class _ParsedAuditStep {
 }
 
 class AuditTrailViewer extends ConsumerWidget {
-  final Map<String, Object?> data;
+  final AuditTrailData data;
 
   const AuditTrailViewer({super.key, required this.data});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (data.isEmpty ||
-        !data.containsKey('Raw_Steps') ||
-        data['Raw_Steps'] == null) {
+    if (!data.isCorrupted &&
+        (data.rawSteps == null || data.rawSteps!.isEmpty)) {
       return const SizedBox();
     }
 
@@ -42,84 +77,64 @@ class AuditTrailViewer extends ConsumerWidget {
     final theme = Theme.of(context);
 
     try {
-      final rawStepsObj = data['Raw_Steps'];
-      if (rawStepsObj is! Map<String, Object?>) {
+      if (data.isCorrupted || data.rawSteps == null) {
         throw AppException.validation(
-          'Fail-Fast: Raw_Steps must be a Map<String, Object?>.',
+          'Fail-Fast: Raw_Steps payload is corrupted or invalid.',
         );
       }
 
-      if (rawStepsObj.isEmpty) {
+      final rawStepsMap = data.rawSteps!;
+      if (rawStepsMap.isEmpty) {
         return const SizedBox();
       }
 
       final parsedSteps = <_ParsedAuditStep>[];
-      for (final entry in rawStepsObj.entries) {
+      for (final entry in rawStepsMap.entries) {
         final stepKey = entry.key;
         final val = entry.value;
-        if (val is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: Step entry "$stepKey" must be a Map<String, Object?>.',
-          );
-        }
 
-        final meta = val['metadata'];
-        if (meta is! Map<String, Object?>) {
+        final meta = val.metadata;
+        if (meta == null) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid metadata for step "$stepKey".',
           );
         }
 
-        final stepNumRaw = meta['step'];
-        if (stepNumRaw is! num) {
+        if (meta.step <= 0) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid numeric step index for "$stepKey".',
           );
         }
 
-        final agent = meta['agent'];
-        if (agent is! String || agent.trim().isEmpty) {
+        final agent = meta.agent;
+        if (agent.trim().isEmpty) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid agent identifier for "$stepKey".',
           );
         }
 
-        final version = meta['version'];
-        if (version is! String || version.trim().isEmpty) {
+        final version = meta.version;
+        if (version.trim().isEmpty) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid version for "$stepKey".',
           );
         }
 
-        final timestamp = meta['timestamp'];
-        if (timestamp is! String || timestamp.trim().isEmpty) {
+        final timestamp = meta.timestamp;
+        if (timestamp.trim().isEmpty) {
           throw AppException.validation(
             'Fail-Fast: Missing or invalid timestamp for "$stepKey".',
           );
         }
 
-        final reasoningRaw = val['reasoning_trace'];
-        if (reasoningRaw != null && reasoningRaw is! String) {
-          throw AppException.validation(
-            'Fail-Fast: Invalid reasoning_trace type for "$stepKey".',
-          );
-        }
-
-        final methodLogRaw = val['methodological_log'];
-        if (methodLogRaw != null && methodLogRaw is! String) {
-          throw AppException.validation(
-            'Fail-Fast: Invalid methodological_log type for "$stepKey".',
-          );
-        }
-
         parsedSteps.add(
           _ParsedAuditStep(
-            stepNumber: stepNumRaw.toInt(),
+            stepNumber: meta.step,
             agent: agent,
             version: version,
             timestamp: timestamp,
-            reasoningTrace: reasoningRaw as String?,
-            methodologicalLog: methodLogRaw as String?,
+            reasoningTrace: val.reasoningTrace,
+            methodologicalLog: val.methodologicalLog,
           ),
         );
       }

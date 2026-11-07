@@ -37,7 +37,7 @@ class _RecordingLoggerService extends LoggerService {
 void main() {
   Widget buildTestHarness({
     required String title,
-    required List<dynamic> events,
+    required List<ValidationTimelineEvent> events,
     ThemeData? theme,
     Locale locale = const Locale('en'),
     double? width,
@@ -68,19 +68,19 @@ void main() {
     testWidgets(
       'Positive: renders timeline events with formatted HH:mm timestamps, content, and alert color styling',
       (WidgetTester tester) async {
-        final events = <Object?>[
-          <String, Object?>{
-            'timestamp': '2026-11-01T08:15:30Z',
-            'label': 'Schema Preflight Verified',
-            'content': 'All 12 tables validated cleanly.',
-            'is_alert': false,
-          },
-          <String, Object?>{
-            'timestamp': '2026-11-01T08:16:04Z',
-            'label': 'Anchor Contiguity Check',
-            'content': 'Threshold violation detected in segment 2.',
-            'is_alert': true,
-          },
+        const events = <ValidationTimelineEvent>[
+          ValidationTimelineEvent(
+            timestamp: '2026-11-01T08:15:30Z',
+            label: 'Schema Preflight Verified',
+            content: 'All 12 tables validated cleanly.',
+            isAlert: false,
+          ),
+          ValidationTimelineEvent(
+            timestamp: '2026-11-01T08:16:04Z',
+            label: 'Anchor Contiguity Check',
+            content: 'Threshold violation detected in segment 2.',
+            isAlert: true,
+          ),
         ];
 
         await tester.pumpWidget(
@@ -127,7 +127,7 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             title: 'Empty Validation Timeline',
-            events: const <dynamic>[],
+            events: const <ValidationTimelineEvent>[],
             locale: const Locale('en'),
           ),
         );
@@ -140,7 +140,7 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             title: 'Tyhjä Aikajana',
-            events: const <dynamic>[],
+            events: const <ValidationTimelineEvent>[],
             locale: const Locale('fi'),
           ),
         );
@@ -154,12 +154,12 @@ void main() {
     testWidgets(
       'Boundary 2: single event with non-ISO timestamp and long unbroken label on narrow 280px dark mode viewport renders without overflow',
       (WidgetTester tester) async {
-        final events = <Object?>[
-          <String, Object?>{
-            'timestamp': 'T+00:42s',
-            'label':
+        const events = <ValidationTimelineEvent>[
+          ValidationTimelineEvent(
+            timestamp: 'T+00:42s',
+            label:
                 'ExtraordinarilyLongValidationTimelineEventLabelWithoutSpacesOrBreaks',
-          },
+          ),
         ];
 
         await tester.pumpWidget(
@@ -192,7 +192,7 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             title: '   ',
-            events: const <dynamic>[],
+            events: const <ValidationTimelineEvent>[],
             logger: logger,
           ),
         );
@@ -212,18 +212,18 @@ void main() {
     );
 
     testWidgets(
-      'Negative 2: malformed event item (non-Map or missing label) logs VALIDATION_FAILED via LoggerService and renders compact ErrorView',
+      'Negative 2: malformed event item (missing label) logs VALIDATION_FAILED via LoggerService and renders compact ErrorView',
       (WidgetTester tester) async {
         final logger = _RecordingLoggerService();
 
         await tester.pumpWidget(
           buildTestHarness(
             title: 'Malformed Events Timeline',
-            events: <Object?>[
-              <String, Object?>{
-                'timestamp': '2026-11-01T09:00:00Z',
-                'label': '',
-              },
+            events: const <ValidationTimelineEvent>[
+              ValidationTimelineEvent(
+                timestamp: '2026-11-01T09:00:00Z',
+                label: '',
+              ),
             ],
             logger: logger,
           ),

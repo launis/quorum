@@ -7,8 +7,21 @@ import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+@immutable
+class WorkflowSelectorItem {
+  final String id;
+  final I18nText? localizedName;
+  final String? directName;
+
+  const WorkflowSelectorItem({
+    required this.id,
+    this.localizedName,
+    this.directName,
+  });
+}
+
 class WorkflowSelector extends ConsumerWidget {
-  final List<Map<String, Object?>> workflows;
+  final List<WorkflowSelectorItem> workflows;
   final String? selectedId;
   final ValueChanged<String?> onChanged;
   final bool isLoading;
@@ -37,8 +50,8 @@ class WorkflowSelector extends ConsumerWidget {
       final items = <DropdownMenuItem<String>>[];
 
       for (final wf in workflows) {
-        final idRaw = wf['id'];
-        if (idRaw is! String || idRaw.trim().isEmpty) {
+        final idRaw = wf.id;
+        if (idRaw.trim().isEmpty) {
           throw AppException.validation(
             'Fail-Fast: Workflow entry is missing a valid non-empty String "id".',
           );
@@ -49,17 +62,16 @@ class WorkflowSelector extends ConsumerWidget {
           );
         }
 
-        final nameRaw = wf['name'];
-        final String nameStr = switch (nameRaw) {
-          final I18nText i18n => i18n.get(locale),
-          final Map<Object?, Object?> map => I18nText.fromJson(
-            Map.from(map),
-          ).get(locale),
-          final String str when str.trim().isNotEmpty => str,
-          _ => throw AppException.validation(
+        final String nameStr;
+        if (wf.localizedName != null) {
+          nameStr = wf.localizedName!.get(locale);
+        } else if (wf.directName != null && wf.directName!.trim().isNotEmpty) {
+          nameStr = wf.directName!;
+        } else {
+          throw AppException.validation(
             'Fail-Fast: Workflow "$idRaw" is missing a valid localized "name".',
-          ),
-        };
+          );
+        }
 
         items.add(
           DropdownMenuItem<String>(

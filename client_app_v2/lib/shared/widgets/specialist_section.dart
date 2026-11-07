@@ -14,11 +14,373 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Strongly typed text telemetry metrics displayed inside [SpecialistSection].
+@immutable
+class SpecialistSectionMetrics {
+  final num? wordCount;
+  final String? wordCountDisplay;
+  final num? sentenceCount;
+  final num? lexicalDiversity;
+  final String? lexicalDiversityDisplay;
+
+  const SpecialistSectionMetrics({
+    this.wordCount,
+    this.wordCountDisplay,
+    this.sentenceCount,
+    this.lexicalDiversity,
+    this.lexicalDiversityDisplay,
+  });
+
+  bool get isEmpty =>
+      wordCount == null &&
+      wordCountDisplay == null &&
+      sentenceCount == null &&
+      lexicalDiversity == null &&
+      lexicalDiversityDisplay == null;
+
+  bool get isNotEmpty => !isEmpty;
+}
+
+/// Strongly typed Toulmin argument item rendered in `LOGIC_ANALYSIS`.
+@immutable
+class SpecialistArgumentData {
+  final String? claim;
+  final String? data;
+  final String? warrant;
+  final String? backing;
+  final String? rebuttal;
+  final String? qualifier;
+
+  const SpecialistArgumentData({
+    this.claim,
+    this.data,
+    this.warrant,
+    this.backing,
+    this.rebuttal,
+    this.qualifier,
+  });
+}
+
+/// Strongly typed fidelity audit summary rendered in `STRESS_TEST`.
+@immutable
+class SpecialistFidelityAuditData {
+  final double? fidelityScore;
+  final String? fidelityScoreDisplay;
+  final bool? postHocRationalizationSuspected;
+  final String? reasoning;
+
+  const SpecialistFidelityAuditData({
+    this.fidelityScore,
+    this.fidelityScoreDisplay,
+    this.postHocRationalizationSuspected,
+    this.reasoning,
+  });
+
+  bool get isEmpty =>
+      fidelityScore == null &&
+      fidelityScoreDisplay == null &&
+      postHocRationalizationSuspected == null &&
+      reasoning == null;
+
+  bool get isNotEmpty => !isEmpty;
+}
+
+/// Strongly typed stress-test finding item rendered in `STRESS_TEST`.
+@immutable
+class SpecialistStressFindingData {
+  final String? question;
+  final bool? isHeld;
+  final String? observation;
+
+  const SpecialistStressFindingData({
+    this.question,
+    this.isHeld,
+    this.observation,
+  });
+}
+
+/// Strongly typed fact-check verification row rendered in `FACT_CHECK`.
+@immutable
+class SpecialistFactCheckItemData {
+  final String? verificationResult;
+  final String? label;
+  final String? claim;
+  final String? source;
+
+  const SpecialistFactCheckItemData({
+    this.verificationResult,
+    this.label,
+    this.claim,
+    this.source,
+  });
+}
+
+/// Strongly typed ethical observation row rendered in `FACT_CHECK`.
+@immutable
+class SpecialistEthicalIssueData {
+  final bool? isCritical;
+  final String? label;
+  final String? description;
+  final String? severity;
+
+  const SpecialistEthicalIssueData({
+    this.isCritical,
+    this.label,
+    this.description,
+    this.severity,
+  });
+}
+
+/// Strongly typed performativity heuristic chip rendered in `PERFORMATIVITY_CHECK`.
+@immutable
+class SpecialistHeuristicItemData {
+  final String? name;
+  final bool? flag;
+
+  const SpecialistHeuristicItemData({this.name, this.flag});
+}
+
+/// Strongly typed payload model for [SpecialistSection].
+@immutable
+class SpecialistSectionData {
+  final double? bloomScore;
+  final double? strategicScore;
+  final double? toulminScore;
+  final String? methodologicalLog;
+  final String? bloomHelp;
+  final String? strategicHelp;
+  final String? toulminHelp;
+  final String? logicMatrixHelp;
+  final String? metodologiaHelp;
+  final List<SpecialistArgumentData>? arguments;
+
+  final SpecialistFidelityAuditData? fidelityAudit;
+  final String? fidelityHelp;
+  final List<SpecialistStressFindingData>? findings;
+
+  final double? abductiveScore;
+  final String? abductiveScoreDisplay;
+  final String? abductiveConclusion;
+  final String? abductiveHelp;
+  final String? observation;
+  final String? causalHelp;
+  final String? counterfactualActual;
+  final String? counterfactualSimulated;
+  final double? plausibilityScore;
+  final String? plausibilityScoreDisplay;
+  final String? plausibilityHelp;
+
+  final num? wordCount;
+  final String? wordCountDisplay;
+  final num? avgSentenceLength;
+  final String? avgSentenceLengthDisplay;
+  final num? lexicalDiversity;
+  final String? lexicalDiversityDisplay;
+  final String? psychologicalProfile;
+  final String? intentAnalysis;
+  final String? automationBiasLabel;
+  final String? automationBiasColor;
+  final String? sayDoGapLabel;
+  final String? sayDoGapColor;
+  final String? profilerHelp;
+
+  final List<SpecialistFactCheckItemData>? factChecks;
+  final List<SpecialistEthicalIssueData>? ethicalIssues;
+  final String? factCheckHelp;
+
+  final String? authenticityAssessment;
+  final double? authenticityScore;
+  final String? authenticityHelp;
+  final String? performativityHelp;
+  final List<SpecialistHeuristicItemData>? heuristics;
+
+  final double? complianceScore;
+  final String? consistencyAnalysis;
+  final String? archivistHelp;
+  final List<String>? recommendations;
+
+  final String? roleClassification;
+  final double? inputControlRatio;
+  final int? imperativeCommandCount;
+  final bool? highDependency;
+  final String? strategy;
+  final String? controlRatioHelp;
+  final String? complianceAnalysis;
+  final String? alignmentDeviations;
+  final String? judgeRecommendation;
+
+  final bool? threatDetected;
+  final String? threatLabel;
+  final String? riskLabel;
+  final String? riskColor;
+  final bool? anonymized;
+  final String? anonymizedLabel;
+  final List<String>? securityFindings;
+
+  final Map<String, String>? genericEntries;
+
+  const SpecialistSectionData({
+    this.bloomScore,
+    this.strategicScore,
+    this.toulminScore,
+    this.methodologicalLog,
+    this.bloomHelp,
+    this.strategicHelp,
+    this.toulminHelp,
+    this.logicMatrixHelp,
+    this.metodologiaHelp,
+    this.arguments,
+    this.fidelityAudit,
+    this.fidelityHelp,
+    this.findings,
+    this.abductiveScore,
+    this.abductiveScoreDisplay,
+    this.abductiveConclusion,
+    this.abductiveHelp,
+    this.observation,
+    this.causalHelp,
+    this.counterfactualActual,
+    this.counterfactualSimulated,
+    this.plausibilityScore,
+    this.plausibilityScoreDisplay,
+    this.plausibilityHelp,
+    this.wordCount,
+    this.wordCountDisplay,
+    this.avgSentenceLength,
+    this.avgSentenceLengthDisplay,
+    this.lexicalDiversity,
+    this.lexicalDiversityDisplay,
+    this.psychologicalProfile,
+    this.intentAnalysis,
+    this.automationBiasLabel,
+    this.automationBiasColor,
+    this.sayDoGapLabel,
+    this.sayDoGapColor,
+    this.profilerHelp,
+    this.factChecks,
+    this.ethicalIssues,
+    this.factCheckHelp,
+    this.authenticityAssessment,
+    this.authenticityScore,
+    this.authenticityHelp,
+    this.performativityHelp,
+    this.heuristics,
+    this.complianceScore,
+    this.consistencyAnalysis,
+    this.archivistHelp,
+    this.recommendations,
+    this.roleClassification,
+    this.inputControlRatio,
+    this.imperativeCommandCount,
+    this.highDependency,
+    this.strategy,
+    this.controlRatioHelp,
+    this.complianceAnalysis,
+    this.alignmentDeviations,
+    this.judgeRecommendation,
+    this.threatDetected,
+    this.threatLabel,
+    this.riskLabel,
+    this.riskColor,
+    this.anonymized,
+    this.anonymizedLabel,
+    this.securityFindings,
+    this.genericEntries,
+  });
+
+  bool get isEmpty =>
+      bloomScore == null &&
+      strategicScore == null &&
+      toulminScore == null &&
+      methodologicalLog == null &&
+      arguments == null &&
+      fidelityAudit == null &&
+      findings == null &&
+      abductiveScore == null &&
+      abductiveConclusion == null &&
+      observation == null &&
+      counterfactualActual == null &&
+      counterfactualSimulated == null &&
+      plausibilityScore == null &&
+      wordCount == null &&
+      avgSentenceLength == null &&
+      lexicalDiversity == null &&
+      psychologicalProfile == null &&
+      intentAnalysis == null &&
+      automationBiasLabel == null &&
+      sayDoGapLabel == null &&
+      factChecks == null &&
+      ethicalIssues == null &&
+      authenticityAssessment == null &&
+      authenticityScore == null &&
+      heuristics == null &&
+      complianceScore == null &&
+      consistencyAnalysis == null &&
+      recommendations == null &&
+      roleClassification == null &&
+      inputControlRatio == null &&
+      imperativeCommandCount == null &&
+      highDependency == null &&
+      strategy == null &&
+      complianceAnalysis == null &&
+      alignmentDeviations == null &&
+      judgeRecommendation == null &&
+      threatDetected == null &&
+      riskColor == null &&
+      anonymized == null &&
+      securityFindings == null &&
+      (genericEntries == null || genericEntries!.isEmpty);
+
+  String? helpTextFor(String key) {
+    return switch (key) {
+      'logicMatrix' => logicMatrixHelp,
+      'metodologia' => metodologiaHelp,
+      'toulmin' => toulminHelp,
+      'causal' => causalHelp,
+      'profiler' => profilerHelp,
+      'fact_check' => factCheckHelp,
+      'performativity' => performativityHelp,
+      'control_ratio' => controlRatioHelp,
+      _ => null,
+    };
+  }
+
+  String toPrettyJson() {
+    final lines = <String>[];
+    if (bloomScore != null) lines.add('  "bloom_score": $bloomScore');
+    if (strategicScore != null) {
+      lines.add('  "strategic_score": $strategicScore');
+    }
+    if (toulminScore != null) lines.add('  "toulmin_score": $toulminScore');
+    if (methodologicalLog != null) {
+      lines.add('  "methodological_log": ${jsonEncode(methodologicalLog)}');
+    }
+    if (abductiveScore != null) {
+      lines.add('  "abductive_score": $abductiveScore');
+    }
+    if (abductiveConclusion != null) {
+      lines.add('  "abductive_conclusion": ${jsonEncode(abductiveConclusion)}');
+    }
+    if (observation != null) {
+      lines.add('  "observation": ${jsonEncode(observation)}');
+    }
+    if (roleClassification != null) {
+      lines.add('  "role_classification": ${jsonEncode(roleClassification)}');
+    }
+    if (genericEntries != null) {
+      for (final entry in genericEntries!.entries) {
+        lines.add('  ${jsonEncode(entry.key)}: ${jsonEncode(entry.value)}');
+      }
+    }
+    return lines.isEmpty ? '{}' : '{\n${lines.join(',\n')}\n}';
+  }
+}
+
 class SpecialistSection extends ConsumerStatefulWidget {
   final String title;
   final String type;
-  final Map<String, Object?> data;
-  final Map<String, Object?>? metrics;
+  final SpecialistSectionData data;
+  final SpecialistSectionMetrics? metrics;
 
   const SpecialistSection({
     super.key,
@@ -141,9 +503,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                 IconButton(
                   icon: const Icon(Icons.copy, size: AppSpacing.s16),
                   onPressed: () {
-                    final jsonStr = const JsonEncoder.withIndent(
-                      '  ',
-                    ).convert(widget.data);
+                    final jsonStr = widget.data.toPrettyJson();
                     Clipboard.setData(ClipboardData(text: jsonStr));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -217,15 +577,6 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     };
   }
 
-  void _validateRequiredKeys(List<String> keys, String contextName) {
-    final missing = keys.where((k) => widget.data[k] == null).toList();
-    if (missing.isNotEmpty) {
-      final msg =
-          'Fail-Fast: Missing required keys in $contextName: ${missing.join(', ')}';
-      throw AppException.validation(msg);
-    }
-  }
-
   Widget _buildSummaryView(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -261,7 +612,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
         'interaction-grid' ||
         'INTERACTION_GRID' => _buildDriverProfile(context),
         'security-check' || 'SECURITY_CHECK' => _buildSecurityCheck(context),
-        _ => _buildGenericMap(context, widget.data),
+        _ => _buildGenericMap(context, widget.data.genericEntries),
       };
     } catch (e, st) {
       ref
@@ -511,36 +862,24 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget _buildLogicAnalysis(BuildContext context) {
-    _validateRequiredKeys([
-      'bloom_score',
-      'strategic_score',
-      'arguments',
-    ], 'LOGIC_ANALYSIS');
+    final missing = <String>[
+      if (widget.data.bloomScore == null) 'bloom_score',
+      if (widget.data.strategicScore == null) 'strategic_score',
+      if (widget.data.arguments == null) 'arguments',
+    ];
+    if (missing.isNotEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Missing required keys in LOGIC_ANALYSIS: ${missing.join(', ')}',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final rawArgs = widget.data['arguments'];
-    if (rawArgs is! List) {
-      throw AppException.validation(
-        'Fail-Fast: LOGIC_ANALYSIS arguments must be a List.',
-      );
-    }
-    final arguments = <Map<String, Object?>>[];
-    for (var i = 0; i < rawArgs.length; i++) {
-      final item = rawArgs[i];
-      if (item is! Map<String, Object?>) {
-        throw AppException.validation(
-          'Fail-Fast: LOGIC_ANALYSIS argument[$i] must be a Map<String, Object?>.',
-        );
-      }
-      arguments.add(item);
-    }
-
-    final methodology =
-        widget.data['methodological_log']?.toString() ??
-        widget.data['metodologinen_loki']?.toString();
+    final arguments = widget.data.arguments!;
+    final methodology = widget.data.methodologicalLog;
 
     final List<Widget> children = [];
 
@@ -564,7 +903,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     }
 
     final stratScore = _parseNumericScore(
-      widget.data['strategic_score'],
+      widget.data.strategicScore,
       'strategic_score',
       maxBound: _strategicMaxScore,
     );
@@ -574,8 +913,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       label: l10n.lblStrategicDepth,
       value: stratScore,
       max: _strategicMaxScore,
-      description:
-          widget.data['strategic_help']?.toString() ?? l10n.helpStrategicDepth,
+      description: widget.data.strategicHelp ?? l10n.helpStrategicDepth,
       displayValue: stratDisplay,
       color: colorScheme.secondary,
       axisLabels: [
@@ -588,7 +926,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     );
 
     final bloomScore = _parseNumericScore(
-      widget.data['bloom_score'],
+      widget.data.bloomScore,
       'bloom_score',
       maxBound: _bloomMaxScore,
     );
@@ -599,7 +937,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       label: l10n.lblBloomScore,
       value: bloomScore,
       max: _bloomMaxScore,
-      description: widget.data['bloom_help']?.toString() ?? l10n.helpBloom,
+      description: widget.data.bloomHelp ?? l10n.helpBloom,
       displayValue: bloomDisplay,
       color: colorScheme.secondary,
       axisLabels: [
@@ -613,9 +951,9 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       isOrdinal: true,
     );
 
-    final toulminScore = widget.data['toulmin_score'] != null
+    final toulminScore = widget.data.toulminScore != null
         ? _parseNumericScore(
-            widget.data['toulmin_score'],
+            widget.data.toulminScore,
             'toulmin_score',
             maxBound: _toulminMaxScore,
           )
@@ -624,7 +962,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       label: l10n.lblToulminScore,
       value: toulminScore,
       max: _toulminMaxScore,
-      description: widget.data['toulmin_help']?.toString() ?? l10n.helpToulmin,
+      description: widget.data.toulminHelp ?? l10n.helpToulmin,
       displayValue:
           '${toulminScore.toStringAsFixed(1)}/${_toulminMaxScore.toStringAsFixed(1)}',
       color: colorScheme.primary,
@@ -708,30 +1046,26 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLabelValue(context, l10n.lblClaim, t['claim']),
+                  _buildLabelValue(context, l10n.lblClaim, t.claim),
                   AppSpacing.h4,
                   const Divider(),
                   AppSpacing.h4,
-                  if (t['data'] != null) ...[
-                    _buildLabelValue(context, l10n.lblData, t['data']),
+                  if (t.data != null) ...[
+                    _buildLabelValue(context, l10n.lblData, t.data),
                     AppSpacing.h4,
                   ],
-                  _buildLabelValue(context, l10n.lblWarrant, t['warrant']),
-                  if (t['backing'] != null) ...[
+                  _buildLabelValue(context, l10n.lblWarrant, t.warrant),
+                  if (t.backing != null) ...[
                     AppSpacing.h4,
-                    _buildLabelValue(context, l10n.lblBacking, t['backing']),
+                    _buildLabelValue(context, l10n.lblBacking, t.backing),
                   ],
-                  if (t['rebuttal'] != null) ...[
+                  if (t.rebuttal != null) ...[
                     AppSpacing.h4,
-                    _buildLabelValue(context, l10n.lblRebuttal, t['rebuttal']),
+                    _buildLabelValue(context, l10n.lblRebuttal, t.rebuttal),
                   ],
-                  if (t['qualifier'] != null) ...[
+                  if (t.qualifier != null) ...[
                     AppSpacing.h4,
-                    _buildLabelValue(
-                      context,
-                      l10n.lblQualifier,
-                      t['qualifier'],
-                    ),
+                    _buildLabelValue(context, l10n.lblQualifier, t.qualifier),
                   ],
                 ],
               ),
@@ -777,14 +1111,14 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     final semanticColors = context.semanticColors;
     final l10n = AppLocalizations.of(context)!;
 
-    final threat = widget.data['threat_detected'] == true;
+    final threat = widget.data.threatDetected == true;
     final threatLabel =
-        widget.data['threat_label']?.toString() ??
+        widget.data.threatLabel ??
         (threat ? l10n.secThreatDetected : l10n.secThreatNone);
 
-    final riskLabel = widget.data['risk_label']?.toString() ?? l10n.riskUnknown;
+    final riskLabel = widget.data.riskLabel ?? l10n.riskUnknown;
 
-    final rColorStr = widget.data['risk_color']?.toString();
+    final rColorStr = widget.data.riskColor;
     final Color riskColor;
     final IconData riskIcon;
     if (rColorStr == 'red') {
@@ -801,15 +1135,12 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       riskIcon = Icons.help_outline;
     }
 
-    final anonymized = widget.data['anonymized'] == true;
+    final anonymized = widget.data.anonymized == true;
     final anonLabel =
-        widget.data['anonymized_label']?.toString() ??
+        widget.data.anonymizedLabel ??
         (anonymized ? l10n.secAnonymized : l10n.secNotAnonymized);
 
-    final rawFindings = widget.data['findings'] ?? widget.data['loydokset'];
-    final findings = rawFindings is List
-        ? rawFindings.map((e) => e.toString()).toList()
-        : <String>[];
+    final findings = widget.data.securityFindings ?? const <String>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -920,44 +1251,31 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget _buildStressTest(BuildContext context) {
-    _validateRequiredKeys(['findings', 'fidelity_audit'], 'STRESS_TEST');
+    final missing = <String>[
+      if (widget.data.findings == null) 'findings',
+      if (widget.data.fidelityAudit == null) 'fidelity_audit',
+    ];
+    if (missing.isNotEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Missing required keys in STRESS_TEST: ${missing.join(', ')}',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final rawFindings = widget.data['findings'];
-    if (rawFindings is! List) {
-      throw AppException.validation(
-        'Fail-Fast: STRESS_TEST findings must be a List.',
-      );
-    }
-    final findings = <Map<String, Object?>>[];
-    for (var i = 0; i < rawFindings.length; i++) {
-      final item = rawFindings[i];
-      if (item is! Map<String, Object?>) {
-        throw AppException.validation(
-          'Fail-Fast: STRESS_TEST finding[$i] must be a Map<String, Object?>.',
-        );
-      }
-      findings.add(item);
-    }
-
-    final rawFidelity = widget.data['fidelity_audit'];
-    if (rawFidelity is! Map<String, Object?>) {
-      throw AppException.validation(
-        'Fail-Fast: STRESS_TEST fidelity_audit must be a Map<String, Object?>.',
-      );
-    }
-    final fidelity = rawFidelity;
+    final findings = widget.data.findings!;
+    final fidelity = widget.data.fidelityAudit!;
 
     final leftChildren = <Widget>[];
     if (fidelity.isNotEmpty) {
-      final fidelityDisplay = fidelity['fidelity_score_display']?.toString();
+      final fidelityDisplay = fidelity.fidelityScoreDisplay;
       final double scoreVal;
-      if (fidelity['fidelity_score'] != null) {
+      if (fidelity.fidelityScore != null) {
         scoreVal = _parseNumericScore(
-          fidelity['fidelity_score'],
+          fidelity.fidelityScore,
           'fidelity_score',
           maxBound: _fidelityMaxScore,
         );
@@ -985,9 +1303,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                 label: l10n.lblFidelity,
                 value: scoreVal,
                 max: _fidelityMaxScore,
-                description:
-                    widget.data['fidelity_help']?.toString() ??
-                    l10n.helpFidelity,
+                description: widget.data.fidelityHelp ?? l10n.helpFidelity,
                 displayValue: fidelityDisplay != null
                     ? '$fidelityDisplay/${_fidelityMaxScore.toStringAsFixed(1)}'
                     : '${scoreVal.toStringAsFixed(1)}/${_fidelityMaxScore.toStringAsFixed(1)}',
@@ -996,11 +1312,11 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
               ),
               AppSpacing.h12,
               Text(
-                fidelity['post_hoc_rationalization_suspected'] == true
+                fidelity.postHocRationalizationSuspected == true
                     ? l10n.lblPostHocWarning
                     : l10n.lblNoRationalization,
                 style: textTheme.bodyMedium?.copyWith(
-                  color: fidelity['post_hoc_rationalization_suspected'] == true
+                  color: fidelity.postHocRationalizationSuspected == true
                       ? colorScheme.error
                       : colorScheme.primary,
                   fontWeight: FontWeight.w600,
@@ -1010,13 +1326,13 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
               _buildLabelValue(
                 context,
                 l10n.lblPostHocRationalization,
-                fidelity['post_hoc_rationalization_suspected']?.toString(),
+                fidelity.postHocRationalizationSuspected?.toString(),
               ),
               AppSpacing.h4,
               _buildLabelValue(
                 context,
                 l10n.lblReasoning,
-                fidelity['reasoning'] ?? '-',
+                fidelity.reasoning ?? '-',
               ),
             ],
           ),
@@ -1028,7 +1344,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       for (final f in findings)
         Card(
           margin: const EdgeInsets.only(bottom: AppSpacing.s8),
-          color: f['is_held'] == true
+          color: f.isHeld == true
               ? colorScheme.primaryContainer
               : colorScheme.errorContainer,
           child: Padding(
@@ -1036,19 +1352,15 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildLabelValue(context, l10n.lblQuestion, f['question']),
+                _buildLabelValue(context, l10n.lblQuestion, f.question),
                 AppSpacing.h4,
                 _buildLabelValue(
                   context,
                   l10n.lblEvidenceHeld,
-                  f['is_held']?.toString(),
+                  f.isHeld?.toString(),
                 ),
                 AppSpacing.h4,
-                _buildLabelValue(
-                  context,
-                  l10n.lblObservation,
-                  f['observation'],
-                ),
+                _buildLabelValue(context, l10n.lblObservation, f.observation),
               ],
             ),
           ),
@@ -1071,30 +1383,36 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget _buildCausalAnalysis(BuildContext context) {
-    _validateRequiredKeys([
-      'abductive_score',
-      'observation',
-      'counterfactual_actual',
-      'counterfactual_simulated',
-    ], 'CAUSAL_ANALYSIS');
+    final missing = <String>[
+      if (widget.data.abductiveScore == null) 'abductive_score',
+      if (widget.data.observation == null) 'observation',
+      if (widget.data.counterfactualActual == null) 'counterfactual_actual',
+      if (widget.data.counterfactualSimulated == null)
+        'counterfactual_simulated',
+    ];
+    if (missing.isNotEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Missing required keys in CAUSAL_ANALYSIS: ${missing.join(', ')}',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final abductive = widget.data['abductive_conclusion']?.toString();
+    final abductive = widget.data.abductiveConclusion;
     final abductiveScore = _parseNumericScore(
-      widget.data['abductive_score'],
+      widget.data.abductiveScore,
       'abductive_score',
       maxBound: _abductiveMaxScore,
     );
-    final observation = widget.data['observation']?.toString();
-    final actualScenario = widget.data['counterfactual_actual']?.toString();
-    final simulatedScenario = widget.data['counterfactual_simulated']
-        ?.toString();
-    final plausibilityScore = widget.data['plausibility_score'] != null
+    final observation = widget.data.observation;
+    final actualScenario = widget.data.counterfactualActual;
+    final simulatedScenario = widget.data.counterfactualSimulated;
+    final plausibilityScore = widget.data.plausibilityScore != null
         ? _parseNumericScore(
-            widget.data['plausibility_score'],
+            widget.data.plausibilityScore,
             'plausibility_score',
             maxBound: _abductiveMaxScore,
           )
@@ -1116,11 +1434,9 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                 label: l10n.lblAbductiveReasoning,
                 value: abductiveScore,
                 max: _abductiveMaxScore,
-                description:
-                    widget.data['abductive_help']?.toString() ??
-                    l10n.helpAbductive,
-                displayValue: widget.data['abductive_score_display'] != null
-                    ? '${widget.data['abductive_score_display']}/${_abductiveMaxScore.toStringAsFixed(1)}'
+                description: widget.data.abductiveHelp ?? l10n.helpAbductive,
+                displayValue: widget.data.abductiveScoreDisplay != null
+                    ? '${widget.data.abductiveScoreDisplay}/${_abductiveMaxScore.toStringAsFixed(1)}'
                     : '${abductiveScore.toStringAsFixed(1)}/${_abductiveMaxScore.toStringAsFixed(1)}',
                 color: colorScheme.secondary,
                 axisLabels: [l10n.lblWeak, l10n.lblModerate, l10n.lblStrong],
@@ -1219,10 +1535,9 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                   value: plausibilityScore,
                   max: _abductiveMaxScore,
                   description:
-                      widget.data['plausibility_help']?.toString() ??
-                      l10n.plausibility_desc,
+                      widget.data.plausibilityHelp ?? l10n.plausibility_desc,
                   displayValue:
-                      widget.data['plausibility_score_display']?.toString() ??
+                      widget.data.plausibilityScoreDisplay ??
                       '${plausibilityScore.toStringAsFixed(1)}/${_abductiveMaxScore.toStringAsFixed(1)}',
                   color: colorScheme.secondary,
                   axisLabels: [l10n.lblWeak, '', l10n.lblStrong],
@@ -1249,28 +1564,33 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget _buildProfilerAnalysis(BuildContext context) {
-    _validateRequiredKeys([
-      'word_count',
-      'avg_sentence_length',
-      'lexical_diversity',
-    ], 'PROFILER_ANALYSIS');
+    final missing = <String>[
+      if (widget.data.wordCount == null) 'word_count',
+      if (widget.data.avgSentenceLength == null) 'avg_sentence_length',
+      if (widget.data.lexicalDiversity == null) 'lexical_diversity',
+    ];
+    if (missing.isNotEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Missing required keys in PROFILER_ANALYSIS: ${missing.join(', ')}',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final profile = widget.data['psychological_profile']?.toString();
-    final intent = widget.data['intent_analysis']?.toString();
+    final profile = widget.data.psychologicalProfile;
+    final intent = widget.data.intentAnalysis;
 
     final wordCount =
-        widget.data['word_count_display']?.toString() ??
-        widget.data['word_count']!.toString();
+        widget.data.wordCountDisplay ?? widget.data.wordCount!.toString();
     final avgLength =
-        widget.data['avg_sentence_length_display']?.toString() ??
-        widget.data['avg_sentence_length']!.toString();
+        widget.data.avgSentenceLengthDisplay ??
+        widget.data.avgSentenceLength!.toString();
     final lexicalDiv =
-        widget.data['lexical_diversity_display']?.toString() ??
-        widget.data['lexical_diversity']!.toString();
+        widget.data.lexicalDiversityDisplay ??
+        widget.data.lexicalDiversity!.toString();
 
     final profilerHelp = _buildHelpButton(context, 'profiler');
     final leftChildren = <Widget>[
@@ -1324,13 +1644,13 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       );
     }
 
-    final autoBiasLabel = widget.data['automation_bias_label']?.toString();
-    final autoBiasColor = widget.data['automation_bias_color'] == 'red'
+    final autoBiasLabel = widget.data.automationBiasLabel;
+    final autoBiasColor = widget.data.automationBiasColor == 'red'
         ? colorScheme.error
         : colorScheme.primary;
 
-    final sayDoLabel = widget.data['say_do_gap_label']?.toString();
-    final sayDoColor = widget.data['say_do_gap_color'] == 'red'
+    final sayDoLabel = widget.data.sayDoGapLabel;
+    final sayDoColor = widget.data.sayDoGapColor == 'red'
         ? colorScheme.error
         : colorScheme.primary;
 
@@ -1391,45 +1711,23 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget _buildFactCheck(BuildContext context) {
-    _validateRequiredKeys(['fact_checks', 'ethical_issues'], 'FACT_CHECK');
+    final missing = <String>[
+      if (widget.data.factChecks == null) 'fact_checks',
+      if (widget.data.ethicalIssues == null) 'ethical_issues',
+    ];
+    if (missing.isNotEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Missing required keys in FACT_CHECK: ${missing.join(', ')}',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final rawFacts = widget.data['fact_checks'];
-    if (rawFacts is! List) {
-      throw AppException.validation(
-        'Fail-Fast: FACT_CHECK fact_checks must be a List.',
-      );
-    }
-    final facts = <Map<String, Object?>>[];
-    for (var i = 0; i < rawFacts.length; i++) {
-      final item = rawFacts[i];
-      if (item is! Map<String, Object?>) {
-        throw AppException.validation(
-          'Fail-Fast: FACT_CHECK fact_checks[$i] must be a Map<String, Object?>.',
-        );
-      }
-      facts.add(item);
-    }
-
-    final rawEthics = widget.data['ethical_issues'];
-    if (rawEthics is! List) {
-      throw AppException.validation(
-        'Fail-Fast: FACT_CHECK ethical_issues must be a List.',
-      );
-    }
-    final ethics = <Map<String, Object?>>[];
-    for (var i = 0; i < rawEthics.length; i++) {
-      final item = rawEthics[i];
-      if (item is! Map<String, Object?>) {
-        throw AppException.validation(
-          'Fail-Fast: FACT_CHECK ethical_issues[$i] must be a Map<String, Object?>.',
-        );
-      }
-      ethics.add(item);
-    }
+    final facts = widget.data.factChecks!;
+    final ethics = widget.data.ethicalIssues!;
 
     final factHelp = _buildHelpButton(context, 'fact_check');
     final ethicsChildren = <Widget>[];
@@ -1456,18 +1754,15 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       ethicsChildren.addAll(
         ethics.map<Widget>((e) {
           final isCrit =
-              e['is_critical'] == true ||
-              e['severity'] == 'Kriittinen' ||
-              e['severity'] == 'Critical';
+              e.isCritical == true ||
+              e.severity == 'Kriittinen' ||
+              e.severity == 'Critical';
           return Card(
             color: isCrit ? colorScheme.errorContainer : colorScheme.surface,
             child: ListTile(
               leading: Icon(Icons.security, color: colorScheme.error),
               title: Text(
-                e['label']?.toString() ??
-                    e['issue_type']?.toString() ??
-                    e['tyyppi']?.toString() ??
-                    l10n.lblEthicalObservation,
+                e.label ?? l10n.lblEthicalObservation,
                 style: isCrit
                     ? textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onErrorContainer,
@@ -1475,14 +1770,9 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                       )
                     : textTheme.bodyMedium,
               ),
-              subtitle: Text(
-                e['description']?.toString() ?? e['kuvaus']?.toString() ?? '',
-                style: textTheme.bodySmall,
-              ),
+              subtitle: Text(e.description ?? '', style: textTheme.bodySmall),
               trailing: Text(
-                e['severity']?.toString() ??
-                    e['vakavuus']?.toString() ??
-                    l10n.dataUnavailable,
+                e.severity ?? l10n.dataUnavailable,
                 style: textTheme.labelSmall,
               ),
             ),
@@ -1519,10 +1809,8 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     } else {
       factsChildren.addAll(
         facts.map<Widget>((f) {
-          final resultKey =
-              f['verification_result']?.toString() ?? 'VER_UNCERTAIN';
-          final rawStatus =
-              f['label']?.toString() ?? f['label_key']?.toString() ?? resultKey;
+          final resultKey = f.verificationResult ?? 'VER_UNCERTAIN';
+          final rawStatus = f.label ?? resultKey;
           final statusText = _getLocalizedEnum(rawStatus, l10n);
           IconData i = Icons.help_outline;
           Color c = colorScheme.error;
@@ -1537,10 +1825,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
 
           return ListTile(
             leading: Icon(i, color: c),
-            title: Text(
-              f['vaite']?.toString() ?? f['claim']?.toString() ?? '',
-              style: textTheme.bodyMedium,
-            ),
+            title: Text(f.claim ?? '', style: textTheme.bodyMedium),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1551,12 +1836,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  f['lahde_tai_paattely']?.toString() ??
-                      f['source']?.toString() ??
-                      '',
-                  style: textTheme.bodySmall,
-                ),
+                Text(f.source ?? '', style: textTheme.bodySmall),
               ],
             ),
           );
@@ -1593,36 +1873,26 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget _buildPerformativityCheck(BuildContext context) {
-    _validateRequiredKeys([
-      'heuristics',
-      'authenticity_assessment',
-      'authenticity_score',
-    ], 'PERFORMATIVITY_CHECK');
+    final missing = <String>[
+      if (widget.data.heuristics == null) 'heuristics',
+      if (widget.data.authenticityAssessment == null) 'authenticity_assessment',
+      if (widget.data.authenticityScore == null) 'authenticity_score',
+    ];
+    if (missing.isNotEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Missing required keys in PERFORMATIVITY_CHECK: ${missing.join(', ')}',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final rawHeuristics = widget.data['heuristics'];
-    if (rawHeuristics is! List) {
-      throw AppException.validation(
-        'Fail-Fast: PERFORMATIVITY_CHECK heuristics must be a List.',
-      );
-    }
-    final heuristics = <Map<String, Object?>>[];
-    for (var i = 0; i < rawHeuristics.length; i++) {
-      final item = rawHeuristics[i];
-      if (item is! Map<String, Object?>) {
-        throw AppException.validation(
-          'Fail-Fast: PERFORMATIVITY_CHECK heuristics[$i] must be a Map<String, Object?>.',
-        );
-      }
-      heuristics.add(item);
-    }
-
-    final overall = widget.data['authenticity_assessment']?.toString();
+    final heuristics = widget.data.heuristics!;
+    final overall = widget.data.authenticityAssessment;
     final authScore = _parseNumericScore(
-      widget.data['authenticity_score'],
+      widget.data.authenticityScore,
       'authenticity_score',
       maxBound: _authenticityMaxScore,
     );
@@ -1657,8 +1927,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                 value: authScore,
                 max: _authenticityMaxScore,
                 description:
-                    widget.data['authenticity_help']?.toString() ??
-                    l10n.helpAuthenticity,
+                    widget.data.authenticityHelp ?? l10n.helpAuthenticity,
                 displayValue:
                     '${authScore.toStringAsFixed(1)}/${_authenticityMaxScore.toStringAsFixed(1)}',
                 color: colorScheme.tertiary,
@@ -1699,9 +1968,9 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
         spacing: AppSpacing.s8,
         runSpacing: AppSpacing.s4,
         children: heuristics.map<Widget>((b) {
-          final raised = b['flag'] == true;
+          final raised = b.flag == true;
           return Chip(
-            label: Text(b['name']?.toString() ?? ''),
+            label: Text(b.name ?? ''),
             avatar: Icon(
               raised ? Icons.flag : Icons.check,
               size: AppSpacing.s16,
@@ -1741,7 +2010,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final rawScore = widget.data['compliance_score'];
+    final rawScore = widget.data.complianceScore;
     final double scoreVal = rawScore != null
         ? _parseNumericScore(
             rawScore,
@@ -1749,13 +2018,8 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
             maxBound: _complianceMaxScore,
           )
         : 0.0;
-    final rawRecs =
-        widget.data['recommendations'] ?? widget.data['suositukset'];
-    final recs = rawRecs is List ? rawRecs : const <Object?>[];
-
-    final analysis =
-        widget.data['consistency_analysis']?.toString() ??
-        widget.data['analysis']?.toString();
+    final recs = widget.data.recommendations ?? const <String>[];
+    final analysis = widget.data.consistencyAnalysis;
 
     final leftChildren = <Widget>[
       Container(
@@ -1767,10 +2031,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
               label: l10n.lblComplianceAnalysis,
               value: scoreVal,
               max: _complianceMaxScore,
-              description:
-                  widget.data['help_archivist']?.toString() ??
-                  widget.data['help_compliance']?.toString() ??
-                  l10n.helpArchivist,
+              description: widget.data.archivistHelp ?? l10n.helpArchivist,
               displayValue:
                   '${scoreVal.toStringAsFixed(1)}/${_complianceMaxScore.toStringAsFixed(1)}',
               color: colorScheme.onSurfaceVariant,
@@ -1796,7 +2057,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
             size: AppSpacing.s16,
             color: colorScheme.onSurfaceVariant,
           ),
-          title: Text(r.toString(), style: textTheme.bodySmall),
+          title: Text(r, style: textTheme.bodySmall),
           dense: true,
         ),
     ];
@@ -1816,22 +2077,20 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     );
   }
 
-  Widget _buildGenericMap(BuildContext context, Map<String, Object?> map) {
+  Widget _buildGenericMap(
+    BuildContext context,
+    Map<String, String>? genericEntries,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final entries = genericEntries ?? const <String, String>{};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: map.entries.map<Widget>((e) {
+      children: entries.entries.map<Widget>((e) {
         final parsedKey = e.key.replaceAll(RegExp(r'\*+'), '').trim();
-
-        final String displayValue;
-        if (e.value is Map || e.value is List) {
-          displayValue = const JsonEncoder.withIndent('  ').convert(e.value);
-        } else {
-          displayValue = e.value?.toString() ?? '';
-        }
+        final displayValue = e.value;
 
         return Container(
           margin: const EdgeInsets.only(bottom: AppSpacing.s12),
@@ -2028,7 +2287,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
 
   Widget _buildRawJsonView(BuildContext context) {
     final theme = Theme.of(context);
-    final jsonStr = const JsonEncoder.withIndent('  ').convert(widget.data);
+    final jsonStr = widget.data.toPrettyJson();
     return Container(
       width: double.infinity,
       padding: AppSpacing.p12,
@@ -2044,12 +2303,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget? _buildHelpButton(BuildContext context, String key) {
-    final text =
-        (widget.data[key] ??
-                widget.data['help_$key'] ??
-                widget.data['${key}_help'] ??
-                '')
-            .toString();
+    final text = widget.data.helpTextFor(key) ?? '';
     if (text.trim().isEmpty) return null;
 
     final theme = Theme.of(context);
@@ -2099,46 +2353,40 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
   }
 
   Widget _buildDriverProfile(BuildContext context) {
-    _validateRequiredKeys([
-      'role_classification',
-      'high_dependency',
-      'imperative_command_count',
-      'strategy',
-    ], 'Driver Profile');
+    final missing = <String>[
+      if (widget.data.roleClassification == null) 'role_classification',
+      if (widget.data.highDependency == null) 'high_dependency',
+      if (widget.data.imperativeCommandCount == null)
+        'imperative_command_count',
+      if (widget.data.strategy == null) 'strategy',
+    ];
+    if (missing.isNotEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Missing required keys in Driver Profile: ${missing.join(', ')}',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final roleRaw = widget.data['role_classification']?.toString().trim() ?? '';
+    final roleRaw = widget.data.roleClassification!.trim();
     if (roleRaw.isEmpty) {
       throw AppException.validation(
         'Fail-Fast: Driver Profile role_classification cannot be empty.',
       );
     }
 
-    final rawRatio = widget.data['input_control_ratio'];
+    final rawRatio = widget.data.inputControlRatio;
     final double? ratio = rawRatio != null
         ? _parseNumericScore(rawRatio, 'input_control_ratio')
         : null;
 
-    final rawCmdCount = widget.data['imperative_command_count'];
-    if (rawCmdCount is! int) {
-      throw AppException.validation(
-        'Fail-Fast: Driver Profile imperative_command_count must be an int.',
-      );
-    }
-    final cmdCount = rawCmdCount;
+    final cmdCount = widget.data.imperativeCommandCount!;
+    final isHighDependency = widget.data.highDependency!;
 
-    final rawHighDep = widget.data['high_dependency'];
-    if (rawHighDep is! bool) {
-      throw AppException.validation(
-        'Fail-Fast: Driver Profile high_dependency must be a bool.',
-      );
-    }
-    final isHighDependency = rawHighDep;
-
-    final strategyRaw = widget.data['strategy']?.toString().trim() ?? '';
+    final strategyRaw = widget.data.strategy!.trim();
     if (strategyRaw.isEmpty) {
       throw AppException.validation(
         'Fail-Fast: Driver Profile strategy cannot be empty.',
@@ -2340,24 +2588,24 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
     );
     rightChildren.add(AppSpacing.h12);
 
-    if (widget.data['compliance_analysis'] != null) {
+    if (widget.data.complianceAnalysis != null) {
       rightChildren.add(
         _buildComparisonBlock(
           context,
           l10n.lblComplianceAnalysis,
-          widget.data['compliance_analysis'],
+          widget.data.complianceAnalysis,
           colorScheme.primaryContainer,
         ),
       );
       rightChildren.add(AppSpacing.h8);
     }
 
-    if (widget.data['poikkeamat_linjasta'] != null) {
+    if (widget.data.alignmentDeviations != null) {
       rightChildren.add(
         _buildInfoCard(
           context,
           l10n.sharedDeviationsFromAlignment,
-          widget.data['poikkeamat_linjasta']?.toString(),
+          widget.data.alignmentDeviations,
           Icons.call_split,
           color: colorScheme.surfaceContainerLow,
         ),
@@ -2365,9 +2613,8 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
       rightChildren.add(AppSpacing.h8);
     }
 
-    if (widget.data['suositus_tuomarille'] != null) {
-      final recText =
-          widget.data['suositus_tuomarille']?.toString().trim() ?? '';
+    if (widget.data.judgeRecommendation != null) {
+      final recText = widget.data.judgeRecommendation!.trim();
       if (recText.isEmpty) {
         throw AppException.validation(
           'Fail-Fast: Driver Profile suositus_tuomarille cannot be empty.',
@@ -2423,26 +2670,18 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
 
   Widget _buildCompactTextMetrics(
     BuildContext context,
-    Map<String, Object?> metrics,
+    SpecialistSectionMetrics metrics,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    double parseMetricDouble(Object? value) {
-      if (value == null) return 0.0;
-      if (value is num) return value.toDouble();
-      if (value is String) return double.tryParse(value) ?? 0.0;
-      return 0.0;
-    }
-
-    final wordCount =
-        metrics['word_count_display'] ?? metrics['word_count'] ?? 0;
-    final sentCount = metrics['sentence_count'] ?? 0;
+    final wordCount = metrics.wordCountDisplay ?? metrics.wordCount ?? 0;
+    final sentCount = metrics.sentenceCount ?? 0;
     final lexDiv =
-        metrics['lexical_diversity_display'] ??
-        parseMetricDouble(metrics['lexical_diversity']).toStringAsFixed(2);
+        metrics.lexicalDiversityDisplay ??
+        (metrics.lexicalDiversity?.toDouble() ?? 0.0).toStringAsFixed(2);
 
     return Container(
       padding: AppSpacing.p12,
@@ -2497,7 +2736,7 @@ class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
                 child: _buildCompactMetricItem(
                   context,
                   l10n.lblLexicalDiversity,
-                  '$lexDiv',
+                  lexDiv,
                 ),
               ),
             ],

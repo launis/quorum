@@ -13,6 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from scripts._dart_guardrails import (
+    DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES,
     DartViolation,
     GuardrailSeverity,
     format_dart_violations_table,
@@ -375,6 +376,55 @@ def test_dgr005_object_map_boundary_exempt_allowed() -> None:
     violations = _scan_snippet(code, filepath="client_app_v2/lib/core/api/execution_client.dart", strict=True)
     dgr005 = [v for v in violations if v.rule_code == "DGR005"]
     assert len(dgr005) == 0
+
+
+def test_dgr005_exempt_set_contains_only_nine_transport_boundary_files() -> None:
+    """Phase 5, Step 5.3: Verify DGR005 exempt set contains exclusively the 9 transport boundary files and lib/ has 0 DGR005 violations."""
+    expected_transport_files = {
+        "client_app_v2/lib/core/api/execution_client.dart",
+        "client_app_v2/lib/core/api/reports_client.dart",
+        "client_app_v2/lib/core/api/sse_client.dart",
+        "client_app_v2/lib/core/api/studio_client.dart",
+        "client_app_v2/lib/core/api/workflow_client.dart",
+        "client_app_v2/lib/core/error/app_exception.dart",
+        "client_app_v2/lib/core/network/interceptors/error_interceptor.dart",
+        "client_app_v2/lib/features/auth/data/auth_repository.dart",
+        "client_app_v2/lib/features/auth/data/repositories/user_repository.dart",
+    }
+    assert len(DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES) == 9
+    assert DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES == expected_transport_files
+
+    repo_root = Path(__file__).resolve().parents[4]
+    lib_dir = repo_root / "client_app_v2" / "lib"
+    all_violations = scan_dart_files([lib_dir], strict=True)
+    dgr005_violations = [v for v in all_violations if v.rule_code == "DGR005"]
+    assert dgr005_violations == []
+
+
+def test_dgr005_rejects_map_string_object_in_dto_or_widget_file() -> None:
+    """Phase 5, Step 5.3: Verify DGR005 flags Map<String, Object?> in ExecutionRecord DTO or ResultDashboard widget."""
+    code = "final Map<String, Object?> payload;\n"
+    for target_filepath in (
+        "client_app_v2/lib/features/execution/models/execution_record.dart",
+        "client_app_v2/lib/shared/widgets/result_dashboard.dart",
+    ):
+        violations = _scan_snippet(code, filepath=target_filepath, strict=True)
+        dgr005 = [v for v in violations if v.rule_code == "DGR005"]
+        assert len(dgr005) == 1
+        assert dgr005[0].severity == GuardrailSeverity.FATAL
+        assert "Map<String, Object?>" in dgr005[0].message
+
+
+def test_dgr005_permits_json_decode_map_at_transport_client_boundary() -> None:
+    """Phase 5, Step 5.3: Verify all 9 Group 1 transport boundary files allow Map<String, Object?> JSON transport decoding."""
+    code = """
+final raw = response.data as Map<String, Object?>;
+return ExecutionRecord.fromJson(raw);
+"""
+    for transport_filepath in DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES:
+        violations = _scan_snippet(code, filepath=transport_filepath, strict=True)
+        dgr005 = [v for v in violations if v.rule_code == "DGR005"]
+        assert dgr005 == []
 
 
 # ==============================================================================

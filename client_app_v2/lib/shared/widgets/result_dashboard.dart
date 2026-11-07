@@ -16,9 +16,215 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// Phase 5, Step 5.3: Strongly typed ResultDashboard models without Map<String, Object?>.
+@immutable
+class ResultDashboardNodeValue {
+  final String? stringValue;
+  final num? numberValue;
+  final bool? boolValue;
+  final List<String>? stringListValue;
+  final Map<String, ResultDashboardNodeValue>? nestedEntries;
+
+  const ResultDashboardNodeValue.text(String this.stringValue)
+    : numberValue = null,
+      boolValue = null,
+      stringListValue = null,
+      nestedEntries = null;
+
+  const ResultDashboardNodeValue.number(num this.numberValue)
+    : stringValue = null,
+      boolValue = null,
+      stringListValue = null,
+      nestedEntries = null;
+
+  const ResultDashboardNodeValue.flag(bool this.boolValue)
+    : stringValue = null,
+      numberValue = null,
+      stringListValue = null,
+      nestedEntries = null;
+
+  const ResultDashboardNodeValue.stringList(List<String> this.stringListValue)
+    : stringValue = null,
+      numberValue = null,
+      boolValue = null,
+      nestedEntries = null;
+
+  const ResultDashboardNodeValue.nested(
+    Map<String, ResultDashboardNodeValue> this.nestedEntries,
+  ) : stringValue = null,
+      numberValue = null,
+      boolValue = null,
+      stringListValue = null;
+
+  String? get scalarDisplayValue =>
+      stringValue ?? numberValue?.toString() ?? boolValue?.toString();
+
+  String toJsonValueString({int indent = 0}) {
+    if (nestedEntries != null) {
+      return _formatNodeMapJson(nestedEntries!, indent: indent);
+    }
+    if (stringListValue != null) {
+      return '[${stringListValue!.map(jsonEncode).join(', ')}]';
+    }
+    if (numberValue != null) {
+      return numberValue.toString();
+    }
+    if (boolValue != null) {
+      return boolValue.toString();
+    }
+    return jsonEncode(stringValue ?? '');
+  }
+}
+
+String _formatNodeMapJson(
+  Map<String, ResultDashboardNodeValue> nodeMap, {
+  int indent = 0,
+}) {
+  if (nodeMap.isEmpty) {
+    return '{}';
+  }
+  final currentIndent = '  ' * indent;
+  final childIndent = '  ' * (indent + 1);
+  final lines = nodeMap.entries
+      .map(
+        (entry) =>
+            '$childIndent${jsonEncode(entry.key)}: ${entry.value.toJsonValueString(indent: indent + 1)}',
+      )
+      .join(',\n');
+  return '{\n$lines\n$currentIndent}';
+}
+
+@immutable
+class ResultDashboardRawData {
+  final Map<String, ResultDashboardNodeValue>? entries;
+  final Map<String, ResultDashboardNodeValue>? contextVariables;
+  final Map<String, ResultDashboardNodeValue>? stepResults;
+  final bool hasInvalidContextVariables;
+  final bool hasInvalidStepResults;
+
+  const ResultDashboardRawData({
+    this.entries,
+    this.contextVariables,
+    this.stepResults,
+    this.hasInvalidContextVariables = false,
+    this.hasInvalidStepResults = false,
+  });
+
+  Map<String, ResultDashboardNodeValue> toFullNodeMap() {
+    return <String, ResultDashboardNodeValue>{
+      if (contextVariables != null)
+        'context_variables': ResultDashboardNodeValue.nested(contextVariables!),
+      if (stepResults != null)
+        'step_results': ResultDashboardNodeValue.nested(stepResults!),
+      ...?entries,
+    };
+  }
+}
+
+@immutable
+class ResultDashboardMetricsData {
+  final bool hitlRequired;
+  final bool hasWarning;
+  final String? coachFeedback;
+  final String? warningMessage;
+  final SpecialistSectionMetrics? specialistMetrics;
+
+  const ResultDashboardMetricsData({
+    this.hitlRequired = false,
+    this.hasWarning = false,
+    this.coachFeedback,
+    this.warningMessage,
+    this.specialistMetrics,
+  });
+}
+
+@immutable
+class ResultDashboardNotificationData {
+  final String level;
+  final String? title;
+  final String? message;
+
+  const ResultDashboardNotificationData({
+    this.level = 'info',
+    this.title,
+    this.message,
+  });
+}
+
+@immutable
+class ResultDashboardSourceListItemData {
+  final String? source;
+  final String? content;
+
+  const ResultDashboardSourceListItemData({this.source, this.content});
+}
+
+@immutable
+class ResultDashboardBlockData {
+  final String type;
+  final String id;
+  final String label;
+  final String? paragraphContent;
+  final ScoreCardRadarData? radarData;
+  final SpecialistSectionData? specialistData;
+  final GenericGridData? metricGridData;
+  final List<ValidationTimelineEvent>? timelineEvents;
+  final List<ResultDashboardSourceListItemData>? listItems;
+
+  const ResultDashboardBlockData({
+    required this.type,
+    required this.id,
+    required this.label,
+    this.paragraphContent,
+    this.radarData,
+    this.specialistData,
+    this.metricGridData,
+    this.timelineEvents,
+    this.listItems,
+  });
+}
+
+@immutable
+class ResultDashboardReferenceData {
+  final String id;
+  final String intent;
+  final String? title;
+  final String? snippet;
+  final String? url;
+
+  const ResultDashboardReferenceData({
+    required this.id,
+    required this.intent,
+    this.title,
+    this.snippet,
+    this.url,
+  });
+}
+
+@immutable
+class ResultDashboardViewData {
+  final String? title;
+  final String? intent;
+  final ResultDashboardMetricsData? metrics;
+  final ResultDashboardNotificationData? systemNotification;
+  final List<ResultDashboardBlockData>? blocks;
+  final List<ResultDashboardReferenceData>? references;
+  final bool hasInvalidBlocksPayload;
+
+  const ResultDashboardViewData({
+    this.title,
+    this.intent,
+    this.metrics,
+    this.systemNotification,
+    this.blocks,
+    this.references,
+    this.hasInvalidBlocksPayload = false,
+  });
+}
+
 class ResultDashboard extends ConsumerWidget {
-  final Map<String, Object?> rawResult;
-  final Map<String, Object?>? reportView;
+  final ResultDashboardRawData rawResult;
+  final ResultDashboardViewData? reportView;
 
   const ResultDashboard({super.key, required this.rawResult, this.reportView});
 
@@ -77,76 +283,35 @@ class ResultDashboard extends ConsumerWidget {
   Widget _buildDynamicDashboard(
     BuildContext context,
     WidgetRef ref,
-    Map<String, Object?> view,
+    ResultDashboardViewData view,
   ) {
     try {
-      final rawMetrics = view['metrics'];
-      if (rawMetrics != null && rawMetrics is! Map<String, Object?>) {
-        throw AppException.validation(
-          'Fail-Fast: reportView["metrics"] must be a Map<String, Object?>.',
-        );
-      }
-      final metrics = rawMetrics as Map<String, Object?>?;
-
-      final rawSystemNotification = view['systemNotification'];
-      if (rawSystemNotification != null &&
-          rawSystemNotification is! Map<String, Object?>) {
-        throw AppException.validation(
-          'Fail-Fast: reportView["systemNotification"] must be a Map<String, Object?>.',
-        );
-      }
-      final systemNotification = rawSystemNotification as Map<String, Object?>?;
-
-      final rawBlocks = view['blocks'];
-      if (rawBlocks != null && rawBlocks is! List<dynamic>) {
+      if (view.hasInvalidBlocksPayload) {
         throw AppException.validation(
           'Fail-Fast: reportView["blocks"] must be a List.',
         );
       }
-      final blocksList = rawBlocks as List<dynamic>? ?? const <dynamic>[];
-      final parsedBlocks = <Map<String, Object?>>[];
-      for (var i = 0; i < blocksList.length; i++) {
-        final item = blocksList[i];
-        if (item is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: Block at index $i must be a Map<String, Object?>.',
-          );
-        }
-        parsedBlocks.add(item);
-      }
 
-      final rawReferences = view['references'];
-      if (rawReferences != null && rawReferences is! List<dynamic>) {
-        throw AppException.validation(
-          'Fail-Fast: reportView["references"] must be a List.',
-        );
-      }
+      final metrics = view.metrics;
+      final systemNotification = view.systemNotification;
+      final parsedBlocks = view.blocks ?? const <ResultDashboardBlockData>[];
       final referencesList =
-          rawReferences as List<dynamic>? ?? const <dynamic>[];
-      final parsedReferences = <Map<String, Object?>>[];
+          view.references ?? const <ResultDashboardReferenceData>[];
+
       for (var i = 0; i < referencesList.length; i++) {
-        final item = referencesList[i];
-        if (item is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: Reference at index $i must be a Map<String, Object?>.',
-          );
-        }
-        final refId = item['id']?.toString().trim() ?? '';
+        final refId = referencesList[i].id.trim();
         if (refId.isEmpty) {
           throw AppException.validation(
             'Fail-Fast: Reference at index $i is missing a valid non-empty "id".',
           );
         }
-        parsedReferences.add(item);
       }
 
-      final isHitlRequired = metrics?['hitl_required'] == true;
-      final hasWarning = metrics?['has_warning'] == true;
+      final isHitlRequired = metrics?.hitlRequired ?? false;
+      final hasWarning = metrics?.hasWarning ?? false;
       final showWarning = isHitlRequired || hasWarning;
 
-      final feedback =
-          metrics?['coach_feedback']?.toString() ??
-          metrics?['warning_message']?.toString();
+      final feedback = metrics?.coachFeedback ?? metrics?.warningMessage;
 
       return SingleChildScrollView(
         padding: AppSpacing.p16,
@@ -174,10 +339,10 @@ class ResultDashboard extends ConsumerWidget {
                 child: _renderBlock(context, ref, block, view),
               ),
             ),
-            if (parsedReferences.isNotEmpty) ...[
+            if (referencesList.isNotEmpty) ...[
               const Divider(height: AppSpacing.s24),
               AppSpacing.h16,
-              _buildReferencesSection(context, parsedReferences),
+              _buildReferencesSection(context, referencesList),
             ],
           ],
         ),
@@ -197,20 +362,16 @@ class ResultDashboard extends ConsumerWidget {
 
   Widget _buildReferencesSection(
     BuildContext context,
-    List<Map<String, Object?>> references,
+    List<ResultDashboardReferenceData> references,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    final searchRefs = references
-        .where((r) => r['intent'] == 'search')
-        .toList();
+    final searchRefs = references.where((r) => r.intent == 'search').toList();
     final groundRefs = references
-        .where((r) => r['intent'] == 'grounding')
+        .where((r) => r.intent == 'grounding')
         .toList();
-    final kbRefs = references
-        .where((r) => r['intent'] == 'internal_kb')
-        .toList();
+    final kbRefs = references.where((r) => r.intent == 'internal_kb').toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -253,7 +414,7 @@ class ResultDashboard extends ConsumerWidget {
     BuildContext context,
     String title,
     IconData icon,
-    List<Map<String, Object?>> refs,
+    List<ResultDashboardReferenceData> refs,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -290,10 +451,10 @@ class ResultDashboard extends ConsumerWidget {
             ),
             AppSpacing.h16,
             ...refs.map((ref) {
-              final refTitle = ref['title']?.toString().trim();
-              final refId = ref['id']!.toString().trim();
-              final refSnippet = ref['snippet']?.toString().trim() ?? '';
-              final refUrl = ref['url']?.toString().trim();
+              final refTitle = ref.title?.trim();
+              final refId = ref.id.trim();
+              final refSnippet = ref.snippet?.trim() ?? '';
+              final refUrl = ref.url?.trim();
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.s16),
@@ -349,14 +510,14 @@ class ResultDashboard extends ConsumerWidget {
 
   Widget _buildSystemNotificationBanner(
     BuildContext context,
-    Map<String, Object?> notification,
+    ResultDashboardNotificationData notification,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final semanticColors = context.semanticColors;
 
-    final level = notification['level']?.toString() ?? 'info';
+    final level = notification.level;
     final isDanger = level == 'danger';
     final isWarning = level == 'warning';
 
@@ -382,11 +543,11 @@ class ResultDashboard extends ConsumerWidget {
       textColor = colorScheme.onSecondaryContainer;
     }
 
-    final rawTitle = notification['title']?.toString().trim() ?? '';
+    final rawTitle = notification.title?.trim() ?? '';
     final effectiveTitle = rawTitle.isNotEmpty
         ? rawTitle
         : l10n.sharedSystemNotificationDefaultTitle;
-    final rawMessage = notification['message']?.toString() ?? '';
+    final rawMessage = notification.message ?? '';
 
     return Container(
       decoration: BoxDecoration(
@@ -503,13 +664,13 @@ class ResultDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, Map<String, Object?> view) {
+  Widget _buildHeader(BuildContext context, ResultDashboardViewData view) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final semanticColors = context.semanticColors;
 
-    final intent = view['intent']?.toString();
+    final intent = view.intent;
     Color statusColor = colorScheme.onSurfaceVariant;
     if (intent == 'success') {
       statusColor = semanticColors.success;
@@ -519,7 +680,7 @@ class ResultDashboard extends ConsumerWidget {
       statusColor = colorScheme.error;
     }
 
-    final rawTitle = view['title']?.toString().trim() ?? '';
+    final rawTitle = view.title?.trim() ?? '';
     final headerTitle = rawTitle.isNotEmpty
         ? rawTitle.toUpperCase()
         : l10n.reportTitleFallback;
@@ -564,55 +725,47 @@ class ResultDashboard extends ConsumerWidget {
   Widget _renderBlock(
     BuildContext context,
     WidgetRef ref,
-    Map<String, Object?> block,
-    Map<String, Object?> view,
+    ResultDashboardBlockData block,
+    ResultDashboardViewData view,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     try {
-      final blockType = block['type']?.toString().trim() ?? '';
-      final blockId = block['id']?.toString().trim() ?? '';
-      final blockLabel = block['label']?.toString().trim() ?? '';
-      final blockValue = block['value'];
+      final blockType = block.type.trim();
+      final blockId = block.id.trim();
+      final blockLabel = block.label.trim();
 
       switch (blockType) {
         case 'card':
-          if (blockValue is! Map<String, Object?>) {
-            throw AppException.validation(
-              'Fail-Fast: Card block "$blockId" value must be a Map<String, Object?>.',
+          if (block.radarData != null) {
+            return ScoreCardRadar(cardData: block.radarData!);
+          }
+          if (block.specialistData != null) {
+            return SpecialistSection(
+              title: blockLabel,
+              type: blockId,
+              data: block.specialistData!,
+              metrics:
+                  view.metrics?.specialistMetrics ??
+                  const SpecialistSectionMetrics(),
             );
           }
-          if (blockValue.containsKey('dimensions')) {
-            return ScoreCardRadar(cardData: blockValue);
-          }
-          final rawMetrics = view['metrics'];
-          final metricsMap = rawMetrics is Map<String, Object?>
-              ? rawMetrics
-              : const <String, Object?>{};
-          return SpecialistSection(
-            title: blockLabel,
-            type: blockId,
-            data: blockValue,
-            metrics: metricsMap,
+          throw AppException.validation(
+            'Fail-Fast: Card block "$blockId" requires radarData or specialistData.',
           );
 
         case 'metric':
-          if (blockValue is! Map<String, Object?>) {
+          if (block.metricGridData == null) {
             throw AppException.validation(
-              'Fail-Fast: Metric block "$blockId" value must be a Map<String, Object?>.',
+              'Fail-Fast: Metric block "$blockId" requires metricGridData.',
             );
           }
-          return GenericGrid(title: blockLabel, data: blockValue);
+          return GenericGrid(title: blockLabel, data: block.metricGridData!);
 
         case 'paragraph':
-          final String content;
-          if (blockValue is Map<String, Object?>) {
-            content = blockValue['content']?.toString() ?? '';
-          } else {
-            content = blockValue?.toString() ?? '';
-          }
+          final content = block.paragraphContent ?? '';
 
           if (blockId == 'coach-markdown') {
             return Card(
@@ -701,39 +854,14 @@ class ResultDashboard extends ConsumerWidget {
           );
 
         case 'list':
-          if (blockValue is! Map<String, Object?>) {
-            throw AppException.validation(
-              'Fail-Fast: List block "$blockId" value must be a Map<String, Object?>.',
-            );
-          }
           if (blockId == 'timeline-feed') {
-            final rawEvents = blockValue['events'];
-            if (rawEvents != null && rawEvents is! List<dynamic>) {
-              throw AppException.validation(
-                'Fail-Fast: Timeline block events must be a List.',
-              );
-            }
-            final events = rawEvents as List<dynamic>? ?? const <dynamic>[];
+            final events =
+                block.timelineEvents ?? const <ValidationTimelineEvent>[];
             return ValidationTimelineWidget(title: blockLabel, events: events);
           }
 
-          final rawItems = blockValue['items'];
-          if (rawItems != null && rawItems is! List<dynamic>) {
-            throw AppException.validation(
-              'Fail-Fast: List block items must be a List.',
-            );
-          }
-          final items = rawItems as List<dynamic>? ?? const <dynamic>[];
-          final parsedItems = <Map<String, Object?>>[];
-          for (var i = 0; i < items.length; i++) {
-            final item = items[i];
-            if (item is! Map<String, Object?>) {
-              throw AppException.validation(
-                'Fail-Fast: List block item at index $i must be a Map<String, Object?>.',
-              );
-            }
-            parsedItems.add(item);
-          }
+          final parsedItems =
+              block.listItems ?? const <ResultDashboardSourceListItemData>[];
 
           return Card(
             child: Semantics(
@@ -745,8 +873,8 @@ class ResultDashboard extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 children: parsedItems.map<Widget>((itemObj) {
-                  final rawSource = itemObj['source']?.toString().trim() ?? '';
-                  final rawContent = itemObj['content']?.toString() ?? '';
+                  final rawSource = itemObj.source?.trim() ?? '';
+                  final rawContent = itemObj.content ?? '';
                   return ListTile(
                     leading: Icon(
                       Icons.source_outlined,
@@ -790,8 +918,8 @@ class ResultDashboard extends ConsumerWidget {
   }
 
   void _flattenMap(
-    Map<String, Object?> source,
-    Map<String, Object?> target,
+    Map<String, ResultDashboardNodeValue> source,
+    Map<String, ResultDashboardNodeValue> target,
     String prefix,
   ) {
     source.forEach((key, value) {
@@ -840,21 +968,27 @@ class ResultDashboard extends ConsumerWidget {
         effectiveKey = pascalKey;
       }
 
-      if (value is Map<String, Object?>) {
+      if (value.nestedEntries != null) {
         if (key == 'metadata' || key == 'tool_calls') return;
-        _flattenMap(value, target, effectiveKey);
-      } else if (value is List) {
-        if (value.isEmpty) {
-          target[effectiveKey] = '[]';
-        } else if (value.first is String || value.first is num) {
-          target[effectiveKey] = value.join(', ');
+        _flattenMap(value.nestedEntries!, target, effectiveKey);
+      } else if (value.stringListValue != null) {
+        final listVal = value.stringListValue!;
+        if (listVal.isEmpty) {
+          target[effectiveKey] = const ResultDashboardNodeValue.text('[]');
         } else {
-          target[effectiveKey] = '[${value.length} items]';
+          target[effectiveKey] = ResultDashboardNodeValue.text(
+            listVal.join(', '),
+          );
         }
-      } else if (value != null && value.toString().isNotEmpty) {
-        final strVal = value.toString();
-        if (!target.containsValue(strVal)) {
-          target[effectiveKey] = value;
+      } else {
+        final strVal = value.scalarDisplayValue;
+        if (strVal != null && strVal.isNotEmpty) {
+          final alreadyContains = target.values.any(
+            (existing) => existing.scalarDisplayValue == strVal,
+          );
+          if (!alreadyContains) {
+            target[effectiveKey] = value;
+          }
         }
       }
     });
@@ -863,35 +997,36 @@ class ResultDashboard extends ConsumerWidget {
   Widget _buildFlatDataView(
     BuildContext context,
     WidgetRef ref,
-    Map<String, Object?> data,
+    ResultDashboardRawData data,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final Map<String, Object?> dataToShow = {};
+    final dataToShow = <String, ResultDashboardNodeValue>{};
 
     try {
-      if (data.containsKey('context_variables')) {
-        final rawCtx = data['context_variables'];
-        if (rawCtx is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: rawResult["context_variables"] must be a Map<String, Object?>.',
-          );
-        }
-        _flattenMap(rawCtx, dataToShow, '');
-      } else if (data.containsKey('step_results')) {
-        final rawSteps = data['step_results'];
-        if (rawSteps is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: rawResult["step_results"] must be a Map<String, Object?>.',
-          );
-        }
-        _flattenMap(rawSteps, dataToShow, '');
-      } else {
-        _flattenMap(data, dataToShow, '');
+      if (data.hasInvalidContextVariables) {
+        throw AppException.validation(
+          'Fail-Fast: rawResult["context_variables"] must be a valid nested map.',
+        );
+      }
+      if (data.hasInvalidStepResults) {
+        throw AppException.validation(
+          'Fail-Fast: rawResult["step_results"] must be a valid nested map.',
+        );
+      }
+
+      if (data.contextVariables != null) {
+        _flattenMap(data.contextVariables!, dataToShow, '');
+      } else if (data.stepResults != null) {
+        _flattenMap(data.stepResults!, dataToShow, '');
+      } else if (data.entries != null) {
+        _flattenMap(data.entries!, dataToShow, '');
       }
 
       if (dataToShow.isEmpty) {
-        dataToShow['_info'] = l10n.sharedFlatReportNoData;
+        dataToShow['_info'] = ResultDashboardNodeValue.text(
+          l10n.sharedFlatReportNoData,
+        );
       }
     } catch (e, st) {
       ref
@@ -905,8 +1040,7 @@ class ResultDashboard extends ConsumerWidget {
       return ErrorView(error: e, stackTrace: st, compact: true);
     }
 
-    const encoder = JsonEncoder.withIndent('  ');
-    final jsonString = encoder.convert(dataToShow);
+    final jsonString = _formatNodeMapJson(dataToShow);
 
     return SingleChildScrollView(
       padding: AppSpacing.p16,
@@ -917,10 +1051,9 @@ class ResultDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildRawDataView(BuildContext context, Map<String, Object?> data) {
+  Widget _buildRawDataView(BuildContext context, ResultDashboardRawData data) {
     final theme = Theme.of(context);
-    const encoder = JsonEncoder.withIndent('  ');
-    final jsonString = encoder.convert(data);
+    final jsonString = _formatNodeMapJson(data.toFullNodeMap());
 
     return SingleChildScrollView(
       padding: AppSpacing.p16,

@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   Widget buildTestHarness({
     required String key,
-    required Map<String, Object?> schema,
+    required SchemaFieldDefinition schema,
     Object? value,
     ValueChanged<Object?>? onChanged,
     bool isRequired = false,
@@ -57,11 +57,11 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             key: 'agent_role',
-            schema: const <String, Object?>{
-              'type': 'string',
-              'title': 'Agent Role',
-              'description': 'Primary persona identifier',
-            },
+            schema: const SchemaFieldDefinition(
+              type: 'string',
+              title: 'Agent Role',
+              description: 'Primary persona identifier',
+            ),
             value: 'Falsifier',
             isRequired: true,
             onChanged: (val) => latestEmitted = val,
@@ -79,10 +79,10 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             key: 'max_tokens',
-            schema: const <String, Object?>{
-              'type': 'integer',
-              'title': 'Max Tokens',
-            },
+            schema: const SchemaFieldDefinition(
+              type: 'integer',
+              title: 'Max Tokens',
+            ),
             value: 1024,
             onChanged: (val) => latestEmitted = val,
           ),
@@ -100,10 +100,10 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             key: 'temperature',
-            schema: const <String, Object?>{
-              'type': 'number',
-              'title': 'Temperature',
-            },
+            schema: const SchemaFieldDefinition(
+              type: 'number',
+              title: 'Temperature',
+            ),
             value: 0.2,
             onChanged: (val) => latestEmitted = val,
           ),
@@ -118,11 +118,11 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             key: 'strict_validation',
-            schema: const <String, Object?>{
-              'type': 'boolean',
-              'title': 'Strict Validation',
-              'description': 'Enforce zero-fallback parsing',
-            },
+            schema: const SchemaFieldDefinition(
+              type: 'boolean',
+              title: 'Strict Validation',
+              description: 'Enforce zero-fallback parsing',
+            ),
             value: false,
             onChanged: (val) => latestEmitted = val,
           ),
@@ -137,11 +137,11 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             key: 'cognitive_tier',
-            schema: const <String, Object?>{
-              'type': 'string',
-              'title': 'Cognitive Tier',
-              'enum': <Object?>['FAST', 'BALANCED', 'DEEP'],
-            },
+            schema: const SchemaFieldDefinition(
+              type: 'string',
+              title: 'Cognitive Tier',
+              enumOptions: <String>['FAST', 'BALANCED', 'DEEP'],
+            ),
             value: 'FAST',
             onChanged: (val) => latestEmitted = val,
           ),
@@ -165,15 +165,15 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             key: 'required_enum_field',
-            schema: const <String, Object?>{
-              'type': 'string',
-              'title':
+            schema: const SchemaFieldDefinition(
+              type: 'string',
+              title:
                   'ExtraordinarilyLongEnterpriseConfigurationParameterTitleWithoutSpaces',
-              'enum': <Object?>[
+              enumOptions: <String>[
                 'ExtraordinarilyLongEnumOptionIdentifierValueOne_2026_Final',
                 'OptionTwo',
               ],
-            },
+            ),
             value: null,
             isRequired: true,
             formKey: formKey,
@@ -205,7 +205,7 @@ void main() {
                   () => SchemaMapper.mapFieldToWidget(
                     context: context,
                     key: '   ',
-                    schema: const <String, Object?>{'type': 'string'},
+                    schema: const SchemaFieldDefinition(type: 'string'),
                     value: null,
                     onChanged: (_) {},
                     isRequired: false,
@@ -217,7 +217,9 @@ void main() {
                   () => SchemaMapper.mapFieldToWidget(
                     context: context,
                     key: 'untyped_field',
-                    schema: const <String, Object?>{'title': 'No Type Or Enum'},
+                    schema: const SchemaFieldDefinition(
+                      title: 'No Type Or Enum',
+                    ),
                     value: null,
                     onChanged: (_) {},
                     isRequired: false,
@@ -229,7 +231,9 @@ void main() {
                   () => SchemaMapper.mapFieldToWidget(
                     context: context,
                     key: 'invalid_type_field',
-                    schema: const <String, Object?>{'type': 'unsupported_blob'},
+                    schema: const SchemaFieldDefinition(
+                      type: 'unsupported_blob',
+                    ),
                     value: null,
                     onChanged: (_) {},
                     isRequired: false,
@@ -259,10 +263,10 @@ void main() {
                   () => SchemaMapper.mapFieldToWidget(
                     context: context,
                     key: 'mode',
-                    schema: const <String, Object?>{
-                      'type': 'string',
-                      'enum': <Object?>[],
-                    },
+                    schema: const SchemaFieldDefinition(
+                      type: 'string',
+                      enumOptions: <String>[],
+                    ),
                     value: null,
                     onChanged: (_) {},
                     isRequired: false,
@@ -275,10 +279,10 @@ void main() {
                   () => SchemaMapper.mapFieldToWidget(
                     context: context,
                     key: 'mode',
-                    schema: const <String, Object?>{
-                      'type': 'string',
-                      'enum': <Object?>['A', 'B'],
-                    },
+                    schema: const SchemaFieldDefinition(
+                      type: 'string',
+                      enumOptions: <String>['A', 'B'],
+                    ),
                     value: 'INVALID_OPTION',
                     onChanged: (_) {},
                     isRequired: false,
@@ -291,7 +295,7 @@ void main() {
                   () => SchemaMapper.mapFieldToWidget(
                     context: context,
                     key: 'flag',
-                    schema: const <String, Object?>{'type': 'boolean'},
+                    schema: const SchemaFieldDefinition(type: 'boolean'),
                     value: 'not_a_boolean',
                     onChanged: (_) {},
                     isRequired: false,
@@ -304,7 +308,7 @@ void main() {
                   () => SchemaMapper.mapFieldToWidget(
                     context: context,
                     key: 'label',
-                    schema: const <String, Object?>{'type': 'string'},
+                    schema: const SchemaFieldDefinition(type: 'string'),
                     value: 99999,
                     onChanged: (_) {},
                     isRequired: false,

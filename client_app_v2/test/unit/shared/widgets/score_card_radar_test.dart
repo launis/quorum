@@ -37,7 +37,7 @@ class _RecordingLoggerService extends LoggerService {
 
 void main() {
   Widget buildTestHarness({
-    required Map<String, Object?> cardData,
+    required ScoreCardRadarData cardData,
     ThemeData? theme,
     Locale locale = const Locale('en'),
     double width = 600,
@@ -68,30 +68,30 @@ void main() {
     testWidgets(
       'Positive: renders header, score badge, RadarChart with ExcludeSemantics, and detailed breakdown list for >= 3 dimensions',
       (WidgetTester tester) async {
-        final cardData = <String, Object?>{
-          'agentName': 'Logician Specialist',
-          'verdict': 'Strong dialectical rigor verified across dimensions.',
-          'totalScore': 4.3,
-          'minScore': 1,
-          'maxScore': 5,
-          'dimensions': <Object?>[
-            <String, Object?>{
-              'dimensionLabel': 'lblFidelity',
-              'score': 4.5,
-              'reasoning': 'Havainto: Strict adherence to premises.',
-            },
-            <String, Object?>{
-              'dimensionLabel': 'lblStrategicDepth',
-              'score': 4.0,
-              'reasoning': 'Long-term second-order consequences modeled.',
-            },
-            <String, Object?>{
-              'dimensionLabel': 'lblCredibility',
-              'score': 4.4,
-              'reasoning': 'All citations anchored to verified sources.',
-            },
+        const cardData = ScoreCardRadarData(
+          agentName: 'Logician Specialist',
+          verdict: 'Strong dialectical rigor verified across dimensions.',
+          totalScore: 4.3,
+          minScore: 1,
+          maxScore: 5,
+          dimensions: <ScoreCardDimensionData>[
+            ScoreCardDimensionData(
+              dimensionLabel: 'lblFidelity',
+              score: 4.5,
+              reasoning: 'Havainto: Strict adherence to premises.',
+            ),
+            ScoreCardDimensionData(
+              dimensionLabel: 'lblStrategicDepth',
+              score: 4.0,
+              reasoning: 'Long-term second-order consequences modeled.',
+            ),
+            ScoreCardDimensionData(
+              dimensionLabel: 'lblCredibility',
+              score: 4.4,
+              reasoning: 'All citations anchored to verified sources.',
+            ),
           ],
-        };
+        );
 
         await tester.pumpWidget(buildTestHarness(cardData: cardData));
         await tester.pumpAndSettle();
@@ -135,10 +135,10 @@ void main() {
     testWidgets(
       'Boundary 1: empty dimensions list and null totalScore renders localized placeholders without RadarChart or breakdown list',
       (WidgetTester tester) async {
-        final cardData = <String, Object?>{
-          'dimensions': <Object?>[],
-          'totalScore': null,
-        };
+        const cardData = ScoreCardRadarData(
+          dimensions: <ScoreCardDimensionData>[],
+          totalScore: null,
+        );
 
         await tester.pumpWidget(buildTestHarness(cardData: cardData));
         await tester.pumpAndSettle();
@@ -158,27 +158,27 @@ void main() {
     testWidgets(
       'Boundary 2: 2 dimensions (< 3) in narrow 240px viewport with dark theme and Finnish locale renders breakdown list without RadarChart or overflow',
       (WidgetTester tester) async {
-        final cardData = <String, Object?>{
-          'agentName':
+        const cardData = ScoreCardRadarData(
+          agentName:
               'ErittäinPitkäAsiantuntijaAgentinNimiIlmanVälilyöntejäKapeassaNäkymässä',
-          'verdict':
+          verdict:
               'ErittäinPitkäTuomioTekstiJokaTestaaRivitystäJaEllipsisKatkaisuaKapeassaTilassa',
-          'totalScore': '3.8',
-          'minScore': 1,
-          'maxScore': 6,
-          'dimensions': <Object?>[
-            <String, Object?>{
-              'dimensionLabel': 'lblBloomScore',
-              'score': 4.0,
-              'reasoning': 'Korkean tason synteesi.',
-            },
-            <String, Object?>{
-              'dimensionLabel': 'CustomUnmappedDimensionKeyWithoutSpaces',
-              'score': 3.5,
-              'reasoning': 'Toinen perustelu.',
-            },
+          totalScore: 3.8,
+          minScore: 1,
+          maxScore: 6,
+          dimensions: <ScoreCardDimensionData>[
+            ScoreCardDimensionData(
+              dimensionLabel: 'lblBloomScore',
+              score: 4.0,
+              reasoning: 'Korkean tason synteesi.',
+            ),
+            ScoreCardDimensionData(
+              dimensionLabel: 'CustomUnmappedDimensionKeyWithoutSpaces',
+              score: 3.5,
+              reasoning: 'Toinen perustelu.',
+            ),
           ],
-        };
+        );
 
         await tester.pumpWidget(
           buildTestHarness(
@@ -203,16 +203,16 @@ void main() {
     );
 
     testWidgets(
-      'Negative 1: non-list dimensions or malformed dimension entry logs VALIDATION_FAILED via LoggerService and renders compact ErrorView',
+      'Negative 1: corrupted dimensions or malformed dimension entry logs VALIDATION_FAILED via LoggerService and renders compact ErrorView',
       (WidgetTester tester) async {
         final logger = _RecordingLoggerService();
 
         await tester.pumpWidget(
           buildTestHarness(
-            cardData: const <String, Object?>{
-              'agentName': 'Broken Agent',
-              'dimensions': 'invalid_scalar_dimensions',
-            },
+            cardData: const ScoreCardRadarData(
+              agentName: 'Broken Agent',
+              isCorrupted: true,
+            ),
             logger: logger,
           ),
         );
@@ -232,23 +232,23 @@ void main() {
     );
 
     testWidgets(
-      'Negative 2: invalid scale bounds (maxScore <= minScore) or non-numeric dimension score logs VALIDATION_FAILED via LoggerService and renders compact ErrorView',
+      'Negative 2: invalid scale bounds (maxScore <= minScore) or null dimension score logs VALIDATION_FAILED via LoggerService and renders compact ErrorView',
       (WidgetTester tester) async {
         final logger = _RecordingLoggerService();
 
         await tester.pumpWidget(
           buildTestHarness(
-            cardData: const <String, Object?>{
-              'agentName': 'Invalid Bounds Agent',
-              'minScore': 5,
-              'maxScore': 5,
-              'dimensions': <Object?>[
-                <String, Object?>{
-                  'dimensionLabel': 'lblFidelity',
-                  'score': 'not_a_number',
-                },
+            cardData: const ScoreCardRadarData(
+              agentName: 'Invalid Bounds Agent',
+              minScore: 5,
+              maxScore: 5,
+              dimensions: <ScoreCardDimensionData>[
+                ScoreCardDimensionData(
+                  dimensionLabel: 'lblFidelity',
+                  score: null,
+                ),
               ],
-            },
+            ),
             logger: logger,
           ),
         );

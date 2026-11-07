@@ -7,14 +7,46 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+@immutable
+class ScoreCardDimensionData {
+  final String dimensionLabel;
+  final double? score;
+  final String reasoning;
+
+  const ScoreCardDimensionData({
+    required this.dimensionLabel,
+    required this.score,
+    this.reasoning = '',
+  });
+}
+
+@immutable
+class ScoreCardRadarData {
+  final String? agentName;
+  final String? verdict;
+  final double? totalScore;
+  final int minScore;
+  final int maxScore;
+  final List<ScoreCardDimensionData> dimensions;
+  final bool isCorrupted;
+
+  const ScoreCardRadarData({
+    this.agentName,
+    this.verdict,
+    this.totalScore,
+    this.minScore = 1,
+    this.maxScore = 5,
+    this.dimensions = const <ScoreCardDimensionData>[],
+    this.isCorrupted = false,
+  });
+}
+
 class ScoreCardRadar extends ConsumerWidget {
-  final Map<String, Object?> cardData;
+  final ScoreCardRadarData cardData;
 
   const ScoreCardRadar({super.key, required this.cardData});
 
   static const int _minRadarDimensionsCount = 3;
-  static const int _defaultMinScore = 1;
-  static const int _defaultMaxScore = 5;
   static const double _badgeDimension = 60.0;
   static const double _avatarDimension = 40.0;
   static const double _radarHeight = 200.0;
@@ -28,46 +60,28 @@ class ScoreCardRadar extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     try {
-      final rawDimensions = cardData['dimensions'];
-      if (rawDimensions != null && rawDimensions is! List<dynamic>) {
+      if (cardData.isCorrupted) {
         throw AppException.validation(
-          'Fail-Fast: ScoreCardRadar dimensions must be a List.',
+          'Fail-Fast: ScoreCardRadar cardData is corrupted.',
         );
       }
 
-      final dimensionsList =
-          rawDimensions as List<dynamic>? ?? const <dynamic>[];
+      final dimensionsList = cardData.dimensions;
       final dimensions =
           <({String dimensionLabel, double score, String reasoning})>[];
 
       for (var i = 0; i < dimensionsList.length; i++) {
         final item = dimensionsList[i];
-        if (item is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: ScoreCardRadar dimension[$i] must be a Map<String, Object?>.',
-          );
-        }
 
-        final rawLabel = item['dimensionLabel']?.toString().trim() ?? '';
+        final rawLabel = item.dimensionLabel.trim();
         if (rawLabel.isEmpty) {
           throw AppException.validation(
             'Fail-Fast: ScoreCardRadar dimension[$i] dimensionLabel cannot be empty.',
           );
         }
 
-        final rawScore = item['score'];
-        final double parsedScore;
-        if (rawScore is num) {
-          parsedScore = rawScore.toDouble();
-        } else if (rawScore != null) {
-          final parsed = double.tryParse(rawScore.toString().trim());
-          if (parsed == null) {
-            throw AppException.validation(
-              'Fail-Fast: ScoreCardRadar dimension[$i] score must be a valid number.',
-            );
-          }
-          parsedScore = parsed;
-        } else {
+        final parsedScore = item.score;
+        if (parsedScore == null) {
           throw AppException.validation(
             'Fail-Fast: ScoreCardRadar dimension[$i] score is required.',
           );
@@ -79,7 +93,7 @@ class ScoreCardRadar extends ConsumerWidget {
           );
         }
 
-        final rawReasoning = item['reasoning']?.toString() ?? '';
+        final rawReasoning = item.reasoning;
         dimensions.add((
           dimensionLabel: rawLabel,
           score: parsedScore,
@@ -90,16 +104,8 @@ class ScoreCardRadar extends ConsumerWidget {
         ));
       }
 
-      final minScore = _parseScaleBound(
-        cardData['minScore'],
-        'minScore',
-        _defaultMinScore,
-      );
-      final maxScore = _parseScaleBound(
-        cardData['maxScore'],
-        'maxScore',
-        _defaultMaxScore,
-      );
+      final minScore = cardData.minScore;
+      final maxScore = cardData.maxScore;
       if (maxScore <= minScore) {
         throw AppException.validation(
           'Fail-Fast: ScoreCardRadar maxScore ($maxScore) must be greater than minScore ($minScore).',
@@ -107,7 +113,7 @@ class ScoreCardRadar extends ConsumerWidget {
       }
 
       final totalScoreDisplay = _resolveTotalScoreDisplay(
-        cardData['totalScore'],
+        cardData.totalScore,
         l10n,
       );
 
@@ -115,11 +121,11 @@ class ScoreCardRadar extends ConsumerWidget {
       final canShowRadar = dimensions.length >= _minRadarDimensionsCount;
       final transparentColor = colorScheme.surface.withValues(alpha: 0.0);
 
-      final rawAgentName = cardData['agentName']?.toString().trim() ?? '';
+      final rawAgentName = cardData.agentName?.trim() ?? '';
       final agentName = rawAgentName.isNotEmpty
           ? rawAgentName
           : l10n.sharedUnknownAgent;
-      final verdict = cardData['verdict']?.toString().trim() ?? '';
+      final verdict = cardData.verdict?.trim() ?? '';
 
       return Card(
         elevation: AppSpacing.s4,
@@ -336,49 +342,16 @@ class ScoreCardRadar extends ConsumerWidget {
     }
   }
 
-  int _parseScaleBound(Object? rawValue, String fieldName, int defaultValue) {
-    if (rawValue == null) {
-      return defaultValue;
-    }
-    if (rawValue is num) {
-      if (rawValue.isNaN || rawValue.isInfinite) {
-        throw AppException.validation(
-          'Fail-Fast: ScoreCardRadar $fieldName must be finite.',
-        );
-      }
-      return rawValue.toInt();
-    }
-    final parsed = int.tryParse(rawValue.toString().trim());
-    if (parsed == null) {
-      throw AppException.validation(
-        'Fail-Fast: ScoreCardRadar $fieldName must be an integer.',
-      );
-    }
-    return parsed;
-  }
-
-  String _resolveTotalScoreDisplay(Object? rawTotal, AppLocalizations l10n) {
+  String _resolveTotalScoreDisplay(double? rawTotal, AppLocalizations l10n) {
     if (rawTotal == null) {
       return l10n.dataUnavailable;
     }
-    final double parsedTotal;
-    if (rawTotal is num) {
-      parsedTotal = rawTotal.toDouble();
-    } else {
-      final parsed = double.tryParse(rawTotal.toString().trim());
-      if (parsed == null) {
-        throw AppException.validation(
-          'Fail-Fast: ScoreCardRadar totalScore must be a valid number.',
-        );
-      }
-      parsedTotal = parsed;
-    }
-    if (parsedTotal.isNaN || parsedTotal.isInfinite) {
+    if (rawTotal.isNaN || rawTotal.isInfinite) {
       throw AppException.validation(
         'Fail-Fast: ScoreCardRadar totalScore must be finite.',
       );
     }
-    return parsedTotal.toStringAsFixed(1);
+    return rawTotal.toStringAsFixed(1);
   }
 
   /// Translates the observation key sent by the backend logic matrices

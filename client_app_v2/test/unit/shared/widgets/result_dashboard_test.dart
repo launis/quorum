@@ -39,8 +39,8 @@ class _RecordingLoggerService extends LoggerService {
 
 void main() {
   Widget buildTestHarness({
-    required Map<String, Object?> rawResult,
-    Map<String, Object?>? reportView,
+    required ResultDashboardRawData rawResult,
+    ResultDashboardViewData? reportView,
     ThemeData? theme,
     Locale locale = const Locale('en'),
     double width = 900,
@@ -73,64 +73,66 @@ void main() {
       (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestHarness(
-            rawResult: const <String, Object?>{'final_score': 92},
-            reportView: <String, Object?>{
-              'title': 'Executive Audit Summary',
-              'intent': 'success',
-              'metrics': <String, Object?>{
-                'hitl_required': true,
-                'has_warning': false,
-                'coach_feedback': 'Verify section 3 citations manually.',
+            rawResult: const ResultDashboardRawData(
+              entries: <String, ResultDashboardNodeValue>{
+                'final_score': ResultDashboardNodeValue.number(92),
               },
-              'systemNotification': <String, Object?>{
-                'level': 'danger',
-                'title': 'Policy Alert',
-                'message': 'Strict compliance mode active.',
-              },
-              'blocks': <Object?>[
-                <String, Object?>{
-                  'type': 'paragraph',
-                  'id': 'coach-markdown',
-                  'label': 'Senior Coach Synthesis',
-                  'value': <String, Object?>{
-                    'content': 'Strong analytical structure verified.',
-                  },
-                },
-                <String, Object?>{
-                  'type': 'metric',
-                  'id': 'grid-1',
-                  'label': 'Key Telemetry',
-                  'value': <String, Object?>{
-                    'items': <Object?>[
-                      <String, Object?>{
-                        'label': 'Accuracy',
-                        'value': '98%',
-                        'highlight': true,
-                      },
+            ),
+            reportView: const ResultDashboardViewData(
+              title: 'Executive Audit Summary',
+              intent: 'success',
+              metrics: ResultDashboardMetricsData(
+                hitlRequired: true,
+                hasWarning: false,
+                coachFeedback: 'Verify section 3 citations manually.',
+              ),
+              systemNotification: ResultDashboardNotificationData(
+                level: 'danger',
+                title: 'Policy Alert',
+                message: 'Strict compliance mode active.',
+              ),
+              blocks: <ResultDashboardBlockData>[
+                ResultDashboardBlockData(
+                  type: 'paragraph',
+                  id: 'coach-markdown',
+                  label: 'Senior Coach Synthesis',
+                  paragraphContent: 'Strong analytical structure verified.',
+                ),
+                ResultDashboardBlockData(
+                  type: 'metric',
+                  id: 'grid-1',
+                  label: 'Key Telemetry',
+                  metricGridData: GenericGridData(
+                    items: <GenericGridItem>[
+                      GenericGridItem(
+                        label: 'Accuracy',
+                        value: '98%',
+                        highlight: true,
+                      ),
                     ],
-                  },
-                },
+                  ),
+                ),
               ],
-              'references': <Object?>[
-                <String, Object?>{
-                  'id': 'REF-1',
-                  'intent': 'search',
-                  'title': 'Market Benchmark Study',
-                  'snippet': 'Empirical baseline data.',
-                  'url': 'https://example.org/benchmark',
-                },
-                <String, Object?>{
-                  'id': 'REF-2',
-                  'intent': 'grounding',
-                  'title': 'Regulatory Standard',
-                },
-                <String, Object?>{
-                  'id': 'REF-3',
-                  'intent': 'internal_kb',
-                  'title': 'Internal Architecture Guideline',
-                },
+              references: <ResultDashboardReferenceData>[
+                ResultDashboardReferenceData(
+                  id: 'REF-1',
+                  intent: 'search',
+                  title: 'Market Benchmark Study',
+                  snippet: 'Empirical baseline data.',
+                  url: 'https://example.org/benchmark',
+                ),
+                ResultDashboardReferenceData(
+                  id: 'REF-2',
+                  intent: 'grounding',
+                  title: 'Regulatory Standard',
+                ),
+                ResultDashboardReferenceData(
+                  id: 'REF-3',
+                  intent: 'internal_kb',
+                  title: 'Internal Architecture Guideline',
+                ),
               ],
-            },
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -178,19 +180,30 @@ void main() {
       (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestHarness(
-            rawResult: <String, Object?>{
-              'context_variables': <String, Object?>{
-                'step_judge': <String, Object?>{
-                  'judge_score': 88,
-                  'key_tags': <Object?>['alpha', 'beta'],
-                  'empty_list': <Object?>[],
-                  'thought_process': 'should be omitted',
-                  'step_id': 'should be omitted',
-                },
-                '12345678-1234-1234-1234-123456789abc_audit_label': 'Approved',
+            rawResult: const ResultDashboardRawData(
+              contextVariables: <String, ResultDashboardNodeValue>{
+                'step_judge': ResultDashboardNodeValue.nested(<
+                  String,
+                  ResultDashboardNodeValue
+                >{
+                  'judge_score': ResultDashboardNodeValue.number(88),
+                  'key_tags': ResultDashboardNodeValue.stringList(<String>[
+                    'alpha',
+                    'beta',
+                  ]),
+                  'empty_list': ResultDashboardNodeValue.stringList(<String>[]),
+                  'thought_process': ResultDashboardNodeValue.text(
+                    'should be omitted',
+                  ),
+                  'step_id': ResultDashboardNodeValue.text('should be omitted'),
+                }),
+                '12345678-1234-1234-1234-123456789abc_audit_label':
+                    ResultDashboardNodeValue.text('Approved'),
               },
-              'trace_log': 'raw-only-field',
-            },
+              entries: <String, ResultDashboardNodeValue>{
+                'trace_log': ResultDashboardNodeValue.text('raw-only-field'),
+              },
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -223,10 +236,12 @@ void main() {
       (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestHarness(
-            rawResult: const <String, Object?>{
-              'id': 'exec_1',
-              'token_usage': 500,
-            },
+            rawResult: const ResultDashboardRawData(
+              entries: <String, ResultDashboardNodeValue>{
+                'id': ResultDashboardNodeValue.text('exec_1'),
+                'token_usage': ResultDashboardNodeValue.number(500),
+              },
+            ),
             reportView: null,
           ),
         );
@@ -255,40 +270,37 @@ void main() {
             theme: AppTheme.dark,
             locale: const Locale('fi'),
             width: 280,
-            rawResult: const <String, Object?>{},
-            reportView: <String, Object?>{
-              'title': 'ErittäinPitkäRaportinOtsikkoIlmanVälilyöntejä',
-              'intent': 'warning',
-              'metrics': <String, Object?>{'has_warning': true},
-              'systemNotification': <String, Object?>{
-                'level': 'warning',
-                'title':
-                    'ErittäinPitkäJärjestelmäIlmoitusOtsikkoKapeassaTilassa',
-                'message': 'Tarkista poikkeamat.',
-              },
-              'blocks': <Object?>[
-                <String, Object?>{
-                  'type': 'list',
-                  'id': 'sources-list',
-                  'label': 'ErittäinPitkäLähdelistanOtsikkoKapeassaNäkymässä',
-                  'value': <String, Object?>{
-                    'items': <Object?>[
-                      <String, Object?>{
-                        'source': 'Lähde A',
-                        'content': 'Sisältö A',
-                      },
-                    ],
-                  },
-                },
+            rawResult: const ResultDashboardRawData(),
+            reportView: const ResultDashboardViewData(
+              title: 'ErittäinPitkäRaportinOtsikkoIlmanVälilyöntejä',
+              intent: 'warning',
+              metrics: ResultDashboardMetricsData(hasWarning: true),
+              systemNotification: ResultDashboardNotificationData(
+                level: 'warning',
+                title: 'ErittäinPitkäJärjestelmäIlmoitusOtsikkoKapeassaTilassa',
+                message: 'Tarkista poikkeamat.',
+              ),
+              blocks: <ResultDashboardBlockData>[
+                ResultDashboardBlockData(
+                  type: 'list',
+                  id: 'sources-list',
+                  label: 'ErittäinPitkäLähdelistanOtsikkoKapeassaNäkymässä',
+                  listItems: <ResultDashboardSourceListItemData>[
+                    ResultDashboardSourceListItemData(
+                      source: 'Lähde A',
+                      content: 'Sisältö A',
+                    ),
+                  ],
+                ),
               ],
-              'references': <Object?>[
-                <String, Object?>{
-                  'id': 'REF-FI-1',
-                  'intent': 'grounding',
-                  'title': 'PitkäViiteOtsikko',
-                },
+              references: <ResultDashboardReferenceData>[
+                ResultDashboardReferenceData(
+                  id: 'REF-FI-1',
+                  intent: 'grounding',
+                  title: 'PitkäViiteOtsikko',
+                ),
               ],
-            },
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -308,11 +320,11 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             logger: logger,
-            rawResult: const <String, Object?>{},
-            reportView: const <String, Object?>{
-              'title': 'Broken Report',
-              'blocks': 'invalid_blocks_scalar',
-            },
+            rawResult: const ResultDashboardRawData(),
+            reportView: const ResultDashboardViewData(
+              title: 'Broken Report',
+              hasInvalidBlocksPayload: true,
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -337,17 +349,17 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             logger: logger,
-            rawResult: const <String, Object?>{},
-            reportView: <String, Object?>{
-              'title': 'Unknown Block Report',
-              'blocks': <Object?>[
-                <String, Object?>{
-                  'type': 'unsupported_custom_widget',
-                  'id': 'blk_bad',
-                  'label': 'Bad Block',
-                },
+            rawResult: const ResultDashboardRawData(),
+            reportView: const ResultDashboardViewData(
+              title: 'Unknown Block Report',
+              blocks: <ResultDashboardBlockData>[
+                ResultDashboardBlockData(
+                  type: 'unsupported_custom_widget',
+                  id: 'blk_bad',
+                  label: 'Bad Block',
+                ),
               ],
-            },
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -372,9 +384,9 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             logger: logger,
-            rawResult: const <String, Object?>{
-              'context_variables': 'invalid_scalar_context',
-            },
+            rawResult: const ResultDashboardRawData(
+              hasInvalidContextVariables: true,
+            ),
           ),
         );
         await tester.pumpAndSettle();

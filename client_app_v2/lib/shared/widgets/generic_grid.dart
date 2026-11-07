@@ -5,9 +5,33 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+@immutable
+class GenericGridItem {
+  final String label;
+  final String value;
+  final bool highlight;
+
+  const GenericGridItem({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
+}
+
+@immutable
+class GenericGridData {
+  final List<GenericGridItem> items;
+  final bool isCorrupted;
+
+  const GenericGridData({
+    this.items = const <GenericGridItem>[],
+    this.isCorrupted = false,
+  });
+}
+
 class GenericGrid extends ConsumerWidget {
   final String title;
-  final Map<String, Object?> data;
+  final GenericGridData data;
 
   const GenericGrid({super.key, required this.title, required this.data});
 
@@ -23,24 +47,17 @@ class GenericGrid extends ConsumerWidget {
         );
       }
 
-      final rawItems = data['items'];
-      if (rawItems != null && rawItems is! List<dynamic>) {
+      if (data.isCorrupted) {
         throw AppException.validation(
-          'Fail-Fast: GenericGrid items must be a List.',
+          'Fail-Fast: GenericGrid data is corrupted.',
         );
       }
 
-      final items = rawItems as List<dynamic>? ?? const <dynamic>[];
       final parsedItems = <({String label, String value, bool highlight})>[];
 
-      for (final item in items) {
-        if (item is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: GenericGrid item must be a Map<String, Object?>.',
-          );
-        }
-        final rawLabel = item['label']?.toString().trim() ?? '';
-        final rawValue = item['value']?.toString().trim() ?? '';
+      for (final item in data.items) {
+        final rawLabel = item.label.trim();
+        final rawValue = item.value.trim();
         if (rawLabel.isEmpty) {
           throw AppException.validation(
             'Fail-Fast: GenericGrid item label cannot be empty.',
@@ -54,7 +71,7 @@ class GenericGrid extends ConsumerWidget {
         parsedItems.add((
           label: rawLabel,
           value: rawValue,
-          highlight: item['highlight'] == true,
+          highlight: item.highlight,
         ));
       }
 

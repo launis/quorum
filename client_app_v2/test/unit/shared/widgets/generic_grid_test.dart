@@ -37,7 +37,7 @@ class _RecordingLoggerService extends LoggerService {
 void main() {
   Widget buildTestHarness({
     required String title,
-    required Map<String, Object?> data,
+    required GenericGridData data,
     ThemeData? theme,
     Locale locale = const Locale('en'),
     double? width,
@@ -67,21 +67,21 @@ void main() {
     testWidgets(
       'Positive: renders title and standard + highlighted metric items using Theme tokens',
       (WidgetTester tester) async {
-        final data = <String, Object?>{
-          'items': <Object?>[
-            <String, Object?>{
-              'label': 'Total Tokens',
-              'value': '14,250',
-              'highlight': false,
-            },
-            <String, Object?>{
-              'label': 'Cohesion Score',
-              'value': '94.2%',
-              'highlight': true,
-            },
-            <String, Object?>{'label': 'Latency', 'value': '420 ms'},
+        const data = GenericGridData(
+          items: <GenericGridItem>[
+            GenericGridItem(
+              label: 'Total Tokens',
+              value: '14,250',
+              highlight: false,
+            ),
+            GenericGridItem(
+              label: 'Cohesion Score',
+              value: '94.2%',
+              highlight: true,
+            ),
+            GenericGridItem(label: 'Latency', value: '420 ms'),
           ],
-        };
+        );
 
         await tester.pumpWidget(
           buildTestHarness(
@@ -110,7 +110,7 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             title: 'Empty Metrics Section',
-            data: const <String, Object?>{'items': <Object?>[]},
+            data: const GenericGridData(items: <GenericGridItem>[]),
           ),
         );
         await tester.pumpAndSettle();
@@ -124,17 +124,17 @@ void main() {
     testWidgets(
       'Boundary 2: narrow 240px dark mode viewport with long unbreakable strings renders single-column with ellipsis without overflow',
       (WidgetTester tester) async {
-        final data = <String, Object?>{
-          'items': <Object?>[
-            <String, Object?>{
-              'label':
+        const data = GenericGridData(
+          items: <GenericGridItem>[
+            GenericGridItem(
+              label:
                   'ExtraordinarilyLongEnterpriseTelemetryMetricLabelWithoutBreaksOrSpaces',
-              'value':
+              value:
                   'ExtraordinarilyLongEnterpriseTelemetryMetricValueWithoutBreaksOrSpaces_999999999',
-              'highlight': true,
-            },
+              highlight: true,
+            ),
           ],
-        };
+        );
 
         await tester.pumpWidget(
           buildTestHarness(
@@ -162,7 +162,7 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             title: '   ',
-            data: const <String, Object?>{'items': <Object?>[]},
+            data: const GenericGridData(items: <GenericGridItem>[]),
             logger: logger,
           ),
         );
@@ -188,11 +188,11 @@ void main() {
         await tester.pumpWidget(
           buildTestHarness(
             title: 'Valid Title',
-            data: const <String, Object?>{
-              'items': <Object?>[
-                <String, Object?>{'label': 'Valid Label', 'value': '   '},
+            data: const GenericGridData(
+              items: <GenericGridItem>[
+                GenericGridItem(label: 'Valid Label', value: '   '),
               ],
-            },
+            ),
             logger: logger,
           ),
         );

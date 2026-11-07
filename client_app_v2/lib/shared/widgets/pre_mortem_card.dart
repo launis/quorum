@@ -8,16 +8,35 @@ import 'package:client_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+@immutable
+class PreMortemAnalysisData {
+  final bool? suoritettu;
+  final List<String> hiljaisetSignaalit;
+  final bool isCorrupted;
+
+  const PreMortemAnalysisData({
+    required this.suoritettu,
+    this.hiljaisetSignaalit = const <String>[],
+    this.isCorrupted = false,
+  });
+}
+
+@immutable
+class PreMortemReportData {
+  final PreMortemAnalysisData? preMortemAnalyysi;
+
+  const PreMortemReportData({this.preMortemAnalyysi});
+}
+
 class PreMortemCard extends ConsumerWidget {
-  final Map<String, Object?> report;
+  final PreMortemReportData report;
 
   const PreMortemCard({super.key, required this.report});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (report.isEmpty ||
-        !report.containsKey('pre_mortem_analyysi') ||
-        report['pre_mortem_analyysi'] == null) {
+    final preMortem = report.preMortemAnalyysi;
+    if (preMortem == null) {
       return const SizedBox();
     }
 
@@ -26,37 +45,28 @@ class PreMortemCard extends ConsumerWidget {
     final semanticColors = context.semanticColors;
 
     try {
-      final preMortemRaw = report['pre_mortem_analyysi'];
-      if (preMortemRaw is! Map<String, Object?>) {
+      if (preMortem.isCorrupted) {
         throw AppException.validation(
-          'Fail-Fast: pre_mortem_analyysi must be a Map<String, Object?>.',
+          'Fail-Fast: pre_mortem_analyysi payload is corrupted.',
         );
       }
 
-      final executedRaw = preMortemRaw['suoritettu'];
-      if (executedRaw is! bool) {
+      final executedRaw = preMortem.suoritettu;
+      if (executedRaw == null) {
         throw AppException.validation(
           'Fail-Fast: Missing or invalid boolean "suoritettu" in pre_mortem_analyysi.',
         );
       }
 
-      final signalsRaw = preMortemRaw['hiljaiset_signaalit'];
       final parsedSignals = <String>[];
-      if (signalsRaw != null) {
-        if (signalsRaw is! List) {
+      for (var i = 0; i < preMortem.hiljaisetSignaalit.length; i++) {
+        final item = preMortem.hiljaisetSignaalit[i];
+        if (item.trim().isEmpty) {
           throw AppException.validation(
-            'Fail-Fast: "hiljaiset_signaalit" must be a List.',
+            'Fail-Fast: Weak signal at index $i must be a non-empty String.',
           );
         }
-        for (var i = 0; i < signalsRaw.length; i++) {
-          final item = signalsRaw[i];
-          if (item is! String || item.trim().isEmpty) {
-            throw AppException.validation(
-              'Fail-Fast: Weak signal at index $i must be a non-empty String.',
-            );
-          }
-          parsedSignals.add(item);
-        }
+        parsedSignals.add(item);
       }
 
       return DeepDiveExpander(

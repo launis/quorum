@@ -8,9 +8,24 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+@immutable
+class ValidationTimelineEvent {
+  final String timestamp;
+  final String label;
+  final String content;
+  final bool isAlert;
+
+  const ValidationTimelineEvent({
+    required this.timestamp,
+    required this.label,
+    this.content = '',
+    this.isAlert = false,
+  });
+}
+
 class ValidationTimelineWidget extends ConsumerWidget {
   final String title;
-  final List<dynamic> events;
+  final List<ValidationTimelineEvent> events;
 
   const ValidationTimelineWidget({
     super.key,
@@ -38,23 +53,18 @@ class ValidationTimelineWidget extends ConsumerWidget {
       final parsedEvents = <_ParsedTimelineEvent>[];
       for (var i = 0; i < events.length; i++) {
         final rawEvent = events[i];
-        if (rawEvent is! Map<String, Object?>) {
-          throw AppException.validation(
-            'Fail-Fast: ValidationTimelineWidget event at index $i must be a Map<String, Object?>.',
-          );
-        }
 
-        final rawLabel = rawEvent['label']?.toString().trim() ?? '';
+        final rawLabel = rawEvent.label.trim();
         if (rawLabel.isEmpty) {
           throw AppException.validation(
             'Fail-Fast: ValidationTimelineWidget event at index $i is missing a non-empty label.',
           );
         }
 
-        final rawTs = rawEvent['timestamp']?.toString().trim() ?? '';
+        final rawTs = rawEvent.timestamp.trim();
         final timeDisplay = _extractTimeDisplay(rawTs);
-        final isAlert = rawEvent['is_alert'] == true;
-        final rawContent = rawEvent['content']?.toString().trim() ?? '';
+        final isAlert = rawEvent.isAlert;
+        final rawContent = rawEvent.content.trim();
 
         parsedEvents.add(
           _ParsedTimelineEvent(

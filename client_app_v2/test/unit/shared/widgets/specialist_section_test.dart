@@ -40,8 +40,8 @@ void main() {
   Widget buildTestHarness({
     required String title,
     required String type,
-    required Map<String, Object?> data,
-    Map<String, Object?>? metrics,
+    required SpecialistSectionData data,
+    SpecialistSectionMetrics? metrics,
     ThemeData? theme,
     Locale locale = const Locale('en'),
     double width = 900,
@@ -81,28 +81,28 @@ void main() {
           buildTestHarness(
             title: 'Logic Specialist Audit',
             type: 'LOGIC_ANALYSIS',
-            metrics: const <String, Object?>{
-              'word_count': 420,
-              'sentence_count': 18,
-              'lexical_diversity': 0.68,
-            },
-            data: <String, Object?>{
-              'bloom_score': 4.5,
-              'strategic_score': 3.0,
-              'toulmin_score': 4.0,
-              'methodological_log': 'Applied Toulmin dialectical model.',
-              'logicMatrix_help': 'Matrix explanation text.',
-              'arguments': <Object?>[
-                <String, Object?>{
-                  'claim': 'Primary strategic claim',
-                  'data': 'Empirical revenue figures',
-                  'warrant': 'Historical elasticity correlation',
-                  'backing': 'Industry benchmark study',
-                  'rebuttal': 'Unless macro recession occurs',
-                  'qualifier': 'With high probability',
-                },
+            metrics: const SpecialistSectionMetrics(
+              wordCount: 420,
+              sentenceCount: 18,
+              lexicalDiversity: 0.68,
+            ),
+            data: const SpecialistSectionData(
+              bloomScore: 4.5,
+              strategicScore: 3.0,
+              toulminScore: 4.0,
+              methodologicalLog: 'Applied Toulmin dialectical model.',
+              logicMatrixHelp: 'Matrix explanation text.',
+              arguments: <SpecialistArgumentData>[
+                SpecialistArgumentData(
+                  claim: 'Primary strategic claim',
+                  data: 'Empirical revenue figures',
+                  warrant: 'Historical elasticity correlation',
+                  backing: 'Industry benchmark study',
+                  rebuttal: 'Unless macro recession occurs',
+                  qualifier: 'With high probability',
+                ),
               ],
-            },
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -143,120 +143,125 @@ void main() {
           const SpecialistSection(
             title: 'Stress Section',
             type: 'STRESS_TEST',
-            data: <String, Object?>{
-              'fidelity_audit': <String, Object?>{
-                'fidelity_score_display': '2.5',
-                'post_hoc_rationalization_suspected': true,
-                'reasoning': 'Detected post-hoc justification.',
-              },
-              'findings': <Object?>[
-                <String, Object?>{
-                  'question': 'Does premise hold under stress?',
-                  'is_held': false,
-                  'observation': 'Contradicted by section 2.',
-                },
+            data: SpecialistSectionData(
+              fidelityAudit: SpecialistFidelityAuditData(
+                fidelityScoreDisplay: '2.5',
+                postHocRationalizationSuspected: true,
+                reasoning: 'Detected post-hoc justification.',
+              ),
+              findings: <SpecialistStressFindingData>[
+                SpecialistStressFindingData(
+                  question: 'Does premise hold under stress?',
+                  isHeld: false,
+                  observation: 'Contradicted by section 2.',
+                ),
               ],
-            },
+            ),
           ),
           const SpecialistSection(
             title: 'Causal Section',
             type: 'CAUSAL_ANALYSIS',
-            data: <String, Object?>{
-              'abductive_score': 2.5,
-              'abductive_conclusion': 'Root cause is supply bottleneck.',
-              'observation': 'Direct causal chain verified.',
-              'counterfactual_actual': 'Baseline delivery delay',
-              'counterfactual_simulated': 'Dual-vendor redundancy',
-              'plausibility_score': 2.8,
-            },
+            data: SpecialistSectionData(
+              abductiveScore: 2.5,
+              abductiveConclusion: 'Root cause is supply bottleneck.',
+              observation: 'Direct causal chain verified.',
+              counterfactualActual: 'Baseline delivery delay',
+              counterfactualSimulated: 'Dual-vendor redundancy',
+              plausibilityScore: 2.8,
+            ),
           ),
           const SpecialistSection(
             title: 'Profiler Section',
             type: 'PROFILER_ANALYSIS',
-            data: <String, Object?>{
-              'word_count': 350,
-              'avg_sentence_length': 14.2,
-              'lexical_diversity': 0.72,
-              'psychological_profile': 'Analytical and cautious.',
-              'intent_analysis': 'Informative objective summary.',
-              'automation_bias_label': 'BIAS_NONE',
-              'automation_bias_color': 'green',
-              'say_do_gap_label': 'GAP_DETECTED',
-              'say_do_gap_color': 'red',
-            },
+            data: SpecialistSectionData(
+              wordCount: 350,
+              avgSentenceLength: 14.2,
+              lexicalDiversity: 0.72,
+              psychologicalProfile: 'Analytical and cautious.',
+              intentAnalysis: 'Informative objective summary.',
+              automationBiasLabel: 'BIAS_NONE',
+              automationBiasColor: 'green',
+              sayDoGapLabel: 'GAP_DETECTED',
+              sayDoGapColor: 'red',
+            ),
           ),
           const SpecialistSection(
             title: 'Fact Section',
             type: 'FACT_CHECK',
-            data: <String, Object?>{
-              'fact_checks': <Object?>[
-                <String, Object?>{
-                  'verification_result': 'VER_VERIFIED',
-                  'claim': 'Q3 growth was 12%.',
-                  'source': 'Audited Q3 ledger.',
-                },
+            data: SpecialistSectionData(
+              factChecks: <SpecialistFactCheckItemData>[
+                SpecialistFactCheckItemData(
+                  verificationResult: 'VER_VERIFIED',
+                  claim: 'Q3 growth was 12%.',
+                  source: 'Audited Q3 ledger.',
+                ),
               ],
-              'ethical_issues': <Object?>[
-                <String, Object?>{
-                  'is_critical': true,
-                  'label': 'PII Exposure',
-                  'description': 'Unmasked email address.',
-                  'severity': 'Critical',
-                },
+              ethicalIssues: <SpecialistEthicalIssueData>[
+                SpecialistEthicalIssueData(
+                  isCritical: true,
+                  label: 'PII Exposure',
+                  description: 'Unmasked email address.',
+                  severity: 'Critical',
+                ),
               ],
-            },
+            ),
           ),
           const SpecialistSection(
             title: 'Performativity Section',
             type: 'PERFORMATIVITY_CHECK',
-            data: <String, Object?>{
-              'authenticity_assessment': 'AUTH_ORGANIC',
-              'authenticity_score': 2.7,
-              'heuristics': <Object?>[
-                <String, Object?>{'name': 'Jargon Density', 'flag': false},
+            data: SpecialistSectionData(
+              authenticityAssessment: 'AUTH_ORGANIC',
+              authenticityScore: 2.7,
+              heuristics: <SpecialistHeuristicItemData>[
+                SpecialistHeuristicItemData(
+                  name: 'Jargon Density',
+                  flag: false,
+                ),
               ],
-            },
+            ),
           ),
           const SpecialistSection(
             title: 'Archivist Section',
             type: 'ARCHIVIST_CHECK',
-            data: <String, Object?>{
-              'compliance_score': 4.2,
-              'consistency_analysis': 'Aligned with constitutional policy.',
-              'recommendations': <Object?>['Retain audit log.'],
-            },
+            data: SpecialistSectionData(
+              complianceScore: 4.2,
+              consistencyAnalysis: 'Aligned with constitutional policy.',
+              recommendations: <String>['Retain audit log.'],
+            ),
           ),
           const SpecialistSection(
             title: 'Driver Section',
             type: 'DRIVER_PROFILE',
-            data: <String, Object?>{
-              'role_classification': 'ROLE_ARCHITECT',
-              'input_control_ratio': 0.85,
-              'imperative_command_count': 6,
-              'high_dependency': true,
-              'strategy': 'Chain-of-Thought',
-              'compliance_analysis': 'Consistent framing',
-              'poikkeamat_linjasta': 'Minor deviation in step 2',
-              'suositus_tuomarille': 'Approve with high confidence.',
-            },
+            data: SpecialistSectionData(
+              roleClassification: 'ROLE_ARCHITECT',
+              inputControlRatio: 0.85,
+              imperativeCommandCount: 6,
+              highDependency: true,
+              strategy: 'Chain-of-Thought',
+              complianceAnalysis: 'Consistent framing',
+              alignmentDeviations: 'Minor deviation in step 2',
+              judgeRecommendation: 'Approve with high confidence.',
+            ),
           ),
           const SpecialistSection(
             title: 'Security Section',
             type: 'SECURITY_CHECK',
-            data: <String, Object?>{
-              'threat_detected': true,
-              'risk_color': 'orange',
-              'anonymized': false,
-              'findings': <Object?>['Prompt injection attempt blocked.'],
-            },
+            data: SpecialistSectionData(
+              threatDetected: true,
+              riskColor: 'orange',
+              anonymized: false,
+              securityFindings: <String>['Prompt injection attempt blocked.'],
+            ),
           ),
           const SpecialistSection(
             title: 'Generic Section',
             type: 'CUSTOM_UNKNOWN_TYPE',
-            data: <String, Object?>{
-              '**markdown_key**': 'Bold **markdown** content',
-              'plain_key': 'Simple scalar value',
-            },
+            data: SpecialistSectionData(
+              genericEntries: <String, String>{
+                '**markdown_key**': 'Bold **markdown** content',
+                'plain_key': 'Simple scalar value',
+              },
+            ),
           ),
         ];
 
@@ -312,7 +317,7 @@ void main() {
           buildTestHarness(
             title: 'Empty Specialist',
             type: 'LOGIC_ANALYSIS',
-            data: const <String, Object?>{},
+            data: const SpecialistSectionData(),
           ),
         );
         await tester.pumpAndSettle();
@@ -335,13 +340,13 @@ void main() {
             theme: AppTheme.dark,
             locale: const Locale('fi'),
             width: 280,
-            data: const <String, Object?>{
-              'role_classification': 'Driver',
-              'input_control_ratio': 0.5,
-              'imperative_command_count': 3,
-              'high_dependency': false,
-              'strategy': 'IteratiivinenOhjausStrategia',
-            },
+            data: const SpecialistSectionData(
+              roleClassification: 'Driver',
+              inputControlRatio: 0.5,
+              imperativeCommandCount: 3,
+              highDependency: false,
+              strategy: 'IteratiivinenOhjausStrategia',
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -367,7 +372,7 @@ void main() {
           buildTestHarness(
             title: '   ',
             type: 'LOGIC_ANALYSIS',
-            data: const <String, Object?>{},
+            data: const SpecialistSectionData(),
             logger: logger,
           ),
         );
@@ -394,10 +399,10 @@ void main() {
           buildTestHarness(
             title: 'Broken Logic Section',
             type: 'LOGIC_ANALYSIS',
-            data: const <String, Object?>{
-              'bloom_score': 4.0,
-              // Missing 'strategic_score' and 'arguments'
-            },
+            data: const SpecialistSectionData(
+              bloomScore: 4.0,
+              // Missing 'strategicScore' and 'arguments'
+            ),
             logger: logger,
           ),
         );
@@ -427,11 +432,11 @@ void main() {
           buildTestHarness(
             title: 'Malformed Arguments Section',
             type: 'LOGIC_ANALYSIS',
-            data: const <String, Object?>{
-              'bloom_score': 99.0, // Exceeds max 6.0
-              'strategic_score': 2.0,
-              'arguments': <Object?>[],
-            },
+            data: const SpecialistSectionData(
+              bloomScore: 99.0, // Exceeds max 6.0
+              strategicScore: 2.0,
+              arguments: <SpecialistArgumentData>[],
+            ),
             logger: logger,
           ),
         );

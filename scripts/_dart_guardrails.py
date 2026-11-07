@@ -76,11 +76,11 @@ class DartViolation(BaseModel):
     is_suppressed: Annotated[bool, Field(description="Whether violation is suppressed")]
 
 
-# Locked boundary and open-JSON exemption ledger for Map<String, Object?> (analogous to QGR027).
-# Any file outside this set using Map<String, Object?> triggers a FATAL DGR005 violation.
+# Phase 5, Step 5.3: Locked HTTP/SSE/Dio transport boundary ledger for Map<String, Object?>.
+# Any file outside these 9 pure transport boundary files using Map<String, Object?> triggers a FATAL DGR005 violation.
 DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES: frozenset[str] = frozenset(
     {
-        # HTTP / SSE / Error transport boundaries
+        # HTTP / SSE / Error transport boundaries (Group 1 only)
         "client_app_v2/lib/core/api/execution_client.dart",
         "client_app_v2/lib/core/api/reports_client.dart",
         "client_app_v2/lib/core/api/sse_client.dart",
@@ -90,44 +90,6 @@ DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES: frozenset[str] = frozenset(
         "client_app_v2/lib/core/network/interceptors/error_interceptor.dart",
         "client_app_v2/lib/features/auth/data/auth_repository.dart",
         "client_app_v2/lib/features/auth/data/repositories/user_repository.dart",
-        # Open-JSON DTO models (raw_inputs, context_variables, mcp_tool_params, extensions, trace)
-        "client_app_v2/lib/features/execution/models/distilled_evaluation.dart",
-        "client_app_v2/lib/features/execution/models/execution_create_request_dto.dart",
-        "client_app_v2/lib/features/execution/models/execution_metadata.dart",
-        "client_app_v2/lib/features/execution/models/execution_record.dart",
-        "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart",
-        "client_app_v2/lib/features/execution/models/report_data_v2_dto.dart",
-        "client_app_v2/lib/features/execution/models/workflow_inputs.dart",
-        "client_app_v2/lib/features/studio/models/model_config.dart",
-        "client_app_v2/lib/features/studio/models/prompt_block.dart",
-        "client_app_v2/lib/features/studio/models/prompt_block_simulation.dart",
-        "client_app_v2/lib/features/studio/models/step_simulation.dart",
-        "client_app_v2/lib/features/studio/models/workflow.dart",
-        "client_app_v2/lib/features/studio/models/workflow_simulation.dart",
-        # Locked residual open-JSON consumers and dynamic schema renderers
-        "client_app_v2/lib/features/execution/controllers/execution_controller.dart",
-        "client_app_v2/lib/features/execution/views/dashboard_view.dart",
-        "client_app_v2/lib/features/execution/views/dynamic_start_screen.dart",
-        "client_app_v2/lib/features/execution/views/new_execution_view.dart",
-        "client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart",
-        "client_app_v2/lib/features/studio/controllers/output_profile_controller.dart",
-        "client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart",
-        "client_app_v2/lib/features/studio/utils/workflow_cloner.dart",
-        "client_app_v2/lib/features/studio/views/blueprint_editor_view.dart",
-        "client_app_v2/lib/features/studio/views/model_registry_view.dart",
-        "client_app_v2/lib/features/studio/views/step_builder_view.dart",
-        "client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart",
-        "client_app_v2/lib/shared/widgets/audit_trail_viewer.dart",
-        "client_app_v2/lib/shared/widgets/comparison_matrix.dart",
-        "client_app_v2/lib/shared/widgets/dynamic_form.dart",
-        "client_app_v2/lib/shared/widgets/generic_grid.dart",
-        "client_app_v2/lib/shared/widgets/pre_mortem_card.dart",
-        "client_app_v2/lib/shared/widgets/result_dashboard.dart",
-        "client_app_v2/lib/shared/widgets/schema_mapper.dart",
-        "client_app_v2/lib/shared/widgets/score_card_radar.dart",
-        "client_app_v2/lib/shared/widgets/specialist_section.dart",
-        "client_app_v2/lib/shared/widgets/validation_timeline_widget.dart",
-        "client_app_v2/lib/shared/widgets/workflow_selector.dart",
     }
 )
 
