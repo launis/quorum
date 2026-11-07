@@ -14,6 +14,7 @@ void main() {
         final workflowId = generateOpaqueUuid7('wf');
         final organizationId = generateOpaqueUuid7('org');
         final userId = generateOpaqueUuid7('usr');
+        final stepId = generateOpaqueUuid7('stp');
 
         final rawPayload = <String, Object?>{
           'version_id': versionId,
@@ -26,19 +27,28 @@ void main() {
             'stp_1': 'Evaluate strategic alignment across dimensions.',
           },
           'injected_theory': <String, Object?>{
-            'entries': <String, Object?>{'th_1': 'Theory content block'},
+            'theories': <String, String>{'th_1': 'Theory content block'},
           },
           'generated_schemas': <String, Object?>{
-            'stp_1': <String, Object?>{'type': 'object'},
+            'schemas': <String, Object?>{
+              'stp_1': <String, Object?>{'type': 'object'},
+            },
           },
           'ui_hints_snapshot': <String, Object?>{
-            'score': <String, Object?>{'widget': 'badge'},
+            'score': <String, Object?>{
+              'field_id': 'score',
+              'component_type': 'badge',
+            },
           },
           'mcp_tool_audit': <Map<String, Object?>>[
             <String, Object?>{
-              'tool_name': 'search_docs',
+              'tool_id': 'search_docs',
+              'gateway_id': 'sys_0195f3a0000070008000000000000001',
+              'step_name': stepId,
+              'query': 'Test query',
+              'source_urls': <String>['https://example.com'],
               'duration_ms': 120,
-              'status': 'success',
+              'timestamp': '2026-10-31T22:00:00Z',
             },
           ],
         };
@@ -57,11 +67,20 @@ void main() {
             'stp_1': 'Evaluate strategic alignment across dimensions.',
           }),
         );
-        expect(snapshot.injectedTheory, contains('entries'));
-        expect(snapshot.generatedSchemas, contains('stp_1'));
-        expect(snapshot.uiHintsSnapshot, contains('score'));
+        expect(
+          snapshot.injectedTheory.theories['th_1'],
+          equals('Theory content block'),
+        );
+        expect(
+          snapshot.generatedSchemas.schemas['stp_1']?.type,
+          equals('object'),
+        );
+        expect(
+          snapshot.uiHintsSnapshot['score']?.componentType,
+          equals('badge'),
+        );
         expect(snapshot.mcpToolAudit, hasLength(1));
-        expect(snapshot.mcpToolAudit.first['tool_name'], equals('search_docs'));
+        expect(snapshot.mcpToolAudit.first.toolId, equals('search_docs'));
 
         final roundtrippedMap =
             jsonDecode(jsonEncode(snapshot.toJson())) as Map<String, Object?>;
@@ -77,7 +96,7 @@ void main() {
           equals('Evaluate strategic alignment across dimensions.'),
         );
         expect(roundtripped.mcpToolAudit, hasLength(1));
-        expect(roundtripped.mcpToolAudit.first['duration_ms'], equals(120));
+        expect(roundtripped.mcpToolAudit.first.durationMs, equals(120));
       },
     );
 
@@ -95,8 +114,8 @@ void main() {
         expect(emptySnapshot.userId, isNull);
         expect(emptySnapshot.createdAt, isNull);
         expect(emptySnapshot.compiledPrompts, isEmpty);
-        expect(emptySnapshot.injectedTheory, isEmpty);
-        expect(emptySnapshot.generatedSchemas, isEmpty);
+        expect(emptySnapshot.injectedTheory.theories, isEmpty);
+        expect(emptySnapshot.generatedSchemas.schemas, isEmpty);
         expect(emptySnapshot.uiHintsSnapshot, isEmpty);
         expect(emptySnapshot.mcpToolAudit, isEmpty);
       },

@@ -13,6 +13,286 @@ part of 'step_simulation.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$PromptContextMetaValue {
+
+@JsonKey(name: 'string_value') String? get stringValue;@JsonKey(name: 'number_value') double? get numberValue;@JsonKey(name: 'bool_value') bool? get boolValue;@JsonKey(name: 'string_list_value') List<String>? get stringListValue;
+/// Create a copy of PromptContextMetaValue
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PromptContextMetaValueCopyWith<PromptContextMetaValue> get copyWith => _$PromptContextMetaValueCopyWithImpl<PromptContextMetaValue>(this as PromptContextMetaValue, _$identity);
+
+  /// Serializes this PromptContextMetaValue to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PromptContextMetaValue&&(identical(other.stringValue, stringValue) || other.stringValue == stringValue)&&(identical(other.numberValue, numberValue) || other.numberValue == numberValue)&&(identical(other.boolValue, boolValue) || other.boolValue == boolValue)&&const DeepCollectionEquality().equals(other.stringListValue, stringListValue));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,stringValue,numberValue,boolValue,const DeepCollectionEquality().hash(stringListValue));
+
+@override
+String toString() {
+  return 'PromptContextMetaValue(stringValue: $stringValue, numberValue: $numberValue, boolValue: $boolValue, stringListValue: $stringListValue)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PromptContextMetaValueCopyWith<$Res>  {
+  factory $PromptContextMetaValueCopyWith(PromptContextMetaValue value, $Res Function(PromptContextMetaValue) _then) = _$PromptContextMetaValueCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'string_value') String? stringValue,@JsonKey(name: 'number_value') double? numberValue,@JsonKey(name: 'bool_value') bool? boolValue,@JsonKey(name: 'string_list_value') List<String>? stringListValue
+});
+
+
+
+
+}
+/// @nodoc
+class _$PromptContextMetaValueCopyWithImpl<$Res>
+    implements $PromptContextMetaValueCopyWith<$Res> {
+  _$PromptContextMetaValueCopyWithImpl(this._self, this._then);
+
+  final PromptContextMetaValue _self;
+  final $Res Function(PromptContextMetaValue) _then;
+
+/// Create a copy of PromptContextMetaValue
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? stringValue = freezed,Object? numberValue = freezed,Object? boolValue = freezed,Object? stringListValue = freezed,}) {
+  return _then(_self.copyWith(
+stringValue: freezed == stringValue ? _self.stringValue : stringValue // ignore: cast_nullable_to_non_nullable
+as String?,numberValue: freezed == numberValue ? _self.numberValue : numberValue // ignore: cast_nullable_to_non_nullable
+as double?,boolValue: freezed == boolValue ? _self.boolValue : boolValue // ignore: cast_nullable_to_non_nullable
+as bool?,stringListValue: freezed == stringListValue ? _self.stringListValue : stringListValue // ignore: cast_nullable_to_non_nullable
+as List<String>?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PromptContextMetaValue].
+extension PromptContextMetaValuePatterns on PromptContextMetaValue {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PromptContextMetaValue value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PromptContextMetaValue() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PromptContextMetaValue value)  $default,){
+final _that = this;
+switch (_that) {
+case _PromptContextMetaValue():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PromptContextMetaValue value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PromptContextMetaValue() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'string_value')  String? stringValue, @JsonKey(name: 'number_value')  double? numberValue, @JsonKey(name: 'bool_value')  bool? boolValue, @JsonKey(name: 'string_list_value')  List<String>? stringListValue)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PromptContextMetaValue() when $default != null:
+return $default(_that.stringValue,_that.numberValue,_that.boolValue,_that.stringListValue);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'string_value')  String? stringValue, @JsonKey(name: 'number_value')  double? numberValue, @JsonKey(name: 'bool_value')  bool? boolValue, @JsonKey(name: 'string_list_value')  List<String>? stringListValue)  $default,) {final _that = this;
+switch (_that) {
+case _PromptContextMetaValue():
+return $default(_that.stringValue,_that.numberValue,_that.boolValue,_that.stringListValue);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'string_value')  String? stringValue, @JsonKey(name: 'number_value')  double? numberValue, @JsonKey(name: 'bool_value')  bool? boolValue, @JsonKey(name: 'string_list_value')  List<String>? stringListValue)?  $default,) {final _that = this;
+switch (_that) {
+case _PromptContextMetaValue() when $default != null:
+return $default(_that.stringValue,_that.numberValue,_that.boolValue,_that.stringListValue);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _PromptContextMetaValue extends PromptContextMetaValue {
+  const _PromptContextMetaValue({@JsonKey(name: 'string_value') this.stringValue, @JsonKey(name: 'number_value') this.numberValue, @JsonKey(name: 'bool_value') this.boolValue, @JsonKey(name: 'string_list_value') final  List<String>? stringListValue}): _stringListValue = stringListValue,super._();
+  factory _PromptContextMetaValue.fromJson(Map<String, dynamic> json) => _$PromptContextMetaValueFromJson(json);
+
+@override@JsonKey(name: 'string_value') final  String? stringValue;
+@override@JsonKey(name: 'number_value') final  double? numberValue;
+@override@JsonKey(name: 'bool_value') final  bool? boolValue;
+ final  List<String>? _stringListValue;
+@override@JsonKey(name: 'string_list_value') List<String>? get stringListValue {
+  final value = _stringListValue;
+  if (value == null) return null;
+  if (_stringListValue is EqualUnmodifiableListView) return _stringListValue;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+
+/// Create a copy of PromptContextMetaValue
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PromptContextMetaValueCopyWith<_PromptContextMetaValue> get copyWith => __$PromptContextMetaValueCopyWithImpl<_PromptContextMetaValue>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PromptContextMetaValueToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PromptContextMetaValue&&(identical(other.stringValue, stringValue) || other.stringValue == stringValue)&&(identical(other.numberValue, numberValue) || other.numberValue == numberValue)&&(identical(other.boolValue, boolValue) || other.boolValue == boolValue)&&const DeepCollectionEquality().equals(other._stringListValue, _stringListValue));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,stringValue,numberValue,boolValue,const DeepCollectionEquality().hash(_stringListValue));
+
+@override
+String toString() {
+  return 'PromptContextMetaValue(stringValue: $stringValue, numberValue: $numberValue, boolValue: $boolValue, stringListValue: $stringListValue)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PromptContextMetaValueCopyWith<$Res> implements $PromptContextMetaValueCopyWith<$Res> {
+  factory _$PromptContextMetaValueCopyWith(_PromptContextMetaValue value, $Res Function(_PromptContextMetaValue) _then) = __$PromptContextMetaValueCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'string_value') String? stringValue,@JsonKey(name: 'number_value') double? numberValue,@JsonKey(name: 'bool_value') bool? boolValue,@JsonKey(name: 'string_list_value') List<String>? stringListValue
+});
+
+
+
+
+}
+/// @nodoc
+class __$PromptContextMetaValueCopyWithImpl<$Res>
+    implements _$PromptContextMetaValueCopyWith<$Res> {
+  __$PromptContextMetaValueCopyWithImpl(this._self, this._then);
+
+  final _PromptContextMetaValue _self;
+  final $Res Function(_PromptContextMetaValue) _then;
+
+/// Create a copy of PromptContextMetaValue
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? stringValue = freezed,Object? numberValue = freezed,Object? boolValue = freezed,Object? stringListValue = freezed,}) {
+  return _then(_PromptContextMetaValue(
+stringValue: freezed == stringValue ? _self.stringValue : stringValue // ignore: cast_nullable_to_non_nullable
+as String?,numberValue: freezed == numberValue ? _self.numberValue : numberValue // ignore: cast_nullable_to_non_nullable
+as double?,boolValue: freezed == boolValue ? _self.boolValue : boolValue // ignore: cast_nullable_to_non_nullable
+as bool?,stringListValue: freezed == stringListValue ? _self._stringListValue : stringListValue // ignore: cast_nullable_to_non_nullable
+as List<String>?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$StepSimulationTraceDto {
 
 @JsonKey(name: 'execution_time_ms') double get executionTimeMs;@JsonKey(name: 'estimated_tokens') int get estimatedTokens;
@@ -201,7 +481,7 @@ return $default(_that.executionTimeMs,_that.estimatedTokens);case _:
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _StepSimulationTraceDto extends StepSimulationTraceDto {
   const _StepSimulationTraceDto({@JsonKey(name: 'execution_time_ms') this.executionTimeMs = 0.0, @JsonKey(name: 'estimated_tokens') this.estimatedTokens = 0}): super._();
   factory _StepSimulationTraceDto.fromJson(Map<String, dynamic> json) => _$StepSimulationTraceDtoFromJson(json);
@@ -455,7 +735,7 @@ return $default(_that.role,_that.content,_that.toolCalls,_that.toolCallId,_that.
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _LlmMessageDto extends LlmMessageDto {
   const _LlmMessageDto({required this.role, required this.content, @JsonKey(name: 'tool_calls') this.toolCalls, @JsonKey(name: 'tool_call_id') this.toolCallId, this.name}): super._();
   factory _LlmMessageDto.fromJson(Map<String, dynamic> json) => _$LlmMessageDtoFromJson(json);
@@ -526,7 +806,7 @@ as String?,
 /// @nodoc
 mixin _$PromptContextDto {
 
-@JsonKey(name: 'static_messages') List<LlmMessageDto> get staticMessages;@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> get dynamicMessages; Map<String, Object?> get metadata;
+@JsonKey(name: 'static_messages') List<LlmMessageDto> get staticMessages;@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> get dynamicMessages;@PromptContextMetaValueConverter() Map<String, PromptContextMetaValue> get metadata;
 /// Create a copy of PromptContextDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -552,7 +832,7 @@ abstract mixin class $PromptContextDtoCopyWith<$Res>  {
   factory $PromptContextDtoCopyWith(PromptContextDto value, $Res Function(PromptContextDto) _then) = _$PromptContextDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages, Map<String, Object?> metadata
+@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages,@PromptContextMetaValueConverter() Map<String, PromptContextMetaValue> metadata
 });
 
 
@@ -574,7 +854,7 @@ class _$PromptContextDtoCopyWithImpl<$Res>
 staticMessages: null == staticMessages ? _self.staticMessages : staticMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,dynamicMessages: null == dynamicMessages ? _self.dynamicMessages : dynamicMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,metadata: null == metadata ? _self.metadata : metadata // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,
+as Map<String, PromptContextMetaValue>,
   ));
 }
 
@@ -659,7 +939,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, Object?> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages, @PromptContextMetaValueConverter()  Map<String, PromptContextMetaValue> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PromptContextDto() when $default != null:
 return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case _:
@@ -680,7 +960,7 @@ return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, Object?> metadata)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages, @PromptContextMetaValueConverter()  Map<String, PromptContextMetaValue> metadata)  $default,) {final _that = this;
 switch (_that) {
 case _PromptContextDto():
 return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case _:
@@ -700,7 +980,7 @@ return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, Object?> metadata)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages, @PromptContextMetaValueConverter()  Map<String, PromptContextMetaValue> metadata)?  $default,) {final _that = this;
 switch (_that) {
 case _PromptContextDto() when $default != null:
 return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case _:
@@ -713,9 +993,9 @@ return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case 
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _PromptContextDto extends PromptContextDto {
-  const _PromptContextDto({@JsonKey(name: 'static_messages') final  List<LlmMessageDto> staticMessages = const [], @JsonKey(name: 'dynamic_messages') final  List<LlmMessageDto> dynamicMessages = const [], final  Map<String, Object?> metadata = const {}}): _staticMessages = staticMessages,_dynamicMessages = dynamicMessages,_metadata = metadata,super._();
+  const _PromptContextDto({@JsonKey(name: 'static_messages') final  List<LlmMessageDto> staticMessages = const <LlmMessageDto>[], @JsonKey(name: 'dynamic_messages') final  List<LlmMessageDto> dynamicMessages = const <LlmMessageDto>[], @PromptContextMetaValueConverter() final  Map<String, PromptContextMetaValue> metadata = const <String, PromptContextMetaValue>{}}): _staticMessages = staticMessages,_dynamicMessages = dynamicMessages,_metadata = metadata,super._();
   factory _PromptContextDto.fromJson(Map<String, dynamic> json) => _$PromptContextDtoFromJson(json);
 
  final  List<LlmMessageDto> _staticMessages;
@@ -732,8 +1012,8 @@ class _PromptContextDto extends PromptContextDto {
   return EqualUnmodifiableListView(_dynamicMessages);
 }
 
- final  Map<String, Object?> _metadata;
-@override@JsonKey() Map<String, Object?> get metadata {
+ final  Map<String, PromptContextMetaValue> _metadata;
+@override@JsonKey()@PromptContextMetaValueConverter() Map<String, PromptContextMetaValue> get metadata {
   if (_metadata is EqualUnmodifiableMapView) return _metadata;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_metadata);
@@ -766,7 +1046,7 @@ abstract mixin class _$PromptContextDtoCopyWith<$Res> implements $PromptContextD
   factory _$PromptContextDtoCopyWith(_PromptContextDto value, $Res Function(_PromptContextDto) _then) = __$PromptContextDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages, Map<String, Object?> metadata
+@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages,@PromptContextMetaValueConverter() Map<String, PromptContextMetaValue> metadata
 });
 
 
@@ -788,7 +1068,7 @@ class __$PromptContextDtoCopyWithImpl<$Res>
 staticMessages: null == staticMessages ? _self._staticMessages : staticMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,dynamicMessages: null == dynamicMessages ? _self._dynamicMessages : dynamicMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,metadata: null == metadata ? _self._metadata : metadata // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,
+as Map<String, PromptContextMetaValue>,
   ));
 }
 
@@ -799,7 +1079,7 @@ as Map<String, Object?>,
 /// @nodoc
 mixin _$StepSimulationRequest {
 
- NodeStrategy get step;@JsonKey(name: 'mock_inputs') Map<String, Object?> get mockInputs;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'context_text') String get contextText;
+ NodeStrategy get step;@JsonKey(name: 'mock_inputs') Map<String, String> get mockInputs;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'context_text') String get contextText;
 /// Create a copy of StepSimulationRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -825,7 +1105,7 @@ abstract mixin class $StepSimulationRequestCopyWith<$Res>  {
   factory $StepSimulationRequestCopyWith(StepSimulationRequest value, $Res Function(StepSimulationRequest) _then) = _$StepSimulationRequestCopyWithImpl;
 @useResult
 $Res call({
- NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
+ NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, String> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
 });
 
 
@@ -846,7 +1126,7 @@ class _$StepSimulationRequestCopyWithImpl<$Res>
   return _then(_self.copyWith(
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as NodeStrategy,mockInputs: null == mockInputs ? _self.mockInputs : mockInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,contextText: null == contextText ? _self.contextText : contextText // ignore: cast_nullable_to_non_nullable
 as String,
   ));
@@ -942,7 +1222,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, String> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StepSimulationRequest() when $default != null:
 return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText);case _:
@@ -963,7 +1243,7 @@ return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, String> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)  $default,) {final _that = this;
 switch (_that) {
 case _StepSimulationRequest():
 return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText);case _:
@@ -983,7 +1263,7 @@ return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, String> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,) {final _that = this;
 switch (_that) {
 case _StepSimulationRequest() when $default != null:
 return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText);case _:
@@ -996,14 +1276,14 @@ return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _StepSimulationRequest extends StepSimulationRequest {
-  const _StepSimulationRequest({required this.step, @JsonKey(name: 'mock_inputs') final  Map<String, Object?> mockInputs = const {}, @JsonKey(name: 'target_locale') this.targetLocale = 'en', @JsonKey(name: 'context_text') this.contextText = '[SIMULATED CONTEXT DOCUMENT]'}): _mockInputs = mockInputs,super._();
+  const _StepSimulationRequest({required this.step, @JsonKey(name: 'mock_inputs') final  Map<String, String> mockInputs = const <String, String>{}, @JsonKey(name: 'target_locale') this.targetLocale = 'en', @JsonKey(name: 'context_text') this.contextText = '[SIMULATED CONTEXT DOCUMENT]'}): _mockInputs = mockInputs,super._();
   factory _StepSimulationRequest.fromJson(Map<String, dynamic> json) => _$StepSimulationRequestFromJson(json);
 
 @override final  NodeStrategy step;
- final  Map<String, Object?> _mockInputs;
-@override@JsonKey(name: 'mock_inputs') Map<String, Object?> get mockInputs {
+ final  Map<String, String> _mockInputs;
+@override@JsonKey(name: 'mock_inputs') Map<String, String> get mockInputs {
   if (_mockInputs is EqualUnmodifiableMapView) return _mockInputs;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_mockInputs);
@@ -1038,7 +1318,7 @@ abstract mixin class _$StepSimulationRequestCopyWith<$Res> implements $StepSimul
   factory _$StepSimulationRequestCopyWith(_StepSimulationRequest value, $Res Function(_StepSimulationRequest) _then) = __$StepSimulationRequestCopyWithImpl;
 @override @useResult
 $Res call({
- NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
+ NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, String> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
 });
 
 
@@ -1059,7 +1339,7 @@ class __$StepSimulationRequestCopyWithImpl<$Res>
   return _then(_StepSimulationRequest(
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as NodeStrategy,mockInputs: null == mockInputs ? _self._mockInputs : mockInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,contextText: null == contextText ? _self.contextText : contextText // ignore: cast_nullable_to_non_nullable
 as String,
   ));
@@ -1291,9 +1571,9 @@ return $default(_that.valid,_that.errors,_that.renderedPrompt,_that.trace,_that.
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _StepSimulationResponse extends StepSimulationResponse {
-  const _StepSimulationResponse({this.valid = true, final  List<String> errors = const [], @JsonKey(name: 'rendered_prompt') this.renderedPrompt = '', this.trace = const StepSimulationTraceDto(), @JsonKey(name: 'prompt_context') this.promptContext}): _errors = errors,super._();
+  const _StepSimulationResponse({this.valid = true, final  List<String> errors = const <String>[], @JsonKey(name: 'rendered_prompt') this.renderedPrompt = '', this.trace = const StepSimulationTraceDto(), @JsonKey(name: 'prompt_context') this.promptContext}): _errors = errors,super._();
   factory _StepSimulationResponse.fromJson(Map<String, dynamic> json) => _$StepSimulationResponseFromJson(json);
 
 @override@JsonKey() final  bool valid;

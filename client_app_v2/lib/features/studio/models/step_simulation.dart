@@ -4,11 +4,72 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'step_simulation.freezed.dart';
 part 'step_simulation.g.dart';
 
+/// Phase 5, Step 5.1: Strongly typed prompt context metadata value replacing Map<String, Object?>.
+class PromptContextMetaValueConverter
+    implements JsonConverter<PromptContextMetaValue, Object?> {
+  const PromptContextMetaValueConverter();
+
+  @override
+  PromptContextMetaValue fromJson(Object? json) {
+    if (json is List) {
+      return PromptContextMetaValue(
+        stringListValue: json
+            .map((Object? e) => e.toString())
+            .toList(growable: false),
+      );
+    }
+    if (json is num) {
+      return PromptContextMetaValue(numberValue: json.toDouble());
+    }
+    if (json is bool) {
+      return PromptContextMetaValue(boolValue: json);
+    }
+    if (json is String) {
+      return PromptContextMetaValue(stringValue: json);
+    }
+    return const PromptContextMetaValue();
+  }
+
+  @override
+  Object? toJson(PromptContextMetaValue object) {
+    if (object.stringListValue != null) {
+      return object.stringListValue;
+    }
+    if (object.numberValue != null) {
+      return object.numberValue;
+    }
+    if (object.boolValue != null) {
+      return object.boolValue;
+    }
+    return object.stringValue;
+  }
+}
+
+/// Strongly typed metadata value for [PromptContextDto.metadata].
+@freezed
+abstract class PromptContextMetaValue with _$PromptContextMetaValue {
+  const PromptContextMetaValue._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory PromptContextMetaValue({
+    @JsonKey(name: 'string_value') String? stringValue,
+    @JsonKey(name: 'number_value') double? numberValue,
+    @JsonKey(name: 'bool_value') bool? boolValue,
+    @JsonKey(name: 'string_list_value') List<String>? stringListValue,
+  }) = _PromptContextMetaValue;
+
+  factory PromptContextMetaValue.fromJson(Map<String, dynamic> json) =>
+      _$PromptContextMetaValueFromJson(json);
+
+  Object? get rawValue =>
+      stringListValue ?? numberValue ?? boolValue ?? stringValue;
+}
+
 @Freezed(equal: false)
 abstract class StepSimulationTraceDto with _$StepSimulationTraceDto {
   const StepSimulationTraceDto._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory StepSimulationTraceDto({
     @Default(0.0) @JsonKey(name: 'execution_time_ms') double executionTimeMs,
     @Default(0) @JsonKey(name: 'estimated_tokens') int estimatedTokens,
@@ -22,7 +83,7 @@ abstract class StepSimulationTraceDto with _$StepSimulationTraceDto {
 abstract class LlmMessageDto with _$LlmMessageDto {
   const LlmMessageDto._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory LlmMessageDto({
     required String role,
     required String content,
@@ -39,15 +100,17 @@ abstract class LlmMessageDto with _$LlmMessageDto {
 abstract class PromptContextDto with _$PromptContextDto {
   const PromptContextDto._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory PromptContextDto({
-    @Default([])
+    @Default(<LlmMessageDto>[])
     @JsonKey(name: 'static_messages')
     List<LlmMessageDto> staticMessages,
-    @Default([])
+    @Default(<LlmMessageDto>[])
     @JsonKey(name: 'dynamic_messages')
     List<LlmMessageDto> dynamicMessages,
-    @Default({}) Map<String, Object?> metadata,
+    @PromptContextMetaValueConverter()
+    @Default(<String, PromptContextMetaValue>{})
+    Map<String, PromptContextMetaValue> metadata,
   }) = _PromptContextDto;
 
   factory PromptContextDto.fromJson(Map<String, dynamic> json) =>
@@ -58,10 +121,12 @@ abstract class PromptContextDto with _$PromptContextDto {
 abstract class StepSimulationRequest with _$StepSimulationRequest {
   const StepSimulationRequest._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory StepSimulationRequest({
     required NodeStrategy step,
-    @Default({}) @JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,
+    @Default(<String, String>{})
+    @JsonKey(name: 'mock_inputs')
+    Map<String, String> mockInputs,
     @Default('en') @JsonKey(name: 'target_locale') String targetLocale,
     @Default('[SIMULATED CONTEXT DOCUMENT]')
     @JsonKey(name: 'context_text')
@@ -76,10 +141,10 @@ abstract class StepSimulationRequest with _$StepSimulationRequest {
 abstract class StepSimulationResponse with _$StepSimulationResponse {
   const StepSimulationResponse._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory StepSimulationResponse({
     @Default(true) bool valid,
-    @Default([]) List<String> errors,
+    @Default(<String>[]) List<String> errors,
     @Default('') @JsonKey(name: 'rendered_prompt') String renderedPrompt,
     @Default(StepSimulationTraceDto()) StepSimulationTraceDto trace,
     @JsonKey(name: 'prompt_context') PromptContextDto? promptContext,

@@ -31,7 +31,8 @@ void main() {
 
         expect(metadata.matrixSamplingStrategy, equals(10));
         expect(metadata.workflowVersion, equals(3));
-        expect(metadata.globalContextVars?['target_locale'], equals('fi'));
+        expect(metadata.globalContextVars?.targetLocale, equals('fi'));
+        expect(metadata.globalContextVars?.passivityDetected, isFalse);
         expect(metadata.providerOverride, equals(LLMProvider.vertexAi));
         expect(metadata.modelRegistryId, equals(registryId));
         expect(

@@ -13,6 +13,289 @@ part of 'workflow.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$McpToolParamValue {
+
+@JsonKey(name: 'string_value') String? get stringValue;@JsonKey(name: 'int_value') int? get intValue;@JsonKey(name: 'double_value') double? get doubleValue;@JsonKey(name: 'bool_value') bool? get boolValue;@JsonKey(name: 'string_list_value') List<String>? get stringListValue;
+/// Create a copy of McpToolParamValue
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$McpToolParamValueCopyWith<McpToolParamValue> get copyWith => _$McpToolParamValueCopyWithImpl<McpToolParamValue>(this as McpToolParamValue, _$identity);
+
+  /// Serializes this McpToolParamValue to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is McpToolParamValue&&(identical(other.stringValue, stringValue) || other.stringValue == stringValue)&&(identical(other.intValue, intValue) || other.intValue == intValue)&&(identical(other.doubleValue, doubleValue) || other.doubleValue == doubleValue)&&(identical(other.boolValue, boolValue) || other.boolValue == boolValue)&&const DeepCollectionEquality().equals(other.stringListValue, stringListValue));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,stringValue,intValue,doubleValue,boolValue,const DeepCollectionEquality().hash(stringListValue));
+
+@override
+String toString() {
+  return 'McpToolParamValue(stringValue: $stringValue, intValue: $intValue, doubleValue: $doubleValue, boolValue: $boolValue, stringListValue: $stringListValue)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $McpToolParamValueCopyWith<$Res>  {
+  factory $McpToolParamValueCopyWith(McpToolParamValue value, $Res Function(McpToolParamValue) _then) = _$McpToolParamValueCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'string_value') String? stringValue,@JsonKey(name: 'int_value') int? intValue,@JsonKey(name: 'double_value') double? doubleValue,@JsonKey(name: 'bool_value') bool? boolValue,@JsonKey(name: 'string_list_value') List<String>? stringListValue
+});
+
+
+
+
+}
+/// @nodoc
+class _$McpToolParamValueCopyWithImpl<$Res>
+    implements $McpToolParamValueCopyWith<$Res> {
+  _$McpToolParamValueCopyWithImpl(this._self, this._then);
+
+  final McpToolParamValue _self;
+  final $Res Function(McpToolParamValue) _then;
+
+/// Create a copy of McpToolParamValue
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? stringValue = freezed,Object? intValue = freezed,Object? doubleValue = freezed,Object? boolValue = freezed,Object? stringListValue = freezed,}) {
+  return _then(_self.copyWith(
+stringValue: freezed == stringValue ? _self.stringValue : stringValue // ignore: cast_nullable_to_non_nullable
+as String?,intValue: freezed == intValue ? _self.intValue : intValue // ignore: cast_nullable_to_non_nullable
+as int?,doubleValue: freezed == doubleValue ? _self.doubleValue : doubleValue // ignore: cast_nullable_to_non_nullable
+as double?,boolValue: freezed == boolValue ? _self.boolValue : boolValue // ignore: cast_nullable_to_non_nullable
+as bool?,stringListValue: freezed == stringListValue ? _self.stringListValue : stringListValue // ignore: cast_nullable_to_non_nullable
+as List<String>?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [McpToolParamValue].
+extension McpToolParamValuePatterns on McpToolParamValue {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _McpToolParamValue value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _McpToolParamValue() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _McpToolParamValue value)  $default,){
+final _that = this;
+switch (_that) {
+case _McpToolParamValue():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _McpToolParamValue value)?  $default,){
+final _that = this;
+switch (_that) {
+case _McpToolParamValue() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'string_value')  String? stringValue, @JsonKey(name: 'int_value')  int? intValue, @JsonKey(name: 'double_value')  double? doubleValue, @JsonKey(name: 'bool_value')  bool? boolValue, @JsonKey(name: 'string_list_value')  List<String>? stringListValue)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _McpToolParamValue() when $default != null:
+return $default(_that.stringValue,_that.intValue,_that.doubleValue,_that.boolValue,_that.stringListValue);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'string_value')  String? stringValue, @JsonKey(name: 'int_value')  int? intValue, @JsonKey(name: 'double_value')  double? doubleValue, @JsonKey(name: 'bool_value')  bool? boolValue, @JsonKey(name: 'string_list_value')  List<String>? stringListValue)  $default,) {final _that = this;
+switch (_that) {
+case _McpToolParamValue():
+return $default(_that.stringValue,_that.intValue,_that.doubleValue,_that.boolValue,_that.stringListValue);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'string_value')  String? stringValue, @JsonKey(name: 'int_value')  int? intValue, @JsonKey(name: 'double_value')  double? doubleValue, @JsonKey(name: 'bool_value')  bool? boolValue, @JsonKey(name: 'string_list_value')  List<String>? stringListValue)?  $default,) {final _that = this;
+switch (_that) {
+case _McpToolParamValue() when $default != null:
+return $default(_that.stringValue,_that.intValue,_that.doubleValue,_that.boolValue,_that.stringListValue);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _McpToolParamValue extends McpToolParamValue {
+  const _McpToolParamValue({@JsonKey(name: 'string_value') this.stringValue, @JsonKey(name: 'int_value') this.intValue, @JsonKey(name: 'double_value') this.doubleValue, @JsonKey(name: 'bool_value') this.boolValue, @JsonKey(name: 'string_list_value') final  List<String>? stringListValue}): _stringListValue = stringListValue,super._();
+  factory _McpToolParamValue.fromJson(Map<String, dynamic> json) => _$McpToolParamValueFromJson(json);
+
+@override@JsonKey(name: 'string_value') final  String? stringValue;
+@override@JsonKey(name: 'int_value') final  int? intValue;
+@override@JsonKey(name: 'double_value') final  double? doubleValue;
+@override@JsonKey(name: 'bool_value') final  bool? boolValue;
+ final  List<String>? _stringListValue;
+@override@JsonKey(name: 'string_list_value') List<String>? get stringListValue {
+  final value = _stringListValue;
+  if (value == null) return null;
+  if (_stringListValue is EqualUnmodifiableListView) return _stringListValue;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+
+/// Create a copy of McpToolParamValue
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$McpToolParamValueCopyWith<_McpToolParamValue> get copyWith => __$McpToolParamValueCopyWithImpl<_McpToolParamValue>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$McpToolParamValueToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _McpToolParamValue&&(identical(other.stringValue, stringValue) || other.stringValue == stringValue)&&(identical(other.intValue, intValue) || other.intValue == intValue)&&(identical(other.doubleValue, doubleValue) || other.doubleValue == doubleValue)&&(identical(other.boolValue, boolValue) || other.boolValue == boolValue)&&const DeepCollectionEquality().equals(other._stringListValue, _stringListValue));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,stringValue,intValue,doubleValue,boolValue,const DeepCollectionEquality().hash(_stringListValue));
+
+@override
+String toString() {
+  return 'McpToolParamValue(stringValue: $stringValue, intValue: $intValue, doubleValue: $doubleValue, boolValue: $boolValue, stringListValue: $stringListValue)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$McpToolParamValueCopyWith<$Res> implements $McpToolParamValueCopyWith<$Res> {
+  factory _$McpToolParamValueCopyWith(_McpToolParamValue value, $Res Function(_McpToolParamValue) _then) = __$McpToolParamValueCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'string_value') String? stringValue,@JsonKey(name: 'int_value') int? intValue,@JsonKey(name: 'double_value') double? doubleValue,@JsonKey(name: 'bool_value') bool? boolValue,@JsonKey(name: 'string_list_value') List<String>? stringListValue
+});
+
+
+
+
+}
+/// @nodoc
+class __$McpToolParamValueCopyWithImpl<$Res>
+    implements _$McpToolParamValueCopyWith<$Res> {
+  __$McpToolParamValueCopyWithImpl(this._self, this._then);
+
+  final _McpToolParamValue _self;
+  final $Res Function(_McpToolParamValue) _then;
+
+/// Create a copy of McpToolParamValue
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? stringValue = freezed,Object? intValue = freezed,Object? doubleValue = freezed,Object? boolValue = freezed,Object? stringListValue = freezed,}) {
+  return _then(_McpToolParamValue(
+stringValue: freezed == stringValue ? _self.stringValue : stringValue // ignore: cast_nullable_to_non_nullable
+as String?,intValue: freezed == intValue ? _self.intValue : intValue // ignore: cast_nullable_to_non_nullable
+as int?,doubleValue: freezed == doubleValue ? _self.doubleValue : doubleValue // ignore: cast_nullable_to_non_nullable
+as double?,boolValue: freezed == boolValue ? _self.boolValue : boolValue // ignore: cast_nullable_to_non_nullable
+as bool?,stringListValue: freezed == stringListValue ? _self._stringListValue : stringListValue // ignore: cast_nullable_to_non_nullable
+as List<String>?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$QuestionnaireItem {
 
  String get questionId; I18nText get question; String get type;
@@ -924,7 +1207,7 @@ NodeStrategy _$NodeStrategyFromJson(
 /// @nodoc
 mixin _$NodeStrategy {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook;@StrictOpaqueIdConverter() String? get roleBlockId;@StrictOpaqueIdConverter() String? get extractionProtocolBlockId;@StrictOpaqueIdConverter() String? get executionPersonaBlockId; List<String> get criteriaBlockIds; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools;@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams; List<String> get expectedInputs;@JsonKey(name: 'cognitive_tier') CognitiveTier get cognitiveTier; String? get organizationId;@JsonKey(name: 'is_system_core') bool get isSystemCore;@JsonKey(name: 'engine_type') EngineType get engineType;@JsonKey(name: 'zone') StepZone get zone;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook;@StrictOpaqueIdConverter() String? get roleBlockId;@StrictOpaqueIdConverter() String? get extractionProtocolBlockId;@StrictOpaqueIdConverter() String? get executionPersonaBlockId; List<String> get criteriaBlockIds; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools;@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> get mcpToolParams; List<String> get expectedInputs;@JsonKey(name: 'cognitive_tier') CognitiveTier get cognitiveTier; String? get organizationId;@JsonKey(name: 'is_system_core') bool get isSystemCore;@JsonKey(name: 'engine_type') EngineType get engineType;@JsonKey(name: 'zone') StepZone get zone;
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -950,7 +1233,7 @@ abstract mixin class $NodeStrategyCopyWith<$Res>  {
   factory $NodeStrategyCopyWith(NodeStrategy value, $Res Function(NodeStrategy) _then) = _$NodeStrategyCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
 });
 
 
@@ -983,7 +1266,7 @@ as List<String>,postHooks: null == postHooks ? _self.postHooks : postHooks // ig
 as List<String>,safety: null == safety ? _self.safety : safety // ignore: cast_nullable_to_non_nullable
 as String,allowedMcpTools: null == allowedMcpTools ? _self.allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
 as List<String>,mcpToolParams: null == mcpToolParams ? _self.mcpToolParams : mcpToolParams // ignore: cast_nullable_to_non_nullable
-as Map<String, Map<String, Object?>>,expectedInputs: null == expectedInputs ? _self.expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, McpToolParamValue>>,expectedInputs: null == expectedInputs ? _self.expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<String>,cognitiveTier: null == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
 as CognitiveTier,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
@@ -1098,7 +1381,7 @@ return causalDiscovery(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  logic,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  causalDiscovery,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  logic,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  causalDiscovery,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
 return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.mcpToolParams,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType,_that.zone);case NodeStrategyLogic() when logic != null:
@@ -1121,7 +1404,7 @@ return causalDiscovery(_that.id,_that.slug,_that.name,_that.description,_that.ho
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)  logic,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)  causalDiscovery,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)  logic,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)  causalDiscovery,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm():
 return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.mcpToolParams,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType,_that.zone);case NodeStrategyLogic():
@@ -1140,7 +1423,7 @@ return causalDiscovery(_that.id,_that.slug,_that.name,_that.description,_that.ho
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  logic,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')  Map<String, Map<String, Object?>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  causalDiscovery,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  logic,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools, @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter()  Map<String, Map<String, McpToolParamValue>> mcpToolParams,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType, @JsonKey(name: 'zone')  StepZone zone)?  causalDiscovery,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
 return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.mcpToolParams,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType,_that.zone);case NodeStrategyLogic() when logic != null:
@@ -1155,9 +1438,9 @@ return causalDiscovery(_that.id,_that.slug,_that.name,_that.description,_that.ho
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class NodeStrategyLlm extends NodeStrategy {
-  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], @JsonKey(name: 'mcp_tool_params') final  Map<String, Map<String, Object?>> mcpToolParams = const <String, Map<String, Object?>>{}, final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.prompt, @JsonKey(name: 'zone') this.zone = StepZone.zoneB, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_mcpToolParams = mcpToolParams,_expectedInputs = expectedInputs,$type = $type ?? 'llm',super._();
+  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() final  Map<String, Map<String, McpToolParamValue>> mcpToolParams = const <String, Map<String, McpToolParamValue>>{}, final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.prompt, @JsonKey(name: 'zone') this.zone = StepZone.zoneB, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_mcpToolParams = mcpToolParams,_expectedInputs = expectedInputs,$type = $type ?? 'llm',super._();
   factory NodeStrategyLlm.fromJson(Map<String, dynamic> json) => _$NodeStrategyLlmFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1197,8 +1480,8 @@ class NodeStrategyLlm extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
- final  Map<String, Map<String, Object?>> _mcpToolParams;
-@override@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams {
+ final  Map<String, Map<String, McpToolParamValue>> _mcpToolParams;
+@override@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> get mcpToolParams {
   if (_mcpToolParams is EqualUnmodifiableMapView) return _mcpToolParams;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_mcpToolParams);
@@ -1247,7 +1530,7 @@ abstract mixin class $NodeStrategyLlmCopyWith<$Res> implements $NodeStrategyCopy
   factory $NodeStrategyLlmCopyWith(NodeStrategyLlm value, $Res Function(NodeStrategyLlm) _then) = _$NodeStrategyLlmCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
 });
 
 
@@ -1280,7 +1563,7 @@ as List<String>,postHooks: null == postHooks ? _self._postHooks : postHooks // i
 as List<String>,safety: null == safety ? _self.safety : safety // ignore: cast_nullable_to_non_nullable
 as String,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
 as List<String>,mcpToolParams: null == mcpToolParams ? _self._mcpToolParams : mcpToolParams // ignore: cast_nullable_to_non_nullable
-as Map<String, Map<String, Object?>>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, McpToolParamValue>>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<String>,cognitiveTier: null == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
 as CognitiveTier,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
@@ -1316,9 +1599,9 @@ $I18nTextCopyWith<$Res>? get description {
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class NodeStrategyLogic extends NodeStrategy {
-  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], @JsonKey(name: 'mcp_tool_params') final  Map<String, Map<String, Object?>> mcpToolParams = const <String, Map<String, Object?>>{}, final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.prompt, @JsonKey(name: 'zone') this.zone = StepZone.zoneB, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_mcpToolParams = mcpToolParams,_expectedInputs = expectedInputs,$type = $type ?? 'logic',super._();
+  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() final  Map<String, Map<String, McpToolParamValue>> mcpToolParams = const <String, Map<String, McpToolParamValue>>{}, final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.prompt, @JsonKey(name: 'zone') this.zone = StepZone.zoneB, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_mcpToolParams = mcpToolParams,_expectedInputs = expectedInputs,$type = $type ?? 'logic',super._();
   factory NodeStrategyLogic.fromJson(Map<String, dynamic> json) => _$NodeStrategyLogicFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1358,8 +1641,8 @@ class NodeStrategyLogic extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
- final  Map<String, Map<String, Object?>> _mcpToolParams;
-@override@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams {
+ final  Map<String, Map<String, McpToolParamValue>> _mcpToolParams;
+@override@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> get mcpToolParams {
   if (_mcpToolParams is EqualUnmodifiableMapView) return _mcpToolParams;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_mcpToolParams);
@@ -1408,7 +1691,7 @@ abstract mixin class $NodeStrategyLogicCopyWith<$Res> implements $NodeStrategyCo
   factory $NodeStrategyLogicCopyWith(NodeStrategyLogic value, $Res Function(NodeStrategyLogic) _then) = _$NodeStrategyLogicCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
 });
 
 
@@ -1441,7 +1724,7 @@ as List<String>,postHooks: null == postHooks ? _self._postHooks : postHooks // i
 as List<String>,safety: null == safety ? _self.safety : safety // ignore: cast_nullable_to_non_nullable
 as String,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
 as List<String>,mcpToolParams: null == mcpToolParams ? _self._mcpToolParams : mcpToolParams // ignore: cast_nullable_to_non_nullable
-as Map<String, Map<String, Object?>>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, McpToolParamValue>>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<String>,cognitiveTier: null == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
 as CognitiveTier,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
@@ -1477,9 +1760,9 @@ $I18nTextCopyWith<$Res>? get description {
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class NodeStrategyCausalDiscovery extends NodeStrategy {
-  const NodeStrategyCausalDiscovery({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], @JsonKey(name: 'mcp_tool_params') final  Map<String, Map<String, Object?>> mcpToolParams = const <String, Map<String, Object?>>{}, final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.causalDiscovery, @JsonKey(name: 'zone') this.zone = StepZone.zoneB, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_mcpToolParams = mcpToolParams,_expectedInputs = expectedInputs,$type = $type ?? 'causal_discovery',super._();
+  const NodeStrategyCausalDiscovery({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], @JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() final  Map<String, Map<String, McpToolParamValue>> mcpToolParams = const <String, Map<String, McpToolParamValue>>{}, final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.causalDiscovery, @JsonKey(name: 'zone') this.zone = StepZone.zoneB, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_mcpToolParams = mcpToolParams,_expectedInputs = expectedInputs,$type = $type ?? 'causal_discovery',super._();
   factory NodeStrategyCausalDiscovery.fromJson(Map<String, dynamic> json) => _$NodeStrategyCausalDiscoveryFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1519,8 +1802,8 @@ class NodeStrategyCausalDiscovery extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
- final  Map<String, Map<String, Object?>> _mcpToolParams;
-@override@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams {
+ final  Map<String, Map<String, McpToolParamValue>> _mcpToolParams;
+@override@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> get mcpToolParams {
   if (_mcpToolParams is EqualUnmodifiableMapView) return _mcpToolParams;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_mcpToolParams);
@@ -1569,7 +1852,7 @@ abstract mixin class $NodeStrategyCausalDiscoveryCopyWith<$Res> implements $Node
   factory $NodeStrategyCausalDiscoveryCopyWith(NodeStrategyCausalDiscovery value, $Res Function(NodeStrategyCausalDiscovery) _then) = _$NodeStrategyCausalDiscoveryCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools,@JsonKey(name: 'mcp_tool_params')@McpToolParamValueConverter() Map<String, Map<String, McpToolParamValue>> mcpToolParams, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType,@JsonKey(name: 'zone') StepZone zone
 });
 
 
@@ -1602,7 +1885,7 @@ as List<String>,postHooks: null == postHooks ? _self._postHooks : postHooks // i
 as List<String>,safety: null == safety ? _self.safety : safety // ignore: cast_nullable_to_non_nullable
 as String,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
 as List<String>,mcpToolParams: null == mcpToolParams ? _self._mcpToolParams : mcpToolParams // ignore: cast_nullable_to_non_nullable
-as Map<String, Map<String, Object?>>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, McpToolParamValue>>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<String>,cognitiveTier: null == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
 as CognitiveTier,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
@@ -1866,7 +2149,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _Workflow extends Workflow {
   const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, OutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", @StrictOpaqueIdConverter()@JsonKey(name: 'mcp_gateway_id') this.mcpGatewayId, @StrictOpaqueIdConverter()@JsonKey(name: 'model_registry_id') required this.modelRegistryId, @JsonKey(name: 'default_strictness_level') this.defaultStrictnessLevel = 50, @JsonKey(name: 'default_lexical_strictness_level') this.defaultLexicalStrictnessLevel = 50, @JsonKey(name: 'security_penalty') this.securityPenalty = 0.0, @JsonKey(name: 'post_hoc_penalty') this.postHocPenalty = 0.0, @JsonKey(name: 'passivity_penalty') this.passivityPenalty = 0.0, @JsonKey(name: 'enable_contextual_overrides') this.enableContextualOverrides = false, @JsonKey(name: 'enable_semantic_smoothing') this.enableSemanticSmoothing = false, @JsonKey(name: 'enable_eager_anonymization') this.enableEagerAnonymization = false, @JsonKey(name: 'system_audit_trail') this.systemAuditTrail = false, @JsonKey(name: 'historical_context_mode') this.historicalContextMode = HistoricalContextMode.disabled, final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);

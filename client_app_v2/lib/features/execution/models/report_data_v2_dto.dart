@@ -71,13 +71,14 @@ abstract class ReportDataDto with _$ReportDataDto {
   /// This prevents Main Thread Jank when handling large payloads.
   static Future<ReportDataDto> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
+      // Phase 5, Step 5.1: Eliminate Map<String, Object?> cast in background isolate
       final Object? decoded = jsonDecode(rawJson);
-      if (decoded is! Map<String, Object?>) {
+      if (decoded is! Map) {
         throw AppException.validation(
           'Invalid ReportDataDto JSON payload: expected a JSON object map.',
         );
       }
-      return ReportDataDto.fromJson(decoded);
+      return ReportDataDto.fromJson(Map.from(decoded));
     });
   }
 }

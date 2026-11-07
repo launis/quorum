@@ -30,7 +30,9 @@ _ExecutionCreateRequestDto _$ExecutionCreateRequestDtoFromJson(
       targetLocale: $checkedConvert('target_locale', (v) => v as String),
       rawInputs: $checkedConvert(
         'raw_inputs',
-        (v) => v as Map<String, dynamic>? ?? const {},
+        (v) => v == null
+            ? const WorkflowInputs()
+            : WorkflowInputs.fromJson(v as Map<String, dynamic>),
       ),
       profileId: $checkedConvert('profile_id', (v) => v as String?),
       matrixSamplingStrategy: $checkedConvert(
@@ -54,7 +56,7 @@ Map<String, dynamic> _$ExecutionCreateRequestDtoToJson(
 ) => <String, dynamic>{
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'target_locale': instance.targetLocale,
-  'raw_inputs': instance.rawInputs,
+  'raw_inputs': instance.rawInputs.toJson(),
   'profile_id': instance.profileId,
   'matrix_sampling_strategy': instance.matrixSamplingStrategy,
 };

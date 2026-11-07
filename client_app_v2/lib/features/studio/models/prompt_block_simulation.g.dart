@@ -29,7 +29,11 @@ _PromptBlockSimulationRequest _$PromptBlockSimulationRequestFromJson(
       ),
       mockInputs: $checkedConvert(
         'mock_inputs',
-        (v) => v as Map<String, dynamic>? ?? const {},
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as String),
+            ) ??
+            const <String, String>{},
       ),
       targetScaleScore: $checkedConvert(
         'target_scale_score',
@@ -85,7 +89,8 @@ _PromptBlockSimulationResponse _$PromptBlockSimulationResponseFromJson(
       errors: $checkedConvert(
         'errors',
         (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
       ),
       renderedPrompt: $checkedConvert(
         'rendered_prompt',

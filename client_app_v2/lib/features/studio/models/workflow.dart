@@ -10,6 +10,69 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'workflow.freezed.dart';
 part 'workflow.g.dart';
 
+/// Phase 5, Step 5.1: Strongly typed MCP tool parameter override value replacing Map<String, Object?>.
+@freezed
+abstract class McpToolParamValue with _$McpToolParamValue {
+  const McpToolParamValue._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory McpToolParamValue({
+    @JsonKey(name: 'string_value') String? stringValue,
+    @JsonKey(name: 'int_value') int? intValue,
+    @JsonKey(name: 'double_value') double? doubleValue,
+    @JsonKey(name: 'bool_value') bool? boolValue,
+    @JsonKey(name: 'string_list_value') List<String>? stringListValue,
+  }) = _McpToolParamValue;
+
+  factory McpToolParamValue.fromPrimitive(Object? value) {
+    if (value is McpToolParamValue) {
+      return value;
+    }
+    if (value is List) {
+      return McpToolParamValue(
+        stringListValue: value
+            .map((Object? e) => e.toString())
+            .toList(growable: false),
+      );
+    }
+    if (value is bool) {
+      return McpToolParamValue(boolValue: value);
+    }
+    if (value is int) {
+      return McpToolParamValue(intValue: value);
+    }
+    if (value is double) {
+      return McpToolParamValue(doubleValue: value);
+    }
+    if (value is num) {
+      return McpToolParamValue(doubleValue: value.toDouble());
+    }
+    if (value is String) {
+      return McpToolParamValue(stringValue: value);
+    }
+    return const McpToolParamValue();
+  }
+
+  factory McpToolParamValue.fromJson(Map<String, dynamic> json) =>
+      _$McpToolParamValueFromJson(json);
+
+  Object? get rawValue =>
+      stringListValue ?? boolValue ?? intValue ?? doubleValue ?? stringValue;
+}
+
+/// Converter serializing [McpToolParamValue] directly as JSON primitives/arrays on the wire.
+class McpToolParamValueConverter
+    implements JsonConverter<McpToolParamValue, Object?> {
+  const McpToolParamValueConverter();
+
+  @override
+  McpToolParamValue fromJson(Object? json) =>
+      McpToolParamValue.fromPrimitive(json);
+
+  @override
+  Object? toJson(McpToolParamValue object) => object.rawValue;
+}
+
 @Freezed(equal: false)
 abstract class QuestionnaireItem with _$QuestionnaireItem {
   const QuestionnaireItem._();
@@ -77,7 +140,7 @@ abstract class StepRule with _$StepRule {
 sealed class NodeStrategy with _$NodeStrategy {
   const NodeStrategy._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   @FreezedUnionValue('llm')
   const factory NodeStrategy.llm({
     @StrictOpaqueIdConverter() required String id,
@@ -94,8 +157,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @JsonKey(name: 'mcp_tool_params')
-    @Default(<String, Map<String, Object?>>{})
-    Map<String, Map<String, Object?>> mcpToolParams,
+    @McpToolParamValueConverter()
+    @Default(<String, Map<String, McpToolParamValue>>{})
+    Map<String, Map<String, McpToolParamValue>> mcpToolParams,
     @Default([]) List<String> expectedInputs,
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
@@ -108,7 +172,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'zone') @Default(StepZone.zoneB) StepZone zone,
   }) = NodeStrategyLlm;
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   @FreezedUnionValue('logic')
   const factory NodeStrategy.logic({
     @StrictOpaqueIdConverter() required String id,
@@ -125,8 +189,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @JsonKey(name: 'mcp_tool_params')
-    @Default(<String, Map<String, Object?>>{})
-    Map<String, Map<String, Object?>> mcpToolParams,
+    @McpToolParamValueConverter()
+    @Default(<String, Map<String, McpToolParamValue>>{})
+    Map<String, Map<String, McpToolParamValue>> mcpToolParams,
     @Default([]) List<String> expectedInputs,
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
@@ -139,7 +204,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'zone') @Default(StepZone.zoneB) StepZone zone,
   }) = NodeStrategyLogic;
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   @FreezedUnionValue('causal_discovery')
   const factory NodeStrategy.causalDiscovery({
     @StrictOpaqueIdConverter() required String id,
@@ -156,8 +221,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @JsonKey(name: 'mcp_tool_params')
-    @Default(<String, Map<String, Object?>>{})
-    Map<String, Map<String, Object?>> mcpToolParams,
+    @McpToolParamValueConverter()
+    @Default(<String, Map<String, McpToolParamValue>>{})
+    Map<String, Map<String, McpToolParamValue>> mcpToolParams,
     @Default([]) List<String> expectedInputs,
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
@@ -178,7 +244,7 @@ sealed class NodeStrategy with _$NodeStrategy {
 abstract class Workflow with _$Workflow {
   const Workflow._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory Workflow({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
@@ -228,13 +294,14 @@ abstract class Workflow with _$Workflow {
   /// Isolate Mandate: Zero-Latency Illusion requires background parsing
   static Future<Workflow> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
+      // Phase 5, Step 5.1: Eliminate Map<String, Object?> cast in background isolate
       final Object? decoded = jsonDecode(rawJson);
-      if (decoded is! Map<String, Object?>) {
+      if (decoded is! Map) {
         throw AppException.validation(
           'Malformed Workflow JSON payload: expected JSON object.',
         );
       }
-      return Workflow.fromJson(decoded);
+      return Workflow.fromJson(Map.from(decoded));
     });
   }
 
@@ -244,12 +311,12 @@ abstract class Workflow with _$Workflow {
     return safeIsolateRun(() {
       return rawList
           .map((Object? item) {
-            if (item is! Map<String, Object?>) {
+            if (item is! Map) {
               throw AppException.validation(
                 'Malformed Workflow list item: expected JSON object.',
               );
             }
-            return Workflow.fromJson(item);
+            return Workflow.fromJson(Map.from(item));
           })
           .toList(growable: false);
     });

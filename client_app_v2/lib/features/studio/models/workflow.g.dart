@@ -6,6 +6,54 @@ part of 'workflow.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_McpToolParamValue _$McpToolParamValueFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_McpToolParamValue',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'string_value',
+            'int_value',
+            'double_value',
+            'bool_value',
+            'string_list_value',
+          ],
+        );
+        final val = _McpToolParamValue(
+          stringValue: $checkedConvert('string_value', (v) => v as String?),
+          intValue: $checkedConvert('int_value', (v) => (v as num?)?.toInt()),
+          doubleValue: $checkedConvert(
+            'double_value',
+            (v) => (v as num?)?.toDouble(),
+          ),
+          boolValue: $checkedConvert('bool_value', (v) => v as bool?),
+          stringListValue: $checkedConvert(
+            'string_list_value',
+            (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'stringValue': 'string_value',
+        'intValue': 'int_value',
+        'doubleValue': 'double_value',
+        'boolValue': 'bool_value',
+        'stringListValue': 'string_list_value',
+      },
+    );
+
+Map<String, dynamic> _$McpToolParamValueToJson(_McpToolParamValue instance) =>
+    <String, dynamic>{
+      'string_value': instance.stringValue,
+      'int_value': instance.intValue,
+      'double_value': instance.doubleValue,
+      'bool_value': instance.boolValue,
+      'string_list_value': instance.stringListValue,
+    };
+
 _QuestionnaireItem _$QuestionnaireItemFromJson(Map<String, dynamic> json) =>
     $checkedCreate('_QuestionnaireItem', json, ($checkedConvert) {
       $checkKeys(json, allowedKeys: const ['question_id', 'question', 'type']);
@@ -337,9 +385,17 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'mcp_tool_params',
         (v) =>
             (v as Map<String, dynamic>?)?.map(
-              (k, e) => MapEntry(k, e as Map<String, dynamic>),
+              (k, e) => MapEntry(
+                k,
+                (e as Map<String, dynamic>).map(
+                  (k, e) => MapEntry(
+                    k,
+                    const McpToolParamValueConverter().fromJson(e),
+                  ),
+                ),
+              ),
             ) ??
-            const <String, Map<String, Object?>>{},
+            const <String, Map<String, McpToolParamValue>>{},
       ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
@@ -411,7 +467,14 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
-      'mcp_tool_params': instance.mcpToolParams,
+      'mcp_tool_params': instance.mcpToolParams.map(
+        (k, e) => MapEntry(
+          k,
+          e.map(
+            (k, e) => MapEntry(k, const McpToolParamValueConverter().toJson(e)),
+          ),
+        ),
+      ),
       'expected_inputs': instance.expectedInputs,
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
@@ -534,9 +597,17 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'mcp_tool_params',
         (v) =>
             (v as Map<String, dynamic>?)?.map(
-              (k, e) => MapEntry(k, e as Map<String, dynamic>),
+              (k, e) => MapEntry(
+                k,
+                (e as Map<String, dynamic>).map(
+                  (k, e) => MapEntry(
+                    k,
+                    const McpToolParamValueConverter().fromJson(e),
+                  ),
+                ),
+              ),
             ) ??
-            const <String, Map<String, Object?>>{},
+            const <String, Map<String, McpToolParamValue>>{},
       ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
@@ -608,7 +679,14 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
-      'mcp_tool_params': instance.mcpToolParams,
+      'mcp_tool_params': instance.mcpToolParams.map(
+        (k, e) => MapEntry(
+          k,
+          e.map(
+            (k, e) => MapEntry(k, const McpToolParamValueConverter().toJson(e)),
+          ),
+        ),
+      ),
       'expected_inputs': instance.expectedInputs,
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
@@ -711,9 +789,17 @@ NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
         'mcp_tool_params',
         (v) =>
             (v as Map<String, dynamic>?)?.map(
-              (k, e) => MapEntry(k, e as Map<String, dynamic>),
+              (k, e) => MapEntry(
+                k,
+                (e as Map<String, dynamic>).map(
+                  (k, e) => MapEntry(
+                    k,
+                    const McpToolParamValueConverter().fromJson(e),
+                  ),
+                ),
+              ),
             ) ??
-            const <String, Map<String, Object?>>{},
+            const <String, Map<String, McpToolParamValue>>{},
       ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
@@ -788,7 +874,14 @@ Map<String, dynamic> _$NodeStrategyCausalDiscoveryToJson(
   'post_hooks': instance.postHooks,
   'safety': instance.safety,
   'allowed_mcp_tools': instance.allowedMcpTools,
-  'mcp_tool_params': instance.mcpToolParams,
+  'mcp_tool_params': instance.mcpToolParams.map(
+    (k, e) => MapEntry(
+      k,
+      e.map(
+        (k, e) => MapEntry(k, const McpToolParamValueConverter().toJson(e)),
+      ),
+    ),
+  ),
   'expected_inputs': instance.expectedInputs,
   'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
   'organization_id': instance.organizationId,

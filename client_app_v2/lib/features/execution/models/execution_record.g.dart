@@ -6,6 +6,171 @@ part of 'execution_record.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_ContextVariablesDto _$ContextVariablesDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_ContextVariablesDto',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'global_atom_blackboard',
+            'matrix_reducer_output',
+            'report_context',
+            'step_detector',
+            'evaluated_matrices',
+            'variables',
+          ],
+        );
+        final val = _ContextVariablesDto(
+          globalAtomBlackboard: $checkedConvert(
+            'global_atom_blackboard',
+            (v) => v as String?,
+          ),
+          matrixReducerOutput: $checkedConvert(
+            'matrix_reducer_output',
+            (v) => v as String?,
+          ),
+          reportContext: $checkedConvert('report_context', (v) => v as String?),
+          stepDetector: $checkedConvert('step_detector', (v) => v as String?),
+          evaluatedMatrices: $checkedConvert(
+            'evaluated_matrices',
+            (v) => v as String?,
+          ),
+          variables: $checkedConvert(
+            'variables',
+            (v) =>
+                (v as Map<String, dynamic>?)?.map(
+                  (k, e) => MapEntry(k, e as String),
+                ) ??
+                const <String, String>{},
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'globalAtomBlackboard': 'global_atom_blackboard',
+        'matrixReducerOutput': 'matrix_reducer_output',
+        'reportContext': 'report_context',
+        'stepDetector': 'step_detector',
+        'evaluatedMatrices': 'evaluated_matrices',
+      },
+    );
+
+Map<String, dynamic> _$ContextVariablesDtoToJson(
+  _ContextVariablesDto instance,
+) => <String, dynamic>{
+  'global_atom_blackboard': instance.globalAtomBlackboard,
+  'matrix_reducer_output': instance.matrixReducerOutput,
+  'report_context': instance.reportContext,
+  'step_detector': instance.stepDetector,
+  'evaluated_matrices': instance.evaluatedMatrices,
+  'variables': instance.variables,
+};
+
+_ExecutionTraceItemDto _$ExecutionTraceItemDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_ExecutionTraceItemDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'event',
+        'step_id',
+        'status',
+        'duration_ms',
+        'detail',
+      ],
+    );
+    final val = _ExecutionTraceItemDto(
+      event: $checkedConvert('event', (v) => v as String?),
+      stepId: $checkedConvert('step_id', (v) => v as String?),
+      status: $checkedConvert('status', (v) => v as String?),
+      durationMs: $checkedConvert('duration_ms', (v) => (v as num?)?.toInt()),
+      detail: $checkedConvert('detail', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'stepId': 'step_id', 'durationMs': 'duration_ms'},
+);
+
+Map<String, dynamic> _$ExecutionTraceItemDtoToJson(
+  _ExecutionTraceItemDto instance,
+) => <String, dynamic>{
+  'event': instance.event,
+  'step_id': instance.stepId,
+  'status': instance.status,
+  'duration_ms': instance.durationMs,
+  'detail': instance.detail,
+};
+
+_ProfileSynthesisEntryDto _$ProfileSynthesisEntryDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_ProfileSynthesisEntryDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'cached',
+        'variance_explanation',
+        'authenticity_explanation',
+        'cited_sources',
+        'user_role',
+        'user_role_justification',
+        'created_at',
+      ],
+    );
+    final val = _ProfileSynthesisEntryDto(
+      cached: $checkedConvert('cached', (v) => v as bool? ?? false),
+      varianceExplanation: $checkedConvert(
+        'variance_explanation',
+        (v) => v as String?,
+      ),
+      authenticityExplanation: $checkedConvert(
+        'authenticity_explanation',
+        (v) => v as String?,
+      ),
+      citedSources: $checkedConvert(
+        'cited_sources',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
+      ),
+      userRole: $checkedConvert('user_role', (v) => v as String?),
+      userRoleJustification: $checkedConvert(
+        'user_role_justification',
+        (v) => v as String?,
+      ),
+      createdAt: $checkedConvert('created_at', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'varianceExplanation': 'variance_explanation',
+    'authenticityExplanation': 'authenticity_explanation',
+    'citedSources': 'cited_sources',
+    'userRole': 'user_role',
+    'userRoleJustification': 'user_role_justification',
+    'createdAt': 'created_at',
+  },
+);
+
+Map<String, dynamic> _$ProfileSynthesisEntryDtoToJson(
+  _ProfileSynthesisEntryDto instance,
+) => <String, dynamic>{
+  'cached': instance.cached,
+  'variance_explanation': instance.varianceExplanation,
+  'authenticity_explanation': instance.authenticityExplanation,
+  'cited_sources': instance.citedSources,
+  'user_role': instance.userRole,
+  'user_role_justification': instance.userRoleJustification,
+  'created_at': instance.createdAt,
+};
+
 _ExecutionRecord _$ExecutionRecordFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -150,7 +315,9 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       ),
       contextVariables: $checkedConvert(
         'context_variables',
-        (v) => v as Map<String, dynamic>?,
+        (v) => v == null
+            ? null
+            : ContextVariablesDto.fromJson(v as Map<String, dynamic>),
       ),
       contextVariablesStoragePath: $checkedConvert(
         'context_variables_storage_path',
@@ -159,7 +326,9 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       executionTrace: $checkedConvert(
         'execution_trace',
         (v) => (v as List<dynamic>?)
-            ?.map((e) => e as Map<String, dynamic>)
+            ?.map(
+              (e) => ExecutionTraceItemDto.fromJson(e as Map<String, dynamic>),
+            )
             .toList(),
       ),
       executionTraceStoragePath: $checkedConvert(
@@ -190,7 +359,12 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       ),
       profileSyntheses: $checkedConvert(
         'profile_syntheses',
-        (v) => v as Map<String, dynamic>?,
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(
+            k,
+            ProfileSynthesisEntryDto.fromJson(e as Map<String, dynamic>),
+          ),
+        ),
       ),
       progress: $checkedConvert('progress', (v) => (v as num?)?.toInt()),
       statusMessage: $checkedConvert('status_message', (v) => v as String?),
@@ -269,15 +443,17 @@ Map<String, dynamic> _$ExecutionRecordToJson(
   'is_resumable': instance.isResumable,
   'frozen_context': instance.frozenContext?.toJson(),
   'frozen_context_storage_path': instance.frozenContextStoragePath,
-  'context_variables': instance.contextVariables,
+  'context_variables': instance.contextVariables?.toJson(),
   'context_variables_storage_path': instance.contextVariablesStoragePath,
-  'execution_trace': instance.executionTrace,
+  'execution_trace': instance.executionTrace?.map((e) => e.toJson()).toList(),
   'execution_trace_storage_path': instance.executionTraceStoragePath,
   'pdf_report_path': instance.pdfReportPath,
   'source_identity_manifest': instance.sourceIdentityManifest,
   'steps': instance.steps.map((e) => e.toJson()).toList(),
   'step_states': instance.stepStates?.map((k, e) => MapEntry(k, e.toJson())),
-  'profile_syntheses': instance.profileSyntheses,
+  'profile_syntheses': instance.profileSyntheses?.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
   'progress': instance.progress,
   'status_message': instance.statusMessage,
   'created_at': instance.createdAt,

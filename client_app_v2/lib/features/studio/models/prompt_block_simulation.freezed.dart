@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PromptBlockSimulationRequest {
 
- PromptBlock get block;@JsonKey(name: 'mock_inputs') Map<String, Object?> get mockInputs;@JsonKey(name: 'target_scale_score') int? get targetScaleScore;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'context_text') String get contextText;
+ PromptBlock get block;@JsonKey(name: 'mock_inputs') Map<String, String> get mockInputs;@JsonKey(name: 'target_scale_score') int? get targetScaleScore;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'context_text') String get contextText;
 /// Create a copy of PromptBlockSimulationRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $PromptBlockSimulationRequestCopyWith<$Res>  {
   factory $PromptBlockSimulationRequestCopyWith(PromptBlockSimulationRequest value, $Res Function(PromptBlockSimulationRequest) _then) = _$PromptBlockSimulationRequestCopyWithImpl;
 @useResult
 $Res call({
- PromptBlock block,@JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,@JsonKey(name: 'target_scale_score') int? targetScaleScore,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
+ PromptBlock block,@JsonKey(name: 'mock_inputs') Map<String, String> mockInputs,@JsonKey(name: 'target_scale_score') int? targetScaleScore,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
 });
 
 
@@ -62,7 +62,7 @@ class _$PromptBlockSimulationRequestCopyWithImpl<$Res>
   return _then(_self.copyWith(
 block: null == block ? _self.block : block // ignore: cast_nullable_to_non_nullable
 as PromptBlock,mockInputs: null == mockInputs ? _self.mockInputs : mockInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,targetScaleScore: freezed == targetScaleScore ? _self.targetScaleScore : targetScaleScore // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,targetScaleScore: freezed == targetScaleScore ? _self.targetScaleScore : targetScaleScore // ignore: cast_nullable_to_non_nullable
 as int?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,contextText: null == contextText ? _self.contextText : contextText // ignore: cast_nullable_to_non_nullable
 as String,
@@ -159,7 +159,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( PromptBlock block, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_scale_score')  int? targetScaleScore, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( PromptBlock block, @JsonKey(name: 'mock_inputs')  Map<String, String> mockInputs, @JsonKey(name: 'target_scale_score')  int? targetScaleScore, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PromptBlockSimulationRequest() when $default != null:
 return $default(_that.block,_that.mockInputs,_that.targetScaleScore,_that.targetLocale,_that.contextText);case _:
@@ -180,7 +180,7 @@ return $default(_that.block,_that.mockInputs,_that.targetScaleScore,_that.target
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( PromptBlock block, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_scale_score')  int? targetScaleScore, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( PromptBlock block, @JsonKey(name: 'mock_inputs')  Map<String, String> mockInputs, @JsonKey(name: 'target_scale_score')  int? targetScaleScore, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlockSimulationRequest():
 return $default(_that.block,_that.mockInputs,_that.targetScaleScore,_that.targetLocale,_that.contextText);case _:
@@ -200,7 +200,7 @@ return $default(_that.block,_that.mockInputs,_that.targetScaleScore,_that.target
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( PromptBlock block, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_scale_score')  int? targetScaleScore, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( PromptBlock block, @JsonKey(name: 'mock_inputs')  Map<String, String> mockInputs, @JsonKey(name: 'target_scale_score')  int? targetScaleScore, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlockSimulationRequest() when $default != null:
 return $default(_that.block,_that.mockInputs,_that.targetScaleScore,_that.targetLocale,_that.contextText);case _:
@@ -213,14 +213,14 @@ return $default(_that.block,_that.mockInputs,_that.targetScaleScore,_that.target
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _PromptBlockSimulationRequest implements PromptBlockSimulationRequest {
-  const _PromptBlockSimulationRequest({required this.block, @JsonKey(name: 'mock_inputs') final  Map<String, Object?> mockInputs = const {}, @JsonKey(name: 'target_scale_score') this.targetScaleScore, @JsonKey(name: 'target_locale') this.targetLocale = 'en', @JsonKey(name: 'context_text') this.contextText = '[SIMULATED CONTEXT DOCUMENT]'}): _mockInputs = mockInputs;
+  const _PromptBlockSimulationRequest({required this.block, @JsonKey(name: 'mock_inputs') final  Map<String, String> mockInputs = const <String, String>{}, @JsonKey(name: 'target_scale_score') this.targetScaleScore, @JsonKey(name: 'target_locale') this.targetLocale = 'en', @JsonKey(name: 'context_text') this.contextText = '[SIMULATED CONTEXT DOCUMENT]'}): _mockInputs = mockInputs;
   factory _PromptBlockSimulationRequest.fromJson(Map<String, dynamic> json) => _$PromptBlockSimulationRequestFromJson(json);
 
 @override final  PromptBlock block;
- final  Map<String, Object?> _mockInputs;
-@override@JsonKey(name: 'mock_inputs') Map<String, Object?> get mockInputs {
+ final  Map<String, String> _mockInputs;
+@override@JsonKey(name: 'mock_inputs') Map<String, String> get mockInputs {
   if (_mockInputs is EqualUnmodifiableMapView) return _mockInputs;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_mockInputs);
@@ -256,7 +256,7 @@ abstract mixin class _$PromptBlockSimulationRequestCopyWith<$Res> implements $Pr
   factory _$PromptBlockSimulationRequestCopyWith(_PromptBlockSimulationRequest value, $Res Function(_PromptBlockSimulationRequest) _then) = __$PromptBlockSimulationRequestCopyWithImpl;
 @override @useResult
 $Res call({
- PromptBlock block,@JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,@JsonKey(name: 'target_scale_score') int? targetScaleScore,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
+ PromptBlock block,@JsonKey(name: 'mock_inputs') Map<String, String> mockInputs,@JsonKey(name: 'target_scale_score') int? targetScaleScore,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
 });
 
 
@@ -277,7 +277,7 @@ class __$PromptBlockSimulationRequestCopyWithImpl<$Res>
   return _then(_PromptBlockSimulationRequest(
 block: null == block ? _self.block : block // ignore: cast_nullable_to_non_nullable
 as PromptBlock,mockInputs: null == mockInputs ? _self._mockInputs : mockInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,targetScaleScore: freezed == targetScaleScore ? _self.targetScaleScore : targetScaleScore // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,targetScaleScore: freezed == targetScaleScore ? _self.targetScaleScore : targetScaleScore // ignore: cast_nullable_to_non_nullable
 as int?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,contextText: null == contextText ? _self.contextText : contextText // ignore: cast_nullable_to_non_nullable
 as String,
@@ -510,9 +510,9 @@ return $default(_that.valid,_that.errors,_that.renderedPrompt,_that.trace,_that.
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _PromptBlockSimulationResponse implements PromptBlockSimulationResponse {
-  const _PromptBlockSimulationResponse({this.valid = true, final  List<String> errors = const [], @JsonKey(name: 'rendered_prompt') this.renderedPrompt = '', this.trace = const StepSimulationTraceDto(), @JsonKey(name: 'prompt_context') this.promptContext}): _errors = errors;
+  const _PromptBlockSimulationResponse({this.valid = true, final  List<String> errors = const <String>[], @JsonKey(name: 'rendered_prompt') this.renderedPrompt = '', this.trace = const StepSimulationTraceDto(), @JsonKey(name: 'prompt_context') this.promptContext}): _errors = errors;
   factory _PromptBlockSimulationResponse.fromJson(Map<String, dynamic> json) => _$PromptBlockSimulationResponseFromJson(json);
 
 @override@JsonKey() final  bool valid;

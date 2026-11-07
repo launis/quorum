@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ExecutionCreateRequestDto {
 
-@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() String get workflowId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'raw_inputs') Map<String, Object?> get rawInputs;@JsonKey(name: 'profile_id') String? get profileId;@JsonKey(name: 'matrix_sampling_strategy') int? get matrixSamplingStrategy;
+@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() String get workflowId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'raw_inputs') WorkflowInputs get rawInputs;@JsonKey(name: 'profile_id') String? get profileId;@JsonKey(name: 'matrix_sampling_strategy') int? get matrixSamplingStrategy;
 /// Create a copy of ExecutionCreateRequestDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,11 +41,11 @@ abstract mixin class $ExecutionCreateRequestDtoCopyWith<$Res>  {
   factory $ExecutionCreateRequestDtoCopyWith(ExecutionCreateRequestDto value, $Res Function(ExecutionCreateRequestDto) _then) = _$ExecutionCreateRequestDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'raw_inputs') Map<String, Object?> rawInputs,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy
+@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'raw_inputs') WorkflowInputs rawInputs,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy
 });
 
 
-
+$WorkflowInputsCopyWith<$Res> get rawInputs;
 
 }
 /// @nodoc
@@ -63,12 +63,21 @@ class _$ExecutionCreateRequestDtoCopyWithImpl<$Res>
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,rawInputs: null == rawInputs ? _self.rawInputs : rawInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,profileId: freezed == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
+as WorkflowInputs,profileId: freezed == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
 as String?,matrixSamplingStrategy: freezed == matrixSamplingStrategy ? _self.matrixSamplingStrategy : matrixSamplingStrategy // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
 }
-
+/// Create a copy of ExecutionCreateRequestDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WorkflowInputsCopyWith<$Res> get rawInputs {
+  
+  return $WorkflowInputsCopyWith<$Res>(_self.rawInputs, (value) {
+    return _then(_self.copyWith(rawInputs: value));
+  });
+}
 }
 
 
@@ -150,7 +159,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter()  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'raw_inputs')  Map<String, Object?> rawInputs, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter()  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'raw_inputs')  WorkflowInputs rawInputs, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionCreateRequestDto() when $default != null:
 return $default(_that.workflowId,_that.targetLocale,_that.rawInputs,_that.profileId,_that.matrixSamplingStrategy);case _:
@@ -171,7 +180,7 @@ return $default(_that.workflowId,_that.targetLocale,_that.rawInputs,_that.profil
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter()  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'raw_inputs')  Map<String, Object?> rawInputs, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter()  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'raw_inputs')  WorkflowInputs rawInputs, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionCreateRequestDto():
 return $default(_that.workflowId,_that.targetLocale,_that.rawInputs,_that.profileId,_that.matrixSamplingStrategy);case _:
@@ -191,7 +200,7 @@ return $default(_that.workflowId,_that.targetLocale,_that.rawInputs,_that.profil
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter()  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'raw_inputs')  Map<String, Object?> rawInputs, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter()  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'raw_inputs')  WorkflowInputs rawInputs, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionCreateRequestDto() when $default != null:
 return $default(_that.workflowId,_that.targetLocale,_that.rawInputs,_that.profileId,_that.matrixSamplingStrategy);case _:
@@ -204,20 +213,14 @@ return $default(_that.workflowId,_that.targetLocale,_that.rawInputs,_that.profil
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ExecutionCreateRequestDto extends ExecutionCreateRequestDto {
-  const _ExecutionCreateRequestDto({@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() required this.workflowId, @JsonKey(name: 'target_locale') required this.targetLocale, @JsonKey(name: 'raw_inputs') final  Map<String, Object?> rawInputs = const {}, @JsonKey(name: 'profile_id') this.profileId, @JsonKey(name: 'matrix_sampling_strategy') this.matrixSamplingStrategy}): _rawInputs = rawInputs,super._();
+  const _ExecutionCreateRequestDto({@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() required this.workflowId, @JsonKey(name: 'target_locale') required this.targetLocale, @JsonKey(name: 'raw_inputs') this.rawInputs = const WorkflowInputs(), @JsonKey(name: 'profile_id') this.profileId, @JsonKey(name: 'matrix_sampling_strategy') this.matrixSamplingStrategy}): super._();
   factory _ExecutionCreateRequestDto.fromJson(Map<String, dynamic> json) => _$ExecutionCreateRequestDtoFromJson(json);
 
 @override@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() final  String workflowId;
 @override@JsonKey(name: 'target_locale') final  String targetLocale;
- final  Map<String, Object?> _rawInputs;
-@override@JsonKey(name: 'raw_inputs') Map<String, Object?> get rawInputs {
-  if (_rawInputs is EqualUnmodifiableMapView) return _rawInputs;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_rawInputs);
-}
-
+@override@JsonKey(name: 'raw_inputs') final  WorkflowInputs rawInputs;
 @override@JsonKey(name: 'profile_id') final  String? profileId;
 @override@JsonKey(name: 'matrix_sampling_strategy') final  int? matrixSamplingStrategy;
 
@@ -247,11 +250,11 @@ abstract mixin class _$ExecutionCreateRequestDtoCopyWith<$Res> implements $Execu
   factory _$ExecutionCreateRequestDtoCopyWith(_ExecutionCreateRequestDto value, $Res Function(_ExecutionCreateRequestDto) _then) = __$ExecutionCreateRequestDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'raw_inputs') Map<String, Object?> rawInputs,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy
+@JsonKey(name: 'workflow_id')@StrictOpaqueIdConverter() String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'raw_inputs') WorkflowInputs rawInputs,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy
 });
 
 
-
+@override $WorkflowInputsCopyWith<$Res> get rawInputs;
 
 }
 /// @nodoc
@@ -268,14 +271,23 @@ class __$ExecutionCreateRequestDtoCopyWithImpl<$Res>
   return _then(_ExecutionCreateRequestDto(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
-as String,rawInputs: null == rawInputs ? _self._rawInputs : rawInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,profileId: freezed == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
+as String,rawInputs: null == rawInputs ? _self.rawInputs : rawInputs // ignore: cast_nullable_to_non_nullable
+as WorkflowInputs,profileId: freezed == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
 as String?,matrixSamplingStrategy: freezed == matrixSamplingStrategy ? _self.matrixSamplingStrategy : matrixSamplingStrategy // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
 }
 
-
+/// Create a copy of ExecutionCreateRequestDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WorkflowInputsCopyWith<$Res> get rawInputs {
+  
+  return $WorkflowInputsCopyWith<$Res>(_self.rawInputs, (value) {
+    return _then(_self.copyWith(rawInputs: value));
+  });
+}
 }
 
 // dart format on

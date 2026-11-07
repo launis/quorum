@@ -11,10 +11,13 @@ part 'prompt_block_simulation.g.dart';
 @Freezed(equal: false)
 abstract class PromptBlockSimulationRequest
     with _$PromptBlockSimulationRequest {
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  // Phase 5, Step 5.1: Replace Map<String, Object?> mockInputs with Map<String, String>
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory PromptBlockSimulationRequest({
     required PromptBlock block,
-    @JsonKey(name: 'mock_inputs') @Default({}) Map<String, Object?> mockInputs,
+    @JsonKey(name: 'mock_inputs')
+    @Default(<String, String>{})
+    Map<String, String> mockInputs,
     @JsonKey(name: 'target_scale_score') int? targetScaleScore,
     @JsonKey(name: 'target_locale') @Default('en') String targetLocale,
     @JsonKey(name: 'context_text')
@@ -32,10 +35,10 @@ abstract class PromptBlockSimulationRequest
 @Freezed(equal: false)
 abstract class PromptBlockSimulationResponse
     with _$PromptBlockSimulationResponse {
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory PromptBlockSimulationResponse({
     @Default(true) bool valid,
-    @Default([]) List<String> errors,
+    @Default(<String>[]) List<String> errors,
     @JsonKey(name: 'rendered_prompt') @Default('') String renderedPrompt,
     @Default(StepSimulationTraceDto()) StepSimulationTraceDto trace,
     @JsonKey(name: 'prompt_context') PromptContextDto? promptContext,

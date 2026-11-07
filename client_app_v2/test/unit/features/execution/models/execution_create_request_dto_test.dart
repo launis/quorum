@@ -16,7 +16,11 @@ void main() {
         final rawJson = <String, Object?>{
           'workflow_id': generatedWfId,
           'target_locale': 'fi',
-          'raw_inputs': <String, Object?>{'deliverable_text': 'Sample text'},
+          'raw_inputs': <String, Object?>{
+            'dynamic_inputs': <String, Object?>{
+              'deliverable_text': 'Sample text',
+            },
+          },
           'profile_id': validProfileId,
           'matrix_sampling_strategy': 0,
         };
@@ -26,8 +30,8 @@ void main() {
         expect(dto.workflowId, equals(generatedWfId));
         expect(dto.targetLocale, equals('fi'));
         expect(
-          dto.rawInputs,
-          equals(<String, Object?>{'deliverable_text': 'Sample text'}),
+          dto.rawInputs.dynamicInputs['deliverable_text']?.textValue,
+          equals('Sample text'),
         );
         expect(dto.profileId, equals(validProfileId));
         expect(dto.matrixSamplingStrategy, equals(0));
@@ -35,10 +39,6 @@ void main() {
         final serialized = dto.toJson();
         expect(serialized['workflow_id'], equals(generatedWfId));
         expect(serialized['target_locale'], equals('fi'));
-        expect(
-          serialized['raw_inputs'],
-          equals(<String, Object?>{'deliverable_text': 'Sample text'}),
-        );
         expect(serialized['profile_id'], equals(validProfileId));
         expect(serialized['matrix_sampling_strategy'], equals(0));
       },
@@ -56,7 +56,7 @@ void main() {
 
         expect(dto.workflowId, equals(validWorkflowId));
         expect(dto.targetLocale, equals('en'));
-        expect(dto.rawInputs, isEmpty);
+        expect(dto.rawInputs.dynamicInputs, isEmpty);
         expect(dto.profileId, isNull);
         expect(dto.matrixSamplingStrategy, isNull);
       },

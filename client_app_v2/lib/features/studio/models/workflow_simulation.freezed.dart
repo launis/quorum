@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkflowSimulationResponse {
 
- bool get valid; List<String> get errors;@JsonKey(name: 'step_status') Map<String, String> get stepStatus;@JsonKey(name: 'execution_order') List<String> get executionOrder; Map<String, Object?> get trace;
+ bool get valid; List<String> get errors;@JsonKey(name: 'step_status') Map<String, String> get stepStatus;@JsonKey(name: 'execution_order') List<String> get executionOrder; StepSimulationTraceDto get trace;
 /// Create a copy of WorkflowSimulationResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,11 +41,11 @@ abstract mixin class $WorkflowSimulationResponseCopyWith<$Res>  {
   factory $WorkflowSimulationResponseCopyWith(WorkflowSimulationResponse value, $Res Function(WorkflowSimulationResponse) _then) = _$WorkflowSimulationResponseCopyWithImpl;
 @useResult
 $Res call({
- bool valid, List<String> errors,@JsonKey(name: 'step_status') Map<String, String> stepStatus,@JsonKey(name: 'execution_order') List<String> executionOrder, Map<String, Object?> trace
+ bool valid, List<String> errors,@JsonKey(name: 'step_status') Map<String, String> stepStatus,@JsonKey(name: 'execution_order') List<String> executionOrder, StepSimulationTraceDto trace
 });
 
 
-
+$StepSimulationTraceDtoCopyWith<$Res> get trace;
 
 }
 /// @nodoc
@@ -65,10 +65,19 @@ as bool,errors: null == errors ? _self.errors : errors // ignore: cast_nullable_
 as List<String>,stepStatus: null == stepStatus ? _self.stepStatus : stepStatus // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,executionOrder: null == executionOrder ? _self.executionOrder : executionOrder // ignore: cast_nullable_to_non_nullable
 as List<String>,trace: null == trace ? _self.trace : trace // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,
+as StepSimulationTraceDto,
   ));
 }
-
+/// Create a copy of WorkflowSimulationResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$StepSimulationTraceDtoCopyWith<$Res> get trace {
+  
+  return $StepSimulationTraceDtoCopyWith<$Res>(_self.trace, (value) {
+    return _then(_self.copyWith(trace: value));
+  });
+}
 }
 
 
@@ -150,7 +159,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool valid,  List<String> errors, @JsonKey(name: 'step_status')  Map<String, String> stepStatus, @JsonKey(name: 'execution_order')  List<String> executionOrder,  Map<String, Object?> trace)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool valid,  List<String> errors, @JsonKey(name: 'step_status')  Map<String, String> stepStatus, @JsonKey(name: 'execution_order')  List<String> executionOrder,  StepSimulationTraceDto trace)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowSimulationResponse() when $default != null:
 return $default(_that.valid,_that.errors,_that.stepStatus,_that.executionOrder,_that.trace);case _:
@@ -171,7 +180,7 @@ return $default(_that.valid,_that.errors,_that.stepStatus,_that.executionOrder,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool valid,  List<String> errors, @JsonKey(name: 'step_status')  Map<String, String> stepStatus, @JsonKey(name: 'execution_order')  List<String> executionOrder,  Map<String, Object?> trace)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool valid,  List<String> errors, @JsonKey(name: 'step_status')  Map<String, String> stepStatus, @JsonKey(name: 'execution_order')  List<String> executionOrder,  StepSimulationTraceDto trace)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowSimulationResponse():
 return $default(_that.valid,_that.errors,_that.stepStatus,_that.executionOrder,_that.trace);case _:
@@ -191,7 +200,7 @@ return $default(_that.valid,_that.errors,_that.stepStatus,_that.executionOrder,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool valid,  List<String> errors, @JsonKey(name: 'step_status')  Map<String, String> stepStatus, @JsonKey(name: 'execution_order')  List<String> executionOrder,  Map<String, Object?> trace)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool valid,  List<String> errors, @JsonKey(name: 'step_status')  Map<String, String> stepStatus, @JsonKey(name: 'execution_order')  List<String> executionOrder,  StepSimulationTraceDto trace)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowSimulationResponse() when $default != null:
 return $default(_that.valid,_that.errors,_that.stepStatus,_that.executionOrder,_that.trace);case _:
@@ -204,9 +213,9 @@ return $default(_that.valid,_that.errors,_that.stepStatus,_that.executionOrder,_
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _WorkflowSimulationResponse implements WorkflowSimulationResponse {
-  const _WorkflowSimulationResponse({this.valid = true, final  List<String> errors = const [], @JsonKey(name: 'step_status') final  Map<String, String> stepStatus = const {}, @JsonKey(name: 'execution_order') final  List<String> executionOrder = const [], final  Map<String, Object?> trace = const {}}): _errors = errors,_stepStatus = stepStatus,_executionOrder = executionOrder,_trace = trace;
+  const _WorkflowSimulationResponse({this.valid = true, final  List<String> errors = const <String>[], @JsonKey(name: 'step_status') final  Map<String, String> stepStatus = const <String, String>{}, @JsonKey(name: 'execution_order') final  List<String> executionOrder = const <String>[], this.trace = const StepSimulationTraceDto()}): _errors = errors,_stepStatus = stepStatus,_executionOrder = executionOrder;
   factory _WorkflowSimulationResponse.fromJson(Map<String, dynamic> json) => _$WorkflowSimulationResponseFromJson(json);
 
 @override@JsonKey() final  bool valid;
@@ -231,13 +240,7 @@ class _WorkflowSimulationResponse implements WorkflowSimulationResponse {
   return EqualUnmodifiableListView(_executionOrder);
 }
 
- final  Map<String, Object?> _trace;
-@override@JsonKey() Map<String, Object?> get trace {
-  if (_trace is EqualUnmodifiableMapView) return _trace;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_trace);
-}
-
+@override@JsonKey() final  StepSimulationTraceDto trace;
 
 /// Create a copy of WorkflowSimulationResponse
 /// with the given fields replaced by the non-null parameter values.
@@ -265,11 +268,11 @@ abstract mixin class _$WorkflowSimulationResponseCopyWith<$Res> implements $Work
   factory _$WorkflowSimulationResponseCopyWith(_WorkflowSimulationResponse value, $Res Function(_WorkflowSimulationResponse) _then) = __$WorkflowSimulationResponseCopyWithImpl;
 @override @useResult
 $Res call({
- bool valid, List<String> errors,@JsonKey(name: 'step_status') Map<String, String> stepStatus,@JsonKey(name: 'execution_order') List<String> executionOrder, Map<String, Object?> trace
+ bool valid, List<String> errors,@JsonKey(name: 'step_status') Map<String, String> stepStatus,@JsonKey(name: 'execution_order') List<String> executionOrder, StepSimulationTraceDto trace
 });
 
 
-
+@override $StepSimulationTraceDtoCopyWith<$Res> get trace;
 
 }
 /// @nodoc
@@ -288,12 +291,21 @@ valid: null == valid ? _self.valid : valid // ignore: cast_nullable_to_non_nulla
 as bool,errors: null == errors ? _self._errors : errors // ignore: cast_nullable_to_non_nullable
 as List<String>,stepStatus: null == stepStatus ? _self._stepStatus : stepStatus // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,executionOrder: null == executionOrder ? _self._executionOrder : executionOrder // ignore: cast_nullable_to_non_nullable
-as List<String>,trace: null == trace ? _self._trace : trace // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>,
+as List<String>,trace: null == trace ? _self.trace : trace // ignore: cast_nullable_to_non_nullable
+as StepSimulationTraceDto,
   ));
 }
 
-
+/// Create a copy of WorkflowSimulationResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$StepSimulationTraceDtoCopyWith<$Res> get trace {
+  
+  return $StepSimulationTraceDtoCopyWith<$Res>(_self.trace, (value) {
+    return _then(_self.copyWith(trace: value));
+  });
+}
 }
 
 // dart format on

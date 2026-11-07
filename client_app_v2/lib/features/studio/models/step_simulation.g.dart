@@ -6,6 +6,52 @@ part of 'step_simulation.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_PromptContextMetaValue _$PromptContextMetaValueFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_PromptContextMetaValue',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'string_value',
+        'number_value',
+        'bool_value',
+        'string_list_value',
+      ],
+    );
+    final val = _PromptContextMetaValue(
+      stringValue: $checkedConvert('string_value', (v) => v as String?),
+      numberValue: $checkedConvert(
+        'number_value',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      boolValue: $checkedConvert('bool_value', (v) => v as bool?),
+      stringListValue: $checkedConvert(
+        'string_list_value',
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'stringValue': 'string_value',
+    'numberValue': 'number_value',
+    'boolValue': 'bool_value',
+    'stringListValue': 'string_list_value',
+  },
+);
+
+Map<String, dynamic> _$PromptContextMetaValueToJson(
+  _PromptContextMetaValue instance,
+) => <String, dynamic>{
+  'string_value': instance.stringValue,
+  'number_value': instance.numberValue,
+  'bool_value': instance.boolValue,
+  'string_list_value': instance.stringListValue,
+};
+
 _StepSimulationTraceDto _$StepSimulationTraceDtoFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -97,7 +143,7 @@ _PromptContextDto _$PromptContextDtoFromJson(
             (v as List<dynamic>?)
                 ?.map((e) => LlmMessageDto.fromJson(e as Map<String, dynamic>))
                 .toList() ??
-            const [],
+            const <LlmMessageDto>[],
       ),
       dynamicMessages: $checkedConvert(
         'dynamic_messages',
@@ -105,11 +151,18 @@ _PromptContextDto _$PromptContextDtoFromJson(
             (v as List<dynamic>?)
                 ?.map((e) => LlmMessageDto.fromJson(e as Map<String, dynamic>))
                 .toList() ??
-            const [],
+            const <LlmMessageDto>[],
       ),
       metadata: $checkedConvert(
         'metadata',
-        (v) => v as Map<String, dynamic>? ?? const {},
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(
+                k,
+                const PromptContextMetaValueConverter().fromJson(e),
+              ),
+            ) ??
+            const <String, PromptContextMetaValue>{},
       ),
     );
     return val;
@@ -125,7 +178,9 @@ Map<String, dynamic> _$PromptContextDtoToJson(
 ) => <String, dynamic>{
   'static_messages': instance.staticMessages.map((e) => e.toJson()).toList(),
   'dynamic_messages': instance.dynamicMessages.map((e) => e.toJson()).toList(),
-  'metadata': instance.metadata,
+  'metadata': instance.metadata.map(
+    (k, e) => MapEntry(k, const PromptContextMetaValueConverter().toJson(e)),
+  ),
 };
 
 _StepSimulationRequest _$StepSimulationRequestFromJson(
@@ -150,7 +205,11 @@ _StepSimulationRequest _$StepSimulationRequestFromJson(
       ),
       mockInputs: $checkedConvert(
         'mock_inputs',
-        (v) => v as Map<String, dynamic>? ?? const {},
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as String),
+            ) ??
+            const <String, String>{},
       ),
       targetLocale: $checkedConvert(
         'target_locale',
@@ -200,7 +259,8 @@ _StepSimulationResponse _$StepSimulationResponseFromJson(
       errors: $checkedConvert(
         'errors',
         (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
       ),
       renderedPrompt: $checkedConvert(
         'rendered_prompt',

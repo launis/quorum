@@ -17,7 +17,10 @@ void main() {
           'language': 'fi',
           'dynamic_inputs': <String, Object?>{
             'transcript_text': 'Sample coaching session transcript.',
-            'turn_count': 12,
+            'file_doc': <String, Object?>{
+              'filename': 'session.pdf',
+              'content_base64': 'YWJj',
+            },
           },
         };
 
@@ -27,11 +30,12 @@ void main() {
         expect(inputs.simulationMode, isTrue);
         expect(inputs.language, equals('fi'));
         expect(
-          inputs.dynamicInputs,
-          equals(<String, Object?>{
-            'transcript_text': 'Sample coaching session transcript.',
-            'turn_count': 12,
-          }),
+          inputs.dynamicInputs['transcript_text']?.textValue,
+          equals('Sample coaching session transcript.'),
+        );
+        expect(
+          inputs.dynamicInputs['file_doc']?.fileValue?.filename,
+          equals('session.pdf'),
         );
         expect(inputs.toJson(), equals(fullJson));
 

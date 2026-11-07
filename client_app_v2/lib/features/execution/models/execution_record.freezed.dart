@@ -13,9 +13,855 @@ part of 'execution_record.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$ContextVariablesDto {
+
+@JsonKey(name: 'global_atom_blackboard') String? get globalAtomBlackboard;@JsonKey(name: 'matrix_reducer_output') String? get matrixReducerOutput;@JsonKey(name: 'report_context') String? get reportContext;@JsonKey(name: 'step_detector') String? get stepDetector;@JsonKey(name: 'evaluated_matrices') String? get evaluatedMatrices; Map<String, String> get variables;
+/// Create a copy of ContextVariablesDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ContextVariablesDtoCopyWith<ContextVariablesDto> get copyWith => _$ContextVariablesDtoCopyWithImpl<ContextVariablesDto>(this as ContextVariablesDto, _$identity);
+
+  /// Serializes this ContextVariablesDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContextVariablesDto&&(identical(other.globalAtomBlackboard, globalAtomBlackboard) || other.globalAtomBlackboard == globalAtomBlackboard)&&(identical(other.matrixReducerOutput, matrixReducerOutput) || other.matrixReducerOutput == matrixReducerOutput)&&(identical(other.reportContext, reportContext) || other.reportContext == reportContext)&&(identical(other.stepDetector, stepDetector) || other.stepDetector == stepDetector)&&(identical(other.evaluatedMatrices, evaluatedMatrices) || other.evaluatedMatrices == evaluatedMatrices)&&const DeepCollectionEquality().equals(other.variables, variables));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,globalAtomBlackboard,matrixReducerOutput,reportContext,stepDetector,evaluatedMatrices,const DeepCollectionEquality().hash(variables));
+
+@override
+String toString() {
+  return 'ContextVariablesDto(globalAtomBlackboard: $globalAtomBlackboard, matrixReducerOutput: $matrixReducerOutput, reportContext: $reportContext, stepDetector: $stepDetector, evaluatedMatrices: $evaluatedMatrices, variables: $variables)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ContextVariablesDtoCopyWith<$Res>  {
+  factory $ContextVariablesDtoCopyWith(ContextVariablesDto value, $Res Function(ContextVariablesDto) _then) = _$ContextVariablesDtoCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'global_atom_blackboard') String? globalAtomBlackboard,@JsonKey(name: 'matrix_reducer_output') String? matrixReducerOutput,@JsonKey(name: 'report_context') String? reportContext,@JsonKey(name: 'step_detector') String? stepDetector,@JsonKey(name: 'evaluated_matrices') String? evaluatedMatrices, Map<String, String> variables
+});
+
+
+
+
+}
+/// @nodoc
+class _$ContextVariablesDtoCopyWithImpl<$Res>
+    implements $ContextVariablesDtoCopyWith<$Res> {
+  _$ContextVariablesDtoCopyWithImpl(this._self, this._then);
+
+  final ContextVariablesDto _self;
+  final $Res Function(ContextVariablesDto) _then;
+
+/// Create a copy of ContextVariablesDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? globalAtomBlackboard = freezed,Object? matrixReducerOutput = freezed,Object? reportContext = freezed,Object? stepDetector = freezed,Object? evaluatedMatrices = freezed,Object? variables = null,}) {
+  return _then(_self.copyWith(
+globalAtomBlackboard: freezed == globalAtomBlackboard ? _self.globalAtomBlackboard : globalAtomBlackboard // ignore: cast_nullable_to_non_nullable
+as String?,matrixReducerOutput: freezed == matrixReducerOutput ? _self.matrixReducerOutput : matrixReducerOutput // ignore: cast_nullable_to_non_nullable
+as String?,reportContext: freezed == reportContext ? _self.reportContext : reportContext // ignore: cast_nullable_to_non_nullable
+as String?,stepDetector: freezed == stepDetector ? _self.stepDetector : stepDetector // ignore: cast_nullable_to_non_nullable
+as String?,evaluatedMatrices: freezed == evaluatedMatrices ? _self.evaluatedMatrices : evaluatedMatrices // ignore: cast_nullable_to_non_nullable
+as String?,variables: null == variables ? _self.variables : variables // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ContextVariablesDto].
+extension ContextVariablesDtoPatterns on ContextVariablesDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ContextVariablesDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ContextVariablesDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ContextVariablesDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _ContextVariablesDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ContextVariablesDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ContextVariablesDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'global_atom_blackboard')  String? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  String? matrixReducerOutput, @JsonKey(name: 'report_context')  String? reportContext, @JsonKey(name: 'step_detector')  String? stepDetector, @JsonKey(name: 'evaluated_matrices')  String? evaluatedMatrices,  Map<String, String> variables)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ContextVariablesDto() when $default != null:
+return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.reportContext,_that.stepDetector,_that.evaluatedMatrices,_that.variables);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'global_atom_blackboard')  String? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  String? matrixReducerOutput, @JsonKey(name: 'report_context')  String? reportContext, @JsonKey(name: 'step_detector')  String? stepDetector, @JsonKey(name: 'evaluated_matrices')  String? evaluatedMatrices,  Map<String, String> variables)  $default,) {final _that = this;
+switch (_that) {
+case _ContextVariablesDto():
+return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.reportContext,_that.stepDetector,_that.evaluatedMatrices,_that.variables);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'global_atom_blackboard')  String? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  String? matrixReducerOutput, @JsonKey(name: 'report_context')  String? reportContext, @JsonKey(name: 'step_detector')  String? stepDetector, @JsonKey(name: 'evaluated_matrices')  String? evaluatedMatrices,  Map<String, String> variables)?  $default,) {final _that = this;
+switch (_that) {
+case _ContextVariablesDto() when $default != null:
+return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.reportContext,_that.stepDetector,_that.evaluatedMatrices,_that.variables);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _ContextVariablesDto extends ContextVariablesDto {
+  const _ContextVariablesDto({@JsonKey(name: 'global_atom_blackboard') this.globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output') this.matrixReducerOutput, @JsonKey(name: 'report_context') this.reportContext, @JsonKey(name: 'step_detector') this.stepDetector, @JsonKey(name: 'evaluated_matrices') this.evaluatedMatrices, final  Map<String, String> variables = const <String, String>{}}): _variables = variables,super._();
+  factory _ContextVariablesDto.fromJson(Map<String, dynamic> json) => _$ContextVariablesDtoFromJson(json);
+
+@override@JsonKey(name: 'global_atom_blackboard') final  String? globalAtomBlackboard;
+@override@JsonKey(name: 'matrix_reducer_output') final  String? matrixReducerOutput;
+@override@JsonKey(name: 'report_context') final  String? reportContext;
+@override@JsonKey(name: 'step_detector') final  String? stepDetector;
+@override@JsonKey(name: 'evaluated_matrices') final  String? evaluatedMatrices;
+ final  Map<String, String> _variables;
+@override@JsonKey() Map<String, String> get variables {
+  if (_variables is EqualUnmodifiableMapView) return _variables;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_variables);
+}
+
+
+/// Create a copy of ContextVariablesDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ContextVariablesDtoCopyWith<_ContextVariablesDto> get copyWith => __$ContextVariablesDtoCopyWithImpl<_ContextVariablesDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ContextVariablesDtoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ContextVariablesDto&&(identical(other.globalAtomBlackboard, globalAtomBlackboard) || other.globalAtomBlackboard == globalAtomBlackboard)&&(identical(other.matrixReducerOutput, matrixReducerOutput) || other.matrixReducerOutput == matrixReducerOutput)&&(identical(other.reportContext, reportContext) || other.reportContext == reportContext)&&(identical(other.stepDetector, stepDetector) || other.stepDetector == stepDetector)&&(identical(other.evaluatedMatrices, evaluatedMatrices) || other.evaluatedMatrices == evaluatedMatrices)&&const DeepCollectionEquality().equals(other._variables, _variables));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,globalAtomBlackboard,matrixReducerOutput,reportContext,stepDetector,evaluatedMatrices,const DeepCollectionEquality().hash(_variables));
+
+@override
+String toString() {
+  return 'ContextVariablesDto(globalAtomBlackboard: $globalAtomBlackboard, matrixReducerOutput: $matrixReducerOutput, reportContext: $reportContext, stepDetector: $stepDetector, evaluatedMatrices: $evaluatedMatrices, variables: $variables)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ContextVariablesDtoCopyWith<$Res> implements $ContextVariablesDtoCopyWith<$Res> {
+  factory _$ContextVariablesDtoCopyWith(_ContextVariablesDto value, $Res Function(_ContextVariablesDto) _then) = __$ContextVariablesDtoCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'global_atom_blackboard') String? globalAtomBlackboard,@JsonKey(name: 'matrix_reducer_output') String? matrixReducerOutput,@JsonKey(name: 'report_context') String? reportContext,@JsonKey(name: 'step_detector') String? stepDetector,@JsonKey(name: 'evaluated_matrices') String? evaluatedMatrices, Map<String, String> variables
+});
+
+
+
+
+}
+/// @nodoc
+class __$ContextVariablesDtoCopyWithImpl<$Res>
+    implements _$ContextVariablesDtoCopyWith<$Res> {
+  __$ContextVariablesDtoCopyWithImpl(this._self, this._then);
+
+  final _ContextVariablesDto _self;
+  final $Res Function(_ContextVariablesDto) _then;
+
+/// Create a copy of ContextVariablesDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? globalAtomBlackboard = freezed,Object? matrixReducerOutput = freezed,Object? reportContext = freezed,Object? stepDetector = freezed,Object? evaluatedMatrices = freezed,Object? variables = null,}) {
+  return _then(_ContextVariablesDto(
+globalAtomBlackboard: freezed == globalAtomBlackboard ? _self.globalAtomBlackboard : globalAtomBlackboard // ignore: cast_nullable_to_non_nullable
+as String?,matrixReducerOutput: freezed == matrixReducerOutput ? _self.matrixReducerOutput : matrixReducerOutput // ignore: cast_nullable_to_non_nullable
+as String?,reportContext: freezed == reportContext ? _self.reportContext : reportContext // ignore: cast_nullable_to_non_nullable
+as String?,stepDetector: freezed == stepDetector ? _self.stepDetector : stepDetector // ignore: cast_nullable_to_non_nullable
+as String?,evaluatedMatrices: freezed == evaluatedMatrices ? _self.evaluatedMatrices : evaluatedMatrices // ignore: cast_nullable_to_non_nullable
+as String?,variables: null == variables ? _self._variables : variables // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ExecutionTraceItemDto {
+
+ String? get event;@JsonKey(name: 'step_id') String? get stepId; String? get status;@JsonKey(name: 'duration_ms') int? get durationMs; String? get detail;
+/// Create a copy of ExecutionTraceItemDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ExecutionTraceItemDtoCopyWith<ExecutionTraceItemDto> get copyWith => _$ExecutionTraceItemDtoCopyWithImpl<ExecutionTraceItemDto>(this as ExecutionTraceItemDto, _$identity);
+
+  /// Serializes this ExecutionTraceItemDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionTraceItemDto&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,event,stepId,status,durationMs,detail);
+
+@override
+String toString() {
+  return 'ExecutionTraceItemDto(event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ExecutionTraceItemDtoCopyWith<$Res>  {
+  factory $ExecutionTraceItemDtoCopyWith(ExecutionTraceItemDto value, $Res Function(ExecutionTraceItemDto) _then) = _$ExecutionTraceItemDtoCopyWithImpl;
+@useResult
+$Res call({
+ String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail
+});
+
+
+
+
+}
+/// @nodoc
+class _$ExecutionTraceItemDtoCopyWithImpl<$Res>
+    implements $ExecutionTraceItemDtoCopyWith<$Res> {
+  _$ExecutionTraceItemDtoCopyWithImpl(this._self, this._then);
+
+  final ExecutionTraceItemDto _self;
+  final $Res Function(ExecutionTraceItemDto) _then;
+
+/// Create a copy of ExecutionTraceItemDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,}) {
+  return _then(_self.copyWith(
+event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
+as String?,stepId: freezed == stepId ? _self.stepId : stepId // ignore: cast_nullable_to_non_nullable
+as String?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String?,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int?,detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ExecutionTraceItemDto].
+extension ExecutionTraceItemDtoPatterns on ExecutionTraceItemDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ExecutionTraceItemDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ExecutionTraceItemDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ExecutionTraceItemDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _ExecutionTraceItemDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ExecutionTraceItemDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ExecutionTraceItemDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ExecutionTraceItemDto() when $default != null:
+return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail)  $default,) {final _that = this;
+switch (_that) {
+case _ExecutionTraceItemDto():
+return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail)?  $default,) {final _that = this;
+switch (_that) {
+case _ExecutionTraceItemDto() when $default != null:
+return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _ExecutionTraceItemDto extends ExecutionTraceItemDto {
+  const _ExecutionTraceItemDto({this.event, @JsonKey(name: 'step_id') this.stepId, this.status, @JsonKey(name: 'duration_ms') this.durationMs, this.detail}): super._();
+  factory _ExecutionTraceItemDto.fromJson(Map<String, dynamic> json) => _$ExecutionTraceItemDtoFromJson(json);
+
+@override final  String? event;
+@override@JsonKey(name: 'step_id') final  String? stepId;
+@override final  String? status;
+@override@JsonKey(name: 'duration_ms') final  int? durationMs;
+@override final  String? detail;
+
+/// Create a copy of ExecutionTraceItemDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ExecutionTraceItemDtoCopyWith<_ExecutionTraceItemDto> get copyWith => __$ExecutionTraceItemDtoCopyWithImpl<_ExecutionTraceItemDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ExecutionTraceItemDtoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionTraceItemDto&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,event,stepId,status,durationMs,detail);
+
+@override
+String toString() {
+  return 'ExecutionTraceItemDto(event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ExecutionTraceItemDtoCopyWith<$Res> implements $ExecutionTraceItemDtoCopyWith<$Res> {
+  factory _$ExecutionTraceItemDtoCopyWith(_ExecutionTraceItemDto value, $Res Function(_ExecutionTraceItemDto) _then) = __$ExecutionTraceItemDtoCopyWithImpl;
+@override @useResult
+$Res call({
+ String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail
+});
+
+
+
+
+}
+/// @nodoc
+class __$ExecutionTraceItemDtoCopyWithImpl<$Res>
+    implements _$ExecutionTraceItemDtoCopyWith<$Res> {
+  __$ExecutionTraceItemDtoCopyWithImpl(this._self, this._then);
+
+  final _ExecutionTraceItemDto _self;
+  final $Res Function(_ExecutionTraceItemDto) _then;
+
+/// Create a copy of ExecutionTraceItemDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,}) {
+  return _then(_ExecutionTraceItemDto(
+event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
+as String?,stepId: freezed == stepId ? _self.stepId : stepId // ignore: cast_nullable_to_non_nullable
+as String?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String?,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int?,detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ProfileSynthesisEntryDto {
+
+ bool get cached;@JsonKey(name: 'variance_explanation') String? get varianceExplanation;@JsonKey(name: 'authenticity_explanation') String? get authenticityExplanation;@JsonKey(name: 'cited_sources') List<String> get citedSources;@JsonKey(name: 'user_role') String? get userRole;@JsonKey(name: 'user_role_justification') String? get userRoleJustification;@JsonKey(name: 'created_at') String? get createdAt;
+/// Create a copy of ProfileSynthesisEntryDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProfileSynthesisEntryDtoCopyWith<ProfileSynthesisEntryDto> get copyWith => _$ProfileSynthesisEntryDtoCopyWithImpl<ProfileSynthesisEntryDto>(this as ProfileSynthesisEntryDto, _$identity);
+
+  /// Serializes this ProfileSynthesisEntryDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProfileSynthesisEntryDto&&(identical(other.cached, cached) || other.cached == cached)&&(identical(other.varianceExplanation, varianceExplanation) || other.varianceExplanation == varianceExplanation)&&(identical(other.authenticityExplanation, authenticityExplanation) || other.authenticityExplanation == authenticityExplanation)&&const DeepCollectionEquality().equals(other.citedSources, citedSources)&&(identical(other.userRole, userRole) || other.userRole == userRole)&&(identical(other.userRoleJustification, userRoleJustification) || other.userRoleJustification == userRoleJustification)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,cached,varianceExplanation,authenticityExplanation,const DeepCollectionEquality().hash(citedSources),userRole,userRoleJustification,createdAt);
+
+@override
+String toString() {
+  return 'ProfileSynthesisEntryDto(cached: $cached, varianceExplanation: $varianceExplanation, authenticityExplanation: $authenticityExplanation, citedSources: $citedSources, userRole: $userRole, userRoleJustification: $userRoleJustification, createdAt: $createdAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProfileSynthesisEntryDtoCopyWith<$Res>  {
+  factory $ProfileSynthesisEntryDtoCopyWith(ProfileSynthesisEntryDto value, $Res Function(ProfileSynthesisEntryDto) _then) = _$ProfileSynthesisEntryDtoCopyWithImpl;
+@useResult
+$Res call({
+ bool cached,@JsonKey(name: 'variance_explanation') String? varianceExplanation,@JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,@JsonKey(name: 'cited_sources') List<String> citedSources,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification,@JsonKey(name: 'created_at') String? createdAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProfileSynthesisEntryDtoCopyWithImpl<$Res>
+    implements $ProfileSynthesisEntryDtoCopyWith<$Res> {
+  _$ProfileSynthesisEntryDtoCopyWithImpl(this._self, this._then);
+
+  final ProfileSynthesisEntryDto _self;
+  final $Res Function(ProfileSynthesisEntryDto) _then;
+
+/// Create a copy of ProfileSynthesisEntryDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? cached = null,Object? varianceExplanation = freezed,Object? authenticityExplanation = freezed,Object? citedSources = null,Object? userRole = freezed,Object? userRoleJustification = freezed,Object? createdAt = freezed,}) {
+  return _then(_self.copyWith(
+cached: null == cached ? _self.cached : cached // ignore: cast_nullable_to_non_nullable
+as bool,varianceExplanation: freezed == varianceExplanation ? _self.varianceExplanation : varianceExplanation // ignore: cast_nullable_to_non_nullable
+as String?,authenticityExplanation: freezed == authenticityExplanation ? _self.authenticityExplanation : authenticityExplanation // ignore: cast_nullable_to_non_nullable
+as String?,citedSources: null == citedSources ? _self.citedSources : citedSources // ignore: cast_nullable_to_non_nullable
+as List<String>,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
+as String?,userRoleJustification: freezed == userRoleJustification ? _self.userRoleJustification : userRoleJustification // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ProfileSynthesisEntryDto].
+extension ProfileSynthesisEntryDtoPatterns on ProfileSynthesisEntryDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProfileSynthesisEntryDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProfileSynthesisEntryDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProfileSynthesisEntryDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProfileSynthesisEntryDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProfileSynthesisEntryDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProfileSynthesisEntryDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool cached, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'created_at')  String? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProfileSynthesisEntryDto() when $default != null:
+return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.userRole,_that.userRoleJustification,_that.createdAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool cached, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'created_at')  String? createdAt)  $default,) {final _that = this;
+switch (_that) {
+case _ProfileSynthesisEntryDto():
+return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.userRole,_that.userRoleJustification,_that.createdAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool cached, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'created_at')  String? createdAt)?  $default,) {final _that = this;
+switch (_that) {
+case _ProfileSynthesisEntryDto() when $default != null:
+return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.userRole,_that.userRoleJustification,_that.createdAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _ProfileSynthesisEntryDto extends ProfileSynthesisEntryDto {
+  const _ProfileSynthesisEntryDto({this.cached = false, @JsonKey(name: 'variance_explanation') this.varianceExplanation, @JsonKey(name: 'authenticity_explanation') this.authenticityExplanation, @JsonKey(name: 'cited_sources') final  List<String> citedSources = const <String>[], @JsonKey(name: 'user_role') this.userRole, @JsonKey(name: 'user_role_justification') this.userRoleJustification, @JsonKey(name: 'created_at') this.createdAt}): _citedSources = citedSources,super._();
+  factory _ProfileSynthesisEntryDto.fromJson(Map<String, dynamic> json) => _$ProfileSynthesisEntryDtoFromJson(json);
+
+@override@JsonKey() final  bool cached;
+@override@JsonKey(name: 'variance_explanation') final  String? varianceExplanation;
+@override@JsonKey(name: 'authenticity_explanation') final  String? authenticityExplanation;
+ final  List<String> _citedSources;
+@override@JsonKey(name: 'cited_sources') List<String> get citedSources {
+  if (_citedSources is EqualUnmodifiableListView) return _citedSources;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_citedSources);
+}
+
+@override@JsonKey(name: 'user_role') final  String? userRole;
+@override@JsonKey(name: 'user_role_justification') final  String? userRoleJustification;
+@override@JsonKey(name: 'created_at') final  String? createdAt;
+
+/// Create a copy of ProfileSynthesisEntryDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProfileSynthesisEntryDtoCopyWith<_ProfileSynthesisEntryDto> get copyWith => __$ProfileSynthesisEntryDtoCopyWithImpl<_ProfileSynthesisEntryDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProfileSynthesisEntryDtoToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProfileSynthesisEntryDto&&(identical(other.cached, cached) || other.cached == cached)&&(identical(other.varianceExplanation, varianceExplanation) || other.varianceExplanation == varianceExplanation)&&(identical(other.authenticityExplanation, authenticityExplanation) || other.authenticityExplanation == authenticityExplanation)&&const DeepCollectionEquality().equals(other._citedSources, _citedSources)&&(identical(other.userRole, userRole) || other.userRole == userRole)&&(identical(other.userRoleJustification, userRoleJustification) || other.userRoleJustification == userRoleJustification)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,cached,varianceExplanation,authenticityExplanation,const DeepCollectionEquality().hash(_citedSources),userRole,userRoleJustification,createdAt);
+
+@override
+String toString() {
+  return 'ProfileSynthesisEntryDto(cached: $cached, varianceExplanation: $varianceExplanation, authenticityExplanation: $authenticityExplanation, citedSources: $citedSources, userRole: $userRole, userRoleJustification: $userRoleJustification, createdAt: $createdAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProfileSynthesisEntryDtoCopyWith<$Res> implements $ProfileSynthesisEntryDtoCopyWith<$Res> {
+  factory _$ProfileSynthesisEntryDtoCopyWith(_ProfileSynthesisEntryDto value, $Res Function(_ProfileSynthesisEntryDto) _then) = __$ProfileSynthesisEntryDtoCopyWithImpl;
+@override @useResult
+$Res call({
+ bool cached,@JsonKey(name: 'variance_explanation') String? varianceExplanation,@JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,@JsonKey(name: 'cited_sources') List<String> citedSources,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification,@JsonKey(name: 'created_at') String? createdAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProfileSynthesisEntryDtoCopyWithImpl<$Res>
+    implements _$ProfileSynthesisEntryDtoCopyWith<$Res> {
+  __$ProfileSynthesisEntryDtoCopyWithImpl(this._self, this._then);
+
+  final _ProfileSynthesisEntryDto _self;
+  final $Res Function(_ProfileSynthesisEntryDto) _then;
+
+/// Create a copy of ProfileSynthesisEntryDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? cached = null,Object? varianceExplanation = freezed,Object? authenticityExplanation = freezed,Object? citedSources = null,Object? userRole = freezed,Object? userRoleJustification = freezed,Object? createdAt = freezed,}) {
+  return _then(_ProfileSynthesisEntryDto(
+cached: null == cached ? _self.cached : cached // ignore: cast_nullable_to_non_nullable
+as bool,varianceExplanation: freezed == varianceExplanation ? _self.varianceExplanation : varianceExplanation // ignore: cast_nullable_to_non_nullable
+as String?,authenticityExplanation: freezed == authenticityExplanation ? _self.authenticityExplanation : authenticityExplanation // ignore: cast_nullable_to_non_nullable
+as String?,citedSources: null == citedSources ? _self._citedSources : citedSources // ignore: cast_nullable_to_non_nullable
+as List<String>,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
+as String?,userRoleJustification: freezed == userRoleJustification ? _self.userRoleJustification : userRoleJustification // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ExecutionRecord {
 
- String get id;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(fromJson: _statusFromJson) String get status;@JsonKey(name: 'workflow_version') int get workflowVersion;@JsonKey(name: 'state_version') int get stateVersion;@JsonKey(name: 'active_profile_id') String? get activeProfileId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'raw_inputs') WorkflowInputs? get rawInputs;@JsonKey(name: 'duration_ms') int? get durationMs;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'prompt_tokens') int get promptTokens;@JsonKey(name: 'completion_tokens') int get completionTokens;@JsonKey(name: 'cached_tokens') int get cachedTokens;@JsonKey(name: 'reasoning_tokens') int get reasoningTokens;@JsonKey(name: 'dag_cost_usd') double get dagCostUsd;@JsonKey(name: 'cumulative_synthesis_tokens') int? get cumulativeSynthesisTokens;@JsonKey(name: 'cumulative_synthesis_cost') double? get cumulativeSynthesisCost;@JsonKey(name: 'models_used') Map<String, int>? get modelsUsed;@JsonKey(name: 'execution_summary') ExecutionSummarySnapshot? get executionSummary;@JsonKey(name: 'metadata') ExecutionMetadata? get metadata;@JsonKey(name: 'error') String? get error;@JsonKey(name: 'is_resumable') bool? get isResumable;@JsonKey(name: 'frozen_context') FrozenContextSnapshot? get frozenContext;@JsonKey(name: 'frozen_context_storage_path') String? get frozenContextStoragePath;@JsonKey(name: 'context_variables') Map<String, Object?>? get contextVariables;@JsonKey(name: 'context_variables_storage_path') String? get contextVariablesStoragePath;@JsonKey(name: 'execution_trace') List<Map<String, Object?>>? get executionTrace;@JsonKey(name: 'execution_trace_storage_path') String? get executionTraceStoragePath;@JsonKey(name: 'pdf_report_path') String? get pdfReportPath;@JsonKey(name: 'source_identity_manifest') Map<String, String>? get sourceIdentityManifest;@JsonKey(name: 'steps') List<ExecutionStep> get steps;@JsonKey(name: 'step_states') Map<String, ExecutionStep>? get stepStates;@JsonKey(name: 'profile_syntheses') Map<String, Object?>? get profileSyntheses;@JsonKey(name: 'progress') int? get progress;@JsonKey(name: 'status_message') String? get statusMessage;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'updated_at') String? get updatedAt;@JsonKey(name: 'completed_at') String? get completedAt;@JsonKey(name: 'created_by') String? get createdBy;@JsonKey(name: 'organization_id') String? get organizationId;
+ String get id;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(fromJson: _statusFromJson) String get status;@JsonKey(name: 'workflow_version') int get workflowVersion;@JsonKey(name: 'state_version') int get stateVersion;@JsonKey(name: 'active_profile_id') String? get activeProfileId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'raw_inputs') WorkflowInputs? get rawInputs;@JsonKey(name: 'duration_ms') int? get durationMs;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'prompt_tokens') int get promptTokens;@JsonKey(name: 'completion_tokens') int get completionTokens;@JsonKey(name: 'cached_tokens') int get cachedTokens;@JsonKey(name: 'reasoning_tokens') int get reasoningTokens;@JsonKey(name: 'dag_cost_usd') double get dagCostUsd;@JsonKey(name: 'cumulative_synthesis_tokens') int? get cumulativeSynthesisTokens;@JsonKey(name: 'cumulative_synthesis_cost') double? get cumulativeSynthesisCost;@JsonKey(name: 'models_used') Map<String, int>? get modelsUsed;@JsonKey(name: 'execution_summary') ExecutionSummarySnapshot? get executionSummary;@JsonKey(name: 'metadata') ExecutionMetadata? get metadata;@JsonKey(name: 'error') String? get error;@JsonKey(name: 'is_resumable') bool? get isResumable;@JsonKey(name: 'frozen_context') FrozenContextSnapshot? get frozenContext;@JsonKey(name: 'frozen_context_storage_path') String? get frozenContextStoragePath;@JsonKey(name: 'context_variables') ContextVariablesDto? get contextVariables;@JsonKey(name: 'context_variables_storage_path') String? get contextVariablesStoragePath;@JsonKey(name: 'execution_trace') List<ExecutionTraceItemDto>? get executionTrace;@JsonKey(name: 'execution_trace_storage_path') String? get executionTraceStoragePath;@JsonKey(name: 'pdf_report_path') String? get pdfReportPath;@JsonKey(name: 'source_identity_manifest') Map<String, String>? get sourceIdentityManifest;@JsonKey(name: 'steps') List<ExecutionStep> get steps;@JsonKey(name: 'step_states') Map<String, ExecutionStep>? get stepStates;@JsonKey(name: 'profile_syntheses') Map<String, ProfileSynthesisEntryDto>? get profileSyntheses;@JsonKey(name: 'progress') int? get progress;@JsonKey(name: 'status_message') String? get statusMessage;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'updated_at') String? get updatedAt;@JsonKey(name: 'completed_at') String? get completedAt;@JsonKey(name: 'created_by') String? get createdBy;@JsonKey(name: 'organization_id') String? get organizationId;
 /// Create a copy of ExecutionRecord
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,11 +887,11 @@ abstract mixin class $ExecutionRecordCopyWith<$Res>  {
   factory $ExecutionRecordCopyWith(ExecutionRecord value, $Res Function(ExecutionRecord) _then) = _$ExecutionRecordCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'state_version') int stateVersion,@JsonKey(name: 'active_profile_id') String? activeProfileId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'raw_inputs') WorkflowInputs? rawInputs,@JsonKey(name: 'duration_ms') int? durationMs,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'dag_cost_usd') double dagCostUsd,@JsonKey(name: 'cumulative_synthesis_tokens') int? cumulativeSynthesisTokens,@JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,@JsonKey(name: 'models_used') Map<String, int>? modelsUsed,@JsonKey(name: 'execution_summary') ExecutionSummarySnapshot? executionSummary,@JsonKey(name: 'metadata') ExecutionMetadata? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') FrozenContextSnapshot? frozenContext,@JsonKey(name: 'frozen_context_storage_path') String? frozenContextStoragePath,@JsonKey(name: 'context_variables') Map<String, Object?>? contextVariables,@JsonKey(name: 'context_variables_storage_path') String? contextVariablesStoragePath,@JsonKey(name: 'execution_trace') List<Map<String, Object?>>? executionTrace,@JsonKey(name: 'execution_trace_storage_path') String? executionTraceStoragePath,@JsonKey(name: 'pdf_report_path') String? pdfReportPath,@JsonKey(name: 'source_identity_manifest') Map<String, String>? sourceIdentityManifest,@JsonKey(name: 'steps') List<ExecutionStep> steps,@JsonKey(name: 'step_states') Map<String, ExecutionStep>? stepStates,@JsonKey(name: 'profile_syntheses') Map<String, Object?>? profileSyntheses,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'updated_at') String? updatedAt,@JsonKey(name: 'completed_at') String? completedAt,@JsonKey(name: 'created_by') String? createdBy,@JsonKey(name: 'organization_id') String? organizationId
+ String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'state_version') int stateVersion,@JsonKey(name: 'active_profile_id') String? activeProfileId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'raw_inputs') WorkflowInputs? rawInputs,@JsonKey(name: 'duration_ms') int? durationMs,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'dag_cost_usd') double dagCostUsd,@JsonKey(name: 'cumulative_synthesis_tokens') int? cumulativeSynthesisTokens,@JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,@JsonKey(name: 'models_used') Map<String, int>? modelsUsed,@JsonKey(name: 'execution_summary') ExecutionSummarySnapshot? executionSummary,@JsonKey(name: 'metadata') ExecutionMetadata? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') FrozenContextSnapshot? frozenContext,@JsonKey(name: 'frozen_context_storage_path') String? frozenContextStoragePath,@JsonKey(name: 'context_variables') ContextVariablesDto? contextVariables,@JsonKey(name: 'context_variables_storage_path') String? contextVariablesStoragePath,@JsonKey(name: 'execution_trace') List<ExecutionTraceItemDto>? executionTrace,@JsonKey(name: 'execution_trace_storage_path') String? executionTraceStoragePath,@JsonKey(name: 'pdf_report_path') String? pdfReportPath,@JsonKey(name: 'source_identity_manifest') Map<String, String>? sourceIdentityManifest,@JsonKey(name: 'steps') List<ExecutionStep> steps,@JsonKey(name: 'step_states') Map<String, ExecutionStep>? stepStates,@JsonKey(name: 'profile_syntheses') Map<String, ProfileSynthesisEntryDto>? profileSyntheses,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'updated_at') String? updatedAt,@JsonKey(name: 'completed_at') String? completedAt,@JsonKey(name: 'created_by') String? createdBy,@JsonKey(name: 'organization_id') String? organizationId
 });
 
 
-$WorkflowInputsCopyWith<$Res>? get rawInputs;$ExecutionSummarySnapshotCopyWith<$Res>? get executionSummary;$ExecutionMetadataCopyWith<$Res>? get metadata;$FrozenContextSnapshotCopyWith<$Res>? get frozenContext;
+$WorkflowInputsCopyWith<$Res>? get rawInputs;$ExecutionSummarySnapshotCopyWith<$Res>? get executionSummary;$ExecutionMetadataCopyWith<$Res>? get metadata;$FrozenContextSnapshotCopyWith<$Res>? get frozenContext;$ContextVariablesDtoCopyWith<$Res>? get contextVariables;
 
 }
 /// @nodoc
@@ -86,15 +932,15 @@ as String?,isResumable: freezed == isResumable ? _self.isResumable : isResumable
 as bool?,frozenContext: freezed == frozenContext ? _self.frozenContext : frozenContext // ignore: cast_nullable_to_non_nullable
 as FrozenContextSnapshot?,frozenContextStoragePath: freezed == frozenContextStoragePath ? _self.frozenContextStoragePath : frozenContextStoragePath // ignore: cast_nullable_to_non_nullable
 as String?,contextVariables: freezed == contextVariables ? _self.contextVariables : contextVariables // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>?,contextVariablesStoragePath: freezed == contextVariablesStoragePath ? _self.contextVariablesStoragePath : contextVariablesStoragePath // ignore: cast_nullable_to_non_nullable
+as ContextVariablesDto?,contextVariablesStoragePath: freezed == contextVariablesStoragePath ? _self.contextVariablesStoragePath : contextVariablesStoragePath // ignore: cast_nullable_to_non_nullable
 as String?,executionTrace: freezed == executionTrace ? _self.executionTrace : executionTrace // ignore: cast_nullable_to_non_nullable
-as List<Map<String, Object?>>?,executionTraceStoragePath: freezed == executionTraceStoragePath ? _self.executionTraceStoragePath : executionTraceStoragePath // ignore: cast_nullable_to_non_nullable
+as List<ExecutionTraceItemDto>?,executionTraceStoragePath: freezed == executionTraceStoragePath ? _self.executionTraceStoragePath : executionTraceStoragePath // ignore: cast_nullable_to_non_nullable
 as String?,pdfReportPath: freezed == pdfReportPath ? _self.pdfReportPath : pdfReportPath // ignore: cast_nullable_to_non_nullable
 as String?,sourceIdentityManifest: freezed == sourceIdentityManifest ? _self.sourceIdentityManifest : sourceIdentityManifest // ignore: cast_nullable_to_non_nullable
 as Map<String, String>?,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
 as List<ExecutionStep>,stepStates: freezed == stepStates ? _self.stepStates : stepStates // ignore: cast_nullable_to_non_nullable
 as Map<String, ExecutionStep>?,profileSyntheses: freezed == profileSyntheses ? _self.profileSyntheses : profileSyntheses // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>?,progress: freezed == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
+as Map<String, ProfileSynthesisEntryDto>?,progress: freezed == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as int?,statusMessage: freezed == statusMessage ? _self.statusMessage : statusMessage // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -151,6 +997,18 @@ $FrozenContextSnapshotCopyWith<$Res>? get frozenContext {
 
   return $FrozenContextSnapshotCopyWith<$Res>(_self.frozenContext!, (value) {
     return _then(_self.copyWith(frozenContext: value));
+  });
+}/// Create a copy of ExecutionRecord
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ContextVariablesDtoCopyWith<$Res>? get contextVariables {
+    if (_self.contextVariables == null) {
+    return null;
+  }
+
+  return $ContextVariablesDtoCopyWith<$Res>(_self.contextVariables!, (value) {
+    return _then(_self.copyWith(contextVariables: value));
   });
 }
 }
@@ -234,7 +1092,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'state_version')  int stateVersion, @JsonKey(name: 'active_profile_id')  String? activeProfileId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'raw_inputs')  WorkflowInputs? rawInputs, @JsonKey(name: 'duration_ms')  int? durationMs, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'dag_cost_usd')  double dagCostUsd, @JsonKey(name: 'cumulative_synthesis_tokens')  int? cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost')  double? cumulativeSynthesisCost, @JsonKey(name: 'models_used')  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary')  ExecutionSummarySnapshot? executionSummary, @JsonKey(name: 'metadata')  ExecutionMetadata? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  FrozenContextSnapshot? frozenContext, @JsonKey(name: 'frozen_context_storage_path')  String? frozenContextStoragePath, @JsonKey(name: 'context_variables')  Map<String, Object?>? contextVariables, @JsonKey(name: 'context_variables_storage_path')  String? contextVariablesStoragePath, @JsonKey(name: 'execution_trace')  List<Map<String, Object?>>? executionTrace, @JsonKey(name: 'execution_trace_storage_path')  String? executionTraceStoragePath, @JsonKey(name: 'pdf_report_path')  String? pdfReportPath, @JsonKey(name: 'source_identity_manifest')  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps')  List<ExecutionStep> steps, @JsonKey(name: 'step_states')  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses')  Map<String, Object?>? profileSyntheses, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'completed_at')  String? completedAt, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'state_version')  int stateVersion, @JsonKey(name: 'active_profile_id')  String? activeProfileId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'raw_inputs')  WorkflowInputs? rawInputs, @JsonKey(name: 'duration_ms')  int? durationMs, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'dag_cost_usd')  double dagCostUsd, @JsonKey(name: 'cumulative_synthesis_tokens')  int? cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost')  double? cumulativeSynthesisCost, @JsonKey(name: 'models_used')  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary')  ExecutionSummarySnapshot? executionSummary, @JsonKey(name: 'metadata')  ExecutionMetadata? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  FrozenContextSnapshot? frozenContext, @JsonKey(name: 'frozen_context_storage_path')  String? frozenContextStoragePath, @JsonKey(name: 'context_variables')  ContextVariablesDto? contextVariables, @JsonKey(name: 'context_variables_storage_path')  String? contextVariablesStoragePath, @JsonKey(name: 'execution_trace')  List<ExecutionTraceItemDto>? executionTrace, @JsonKey(name: 'execution_trace_storage_path')  String? executionTraceStoragePath, @JsonKey(name: 'pdf_report_path')  String? pdfReportPath, @JsonKey(name: 'source_identity_manifest')  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps')  List<ExecutionStep> steps, @JsonKey(name: 'step_states')  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses')  Map<String, ProfileSynthesisEntryDto>? profileSyntheses, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'completed_at')  String? completedAt, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionRecord() when $default != null:
 return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.workflowVersion,_that.stateVersion,_that.activeProfileId,_that.outputProfileId,_that.rawInputs,_that.durationMs,_that.costEstimate,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.dagCostUsd,_that.cumulativeSynthesisTokens,_that.cumulativeSynthesisCost,_that.modelsUsed,_that.executionSummary,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.frozenContextStoragePath,_that.contextVariables,_that.contextVariablesStoragePath,_that.executionTrace,_that.executionTraceStoragePath,_that.pdfReportPath,_that.sourceIdentityManifest,_that.steps,_that.stepStates,_that.profileSyntheses,_that.progress,_that.statusMessage,_that.createdAt,_that.updatedAt,_that.completedAt,_that.createdBy,_that.organizationId);case _:
@@ -255,7 +1113,7 @@ return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'state_version')  int stateVersion, @JsonKey(name: 'active_profile_id')  String? activeProfileId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'raw_inputs')  WorkflowInputs? rawInputs, @JsonKey(name: 'duration_ms')  int? durationMs, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'dag_cost_usd')  double dagCostUsd, @JsonKey(name: 'cumulative_synthesis_tokens')  int? cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost')  double? cumulativeSynthesisCost, @JsonKey(name: 'models_used')  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary')  ExecutionSummarySnapshot? executionSummary, @JsonKey(name: 'metadata')  ExecutionMetadata? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  FrozenContextSnapshot? frozenContext, @JsonKey(name: 'frozen_context_storage_path')  String? frozenContextStoragePath, @JsonKey(name: 'context_variables')  Map<String, Object?>? contextVariables, @JsonKey(name: 'context_variables_storage_path')  String? contextVariablesStoragePath, @JsonKey(name: 'execution_trace')  List<Map<String, Object?>>? executionTrace, @JsonKey(name: 'execution_trace_storage_path')  String? executionTraceStoragePath, @JsonKey(name: 'pdf_report_path')  String? pdfReportPath, @JsonKey(name: 'source_identity_manifest')  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps')  List<ExecutionStep> steps, @JsonKey(name: 'step_states')  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses')  Map<String, Object?>? profileSyntheses, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'completed_at')  String? completedAt, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'organization_id')  String? organizationId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'state_version')  int stateVersion, @JsonKey(name: 'active_profile_id')  String? activeProfileId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'raw_inputs')  WorkflowInputs? rawInputs, @JsonKey(name: 'duration_ms')  int? durationMs, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'dag_cost_usd')  double dagCostUsd, @JsonKey(name: 'cumulative_synthesis_tokens')  int? cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost')  double? cumulativeSynthesisCost, @JsonKey(name: 'models_used')  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary')  ExecutionSummarySnapshot? executionSummary, @JsonKey(name: 'metadata')  ExecutionMetadata? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  FrozenContextSnapshot? frozenContext, @JsonKey(name: 'frozen_context_storage_path')  String? frozenContextStoragePath, @JsonKey(name: 'context_variables')  ContextVariablesDto? contextVariables, @JsonKey(name: 'context_variables_storage_path')  String? contextVariablesStoragePath, @JsonKey(name: 'execution_trace')  List<ExecutionTraceItemDto>? executionTrace, @JsonKey(name: 'execution_trace_storage_path')  String? executionTraceStoragePath, @JsonKey(name: 'pdf_report_path')  String? pdfReportPath, @JsonKey(name: 'source_identity_manifest')  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps')  List<ExecutionStep> steps, @JsonKey(name: 'step_states')  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses')  Map<String, ProfileSynthesisEntryDto>? profileSyntheses, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'completed_at')  String? completedAt, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'organization_id')  String? organizationId)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionRecord():
 return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.workflowVersion,_that.stateVersion,_that.activeProfileId,_that.outputProfileId,_that.rawInputs,_that.durationMs,_that.costEstimate,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.dagCostUsd,_that.cumulativeSynthesisTokens,_that.cumulativeSynthesisCost,_that.modelsUsed,_that.executionSummary,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.frozenContextStoragePath,_that.contextVariables,_that.contextVariablesStoragePath,_that.executionTrace,_that.executionTraceStoragePath,_that.pdfReportPath,_that.sourceIdentityManifest,_that.steps,_that.stepStates,_that.profileSyntheses,_that.progress,_that.statusMessage,_that.createdAt,_that.updatedAt,_that.completedAt,_that.createdBy,_that.organizationId);case _:
@@ -275,7 +1133,7 @@ return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'state_version')  int stateVersion, @JsonKey(name: 'active_profile_id')  String? activeProfileId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'raw_inputs')  WorkflowInputs? rawInputs, @JsonKey(name: 'duration_ms')  int? durationMs, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'dag_cost_usd')  double dagCostUsd, @JsonKey(name: 'cumulative_synthesis_tokens')  int? cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost')  double? cumulativeSynthesisCost, @JsonKey(name: 'models_used')  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary')  ExecutionSummarySnapshot? executionSummary, @JsonKey(name: 'metadata')  ExecutionMetadata? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  FrozenContextSnapshot? frozenContext, @JsonKey(name: 'frozen_context_storage_path')  String? frozenContextStoragePath, @JsonKey(name: 'context_variables')  Map<String, Object?>? contextVariables, @JsonKey(name: 'context_variables_storage_path')  String? contextVariablesStoragePath, @JsonKey(name: 'execution_trace')  List<Map<String, Object?>>? executionTrace, @JsonKey(name: 'execution_trace_storage_path')  String? executionTraceStoragePath, @JsonKey(name: 'pdf_report_path')  String? pdfReportPath, @JsonKey(name: 'source_identity_manifest')  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps')  List<ExecutionStep> steps, @JsonKey(name: 'step_states')  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses')  Map<String, Object?>? profileSyntheses, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'completed_at')  String? completedAt, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'state_version')  int stateVersion, @JsonKey(name: 'active_profile_id')  String? activeProfileId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'raw_inputs')  WorkflowInputs? rawInputs, @JsonKey(name: 'duration_ms')  int? durationMs, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'dag_cost_usd')  double dagCostUsd, @JsonKey(name: 'cumulative_synthesis_tokens')  int? cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost')  double? cumulativeSynthesisCost, @JsonKey(name: 'models_used')  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary')  ExecutionSummarySnapshot? executionSummary, @JsonKey(name: 'metadata')  ExecutionMetadata? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  FrozenContextSnapshot? frozenContext, @JsonKey(name: 'frozen_context_storage_path')  String? frozenContextStoragePath, @JsonKey(name: 'context_variables')  ContextVariablesDto? contextVariables, @JsonKey(name: 'context_variables_storage_path')  String? contextVariablesStoragePath, @JsonKey(name: 'execution_trace')  List<ExecutionTraceItemDto>? executionTrace, @JsonKey(name: 'execution_trace_storage_path')  String? executionTraceStoragePath, @JsonKey(name: 'pdf_report_path')  String? pdfReportPath, @JsonKey(name: 'source_identity_manifest')  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps')  List<ExecutionStep> steps, @JsonKey(name: 'step_states')  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses')  Map<String, ProfileSynthesisEntryDto>? profileSyntheses, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'updated_at')  String? updatedAt, @JsonKey(name: 'completed_at')  String? completedAt, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionRecord() when $default != null:
 return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.workflowVersion,_that.stateVersion,_that.activeProfileId,_that.outputProfileId,_that.rawInputs,_that.durationMs,_that.costEstimate,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.dagCostUsd,_that.cumulativeSynthesisTokens,_that.cumulativeSynthesisCost,_that.modelsUsed,_that.executionSummary,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.frozenContextStoragePath,_that.contextVariables,_that.contextVariablesStoragePath,_that.executionTrace,_that.executionTraceStoragePath,_that.pdfReportPath,_that.sourceIdentityManifest,_that.steps,_that.stepStates,_that.profileSyntheses,_that.progress,_that.statusMessage,_that.createdAt,_that.updatedAt,_that.completedAt,_that.createdBy,_that.organizationId);case _:
@@ -288,9 +1146,9 @@ return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ExecutionRecord extends ExecutionRecord {
-  const _ExecutionRecord({required this.id, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'target_locale') required this.targetLocale, @JsonKey(fromJson: _statusFromJson) required this.status, @JsonKey(name: 'workflow_version') this.workflowVersion = 1, @JsonKey(name: 'state_version') this.stateVersion = 1, @JsonKey(name: 'active_profile_id') this.activeProfileId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'raw_inputs') this.rawInputs, @JsonKey(name: 'duration_ms') this.durationMs, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'prompt_tokens') this.promptTokens = 0, @JsonKey(name: 'completion_tokens') this.completionTokens = 0, @JsonKey(name: 'cached_tokens') this.cachedTokens = 0, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens = 0, @JsonKey(name: 'dag_cost_usd') this.dagCostUsd = 0.0, @JsonKey(name: 'cumulative_synthesis_tokens') this.cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost') this.cumulativeSynthesisCost, @JsonKey(name: 'models_used') final  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary') this.executionSummary, @JsonKey(name: 'metadata') this.metadata, @JsonKey(name: 'error') this.error, @JsonKey(name: 'is_resumable') this.isResumable, @JsonKey(name: 'frozen_context') this.frozenContext, @JsonKey(name: 'frozen_context_storage_path') this.frozenContextStoragePath, @JsonKey(name: 'context_variables') final  Map<String, Object?>? contextVariables, @JsonKey(name: 'context_variables_storage_path') this.contextVariablesStoragePath, @JsonKey(name: 'execution_trace') final  List<Map<String, Object?>>? executionTrace, @JsonKey(name: 'execution_trace_storage_path') this.executionTraceStoragePath, @JsonKey(name: 'pdf_report_path') this.pdfReportPath, @JsonKey(name: 'source_identity_manifest') final  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps') final  List<ExecutionStep> steps = const [], @JsonKey(name: 'step_states') final  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses') final  Map<String, Object?>? profileSyntheses, @JsonKey(name: 'progress') this.progress, @JsonKey(name: 'status_message') this.statusMessage, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'updated_at') this.updatedAt, @JsonKey(name: 'completed_at') this.completedAt, @JsonKey(name: 'created_by') this.createdBy, @JsonKey(name: 'organization_id') this.organizationId}): _modelsUsed = modelsUsed,_contextVariables = contextVariables,_executionTrace = executionTrace,_sourceIdentityManifest = sourceIdentityManifest,_steps = steps,_stepStates = stepStates,_profileSyntheses = profileSyntheses,super._();
+  const _ExecutionRecord({required this.id, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'target_locale') required this.targetLocale, @JsonKey(fromJson: _statusFromJson) required this.status, @JsonKey(name: 'workflow_version') this.workflowVersion = 1, @JsonKey(name: 'state_version') this.stateVersion = 1, @JsonKey(name: 'active_profile_id') this.activeProfileId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'raw_inputs') this.rawInputs, @JsonKey(name: 'duration_ms') this.durationMs, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'prompt_tokens') this.promptTokens = 0, @JsonKey(name: 'completion_tokens') this.completionTokens = 0, @JsonKey(name: 'cached_tokens') this.cachedTokens = 0, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens = 0, @JsonKey(name: 'dag_cost_usd') this.dagCostUsd = 0.0, @JsonKey(name: 'cumulative_synthesis_tokens') this.cumulativeSynthesisTokens, @JsonKey(name: 'cumulative_synthesis_cost') this.cumulativeSynthesisCost, @JsonKey(name: 'models_used') final  Map<String, int>? modelsUsed, @JsonKey(name: 'execution_summary') this.executionSummary, @JsonKey(name: 'metadata') this.metadata, @JsonKey(name: 'error') this.error, @JsonKey(name: 'is_resumable') this.isResumable, @JsonKey(name: 'frozen_context') this.frozenContext, @JsonKey(name: 'frozen_context_storage_path') this.frozenContextStoragePath, @JsonKey(name: 'context_variables') this.contextVariables, @JsonKey(name: 'context_variables_storage_path') this.contextVariablesStoragePath, @JsonKey(name: 'execution_trace') final  List<ExecutionTraceItemDto>? executionTrace, @JsonKey(name: 'execution_trace_storage_path') this.executionTraceStoragePath, @JsonKey(name: 'pdf_report_path') this.pdfReportPath, @JsonKey(name: 'source_identity_manifest') final  Map<String, String>? sourceIdentityManifest, @JsonKey(name: 'steps') final  List<ExecutionStep> steps = const [], @JsonKey(name: 'step_states') final  Map<String, ExecutionStep>? stepStates, @JsonKey(name: 'profile_syntheses') final  Map<String, ProfileSynthesisEntryDto>? profileSyntheses, @JsonKey(name: 'progress') this.progress, @JsonKey(name: 'status_message') this.statusMessage, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'updated_at') this.updatedAt, @JsonKey(name: 'completed_at') this.completedAt, @JsonKey(name: 'created_by') this.createdBy, @JsonKey(name: 'organization_id') this.organizationId}): _modelsUsed = modelsUsed,_executionTrace = executionTrace,_sourceIdentityManifest = sourceIdentityManifest,_steps = steps,_stepStates = stepStates,_profileSyntheses = profileSyntheses,super._();
   factory _ExecutionRecord.fromJson(Map<String, dynamic> json) => _$ExecutionRecordFromJson(json);
 
 @override final  String id;
@@ -326,18 +1184,10 @@ class _ExecutionRecord extends ExecutionRecord {
 @override@JsonKey(name: 'is_resumable') final  bool? isResumable;
 @override@JsonKey(name: 'frozen_context') final  FrozenContextSnapshot? frozenContext;
 @override@JsonKey(name: 'frozen_context_storage_path') final  String? frozenContextStoragePath;
- final  Map<String, Object?>? _contextVariables;
-@override@JsonKey(name: 'context_variables') Map<String, Object?>? get contextVariables {
-  final value = _contextVariables;
-  if (value == null) return null;
-  if (_contextVariables is EqualUnmodifiableMapView) return _contextVariables;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
-}
-
+@override@JsonKey(name: 'context_variables') final  ContextVariablesDto? contextVariables;
 @override@JsonKey(name: 'context_variables_storage_path') final  String? contextVariablesStoragePath;
- final  List<Map<String, Object?>>? _executionTrace;
-@override@JsonKey(name: 'execution_trace') List<Map<String, Object?>>? get executionTrace {
+ final  List<ExecutionTraceItemDto>? _executionTrace;
+@override@JsonKey(name: 'execution_trace') List<ExecutionTraceItemDto>? get executionTrace {
   final value = _executionTrace;
   if (value == null) return null;
   if (_executionTrace is EqualUnmodifiableListView) return _executionTrace;
@@ -372,8 +1222,8 @@ class _ExecutionRecord extends ExecutionRecord {
   return EqualUnmodifiableMapView(value);
 }
 
- final  Map<String, Object?>? _profileSyntheses;
-@override@JsonKey(name: 'profile_syntheses') Map<String, Object?>? get profileSyntheses {
+ final  Map<String, ProfileSynthesisEntryDto>? _profileSyntheses;
+@override@JsonKey(name: 'profile_syntheses') Map<String, ProfileSynthesisEntryDto>? get profileSyntheses {
   final value = _profileSyntheses;
   if (value == null) return null;
   if (_profileSyntheses is EqualUnmodifiableMapView) return _profileSyntheses;
@@ -415,11 +1265,11 @@ abstract mixin class _$ExecutionRecordCopyWith<$Res> implements $ExecutionRecord
   factory _$ExecutionRecordCopyWith(_ExecutionRecord value, $Res Function(_ExecutionRecord) _then) = __$ExecutionRecordCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'state_version') int stateVersion,@JsonKey(name: 'active_profile_id') String? activeProfileId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'raw_inputs') WorkflowInputs? rawInputs,@JsonKey(name: 'duration_ms') int? durationMs,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'dag_cost_usd') double dagCostUsd,@JsonKey(name: 'cumulative_synthesis_tokens') int? cumulativeSynthesisTokens,@JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,@JsonKey(name: 'models_used') Map<String, int>? modelsUsed,@JsonKey(name: 'execution_summary') ExecutionSummarySnapshot? executionSummary,@JsonKey(name: 'metadata') ExecutionMetadata? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') FrozenContextSnapshot? frozenContext,@JsonKey(name: 'frozen_context_storage_path') String? frozenContextStoragePath,@JsonKey(name: 'context_variables') Map<String, Object?>? contextVariables,@JsonKey(name: 'context_variables_storage_path') String? contextVariablesStoragePath,@JsonKey(name: 'execution_trace') List<Map<String, Object?>>? executionTrace,@JsonKey(name: 'execution_trace_storage_path') String? executionTraceStoragePath,@JsonKey(name: 'pdf_report_path') String? pdfReportPath,@JsonKey(name: 'source_identity_manifest') Map<String, String>? sourceIdentityManifest,@JsonKey(name: 'steps') List<ExecutionStep> steps,@JsonKey(name: 'step_states') Map<String, ExecutionStep>? stepStates,@JsonKey(name: 'profile_syntheses') Map<String, Object?>? profileSyntheses,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'updated_at') String? updatedAt,@JsonKey(name: 'completed_at') String? completedAt,@JsonKey(name: 'created_by') String? createdBy,@JsonKey(name: 'organization_id') String? organizationId
+ String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'state_version') int stateVersion,@JsonKey(name: 'active_profile_id') String? activeProfileId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'raw_inputs') WorkflowInputs? rawInputs,@JsonKey(name: 'duration_ms') int? durationMs,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'dag_cost_usd') double dagCostUsd,@JsonKey(name: 'cumulative_synthesis_tokens') int? cumulativeSynthesisTokens,@JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,@JsonKey(name: 'models_used') Map<String, int>? modelsUsed,@JsonKey(name: 'execution_summary') ExecutionSummarySnapshot? executionSummary,@JsonKey(name: 'metadata') ExecutionMetadata? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') FrozenContextSnapshot? frozenContext,@JsonKey(name: 'frozen_context_storage_path') String? frozenContextStoragePath,@JsonKey(name: 'context_variables') ContextVariablesDto? contextVariables,@JsonKey(name: 'context_variables_storage_path') String? contextVariablesStoragePath,@JsonKey(name: 'execution_trace') List<ExecutionTraceItemDto>? executionTrace,@JsonKey(name: 'execution_trace_storage_path') String? executionTraceStoragePath,@JsonKey(name: 'pdf_report_path') String? pdfReportPath,@JsonKey(name: 'source_identity_manifest') Map<String, String>? sourceIdentityManifest,@JsonKey(name: 'steps') List<ExecutionStep> steps,@JsonKey(name: 'step_states') Map<String, ExecutionStep>? stepStates,@JsonKey(name: 'profile_syntheses') Map<String, ProfileSynthesisEntryDto>? profileSyntheses,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'updated_at') String? updatedAt,@JsonKey(name: 'completed_at') String? completedAt,@JsonKey(name: 'created_by') String? createdBy,@JsonKey(name: 'organization_id') String? organizationId
 });
 
 
-@override $WorkflowInputsCopyWith<$Res>? get rawInputs;@override $ExecutionSummarySnapshotCopyWith<$Res>? get executionSummary;@override $ExecutionMetadataCopyWith<$Res>? get metadata;@override $FrozenContextSnapshotCopyWith<$Res>? get frozenContext;
+@override $WorkflowInputsCopyWith<$Res>? get rawInputs;@override $ExecutionSummarySnapshotCopyWith<$Res>? get executionSummary;@override $ExecutionMetadataCopyWith<$Res>? get metadata;@override $FrozenContextSnapshotCopyWith<$Res>? get frozenContext;@override $ContextVariablesDtoCopyWith<$Res>? get contextVariables;
 
 }
 /// @nodoc
@@ -459,16 +1309,16 @@ as ExecutionMetadata?,error: freezed == error ? _self.error : error // ignore: c
 as String?,isResumable: freezed == isResumable ? _self.isResumable : isResumable // ignore: cast_nullable_to_non_nullable
 as bool?,frozenContext: freezed == frozenContext ? _self.frozenContext : frozenContext // ignore: cast_nullable_to_non_nullable
 as FrozenContextSnapshot?,frozenContextStoragePath: freezed == frozenContextStoragePath ? _self.frozenContextStoragePath : frozenContextStoragePath // ignore: cast_nullable_to_non_nullable
-as String?,contextVariables: freezed == contextVariables ? _self._contextVariables : contextVariables // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>?,contextVariablesStoragePath: freezed == contextVariablesStoragePath ? _self.contextVariablesStoragePath : contextVariablesStoragePath // ignore: cast_nullable_to_non_nullable
+as String?,contextVariables: freezed == contextVariables ? _self.contextVariables : contextVariables // ignore: cast_nullable_to_non_nullable
+as ContextVariablesDto?,contextVariablesStoragePath: freezed == contextVariablesStoragePath ? _self.contextVariablesStoragePath : contextVariablesStoragePath // ignore: cast_nullable_to_non_nullable
 as String?,executionTrace: freezed == executionTrace ? _self._executionTrace : executionTrace // ignore: cast_nullable_to_non_nullable
-as List<Map<String, Object?>>?,executionTraceStoragePath: freezed == executionTraceStoragePath ? _self.executionTraceStoragePath : executionTraceStoragePath // ignore: cast_nullable_to_non_nullable
+as List<ExecutionTraceItemDto>?,executionTraceStoragePath: freezed == executionTraceStoragePath ? _self.executionTraceStoragePath : executionTraceStoragePath // ignore: cast_nullable_to_non_nullable
 as String?,pdfReportPath: freezed == pdfReportPath ? _self.pdfReportPath : pdfReportPath // ignore: cast_nullable_to_non_nullable
 as String?,sourceIdentityManifest: freezed == sourceIdentityManifest ? _self._sourceIdentityManifest : sourceIdentityManifest // ignore: cast_nullable_to_non_nullable
 as Map<String, String>?,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
 as List<ExecutionStep>,stepStates: freezed == stepStates ? _self._stepStates : stepStates // ignore: cast_nullable_to_non_nullable
 as Map<String, ExecutionStep>?,profileSyntheses: freezed == profileSyntheses ? _self._profileSyntheses : profileSyntheses // ignore: cast_nullable_to_non_nullable
-as Map<String, Object?>?,progress: freezed == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
+as Map<String, ProfileSynthesisEntryDto>?,progress: freezed == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as int?,statusMessage: freezed == statusMessage ? _self.statusMessage : statusMessage // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -526,6 +1376,18 @@ $FrozenContextSnapshotCopyWith<$Res>? get frozenContext {
 
   return $FrozenContextSnapshotCopyWith<$Res>(_self.frozenContext!, (value) {
     return _then(_self.copyWith(frozenContext: value));
+  });
+}/// Create a copy of ExecutionRecord
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ContextVariablesDtoCopyWith<$Res>? get contextVariables {
+    if (_self.contextVariables == null) {
+    return null;
+  }
+
+  return $ContextVariablesDtoCopyWith<$Res>(_self.contextVariables!, (value) {
+    return _then(_self.copyWith(contextVariables: value));
   });
 }
 }

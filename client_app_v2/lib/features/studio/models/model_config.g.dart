@@ -6,6 +6,59 @@ part of 'model_config.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_ProviderExtraParamsDto _$ProviderExtraParamsDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_ProviderExtraParamsDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'temperature',
+        'top_p',
+        'top_k',
+        'max_output_tokens',
+        'reasoning_effort',
+        'vertex_location',
+      ],
+    );
+    final val = _ProviderExtraParamsDto(
+      temperature: $checkedConvert(
+        'temperature',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      topP: $checkedConvert('top_p', (v) => (v as num?)?.toDouble()),
+      topK: $checkedConvert('top_k', (v) => (v as num?)?.toInt()),
+      maxOutputTokens: $checkedConvert(
+        'max_output_tokens',
+        (v) => (v as num?)?.toInt(),
+      ),
+      reasoningEffort: $checkedConvert('reasoning_effort', (v) => v as String?),
+      vertexLocation: $checkedConvert('vertex_location', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'topP': 'top_p',
+    'topK': 'top_k',
+    'maxOutputTokens': 'max_output_tokens',
+    'reasoningEffort': 'reasoning_effort',
+    'vertexLocation': 'vertex_location',
+  },
+);
+
+Map<String, dynamic> _$ProviderExtraParamsDtoToJson(
+  _ProviderExtraParamsDto instance,
+) => <String, dynamic>{
+  'temperature': instance.temperature,
+  'top_p': instance.topP,
+  'top_k': instance.topK,
+  'max_output_tokens': instance.maxOutputTokens,
+  'reasoning_effort': instance.reasoningEffort,
+  'vertex_location': instance.vertexLocation,
+};
+
 _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
   '_ModelConfig',
   json,
@@ -45,7 +98,7 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
                 LlmModelConfig.fromJson(e as Map<String, dynamic>),
               ),
             ) ??
-            const {},
+            const <String, LlmModelConfig>{},
       ),
     );
     return val;
@@ -126,7 +179,8 @@ _LlmModelConfig _$LlmModelConfigFromJson(
       allowedTools: $checkedConvert(
         'allowed_tools',
         (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
       ),
       apiKey: $checkedConvert('api_key', (v) => v as String?),
       cachingStrategy: $checkedConvert('caching_strategy', (v) => v as String?),
@@ -136,7 +190,9 @@ _LlmModelConfig _$LlmModelConfigFromJson(
       ),
       additionalParams: $checkedConvert(
         'additional_params',
-        (v) => v as Map<String, dynamic>? ?? const {},
+        (v) => v == null
+            ? const ProviderExtraParamsDto()
+            : ProviderExtraParamsDto.fromJson(v as Map<String, dynamic>),
       ),
     );
     return val;
@@ -180,5 +236,5 @@ Map<String, dynamic> _$LlmModelConfigToJson(_LlmModelConfig instance) =>
       'api_key': instance.apiKey,
       'caching_strategy': instance.cachingStrategy,
       'thinking_budget_tokens': instance.thinkingBudgetTokens,
-      'additional_params': instance.additionalParams,
+      'additional_params': instance.additionalParams.toJson(),
     };

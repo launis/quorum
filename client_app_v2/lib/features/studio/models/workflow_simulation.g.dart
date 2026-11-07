@@ -27,7 +27,8 @@ _WorkflowSimulationResponse _$WorkflowSimulationResponseFromJson(
       errors: $checkedConvert(
         'errors',
         (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
       ),
       stepStatus: $checkedConvert(
         'step_status',
@@ -35,16 +36,19 @@ _WorkflowSimulationResponse _$WorkflowSimulationResponseFromJson(
             (v as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(k, e as String),
             ) ??
-            const {},
+            const <String, String>{},
       ),
       executionOrder: $checkedConvert(
         'execution_order',
         (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
       ),
       trace: $checkedConvert(
         'trace',
-        (v) => v as Map<String, dynamic>? ?? const {},
+        (v) => v == null
+            ? const StepSimulationTraceDto()
+            : StepSimulationTraceDto.fromJson(v as Map<String, dynamic>),
       ),
     );
     return val;
@@ -62,5 +66,5 @@ Map<String, dynamic> _$WorkflowSimulationResponseToJson(
   'errors': instance.errors,
   'step_status': instance.stepStatus,
   'execution_order': instance.executionOrder,
-  'trace': instance.trace,
+  'trace': instance.trace.toJson(),
 };

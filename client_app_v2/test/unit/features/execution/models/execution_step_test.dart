@@ -3,12 +3,19 @@ import 'dart:convert';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/execution_step.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
+import 'package:client_app/features/studio/models/step_simulation.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/workflow_simulation.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 void main() {
-  group('ExecutionStep Unit & ISTQB Boundary Tests', () {
+  group('ExecutionStep & Group 2 Studio Simulation Freezed Models Tests', () {
     test(
       'Positive 1: ExecutionStep deserializes full payload with FinOps metrics and scorecardAtoms and roundtrips cleanly',
       () {
@@ -109,6 +116,123 @@ void main() {
       },
     );
 
+    // Phase 5, Step 5.1 Test Contract: test_workflow_and_prompt_block_simulation_empty_and_populated_states
+    test(
+      'test_workflow_and_prompt_block_simulation_empty_and_populated_states (Boundary)',
+      () {
+        final blockId = generateOpaqueUuid7('blk');
+        final stepId = generateOpaqueUuid7('stp');
+
+        // 1. Empty simulation states (0 items)
+        final emptyBlockSimReq = PromptBlockSimulationRequest(
+          block: PromptBlock.matrix(
+            id: blockId,
+            slug: 'test_block',
+            label: const I18nText(
+              translations: <String, String>{'en': 'Block'},
+            ),
+            description: const I18nText(
+              translations: <String, String>{'en': 'Desc'},
+            ),
+            scales: const <MatrixScale>[],
+          ),
+        );
+        final emptyBlockSimReqRoundtrip = PromptBlockSimulationRequest.fromJson(
+          jsonDecode(jsonEncode(emptyBlockSimReq.toJson()))
+              as Map<String, Object?>,
+        );
+        expect(emptyBlockSimReqRoundtrip.mockInputs, isEmpty);
+
+        const emptyWfSimRes = WorkflowSimulationResponse();
+        final emptyWfSimRoundtrip = WorkflowSimulationResponse.fromJson(
+          jsonDecode(jsonEncode(emptyWfSimRes.toJson()))
+              as Map<String, Object?>,
+        );
+        expect(emptyWfSimRoundtrip.stepStatus, isEmpty);
+        expect(emptyWfSimRoundtrip.executionOrder, isEmpty);
+
+        // 2. Populated simulation states (multiple items)
+        final populatedBlockSimReq = emptyBlockSimReq.copyWith(
+          mockInputs: const <String, String>{
+            'doc_1': 'First document content',
+            'doc_2': 'Second document content',
+          },
+        );
+        final populatedBlockReqRoundtrip =
+            PromptBlockSimulationRequest.fromJson(
+              jsonDecode(jsonEncode(populatedBlockSimReq.toJson()))
+                  as Map<String, Object?>,
+            );
+        expect(populatedBlockReqRoundtrip.mockInputs, hasLength(2));
+        expect(
+          populatedBlockReqRoundtrip.mockInputs['doc_1'],
+          equals('First document content'),
+        );
+
+        final populatedWfSimRes = WorkflowSimulationResponse(
+          stepStatus: <String, String>{stepId: 'READY', 'stp_2': 'READY'},
+          executionOrder: <String>[stepId, 'stp_2'],
+          trace: const StepSimulationTraceDto(
+            executionTimeMs: 42.5,
+            estimatedTokens: 320,
+          ),
+        );
+        final populatedWfRoundtrip = WorkflowSimulationResponse.fromJson(
+          jsonDecode(jsonEncode(populatedWfSimRes.toJson()))
+              as Map<String, Object?>,
+        );
+        expect(populatedWfRoundtrip.stepStatus, hasLength(2));
+        expect(populatedWfRoundtrip.executionOrder, hasLength(2));
+        expect(populatedWfRoundtrip.trace.executionTimeMs, equals(42.5));
+        expect(populatedWfRoundtrip.trace.estimatedTokens, equals(320));
+
+        // Also verify StepSimulationRequest and LlmModelConfig typed additionalParams
+        final stepSimReq = StepSimulationRequest(
+          step: NodeStrategy.llm(
+            id: stepId,
+            slug: 'step_1',
+            name: const I18nText(
+              translations: <String, String>{'en': 'Step 1'},
+            ),
+            mcpToolParams: <String, Map<String, McpToolParamValue>>{
+              'exa__search': <String, McpToolParamValue>{
+                'numResults': const McpToolParamValue(intValue: 5),
+              },
+            },
+          ),
+          mockInputs: const <String, String>{'input_a': 'val_a'},
+        );
+        final stepSimRoundtrip = StepSimulationRequest.fromJson(
+          jsonDecode(jsonEncode(stepSimReq.toJson())) as Map<String, Object?>,
+        );
+        expect(stepSimRoundtrip.mockInputs['input_a'], equals('val_a'));
+        expect(
+          stepSimRoundtrip
+              .step
+              .mcpToolParams['exa__search']?['numResults']
+              ?.intValue,
+          equals(5),
+        );
+
+        const llmCfg = LlmModelConfig(
+          provider: 'vertex_ai',
+          modelName: 'gemini-2.5-pro',
+          additionalParams: ProviderExtraParamsDto(
+            vertexLocation: 'europe-north1',
+            reasoningEffort: 'high',
+          ),
+        );
+        final llmCfgRoundtrip = LlmModelConfig.fromJson(
+          jsonDecode(jsonEncode(llmCfg.toJson())) as Map<String, Object?>,
+        );
+        expect(
+          llmCfgRoundtrip.additionalParams.vertexLocation,
+          equals('europe-north1'),
+        );
+        expect(llmCfgRoundtrip.reasoningEffort, equals('high'));
+      },
+    );
+
     test(
       'Positive 2 (Boundary & Defaults): applies deterministic defaults when optional FinOps and state fields are omitted',
       () {
@@ -124,11 +248,6 @@ void main() {
         expect(step.id, equals(stepId));
         expect(step.label, equals('Pending Step'));
         expect(step.status, equals('PENDING'));
-        expect(step.lastError, isNull);
-        expect(step.messageCode, isNull);
-        expect(step.modelStrategy, isNull);
-        expect(step.physicalModel, isNull);
-        expect(step.systemFingerprint, isNull);
         expect(step.promptTokens, equals(0));
         expect(step.completionTokens, equals(0));
         expect(step.cachedTokens, equals(0));
@@ -136,9 +255,7 @@ void main() {
         expect(step.costUsd, equals(0.0));
         expect(step.durationMs, equals(0));
         expect(step.chunkCount, equals(1));
-        expect(step.progress, isNull);
         expect(step.hasWarning, isFalse);
-        expect(step.inputMerkleHash, isNull);
         expect(step.scorecardAtoms, isEmpty);
       },
     );

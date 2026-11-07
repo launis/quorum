@@ -6,6 +6,52 @@ part of 'distilled_evaluation.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_DistilledExtensionValue _$DistilledExtensionValueFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_DistilledExtensionValue',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'string_value',
+        'number_value',
+        'bool_value',
+        'string_list_value',
+      ],
+    );
+    final val = _DistilledExtensionValue(
+      stringValue: $checkedConvert('string_value', (v) => v as String?),
+      numberValue: $checkedConvert(
+        'number_value',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      boolValue: $checkedConvert('bool_value', (v) => v as bool?),
+      stringListValue: $checkedConvert(
+        'string_list_value',
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'stringValue': 'string_value',
+    'numberValue': 'number_value',
+    'boolValue': 'bool_value',
+    'stringListValue': 'string_list_value',
+  },
+);
+
+Map<String, dynamic> _$DistilledExtensionValueToJson(
+  _DistilledExtensionValue instance,
+) => <String, dynamic>{
+  'string_value': instance.stringValue,
+  'number_value': instance.numberValue,
+  'bool_value': instance.boolValue,
+  'string_list_value': instance.stringListValue,
+};
+
 _DistilledEvaluation _$DistilledEvaluationFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -39,7 +85,10 @@ _DistilledEvaluation _$DistilledEvaluationFromJson(
       status: $checkedConvert('status', (v) => v as String?),
       extensions: $checkedConvert(
         'extensions',
-        (v) => v as Map<String, dynamic>?,
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) =>
+              MapEntry(k, const DistilledExtensionValueConverter().fromJson(e)),
+        ),
       ),
       dependsOnTdaIds: $checkedConvert(
         'depends_on_tda_ids',
@@ -80,7 +129,9 @@ Map<String, dynamic> _$DistilledEvaluationToJson(
   'exact_quotes': instance.exactQuotes,
   'semantic_reasoning': instance.semanticReasoning,
   'status': instance.status,
-  'extensions': instance.extensions,
+  'extensions': instance.extensions?.map(
+    (k, e) => MapEntry(k, const DistilledExtensionValueConverter().toJson(e)),
+  ),
   'depends_on_tda_ids': instance.dependsOnTdaIds,
   'short_circuit_reason_tda_ids': instance.shortCircuitReasonTdaIds,
   'is_inverse_evidence': instance.isInverseEvidence,

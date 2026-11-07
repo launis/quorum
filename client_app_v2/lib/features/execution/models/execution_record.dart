@@ -13,12 +13,76 @@ part 'execution_record.g.dart';
 
 String _statusFromJson(String status) => status.toUpperCase();
 
+/// Typed execution-level context variables matching backend `ContextVariablesDTO`.
+/// Phase 5, Step 5.1: Replace Map<String, Object?> contextVariables with closed Freezed DTO.
+@freezed
+abstract class ContextVariablesDto with _$ContextVariablesDto {
+  const ContextVariablesDto._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ContextVariablesDto({
+    @JsonKey(name: 'global_atom_blackboard') String? globalAtomBlackboard,
+    @JsonKey(name: 'matrix_reducer_output') String? matrixReducerOutput,
+    @JsonKey(name: 'report_context') String? reportContext,
+    @JsonKey(name: 'step_detector') String? stepDetector,
+    @JsonKey(name: 'evaluated_matrices') String? evaluatedMatrices,
+    @Default(<String, String>{}) Map<String, String> variables,
+  }) = _ContextVariablesDto;
+
+  /// Instantiates a strictly typed [ContextVariablesDto] from raw JSON.
+  factory ContextVariablesDto.fromJson(Map<String, dynamic> json) =>
+      _$ContextVariablesDtoFromJson(json);
+}
+
+/// Typed execution trace entry on `ExecutionRecord.executionTrace`.
+@freezed
+abstract class ExecutionTraceItemDto with _$ExecutionTraceItemDto {
+  const ExecutionTraceItemDto._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ExecutionTraceItemDto({
+    String? event,
+    @JsonKey(name: 'step_id') String? stepId,
+    String? status,
+    @JsonKey(name: 'duration_ms') int? durationMs,
+    String? detail,
+  }) = _ExecutionTraceItemDto;
+
+  /// Instantiates a strictly typed [ExecutionTraceItemDto] from raw JSON.
+  factory ExecutionTraceItemDto.fromJson(Map<String, dynamic> json) =>
+      _$ExecutionTraceItemDtoFromJson(json);
+}
+
+/// Typed cached profile synthesis summary entry on `ExecutionRecord.profileSyntheses`.
+@freezed
+abstract class ProfileSynthesisEntryDto with _$ProfileSynthesisEntryDto {
+  const ProfileSynthesisEntryDto._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ProfileSynthesisEntryDto({
+    @Default(false) bool cached,
+    @JsonKey(name: 'variance_explanation') String? varianceExplanation,
+    @JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,
+    @JsonKey(name: 'cited_sources')
+    @Default(<String>[])
+    List<String> citedSources,
+    @JsonKey(name: 'user_role') String? userRole,
+    @JsonKey(name: 'user_role_justification') String? userRoleJustification,
+    @JsonKey(name: 'created_at') String? createdAt,
+  }) = _ProfileSynthesisEntryDto;
+
+  /// Instantiates a strictly typed [ProfileSynthesisEntryDto] from raw JSON.
+  factory ProfileSynthesisEntryDto.fromJson(Map<String, dynamic> json) =>
+      _$ProfileSynthesisEntryDtoFromJson(json);
+}
+
 /// Represents the status and metadata of an execution.
 @Freezed(equal: false)
 abstract class ExecutionRecord with _$ExecutionRecord {
   const ExecutionRecord._();
 
-  @JsonSerializable(disallowUnrecognizedKeys: true)
+  // Phase 5, Step 5.1: Replace Map<String, Object?> fields with typed Freezed step state and synthesis models.
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory ExecutionRecord({
     required String id,
     @JsonKey(name: 'workflow_id') required String workflowId,
@@ -48,11 +112,11 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'frozen_context') FrozenContextSnapshot? frozenContext,
     @JsonKey(name: 'frozen_context_storage_path')
     String? frozenContextStoragePath,
-    @JsonKey(name: 'context_variables') Map<String, Object?>? contextVariables,
+    @JsonKey(name: 'context_variables') ContextVariablesDto? contextVariables,
     @JsonKey(name: 'context_variables_storage_path')
     String? contextVariablesStoragePath,
     @JsonKey(name: 'execution_trace')
-    List<Map<String, Object?>>? executionTrace,
+    List<ExecutionTraceItemDto>? executionTrace,
     @JsonKey(name: 'execution_trace_storage_path')
     String? executionTraceStoragePath,
     @JsonKey(name: 'pdf_report_path') String? pdfReportPath,
@@ -60,7 +124,8 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     Map<String, String>? sourceIdentityManifest,
     @JsonKey(name: 'steps') @Default([]) List<ExecutionStep> steps,
     @JsonKey(name: 'step_states') Map<String, ExecutionStep>? stepStates,
-    @JsonKey(name: 'profile_syntheses') Map<String, Object?>? profileSyntheses,
+    @JsonKey(name: 'profile_syntheses')
+    Map<String, ProfileSynthesisEntryDto>? profileSyntheses,
     @JsonKey(name: 'progress') int? progress,
     @JsonKey(name: 'status_message') String? statusMessage,
     @JsonKey(name: 'created_at') String? createdAt,
@@ -78,8 +143,11 @@ abstract class ExecutionRecord with _$ExecutionRecord {
   /// to prevent Main Thread Jank when handling large payloads.
   static Future<ExecutionRecord> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final decoded = jsonDecode(rawJson) as Map<String, Object?>;
-      return ExecutionRecord.fromJson(decoded);
+      final Object? decoded = jsonDecode(rawJson);
+      if (decoded is! Map) {
+        throw TypeError();
+      }
+      return ExecutionRecord.fromJson(Map.from(decoded));
     });
   }
 }

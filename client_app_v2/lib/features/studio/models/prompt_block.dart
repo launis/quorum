@@ -445,13 +445,14 @@ sealed class PromptBlock with _$PromptBlock {
   /// Parses raw JSON string to PromptBlock in a background isolate
   static Future<PromptBlock> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
+      // Phase 5, Step 5.1: Eliminate Map<String, Object?> cast in background isolate
       final Object? decoded = jsonDecode(rawJson);
-      if (decoded is! Map<String, Object?>) {
+      if (decoded is! Map) {
         throw AppException.validation(
           'Malformed PromptBlock JSON payload: expected JSON object.',
         );
       }
-      return PromptBlock.fromJson(decoded);
+      return PromptBlock.fromJson(Map.from(decoded));
     });
   }
 
@@ -461,12 +462,12 @@ sealed class PromptBlock with _$PromptBlock {
     return safeIsolateRun(() {
       return rawList
           .map((Object? item) {
-            if (item is! Map<String, Object?>) {
+            if (item is! Map) {
               throw AppException.validation(
                 'Malformed PromptBlock list item: expected JSON object.',
               );
             }
-            return PromptBlock.fromJson(item);
+            return PromptBlock.fromJson(Map.from(item));
           })
           .toList(growable: false);
     });
