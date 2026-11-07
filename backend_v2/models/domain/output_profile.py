@@ -46,19 +46,28 @@ class OutputProfile(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Profile ID")
-    slug: str = Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Fallback slug identifier")
-    workflow_id: str = Field(description="ID of the associated Workflow")
-    organization_id: str | None = Field(default=None, description="Tenant organization ID.")
-    name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
-    description: I18nText | None = Field(default=None, description="Detailed profile context")
-    user_role_label: I18nText | None = Field(
-        default=None, description="Optional localized label prefixing the user role context (e.g., 'Target audience:')."
-    )
-    custom_preface: I18nText | None = Field(
-        default=None, description="Rich text preface shown at the very beginning of the report."
-    )
-    language: LaxSystemLocale | None = Field(default=None, description="Target output language.")
+    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
+    id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Profile ID")]
+    slug: Annotated[str, Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Fallback slug identifier")]
+    workflow_id: Annotated[str, Field(description="ID of the associated Workflow")]
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID.")] = None
+    name: Annotated[
+        I18nText,
+        Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})"),
+    ]
+    description: Annotated[I18nText | None, Field(default=None, description="Detailed profile context")] = None
+    user_role_label: Annotated[
+        I18nText | None,
+        Field(
+            default=None,
+            description="Optional localized label prefixing the user role context (e.g., 'Target audience:').",
+        ),
+    ] = None
+    custom_preface: Annotated[
+        I18nText | None,
+        Field(default=None, description="Rich text preface shown at the very beginning of the report."),
+    ] = None
+    language: Annotated[LaxSystemLocale | None, Field(default=None, description="Target output language.")] = None
     tone_instruction: Annotated[
         str | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ] = None
@@ -94,22 +103,34 @@ class OutputProfile(V2CoreBase):
         ),
     ] = None
 
-    visible_metadata: list[str] = Field(
-        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
-        description="List of metadata fields visible on the UI and PDF cover header.",
-    )
-    matrix_visible_columns: list[str] = Field(
-        default_factory=lambda: list(STANDARD_MATRIX_VISIBLE_COLUMNS),
-        description="List of column keys visible in the matrix summary table.",
-    )
-    visible_block_extensions: list[LaxXaiExtensionType] = Field(
-        default_factory=list,
-        description="Block-level XAI extensions (per-matrix, LLM-produced).",
-    )
-    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(
-        default_factory=list,
-        description="Workflow-level global extensions (mathematical engines).",
-    )
+    visible_metadata: Annotated[
+        list[str],
+        Field(
+            default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
+            description="List of metadata fields visible on the UI and PDF cover header.",
+        ),
+    ]
+    matrix_visible_columns: Annotated[
+        list[str],
+        Field(
+            default_factory=lambda: list(STANDARD_MATRIX_VISIBLE_COLUMNS),
+            description="List of column keys visible in the matrix summary table.",
+        ),
+    ]
+    visible_block_extensions: Annotated[
+        list[LaxXaiExtensionType],
+        Field(
+            default_factory=list,
+            description="Block-level XAI extensions (per-matrix, LLM-produced).",
+        ),
+    ]
+    visible_workflow_extensions: Annotated[
+        list[LaxXaiExtensionType],
+        Field(
+            default_factory=list,
+            description="Workflow-level global extensions (mathematical engines).",
+        ),
+    ]
     max_extension_items: Annotated[
         int,
         Field(
@@ -188,12 +209,17 @@ class OutputProfile(V2CoreBase):
             ),
         ),
     ]
-    matrix_synthesis_groups: list[MatrixSynthesisGroup] = Field(
-        default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."
-    )
-    content_blocks: list[AnySduiBlock] = Field(
-        default_factory=list, description="Base SDUI content blocks predefined by the profile."
-    )
+    matrix_synthesis_groups: Annotated[
+        list[MatrixSynthesisGroup],
+        Field(
+            default_factory=list,
+            description="Optional matrix synthesis groups for 2D/3D comparative graphs.",
+        ),
+    ]
+    content_blocks: Annotated[
+        list[AnySduiBlock],
+        Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
+    ]
     show_sources_summary_box: Annotated[
         bool,
         Field(default=True, description="Whether to show the source verification summary box in the report."),

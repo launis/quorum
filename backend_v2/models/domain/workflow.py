@@ -27,28 +27,35 @@ class Workflow(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Workflow ID")
+    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
+    id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Workflow ID")]
     slug: str
     name: I18nText | str
     description: I18nText | str
     status: str
     version: int
-    is_public: bool = Field(default=False)
-    organization_id: str | None = Field(default=None)
+    is_public: Annotated[bool, Field(default=False)] = False
+    organization_id: Annotated[str | None, Field(default=None)] = None
     default_profile_id: Annotated[
         str | None,
         Field(default=None, description="The ID of the default output profile to use."),
     ] = None
     # Phase 4, Step 4: Enforce 32-hex sys_ pattern and remove hardcoded default gateway ID
-    mcp_gateway_id: str | None = Field(
-        default=None,
-        pattern=r"^sys_[a-fA-F0-9]{32}$",
-        description="The system_config ID of the MCP gateways configuration attached to this workflow.",
-    )
-    model_registry_id: str = Field(
-        pattern=r"^sys_[a-fA-F0-9]{32}$",
-        description="System config ID of the attached model registry",
-    )
+    mcp_gateway_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            pattern=r"^sys_[a-fA-F0-9]{32}$",
+            description="The system_config ID of the MCP gateways configuration attached to this workflow.",
+        ),
+    ] = None
+    model_registry_id: Annotated[
+        str,
+        Field(
+            pattern=r"^sys_[a-fA-F0-9]{32}$",
+            description="System config ID of the attached model registry",
+        ),
+    ]
     default_strictness_level: Annotated[
         int,
         Field(default=50, ge=0, le=100, description="Sovereign workflow strictness level (0-100 continuous)."),
@@ -89,31 +96,46 @@ class Workflow(V2CoreBase):
             description="Penalty ratio for passivity or lowest-quality score (default 0.0 = no penalty).",
         ),
     ] = 0.0
-    enable_contextual_overrides: bool = Field(
-        default=False,
-        description="Global flag to enable contextual overrides across assertions.",
-    )
-    enable_semantic_smoothing: bool = Field(
-        default=False,
-        description=(
-            "If True, uses SpaCy to fix hyphenations and merge broken PDF lines into cohesive semantic sentences."
+    enable_contextual_overrides: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Global flag to enable contextual overrides across assertions.",
         ),
-    )
-    enable_eager_anonymization: bool = Field(
-        default=False,
-        description=(
-            "If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state."
+    ] = False
+    enable_semantic_smoothing: Annotated[
+        bool,
+        Field(
+            default=False,
+            description=(
+                "If True, uses SpaCy to fix hyphenations and merge broken PDF lines into cohesive semantic sentences."
+            ),
         ),
-    )
-    system_audit_trail: bool = Field(
-        default=False,
-        description="If True, activates the background XAI Citation Extraction tracking mechanism.",
-    )
-    expected_inputs: list[ExpectedInput] = Field(
-        default_factory=list,
-        description="List of dynamic expected inputs required by the workflow",
-    )
-    steps: list[StepRule] = Field(default_factory=list)
+    ] = False
+    enable_eager_anonymization: Annotated[
+        bool,
+        Field(
+            default=False,
+            description=(
+                "If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state."
+            ),
+        ),
+    ] = False
+    system_audit_trail: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="If True, activates the background XAI Citation Extraction tracking mechanism.",
+        ),
+    ] = False
+    expected_inputs: Annotated[
+        list[ExpectedInput],
+        Field(
+            default_factory=list,
+            description="List of dynamic expected inputs required by the workflow",
+        ),
+    ]
+    steps: Annotated[list[StepRule], Field(default_factory=list)]
     historical_context_mode: Annotated[
         LaxHistoricalContextMode,
         Field(description="Mode for fetching historical context at workflow level."),

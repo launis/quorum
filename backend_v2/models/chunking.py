@@ -35,14 +35,15 @@ class Chunk[T](V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
+    # Phase 2, Step 2.2: Convert bare Field(...) declaration to PEP 593 Annotated (QGR020 Check 20B)
     id: Annotated[
         str,
-        "Opaque Stripe ID for the chunk",
-    ] = Field(
-        default_factory=lambda: f"chk_{generate_uuid7().hex}",
-        pattern=OPAQUE_STRIPE_ID_REGEX,
-        description="Opaque Stripe ID for the chunk",
-    )
+        Field(
+            default_factory=lambda: f"chk_{generate_uuid7().hex}",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Opaque Stripe ID for the chunk",
+        ),
+    ]
     parent_id: Annotated[
         str | None,
         Field(

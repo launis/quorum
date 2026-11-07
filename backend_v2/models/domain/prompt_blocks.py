@@ -47,18 +47,25 @@ class PromptBlockBase(V2CoreBase):
             description="Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID.",
         ),
     ]
-    slug: StrictStr = Field(description="URL routing helper field. Strictly no data relation role.")
-    organization_id: str | None = Field(default=None, description="Tenant organization ID.")
-    label: I18nText = Field(description="Localizable label for the UI.")
-    description: I18nText = Field(description="Localizable description or help text for the UI.")
-    output_extensions: list[str] = Field(
-        default_factory=list,
-        description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
-    )
-    theory_grounding: TheoryGrounding | None = Field(
-        default=None,
-        description="Fetches and injects source theory as <theory_context>.",
-    )
+    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
+    slug: Annotated[StrictStr, Field(description="URL routing helper field. Strictly no data relation role.")]
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID.")] = None
+    label: Annotated[I18nText, Field(description="Localizable label for the UI.")]
+    description: Annotated[I18nText, Field(description="Localizable description or help text for the UI.")]
+    output_extensions: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
+        ),
+    ]
+    theory_grounding: Annotated[
+        TheoryGrounding | None,
+        Field(
+            default=None,
+            description="Fetches and injects source theory as <theory_context>.",
+        ),
+    ] = None
 
 
 class MatrixPromptBlock(PromptBlockBase):
@@ -82,18 +89,24 @@ class MatrixPromptBlock(PromptBlockBase):
             ),
         ),
     ] = None
-    ai_description: str | None = Field(
-        default=None,
-        description=(
-            "MANDATORY: English cognitive instructions for the LLM. "
-            "Completely isolates AI prompt from UI localizations."
+    ai_description: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "MANDATORY: English cognitive instructions for the LLM. "
+                "Completely isolates AI prompt from UI localizations."
+            ),
         ),
-    )
-    scales: list[MatrixScale] = Field(..., min_length=1, description="BARS scale definitions with scores and claims.")
+    ] = None
+    scales: Annotated[
+        list[MatrixScale],
+        Field(min_length=1, description="BARS scale definitions with scores and claims."),
+    ]
     rows: list[MatrixRow] | None = None
     columns: list[I18nText] | None = None
-    computed_min: int | None = Field(default=None, description="Derived or calculated minimum score.")
-    computed_max: int | None = Field(default=None, description="Derived or calculated maximum score.")
+    computed_min: Annotated[int | None, Field(default=None, description="Derived or calculated minimum score.")] = None
+    computed_max: Annotated[int | None, Field(default=None, description="Derived or calculated maximum score.")] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -156,7 +169,7 @@ class PersonaPromptBlock(PromptBlockBase):
     allow_decimals: bool = False
     is_lightweight_protocol: bool = False
     role_enforcement: StrictStr | None = None
-    tone_directives: list[StrictStr] = Field(default_factory=list)
+    tone_directives: Annotated[list[StrictStr], Field(default_factory=list)]
 
 
 class ProtocolPromptBlock(PromptBlockBase):

@@ -88,7 +88,7 @@ BANNED PATTERNS
 
 import logging
 from enum import StrEnum
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
@@ -338,7 +338,8 @@ class ProblemDetailDTO(BaseModel):
     status: int
     detail: str
     instance: str | None = None
-    extensions: dict[str, JsonValue] = Field(default_factory=dict)
+    # Phase 2, Step 2.2: Convert bare Field(...) declaration to PEP 593 Annotated (QGR020 Check 20B)
+    extensions: Annotated[dict[str, JsonValue], Field(default_factory=dict)]
 
 
 class AppException(Exception):

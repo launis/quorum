@@ -43,10 +43,12 @@ class TheoryGrounding(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    source_url: str = Field(description="URL or reference to the source material.")
-    citation_reference: str | None = Field(
-        default=None, description="Specific section or phrase to cite from the source."
-    )
+    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
+    source_url: Annotated[str, Field(description="URL or reference to the source material.")]
+    citation_reference: Annotated[
+        str | None,
+        Field(default=None, description="Specific section or phrase to cite from the source."),
+    ] = None
 
 
 class AcceptanceCriterion(V2CoreBase):
@@ -59,8 +61,8 @@ class AcceptanceCriterion(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    instruction: str = Field(description="Structured monolingual instruction.")
-    requires_contextual_override: bool = Field(default=False)
+    instruction: Annotated[str, Field(description="Structured monolingual instruction.")]
+    requires_contextual_override: Annotated[bool, Field(default=False)] = False
 
 
 class AntiPattern(V2CoreBase):
@@ -73,8 +75,8 @@ class AntiPattern(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    pattern: str = Field(description="Known anti-pattern with monolingual description.")
-    allows_contextual_excuse: bool = Field(default=False)
+    pattern: Annotated[str, Field(description="Known anti-pattern with monolingual description.")]
+    allows_contextual_excuse: Annotated[bool, Field(default=False)] = False
 
 
 def _coerce_to_tuple(v: Any) -> Any:
@@ -145,31 +147,49 @@ class TDAAssertion(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    tda_id: str = Field(
-        default_factory=lambda: generate_opaque_id(EntityPrefix.TDA),
-        pattern=r"^tda_[a-f0-9]{32}$",
-        description="Opaque Stripe ID for this assertion.",
-    )
-    inverse_evidence: bool = Field(description="If True, acts as a poison/penalty detector.")
-    aggregation_mode: Literal["EXISTS", "ALL_MUST_COMPLY"] = Field(description="Aggregation constraint.")
+    tda_id: Annotated[
+        str,
+        Field(
+            default_factory=lambda: generate_opaque_id(EntityPrefix.TDA),
+            pattern=r"^tda_[a-f0-9]{32}$",
+            description="Opaque Stripe ID for this assertion.",
+        ),
+    ]
+    inverse_evidence: Annotated[bool, Field(description="If True, acts as a poison/penalty detector.")]
+    aggregation_mode: Annotated[
+        Literal["EXISTS", "ALL_MUST_COMPLY"],
+        Field(description="Aggregation constraint."),
+    ]
 
     # Decoupled evaluation track properties for extractive sensor and cognitive judgement pipelines
-    evaluation_track: Literal["EXTRACTIVE_SENSOR", "COGNITIVE_JUDGEMENT"] = Field(
-        default="COGNITIVE_JUDGEMENT",
-        description="Decoupled evaluation track: extractive logic vs cognitive judgement.",
-    )
-    facts_to_find: list[str] = Field(
-        default_factory=list,
-        description="The list of facts to extract for this assertion.",
-    )
-    logical_expression: str | None = Field(
-        default=None,
-        description="Whitelisted Boolean logical expression using extracted facts.",
-    )
-    high_entropy: bool = Field(
-        default=False,
-        description="If True, enables multi-agent ensemble majority voting for this assertion.",
-    )
+    evaluation_track: Annotated[
+        Literal["EXTRACTIVE_SENSOR", "COGNITIVE_JUDGEMENT"],
+        Field(
+            default="COGNITIVE_JUDGEMENT",
+            description="Decoupled evaluation track: extractive logic vs cognitive judgement.",
+        ),
+    ] = "COGNITIVE_JUDGEMENT"
+    facts_to_find: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="The list of facts to extract for this assertion.",
+        ),
+    ]
+    logical_expression: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Whitelisted Boolean logical expression using extracted facts.",
+        ),
+    ] = None
+    high_entropy: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="If True, enables multi-agent ensemble majority voting for this assertion.",
+        ),
+    ] = False
     target_speaker: Annotated[
         TargetSpeaker,
         Field(
@@ -183,30 +203,55 @@ class TDAAssertion(V2CoreBase):
     concept_description: Annotated[
         str,
         StringConstraints(strip_whitespace=True, min_length=10),
-    ] = Field(description="Concise concept definition for this assertion, not runtime instructions")
-    anchor_target: str | None = Field(default=None, description="Target anchor to search for during extraction")
-    bounding_box_scope: Literal["sentence", "paragraph", "document", "adjacent_paragraphs"] = Field(default="paragraph")
-    extraction_rule: str | None = Field(default=None, description="The extraction rule that data must satisfy")
-    acceptance_criteria: list[AcceptanceCriterion] = Field(
-        default_factory=list,
-        description="Structured acceptance criteria with monolingual instructions.",
-    )
-    anti_patterns: list[AntiPattern] = Field(
-        default_factory=list,
-        description="Known anti-patterns with monolingual descriptions.",
-    )
-    contrastive_example: ContrastivePairDTO | None = Field(
-        default=None,
-        description="Structured contrastive pair showing acceptable vs rejected exemplars.",
-    )
-    syntactic_anchors: list[str] = Field(
-        default_factory=list,
-        description="Exact syntactic markers for extractive matching.",
-    )
-    enforce_pre_flight: bool = Field(
-        default=False,
-        description="If True, enables pre-flight validation before LLM evaluation.",
-    )
+        Field(description="Concise concept definition for this assertion, not runtime instructions"),
+    ]
+    anchor_target: Annotated[
+        str | None,
+        Field(default=None, description="Target anchor to search for during extraction"),
+    ] = None
+    bounding_box_scope: Annotated[
+        Literal["sentence", "paragraph", "document", "adjacent_paragraphs"],
+        Field(default="paragraph"),
+    ] = "paragraph"
+    extraction_rule: Annotated[
+        str | None,
+        Field(default=None, description="The extraction rule that data must satisfy"),
+    ] = None
+    acceptance_criteria: Annotated[
+        list[AcceptanceCriterion],
+        Field(
+            default_factory=list,
+            description="Structured acceptance criteria with monolingual instructions.",
+        ),
+    ]
+    anti_patterns: Annotated[
+        list[AntiPattern],
+        Field(
+            default_factory=list,
+            description="Known anti-patterns with monolingual descriptions.",
+        ),
+    ]
+    contrastive_example: Annotated[
+        ContrastivePairDTO | None,
+        Field(
+            default=None,
+            description="Structured contrastive pair showing acceptable vs rejected exemplars.",
+        ),
+    ] = None
+    syntactic_anchors: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Exact syntactic markers for extractive matching.",
+        ),
+    ]
+    enforce_pre_flight: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="If True, enables pre-flight validation before LLM evaluation.",
+        ),
+    ] = False
     depends_on: Annotated[
         tuple[CausalEdge, ...],
         BeforeValidator(_coerce_to_tuple),
@@ -271,12 +316,14 @@ class MatrixClaim(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    label: I18nText = Field(description="User-facing empirical claim.")
-    tda_assertions: list[TDAAssertion] = Field(
-        ...,
-        min_length=1,
-        description="Test-Driven Assertion rules explicitly set by experts.",
-    )
+    label: Annotated[I18nText, Field(description="User-facing empirical claim.")]
+    tda_assertions: Annotated[
+        list[TDAAssertion],
+        Field(
+            min_length=1,
+            description="Test-Driven Assertion rules explicitly set by experts.",
+        ),
+    ]
 
 
 class MatrixRow(V2CoreBase):
@@ -289,8 +336,8 @@ class MatrixRow(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    label: I18nText = Field(description="User-facing row name.")
-    ai_description: str = Field(description="Dedicated AI evaluation instruction for this sub-dimension.")
+    label: Annotated[I18nText, Field(description="User-facing row name.")]
+    ai_description: Annotated[str, Field(description="Dedicated AI evaluation instruction for this sub-dimension.")]
 
 
 class MatrixScale(V2CoreBase):
@@ -305,14 +352,19 @@ class MatrixScale(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    score: int = Field(description="Numerical value of the scale point.")
-    name: I18nText | None = Field(default=None, description="Optional name for the scale point (e.g., 'Excellent').")
-    ai_label: str = Field(
-        description="Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE"
-    )
-    claims: list[MatrixClaim] = Field(
-        default_factory=list, description="List of behavioral claims/criteria for this score."
-    )
+    score: Annotated[int, Field(description="Numerical value of the scale point.")]
+    name: Annotated[
+        I18nText | None,
+        Field(default=None, description="Optional name for the scale point (e.g., 'Excellent')."),
+    ] = None
+    ai_label: Annotated[
+        str,
+        Field(description="Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE"),
+    ]
+    claims: Annotated[
+        list[MatrixClaim],
+        Field(default_factory=list, description="List of behavioral claims/criteria for this score."),
+    ]
 
 
 from backend_v2.models.dtos.dag_models import CausalEdge

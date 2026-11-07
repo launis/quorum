@@ -37,7 +37,7 @@
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
   - [x] Step 2.1: Eradicate Silent Identity, Relational & Display Field Defaults (`QGR020` Check 20C)
-  - [ ] Step 2.2: Convert Bare `Field(...)` Declarations in Core, Exceptions, Chunking & Domain Models (`QGR020` Check 20B — Batch 1)
+  - [x] Step 2.2: Convert Bare `Field(...)` Declarations in Core, Exceptions, Chunking & Domain Models (`QGR020` Check 20B — Batch 1)
   - [ ] Step 2.3: Convert Bare `Field(...)` Declarations in DTOs, View, Packer & Scripts and Delete `QGR020` Exemption Sets (`QGR020` Check 20B — Batch 2)
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
@@ -229,7 +229,7 @@
 | `REQ-163-002` | Decompose C901 functions in `backend_audit_loop.py` and `flutter_audit_loop.py`, remove `[tool.ruff.lint.per-file-ignores]` from `pyproject.toml`, and empty `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS` | Phase 1, Step 1.2 | `audit_dict_eradication.py` & `ruff check` | `[x]` |
 | `REQ-163-003` | Eradicate `_local_invitations`, `_local_assignments`, and `_memory_entries` (`QGR030`) and delete `RESIDUAL_LOCAL_SHADOW_STATE_FILES` | Phase 1, Step 1.3 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-004` | Remove all 14 silent identity, relational, and display field defaults across 8 files (`QGR020` Check 20C) and delete `RESIDUAL_DEFAULT_VALUE_MODEL_FILES` | Phase 2, Step 2.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
-| `REQ-163-005` | Convert bare `Field(...)` declarations in core, exceptions, chunking, and domain models to PEP 593 `Annotated[T, Field(...)]` (`QGR020` Check 20B Batch 1) | Phase 2, Step 2.2 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-005` | Convert bare `Field(...)` declarations in core, exceptions, chunking, and domain models to PEP 593 `Annotated[T, Field(...)]` (`QGR020` Check 20B Batch 1) | Phase 2, Step 2.2 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-006` | Convert bare `Field(...)` declarations in DTOs, view, packer, and scripts to PEP 593 `Annotated[T, Field(...)]` and delete `RESIDUAL_BARE_FIELD_FILES` (`QGR020` Check 20B Batch 2) | Phase 2, Step 2.3 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-007` | Add immutable `ExecutionRecord` transition helpers (`with_updated_step_state`, `with_updated_profile_synthesis`, `with_cleared_profile_syntheses`) and refactor worker state transitions (`QGR028`) | Phase 3, Step 3.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-008` | Eliminate redundant `.model_validate()` calls on typed DTOs across 7 hook and service files and delete `RESIDUAL_FUTURE_PHASE_QGR028_FILES` (`QGR028`) | Phase 3, Step 3.2 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |

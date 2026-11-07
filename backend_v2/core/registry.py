@@ -324,20 +324,30 @@ class StrippedBaseTDAExtraction(BaseModel):
             return []
         return v
 
-    exact_quotes: list[LLMExtractedQuote] = Field(
-        default_factory=list,
-        description=DESC_EXACT_QUOTES,
-    )
-    contextual_override: bool = Field(
-        description=DESC_CONTEXTUAL_OVERRIDE,
-    )
-    semantic_reasoning: str = Field(
-        description=(
-            "Write an extensive analytical reasoning trace explaining your decision-making process. "
-            "You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this "
-            "JSON string to structure your analysis."
+    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
+    exact_quotes: Annotated[
+        list[LLMExtractedQuote],
+        Field(
+            default_factory=list,
+            description=DESC_EXACT_QUOTES,
         ),
-    )
+    ]
+    contextual_override: Annotated[
+        bool,
+        Field(
+            description=DESC_CONTEXTUAL_OVERRIDE,
+        ),
+    ]
+    semantic_reasoning: Annotated[
+        str,
+        Field(
+            description=(
+                "Write an extensive analytical reasoning trace explaining your decision-making process. "
+                "You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this "
+                "JSON string to structure your analysis."
+            ),
+        ),
+    ]
 
 
 class StrippedBaseMatrixXAI(BaseModel):
@@ -345,13 +355,16 @@ class StrippedBaseMatrixXAI(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    semantic_reasoning: str = Field(
-        description=(
-            "Write an extensive analytical reasoning trace explaining your decision-making process. "
-            "You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this "
-            "JSON string to structure your analysis."
+    semantic_reasoning: Annotated[
+        str,
+        Field(
+            description=(
+                "Write an extensive analytical reasoning trace explaining your decision-making process. "
+                "You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this "
+                "JSON string to structure your analysis."
+            ),
         ),
-    )
+    ]
 
 
 class GlobalMatricesBase(V2CoreBase):
@@ -577,14 +590,16 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
 
             class AtomResponseBase(BaseModel):
                 model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-                atom_id: str = Field(
-                    ...,
-                    description=(
-                        "The EXACT system identifier. MUST exactly match one of the short aliases "
-                        "provided in <BLIND_ATOMS_TO_EVALUATE> (e.g. 'a0', 'a1')."
+                atom_id: Annotated[
+                    str,
+                    Field(
+                        description=(
+                            "The EXACT system identifier. MUST exactly match one of the short aliases "
+                            "provided in <BLIND_ATOMS_TO_EVALUATE> (e.g. 'a0', 'a1')."
+                        ),
+                        json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN},
                     ),
-                    json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN},
-                )
+                ]
 
             atom_resp_base: tuple[type[BaseModel], ...]
             if strictness_level >= 100:

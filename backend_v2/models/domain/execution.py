@@ -70,19 +70,27 @@ class FrozenContext(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    compiled_prompts: dict[str, str] = Field(default_factory=dict, description="Prompts sent to LLM.")
-    injected_theory: InjectedTheoryManifestDTO = Field(
-        default_factory=InjectedTheoryManifestDTO, description="Fetched theory texts."
-    )
-    generated_schemas: GeneratedSchemaManifestDTO = Field(
-        default_factory=GeneratedSchemaManifestDTO, description="JSON schemas used."
-    )
-    ui_hints_snapshot: dict[str, DataDictionaryField] = Field(
-        default_factory=dict, description="UI rendering instructions."
-    )
-    mcp_tool_audit: list[MCPAuditTrace] = Field(
-        default_factory=list, description="Immutable log of all external MCP tool calls made during execution."
-    )
+    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
+    compiled_prompts: Annotated[dict[str, str], Field(default_factory=dict, description="Prompts sent to LLM.")]
+    injected_theory: Annotated[
+        InjectedTheoryManifestDTO,
+        Field(default_factory=InjectedTheoryManifestDTO, description="Fetched theory texts."),
+    ]
+    generated_schemas: Annotated[
+        GeneratedSchemaManifestDTO,
+        Field(default_factory=GeneratedSchemaManifestDTO, description="JSON schemas used."),
+    ]
+    ui_hints_snapshot: Annotated[
+        dict[str, DataDictionaryField],
+        Field(default_factory=dict, description="UI rendering instructions."),
+    ]
+    mcp_tool_audit: Annotated[
+        list[MCPAuditTrace],
+        Field(
+            default_factory=list,
+            description="Immutable log of all external MCP tool calls made during execution.",
+        ),
+    ]
 
 
 def _resolve_default_matrix_sampling_limit() -> int:
@@ -109,10 +117,13 @@ class ExecutionCreate(V2CoreBase):
 
     workflow_id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Target workflow ID to execute.")]
     target_locale: Annotated[str, Field(min_length=2, description="Target language/locale code (e.g., 'fi', 'en').")]
-    profile_id: str | None = Field(
-        default=None,
-        description="Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default.",
-    )
+    profile_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default.",
+        ),
+    ] = None
     matrix_sampling_strategy: Annotated[
         int,
         Field(
@@ -123,15 +134,18 @@ class ExecutionCreate(V2CoreBase):
             ),
         ),
     ]
-    raw_inputs: WorkflowInputsIngress | WorkflowInputs = Field(
-        default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"
-    )
-    provider_override: LLMProvider | None = Field(
-        default=None, description="Optional execution-level LLM provider override."
-    )
-    model_registry_id: str | None = Field(
-        default=None, description="Optional execution-level model registry stack override"
-    )
+    raw_inputs: Annotated[
+        WorkflowInputsIngress | WorkflowInputs,
+        Field(default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"),
+    ]
+    provider_override: Annotated[
+        LLMProvider | None,
+        Field(default=None, description="Optional execution-level LLM provider override."),
+    ] = None
+    model_registry_id: Annotated[
+        str | None,
+        Field(default=None, description="Optional execution-level model registry stack override"),
+    ] = None
 
     @field_validator("matrix_sampling_strategy", mode="before")
     @classmethod
@@ -157,28 +171,42 @@ class ExecutionStep(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str = Field(pattern=r"^([a-z0-9_]{2,15})_[a-zA-Z0-9_-]+$", description="Step ID")
-    label: str = Field(description="Localized label for UI tracking")
-    status: LaxExecutionStatus = Field(
-        default=ExecutionStatus.PENDING, description="Status: pending, running, passed, failed"
-    )
-    last_error: str | None = Field(default=None, description="Error message if the step failed")
-    message_code: str | None = Field(default=None, description="Optional UX message code for SSE")
-    model_strategy: str | None = Field(default=None, description="Logical strategy alias ('fast', 'reasoning')")
-    physical_model: str | None = Field(
-        default=None, description="Exact physical provider model string ('vertex_ai/gemini-2.5-flash')"
-    )
-    system_fingerprint: str | None = Field(
-        default=None, description="Provider system fingerprint / model weights version"
-    )
+    id: Annotated[str, Field(pattern=r"^([a-z0-9_]{2,15})_[a-zA-Z0-9_-]+$", description="Step ID")]
+    label: Annotated[str, Field(description="Localized label for UI tracking")]
+    status: Annotated[
+        LaxExecutionStatus,
+        Field(default=ExecutionStatus.PENDING, description="Status: pending, running, passed, failed"),
+    ] = ExecutionStatus.PENDING
+    last_error: Annotated[str | None, Field(default=None, description="Error message if the step failed")] = None
+    message_code: Annotated[str | None, Field(default=None, description="Optional UX message code for SSE")] = None
+    model_strategy: Annotated[
+        str | None,
+        Field(default=None, description="Logical strategy alias ('fast', 'reasoning')"),
+    ] = None
+    physical_model: Annotated[
+        str | None,
+        Field(default=None, description="Exact physical provider model string ('vertex_ai/gemini-2.5-flash')"),
+    ] = None
+    system_fingerprint: Annotated[
+        str | None,
+        Field(default=None, description="Provider system fingerprint / model weights version"),
+    ] = None
 
-    prompt_tokens: int = Field(default=0, ge=0, description="Prompt tokens consumed by this step")
-    completion_tokens: int = Field(default=0, ge=0, description="Completion tokens generated by this step")
-    cached_tokens: int = Field(default=0, ge=0, description="Cached tokens read by this step")
-    reasoning_tokens: int = Field(default=0, ge=0, description="Thinking/reasoning tokens generated by this step")
-    cost_usd: float = Field(default=0.0, ge=0.0, description="Financial cost incurred by this step in USD")
-    duration_ms: int = Field(default=0, ge=0, description="Step duration in milliseconds")
-    chunk_count: int = Field(default=1, ge=1, description="Number of parallel chunks processed in this step")
+    prompt_tokens: Annotated[int, Field(default=0, ge=0, description="Prompt tokens consumed by this step")] = 0
+    completion_tokens: Annotated[
+        int, Field(default=0, ge=0, description="Completion tokens generated by this step")
+    ] = 0
+    cached_tokens: Annotated[int, Field(default=0, ge=0, description="Cached tokens read by this step")] = 0
+    reasoning_tokens: Annotated[
+        int, Field(default=0, ge=0, description="Thinking/reasoning tokens generated by this step")
+    ] = 0
+    cost_usd: Annotated[
+        float, Field(default=0.0, ge=0.0, description="Financial cost incurred by this step in USD")
+    ] = 0.0
+    duration_ms: Annotated[int, Field(default=0, ge=0, description="Step duration in milliseconds")] = 0
+    chunk_count: Annotated[
+        int, Field(default=1, ge=1, description="Number of parallel chunks processed in this step")
+    ] = 1
 
     progress: Annotated[
         int | None, Field(default=None, ge=0, le=100, description="Step progress percentage for SSE streaming (0-100)")
@@ -192,9 +220,10 @@ class ExecutionStep(V2CoreBase):
         ),
     ] = None
 
-    scorecard_atoms: dict[str, ScorecardAtomDTO] = Field(
-        default_factory=dict, description="Presentation atoms including potential human overrides."
-    )
+    scorecard_atoms: Annotated[
+        dict[str, ScorecardAtomDTO],
+        Field(default_factory=dict, description="Presentation atoms including potential human overrides."),
+    ]
 
 
 ExecutionStepState = ExecutionStep
@@ -205,12 +234,17 @@ class ExecutionSummarySnapshot(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    strictness_level: int = Field(default=100, ge=0, le=100, description="Strictness level percentage for evaluation")
-    is_ensemble_run: bool = Field(default=False, description="Whether ensemble evaluation was active")
-    is_degraded: bool = Field(default=False, description="Whether execution finished in a degraded state")
-    system_concurrency_snapshot: dict[str, int] = Field(
-        default_factory=dict, description="Concurrency metric snapshot at termination"
+    strictness_level: Annotated[
+        int, Field(default=100, ge=0, le=100, description="Strictness level percentage for evaluation")
+    ] = 100
+    is_ensemble_run: Annotated[bool, Field(default=False, description="Whether ensemble evaluation was active")] = False
+    is_degraded: Annotated[bool, Field(default=False, description="Whether execution finished in a degraded state")] = (
+        False
     )
+    system_concurrency_snapshot: Annotated[
+        dict[str, int],
+        Field(default_factory=dict, description="Concurrency metric snapshot at termination"),
+    ]
 
 
 class ExecutionRecord(ExecutionCoreFields):
@@ -219,82 +253,129 @@ class ExecutionRecord(ExecutionCoreFields):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     if TYPE_CHECKING:
-        status: LaxExecutionStatus = Field(default=ExecutionStatus.PENDING)
-        target_locale: str = Field(...)
-        execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(default_factory=list)
-        execution_trace_storage_path: str | None = Field(default=None)
-        context_variables: ContextVariablesDTO = Field(default_factory=lambda: ContextVariablesDTO(variables={}))
-        context_variables_storage_path: str | None = Field(default=None)
-        progress: int | None = Field(default=None)
-        status_message: str | None = Field(default=None)
+        status: Annotated[LaxExecutionStatus, Field(default=ExecutionStatus.PENDING)] = ExecutionStatus.PENDING
+        target_locale: Annotated[str, Field(description="Target locale")]
+        execution_trace: Annotated[
+            list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
+            Field(default_factory=list),
+        ]
+        execution_trace_storage_path: Annotated[str | None, Field(default=None)] = None
+        context_variables: Annotated[
+            ContextVariablesDTO,
+            Field(default_factory=lambda: ContextVariablesDTO(variables={})),
+        ]
+        context_variables_storage_path: Annotated[str | None, Field(default=None)] = None
+        progress: Annotated[int | None, Field(default=None)] = None
+        status_message: Annotated[str | None, Field(default=None)] = None
 
-    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Execution ID, usually a uuid")
-    workflow_id: str = Field(description="Workflow ID")
-    workflow_version: int = Field(default=1, ge=1, description="Version number of the executing workflow")
+    id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Execution ID, usually a uuid")]
+    workflow_id: Annotated[str, Field(description="Workflow ID")]
+    workflow_version: Annotated[int, Field(default=1, ge=1, description="Version number of the executing workflow")] = 1
     state_version: Annotated[
         int,
         Field(ge=1, default=1, description="Monotonically increasing optimistic concurrency control version"),
     ] = 1
-    active_profile_id: str | None = Field(
-        default=None, description="The ID of the output profile selected for formatting and printing."
-    )
-    raw_inputs: WorkflowInputs = Field(default_factory=lambda: WorkflowInputs(), description="Raw user inputs by role")
-    frozen_context: FrozenContext | None = Field(
-        default_factory=FrozenContext, description="Immutable snapshot of context"
-    )
-    frozen_context_storage_path: str | None = Field(
-        default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON"
-    )
-    pdf_report_path: str | None = Field(default=None, description="Path to the generated PDF Execution Report.")
+    active_profile_id: Annotated[
+        str | None,
+        Field(default=None, description="The ID of the output profile selected for formatting and printing."),
+    ] = None
+    raw_inputs: Annotated[
+        WorkflowInputs,
+        Field(default_factory=lambda: WorkflowInputs(), description="Raw user inputs by role"),
+    ]
+    frozen_context: Annotated[
+        FrozenContext | None,
+        Field(default_factory=FrozenContext, description="Immutable snapshot of context"),
+    ]
+    frozen_context_storage_path: Annotated[
+        str | None,
+        Field(default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON"),
+    ] = None
+    pdf_report_path: Annotated[
+        str | None,
+        Field(default=None, description="Path to the generated PDF Execution Report."),
+    ] = None
     output_profile_id: Annotated[
         str | None,
         Field(default=None, description="Target profile ID for formatting instructions and synthesis."),
     ] = None
-    steps: list[ExecutionStep] = Field(
-        default_factory=list, description="Real-time status tracking and FinOps telemetry for DAG nodes (SSOT)"
-    )
-    step_states: dict[str, ExecutionStepState] = Field(
-        default_factory=dict, description="Transitional step_states lookup mapping"
-    )
-    profile_syntheses: dict[str, RenderedSynthesisCache] = Field(
-        default_factory=dict, description="Multi-profile synthesis caching"
-    )
-    source_identity_manifest: dict[str, str] = Field(
-        default_factory=dict, description="O(1) Snapshot mapping Opaque ID to Display Name for inputs."
-    )
-    is_resumable: bool = Field(
-        default=False, description="Dynamic flag indicating if a failed/pending execution can be safely resumed."
-    )
-    prompt_tokens: int = Field(default=0, ge=0, description="Total prompt tokens consumed.")
-    completion_tokens: int = Field(default=0, ge=0, description="Total completion tokens generated.")
-    cached_tokens: int = Field(default=0, ge=0, description="Total tokens read from context cache.")
-    reasoning_tokens: int = Field(default=0, ge=0, description="Total thinking/reasoning tokens.")
-    cumulative_synthesis_tokens: int = Field(
-        default=0, ge=0, description="Cumulative tokens used across all synthesis runs."
-    )
+    steps: Annotated[
+        list[ExecutionStep],
+        Field(
+            default_factory=list,
+            description="Real-time status tracking and FinOps telemetry for DAG nodes (SSOT)",
+        ),
+    ]
+    step_states: Annotated[
+        dict[str, ExecutionStepState],
+        Field(default_factory=dict, description="Transitional step_states lookup mapping"),
+    ]
+    profile_syntheses: Annotated[
+        dict[str, RenderedSynthesisCache],
+        Field(default_factory=dict, description="Multi-profile synthesis caching"),
+    ]
+    source_identity_manifest: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="O(1) Snapshot mapping Opaque ID to Display Name for inputs."),
+    ]
+    is_resumable: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Dynamic flag indicating if a failed/pending execution can be safely resumed.",
+        ),
+    ] = False
+    prompt_tokens: Annotated[int, Field(default=0, ge=0, description="Total prompt tokens consumed.")] = 0
+    completion_tokens: Annotated[int, Field(default=0, ge=0, description="Total completion tokens generated.")] = 0
+    cached_tokens: Annotated[int, Field(default=0, ge=0, description="Total tokens read from context cache.")] = 0
+    reasoning_tokens: Annotated[int, Field(default=0, ge=0, description="Total thinking/reasoning tokens.")] = 0
+    cumulative_synthesis_tokens: Annotated[
+        int,
+        Field(default=0, ge=0, description="Cumulative tokens used across all synthesis runs."),
+    ] = 0
 
-    dag_cost_usd: float = Field(default=0.0, ge=0.0, description="Total financial DAG execution cost in USD.")
-    cumulative_synthesis_cost: float = Field(
-        default=0.0, ge=0.0, description="Cumulative cost in USD across all synthesis runs."
-    )
-    cost_estimate: float = Field(default=0.0, ge=0.0, description="Estimated total cost of the execution in USD")
+    dag_cost_usd: Annotated[
+        float, Field(default=0.0, ge=0.0, description="Total financial DAG execution cost in USD.")
+    ] = 0.0
+    cumulative_synthesis_cost: Annotated[
+        float,
+        Field(default=0.0, ge=0.0, description="Cumulative cost in USD across all synthesis runs."),
+    ] = 0.0
+    cost_estimate: Annotated[
+        float, Field(default=0.0, ge=0.0, description="Estimated total cost of the execution in USD")
+    ] = 0.0
 
-    models_used: dict[str, int] = Field(
-        default_factory=dict, description="Dictionary of models used and their usage count/tokens"
-    )
-    execution_summary: ExecutionSummarySnapshot | None = Field(
-        default=None, description="Typed non-FinOps execution telemetry snapshot"
-    )
-    metadata: ExecutionMetadata | None = Field(default=None, description="Configuration metadata for the execution")
-    duration_ms: int = Field(default=0, ge=0, description="Total execution duration in milliseconds")
-    error: str | None = Field(default=None, description="Error message if failed")
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="UTC creation timestamp"
-    )
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC update timestamp")
-    completed_at: datetime | None = Field(default=None, description="UTC completion timestamp")
-    created_by: str | None = Field(default=None, description="ID of the user who started the execution")
-    organization_id: str | None = Field(default=None, description="ID of the organization for this execution")
+    models_used: Annotated[
+        dict[str, int],
+        Field(default_factory=dict, description="Dictionary of models used and their usage count/tokens"),
+    ]
+    execution_summary: Annotated[
+        ExecutionSummarySnapshot | None,
+        Field(default=None, description="Typed non-FinOps execution telemetry snapshot"),
+    ] = None
+    metadata: Annotated[
+        ExecutionMetadata | None,
+        Field(default=None, description="Configuration metadata for the execution"),
+    ] = None
+    duration_ms: Annotated[int, Field(default=0, ge=0, description="Total execution duration in milliseconds")] = 0
+    error: Annotated[str | None, Field(default=None, description="Error message if failed")] = None
+    created_at: Annotated[
+        datetime,
+        Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC creation timestamp"),
+    ]
+    updated_at: Annotated[
+        datetime,
+        Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC update timestamp"),
+    ]
+    completed_at: Annotated[datetime | None, Field(default=None, description="UTC completion timestamp")] = None
+    created_by: Annotated[
+        str | None,
+        Field(default=None, description="ID of the user who started the execution"),
+    ] = None
+    organization_id: Annotated[
+        str | None,
+        Field(default=None, description="ID of the organization for this execution"),
+    ] = None
 
     def without_profile_synthesis(self, profile_id: str) -> ExecutionRecord:
         """Return an immutable copy with the specified profile synthesis removed.
@@ -409,7 +490,7 @@ class EvidenceRejectionRequest(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    rejection_reason: str = Field(description="Reason for rejecting the evidence quote.")
+    rejection_reason: Annotated[str, Field(description="Reason for rejecting the evidence quote.")]
 
 
 class ExecutionAssignment(V2CoreBase):

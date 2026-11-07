@@ -9,7 +9,7 @@ import inspect
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Annotated, Protocol
 
 from fastapi import status
 from pydantic import ConfigDict, Field
@@ -90,9 +90,10 @@ class HookState(V2CoreBase):
     workflow_id: str
     step_id: str | None = None
     task_blueprint: str | None = None
-    metadata: ExecutionMetadata = Field(...)
-    global_context_vars: GlobalContextVarsDTO = Field(default_factory=GlobalContextVarsDTO)
-    inputs: ExecutionInputsDTO = Field(default_factory=ExecutionInputsDTO)
+    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
+    metadata: Annotated[ExecutionMetadata, Field(description="Execution metadata")]
+    global_context_vars: Annotated[GlobalContextVarsDTO, Field(default_factory=GlobalContextVarsDTO)]
+    inputs: Annotated[ExecutionInputsDTO, Field(default_factory=ExecutionInputsDTO)]
 
 
 class HookResult(V2CoreBase):
@@ -101,7 +102,7 @@ class HookResult(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     success: bool
-    state_delta: HookDeltaDTO | None = Field(default=None)
+    state_delta: Annotated[HookDeltaDTO | None, Field(default=None)] = None
 
 
 # Strict type definition for a hook function
