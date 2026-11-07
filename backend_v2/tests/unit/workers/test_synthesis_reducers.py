@@ -1,18 +1,19 @@
 """Unit tests for synthesis_reducers.py covering user role extraction, starvation handling, result processing, and telemetry recovery."""
 
+import json
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import JsonValue
 
+import backend_v2.workers.synthesis_reducers as synthesis_reducers_mod
 from backend_v2.exceptions import AppException
-from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
     MatrixExplanationContextDTO,
@@ -25,7 +26,6 @@ from backend_v2.models.dtos.synthesis import (
 )
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus, RoleClassification, TargetBlockType
-from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -42,26 +42,36 @@ from backend_v2.workers.synthesis_reducers import (
 
 
 def _make_execution(trace_events: list[TraceEvent] | None = None) -> ExecutionRecord:
-    return ExecutionRecord(
-        id="exe_0195f3a00000700283456789abcdef01",
-        workflow_id="wor_0195f3a00000700283456789abcdef01",
-        output_profile_id="pro_0195f3a00000700283456789abcdef01",
-        status=ExecutionStatus.PASSED,
-        target_locale="en",
-        metadata=ExecutionMetadata(),
-        execution_trace=trace_events or [],
+    """Create a validated ExecutionRecord fixture with optional trace events."""
+    return ExecutionRecord.model_validate(
+        {
+            "id": "exe_0195f3a00000700283456789abcdef01",
+            "workflow_id": "wor_0195f3a00000700283456789abcdef01",
+            "output_profile_id": "pro_0195f3a00000700283456789abcdef01",
+            "status": ExecutionStatus.PASSED,
+            "target_locale": "en",
+            "metadata": {},
+            "execution_trace": trace_events or [],
+        },
+        strict=False,
     )
 
 
 def test_extract_user_role_from_trace_lightweight_output() -> None:
     """Test extract_user_role_from_trace with LightweightMatrixOutput content."""
-    matrix_out = LightweightMatrixOutput(raw_score=4.2, evaluated_atoms={}, extensions={})
-    evt = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"blk_role": matrix_out.model_dump(mode="json")},
+    matrix_out = LightweightMatrixOutput.model_validate(
+        {"raw_score": 4.2, "evaluated_atoms": {}, "extensions": {}},
+        strict=False,
+    )
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"blk_role": matrix_out.model_dump(mode="json")},
+        },
+        strict=False,
     )
     exec_rec = _make_execution([evt])
     role, just = extract_user_role_from_trace(exec_rec, "blk_role")
@@ -71,13 +81,19 @@ def test_extract_user_role_from_trace_lightweight_output() -> None:
 
 def test_extract_user_role_from_trace_dict_with_matrix_output() -> None:
     """Test extract_user_role_from_trace with dict containing role_target_block_id."""
-    matrix_out = LightweightMatrixOutput(raw_score=5.0, evaluated_atoms={}, extensions={})
-    evt = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"blk_role": matrix_out.model_dump(mode="json")},
+    matrix_out = LightweightMatrixOutput.model_validate(
+        {"raw_score": 5.0, "evaluated_atoms": {}, "extensions": {}},
+        strict=False,
+    )
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"blk_role": matrix_out.model_dump(mode="json")},
+        },
+        strict=False,
     )
     exec_rec = _make_execution([evt])
     role, _ = extract_user_role_from_trace(exec_rec, "blk_role")
@@ -86,13 +102,16 @@ def test_extract_user_role_from_trace_dict_with_matrix_output() -> None:
 
 def test_extract_user_role_from_trace_raw_dict_hydration() -> None:
     """Test extract_user_role_from_trace hydrating raw dict into LightweightMatrixOutput."""
-    raw_payload: dict[str, JsonValue] = {"raw_score": 1.0, "evaluated_atoms": {}}
-    evt = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"blk_role": raw_payload},
+    raw_payload: dict[str, JsonSchemaNode] = {"raw_score": 1.0, "evaluated_atoms": {}}
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"blk_role": raw_payload},
+        },
+        strict=False,
     )
     exec_rec = _make_execution([evt])
     role, _ = extract_user_role_from_trace(exec_rec, "blk_role")
@@ -101,13 +120,16 @@ def test_extract_user_role_from_trace_raw_dict_hydration() -> None:
 
 def test_extract_user_role_from_trace_corrupted_dict_raises() -> None:
     """Test extract_user_role_from_trace fails fast on malformed dictionary."""
-    corrupted_payload: dict[str, JsonValue] = {"raw_score": "not-a-number", "evaluated_atoms": 123}
-    evt = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"blk_role": corrupted_payload},
+    corrupted_payload: dict[str, JsonSchemaNode] = {"raw_score": "not-a-number", "evaluated_atoms": 123}
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"blk_role": corrupted_payload},
+        },
+        strict=False,
     )
     exec_rec = _make_execution([evt])
     with pytest.raises(AppException) as exc_info:
@@ -135,21 +157,33 @@ def test_process_executive_summary_result_empty() -> None:
 def test_process_executive_summary_result_with_budget() -> None:
     """Test process_executive_summary_result applies synthesis_length_constraint."""
     long_text = "This is a long synthesized sentence designed to test truncation budget behavior. " * 3
-    p_block = ParagraphBlock(text=long_text, exact_quotes=[], citations=[])
-    exec_res = ExecutiveSummarySectionResult(
-        executive_summary=[p_block],
-        user_role=None,
-        user_role_justification=None,
-        cited_sources=[],
+    p_block = ParagraphBlock.model_validate(
+        {"text": long_text, "exact_quotes": [], "citations": []},
+        strict=False,
     )
-    usage = TokenUsage(total_tokens=30, prompt_tokens=10, completion_tokens=20, cost_usd=0.005)
-    prof = OutputProfile(
-        id="pro_0195f3a00000700283456789abcdef01",
-        slug="prof_test",
-        workflow_id="wor_0195f3a00000700283456789abcdef01",
-        name=I18nText(translations={"en": "Test Profile"}),
-        synthesis_length_constraint=100,
-        target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+    exec_res = ExecutiveSummarySectionResult.model_validate(
+        {
+            "executive_summary": [p_block],
+            "user_role": None,
+            "user_role_justification": None,
+            "cited_sources": [],
+        },
+        strict=False,
+    )
+    usage = TokenUsage.model_validate(
+        {"total_tokens": 30, "prompt_tokens": 10, "completion_tokens": 20, "cost_usd": 0.005},
+        strict=False,
+    )
+    prof = OutputProfile.model_validate(
+        {
+            "id": "pro_0195f3a00000700283456789abcdef01",
+            "slug": "prof_test",
+            "workflow_id": "wor_0195f3a00000700283456789abcdef01",
+            "name": {"translations": {"en": "Test Profile"}},
+            "synthesis_length_constraint": 100,
+            "target_block_order": [TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+        },
+        strict=False,
     )
     res = process_executive_summary_result((exec_res, usage), prof)
     assert res.exec_dto is not None
@@ -162,12 +196,23 @@ def test_process_executive_summary_result_with_budget() -> None:
 
 def test_process_matrix_sections_result() -> None:
     """Test process_matrix_sections_result aggregates blocks and tokens."""
-    sec = SynthesisSectionDTO(
-        layout_id="sec_1",
-        content_blocks=[ParagraphBlock(text="Block 1", exact_quotes=[], citations=[])],
+    sec = SynthesisSectionDTO.model_validate(
+        {
+            "layout_id": "sec_1",
+            "content_blocks": [
+                ParagraphBlock.model_validate(
+                    {"text": "Block 1", "exact_quotes": [], "citations": []},
+                    strict=False,
+                )
+            ],
+        },
+        strict=False,
     )
-    mat_res = MatrixSectionSynthesesResult(sections=[sec])
-    usage = TokenUsage(total_tokens=20, prompt_tokens=5, completion_tokens=15, cost_usd=0.002)
+    mat_res = MatrixSectionSynthesesResult.model_validate({"sections": [sec]}, strict=False)
+    usage = TokenUsage.model_validate(
+        {"total_tokens": 20, "prompt_tokens": 5, "completion_tokens": 15, "cost_usd": 0.002},
+        strict=False,
+    )
 
     res = process_matrix_sections_result([("layer_1", (mat_res, usage)), ("layer_empty", None)])
     assert "layer_1" in res.sec_dict
@@ -179,19 +224,28 @@ def test_process_matrix_sections_result() -> None:
 def test_process_xai_highlights_result() -> None:
     """Test process_xai_highlights_result enforces xai_length_constraint."""
     long_content = "Highlight explanation describing performance and metrics across systems in detail."
-    highlight = XaiHighlightItem(
-        extension_type="variance_validation",
-        content=long_content,
+    highlight = XaiHighlightItem.model_validate(
+        {
+            "extension_type": "variance_validation",
+            "content": long_content,
+        },
+        strict=False,
     )
-    xai_res = XaiHighlightsResult(xai_highlights=[highlight])
-    usage = TokenUsage(total_tokens=20, prompt_tokens=10, completion_tokens=10, cost_usd=0.001)
-    prof = OutputProfile(
-        id="pro_0195f3a00000700283456789abcdef01",
-        slug="prof_test",
-        workflow_id="wor_0195f3a00000700283456789abcdef01",
-        name=I18nText(translations={"en": "Test Profile"}),
-        xai_length_constraint=50,
-        target_block_order=[TargetBlockType.GROUPED_EXTENSIONS_BLOCK],
+    xai_res = XaiHighlightsResult.model_validate({"xai_highlights": [highlight]}, strict=False)
+    usage = TokenUsage.model_validate(
+        {"total_tokens": 20, "prompt_tokens": 10, "completion_tokens": 10, "cost_usd": 0.001},
+        strict=False,
+    )
+    prof = OutputProfile.model_validate(
+        {
+            "id": "pro_0195f3a00000700283456789abcdef01",
+            "slug": "prof_test",
+            "workflow_id": "wor_0195f3a00000700283456789abcdef01",
+            "name": {"translations": {"en": "Test Profile"}},
+            "xai_length_constraint": 50,
+            "target_block_order": [TargetBlockType.GROUPED_EXTENSIONS_BLOCK],
+        },
+        strict=False,
     )
     res = process_xai_highlights_result((xai_res, usage), prof)
     assert len(res.highlights) == 1
@@ -205,27 +259,39 @@ def test_process_xai_highlights_result() -> None:
 
 def test_process_row_explanations_result() -> None:
     """Test process_row_explanations_result maps real and alias IDs with length constraint."""
-    item = SynthesisRowExplanationDTO(
-        matrix_id="alias_mat",
-        row_explanation="Detailed causal explanation for why this row was scored this way in the workflow.",
-        curated_quotes=[],
+    item = SynthesisRowExplanationDTO.model_validate(
+        {
+            "matrix_id": "alias_mat",
+            "row_explanation": "Detailed causal explanation for why this row was scored this way in the workflow.",
+            "curated_quotes": [],
+        },
+        strict=False,
     )
-    mat_res = MatrixExplanationsResult(explanations=[item])
-    usage = TokenUsage(total_tokens=20, prompt_tokens=8, completion_tokens=12, cost_usd=0.003)
-    ctx_dto = MatrixExplanationContextDTO(
-        matrix_id="alias_mat",
-        real_matrix_id="real_mat_123",
-        matrix_label="Matrix Label",
-        score=0.8,
-        justification="Justification",
+    mat_res = MatrixExplanationsResult.model_validate({"explanations": [item]}, strict=False)
+    usage = TokenUsage.model_validate(
+        {"total_tokens": 20, "prompt_tokens": 8, "completion_tokens": 12, "cost_usd": 0.003},
+        strict=False,
     )
-    prof = OutputProfile(
-        id="pro_0195f3a00000700283456789abcdef01",
-        slug="prof_test",
-        workflow_id="wor_0195f3a00000700283456789abcdef01",
-        name=I18nText(translations={"en": "Test Profile"}),
-        row_explanation_length_constraint=50,
-        target_block_order=[TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK],
+    ctx_dto = MatrixExplanationContextDTO.model_validate(
+        {
+            "matrix_id": "alias_mat",
+            "real_matrix_id": "real_mat_123",
+            "matrix_label": "Matrix Label",
+            "score": 0.8,
+            "justification": "Justification",
+        },
+        strict=False,
+    )
+    prof = OutputProfile.model_validate(
+        {
+            "id": "pro_0195f3a00000700283456789abcdef01",
+            "slug": "prof_test",
+            "workflow_id": "wor_0195f3a00000700283456789abcdef01",
+            "name": {"translations": {"en": "Test Profile"}},
+            "row_explanation_length_constraint": 50,
+            "target_block_order": [TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK],
+        },
+        strict=False,
     )
     res = process_row_explanations_result((mat_res, usage), [ctx_dto], prof)
     assert "real_mat_123" in res.cache_explanations
@@ -240,12 +306,15 @@ def test_process_row_explanations_result() -> None:
 @pytest.mark.asyncio
 async def test_handle_starvation_if_detected_true() -> None:
     """Test handle_starvation_if_detected detects DataStarvationEvent and short-circuits."""
-    evt = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"event_type": "starvation", "total_atoms": 0, "reason": "insufficient"},
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"event_type": "starvation", "total_atoms": 0, "reason": "insufficient"},
+        },
+        strict=False,
     )
     exec_rec = _make_execution([evt])
     mock_repo = InMemoryUnifiedWorkflowRepository()
@@ -287,12 +356,15 @@ async def test_handle_starvation_if_detected_true() -> None:
 @pytest.mark.asyncio
 async def test_handle_starvation_if_detected_dict_event() -> None:
     """Test handle_starvation_if_detected validates dict starvation payload."""
-    evt = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"event_type": "starvation", "total_atoms": 0, "reason": "none"},
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"event_type": "starvation", "total_atoms": 0, "reason": "none"},
+        },
+        strict=False,
     )
     exec_rec = _make_execution([evt])
     mock_repo = InMemoryUnifiedWorkflowRepository()
@@ -333,12 +405,15 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
 @pytest.mark.asyncio
 async def test_handle_starvation_if_detected_corrupted_dict_raises() -> None:
     """Test handle_starvation_if_detected fails fast on corrupted starvation event."""
-    evt = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"event_type": "starvation", "total_atoms": "invalid-int"},
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"event_type": "starvation", "total_atoms": "invalid-int"},
+        },
+        strict=False,
     )
     exec_rec = _make_execution([evt])
     with pytest.raises(AppException) as exc_info:
@@ -371,26 +446,36 @@ async def test_handle_starvation_if_detected_false() -> None:
 @pytest.mark.asyncio
 async def test_recover_trace_telemetry_from_blob() -> None:
     """Test recover_trace_telemetry parses stored trace blob when final_cost is 0.0."""
-    import json
-
-    env = TraceEventMetadataEnvelope(
-        step_metadata=StepTraceMetadataDTO(
-            token_usage=TokenUsage(
-                total_tokens=90,
-                prompt_tokens=50,
-                completion_tokens=25,
-                cached_tokens=10,
-                reasoning_tokens=5,
-                cost_usd=0.015,
+    env = TraceEventMetadataEnvelope.model_validate(
+        {
+            "step_metadata": StepTraceMetadataDTO.model_validate(
+                {
+                    "token_usage": TokenUsage.model_validate(
+                        {
+                            "total_tokens": 90,
+                            "prompt_tokens": 50,
+                            "completion_tokens": 25,
+                            "cached_tokens": 10,
+                            "reasoning_tokens": 5,
+                            "cost_usd": 0.015,
+                        },
+                        strict=False,
+                    )
+                },
+                strict=False,
             )
-        )
+        },
+        strict=False,
     )
-    trace_item = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content=env.model_dump(mode="json"),
+    trace_item = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": env.model_dump(mode="json"),
+        },
+        strict=False,
     )
     blob_bytes = json.dumps([trace_item.model_dump(mode="json")]).encode("utf-8")
 
@@ -429,16 +514,11 @@ async def test_recover_trace_telemetry_error_raises_corruption() -> None:
 async def test_handle_synthesis_failure_state() -> None:
     """Test handle_synthesis_failure_state updates virtual step state."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
-    mock_record = ExecutionRecord(
-        id="exe_0195f3a00000700283456789abcdef01",
-        workflow_id="wor_0195f3a00000700283456789abcdef01",
-        target_locale="en",
-        metadata=ExecutionMetadata(),
-        step_states={},
-    )
+    mock_record = _make_execution()
     await mock_repo.save_execution(mock_record)
+    # Phase 6, Step 6.2: Use stateful InMemoryUnifiedWorkflowRepository without string-based patch
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_reducers_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await handle_synthesis_failure_state(
                 "exe_0195f3a00000700283456789abcdef01",
                 "pro_0195f3a00000700283456789abcdef01",
@@ -450,12 +530,15 @@ async def test_handle_synthesis_failure_state() -> None:
 
 def test_extract_user_role_from_trace_invalid_entry_continues() -> None:
     """Test extract_user_role_from_trace skips invalid non-dict non-LightweightMatrixOutput entries."""
-    evt = TraceEvent(
-        v=1,
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        step_name="st",
-        content={"blk_role": 123},
+    evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "step_name": "st",
+            "content": {"blk_role": 123},
+        },
+        strict=False,
     )
     rec = _make_execution([evt])
     role, just = extract_user_role_from_trace(rec, "blk_role")
@@ -465,18 +548,24 @@ def test_extract_user_role_from_trace_invalid_entry_continues() -> None:
 
 def test_process_row_explanations_result_real_id_fallback() -> None:
     """Test process_row_explanations_result falls back to real_matrix_id lookup."""
-    item = SynthesisRowExplanationDTO(
-        matrix_id="real_mat_123",
-        row_explanation="Explanation for real matrix.",
-        curated_quotes=[],
+    item = SynthesisRowExplanationDTO.model_validate(
+        {
+            "matrix_id": "real_mat_123",
+            "row_explanation": "Explanation for real matrix.",
+            "curated_quotes": [],
+        },
+        strict=False,
     )
-    mat_res = MatrixExplanationsResult(explanations=[item])
-    ctx_dto = MatrixExplanationContextDTO(
-        matrix_id="alias_mat",
-        real_matrix_id="real_mat_123",
-        matrix_label="Matrix Label",
-        score=0.8,
-        justification="Justification",
+    mat_res = MatrixExplanationsResult.model_validate({"explanations": [item]}, strict=False)
+    ctx_dto = MatrixExplanationContextDTO.model_validate(
+        {
+            "matrix_id": "alias_mat",
+            "real_matrix_id": "real_mat_123",
+            "matrix_label": "Matrix Label",
+            "score": 0.8,
+            "justification": "Justification",
+        },
+        strict=False,
     )
     res = process_row_explanations_result((mat_res, None), [ctx_dto], None)
     assert res.cache_explanations["real_mat_123"] == "Explanation for real matrix."
@@ -484,18 +573,24 @@ def test_process_row_explanations_result_real_id_fallback() -> None:
 
 def test_process_row_explanations_result_empty_real_id_continues() -> None:
     """Test process_row_explanations_result skips items with empty real_matrix_id."""
-    item = SynthesisRowExplanationDTO(
-        matrix_id="alias_mat",
-        row_explanation="Explanation for real matrix.",
-        curated_quotes=[],
+    item = SynthesisRowExplanationDTO.model_validate(
+        {
+            "matrix_id": "alias_mat",
+            "row_explanation": "Explanation for real matrix.",
+            "curated_quotes": [],
+        },
+        strict=False,
     )
-    mat_res = MatrixExplanationsResult(explanations=[item])
-    ctx_dto = MatrixExplanationContextDTO(
-        matrix_id="alias_mat",
-        real_matrix_id="",
-        matrix_label="Matrix Label",
-        score=0.8,
-        justification="Justification",
+    mat_res = MatrixExplanationsResult.model_validate({"explanations": [item]}, strict=False)
+    ctx_dto = MatrixExplanationContextDTO.model_validate(
+        {
+            "matrix_id": "alias_mat",
+            "real_matrix_id": "",
+            "matrix_label": "Matrix Label",
+            "score": 0.8,
+            "justification": "Justification",
+        },
+        strict=False,
     )
     res = process_row_explanations_result((mat_res, None), [ctx_dto], None)
     assert res.cache_explanations == {}
@@ -504,14 +599,15 @@ def test_process_row_explanations_result_empty_real_id_continues() -> None:
 @pytest.mark.asyncio
 async def test_recover_trace_telemetry_corrupted_envelope_raises() -> None:
     """Test recover_trace_telemetry raises AppException on corrupted envelope dict."""
-    import json
-
-    trace_item = TraceEvent(
-        v=1,
-        step_name="step_test",
-        timestamp=datetime.now(timezone.utc),
-        event_type="output",
-        content={"step_metadata": "corrupted_non_dict"},
+    trace_item = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"step_metadata": "corrupted_non_dict"},
+        },
+        strict=False,
     )
     blob_bytes = json.dumps([trace_item.model_dump(mode="json")]).encode("utf-8")
     exec_rec = _make_execution([]).model_copy(update={"execution_trace_storage_path": "traces/exec1.json"})
@@ -534,19 +630,20 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
     """Test handle_synthesis_failure_state updates virtual step and execution record."""
     prof_id = "pro_0195f3a00000700283456789abcdef01"
     v_step_id = f"sys_render_{prof_id}"
-    v_step = ExecutionStep(id=v_step_id, label="Render", status=ExecutionStatus.PENDING)
+    v_step = ExecutionStep.model_validate(
+        {"id": v_step_id, "label": "Render", "status": ExecutionStatus.PENDING},
+        strict=False,
+    )
     mock_repo = InMemoryUnifiedWorkflowRepository()
-    mock_record = ExecutionRecord(
-        id="exe_0195f3a00000700283456789abcdef01",
-        workflow_id="wor_0195f3a00000700283456789abcdef01",
-        target_locale="en",
-        metadata=ExecutionMetadata(),
-        step_states={v_step_id: v_step},
-        steps=[v_step],
+    mock_record = _make_execution().model_copy(
+        update={
+            "step_states": {v_step_id: v_step},
+            "steps": [v_step],
+        }
     )
     await mock_repo.save_execution(mock_record)
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
+        with patch.object(synthesis_reducers_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await handle_synthesis_failure_state(
                 "exe_0195f3a00000700283456789abcdef01",
                 prof_id,
@@ -564,7 +661,7 @@ async def test_handle_synthesis_failure_state_db_error_raises() -> None:
     mock_repo.inject_fault("get_execution", OSError("DB unavailable"), trigger_count=1)
     try:
         with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
-            with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
+            with patch.object(synthesis_reducers_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
                 with pytest.raises(AppException) as exc_info:
                     await handle_synthesis_failure_state(
                         "exe_0195f3a00000700283456789abcdef01",
@@ -579,7 +676,10 @@ async def test_handle_synthesis_failure_state_db_error_raises() -> None:
 def test_execution_record_with_updated_step_state_returns_new_frozen_instance() -> None:
     """Verify with_updated_step_state returns a new ExecutionRecord with synchronized step_states and steps."""
     step_id = "stp_0195f3a00000700283456789abcdef01"
-    initial_step = ExecutionStep(id=step_id, label="Initial Step", status=ExecutionStatus.PENDING, progress=0)
+    initial_step = ExecutionStep.model_validate(
+        {"id": step_id, "label": "Initial Step", "status": ExecutionStatus.PENDING, "progress": 0},
+        strict=False,
+    )
     record = _make_execution().model_copy(
         update={
             "step_states": {step_id: initial_step},
@@ -598,7 +698,10 @@ def test_execution_record_with_updated_step_state_returns_new_frozen_instance() 
 
     # Also verify appending a step not yet present in steps list
     second_step_id = "sys_render_pro_0195f3a00000700283456789abcdef01"
-    second_step = ExecutionStep(id=second_step_id, label="Render Step", status=ExecutionStatus.RUNNING, progress=50)
+    second_step = ExecutionStep.model_validate(
+        {"id": second_step_id, "label": "Render Step", "status": ExecutionStatus.RUNNING, "progress": 50},
+        strict=False,
+    )
     new_record_with_append = new_record.with_updated_step_state(second_step_id, second_step)
     assert new_record_with_append.step_states[second_step_id] == second_step
     assert len(new_record_with_append.steps) == 2
@@ -609,8 +712,8 @@ def test_execution_record_with_updated_profile_synthesis_preserves_existing_prof
     """Verify with_updated_profile_synthesis preserves existing profile caches and adds the new profile cache."""
     existing_pid = "pro_0195f3a00000700283456789abcdef01"
     new_pid = "pro_0195f3a00000700283456789abcdef02"
-    existing_cache = RenderedSynthesisCache(cited_sources=["doc_existing"])
-    new_cache = RenderedSynthesisCache(cited_sources=["doc_new"])
+    existing_cache = RenderedSynthesisCache.model_validate({"cited_sources": ["doc_existing"]}, strict=False)
+    new_cache = RenderedSynthesisCache.model_validate({"cited_sources": ["doc_new"]}, strict=False)
 
     record = _make_execution().model_copy(update={"profile_syntheses": {existing_pid: existing_cache}})
     updated_record = record.with_updated_profile_synthesis(new_pid, new_cache)
@@ -622,7 +725,10 @@ def test_execution_record_with_updated_profile_synthesis_preserves_existing_prof
 
     # Verify optional atomic step_state update
     v_step_id = f"sys_render_{new_pid}"
-    v_step = ExecutionStep(id=v_step_id, label="Done", status=ExecutionStatus.PASSED, progress=100)
+    v_step = ExecutionStep.model_validate(
+        {"id": v_step_id, "label": "Done", "status": ExecutionStatus.PASSED, "progress": 100},
+        strict=False,
+    )
     updated_with_step = record.with_updated_profile_synthesis(new_pid, new_cache, step_id=v_step_id, step_state=v_step)
     assert updated_with_step.profile_syntheses[new_pid] == new_cache
     assert updated_with_step.step_states[v_step_id] == v_step
@@ -631,7 +737,7 @@ def test_execution_record_with_updated_profile_synthesis_preserves_existing_prof
 def test_execution_record_with_cleared_profile_syntheses_empties_cache() -> None:
     """Verify with_cleared_profile_syntheses returns a new ExecutionRecord with empty profile_syntheses."""
     existing_pid = "pro_0195f3a00000700283456789abcdef01"
-    existing_cache = RenderedSynthesisCache(cited_sources=["doc_existing"])
+    existing_cache = RenderedSynthesisCache.model_validate({"cited_sources": ["doc_existing"]}, strict=False)
     record = _make_execution().model_copy(update={"profile_syntheses": {existing_pid: existing_cache}})
 
     cleared_record = record.with_cleared_profile_syntheses()
@@ -639,3 +745,84 @@ def test_execution_record_with_cleared_profile_syntheses_empties_cache() -> None
     assert cleared_record is not record
     assert cleared_record.profile_syntheses == {}
     assert record.profile_syntheses == {existing_pid: existing_cache}
+
+
+@pytest.mark.asyncio
+async def test_synthesis_reducers_atomic_persistence_roundtrip() -> None:
+    """Phase 6, Step 6.2: Verify profile synthesis and step state updates persist roundtrip in InMemoryUnifiedWorkflowRepository."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
+    prof_1 = "pro_0195f3a00000700283456789abcdef01"
+    prof_2 = "pro_0195f3a00000700283456789abcdef02"
+    v_step_1_id = f"sys_render_{prof_1}"
+    v_step_2_id = f"sys_render_{prof_2}"
+
+    step_1 = ExecutionStep.model_validate(
+        {"id": v_step_1_id, "label": "Render 1", "status": ExecutionStatus.PENDING, "progress": 0},
+        strict=False,
+    )
+    step_2 = ExecutionStep.model_validate(
+        {"id": v_step_2_id, "label": "Render 2", "status": ExecutionStatus.PENDING, "progress": 0},
+        strict=False,
+    )
+    starvation_evt = TraceEvent.model_validate(
+        {
+            "v": 1,
+            "step_name": "step_test",
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "output",
+            "content": {"event_type": "starvation", "total_atoms": 0, "reason": "insufficient"},
+        },
+        strict=False,
+    )
+    initial_rec = _make_execution([starvation_evt]).model_copy(
+        update={
+            "step_states": {v_step_1_id: step_1, v_step_2_id: step_2},
+            "steps": [step_1, step_2],
+        }
+    )
+    await repo.save_execution(initial_rec)
+
+    mock_artifact = MagicMock()
+    mock_artifact.id = "rep_0195f3a00000700283456789abcdef01"
+    with patch("backend_v2.workers.synthesis_reducers.ReportService") as mock_report_service_cls:
+        mock_svc = mock_report_service_cls.return_value
+        mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+        mock_svc.compile_and_persist_artifact = AsyncMock()
+
+        # Persist profile 1 synthesis
+        current_1 = await repo.get_execution(exec_id)
+        assert current_1 is not None
+        await handle_starvation_if_detected(
+            current_1,
+            prof_1,
+            "en",
+            repo,
+            None,
+            AsyncMock(),
+        )
+        # Persist profile 2 synthesis on refreshed record
+        current_2 = await repo.get_execution(exec_id)
+        assert current_2 is not None
+        await handle_starvation_if_detected(
+            current_2,
+            prof_2,
+            "en",
+            repo,
+            None,
+            AsyncMock(),
+        )
+
+    # Also update virtual step state via handle_synthesis_failure_state
+    with (
+        patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock),
+        patch.object(synthesis_reducers_mod, "UnifiedWorkflowRepository", return_value=repo),
+    ):
+        await handle_synthesis_failure_state(exec_id, prof_2, ValueError("Render warning"))
+
+    reconstituted = await repo.get_execution(exec_id)
+    assert reconstituted is not None
+    validated = ExecutionRecord.model_validate_json(reconstituted.model_dump_json())
+    assert prof_1 in validated.profile_syntheses
+    assert prof_2 in validated.profile_syntheses
+    assert validated.step_states[v_step_2_id].status == ExecutionStatus.FAILED

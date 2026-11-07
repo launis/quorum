@@ -472,3 +472,29 @@ def test_main_cli_with_check_residual(capsys: pytest.CaptureFixture[str]) -> Non
         assert exc_info.value.code == 0
         out, _ = capsys.readouterr()
         assert "RESIDUAL DEBT CEILINGS" in out
+
+
+def test_audit_warning_baseline_verify_ceilings_all_zero(capsys: pytest.CaptureFixture[str]) -> None:
+    """Phase 6, Step 6.2: Verify all 10 residual categories equal 0 and --verify-ceilings exits 0."""
+    assert CURRENT_RESIDUAL_CEILINGS == ResidualDebtCeilingsDTO(
+        d=0,
+        f=0,
+        k=0,
+        x=0,
+        n=0,
+        t=0,
+        p=0,
+        m=0,
+        r=0,
+        s=0,
+    )
+    live_counts = compute_census_counts()
+    assert live_counts == CURRENT_RESIDUAL_CEILINGS
+
+    fake_violations: list[GuardrailViolation] = []
+    with patch("scripts.audit_warning_baseline.scan_files_for_guardrails", return_value=(fake_violations, True)):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--target", "backend_v2", "--verify-ceilings"])
+        assert exc_info.value.code == 0
+        out, _ = capsys.readouterr()
+        assert "PASSED: All residual debt categories strictly conform to ratchet ceilings." in out

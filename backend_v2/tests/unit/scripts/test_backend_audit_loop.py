@@ -948,3 +948,17 @@ def test_run_audit_loop_executes_micro_stages_for_parsed_args(mock_sub: MagicMoc
     run_audit_loop(args)
     assert mock_scan.called
     assert mock_sub.called
+
+
+@patch("scripts.backend_audit_loop.run_tests_with_strict_coverage")
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_resolve_mypy_targets_maps_tests_subdir_to_source_package(
+    mock_sub: MagicMock, mock_scan: MagicMock, mock_run_tests: MagicMock
+) -> None:
+    """Verify passing a directory under backend_v2/tests/unit/ maps MyPy target to source package."""
+    main(["backend_v2/tests/unit/workers/", "backend_v2/tests/", "--micro", "--test"])
+    mypy_cmd = mock_sub.call_args_list[2][0][0]
+    assert "backend_v2/workers" in mypy_cmd
+    assert "backend_v2" in mypy_cmd
+    assert mock_run_tests.call_count == 2

@@ -68,7 +68,7 @@ class ResidualDebtCeilingsDTO(V2CoreBase):
 # Configured baseline ceilings (EPIC 157 Phase 13 final lock)
 CURRENT_RESIDUAL_CEILINGS = ResidualDebtCeilingsDTO(
     d=0,
-    f=9,
+    f=0,
     k=0,
     x=0,
     n=0,
@@ -395,17 +395,24 @@ def main(argv: list[str] | None = None) -> None:
         help="Check residual debt ceilings (automatically checked when --verify-zero is supplied).",
     )
     parser.add_argument(
+        "--verify-ceilings",
+        action="store_true",
+        default=False,
+        help="Verify zero warnings, zero fatals, and all residual debt ceilings.",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Output raw JSON ledger report.",
     )
 
     args = parser.parse_args(argv)
+    verify_zero_mode = bool(args.verify_zero or args.verify_ceilings)
 
     report = generate_baseline_report(
         target=args.target,
         ceiling=args.ceiling,
-        verify_zero=args.verify_zero,
+        verify_zero=verify_zero_mode,
     )
 
     if args.json:
@@ -414,7 +421,7 @@ def main(argv: list[str] | None = None) -> None:
         print(format_report_table(report))
 
     residual_passed = True
-    if args.verify_zero or args.check_residual:
+    if verify_zero_mode or args.check_residual:
         live_census = compute_census_counts()
         residual_passed, residual_msgs = verify_residual_debt_ceilings(live_census)
         if not args.json:

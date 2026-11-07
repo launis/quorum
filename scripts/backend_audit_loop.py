@@ -888,6 +888,35 @@ def _ensure_project_root_working_dir() -> None:
         sys.exit(1)
 
 
+def _resolve_mypy_targets(stage_targets: list[str]) -> list[str]:
+    """Resolve MyPy targets by mapping excluded backend_v2/tests/ directories to source packages.
+
+    MyPy directory arguments honor pyproject.toml exclusions (^backend_v2/tests/) and exit
+    with 'no .py[i] files in directory', whereas explicit .py files are type-checked directly.
+
+    Args:
+        stage_targets: Expanded stage targets.
+
+    Returns:
+        List of targets safe for MyPy --strict execution.
+    """
+    mypy_targets: list[str] = []
+    for target in stage_targets:
+        norm = target.replace("\\", "/").rstrip("/")
+        if norm.startswith("backend_v2/tests") and not norm.endswith(".py"):
+            parts = norm.split("/")
+            mapped = "backend_v2"
+            if len(parts) > 3 and parts[2] == "unit":
+                candidate = "backend_v2/" + "/".join(parts[3:])
+                if Path(candidate).exists():
+                    mapped = candidate
+            if mapped not in mypy_targets:
+                mypy_targets.append(mapped)
+        elif target not in mypy_targets:
+            mypy_targets.append(target)
+    return mypy_targets
+
+
 def _resolve_stage_targets(targets: list[str], micro: bool) -> list[str]:
     """Expand stage targets with authoritative scripts and transitional proxy files.
 
@@ -976,8 +1005,9 @@ def _run_lint_format_and_type_stages(stage_targets: list[str], ruff_targets: lis
     print("✅ Formatting complete.")
 
     print("\n⏳ 3/10: Type checking code (mypy --strict)...")
+    mypy_targets = _resolve_mypy_targets(stage_targets)
     _run_checked_stage(
-        ["uv", "run", "mypy", *stage_targets, "--strict"],
+        ["uv", "run", "mypy", *mypy_targets, "--strict"],
         "\n❌ MyPy found type errors! Resolve Universal Quality Gate violations.\n",
     )
     print("✅ Type check passed.")
