@@ -55,6 +55,14 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     <rule_block id="preflight_metatest_and_exemption_mapping_mandate">
       <mandate>Whenever an implementation plan includes `[DELETE]` targets, adds new scripts to `scripts/`, or removes symbols or drivers, pre-flight research MUST execute `grep_search` across `scripts/` and `backend_v2/tests/unit/scripts/` (specifically and exhaustively: `BOUNDARY_EXEMPTION_FILES`, `OPEN_JSON_EXEMPTION_FILES`, `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`, `RESIDUAL_FUTURE_PHASE_QGR028_FILES`, `test_ast_guardrails.py`, and `test_scripts_cli_help.py`). Any discovered metatest files, exemption lists, or CLI help callers MUST be explicitly added to the plan's TARGET boundaries and updated synchronously during implementation.</mandate>
     </rule_block>
+
+    <rule_block id="schema_blast_radius_and_factory_mandate">
+      <mandate>Whenever a plan modifies a Pydantic V2 model in `backend_v2/models/`, verify via `grep_search` for `ModelName(` across `backend_v2/`, `backend_v2/tests/fakes/`, and `scripts/` that all direct constructor call sites, `@[backend_v2/tests/factories/model_factories.py]`, and `@[backend_v2/tests/fakes/in_memory_repositories.py]` are included in `[MODIFY]` targets, that unit tests and `&lt;test_contracts&gt;` use `ModelFactory.build(...)` or `.model_validate()`, and that `&lt;validation_gate&gt;` passes modified test and fake paths explicitly to `scripts/backend_audit_loop.py`.</mandate>
+    </rule_block>
+
+    <rule_block id="pairwise_rule_and_guardrail_orthogonality_mandate">
+      <mandate>Whenever a plan introduces or modifies any `&lt;rule_block&gt;` or static checker (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_dict_eradication.py]`, `@[scripts/audit_technical_debt.py]`, `@[scripts/audit_skills_architecture.py]`), red-team the rule/checker individually one-by-one against every other existing rule and static checker via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` and canonical syntax probes across `_ast_guardrails.py`, `audit_dict_eradication.py`, and `mypy --strict` to prevent cross-checker syntax deadlocks.</mandate>
+    </rule_block>
   </context_rules>
 
   <execution_protocol level="0_research_plan">

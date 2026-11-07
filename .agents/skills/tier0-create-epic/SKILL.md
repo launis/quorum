@@ -77,6 +77,20 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
         5. Atomic Checkpoint Commits: Commit each verified logical step individually with explicit relative paths in English.</mandatory_pattern>
       <catastrophic_reason>Bypassing multi-tier regression safeguards leads to silent interface drift, un-rollbackable dirty working trees, and cascading system outages.</catastrophic_reason>
     </rule_block>
+    <rule_block id="schema_blast_radius_and_factory_mandate">
+      <banned_pattern>Scoping Epic phases that mutate Pydantic V2 models in `backend_v2/models/` without running `grep_search` for direct `ModelName(` constructor calls, omitting `@[backend_v2/tests/factories/model_factories.py]` or `@[backend_v2/tests/fakes/in_memory_repositories.py]` from phase `[MODIFY]` targets, or proposing direct `DomainModel(...)` / `DTO(...)` constructors in unit tests instead of `ModelFactory.build(...)`.</banned_pattern>
+      <mandatory_pattern>Whenever an Epic phase modifies a Pydantic V2 model in `backend_v2/models/` (specifically and exhaustively: adding required fields, removing scalar defaults under `QGR020`, or converting `Field(default_factory=...)` to PEP 593 `Annotated` under `QGR020`):
+        1. Run `grep_search` for `ModelName(` across `backend_v2/`, `backend_v2/tests/fakes/`, and `scripts/` to map the constructor blast radius.
+        2. Include `@[backend_v2/tests/factories/model_factories.py]` and `@[backend_v2/tests/fakes/in_memory_repositories.py]` in the phase's `[MODIFY]` target list whenever affected models are instantiated there.
+        3. Mandate `ModelFactory.build(...)` from `@[backend_v2/tests/factories/model_factories.py]` or `.model_validate()` boundary hydration across all unit tests and verification gates.
+        4. Explicitly include modified test and fake file paths in phase `scripts/backend_audit_loop.py` verification commands so `mypy --strict` (`pydantic.mypy`) validates test and fake call sites.</mandatory_pattern>
+      <catastrophic_reason>Unmapped constructor call sites in tests and fakes fail under `pydantic.mypy` strict mode when schema defaults are removed or migrated to PEP 593 `Annotated`.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="pairwise_rule_and_guardrail_orthogonality_mandate">
+      <banned_pattern>Proposing or modifying any `&lt;rule_block&gt;` or static AST checker (`QGR*`, `DGR*`, `ZORM*`, `SKL*`, `TD_*`, `DictEradicationVisitor`) in an Epic without verifying it individually one-by-one against every other existing rule and static checker.</banned_pattern>
+      <mandatory_pattern>Whenever an Epic introduces or modifies a rule (`&lt;rule_block&gt;`) or static checker (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_dict_eradication.py]`, `@[scripts/audit_technical_debt.py]`, `@[scripts/audit_skills_architecture.py]`), it MUST mandate pairwise one-by-one verification against all other rules and static checkers via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` and canonical syntax probes across `_ast_guardrails.py`, `audit_dict_eradication.py`, `ruff`, and `mypy --strict`.</mandatory_pattern>
+      <catastrophic_reason>Conflicting rules or static checkers create syntax deadlocks where satisfying one guardrail triggers fatal errors in another checker or in `pydantic.mypy`.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_create_epic">

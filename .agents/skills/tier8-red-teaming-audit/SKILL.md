@@ -64,14 +64,25 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
       <mandatory_pattern>Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` when auditing codebase or skill targets.</mandatory_pattern>
       <catastrophic_reason>Prevents stale skill links, rule budget overflows, and unaddressed technical debt.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="pairwise_rule_and_guardrail_orthogonality_mandate">
+      <banned_pattern>Auditing or proposing a `&lt;rule_block&gt;` or static AST guardrail in isolation without comparing it individually one-by-one against all other rules and static checkers.</banned_pattern>
+      <mandatory_pattern>When auditing `.agents/rules/*.md` or `.agents/skills/*/SKILL.md`, compare every `&lt;rule_block&gt;` individually one-by-one against all other rules and static checkers (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_dict_eradication.py]`, `@[scripts/audit_technical_debt.py]`, `mypy --strict`) and execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` to detect mandate-vs-ban polarity conflicts or cross-checker syntax deadlocks.</mandatory_pattern>
+      <catastrophic_reason>Isolated rule changes introduce contradictory mandates that deadlock execution agents between competing static checkers.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="schema_blast_radius_and_factory_mandate">
+      <mandatory_pattern>Verify that planning, execution, and testing instructions enforce `grep_search` constructor blast-radius discovery on `backend_v2/models/` changes, synchronous updates to `@[backend_v2/tests/factories/model_factories.py]` and `@[backend_v2/tests/fakes/in_memory_repositories.py]`, `ModelFactory.build(...)` usage in unit tests, and explicit test/fake file paths in `scripts/backend_audit_loop.py` invocations.</mandatory_pattern>
+      <catastrophic_reason>Direct `Model(...)` constructor calls in unit tests break under `pydantic.mypy` strict mode whenever schema defaults are tightened.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
   
   <execution_protocol level="8">
     <step id="1">CONTEXT RETRIEVAL: Read `@[.agents/skills/tier0-research-plan/SKILL.md]` to ground your analytical methodology, and thoroughly read the target skill or rule file provided by the user.</step>
     
-    <step id="2">SYSTEM 2 ANALYSIS &amp; CHAIN OF THOUGHT: Open a `<thinking_process>` block and evaluate the target file across Universal Axes (Determinism, Fail-Fast, SSOT, Atomic Commits, Security/DLP, Quorum Modernity Check, Peer Skill Parity Check, Touched Scope Technical Debt Check, and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py`) and Conditional Domain Axes (Python/Backend, Flutter/Frontend, LLM/Prompts, Data/Seed).</step>
+    <step id="2">SYSTEM 2 ANALYSIS &amp; CHAIN OF THOUGHT: Open a `<thinking_process>` block and evaluate the target file across Universal Axes (Determinism, Fail-Fast, SSOT, Atomic Commits, Security/DLP, Quorum Modernity Check, Peer Skill Parity Check, Pairwise One-by-One Rule &amp; Static Checker Orthogonality across `_ast_guardrails.py`, `audit_dict_eradication.py`, and `mypy --strict`, Touched Scope Technical Debt Check, and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py`) and Conditional Domain Axes (Python/Backend, Flutter/Frontend, LLM/Prompts, Data/Seed).</step>
     
-    <step id="3">FALSIFICATION &amp; RED-TEAMING: Ruthlessly attack the instructions. Find and document at least TWO potential weaknesses, blind spots, or failure points (or state explicitly if fewer than two genuine weaknesses exist with justification).</step>
+    <step id="3">FALSIFICATION &amp; RED-TEAMING: Ruthlessly attack the instructions and compare each `&lt;rule_block&gt;` individually one-by-one against all other rules and static checkers (`_ast_guardrails.py`, `audit_dict_eradication.py`, `mypy --strict`). Find and document at least TWO potential weaknesses, blind spots, or failure points (or state explicitly if fewer than two genuine weaknesses exist with justification).</step>
     
     <step id="4">SYNTHESIS &amp; IMPROVEMENT PROPOSALS: Formulate concrete, experimentally justified improvement proposals for new rules or modifications to existing steps within the target file.</step>
     

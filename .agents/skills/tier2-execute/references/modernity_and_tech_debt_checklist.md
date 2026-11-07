@@ -21,6 +21,7 @@ Evaluate all proposed and inspected code against these mandatory Quorum 2026 rep
 | `if/else` routing chains on string literals | Strategy + Registry Pattern or Pydantic V2 Discriminated Unions |
 | Terminal commands (`cat`, `tail`, `grep`, `sed`) for reading files/logs | Native IDE tools (`read_file` / `view_file` with `StartLine`/`EndLine` bounds, `grep_search`) |
 | `uuid.uuid4()`, `Uuid().v4()`, or 8/16-hex ID truncations (`.hex[:8]`, `.hex[:16]`, `.substring(0, 16)`, `.take(16)`) | 32-hex RFC 9562 UUIDv7 via `generate_opaque_id(EntityPrefix.<TYPE>)`, `generate_uuid7()`, and `generateOpaqueUuid7(prefix)` (`QGR030`, `DGR008`) |
+| Direct `DomainModel(...)` or `DTO(...)` constructor calls in unit tests | `ModelFactory.build(...)` from `@[backend_v2/tests/factories/model_factories.py]` or `.model_validate()` boundary hydration (`schema_blast_radius_and_factory_mandate`) |
 
 ---
 
@@ -35,10 +36,11 @@ Inspect the target files and their immediate 1-hop callers across these 3 domain
 1. **Python Backend (`backend_v2/`, `scripts/`):**
    - Eradicate `getattr`/`hasattr`, `.get(`, silent `except Exception:`, unvalidated `model_copy(update=...)`, anonymous 3+ element tuples, legacy `uuid.uuid4()` / 8-16 hex ID truncations (enforce `generate_opaque_id` / `generate_uuid7`), and hardcoded magic numbers/timeouts outside `settings.py`.
    - Enforce PEP 593 `Annotated` fields, PEP 695 generics, PEP 257 Google-style docstrings with explicit `Raises:` error codes, and `ConfigDict(strict=True, extra="forbid", frozen=True)`.
+   - Whenever adding or modifying any `<rule_block>` or static AST guardrail (`QGR*`, `DGR*`, `ZORM*`, `SKL*`, `TD_*`, `DictEradicationVisitor`), run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` to verify pairwise rule-vs-rule and static-checker orthogonality (`pairwise_rule_and_guardrail_orthogonality_mandate`).
 2. **Flutter Frontend (`client_app_v2/`):**
    - Eradicate hardcoded UI strings (enforce `.arb` localization), magic hex colors (`Color(0x...)`) and naked `TextStyle(...)` (enforce `Theme.of(context)` and `AppSemanticColors`), manual `substring()` clippings, legacy `Uuid().v4()` / `.take(16)` ID truncations (enforce `generateOpaqueUuid7(prefix)`), and legacy `.when()`/`.maybeWhen()` chains (enforce Dart 3 `switch (state)` pattern matching).
    - Enforce `@freezed(equal: false)`, `@JsonSerializable(disallowUnrecognizedKeys: true)`, and `AppErrorBoundary` wrappers.
 3. **ISTQB Testing (`backend_v2/tests/`, `client_app_v2/test/`):**
    - For every positive test case, ensure at least 2 negative/boundary test cases exist (missing/invalid required inputs raising `AppException`/`ValidationError`, and ISTQB Boundary Value Analysis `min-1`/`max+1`).
-   - Use `polyfactory` (`ModelFactory[T]`) and stateful in-memory fakes (`InMemoryUnitOfWork`); ban manual raw dictionary fixtures and tautological mock-return assertions.
+   - Use `polyfactory` (`ModelFactory.build(...)` from `@[backend_v2/tests/factories/model_factories.py]`) and stateful in-memory fakes (`InMemoryUnitOfWork`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`); ban direct `DomainModel(...)` / `DTO(...)` constructors in unit tests, manual raw dictionary fixtures, and tautological mock-return assertions, and pass modified test/fake file paths explicitly to `scripts/backend_audit_loop.py` (`schema_blast_radius_and_factory_mandate`).
 

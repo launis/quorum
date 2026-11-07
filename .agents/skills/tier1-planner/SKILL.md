@@ -65,6 +65,14 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-planne
     <rule_block id="test_contract_specification">
       <mandatory_pattern>Every sub-plan that creates or modifies functional code MUST include a `<test_contracts>` XML block containing concrete, named test specifications (`test_{method}_{scenario}_{expected}`, input, expected, category: positive/negative/boundary/error_path, with at least 2 negative/boundary tests per positive test).</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="schema_blast_radius_and_factory_mandate">
+      <mandatory_pattern>Whenever a phase plan modifies a Pydantic V2 model in `backend_v2/models/`, run `grep_search` for `ModelName(` across `backend_v2/`, `backend_v2/tests/fakes/`, and `scripts/`, include `@[backend_v2/tests/factories/model_factories.py]` and `@[backend_v2/tests/fakes/in_memory_repositories.py]` in `[MODIFY]` targets when affected models are instantiated there, mandate `ModelFactory.build(...)` in `&lt;test_contracts&gt;`, and pass modified test/fake file paths explicitly to `scripts/backend_audit_loop.py` in `&lt;validation_gate&gt;`.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="pairwise_rule_and_guardrail_orthogonality_mandate">
+      <mandatory_pattern>Whenever a phase plan introduces or modifies a `&lt;rule_block&gt;` or static checker (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_dict_eradication.py]`, `@[scripts/audit_technical_debt.py]`, `@[scripts/audit_skills_architecture.py]`), require pairwise one-by-one verification of the rule/checker against all other rules and static checkers via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` and canonical syntax probes across `_ast_guardrails.py`, `audit_dict_eradication.py`, and `mypy --strict`.</mandatory_pattern>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_epic_planner">
