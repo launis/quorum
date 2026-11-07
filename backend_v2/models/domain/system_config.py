@@ -222,9 +222,8 @@ class SystemConfigModelRegistry(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="model_registry")
 
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")]
-    name: Annotated[str, Field(default="Default Model Registry", description="Human-readable title")] = (
-        "Default Model Registry"
-    )
+    # Phase 2, Step 2.1: Require explicit name on SystemConfigModelRegistry (QGR020 Check 20C)
+    name: Annotated[str, Field(min_length=1, description="Human-readable title")]
     type: Annotated[Literal["model_registry"], Field(default="model_registry", description="Type of config")] = (
         "model_registry"
     )
@@ -399,15 +398,15 @@ class SystemConfigMCPGateways(V2CoreBase):
         Literal["mcp_gateways"],
         Field(default="mcp_gateways", description="Config type discriminator."),
     ] = "mcp_gateways"
+    # Phase 2, Step 2.1: Require explicit slug on SystemConfigMCPGateways (QGR020 Check 20C)
     slug: Annotated[
         str,
         Field(
-            default="default_mcp_gateway",
             min_length=1,
             pattern=r"^[a-z0-9]+(?:_[a-z0-9]+)*$",
             description="Collision-free gateway namespace slug without double underscores.",
         ),
-    ] = "default_mcp_gateway"
+    ]
     endpoint_url: Annotated[
         str,
         Field(default="", description="HTTP/HTTPS endpoint URL of the external MCP server."),

@@ -123,7 +123,7 @@ class _LocalMCPRequestHandler(BaseHTTPRequestHandler):
                 id=rpc_req.id,
                 result=MCPInitializeResultDTO(
                     protocol_version="2025-03-26",
-                    server_info=MCPServerInfoDTO(icons=[]),
+                    server_info=MCPServerInfoDTO(name="mock-mcp-server", icons=[]),
                     capabilities={},
                 ),
             )

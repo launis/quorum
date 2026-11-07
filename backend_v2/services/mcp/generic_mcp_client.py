@@ -484,7 +484,7 @@ class GenericMCPClient:
             method="initialize",
             params=MCPInitializeParamsDTO(
                 capabilities={},
-                client_info=MCPInitializeClientInfoDTO(),
+                client_info=MCPInitializeClientInfoDTO(name="quorum-backend-v2"),
             ),
         )
         http_response = await self._execute_http_with_retry(
@@ -511,7 +511,7 @@ class GenericMCPClient:
             )
 
         init_result = MCPInitializeResultDTO(
-            server_info=MCPServerInfoDTO(icons=[]),
+            server_info=MCPServerInfoDTO(name="unknown", icons=[]),
             capabilities={},
         )
         if isinstance(rpc_response.result, MCPInitializeResultDTO):

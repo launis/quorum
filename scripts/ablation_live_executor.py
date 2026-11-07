@@ -346,10 +346,9 @@ class SeedRegistryEntryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    id: Annotated[str, Field(default="", description="Opaque model registry identifier.")] = ""
-    name: Annotated[str, Field(default="Default Model Registry", description="Human-readable model registry name.")] = (
-        "Default Model Registry"
-    )
+    # Phase 2, Step 2.1: Require explicit id and name on SeedRegistryEntryDTO (QGR020 Check 20C)
+    id: Annotated[str, Field(description="Opaque model registry identifier.")]
+    name: Annotated[str, Field(description="Human-readable model registry name.")]
     type: Annotated[str, Field(default="model_registry", description="System configuration document type.")] = (
         "model_registry"
     )

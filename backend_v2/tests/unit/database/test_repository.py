@@ -276,13 +276,20 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_model_registry("sys_0195f3a0000070018234567890abcdef")
     await repo.update_model_registry(dummy_reg)
     mock_driver.query.return_value = [
-        {"id": "sys_0195f3a0000070018234567890abcdef", "name": "Gateway", "type": "mcp_gateways", "tools": []}
+        {
+            "id": "sys_0195f3a0000070018234567890abcdef",
+            "name": "Gateway",
+            "slug": "default_mcp_gateway",
+            "type": "mcp_gateways",
+            "tools": [],
+        }
     ]
     await repo.get_mcp_gateways()
     await repo.update_mcp_gateways(
         SystemConfigMCPGateways(
             id="sys_0195f3a0000070018234567890abcdef",
             name="Gateway",
+            slug="default_mcp_gateway",
             type="mcp_gateways",
             tools=[],
         )
@@ -362,6 +369,7 @@ async def test_system_repo_get_mcp_gateways_with_id() -> None:
     mock_driver.get.return_value = {
         "id": gateway_id,
         "name": "Test MCP Gateway",
+        "slug": "test_mcp_gateway",
         "type": "mcp_gateways",
         "tools": [],
     }

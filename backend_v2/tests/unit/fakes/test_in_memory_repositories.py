@@ -444,7 +444,12 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     await sys_repo.update_model_registry(reg.model_copy(update={"name": "Updated Registry"}))
     assert (await sys_repo.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
     await sys_repo.update_mcp_gateways(
-        SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", name="Gateway", tools=[])
+        SystemConfigMCPGateways(
+            id="sys_abcdef1234567890abcdef1234567890",
+            name="Gateway",
+            slug="default_mcp_gateway",
+            tools=[],
+        )
     )
     settings_dto = SystemSettingsDTO(environment="production")
     cfg_id = await sys_repo.create_system_config(SystemConfigCreateDTO(type="system_settings", content=settings_dto))
@@ -679,7 +684,12 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     await unified.update_model_registry(u_reg.model_copy(update={"name": "U Reg"}))
     assert (await unified.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
     await unified.update_mcp_gateways(
-        SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", name="Gateway", tools=[])
+        SystemConfigMCPGateways(
+            id="sys_abcdef1234567890abcdef1234567890",
+            name="Gateway",
+            slug="default_mcp_gateway",
+            tools=[],
+        )
     )
     assert await unified.get_system_settings() is None
     await unified.update_system_settings(

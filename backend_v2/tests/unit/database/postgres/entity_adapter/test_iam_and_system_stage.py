@@ -185,6 +185,7 @@ def _build_tenant_secret(organization_id: str) -> TenantSecretDTO:
         nonce=b"12byte-nonce",
         kek_version="projects/quorum/locations/europe-north1/keyRings/byok/cryptoKeys/master/cryptoKeyVersions/1",
         masked_hint="AIza...9999",
+        updated_by=SYSTEM_ROOT_USER_ID,
         updated_at=datetime.now(UTC),
     )
 

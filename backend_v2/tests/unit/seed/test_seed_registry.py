@@ -26,6 +26,7 @@ def test_system_config_discriminator_mcp_gateways() -> None:
     data = {
         "id": "cfg_0195f3a0000070008123456789abcdef",
         "name": "Tavily MCP Gateway",
+        "slug": "default_mcp_gateway",
         "type": "mcp_gateways",
         "tools": [tool.model_dump(mode="json")],
     }

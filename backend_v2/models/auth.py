@@ -35,7 +35,6 @@ from backend_v2.models.enums import (
     LaxSecretScope,
     LaxSecretStorageMode,
     LaxSystemLocale,
-    SecretStorageMode,
     SystemLocale,
 )
 from backend_v2.models.enums import (
@@ -808,13 +807,13 @@ class ImpersonationResponse(BaseResponseDTO):
 
     access_token: Annotated[str, Field(description="Impersonation access token")]
     token_type: Annotated[str, Field(default="bearer", description="Token type scheme")] = "bearer"
+    # Phase 2, Step 2.1: Require explicit target_id without silent default (QGR020 Check 20C)
     target_id: Annotated[
         PrefixedUUID7,
         Field(
-            default=SYSTEM_ROOT_USER_ID,
             description="ID of the impersonated target user",
         ),
-    ] = SYSTEM_ROOT_USER_ID
+    ]
     reason: Annotated[
         str,
         Field(
@@ -1389,10 +1388,11 @@ class TenantSecretDTO(V2CoreBase):
     organization_id: Annotated[PrefixedUUID7, Field(description="Owning Organization ID (org_<hex32>)")]
     scope: Annotated[LaxSecretScope, Field(description="Capability scope ('llm_provider' or 'mcp_gateway')")]
     target_identifier: Annotated[str, Field(min_length=1, max_length=128, description="Target provider or gateway ID")]
+    # Phase 2, Step 2.1: Require explicit storage_mode and updated_by without silent defaults (QGR020 Check 20C)
     storage_mode: Annotated[
         LaxSecretStorageMode,
-        Field(default=SecretStorageMode.ENVELOPE_KMS, description="Cryptographic storage backend mode"),
-    ] = SecretStorageMode.ENVELOPE_KMS
+        Field(description="Cryptographic storage backend mode"),
+    ]
     secret_manager_version_uri: Annotated[
         str | None,
         Field(default=None, description="Optional Cloud Secret Manager version URI"),
@@ -1411,8 +1411,8 @@ class TenantSecretDTO(V2CoreBase):
     masked_hint: Annotated[str, Field(min_length=1, max_length=32, description="Redacted display hint")]
     updated_by: Annotated[
         PrefixedUUID7,
-        Field(default=SYSTEM_ROOT_USER_ID, description="User ID who last updated the secret (usr_<hex32>)"),
-    ] = SYSTEM_ROOT_USER_ID
+        Field(description="User ID who last updated the secret (usr_<hex32>)"),
+    ]
     updated_at: Annotated[
         datetime,
         Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC timestamp of last update"),

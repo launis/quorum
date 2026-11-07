@@ -22,7 +22,12 @@ from backend_v2.models.auth import (
     UserRole,
 )
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import AssignmentResultVisibility, SecretScope, SystemLocale
+from backend_v2.models.enums import (
+    AssignmentResultVisibility,
+    SecretScope,
+    SecretStorageMode,
+    SystemLocale,
+)
 
 VALID_ORG_ID = "org_0195f3a0000070008000000000000001"
 VALID_USER_ID = "usr_0195f3a0000070008000000000000002"
@@ -363,8 +368,10 @@ def test_invitation_and_tenant_secret_datetime_parsing() -> None:
             "organization_id": VALID_ORG_ID,
             "scope": SecretScope.LLM_PROVIDER,
             "target_identifier": "gemini",
+            "storage_mode": SecretStorageMode.ENVELOPE_KMS,
             "kek_version": "kek-v1",
             "masked_hint": "...1234",
+            "updated_by": VALID_USER_ID,
             "updated_at": "2026-11-06T12:00:00Z",
         }
     )
@@ -375,8 +382,10 @@ def test_invitation_and_tenant_secret_datetime_parsing() -> None:
         organization_id=VALID_ORG_ID,
         scope=SecretScope.LLM_PROVIDER,
         target_identifier="gemini",
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
         kek_version="kek-v1",
         masked_hint="...1234",
+        updated_by=VALID_USER_ID,
         updated_at=ts,
     )
     assert sec_from_dt.updated_at == ts
@@ -387,8 +396,10 @@ def test_invitation_and_tenant_secret_datetime_parsing() -> None:
                 "organization_id": VALID_ORG_ID,
                 "scope": SecretScope.LLM_PROVIDER,
                 "target_identifier": "gemini",
+                "storage_mode": SecretStorageMode.ENVELOPE_KMS,
                 "kek_version": "kek-v1",
                 "masked_hint": "...1234",
+                "updated_by": VALID_USER_ID,
                 "updated_at": "invalid-timestamp",
             }
         )

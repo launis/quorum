@@ -241,7 +241,8 @@ class ReportView(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     view_id: Annotated[StrictStr, Field(..., description="The Execution ID")]
-    title: Annotated[StrictStr, Field(default="Auditintiraportti", description="Page title")] = "Auditintiraportti"
+    # Phase 2, Step 2.1: Require explicit ReportView title without silent default (QGR020 Check 20C)
+    title: Annotated[StrictStr, Field(description="Page title")]
     status_theme: Annotated[
         VisualIntent, Field(default=VisualIntent.SUCCESS, description="Visual theme: 'success' | 'warning' | 'danger'")
     ]

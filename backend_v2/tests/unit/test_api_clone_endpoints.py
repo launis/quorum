@@ -95,6 +95,7 @@ def mock_studio_service() -> AsyncMock:
     dummy_profile = ModelProfile(provider="vertex_ai", model_name="gemini-1.5-flash")
     service.clone_system_config.return_value = SystemConfigModelRegistry(
         id="sys_0195f3a0000070018111111111111112",
+        name="Cloned Model Registry",
         slug="test_sys_clone",
         type="model_registry",
         tier_definitions={

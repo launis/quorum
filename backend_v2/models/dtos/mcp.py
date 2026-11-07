@@ -406,7 +406,8 @@ class MCPToolDescriptorDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    gateway_id: Annotated[str, Field(default="", description="Opaque ID of the parent MCP gateway.")] = ""
+    # Phase 2, Step 2.1: Require explicit gateway_id without silent empty-string default (QGR020 Check 20C)
+    gateway_id: Annotated[str, Field(min_length=1, description="Opaque ID of the parent MCP gateway.")]
     gateway_slug: Annotated[str, Field(default="", description="Namespace slug of the parent MCP gateway.")] = ""
     namespaced_alias: Annotated[
         str,
@@ -527,9 +528,8 @@ class MCPInitializeClientInfoDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    name: Annotated[str, Field(default="quorum-backend-v2", description="Client application name.")] = (
-        "quorum-backend-v2"
-    )
+    # Phase 2, Step 2.1: Require explicit client application name (QGR020 Check 20C)
+    name: Annotated[str, Field(min_length=1, description="Client application name.")]
     version: Annotated[str, Field(default="2.0.0", description="Client application version.")] = "2.0.0"
 
 
@@ -560,7 +560,7 @@ class MCPInitializeParamsDTO(V2CoreBase):
     client_info: Annotated[
         MCPInitializeClientInfoDTO,
         Field(
-            default_factory=MCPInitializeClientInfoDTO,
+            default_factory=lambda: MCPInitializeClientInfoDTO(name="quorum-backend-v2"),
             validation_alias=AliasChoices("clientInfo", "client_info"),
             serialization_alias="clientInfo",
             description="Client implementation metadata.",
@@ -662,7 +662,8 @@ class MCPServerInfoDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
 
-    name: Annotated[str, Field(default="", description="Server implementation identifier name.")] = ""
+    # Phase 2, Step 2.1: Require explicit server implementation identifier name (QGR020 Check 20C)
+    name: Annotated[str, Field(description="Server implementation identifier name.")]
     version: Annotated[str, Field(default="", description="Server implementation version string.")] = ""
     title: Annotated[str | None, Field(default=None, description="Optional human-readable server title.")] = None
     description: Annotated[
@@ -705,7 +706,7 @@ class MCPInitializeResultDTO(V2CoreBase):
     server_info: Annotated[
         MCPServerInfoDTO,
         Field(
-            default_factory=MCPServerInfoDTO,
+            default_factory=lambda: MCPServerInfoDTO(name="unknown"),
             validation_alias=AliasChoices("serverInfo", "server_info"),
             description="Server implementation metadata.",
         ),

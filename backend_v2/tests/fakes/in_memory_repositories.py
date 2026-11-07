@@ -998,6 +998,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         self._mcp_gateways = SystemConfigMCPGateways(
             id="sys_abcdef1234567890abcdef1234567890",
             name="Default MCP Gateway",
+            slug="default_mcp_gateway",
             tools=[],
         )
         self._mcp_gateways_map: dict[str, SystemConfigMCPGateways] = {

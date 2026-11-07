@@ -1785,7 +1785,12 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
         patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
-            AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=MetadataHookPayloadDTO()))),
+            AsyncMock(
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=MetadataHookPayloadDTO(_sys_initiator_id="system")),
+                )
+            ),
         ),
     ):
         with pytest.raises(AppException) as exc_info:

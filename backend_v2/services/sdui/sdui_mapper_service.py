@@ -180,8 +180,14 @@ class SduiMapperService:
                 case _:
                     inner_blocks.append(block)
 
+        resolved_title = (
+            report.profile_name.resolve(lang)
+            if report.profile_name is not None
+            else I18nText(translations={"fi": "Auditintiraportti", "en": "Audit Report"}).resolve(lang)
+        )
         return ReportView(
             view_id=resolved_execution_id,
+            title=resolved_title,
             metrics=metrics,
             status_theme=status_theme,
             inner_sdui_blocks=inner_blocks,

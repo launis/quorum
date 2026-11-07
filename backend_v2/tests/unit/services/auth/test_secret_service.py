@@ -639,6 +639,7 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
         nonce=None,
         kek_version="v1",
         masked_hint="****",
+        updated_by=generate_opaque_id(EntityPrefix.USER),
         updated_at=datetime.now(UTC),
     )
     await uow.entities.upsert_tenant_secret(incomplete_record)

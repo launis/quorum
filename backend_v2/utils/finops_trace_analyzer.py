@@ -103,7 +103,8 @@ class TraceStepRecord(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    step_id: Annotated[str, Field(default="unknown")] = "unknown"
+    # Phase 2, Step 2.1: Require explicit step_id on TraceStepRecord (QGR020 Check 20C)
+    step_id: Annotated[str, Field(description="Canonical step identifier")]
     error_code: Annotated[str | None, Field(default=None)] = None
     strategy: Annotated[str | None, Field(default=None)] = None
     schema_target: Annotated[str | None, Field(default=None)] = None

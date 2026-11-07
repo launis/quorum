@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from polyfactory.factories.pydantic_factory import ModelFactory
 
+from backend_v2.models.auth import TenantSecretDTO
 from backend_v2.models.core_base import I18nText, generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archival import PrecedentDTO
@@ -66,11 +67,14 @@ from backend_v2.models.enums import (
     FidelityLevel,
     HistoricalContextMode,
     PromptBlockCategory,
+    SecretScope,
+    SecretStorageMode,
     TargetBlockType,
+    VisualIntent,
     XaiExtensionType,
 )
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.models.view.sdui import AnySduiBlock, ReportView
 
 __all__ = [
     "CausalGraphPayloadDTOFactory",
@@ -82,8 +86,10 @@ __all__ = [
     "MatrixPromptBlockFactory",
     "OutputProfileFactory",
     "ReportArtifactFactory",
+    "ReportViewFactory",
     "StepPanelDTOFactory",
     "SystemRulePromptBlockFactory",
+    "TenantSecretDTOFactory",
     "WorkflowFactory",
 ]
 
@@ -934,5 +940,74 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
 
         Returns:
             Empty list of serialized edge root cause strings.
+        """
+        return []
+
+
+# Phase 2, Step 2.1: Synchronize Polyfactory model factories for required TenantSecretDTO and ReportView fields
+class TenantSecretDTOFactory(ModelFactory[TenantSecretDTO]):
+    """Polyfactory model factory for TenantSecretDTO with explicit storage_mode and updated_by."""
+
+    __model__ = TenantSecretDTO
+    __set_as_default_factory_for_type__ = True
+
+    scope: SecretScope = SecretScope.LLM_PROVIDER
+    target_identifier: str = "google"
+    storage_mode: SecretStorageMode = SecretStorageMode.ENVELOPE_KMS
+    kek_version: str = "kek-v1"
+    masked_hint: str = "...1234"
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid Tenant Secret Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'sec_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.TENANT_SECRET)
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a valid Organization Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'org_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
+    def updated_by(cls) -> str:
+        """Generate a valid User Opaque Stripe ID for updated_by.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'usr_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.USER)
+
+
+class ReportViewFactory(ModelFactory[ReportView]):
+    """Polyfactory model factory for ReportView with explicit title."""
+
+    __model__ = ReportView
+    __set_as_default_factory_for_type__ = True
+
+    title: str = "Audit Report"
+    status_theme: VisualIntent = VisualIntent.SUCCESS
+
+    @classmethod
+    def view_id(cls) -> str:
+        """Generate a valid Execution Opaque Stripe ID for view_id.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'exe_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.EXECUTION)
+
+    @classmethod
+    def inner_sdui_blocks(cls) -> list[AnySduiBlock]:
+        """Generate an empty inner SDUI blocks list.
+
+        Returns:
+            Empty list of AnySduiBlock instances.
         """
         return []

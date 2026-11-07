@@ -24,8 +24,10 @@ from backend_v2.tests.factories.model_factories import (
     MatrixPromptBlockFactory,
     OutputProfileFactory,
     ReportArtifactFactory,
+    ReportViewFactory,
     StepPanelDTOFactory,
     SystemRulePromptBlockFactory,
+    TenantSecretDTOFactory,
     WorkflowFactory,
 )
 
@@ -54,6 +56,8 @@ type RegisteredFactoryType = (
     | type[GlobalContextVarsDTOFactory]
     | type[CausalNodeDTOFactory]
     | type[CausalGraphPayloadDTOFactory]
+    | type[TenantSecretDTOFactory]
+    | type[ReportViewFactory]
 )
 
 ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
@@ -69,6 +73,8 @@ ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
     GlobalContextVarsDTOFactory,
     CausalNodeDTOFactory,
     CausalGraphPayloadDTOFactory,
+    TenantSecretDTOFactory,
+    ReportViewFactory,
 )
 
 

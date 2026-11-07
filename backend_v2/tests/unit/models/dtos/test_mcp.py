@@ -165,7 +165,7 @@ def test_mcp_json_rpc_wire_dtos_roundtrip() -> None:
 
     init_res = MCPInitializeResultDTO(
         protocol_version="2025-03-26",
-        server_info=MCPServerInfoDTO(icons=[]),
+        server_info=MCPServerInfoDTO(name="exa", icons=[]),
         capabilities={},
     )
     assert init_res.protocol_version == "2025-03-26"

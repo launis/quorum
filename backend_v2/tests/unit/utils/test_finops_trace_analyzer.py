@@ -51,7 +51,7 @@ def test_finalize_execution_with_trace_and_telemetry(tmp_path: Path) -> None:
     telemetry_file = tmp_path / "llm_telemetry.jsonl"
 
     trace_data = [
-        {"error_code": "SchemaValidationError"},
+        {"step_id": "s0", "error_code": "SchemaValidationError"},
         {"strategy": "logic", "schema_target": "sdui_hero", "step_id": "s1", "output": {"a": 1}},
         {"strategy": "logic", "schema_target": "sdui_hero", "step_id": "s2", "output": {"a": 1}},
         {"step_id": "s3", "mcp_traces": [{"query": "test_search"}, {"query": "test_search"}]},

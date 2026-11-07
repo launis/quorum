@@ -259,6 +259,7 @@ def mock_repo_transformer() -> Any:
         SystemConfigMCPGateways(
             id="sys_0195f3a0000070008000000000000001",
             name="Default MCP Gateway",
+            slug="default_mcp_gateway",
             type="mcp_gateways",
             tools=[],
         )
@@ -3127,6 +3128,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
         {
             "id": "sys_0195f3a00000700080008172bda70c86",
             "name": "Tavily MCP Gateway",
+            "slug": "default_mcp_gateway",
             "type": "mcp_gateways",
             "tools": [
                 {
@@ -3716,6 +3718,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         SystemConfigMCPGateways(
             id="sys_0195f3a0000070008000000000000001",
             name="Default MCP Gateway",
+            slug="default_mcp_gateway",
             type="mcp_gateways",
             tools=[],
         )
@@ -3931,6 +3934,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         SystemConfigMCPGateways(
             id="sys_0195f3a0000070008000000000000001",
             name="Default MCP Gateway",
+            slug="default_mcp_gateway",
             type="mcp_gateways",
             tools=[],
         )
