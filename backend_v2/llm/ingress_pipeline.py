@@ -13,10 +13,11 @@ import types
 from typing import Annotated, Any, Union, get_args, get_origin
 
 from json_repair import repair_json
-from pydantic import BaseModel, Discriminator, JsonValue
+from pydantic import BaseModel, Discriminator
 from pydantic.fields import FieldInfo
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ class UniversalIngress:
     @classmethod
     def _infer_and_heal_discriminator(
         cls,
-        item: dict[str, JsonValue],
+        item: dict[str, JsonSchemaNode],
         discriminator_field: str,
         candidate_models: list[type[BaseModel]],
     ) -> type[BaseModel] | None:
@@ -362,7 +363,7 @@ class UniversalIngress:
         return cleaned
 
     @classmethod
-    def parse_llm_output(cls, raw_text: str) -> dict[str, JsonValue]:
+    def parse_llm_output(cls, raw_text: str) -> dict[str, JsonSchemaNode]:
         """Parses the raw LLM output into a dictionary.
 
         Expects the LLM API (via Native Structured Outputs) to have generated

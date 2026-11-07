@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import cast
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id
@@ -44,7 +44,14 @@ from backend_v2.models.domain import (
     WaltonStressTest,
     XAIOutput,
 )
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.dtos.lightweight_matrix import (
+    LevelStatsDTO,
+    LightweightMatrixOutput,
+    XAILogDto,
+)
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
     MatrixExplanationsResult,
@@ -59,6 +66,7 @@ from backend_v2.models.enums import (
     BloomLevel,
     EntityPrefix,
     EthicalSeverity,
+    ExecutionStatus,
     FidelityLevel,
     InteractionStrategy,
     PlausibilityLevel,
@@ -101,6 +109,7 @@ __all__ = [
     "MOCK_XAI_HIGHLIGHTS_OUTPUT",
     "MOCK_XAI_OUTPUT",
     "get_fallback_data",
+    "get_mock_structured_response",
 ]
 
 # 0. Shared Metadata
@@ -448,14 +457,14 @@ FALLBACK_MODEL_REGISTRY: dict[str, BaseModel] = {
 }
 
 
-def _build_atomize_mock_payload() -> dict[str, JsonValue]:
+def _build_atomize_mock_payload() -> dict[str, JsonSchemaNode]:
     """Builds the dynamic TDA assertion batch payload for atomize_mock.
 
     Returns:
         Dictionary containing canonical TDA assertions and rubric CoT.
     """
     batch_size = get_settings().sensor_batch_size
-    assertions = [
+    assertions: list[JsonSchemaNode] = [
         {
             "tda_id": generate_opaque_id(EntityPrefix.TDA),
             "concept_description": f"Atom {i} concept description for testing",
@@ -467,10 +476,69 @@ def _build_atomize_mock_payload() -> dict[str, JsonValue]:
         }
         for i in range(1, batch_size + 1)
     ]
-    return cast(dict[str, JsonValue], {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"})
+    return {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"}
 
 
-def get_fallback_data(key: str) -> dict[str, JsonValue]:
+def get_mock_structured_response(block: MatrixPromptBlock) -> LightweightMatrixOutput:
+    """Build a deterministic typed LightweightMatrixOutput fixture respecting dynamic scale bounds.
+
+    Args:
+        block: Target MatrixPromptBlock whose computed_min and computed_max define scale boundaries.
+
+    Returns:
+        Validated LightweightMatrixOutput fixture bounded within [block.computed_min, block.computed_max].
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if block scale bounds are missing.
+    """
+    if block.computed_min is None or block.computed_max is None:
+        logger.error(
+            "Fail-Fast: MatrixPromptBlock is missing computed scale bounds.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block.id},
+        )
+        raise AppException(
+            message="Fail-Fast: MatrixPromptBlock is missing computed scale bounds.",
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "block_id": block.id},
+        )
+    min_score = float(block.computed_min)
+    max_score = float(block.computed_max)
+    level_breakdown: dict[str, LevelStatsDTO] = {}
+    evaluated_atoms: dict[str, ExecutionStatus] = {}
+
+    for scale in block.scales:
+        total_atoms = sum(len(claim.tda_assertions) for claim in scale.claims)
+        pos_total = sum(1 for claim in scale.claims for atom in claim.tda_assertions if not atom.inverse_evidence)
+        inv_total = total_atoms - pos_total
+        for claim in scale.claims:
+            for atom in claim.tda_assertions:
+                evaluated_atoms[atom.tda_id] = ExecutionStatus.PASSED
+
+        level_breakdown[str(scale.score)] = LevelStatsDTO(
+            total=total_atoms,
+            hits=total_atoms,
+            pos_total=pos_total,
+            pos_hits=pos_total,
+            inv_total=inv_total,
+            inv_clean=inv_total,
+        )
+
+    return LightweightMatrixOutput(
+        raw_score=max_score,
+        normalized_score=max_score,
+        level_breakdown=level_breakdown,
+        justification=f"Mock structured matrix evaluation bounded in [{min_score}, {max_score}].",
+        xai_log=XAILogDto(
+            pedagogical_key="mock_scale_evaluation",
+            engine_debug_trace={"computed_min": min_score, "computed_max": max_score},
+        ),
+        evaluated_atoms=evaluated_atoms,
+        extensions={},
+        allowed_extensions=[],
+    )
+
+
+def get_fallback_data(key: str) -> dict[str, JsonSchemaNode]:
     """Retrieves predefined mock data based on the provided key.
 
     Args:
@@ -495,13 +563,13 @@ def get_fallback_data(key: str) -> dict[str, JsonValue]:
 
     lookup_key = "MatrixSectionTask" if key.partition("_")[0] == "MatrixSectionTask" else key
     if lookup_key in FALLBACK_MODEL_REGISTRY:
-        return FALLBACK_MODEL_REGISTRY[lookup_key].model_dump(mode="json")
+        return cast(dict[str, JsonSchemaNode], FALLBACK_MODEL_REGISTRY[lookup_key].model_dump(mode="json"))
 
     if lookup_key == "atomize_mock":
         return _build_atomize_mock_payload()
 
     if lookup_key == "variance_explainer":
-        return cast(dict[str, JsonValue], {"explanation": "Mock explanation for variance."})
+        return {"explanation": "Mock explanation for variance."}
 
     msg = f"Strict Mock Data Error: Mock data not found for key '{key}'"
     logger.error(

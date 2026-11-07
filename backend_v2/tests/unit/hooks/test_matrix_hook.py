@@ -923,3 +923,29 @@ async def test_matrix_scoring_hook_blank_page_and_inverse_penalties(matrix_setup
     assert delta_fail.matrix_outputs[pb_id].evaluated_atoms[inv_tda_ids[0]] == ExecutionStatus.FAILED
     assert delta_fail.matrix_outputs[pb_id].evaluated_atoms[inv_tda_ids[1]] == ExecutionStatus.FAILED
     assert delta_fail.matrix_outputs[pb_id].evaluated_atoms[inv_tda_ids[2]] == ExecutionStatus.PASSED
+
+
+@pytest.mark.asyncio
+async def test_matrix_evaluation_hook_rejects_malformed_matrix_payload(
+    matrix_setup: MatrixSetupDTO,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Negative test: invalid matrix evaluation input logs structured error and raises AppException."""
+    deps = matrix_setup.deps
+    state = HookState(
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": ["not_a_valid_atom_result_dto"]}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+
+    with caplog.at_level("ERROR"), pytest.raises(AppException) as exc_info:
+        await matrix_scoring_hook(state, deps)
+
+    assert exc_info.value.details["error_code"] in (
+        ErrorCodes.VALIDATION_FAILED.value,
+        ErrorCodes.HOOK_EXECUTION_FAILED.value,
+    )
+    assert any(record.levelname == "ERROR" for record in caplog.records)

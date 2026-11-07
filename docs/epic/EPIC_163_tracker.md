@@ -58,7 +58,7 @@
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]`
   - [x] Step 4.1: Replace `JsonValue` Containers in Backend DTOs & State Envelopes
-  - [ ] Step 4.2: Migrate LLM Client, Ingress Pipeline, Task Executor & Matrix Hook Away from `JsonValue`
+  - [x] Step 4.2: Migrate LLM Client, Ingress Pipeline, Task Executor & Matrix Hook Away from `JsonValue`
   - [ ] Step 4.3: Migrate Orchestrator Stages, Compressor, Projector & Reducer and Delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]`
@@ -248,7 +248,7 @@
 | `REQ-163-007` | Add immutable `ExecutionRecord` transition helpers (`with_updated_step_state`, `with_updated_profile_synthesis`, `with_cleared_profile_syntheses`) and refactor worker state transitions (`QGR028`) | Phase 3, Step 3.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-008` | Eliminate redundant `.model_validate()` calls on typed DTOs across 7 hook and service files and delete `RESIDUAL_FUTURE_PHASE_QGR028_FILES` (`QGR028`) | Phase 3, Step 3.2 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-009` | Replace `dict[str, JsonValue]` and `list[JsonValue]` across 8 DTO and state files in `backend_v2/models/` with closed Pydantic V2 DTOs (`QGR027`) | Phase 4, Step 4.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
-| `REQ-163-010` | Replace `dict[str, JsonValue]` in `LLMClient`, `LLMIngressPipeline`, `mock_data.py`, `LLMTaskExecutor`, and `matrix_hook.py` with generic `BaseModel` and typed DTOs (`QGR027`) | Phase 4, Step 4.2 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-010` | Replace `dict[str, JsonValue]` in `LLMClient`, `LLMIngressPipeline`, `mock_data.py`, `LLMTaskExecutor`, and `matrix_hook.py` with generic `BaseModel` and typed DTOs (`QGR027`) | Phase 4, Step 4.2 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-011` | Replace `dict[str, JsonValue]` across 6 orchestrator files with typed DTOs and delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` (`QGR027`) | Phase 4, Step 4.3 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-012` | Replace `Map<String, Object?>` fields across all 13 Group 2 Execution and Studio Freezed DTO models (`DGR005`) | Phase 5, Step 5.1 | `flutter_audit_loop.py --build` | `[ ]` |
 | `REQ-163-013` | Refactor all 12 Group 3 Execution and Studio controllers, cloner utilities, and views to consume typed Freezed DTOs (`DGR005`) | Phase 5, Step 5.2 | `flutter_audit_loop.py --build` | `[ ]` |

@@ -4,12 +4,13 @@ import json
 import logging
 import random
 import re
-from typing import Any, cast
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, JsonValue
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, MOCK_REGISTRY, get_fallback_data
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -164,9 +165,11 @@ class MockLLMService:
                         )
                         for k in keys_found
                     }
-                    data["pisteet"] = cast(
-                        JsonValue, {k: score.model_dump(mode="json") for k, score in dynamic_scores.items()}
-                    )
+                    pisteet_map: dict[str, JsonSchemaNode] = {
+                        k: {"arvosana": score.arvosana, "perustelu": score.perustelu}
+                        for k, score in dynamic_scores.items()
+                    }
+                    data["pisteet"] = pisteet_map
             except Exception as e:
                 logger.error(
                     "[MockLLM] Failed hydration: %s",

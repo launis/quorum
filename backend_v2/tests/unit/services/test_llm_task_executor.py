@@ -668,3 +668,33 @@ async def test_rfc7807_dual_logging_and_structured_content_healing(
         validation_context={"strictness_level": 90},
     )
     assert res2.value == "ok2"
+
+
+@pytest.mark.asyncio
+async def test_llm_task_executor_returns_typed_pydantic_model(
+    mock_prompt_compiler: MagicMock,
+    mock_client: AsyncMock,
+) -> None:
+    """Verify execute_structured_task returns a validated BaseModel subclass instance and TokenUsage."""
+    executor = LLMTaskExecutor(
+        prompt_compiler=mock_prompt_compiler,
+        default_validation_context={"strictness_level": 75, "execution_id": "exe_0195f3a0000070008000000000000001"},
+    )
+    expected_instance = MockOverrideSchema(
+        value="typed_pydantic_model_result",
+        contextual_override=False,
+        override_reason=None,
+    )
+    expected_usage = TokenUsage(prompt_tokens=12, completion_tokens=8, total_tokens=20)
+    mock_client.run_structured_task.return_value = (expected_instance, expected_usage)
+
+    model_out, usage_out = await executor.execute_structured_task(
+        client=mock_client,
+        messages=[LLMMessageDTO(role="user", content="Structured task execution test with concrete BaseModel schema.")],
+        response_model=MockOverrideSchema,
+    )
+
+    assert isinstance(model_out, MockOverrideSchema)
+    assert model_out.value == "typed_pydantic_model_result"
+    assert isinstance(usage_out, TokenUsage)
+    assert usage_out.total_tokens == 20

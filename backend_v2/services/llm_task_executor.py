@@ -8,7 +8,7 @@ import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -21,6 +21,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -115,7 +116,7 @@ class LLMTaskExecutor:
     """
 
     def __init__(
-        self, prompt_compiler: PromptCompiler, default_validation_context: Mapping[str, JsonValue] | None = None
+        self, prompt_compiler: PromptCompiler, default_validation_context: Mapping[str, JsonSchemaNode] | None = None
     ) -> None:
         """Initialize the executor.
 
@@ -152,7 +153,7 @@ class LLMTaskExecutor:
             compiled_prompt = prompt_adapter.compile_prompt(messages)
         return compiled_prompt.model_copy(deep=True)
 
-    def _extract_strictness_level(self, effective_validation_context: Mapping[str, JsonValue]) -> int | None:
+    def _extract_strictness_level(self, effective_validation_context: Mapping[str, JsonSchemaNode]) -> int | None:
         """Extract integer strictness level from the active validation context if present.
 
         Args:
@@ -227,7 +228,7 @@ class LLMTaskExecutor:
         self,
         error: LLMSchemaValidationError,
         base_compiled_prompt: CompiledPrompt,
-        effective_validation_context: Mapping[str, JsonValue],
+        effective_validation_context: Mapping[str, JsonSchemaNode],
     ) -> CompiledPrompt:
         """Construct an updated CompiledPrompt with schema error correction instructions.
 
@@ -259,7 +260,7 @@ class LLMTaskExecutor:
         error: LogicalValidationError,
         validated_model: BaseModel | None,
         base_compiled_prompt: CompiledPrompt,
-        effective_validation_context: Mapping[str, JsonValue],
+        effective_validation_context: Mapping[str, JsonSchemaNode],
     ) -> CompiledPrompt:
         """Construct an updated CompiledPrompt with logical error correction and coaching instructions.
 
@@ -347,7 +348,7 @@ class LLMTaskExecutor:
         """
         cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-        effective_validation_context: dict[str, JsonValue] = {}
+        effective_validation_context: dict[str, JsonSchemaNode] = {}
         if self.default_validation_context is not None:
             effective_validation_context.update(self.default_validation_context)
         if isinstance(validation_context, BaseModel):
@@ -509,7 +510,7 @@ class LLMTaskExecutor:
         )
         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
-    async def execute_chat_task(self, client: LLMClient, **kwargs: Any) -> str | dict[str, JsonValue]:
+    async def execute_chat_task(self, client: LLMClient, **kwargs: Any) -> str | dict[str, JsonSchemaNode]:
         """Execute a free-form chat task, delegating cleanly to the client.
 
         Args:

@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Self, cast
 
 import pydantic
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -27,6 +27,7 @@ from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.enums import PIPELINE_REGISTRY, CognitiveTier, ExecutionProfile, LLMProvider
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
@@ -48,7 +49,7 @@ class LLMClient:
         model_config: Optional model configuration dictionary.
     """
 
-    def __init__(self, config: Mapping[str, JsonValue] | LLMProviderConfig | None = None) -> None:
+    def __init__(self, config: Mapping[str, JsonSchemaNode] | LLMProviderConfig | None = None) -> None:
         """Initialize the LLMClient instance.
 
         Args:
@@ -62,7 +63,7 @@ class LLMClient:
             self._config = LLMProviderConfig.model_validate(config)
         else:
             self._config = None
-        self.model_config: dict[str, JsonValue] | None = None
+        self.model_config: dict[str, JsonSchemaNode] | None = None
         self._initialize()
 
     def _initialize(self) -> None:
@@ -92,7 +93,7 @@ class LLMClient:
         self,
         response_model: type[BaseModel],
         final_messages: Sequence[LLMMessageDTO],
-        validation_context: Mapping[str, JsonValue] | None,
+        validation_context: Mapping[str, JsonSchemaNode] | None,
     ) -> Any:
         """Build the structured JSON schema for the provider, applying caching and strictness constraints.
 
@@ -107,7 +108,7 @@ class LLMClient:
         Raises:
             AppException: If preparing structured output fails (ErrorCodes.CONFIGURATION_ERROR).
         """
-        adapter_schema: dict[str, JsonValue] | type[BaseModel] = {"type": "json_schema"}
+        adapter_schema: dict[str, JsonSchemaNode] | type[BaseModel] = {"type": "json_schema"}
         if self._config and self._config.provider:
             try:
                 adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider, model_name=self.model_name)
@@ -333,7 +334,7 @@ class LLMClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         mock_identity: str | None = None,
-        validation_context: Mapping[str, JsonValue] | None = None,
+        validation_context: Mapping[str, JsonSchemaNode] | None = None,
     ) -> tuple[T, TokenUsage]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
@@ -504,7 +505,7 @@ class LLMClient:
                     validation_context=validation_context,
                 )
 
-            val_ctx_dict: dict[str, JsonValue] | None = None
+            val_ctx_dict: dict[str, JsonSchemaNode] | None = None
             if validation_context is not None:
                 val_ctx_dict = dict(validation_context)
 
@@ -704,7 +705,7 @@ class LLMClient:
         tool_choice: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
-    ) -> str | dict[str, JsonValue]:
+    ) -> str | dict[str, JsonSchemaNode]:
         """Execute a free-form chat task returning a string or tool_calls dict.
 
         Args:
@@ -857,7 +858,7 @@ class LLMClient:
 
             # If LLM returned tool_calls, return as dict for Tool Loop processing
             if response.tool_calls:
-                tc_list: list[JsonValue] = [
+                tc_list: list[JsonSchemaNode] = [
                     tc.model_dump(mode="json") if isinstance(tc, BaseModel) else tc for tc in response.tool_calls
                 ]
                 return {"tool_calls": tc_list, "content": response.content}
