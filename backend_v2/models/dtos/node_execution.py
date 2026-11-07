@@ -5,13 +5,14 @@ from __future__ import annotations
 from collections.abc import ItemsView
 from typing import TYPE_CHECKING, Annotated
 
-from pydantic import ConfigDict, Field, JsonValue
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
@@ -25,6 +26,7 @@ __all__ = [
     "LogicNodeStateDTO",
     "NodeExecutionUpdateDTO",
     "StepOutputContentDTO",
+    "StepOutputContentValue",
 ]
 
 
@@ -140,7 +142,8 @@ class LogicEvaluationContextDTO(V2CoreBase):
     user_role: Annotated[str | None, Field(default=None, description="User role")] = None
 
 
-type StepOutputContentValue = StepPayloadValue | DomainInputValue | JsonValue
+# Phase 4, Step 4.1: Replace JsonValue with typed JsonSchemaNode in StepOutputContentValue
+type StepOutputContentValue = StepPayloadValue | DomainInputValue | JsonSchemaNode
 
 
 class StepOutputContentDTO(V2CoreBase):

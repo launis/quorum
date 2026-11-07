@@ -7,20 +7,32 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, JsonValue, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LaxXaiExtensionType
 
+# Phase 4, Step 4.1: Typed engine debug trace and XAI extension value unions replacing JsonValue
+type LevelStatsDumpEntry = dict[str, int]
+type LevelStatsDumpMap = dict[str, LevelStatsDumpEntry]
+type EngineDebugValue = (
+    str | int | float | bool | list[str] | list[float] | LevelStatsDumpEntry | LevelStatsDumpMap | None
+)
+type XaiExtensionValue = str | int | float | bool | list[str] | None
+
 __all__ = [
+    "EngineDebugValue",
     "LevelStatsDTO",
+    "LevelStatsDumpEntry",
+    "LevelStatsDumpMap",
     "LightweightMatrixOutput",
     "MatrixAggregationStateDTO",
     "MergedFactsDTO",
     "OutputProfileConfig",
     "ScoringResultDTO",
     "XAILogDto",
+    "XaiExtensionValue",
 ]
 
 
@@ -54,7 +66,7 @@ class XAILogDto(V2CoreBase):
 
     pedagogical_key: Annotated[str, Field(description="The designated mapping key for UI-facing explanations")]
     engine_debug_trace: Annotated[
-        dict[str, JsonValue],
+        dict[str, EngineDebugValue],
         Field(default_factory=dict, description="System dictionary containing mathematical/diagnostic reasoning"),
     ]
 
@@ -161,7 +173,7 @@ class LightweightMatrixOutput(V2CoreBase):
         Field(default_factory=dict, description="Mapping tracking which structural logic atoms were hit"),
     ]
     extensions: Annotated[
-        dict[LaxXaiExtensionType, JsonValue],
+        dict[LaxXaiExtensionType, XaiExtensionValue],
         Field(default_factory=dict, description="Arbitrarily mapped XAI extensions dict for UI components"),
     ]
     allowed_extensions: Annotated[

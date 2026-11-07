@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import JsonValue
-
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
@@ -20,7 +18,7 @@ from backend_v2.models.dtos.hook_delta import (
     MissingContextDTO,
     ProjectedResultsDTO,
 )
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, XaiExtensionValue
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, XaiExtensionType
 
 __all__ = ["ResultProjector"]
@@ -243,7 +241,8 @@ class ResultProjector:
                         evaluated_atoms[aid] = ExecutionStatus.PENDING
                         missing_atoms.append(tda.concept_description)
 
-        final_extensions: dict[XaiExtensionType, JsonValue] = {
+        # Phase 4, Step 4.3: Project matrix extensions with typed XaiExtensionValue instead of JsonValue
+        final_extensions: dict[XaiExtensionType, XaiExtensionValue] = {
             XaiExtensionType(k): "\n\n".join(v)
             for k, v in extensions_by_type.items()
             if k in {e.value for e in XaiExtensionType}

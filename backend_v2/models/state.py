@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from backend_v2.models.domain.system_config import MCPAuditTrace
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase, generate_uuid7
@@ -35,6 +35,7 @@ from backend_v2.models.dtos.node_execution import (
     StepOutputContentValue,
 )
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import VirtualSystemStepID
@@ -196,7 +197,7 @@ class TraceEvent(V2CoreBase):
         | StepPayloadValue
         | DomainInputValue
         | StepOutputContentDTO
-        | Mapping[str, StepPayloadValue | DomainInputValue | JsonValue]
+        | Mapping[str, StepOutputContentValue]
         | BaseModel
         | None,
         Field(default=None, description="Typed event payload"),
@@ -284,6 +285,8 @@ _state_localns = {
     "DomainInputValue": DomainInputValue,
     "StepOutputDTO": StepOutputDTO,
     "StepPayloadValue": StepPayloadValue,
+    "StepOutputContentValue": StepOutputContentValue,
+    "JsonSchemaNode": JsonSchemaNode,
     "TraceEventMetadataDTO": TraceEventMetadataDTO,
     "Any": Any,
     "ContextVariablesDTO": ContextVariablesDTO,

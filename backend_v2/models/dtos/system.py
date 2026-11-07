@@ -6,14 +6,18 @@ standards for type hint safety and runtime validation.
 
 from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Field, JsonValue, TypeAdapter
+from pydantic import ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 
+# Phase 4, Step 4.1: Typed client context data value replacing JsonValue
+type ClientContextValue = str | int | float | bool | list[str] | None
+
 __all__ = [
     "AnySystemConfig",
     "AnySystemConfigAdapter",
+    "ClientContextValue",
     "ClientErrorPayload",
     "HealthCheckResponseDTO",
     "HookListResponse",
@@ -99,7 +103,7 @@ class ClientErrorPayload(BaseDTO):
     stack_trace: Annotated[str | None, Field(description="The Dart stack trace lines")] = None
     severity: Annotated[str, Field(description="Severity level, usually 'error' or 'fatal'")] = "error"
     context_data: Annotated[
-        dict[str, JsonValue],
+        dict[str, ClientContextValue],
         Field(default_factory=dict, description="Additional context or state dump"),
     ]
 

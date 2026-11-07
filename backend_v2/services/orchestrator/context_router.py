@@ -10,7 +10,7 @@ import logging
 from collections.abc import Sequence
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.exceptions import (
     AppException,
@@ -18,7 +18,11 @@ from backend_v2.exceptions import (
     ErrorCodes,
     MissingRoutingModeError,
 )
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, OutputProfileConfig
+from backend_v2.models.dtos.lightweight_matrix import (
+    LightweightMatrixOutput,
+    OutputProfileConfig,
+    XaiExtensionValue,
+)
 from backend_v2.models.enums import LaxXaiExtensionType
 from backend_v2.models.state import StepOutputDTO
 
@@ -74,7 +78,8 @@ class ContextRouter:
                 f"expected LightweightMatrixOutput, got {type(trace_event).__name__}"
             )
 
-        extensions_extracted: dict[LaxXaiExtensionType, JsonValue] = {}
+        # Phase 4, Step 4.3: Route typed XaiExtensionValue without JsonValue
+        extensions_extracted: dict[LaxXaiExtensionType, XaiExtensionValue] = {}
         if output_profile:
             for ext in output_profile.visible_block_extensions:
                 # If block explicitly defines supported extensions, check suitability

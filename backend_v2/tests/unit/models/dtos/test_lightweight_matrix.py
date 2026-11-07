@@ -15,6 +15,8 @@ from backend_v2.models.dtos.lightweight_matrix import (
     XAILogDto,
 )
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.system import HealthCheckResponseDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
 
 
@@ -183,7 +185,12 @@ def test_matrix_aggregation_state_dto() -> None:
     assert empty_state.display_stats == {}
 
     stats = LevelStatsDTO(hits=1, total=2)
-    quote = QuoteEvidenceDTO(source_quotes=("Evidence text",), verified_source_ids=["doc_0"], is_verified=True)
+    quote = QuoteEvidenceDTO(
+        source_quotes=("Evidence text",),
+        verified_source_ids=["doc_0"],
+        unverified_aliases=[],
+        is_verified=True,
+    )
     populated_state = MatrixAggregationStateDTO(
         scale_stats={1.0: stats},
         evaluated_atoms={"a0": ExecutionStatus.PASSED},
@@ -209,3 +216,56 @@ def test_matrix_aggregation_state_dto() -> None:
     # Invalid type in evaluated_atoms
     with pytest.raises(ValidationError):
         MatrixAggregationStateDTO.model_validate({"evaluated_atoms": {"a0": 123}})
+
+
+def test_lightweight_matrix_and_trace_dtos_enforce_extra_forbid() -> None:
+    """Verify matrix, health, and trace DTOs validate cleanly and serialize with exclude_none=True."""
+    level_stats = LevelStatsDTO(hits=3, total=5, dlqs=0, pos_hits=2, pos_total=3, inv_clean=1, inv_total=2)
+    xai_log = XAILogDto(
+        pedagogical_key="xai_unified_engine_breakdown",
+        engine_debug_trace={
+            "engine": "unified",
+            "strictness_level": 50,
+            "stats": {"1.0": level_stats.model_dump()},
+            "log_trace": ["Level 1.0: 3/5"],
+        },
+    )
+    matrix_out = LightweightMatrixOutput(
+        raw_score=3.5,
+        normalized_score=70.0,
+        level_breakdown={"1.0": level_stats},
+        justification="Grounded evidence",
+        xai_log=xai_log,
+        evaluated_atoms={"a0": ExecutionStatus.PASSED},
+        extensions={XaiExtensionType.CITATION: "Quote 1"},
+    )
+    health_dto = HealthCheckResponseDTO(
+        status="ok",
+        version="2.9.0",
+        environment="development",
+        storage_backend="POSTGRES",
+        gcp_region="europe-north1",
+        primary_domain="qrum.ai",
+    )
+    trace_meta = TraceEventMetadataDTO(
+        latency_ms=42.5,
+        chunk_size=1,
+        generated_schema={"type": "object", "properties": {"score": {"type": "number"}}},
+        mcp_audit_traces=[],
+    )
+
+    matrix_dumped = matrix_out.model_dump(mode="json", exclude_none=True)
+    trace_dumped = trace_meta.model_dump(mode="json", exclude_none=True)
+    health_dumped = health_dto.model_dump(mode="json", exclude_none=True)
+
+    assert "allowed_extensions" not in matrix_dumped
+    assert "atom_quotes" not in matrix_dumped
+    assert "context_char_length" not in trace_dumped
+    assert trace_dumped["generated_schema"] == {"type": "object", "properties": {"score": {"type": "number"}}}
+    assert health_dumped["status"] == "ok"
+
+    # Negative: extra keys rejected across all closed DTOs
+    with pytest.raises(ValidationError):
+        LightweightMatrixOutput.model_validate({**matrix_dumped, "undeclared_key": 1})
+    with pytest.raises(ValidationError):
+        TraceEventMetadataDTO.model_validate({**trace_dumped, "undeclared_key": 1})

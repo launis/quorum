@@ -3,7 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import ModelProfile, ProviderExtraParamsDTO, SystemConfigModelRegistry
+from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.system import (
     AnySystemConfigAdapter,
     ClientErrorPayload,
@@ -17,6 +18,7 @@ from backend_v2.models.dtos.system import (
     SystemConfigUpsertDTO,
     SystemSettingsDTO,
 )
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import CognitiveTier
 
 
@@ -190,6 +192,8 @@ def test_system_config_dtos_and_discriminated_union() -> None:
         rpm_limit=10,
         temperature=1.0,
         max_tokens=2048,
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
     )
     model_reg = SystemConfigModelRegistry(
         id="sys_0195f3a0000070018234567890abcdef",
@@ -239,3 +243,31 @@ def test_system_config_dtos_and_discriminated_union() -> None:
 
     with pytest.raises(ValidationError):
         SystemConfigUpsertDTO(type="", content=settings_dto)
+
+
+def test_closed_dtos_reject_unrecognized_extra_keys() -> None:
+    """Verify HealthCheckResponseDTO, TraceEventMetadataDTO, and StepContextMetadataDTO forbid extra keys."""
+    valid_step_meta = StepContextMetadataDTO(gvars={"language": "fi"}, doc_aliases=["doc_0"], dag_results={})
+    assert valid_step_meta.gvars["language"] == "fi"
+
+    with pytest.raises(ValidationError) as exc_health:
+        HealthCheckResponseDTO.model_validate(
+            {
+                "status": "ok",
+                "version": "2.9.0",
+                "environment": "production",
+                "storage_backend": "POSTGRES",
+                "gcp_region": "europe-north1",
+                "primary_domain": "qrum.ai",
+                "undeclared_extra": "rejected",
+            }
+        )
+    assert "extra_forbidden" in str(exc_health.value)
+
+    with pytest.raises(ValidationError) as exc_trace:
+        TraceEventMetadataDTO.model_validate({"latency_ms": 12.0, "undeclared_extra": "rejected"})
+    assert "extra_forbidden" in str(exc_trace.value)
+
+    with pytest.raises(ValidationError) as exc_step:
+        StepContextMetadataDTO.model_validate({"gvars": {"language": "fi"}, "undeclared_extra": "rejected"})
+    assert "extra_forbidden" in str(exc_step.value)

@@ -5,12 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Self, override
 
-from pydantic import ConfigDict, Field, JsonValue
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.enums import LaxExecutionStatus
 
 if TYPE_CHECKING:
@@ -193,7 +194,8 @@ class TraceEventMetadataEnvelope(BaseDTO):
             ValidationError: If model validation fails.
         """
         if type(obj) is dict:
-            extracted: dict[str, JsonValue] = {}
+            # Phase 4, Step 4.1: Avoid untyped JsonValue dict accumulator during envelope hydration
+            extracted: dict[str, JsonSchemaNode | StepTraceMetadataDTO] = {}
             if "step_metadata" in obj:
                 extracted["step_metadata"] = obj["step_metadata"]
             return super().model_validate(
@@ -298,7 +300,7 @@ class TraceEventMetadataDTO(V2CoreBase):
     context_char_length: Annotated[int | None, Field(default=None, description="Length of context characters")] = None
     prompt_contexts: Annotated[list[str] | None, Field(default=None, description="Prompt context identifiers")] = None
     generated_schema: Annotated[
-        dict[str, JsonValue] | None, Field(default=None, description="Dynamic generated schema")
+        dict[str, JsonSchemaNode] | None, Field(default=None, description="Dynamic generated schema")
     ] = None
     is_context_update: Annotated[bool, Field(default=False, description="Indicates context update decision")] = False
     mcp_audit_traces: Annotated[
@@ -317,5 +319,9 @@ from backend_v2.models.domain.usage import TokenUsage as _TokenUsage
 StepTraceMetadataDTO.model_rebuild(_types_namespace={"TokenUsage": _TokenUsage})
 TraceEventMetadataEnvelope.model_rebuild(_types_namespace={"StepTraceMetadataDTO": StepTraceMetadataDTO})
 TraceEventMetadataDTO.model_rebuild(
-    _types_namespace={"StepTraceMetadataDTO": StepTraceMetadataDTO, "MCPAuditTrace": MCPAuditTrace}
+    _types_namespace={
+        "StepTraceMetadataDTO": StepTraceMetadataDTO,
+        "MCPAuditTrace": MCPAuditTrace,
+        "JsonSchemaNode": JsonSchemaNode,
+    }
 )

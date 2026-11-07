@@ -5,11 +5,14 @@ from __future__ import annotations
 from collections.abc import ItemsView, KeysView, ValuesView
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, JsonValue
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
-__all__ = ["GeneratedSchemaManifestDTO"]
+# Phase 4, Step 4.1: Recursive typed JSON Schema node replacing JsonValue
+type JsonSchemaNode = str | int | float | bool | None | list[JsonSchemaNode] | dict[str, JsonSchemaNode]
+
+__all__ = ["GeneratedSchemaManifestDTO", "JsonSchemaNode"]
 
 
 class GeneratedSchemaManifestDTO(V2CoreBase):
@@ -21,9 +24,9 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    # Phase 2, Step 2.3 & Phase 4, Step 4.1: Enforce PEP 593 Annotated[T, Field(...)] and typed JsonSchemaNode
     schemas: Annotated[
-        dict[str, JsonValue],
+        dict[str, JsonSchemaNode],
         Field(default_factory=dict, description="Mapping of step IDs to schema definitions"),
     ]
 
@@ -38,7 +41,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
         """
         return key in self.schemas
 
-    def __getitem__(self, key: str) -> JsonValue:
+    def __getitem__(self, key: str) -> JsonSchemaNode:
         """Retrieve schema definition by step or schema ID.
 
         Args:
@@ -68,7 +71,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
         """
         return self.schemas.keys()
 
-    def items(self) -> ItemsView[str, JsonValue]:
+    def items(self) -> ItemsView[str, JsonSchemaNode]:
         """Return schema items.
 
         Returns:
@@ -76,7 +79,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
         """
         return self.schemas.items()
 
-    def values(self) -> ValuesView[JsonValue]:
+    def values(self) -> ValuesView[JsonSchemaNode]:
         """Return schema values.
 
         Returns:

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, JsonValue
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
@@ -31,11 +31,15 @@ from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, ScoringResultDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.enums import LLMProvider
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.state import StepOutputDTO
+
+# Phase 4, Step 4.1: Typed global context variable entry value replacing JsonValue
+type StepContextGvarValue = JsonSchemaNode | FlattenedAtom | list[FlattenedAtom] | LinguisticsResultDTO
 
 __all__ = [
     "AnomalyRetryResultDTO",
@@ -52,6 +56,7 @@ __all__ = [
     "MissingContextDTO",
     "PassivityDetectionResultDTO",
     "ProjectedResultsDTO",
+    "StepContextGvarValue",
     "StepContextMetadataDTO",
     "WorkerJobResultDTO",
 ]
@@ -272,7 +277,7 @@ class StepContextMetadataDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     gvars: Annotated[
-        dict[str, JsonValue],
+        dict[str, StepContextGvarValue],
         Field(default_factory=dict, description="Global context variables dictionary."),
     ]
     doc_aliases: Annotated[

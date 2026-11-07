@@ -33,6 +33,7 @@ from backend_v2.models.state import (
     ReasoningTrace,
     StateProjector,
     StepExecutionEnvelope,
+    StepOutputDTO,
     TombstoneEvent,
     TraceEvent,
     WorkflowState,
@@ -756,3 +757,43 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
     assert any(s.step_id == "stp_fusion_dict" and s.block_id == "fusion" for s in snap)
     assert any(s.step_id == "stp_atom_dict" and s.block_id == "hydrated_references" for s in snap)
     assert any(s.step_id == "stp_generic_dict" and s.block_id == "k2" for s in snap)
+
+
+def test_execution_context_step_outputs_boundary_types() -> None:
+    """Verify empty and multi-step StepOutputDTO entries preserve O(1) typed lookup and immutability."""
+    empty_projector = StateProjector([])
+    assert empty_projector.snapshot == []
+
+    empty_content = StepOutputContentDTO.model_validate({"data": {}})
+    assert len(empty_content.data) == 0
+    assert "missing" not in empty_content
+
+    event_1 = TraceEvent.model_validate(
+        {
+            "step_name": "stp_0195f3a0000070008000000000000001",
+            "event_type": "output",
+            "content": StepOutputContentDTO.model_validate({"data": {"blk_1": "alpha", "blk_2": 42}}),
+        }
+    )
+    event_2 = TraceEvent.model_validate(
+        {
+            "step_name": "stp_0195f3a0000070008000000000000002",
+            "event_type": "output",
+            "content": StepOutputContentDTO.model_validate({"data": {"blk_3": ["item_a", "item_b"]}}),
+        }
+    )
+    multi_projector = StateProjector([event_1, event_2])
+    outputs = multi_projector.snapshot
+    assert len(outputs) == 3
+    by_block = {item.block_id: item for item in outputs}
+    assert by_block["blk_1"].payload == "alpha"
+    assert by_block["blk_2"].payload == 42
+    assert by_block["blk_3"].payload == ["item_a", "item_b"]
+
+    # Immutability check on StepOutputContentDTO and StepOutputDTO
+    with pytest.raises(ValidationError):
+        StepOutputContentDTO.model_validate({"data": {}, "extra_key": "forbidden"})
+    with pytest.raises(ValidationError):
+        StepOutputDTO.model_validate(
+            {"step_id": "stp_1", "block_id": "blk_1", "data_type": "unknown", "payload": "x", "extra": 1}
+        )

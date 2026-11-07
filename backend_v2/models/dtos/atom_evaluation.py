@@ -4,17 +4,25 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import BeforeValidator, ConfigDict, Field, JsonValue
+from pydantic import BeforeValidator, ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 from backend_v2.models.enums import LaxExecutionStatus
 
+# Phase 4, Step 4.1: Replace JsonValue containers with closed scalar/extension union types
+type ExtractedAtomScalar = str | int | float | bool | None
+type ScalarExtensionValue = str | int | float | bool | list[str] | None
+type GlobalMetricValue = str | int | float | bool | None
+
 __all__ = [
     "EvaluatedMatrixRefDTO",
+    "ExtractedAtomScalar",
+    "GlobalMetricValue",
     "LightweightMatrixDTO",
     "RawXAIExtensionDTO",
     "ReasoningStepDTO",
     "ReducedAtomDTO",
+    "ScalarExtensionValue",
 ]
 
 
@@ -65,7 +73,7 @@ class ReducedAtomDTO(V2CoreBase):
         Field(default=None, description="Verbatim source quote segments."),
     ] = None
     extracted_data: Annotated[
-        dict[str, JsonValue] | None,
+        dict[str, ExtractedAtomScalar] | None,
         Field(default=None, description="Optional extracted key-value pairs."),
     ] = None
     depends_on_tda_ids: Annotated[
@@ -143,9 +151,9 @@ class RawXAIExtensionDTO(V2CoreBase):
     variance_validation: Annotated[str | None, Field(default=None, description="Variance validation result.")] = None
     authenticity_evaluation: Annotated[str | None, Field(default=None, description="Authenticity evaluation.")] = None
     pedagogical_key: Annotated[str | None, Field(default=None, description="Pedagogical taxonomy key.")] = None
-    raw_payload: Annotated[dict[str, JsonValue] | None, Field(default=None, description="Raw extension payload.")] = (
-        None
-    )
+    raw_payload: Annotated[
+        dict[str, ScalarExtensionValue] | None, Field(default=None, description="Raw extension payload.")
+    ] = None
 
 
 class LightweightMatrixDTO(V2CoreBase):
@@ -163,7 +171,7 @@ class LightweightMatrixDTO(V2CoreBase):
 
     execution_id: Annotated[str, Field(description="Unique execution identifier.")]
     reduced_atoms: Annotated[list[ReducedAtomDTO], Field(description="List of token-reduced atoms.")]
-    global_metrics: Annotated[dict[str, JsonValue], Field(description="Global execution metrics dictionary.")]
+    global_metrics: Annotated[dict[str, GlobalMetricValue], Field(description="Global execution metrics dictionary.")]
     evaluated_matrices: Annotated[
         list[EvaluatedMatrixRefDTO],
         Field(default_factory=list, description="Evaluated matrix references."),
