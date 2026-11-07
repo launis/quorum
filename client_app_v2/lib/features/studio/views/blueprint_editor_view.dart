@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/studio/controllers/blueprint_editor_controller.dart';
+import 'package:client_app/features/studio/models/blueprint_config.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -12,8 +13,8 @@ import 'package:client_app/core/theme/app_spacing.dart';
 /// Provides a clean parameter router aligning strictly with the
 /// `ReportRendererWidget` MVC pattern.
 class BlueprintEditorView extends ConsumerStatefulWidget {
-  final Map<String, Object?> initialBlueprint;
-  final ValueChanged<Map<String, Object?>> onSave;
+  final BlueprintConfig initialBlueprint;
+  final ValueChanged<BlueprintConfig> onSave;
 
   const BlueprintEditorView({
     super.key,
@@ -67,7 +68,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
             if (_initializationError == null) ...[
               FilledButton.icon(
                 onPressed: () {
-                  widget.onSave(config.toJson());
+                  widget.onSave(config);
                   Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.check),

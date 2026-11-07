@@ -7,6 +7,7 @@ import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/step_simulation.dart';
 import 'package:client_app/features/studio/models/workflow_simulation.dart';
 
 import 'package:client_app/core/error/app_error_ext.dart';
@@ -241,7 +242,7 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             errors: [e.toString()],
             stepStatus: const {},
             executionOrder: const [],
-            trace: const {},
+            trace: const StepSimulationTraceDto(),
           );
         }
       },

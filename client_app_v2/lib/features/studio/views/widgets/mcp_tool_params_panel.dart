@@ -3,6 +3,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Primary runtime search query parameter keys bound dynamically by the backend.
@@ -34,9 +35,10 @@ class _ResolvedMcpToolEntry {
 /// for strings).
 class McpToolParamsPanel extends StatelessWidget {
   final List<String> allowedMcpTools;
-  final Map<String, Map<String, Object?>> mcpToolParams;
+  // Phase 5, Step 5.2: Replace Map<String, Map<String, Object?>> with typed McpToolParamValue.
+  final Map<String, Map<String, McpToolParamValue>> mcpToolParams;
   final List<McpGateway> mcpGateways;
-  final ValueChanged<Map<String, Map<String, Object?>>> onChanged;
+  final ValueChanged<Map<String, Map<String, McpToolParamValue>>> onChanged;
 
   const McpToolParamsPanel({
     super.key,
@@ -92,20 +94,23 @@ class McpToolParamsPanel extends StatelessWidget {
     String paramKey,
     Object? value,
   ) {
-    final Map<String, Map<String, Object?>> nextParams =
-        <String, Map<String, Object?>>{
+    final Map<String, Map<String, McpToolParamValue>> nextParams =
+        <String, Map<String, McpToolParamValue>>{
           for (final entry in mcpToolParams.entries)
-            entry.key: Map<String, Object?>.from(entry.value),
+            entry.key: Map<String, McpToolParamValue>.from(entry.value),
         };
 
-    final Map<String, Object?> toolMap = Map<String, Object?>.from(
-      nextParams[namespacedAlias] ?? const <String, Object?>{},
-    );
+    final Map<String, McpToolParamValue> toolMap =
+        Map<String, McpToolParamValue>.from(
+          nextParams[namespacedAlias] ?? const <String, McpToolParamValue>{},
+        );
 
     if (value == null) {
       toolMap.remove(paramKey);
     } else {
-      toolMap[paramKey] = value;
+      toolMap[paramKey] = value is McpToolParamValue
+          ? value
+          : McpToolParamValue.fromPrimitive(value);
     }
 
     if (toolMap.isEmpty) {
@@ -118,11 +123,11 @@ class McpToolParamsPanel extends StatelessWidget {
   }
 
   void _resetToolParams(String namespacedAlias) {
-    final Map<String, Map<String, Object?>> nextParams =
-        <String, Map<String, Object?>>{
+    final Map<String, Map<String, McpToolParamValue>> nextParams =
+        <String, Map<String, McpToolParamValue>>{
           for (final entry in mcpToolParams.entries)
             if (entry.key != namespacedAlias)
-              entry.key: Map<String, Object?>.from(entry.value),
+              entry.key: Map<String, McpToolParamValue>.from(entry.value),
         };
     onChanged(nextParams);
   }
@@ -156,8 +161,9 @@ class McpToolParamsPanel extends StatelessWidget {
               'Fail-Fast: MCP tool ${entry.namespacedAlias} lacks required translation for locale $currentLocale or en fallback.',
             );
           }
-          final Map<String, Object?> currentOverrides =
-              mcpToolParams[entry.namespacedAlias] ?? const <String, Object?>{};
+          final Map<String, McpToolParamValue> currentOverrides =
+              mcpToolParams[entry.namespacedAlias] ??
+              const <String, McpToolParamValue>{};
           final bool hasOverrides = currentOverrides.isNotEmpty;
 
           return Card(
@@ -226,7 +232,7 @@ class McpToolParamsPanel extends StatelessWidget {
                         namespacedAlias: entry.namespacedAlias,
                         propName: propEntry.key,
                         prop: propEntry.value,
-                        currentValue: currentOverrides[propEntry.key],
+                        currentValue: currentOverrides[propEntry.key]?.rawValue,
                       ),
                     );
                   }),

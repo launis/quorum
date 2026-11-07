@@ -134,7 +134,7 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
       _errorMessage = null;
     });
 
-    final mockInputs = <String, Object?>{};
+    final mockInputs = <String, String>{};
     for (final entry in _inputControllers.entries) {
       mockInputs[entry.key] = entry.value.text;
     }

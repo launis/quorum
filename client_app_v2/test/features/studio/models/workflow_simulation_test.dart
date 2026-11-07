@@ -10,7 +10,7 @@ void main() {
         'errors': <String>[],
         'step_status': {'step_1': 'ready', 'step_2': 'ready'},
         'execution_order': ['step_1', 'step_2'],
-        'trace': {'simulated_nodes': 2},
+        'trace': {'estimated_tokens': 2},
       };
 
       final response = WorkflowSimulationResponse.fromJson(validResponseJson);
@@ -19,7 +19,7 @@ void main() {
       expect(response.errors, isEmpty);
       expect(response.stepStatus['step_1'], 'ready');
       expect(response.executionOrder, ['step_1', 'step_2']);
-      expect(response.trace['simulated_nodes'], 2);
+      expect(response.trace.estimatedTokens, 2);
     });
 
     test('test_workflow_simulation_response_hallucinated_fields_fail_fast', () {

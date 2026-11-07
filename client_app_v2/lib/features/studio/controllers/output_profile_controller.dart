@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/theme/app_durations.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
@@ -195,10 +193,8 @@ class OutputProfileForm extends _$OutputProfileForm {
   @override
   FutureOr<OutputProfile> build(String configId) async {
     final profile = await ref.watch(outputProfileByIdProvider(configId).future);
-    final str = jsonEncode(profile.toJson());
-    return safeIsolateRun(
-      () => OutputProfile.fromJson(jsonDecode(str) as Map<String, Object?>),
-    );
+    // Phase 5, Step 5.2: Operate directly on immutable Freezed OutputProfile via copyWith.
+    return profile.copyWith();
   }
 
   void forceRebuild() {

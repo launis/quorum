@@ -1,5 +1,8 @@
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -134,6 +137,63 @@ void main() {
             'target_locale': 'fi',
           }),
           throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+
+    // Phase 5, Step 5.2 Test Contract: test_dynamic_start_screen_validates_required_workflow_inputs
+    test(
+      'test_dynamic_start_screen_validates_required_workflow_inputs (Boundary: 0 and 5 required ExpectedInput definitions)',
+      () {
+        const title = I18nText(translations: {'en': 'Test WF', 'fi': 'Testi'});
+        const wfZeroInputs = Workflow(
+          id: validWorkflowId,
+          slug: 'zero_inputs_wf',
+          name: title,
+          description: title,
+          modelRegistryId: 'mr_0195f3a0000070008000000000000004',
+          expectedInputs: [],
+        );
+        expect(wfZeroInputs.expectedInputs, isEmpty);
+
+        const reqZero = ExecutionCreateRequestDto(
+          workflowId: validWorkflowId,
+          targetLocale: 'fi',
+          rawInputs: WorkflowInputs(dynamicInputs: {}),
+        );
+        expect(reqZero.rawInputs.dynamicInputs, isEmpty);
+
+        final fiveExpectedInputs = List<ExpectedInput>.generate(
+          5,
+          (i) => ExpectedInput(
+            inputKey: 'input_$i',
+            label: I18nText(translations: {'en': 'Input $i', 'fi': 'Syote $i'}),
+            description: I18nText(
+              translations: {'en': 'Description $i', 'fi': 'Kuvaus $i'},
+            ),
+            required: true,
+          ),
+        );
+        final wfFiveInputs = wfZeroInputs.copyWith(
+          expectedInputs: fiveExpectedInputs,
+        );
+        expect(wfFiveInputs.expectedInputs, hasLength(5));
+
+        final dynamicMap = <String, WorkflowInputValue>{
+          for (final exp in wfFiveInputs.expectedInputs)
+            exp.inputKey: WorkflowInputValue(
+              textValue: 'Value for ${exp.inputKey}',
+            ),
+        };
+        final reqFive = ExecutionCreateRequestDto(
+          workflowId: wfFiveInputs.id,
+          targetLocale: 'fi',
+          rawInputs: WorkflowInputs(dynamicInputs: dynamicMap),
+        );
+        expect(reqFive.rawInputs.dynamicInputs, hasLength(5));
+        expect(
+          reqFive.rawInputs.dynamicInputs['input_4']?.textValue,
+          equals('Value for input_4'),
         );
       },
     );

@@ -27,7 +27,7 @@ void main() {
 
   group('BlueprintEditorController Unit Tests', () {
     test(
-      'Positive: initializes with default PresetView.metrics1d, hydrates valid JSON mappings, and mutates presetView across all PresetView variants',
+      'Positive: initializes with default PresetView.metrics1d, hydrates valid BlueprintConfig instances, and mutates presetView across all PresetView variants',
       () {
         final BlueprintConfig initialConfig = container.read(
           blueprintEditorControllerProvider,
@@ -42,7 +42,9 @@ void main() {
           blueprintEditorControllerProvider.notifier,
         );
 
-        notifier.initialize(<String, Object?>{'preset_view': '2d_compare'});
+        notifier.initialize(
+          const BlueprintConfig(presetView: PresetView.compare2d),
+        );
         expect(
           container.read(blueprintEditorControllerProvider).presetView,
           equals(PresetView.compare2d),
@@ -54,13 +56,6 @@ void main() {
         expect(
           updatedConfig.toJson(),
           equals(<String, Object?>{'preset_view': '3d_matrix'}),
-        );
-
-        // Resetting with null or empty map restores default PresetView.metrics1d
-        notifier.initialize(const <String, Object?>{});
-        expect(
-          container.read(blueprintEditorControllerProvider).presetView,
-          equals(PresetView.metrics1d),
         );
 
         notifier.setPresetView(PresetView.textOnly);
@@ -78,7 +73,7 @@ void main() {
     );
 
     test(
-      'Negative 1 (ISTQB BVA / Strict Schema): fails fast with CheckedFromJsonException on unrecognized JSON keys, logs error via LoggerService, and preserves prior state',
+      'Negative 1 (ISTQB BVA / Strict Schema): BlueprintConfig.fromJson fails fast with CheckedFromJsonException on unrecognized JSON keys and preserves prior controller state',
       () {
         final notifier = container.read(
           blueprintEditorControllerProvider.notifier,
@@ -86,7 +81,7 @@ void main() {
         notifier.setPresetView(PresetView.compare2d);
 
         expect(
-          () => notifier.initialize(<String, Object?>{
+          () => BlueprintConfig.fromJson(<String, Object?>{
             'preset_view': '3d_matrix',
             'unrecognized_extra_key': 'forbidden',
           }),
@@ -99,25 +94,15 @@ void main() {
           ),
         );
 
-        // State must remain unchanged after failed initialization
         expect(
           container.read(blueprintEditorControllerProvider).presetView,
           equals(PresetView.compare2d),
         );
-
-        verify(
-          () => mockLogger.error(
-            'BlueprintEditorController',
-            any(that: contains('BLUEPRINT_INIT_FAILED')),
-            any(),
-            any(),
-          ),
-        ).called(1);
       },
     );
 
     test(
-      'Negative 2 (ISTQB BVA / Type & Enum Boundaries): fails fast on invalid preset_view enum values or wrong value types, logs error via LoggerService, and preserves prior state',
+      'Negative 2 (ISTQB BVA / Type & Enum Boundaries): BlueprintConfig.fromJson fails fast on invalid preset_view enum values or wrong value types',
       () {
         final notifier = container.read(
           blueprintEditorControllerProvider.notifier,
@@ -132,7 +117,7 @@ void main() {
 
         for (final payload in invalidPayloads) {
           expect(
-            () => notifier.initialize(payload),
+            () => BlueprintConfig.fromJson(payload),
             throwsA(
               anyOf(
                 isA<CheckedFromJsonException>(),
@@ -147,15 +132,6 @@ void main() {
             equals(PresetView.matrixSummary),
           );
         }
-
-        verify(
-          () => mockLogger.error(
-            'BlueprintEditorController',
-            any(that: contains('BLUEPRINT_INIT_FAILED')),
-            any(),
-            any(),
-          ),
-        ).called(invalidPayloads.length);
       },
     );
   });

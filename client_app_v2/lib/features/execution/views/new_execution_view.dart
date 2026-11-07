@@ -43,7 +43,7 @@ class NewExecutionController extends _$NewExecutionController {
 
   Future<String> startExecution({
     required String workflowId,
-    required Map<String, Object?> collectedInputs,
+    required Map<String, WorkflowInputValue> collectedInputs,
     required String targetLocale,
     String? profileId,
   }) async {
@@ -53,7 +53,10 @@ class NewExecutionController extends _$NewExecutionController {
       final request = ExecutionCreateRequestDto(
         workflowId: workflowId,
         targetLocale: targetLocale,
-        rawInputs: {'dynamic_inputs': collectedInputs},
+        rawInputs: WorkflowInputs(
+          language: targetLocale,
+          dynamicInputs: collectedInputs,
+        ),
         profileId: profileId,
       );
 
@@ -85,7 +88,8 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   String? _selectedProfileId;
   bool _autoGenerateReport = true;
 
-  final Map<String, Object?> _compiledInputs = {};
+  // Phase 5, Step 5.2: Store typed WorkflowInputValue entries instead of Map<String, Object?>.
+  final Map<String, WorkflowInputValue> _compiledInputs = {};
   final Map<String, String> _selectedFileNames = {};
   final Map<String, TextEditingController> _textControllers = {};
 
@@ -135,10 +139,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         final String base64String = base64Encode(fileBytes);
 
         setState(() {
-          _compiledInputs[inputKey] = {
-            'filename': fileName,
-            'content_base64': base64String,
-          };
+          _compiledInputs[inputKey] = WorkflowInputValue.file(
+            filename: fileName,
+            contentBase64: base64String,
+          );
           _selectedFileNames[inputKey] = fileName;
         });
       }
@@ -152,19 +156,16 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           final parts = key.split('|||');
           final semanticRole = parts[0];
           final qId = parts[1];
-          if (_compiledInputs[semanticRole] == null ||
-              _compiledInputs[semanticRole] is! Map) {
-            _compiledInputs[semanticRole] = <String, Object?>{};
-          }
-          (_compiledInputs[semanticRole] as Map<String, Object?>)[qId] =
-              controller.text;
+          final existingAnswers =
+              _compiledInputs[semanticRole]?.questionnaireValue ??
+              const <String, String>{};
+          _compiledInputs[semanticRole] = WorkflowInputValue.questionnaire(
+            <String, String>{...existingAnswers, qId: controller.text},
+          );
         } else {
-          final hasFile =
-              _compiledInputs.containsKey(key) &&
-              _compiledInputs[key] is Map &&
-              (_compiledInputs[key] as Map).containsKey('content_base64');
+          final hasFile = _compiledInputs[key]?.fileValue != null;
           if (!hasFile) {
-            _compiledInputs[key] = controller.text;
+            _compiledInputs[key] = WorkflowInputValue.text(controller.text);
           }
         }
       }
@@ -181,7 +182,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       builder: (dialogContext) => _TaskAssignmentConfigDialog(
         workflow: workflow,
         profileId: _selectedProfileId,
-        initialCompiledInputs: Map<String, Object?>.from(_compiledInputs),
+        initialCompiledInputs: Map<String, WorkflowInputValue>.from(
+          _compiledInputs,
+        ),
         targetLocale: localeCode,
       ),
     );
@@ -198,13 +201,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
       if (isRequired && key.isNotEmpty) {
         final val = _compiledInputs[key];
-        bool isEmpty = true;
-
-        if (val is String && val.trim().isNotEmpty) {
-          isEmpty = false;
-        } else if (val is Map && val.isNotEmpty) {
-          isEmpty = false;
-        }
+        final bool isEmpty = val == null || !val.isNotEmpty;
 
         if (isEmpty) {
           if (mounted) {
@@ -787,7 +784,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 class _TaskAssignmentConfigDialog extends ConsumerStatefulWidget {
   final Workflow workflow;
   final String? profileId;
-  final Map<String, Object?> initialCompiledInputs;
+  final Map<String, WorkflowInputValue> initialCompiledInputs;
   final String targetLocale;
 
   const _TaskAssignmentConfigDialog({
@@ -908,7 +905,7 @@ class _TaskAssignmentConfigDialogState
         ? durationMinutes * 60
         : null;
 
-    final lockedMap = <String, Object?>{
+    final lockedMap = <String, WorkflowInputValue>{
       for (final entry in widget.initialCompiledInputs.entries)
         if (!_assigneeInputKeys.contains(entry.key)) entry.key: entry.value,
     };

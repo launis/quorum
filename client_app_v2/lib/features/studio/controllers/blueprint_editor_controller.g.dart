@@ -48,7 +48,7 @@ final class BlueprintEditorControllerProvider
 }
 
 String _$blueprintEditorControllerHash() =>
-    r'8dd6bb97a64f2ad14b27c66ba565e84d7ba86b74';
+    r'1c03eec993518b4b7ac8b363a0b8ce9cda788f4d';
 
 /// Manages [BlueprintConfig] state for the Studio Blueprint Editor,
 /// enforcing strict schema binding with backend Pydantic V2 models.

@@ -4,6 +4,7 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -46,7 +47,13 @@ void main() {
         const request = ExecutionCreateRequestDto(
           workflowId: testWorkflowId,
           targetLocale: 'fi',
-          rawInputs: <String, Object?>{'deliverable_text': 'Coaching brief'},
+          rawInputs: WorkflowInputs(
+            dynamicInputs: <String, WorkflowInputValue>{
+              'deliverable_text': WorkflowInputValue(
+                textValue: 'Coaching brief',
+              ),
+            },
+          ),
           profileId: testProfileId,
         );
 
@@ -280,7 +287,7 @@ void main() {
         const request = ExecutionCreateRequestDto(
           workflowId: testWorkflowId,
           targetLocale: 'fi',
-          rawInputs: <String, Object?>{},
+          rawInputs: WorkflowInputs(),
         );
 
         expect(

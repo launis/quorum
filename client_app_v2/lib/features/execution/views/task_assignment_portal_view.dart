@@ -475,7 +475,7 @@ class _TaskPortalBody extends HookConsumerWidget {
                                 final existing =
                                     activated.draftInputs.dynamicInputs[key];
                                 inputControllers[key] = TextEditingController(
-                                  text: existing is String ? existing : '',
+                                  text: existing?.textValue ?? '',
                                 );
                               }
                               activatedAssignment.value = activated;
@@ -519,7 +519,7 @@ class _TaskPortalBody extends HookConsumerWidget {
         dynamicInputs: {
           for (final key in active.assigneeInputKeys)
             if ((inputControllers[key]?.text.trim() ?? '').isNotEmpty)
-              key: inputControllers[key]!.text.trim(),
+              key: WorkflowInputValue.text(inputControllers[key]!.text.trim()),
         },
       );
     }

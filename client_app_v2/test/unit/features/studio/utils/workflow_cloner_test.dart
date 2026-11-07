@@ -3,6 +3,7 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/utils/workflow_cloner.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,8 +17,9 @@ void main() {
   );
 
   group('WorkflowCloner Unit & ISTQB Boundary Tests', () {
+    // Phase 5, Step 5.2 Test Contract: test_workflow_cloner_preserves_typed_freezed_structure
     test(
-      'Positive: cloneWorkflow generates 32-hex UUIDv7 IDs and remaps DAG dependencies, inputMappings, causalSourceStepId, and OutputProfiles',
+      'test_workflow_cloner_preserves_typed_freezed_structure (Positive)',
       () {
         const wfId = 'wf_0195f3a0000070008000000000000001';
         const srCausalId = 'sr_0195f3a0000070008000000000000010';
@@ -41,6 +43,11 @@ void main() {
               slug: 'exec_profile',
               workflowId: wfId,
               name: sampleTitle,
+              contentBlocks: [
+                SduiBlockDTO.paragraph(
+                  text: 'Summary from \$steps.$srCausalId.outputs.summary',
+                ),
+              ],
             ),
           },
           steps: [
@@ -94,6 +101,12 @@ void main() {
         expect(converter.fromJson(clonedProfile.id), equals(clonedProfile.id));
         expect(clonedProfile.workflowId, equals(cloned.id));
         expect(cloned.defaultProfileId, equals(clonedProfile.id));
+        final clonedBlock =
+            clonedProfile.contentBlocks.first as SduiParagraphBlock;
+        expect(
+          clonedBlock.text,
+          equals('Summary from \$steps.${newCausalStep.id}.outputs.summary'),
+        );
       },
     );
 
@@ -150,12 +163,27 @@ void main() {
           throwsA(isA<AppException>()),
         );
 
-        final invalidStepsTypeMap = <String, Object?>{
-          'id': 'wf_0195f3a0000070008000000000000001',
-          'steps': 'not_a_list',
-        };
+        const missingCausalDepWorkflow = Workflow(
+          id: 'wf_0195f3a0000070008000000000000001',
+          slug: 'missing_causal_dep_wf',
+          name: sampleTitle,
+          description: sampleDesc,
+          modelRegistryId: 'mr_0195f3a0000070008000000000000400',
+          steps: [
+            StepRule(
+              id: 'sr_0195f3a0000070008000000000000010',
+              taskBlueprint: 'st_0195f3a0000070008000000000000100',
+            ),
+            StepRule(
+              id: 'sr_0195f3a0000070008000000000000020',
+              taskBlueprint: 'st_0195f3a0000070008000000000000200',
+              dependsOn: [],
+              causalSourceStepId: 'sr_0195f3a0000070008000000000000010',
+            ),
+          ],
+        );
         expect(
-          () => WorkflowCloner.cloneDeep(invalidStepsTypeMap),
+          () => WorkflowCloner.cloneWorkflow(missingCausalDepWorkflow),
           throwsA(isA<AppException>()),
         );
       },

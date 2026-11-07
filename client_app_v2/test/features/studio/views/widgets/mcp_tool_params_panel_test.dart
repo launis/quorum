@@ -97,8 +97,8 @@ void main() {
     testWidgets(
       'mcp_tool_params_panel_renders_and_mutates_schema_controls (TC-STUDIO-UI-01)',
       (WidgetTester tester) async {
-        Map<String, Map<String, Object?>> currentParams =
-            <String, Map<String, Object?>>{};
+        Map<String, Map<String, McpToolParamValue>> currentParams =
+            <String, Map<String, McpToolParamValue>>{};
 
         await tester.pumpWidget(
           MaterialApp(
@@ -116,11 +116,14 @@ void main() {
                       ],
                       mcpToolParams: currentParams,
                       mcpGateways: mockGateways,
-                      onChanged: (Map<String, Map<String, Object?>> updated) {
-                        setState(() {
-                          currentParams = updated;
-                        });
-                      },
+                      onChanged:
+                          (
+                            Map<String, Map<String, McpToolParamValue>> updated,
+                          ) {
+                            setState(() {
+                              currentParams = updated;
+                            });
+                          },
                     ),
                   ),
                 );
@@ -147,7 +150,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          currentParams['exa_gateway__web_search_exa']?['numResults'],
+          currentParams['exa_gateway__web_search_exa']?['numResults']?.intValue,
           equals(5),
         );
 
@@ -164,7 +167,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          currentParams['tavily_gateway__mcp_tavily_search']?['search_depth'],
+          currentParams['tavily_gateway__mcp_tavily_search']?['search_depth']
+              ?.stringValue,
           equals('advanced'),
         );
 
@@ -179,7 +183,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          currentParams['tavily_gateway__mcp_tavily_search']?['include_images'],
+          currentParams['tavily_gateway__mcp_tavily_search']?['include_images']
+              ?.boolValue,
           isFalse,
         );
 
@@ -196,7 +201,8 @@ void main() {
           isFalse,
         );
         expect(
-          currentParams['tavily_gateway__mcp_tavily_search']?['search_depth'],
+          currentParams['tavily_gateway__mcp_tavily_search']?['search_depth']
+              ?.stringValue,
           equals('advanced'),
         );
       },
@@ -205,8 +211,8 @@ void main() {
     testWidgets(
       'mcp_tool_params_panel_rejects_out_of_bounds_and_non_numeric (TC-STUDIO-UI-02)',
       (WidgetTester tester) async {
-        Map<String, Map<String, Object?>> currentParams =
-            <String, Map<String, Object?>>{};
+        Map<String, Map<String, McpToolParamValue>> currentParams =
+            <String, Map<String, McpToolParamValue>>{};
 
         await tester.pumpWidget(
           MaterialApp(
@@ -223,11 +229,14 @@ void main() {
                       ],
                       mcpToolParams: currentParams,
                       mcpGateways: mockGateways,
-                      onChanged: (Map<String, Map<String, Object?>> updated) {
-                        setState(() {
-                          currentParams = updated;
-                        });
-                      },
+                      onChanged:
+                          (
+                            Map<String, Map<String, McpToolParamValue>> updated,
+                          ) {
+                            setState(() {
+                              currentParams = updated;
+                            });
+                          },
                     ),
                   ),
                 );
@@ -262,7 +271,7 @@ void main() {
         await tester.enterText(numFieldFinder, '15');
         await tester.pumpAndSettle();
         expect(
-          currentParams['exa_gateway__web_search_exa']?['numResults'],
+          currentParams['exa_gateway__web_search_exa']?['numResults']?.intValue,
           equals(15),
         );
 
@@ -287,10 +296,12 @@ void main() {
           'exa_gateway__web_search_exa',
           'tavily_gateway__mcp_tavily_search',
         ],
-        mcpToolParams: <String, Map<String, Object?>>{
-          'exa_gateway__web_search_exa': <String, Object?>{'numResults': 5},
-          'tavily_gateway__mcp_tavily_search': <String, Object?>{
-            'search_depth': 'advanced',
+        mcpToolParams: <String, Map<String, McpToolParamValue>>{
+          'exa_gateway__web_search_exa': <String, McpToolParamValue>{
+            'numResults': McpToolParamValue(intValue: 5),
+          },
+          'tavily_gateway__mcp_tavily_search': <String, McpToolParamValue>{
+            'search_depth': McpToolParamValue(stringValue: 'advanced'),
           },
         },
       );
@@ -313,10 +324,10 @@ void main() {
       const deselectedAlias = 'exa_gateway__web_search_exa';
       final nextAllowed = List<String>.from(stepPayload.allowedMcpTools)
         ..remove(deselectedAlias);
-      final nextParams = <String, Map<String, Object?>>{
+      final nextParams = <String, Map<String, McpToolParamValue>>{
         for (final entry in stepPayload.mcpToolParams.entries)
           if (entry.key != deselectedAlias)
-            entry.key: Map<String, Object?>.from(entry.value),
+            entry.key: Map<String, McpToolParamValue>.from(entry.value),
       };
       stepPayload = stepPayload.copyWith(
         allowedMcpTools: nextAllowed,
@@ -329,7 +340,9 @@ void main() {
       );
       expect(
         stepPayload.mcpToolParams['tavily_gateway__mcp_tavily_search'],
-        equals(<String, Object?>{'search_depth': 'advanced'}),
+        equals(const <String, McpToolParamValue>{
+          'search_depth': McpToolParamValue(stringValue: 'advanced'),
+        }),
       );
 
       await tester.pumpWidget(
@@ -394,7 +407,7 @@ void main() {
                 allowedMcpTools: const <String>[
                   'broken_gateway__untranslated_tool',
                 ],
-                mcpToolParams: const <String, Map<String, Object?>>{},
+                mcpToolParams: const <String, Map<String, McpToolParamValue>>{},
                 mcpGateways: brokenGateways,
                 onChanged: (_) {},
               ),
@@ -449,8 +462,8 @@ void main() {
           ),
         ];
 
-        Map<String, Map<String, Object?>> currentParams =
-            <String, Map<String, Object?>>{};
+        Map<String, Map<String, McpToolParamValue>> currentParams =
+            <String, Map<String, McpToolParamValue>>{};
 
         await tester.pumpWidget(
           MaterialApp(
@@ -467,11 +480,15 @@ void main() {
                         allowedMcpTools: const <String>[alias],
                         mcpToolParams: currentParams,
                         mcpGateways: stringGateways,
-                        onChanged: (Map<String, Map<String, Object?>> updated) {
-                          setState(() {
-                            currentParams = updated;
-                          });
-                        },
+                        onChanged:
+                            (
+                              Map<String, Map<String, McpToolParamValue>>
+                              updated,
+                            ) {
+                              setState(() {
+                                currentParams = updated;
+                              });
+                            },
                       ),
                     ),
                   ),
@@ -514,12 +531,12 @@ void main() {
         // BVA: minLength (length 3 == 3) is accepted
         await tester.enterText(strFieldFinder, 'abc');
         await tester.pumpAndSettle();
-        expect(currentParams[alias]?['topic'], equals('abc'));
+        expect(currentParams[alias]?['topic']?.stringValue, equals('abc'));
 
         // BVA: maxLength (length 8 == 8) is accepted
         await tester.enterText(strFieldFinder, 'abcdefgh');
         await tester.pumpAndSettle();
-        expect(currentParams[alias]?['topic'], equals('abcdefgh'));
+        expect(currentParams[alias]?['topic']?.stringValue, equals('abcdefgh'));
 
         // Clearing string field removes override
         await tester.enterText(strFieldFinder, '');
@@ -621,8 +638,8 @@ void main() {
           ),
         ];
 
-        Map<String, Map<String, Object?>> currentParams =
-            <String, Map<String, Object?>>{};
+        Map<String, Map<String, McpToolParamValue>> currentParams =
+            <String, Map<String, McpToolParamValue>>{};
 
         await tester.pumpWidget(
           MaterialApp(
@@ -637,11 +654,14 @@ void main() {
                       allowedMcpTools: const <String>[alias],
                       mcpToolParams: currentParams,
                       mcpGateways: tavilyGateways,
-                      onChanged: (Map<String, Map<String, Object?>> updated) {
-                        setState(() {
-                          currentParams = updated;
-                        });
-                      },
+                      onChanged:
+                          (
+                            Map<String, Map<String, McpToolParamValue>> updated,
+                          ) {
+                            setState(() {
+                              currentParams = updated;
+                            });
+                          },
                     ),
                   ),
                 );
@@ -660,7 +680,10 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('advanced').last);
         await tester.pumpAndSettle();
-        expect(currentParams[alias]?['search_depth'], equals('advanced'));
+        expect(
+          currentParams[alias]?['search_depth']?.stringValue,
+          equals('advanced'),
+        );
 
         // 2. Nullable anyOf boolean renders as SwitchListTile
         final boolFinder = find.byKey(
@@ -669,7 +692,7 @@ void main() {
         expect(boolFinder, findsOneWidget);
         await tester.tap(boolFinder);
         await tester.pumpAndSettle();
-        expect(currentParams[alias]?['include_raw_content'], isTrue);
+        expect(currentParams[alias]?['include_raw_content']?.boolValue, isTrue);
 
         // 3. Nullable anyOf integer renders as numeric field and enforces BVA minimum (minimum: 1)
         final numFinder = find.byKey(
@@ -683,7 +706,7 @@ void main() {
 
         await tester.enterText(numFinder, '10');
         await tester.pumpAndSettle();
-        expect(currentParams[alias]?['max_results'], equals(10));
+        expect(currentParams[alias]?['max_results']?.intValue, equals(10));
 
         // 4. Nullable anyOf string array parses comma-separated domains into List<String>
         final arrFinder = find.byKey(
@@ -700,8 +723,84 @@ void main() {
         await tester.enterText(arrFinder, 'fi.wikipedia.org, en.wikipedia.org');
         await tester.pumpAndSettle();
         expect(
-          currentParams[alias]?['include_domains'],
+          currentParams[alias]?['include_domains']?.stringListValue,
           equals(<String>['fi.wikipedia.org', 'en.wikipedia.org']),
+        );
+      },
+    );
+
+    // Phase 5, Step 5.2 Test Contract: test_mcp_tool_params_panel_handles_missing_optional_schema_properties
+    testWidgets(
+      'test_mcp_tool_params_panel_handles_missing_optional_schema_properties (Negative)',
+      (WidgetTester tester) async {
+        const String alias = 'minimal_gateway__minimal_tool';
+        const List<McpGateway> minimalGateways = <McpGateway>[
+          McpGateway(
+            id: 'sys_0195f3a0000070008000444455556666',
+            name: 'Minimal MCP Gateway',
+            slug: 'minimal_gateway',
+            endpointUrl: 'https://mcp.minimal.example/mcp',
+            transportType: McpTransportType.streamableHttp,
+            authType: McpAuthType.none,
+            tools: <AllowedMcpTool>[
+              AllowedMcpTool(
+                toolId: 'minimal_tool',
+                capability: ToolCapability.search,
+                name: I18nText(
+                  translations: <String, String>{
+                    'en': 'Minimal Tool',
+                    'fi': 'Minimaalinen työkalu',
+                  },
+                ),
+                description: 'Tool with no optional descriptions.',
+                inputSchema: McpToolInputSchemaDto(
+                  properties: <String, McpToolSchemaPropertyDto>{
+                    'optional_filter': McpToolSchemaPropertyDto(
+                      type: JsonSchemaPropertyType.string,
+                    ),
+                    'optional_flag': McpToolSchemaPropertyDto(
+                      type: JsonSchemaPropertyType.boolean,
+                    ),
+                  },
+                  requiredFields: <String>[],
+                ),
+              ),
+            ],
+          ),
+        ];
+
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: McpToolParamsPanel(
+                  allowedMcpTools: const <String>[alias],
+                  mcpToolParams:
+                      const <String, Map<String, McpToolParamValue>>{},
+                  mcpGateways: minimalGateways,
+                  onChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Minimal Tool'), findsOneWidget);
+        expect(
+          find.byKey(
+            const ValueKey<String>('mcp_param_str_${alias}_optional_filter'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey<String>('mcp_param_bool_${alias}_optional_flag'),
+          ),
+          findsOneWidget,
         );
       },
     );

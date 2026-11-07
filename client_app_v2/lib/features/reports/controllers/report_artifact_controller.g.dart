@@ -70,7 +70,7 @@ final class ExecutionReportsProvider
   }
 }
 
-String _$executionReportsHash() => r'f6f172e341ae8eecdceed0d6d3db58a90767a251';
+String _$executionReportsHash() => r'0df1e32b73e8f4fd32a5c12f40f474942bfbfc71';
 
 /// Fetches the list of all report artifacts for a given execution.
 
@@ -158,7 +158,7 @@ final class ReportDetailProvider
   }
 }
 
-String _$reportDetailHash() => r'82d15eecae4c791a35bbf72f183d2a0568935102';
+String _$reportDetailHash() => r'cead4cabc3d23bfba3c2b95d32fc320322b2ffb7';
 
 /// Fetches the full detailed domain model for a report artifact.
 

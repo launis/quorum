@@ -415,11 +415,10 @@ class ModelRegistryView extends HookConsumerWidget {
     ModelConfig data,
   ) {
     final firstTier = data.tierDefinitions.values.firstOrNull;
+    // Phase 5, Step 5.2: Read typed ProviderExtraParamsDto.vertexLocation directly.
     final currentLocation =
-        (firstTier?.additionalParams['vertex_location'] as String?)
-                ?.isNotEmpty ==
-            true
-        ? firstTier!.additionalParams['vertex_location'] as String
+        (firstTier?.additionalParams.vertexLocation?.isNotEmpty == true)
+        ? firstTier!.additionalParams.vertexLocation!
         : 'europe-north1';
 
     final supportedLocationsAsync = ref.watch(supportedLocationsProvider);
@@ -484,12 +483,10 @@ class ModelRegistryView extends HookConsumerWidget {
         if (val != null) {
           final updatedTiers = <String, LlmModelConfig>{};
           for (final entry in data.tierDefinitions.entries) {
-            final newParams = Map<String, Object?>.from(
-              entry.value.additionalParams,
-            );
-            newParams['vertex_location'] = val;
             updatedTiers[entry.key] = entry.value.copyWith(
-              additionalParams: newParams,
+              additionalParams: entry.value.additionalParams.copyWith(
+                vertexLocation: val,
+              ),
             );
           }
           ref
@@ -551,10 +548,8 @@ class ModelRegistryView extends HookConsumerWidget {
           final isReasoning = _isReasoningModel(cfg);
           final hasRegions = effectiveProvider == 'vertex_ai';
           final activeLocation = hasRegions
-              ? ((cfg.additionalParams['vertex_location'] as String?)
-                            ?.isNotEmpty ==
-                        true
-                    ? cfg.additionalParams['vertex_location'] as String
+              ? ((cfg.additionalParams.vertexLocation?.isNotEmpty == true)
+                    ? cfg.additionalParams.vertexLocation!
                     : 'europe-north1')
               : null;
 

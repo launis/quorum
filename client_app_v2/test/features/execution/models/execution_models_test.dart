@@ -362,14 +362,16 @@ void main() {
       final dto = ExecutionCreateRequestDto.fromJson(json);
       expect(dto.workflowId, 'wor_0195f000000070008000000000000001');
       expect(dto.targetLocale, 'fi');
-      expect(dto.rawInputs['dynamic_inputs'], {'doc': 'test'});
+      expect(dto.rawInputs.dynamicInputs['doc']?.textValue, 'test');
       expect(dto.profileId, 'pro_0195f000000070008000000000000001');
     });
 
     test('throws when mandatory target_locale is missing', () {
       final json = {
         'workflow_id': 'wor_0195f000000070008000000000000001',
-        'raw_inputs': {'input_1': 'val'},
+        'raw_inputs': {
+          'dynamic_inputs': {'input_1': 'val'},
+        },
       };
 
       expect(
@@ -385,7 +387,7 @@ void main() {
       };
 
       final dto = ExecutionCreateRequestDto.fromJson(json);
-      expect(dto.rawInputs, isEmpty);
+      expect(dto.rawInputs.dynamicInputs, isEmpty);
     });
 
     test(

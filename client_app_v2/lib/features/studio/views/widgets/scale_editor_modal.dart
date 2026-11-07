@@ -186,7 +186,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
           .read(promptBlocksControllerProvider.notifier)
           .simulatePromptBlock(
             transientBlock,
-            const <String, Object?>{},
+            const <String, String>{},
             targetScaleScore: _editableScale.score,
             targetLocale: currentLocale,
           );

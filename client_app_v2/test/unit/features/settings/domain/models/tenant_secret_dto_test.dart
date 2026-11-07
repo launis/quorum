@@ -346,7 +346,9 @@ void main() {
 
         ExecutionAssignmentDraftDto buildRuntimeDraft(String docVal) =>
             ExecutionAssignmentDraftDto(
-              draftInputs: WorkflowInputs(dynamicInputs: {'k': docVal}),
+              draftInputs: WorkflowInputs(
+                dynamicInputs: {'k': WorkflowInputValue(textValue: docVal)},
+              ),
             );
 
         final draftA = buildRuntimeDraft('v');

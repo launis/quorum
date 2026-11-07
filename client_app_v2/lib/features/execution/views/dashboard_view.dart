@@ -1,3 +1,4 @@
+import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
@@ -7,7 +8,7 @@ import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
-import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
@@ -495,42 +496,18 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     ).showSnackBar(SnackBar(content: Text(l10n.processingStatus)));
 
     try {
-      final dio = ref.read(apiClientProvider);
+      // Phase 5, Step 5.2: Delegate execution cloning to typed ExecutionClient boundary.
+      final client = ref.read(executionClientProvider);
+      final oldExec = await client.getExecutionStatus(id);
 
-      // 1. Fetch old execution and validate against ExecutionRecord schema
-      final getResponse = await dio.get<Map<String, Object?>>(
-        '/execution/executions/$id',
-      );
-      final oldExecData = getResponse.data;
-      if (oldExecData == null) {
-        final error = AppException.network(
-          'Invalid response from server',
-        ).copyWith(extensions: const {'error_code': 'INVALID_RESPONSE'});
-        ref
-            .read(loggerServiceProvider)
-            .error(
-              'DashboardView',
-              'RERUN_NULL_PAYLOAD: Null response data when cloning execution $id',
-              error,
-              StackTrace.current,
-            );
-        throw error;
-      }
-      final oldExec = ExecutionRecord.fromJson(oldExecData);
-
-      // 2. Prepare strongly typed request DTO
       final request = ExecutionCreateRequestDto(
         workflowId: oldExec.workflowId,
         targetLocale: oldExec.targetLocale,
-        rawInputs: oldExec.rawInputs?.toJson() ?? const <String, Object?>{},
+        rawInputs: oldExec.rawInputs ?? const WorkflowInputs(),
         profileId: oldExec.outputProfileId,
       );
 
-      // 3. Post to create new execution
-      await dio.post<Map<String, Object?>>(
-        '/execution/executions/',
-        data: request.toJson(),
-      );
+      await client.startExecution(request: request);
 
       // 4. Success UI & Invalidate Cache
       ref.invalidate(executionListProvider);

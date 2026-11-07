@@ -9,6 +9,7 @@ import 'package:client_app/core/api/workflow_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/shared/widgets/omni_input_box.dart';
 
 import 'package:client_app/core/ui/error_view.dart';
@@ -38,7 +39,10 @@ class DynamicStartScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final schemaAsync = ref.watch(workflowUiSchemaProvider(workflowId));
-    final collectedInputs = useRef<Map<String, Object?>>({});
+    // Phase 5, Step 5.2: Store typed WorkflowInputValue entries instead of Map<String, Object?>.
+    final collectedInputs = useRef<Map<String, WorkflowInputValue>>(
+      <String, WorkflowInputValue>{},
+    );
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
     return AppErrorBoundary(
@@ -64,32 +68,18 @@ class DynamicStartScreen extends HookConsumerWidget {
   void _onStart(
     BuildContext context,
     WidgetRef ref,
-    Map<String, Object?> collectedInputs,
+    Map<String, WorkflowInputValue> collectedInputs,
     GlobalKey<FormState> formKey,
   ) {
     if (formKey.currentState?.validate() ?? false) {
-      // 1. Process files into base64 for the backend deterministic input hook.
-      final Map<String, Object?> processedInputs = {};
-
-      collectedInputs.forEach((key, value) {
-        if (value is PlatformFile && value.bytes != null) {
-          processedInputs[key] = <String, Object?>{
-            'filename': value.name,
-            'content_base64': base64Encode(value.bytes!),
-          };
-        } else {
-          processedInputs[key] = value;
-        }
-      });
-
       final targetLocale = Localizations.localeOf(context).languageCode;
+      final inputsDto = WorkflowInputs(
+        language: targetLocale,
+        dynamicInputs: Map<String, WorkflowInputValue>.from(collectedInputs),
+      );
       ref
           .read(executionControllerProvider.notifier)
-          .startExecution(
-            workflowId,
-            processedInputs,
-            targetLocale: targetLocale,
-          );
+          .startExecution(workflowId, inputsDto, targetLocale: targetLocale);
     }
   }
 
@@ -97,7 +87,7 @@ class DynamicStartScreen extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     List<ExpectedInput> expectedInputs,
-    Map<String, Object?> collectedInputs,
+    Map<String, WorkflowInputValue> collectedInputs,
     GlobalKey<FormState> formKey,
   ) {
     final locale = Localizations.localeOf(context).languageCode;
@@ -141,7 +131,7 @@ class DynamicStartScreen extends HookConsumerWidget {
                         : HookBuilder(
                             builder: (ctx) {
                               final localValue = useState<Object?>(
-                                collectedInputs[semanticRole],
+                                collectedInputs[semanticRole]?.textValue,
                               );
 
                               return OmniInputBox(
@@ -153,7 +143,21 @@ class DynamicStartScreen extends HookConsumerWidget {
                                     : null,
                                 onChanged: (Object? val) {
                                   localValue.value = val;
-                                  collectedInputs[semanticRole] = val;
+                                  if (val is PlatformFile &&
+                                      val.bytes != null) {
+                                    collectedInputs[semanticRole] =
+                                        WorkflowInputValue.file(
+                                          filename: val.name,
+                                          contentBase64: base64Encode(
+                                            val.bytes!,
+                                          ),
+                                        );
+                                  } else if (val is String) {
+                                    collectedInputs[semanticRole] =
+                                        WorkflowInputValue.text(val);
+                                  } else if (val == null) {
+                                    collectedInputs.remove(semanticRole);
+                                  }
                                 },
                               );
                             },
@@ -186,10 +190,12 @@ class DynamicStartScreen extends HookConsumerWidget {
     String semanticRole,
     String title,
     List<QuestionnaireItem> definitions,
-    Map<String, Object?> collectedInputs,
+    Map<String, WorkflowInputValue> collectedInputs,
   ) {
-    if (collectedInputs[semanticRole] == null) {
-      collectedInputs[semanticRole] = <String, Object?>{};
+    if (collectedInputs[semanticRole]?.questionnaireValue == null) {
+      collectedInputs[semanticRole] = const WorkflowInputValue(
+        questionnaireValue: <String, String>{},
+      );
     }
 
     final locale = Localizations.localeOf(context).languageCode;
@@ -206,7 +212,6 @@ class DynamicStartScreen extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              // Using questionnaireTitle ARB key from execution UI
               AppLocalizations.of(context)!.questionnaireTitle(title),
               style: Theme.of(
                 context,
@@ -223,9 +228,8 @@ class DynamicStartScreen extends HookConsumerWidget {
                   builder: (ctx) {
                     final controller = useTextEditingController(
                       text:
-                          (collectedInputs[semanticRole]
-                                  as Map<String, Object?>?)?[qId]
-                              ?.toString() ??
+                          collectedInputs[semanticRole]
+                              ?.questionnaireValue?[qId] ??
                           '',
                     );
 
@@ -237,9 +241,14 @@ class DynamicStartScreen extends HookConsumerWidget {
                       ),
                       maxLines: 3,
                       onChanged: (val) {
-                        (collectedInputs[semanticRole]
-                                as Map<String, Object?>)[qId] =
-                            val;
+                        final existingAnswers =
+                            collectedInputs[semanticRole]?.questionnaireValue ??
+                            const <String, String>{};
+                        collectedInputs[semanticRole] =
+                            WorkflowInputValue.questionnaire(<String, String>{
+                              ...existingAnswers,
+                              qId: val,
+                            });
                       },
                     );
                   },

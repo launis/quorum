@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'distilled_evaluation.freezed.dart';
 part 'distilled_evaluation.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed scalar/list extension value replacing Map<String, Object?>.
+/// Phase 5, Step 5.1: Strongly typed scalar/list extension value replacing `Map<String, Object?>`.
 class DistilledExtensionValueConverter
     implements JsonConverter<DistilledExtensionValue, Object?> {
   const DistilledExtensionValueConverter();

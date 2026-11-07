@@ -552,16 +552,18 @@ class StepBuilderView extends HookConsumerWidget {
                                   } else {
                                     allowedMcpTools.remove(namespacedAlias);
                                   }
+                                  // Phase 5, Step 5.2: Replace Map<String, Object?> with McpToolParamValue.
                                   final updatedToolParams =
-                                      <String, Map<String, Object?>>{
+                                      <String, Map<String, McpToolParamValue>>{
                                         for (final entry
                                             in payload.mcpToolParams.entries)
                                           if (selected ||
                                               entry.key != namespacedAlias)
                                             entry.key:
-                                                Map<String, Object?>.from(
-                                                  entry.value,
-                                                ),
+                                                Map<
+                                                  String,
+                                                  McpToolParamValue
+                                                >.from(entry.value),
                                       };
                                   ref
                                       .read(stepFormProvider(stepId).notifier)

@@ -1,7 +1,10 @@
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/features/studio/controllers/blueprint_editor_controller.dart';
+import 'package:client_app/features/studio/models/blueprint_config.dart';
 import 'package:client_app/features/studio/views/blueprint_editor_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/theme/app_theme.dart';
@@ -12,6 +15,22 @@ import 'package:mocktail/mocktail.dart';
 
 class MockLoggerService extends Mock implements LoggerService {}
 
+class _ThrowingBlueprintEditorController extends BlueprintEditorController {
+  @override
+  void initialize(BlueprintConfig? initialConfig) {
+    final err = AppException.validation('Invalid preset_view configuration');
+    ref
+        .read(loggerServiceProvider)
+        .error(
+          'BlueprintEditorController',
+          'BLUEPRINT_INIT_FAILED: Failed to initialize blueprint configuration.',
+          err,
+          StackTrace.current,
+        );
+    throw err;
+  }
+}
+
 void main() {
   late MockLoggerService mockLogger;
 
@@ -21,12 +40,19 @@ void main() {
   });
 
   Widget createSubject({
-    required Map<String, Object?> initialBlueprint,
-    required ValueChanged<Map<String, Object?>> onSave,
+    required BlueprintConfig initialBlueprint,
+    required ValueChanged<BlueprintConfig> onSave,
     Locale locale = const Locale('en'),
+    bool throwOnInit = false,
   }) {
     return ProviderScope(
-      overrides: [loggerServiceProvider.overrideWithValue(mockLogger)],
+      overrides: [
+        loggerServiceProvider.overrideWithValue(mockLogger),
+        if (throwOnInit)
+          blueprintEditorControllerProvider.overrideWith(
+            _ThrowingBlueprintEditorController.new,
+          ),
+      ],
       child: MaterialApp(
         theme: AppTheme.light,
         locale: locale,
@@ -57,15 +83,15 @@ void main() {
 
   group('BlueprintEditorView Widget & Hardening Tests', () {
     testWidgets(
-      'Positive: hydrates initialBlueprint, renders localized PresetView options, mutates state on dropdown selection, and invokes onSave with serialized JSON on save',
+      'Positive: hydrates initialBlueprint, renders localized PresetView options, mutates state on dropdown selection, and invokes onSave with typed BlueprintConfig on save',
       (WidgetTester tester) async {
-        Map<String, Object?>? savedPayload;
+        BlueprintConfig? savedPayload;
 
         await tester.pumpWidget(
           createSubject(
-            initialBlueprint: const <String, Object?>{
-              'preset_view': '2d_compare',
-            },
+            initialBlueprint: const BlueprintConfig(
+              presetView: PresetView.compare2d,
+            ),
             onSave: (payload) => savedPayload = payload,
           ),
         );
@@ -98,26 +124,23 @@ void main() {
         await tester.tap(find.byIcon(Icons.check));
         await tester.pumpAndSettle();
 
-        expect(
-          savedPayload,
-          equals(<String, Object?>{'preset_view': '3d_matrix'}),
-        );
+        expect(savedPayload?.presetView, equals(PresetView.matrix3d));
         expect(find.byType(BlueprintEditorView), findsNothing);
       },
     );
 
     testWidgets(
-      'Negative 1 (ISTQB BVA / Unrecognized Schema Key): unrecognized key in initialBlueprint triggers Fail-Fast logging, renders ErrorView diagnostic node, and hides Save action',
+      'Negative 1 (ISTQB BVA / Initialization Error): controller initialization failure triggers Fail-Fast logging, renders ErrorView diagnostic node, and hides Save action',
       (WidgetTester tester) async {
-        Map<String, Object?>? savedPayload;
+        BlueprintConfig? savedPayload;
 
         await tester.pumpWidget(
           createSubject(
-            initialBlueprint: const <String, Object?>{
-              'preset_view': '1d_metrics',
-              'illegal_extra_field': 'forbidden',
-            },
+            initialBlueprint: const BlueprintConfig(
+              presetView: PresetView.metrics1d,
+            ),
             onSave: (payload) => savedPayload = payload,
+            throwOnInit: true,
           ),
         );
         await tester.pumpAndSettle();
@@ -141,7 +164,7 @@ void main() {
     );
 
     testWidgets(
-      'Negative 2 (ISTQB BVA / Invalid Enum Value & Narrow Viewport Boundary): invalid preset_view value renders ErrorView in Finnish locale and narrow viewport (320px) renders without overflow',
+      'Negative 2 (ISTQB BVA / Narrow Viewport Boundary): initialization error renders ErrorView in Finnish locale and narrow viewport (320px) renders without overflow',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(320, 600);
         tester.view.devicePixelRatio = 1.0;
@@ -152,11 +175,12 @@ void main() {
 
         await tester.pumpWidget(
           createSubject(
-            initialBlueprint: const <String, Object?>{
-              'preset_view': 'invalid_unknown_preset',
-            },
+            initialBlueprint: const BlueprintConfig(
+              presetView: PresetView.metrics1d,
+            ),
             onSave: (_) {},
             locale: const Locale('fi'),
+            throwOnInit: true,
           ),
         );
         await tester.pumpAndSettle();

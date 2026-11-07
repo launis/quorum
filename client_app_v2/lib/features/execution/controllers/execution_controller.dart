@@ -6,6 +6,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
@@ -47,9 +48,14 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
     throw error;
   }
 
-  return data
-      .map((e) => ExecutionRecord.fromJson(e as Map<String, Object?>))
-      .toList();
+  return data.map((e) {
+    if (e is! Map) {
+      throw AppException.validation(
+        'Expected JSON object for ExecutionRecord in executionList.',
+      );
+    }
+    return ExecutionRecord.fromJson(Map.from(e));
+  }).toList();
 }
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
@@ -60,7 +66,8 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
 /// - Uses strictly typed `ExecutionRecord` models.
 @riverpod
 class ExecutionController extends _$ExecutionController {
-  StreamSubscription<Map<String, Object?>>? _sseSubscription;
+  // Phase 5, Step 5.2: Remove Map<String, Object?> type annotations and parameters.
+  StreamSubscription<Object?>? _sseSubscription;
   int _retryCount = 0;
 
   @override
@@ -75,7 +82,7 @@ class ExecutionController extends _$ExecutionController {
   /// Starts an execution, sets the state to loading, and connects to SSE.
   Future<void> startExecution(
     String workflowId,
-    Map<String, Object?> inputs, {
+    WorkflowInputs inputs, {
     String targetLocale = 'fi',
     String? targetProfileId,
   }) async {

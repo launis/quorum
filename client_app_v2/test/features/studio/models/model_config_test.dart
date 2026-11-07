@@ -144,20 +144,17 @@ void main() {
         final config = ModelConfig.fromJson(payload);
         final tier = config.tierDefinitions['reasoning']!;
         expect(tier.reasoningEffort, 'medium');
-        expect(tier.additionalParams['reasoning_effort'], 'medium');
+        expect(tier.additionalParams.reasoningEffort, 'medium');
 
         // Test withReasoningEffort modification
         final updated = tier.withReasoningEffort('high');
         expect(updated.reasoningEffort, 'high');
-        expect(updated.additionalParams['reasoning_effort'], 'high');
+        expect(updated.additionalParams.reasoningEffort, 'high');
 
         // Test withReasoningEffort removal
         final cleared = updated.withReasoningEffort(null);
         expect(cleared.reasoningEffort, isNull);
-        expect(
-          cleared.additionalParams.containsKey('reasoning_effort'),
-          isFalse,
-        );
+        expect(cleared.additionalParams.reasoningEffort, isNull);
 
         // Test serialization does NOT include root-level reasoning_effort
         final json = updated.toJson();

@@ -10,6 +10,7 @@ import 'package:client_app/features/execution/controllers/execution_controller.d
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -228,7 +229,7 @@ void main() {
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution(_validWfId, {});
+      await controller.startExecution(_validWfId, const WorkflowInputs());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
@@ -256,7 +257,7 @@ void main() {
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution(_validWfId, {});
+      await controller.startExecution(_validWfId, const WorkflowInputs());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
@@ -287,7 +288,7 @@ void main() {
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution(_validWfId, {});
+      await controller.startExecution(_validWfId, const WorkflowInputs());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
@@ -316,7 +317,7 @@ void main() {
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution(_validWfId, {});
+      await controller.startExecution(_validWfId, const WorkflowInputs());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
@@ -347,7 +348,7 @@ void main() {
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution(_validWfId, {});
+      await controller.startExecution(_validWfId, const WorkflowInputs());
 
       final state = container.read(executionControllerProvider);
       expect(state.hasError, isTrue);
@@ -401,7 +402,7 @@ void main() {
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution(_validWfId, {});
+      await controller.startExecution(_validWfId, const WorkflowInputs());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
@@ -431,7 +432,7 @@ void main() {
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution(_validWfId, {});
+      await controller.startExecution(_validWfId, const WorkflowInputs());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);

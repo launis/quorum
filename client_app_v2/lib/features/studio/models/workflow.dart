@@ -10,7 +10,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'workflow.freezed.dart';
 part 'workflow.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed MCP tool parameter override value replacing Map<String, Object?>.
+/// Phase 5, Step 5.1: Strongly typed MCP tool parameter override value replacing `Map<String, Object?>`.
 @freezed
 abstract class McpToolParamValue with _$McpToolParamValue {
   const McpToolParamValue._();

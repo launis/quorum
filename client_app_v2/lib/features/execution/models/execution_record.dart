@@ -14,7 +14,7 @@ part 'execution_record.g.dart';
 String _statusFromJson(String status) => status.toUpperCase();
 
 /// Typed execution-level context variables matching backend `ContextVariablesDTO`.
-/// Phase 5, Step 5.1: Replace Map<String, Object?> contextVariables with closed Freezed DTO.
+/// Phase 5, Step 5.1: Replace `Map<String, Object?>` contextVariables with closed Freezed DTO.
 @freezed
 abstract class ContextVariablesDto with _$ContextVariablesDto {
   const ContextVariablesDto._();

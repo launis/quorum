@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
@@ -17,17 +18,20 @@ class BlueprintEditorController extends _$BlueprintEditorController {
     return const BlueprintConfig(presetView: PresetView.metrics1d);
   }
 
-  /// Hydrates [BlueprintConfig] from [initialOutputMapping] or resets to default when empty.
-  void initialize(Map<String, Object?>? initialOutputMapping) {
-    if (initialOutputMapping != null && initialOutputMapping.isNotEmpty) {
+  /// Phase 5, Step 5.2: Hydrates [BlueprintConfig] from typed [initialConfig] or resets to default when null.
+  void initialize(BlueprintConfig? initialConfig) {
+    if (initialConfig != null) {
       try {
-        state = BlueprintConfig.fromJson(Map.from(initialOutputMapping));
+        if (!PresetView.values.contains(initialConfig.presetView)) {
+          throw AppException.validation('Invalid presetView.');
+        }
+        state = initialConfig.copyWith();
       } catch (e, st) {
         ref
             .read(loggerServiceProvider)
             .error(
               'BlueprintEditorController',
-              'BLUEPRINT_INIT_FAILED: Failed to parse initial blueprint configuration.',
+              'BLUEPRINT_INIT_FAILED: Failed to initialize blueprint configuration.',
               e,
               st,
             );

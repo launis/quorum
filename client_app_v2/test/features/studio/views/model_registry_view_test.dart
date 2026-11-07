@@ -195,10 +195,9 @@ void main() {
                     'deep': LlmModelConfig(
                       modelName: 'vertex_ai/gemini-2.5-pro',
                       provider: 'vertex_ai',
-                      additionalParams: {
-                        'platform': 'vertex_ai',
-                        'vertex_location': r'${VERTEX_LOCATION}',
-                      },
+                      additionalParams: ProviderExtraParamsDto(
+                        vertexLocation: r'${VERTEX_LOCATION}',
+                      ),
                       isActive: true,
                     ),
                     'reasoning': LlmModelConfig(
@@ -274,7 +273,7 @@ void main() {
                       modelName: 'gemini/gemini-3.8-flash',
                       provider: 'ai_studio',
                       thinkingBudgetTokens: 8192,
-                      additionalParams: {'platform': 'ai_studio'},
+                      additionalParams: ProviderExtraParamsDto(),
                       isActive: true,
                     ),
                   },

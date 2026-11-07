@@ -65,7 +65,9 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'rpm_limit') int? rpmLimit,
     @JsonKey(name: 'supports_grounding') @Default(false) bool supportsGrounding,
     @JsonKey(name: 'is_active') @Default(false) bool isActive,
-    @JsonKey(name: 'allowed_tools') @Default(<String>[]) List<String> allowedTools,
+    @JsonKey(name: 'allowed_tools')
+    @Default(<String>[])
+    List<String> allowedTools,
     @JsonKey(name: 'api_key') String? apiKey,
     @JsonKey(name: 'caching_strategy') String? cachingStrategy,
     @JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,

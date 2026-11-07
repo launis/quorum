@@ -4,7 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'step_simulation.freezed.dart';
 part 'step_simulation.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed prompt context metadata value replacing Map<String, Object?>.
+/// Phase 5, Step 5.1: Strongly typed prompt context metadata value replacing `Map<String, Object?>`.
 class PromptContextMetaValueConverter
     implements JsonConverter<PromptContextMetaValue, Object?> {
   const PromptContextMetaValueConverter();
