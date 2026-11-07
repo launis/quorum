@@ -100,9 +100,7 @@ BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
     {
         "backend_v2/database/postgres/storage_driver.py",
         "backend_v2/database/postgres/entity_adapter/__init__.py",
-        "backend_v2/database/postgres/graph_adapter.py",
-        "backend_v2/database/driver.py",
-        "backend_v2/llm/provider/__init__.py",
+        "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
         "backend_v2/llm/handler.py",
         "backend_v2/logging_config.py",
         "backend_v2/core/telemetry.py",
@@ -118,7 +116,7 @@ BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
 
 
 def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> bool:
-    """Check whether a filepath corresponds to one of the 15 locked boundary exemption files.
+    """Check whether a filepath corresponds to one of the locked boundary exemption files.
 
     Args:
         filepath: File path to check against the boundary exemption set.
@@ -131,16 +129,11 @@ def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> b
     p = Path(filepath)
     try:
         rel_posix = p.resolve().relative_to(root.resolve()).as_posix()
-        # Phase 1, Step 1: Extend boundary exemption to entity_adapter sub-modules
-        return rel_posix in BOUNDARY_EXEMPTION_FILES or rel_posix.startswith(
-            ("backend_v2/llm/provider/", "backend_v2/database/postgres/entity_adapter/")
-        )
+        return rel_posix in BOUNDARY_EXEMPTION_FILES or rel_posix.startswith("backend_v2/llm/provider/")
     except ValueError, RuntimeError:
         posix_str = p.as_posix()
-        return (
-            "backend_v2/llm/provider/" in posix_str
-            or "backend_v2/database/postgres/entity_adapter/" in posix_str
-            or any(posix_str == target or posix_str.endswith("/" + target) for target in BOUNDARY_EXEMPTION_FILES)
+        return "backend_v2/llm/provider/" in posix_str or any(
+            posix_str == target or posix_str.endswith("/" + target) for target in BOUNDARY_EXEMPTION_FILES
         )
 
 
@@ -151,7 +144,6 @@ OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset(
         "backend_v2/models/domain/validation.py",
         "backend_v2/models/domain/base.py",
         "backend_v2/models/llm.py",
-        "backend_v2/scripts/generate_openapi.py",
     }
 )
 
@@ -165,24 +157,17 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
         "backend_v2/services/llm_task_executor.py",
         # Orchestrator and DAG
         "backend_v2/services/orchestrator/context_router.py",
-        "backend_v2/services/orchestrator/dag_executor/execution_committer.py",
-        "backend_v2/services/orchestrator/dag_executor/step_execution_stage.py",
         "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
-        "backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py",
         "backend_v2/services/orchestrator/matrix_reducer.py",
         "backend_v2/services/orchestrator/result_projector.py",
         "backend_v2/services/orchestrator/strategies/logic.py",
         "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
         # Residual Domain and DTO Models
-        "backend_v2/models/domain/synthesis.py",
         "backend_v2/models/dtos/atom_evaluation.py",
         "backend_v2/models/dtos/hook_delta.py",
         "backend_v2/models/dtos/lightweight_matrix.py",
-        "backend_v2/models/dtos/node_execution.py",
-        "backend_v2/models/dtos/prompt.py",
         "backend_v2/models/dtos/prompt_context.py",
         "backend_v2/models/dtos/schema_manifest.py",
-        "backend_v2/models/dtos/state.py",
         "backend_v2/models/dtos/system.py",
         "backend_v2/models/dtos/trace.py",
         "backend_v2/models/state.py",
@@ -196,24 +181,15 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
         "backend_v2/hooks/scoring/matrix_hook.py",
         "backend_v2/hooks/scoring/normalization_hook.py",
         "backend_v2/services/execution/ingress_service.py",
-        "backend_v2/services/execution/override_service.py",
-        "backend_v2/services/execution/resumption_service.py",
-        "backend_v2/services/orchestrator/dag_executor/step_execution_stage.py",
-        "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
-        "backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py",
         "backend_v2/services/orchestrator/strategies/logic.py",
-        "backend_v2/services/orchestrator/strategies/llm_strategy/blueprint_and_metadata_stage.py",
-        "backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py",
-        "backend_v2/services/orchestrator/strategies/llm_strategy/prompt_and_schema_stage.py",
         "backend_v2/services/orchestrator/synthesis_distiller.py",
-        "backend_v2/services/studio/workflow_service.py",
         "backend_v2/workers/execution_worker.py",
         "backend_v2/workers/synthesis_reducers.py",
         "backend_v2/workers/synthesis_worker.py",
     }
 )
 
-# Phase 1, Step 1: Self-verifying residual sets for QGR020 Check 20B and QGR033 Checks 33B/33C
+# Self-verifying residual sets for QGR020 Check 20B and QGR033 Checks 33B/33C
 RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
     {
         "backend_v2/core/hook_registry.py",
@@ -232,7 +208,6 @@ RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
         "backend_v2/models/dtos/engine.py",
         "backend_v2/models/dtos/hook_state.py",
         "backend_v2/models/dtos/quote_evidence.py",
-        "backend_v2/models/dtos/report_data.py",
         "backend_v2/models/dtos/schema_manifest.py",
         "backend_v2/models/dtos/theory_manifest.py",
         "backend_v2/models/dtos/workflow_schema.py",
@@ -240,20 +215,16 @@ RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
         "backend_v2/models/llm.py",
         "backend_v2/models/state.py",
         "backend_v2/models/view/sdui.py",
-        "backend_v2/services/chat_parser.py",
-        "backend_v2/services/execution/ingress_service.py",
         "backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py",
-        "scripts/ablation_live_executor.py",
         "scripts/diff_executions.py",
         "scripts/reconcile_storage.py",
     }
 )
 
-# Phase 1, Step 1: Residual exemption sets for QGR030 local shadow state and QGR020 model field defaults
+# Residual exemption sets for QGR030 local shadow state and QGR020 model field defaults
 RESIDUAL_LOCAL_SHADOW_STATE_FILES: frozenset[str] = frozenset(
     {
         "backend_v2/services/auth/organization_service.py",
-        "backend_v2/services/auth/secret_service.py",
         "backend_v2/services/cache/typed_cache.py",
         "backend_v2/services/execution/assignment_service.py",
     }
@@ -297,9 +268,7 @@ RESIDUAL_MISSING_DOCSTRING_FILES: frozenset[str] = frozenset(
 
 RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES: frozenset[str] = frozenset(
     {
-        "backend_v2/exceptions.py",
         "backend_v2/logging_config.py",
-        "backend_v2/services/auth/repositories.py",
     }
 )
 
@@ -1265,10 +1234,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             and isinstance(node.value, ast.Name)
             and node.value.id == "StorageBackend"
             and node.attr in ("LOCAL", "FIRESTORE")
-            and not (
-                self._normalized_path == "backend_v2/models/enums.py"
-                or self._normalized_path.endswith("/backend_v2/models/enums.py")
-            )
         ):
             self._add_violation(
                 node,

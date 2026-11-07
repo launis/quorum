@@ -74,24 +74,8 @@ FROZEN_APPROVED_RUFF_IGNORES: frozenset[str] = frozenset(
 
 FROZEN_APPROVED_PER_FILE_IGNORE_PATHS: frozenset[str] = frozenset(
     {
-        "backend_v2/services/orchestrator/anchor_validation_service.py",
-        "backend_v2/services/orchestrator/prompt_compiler.py",
-        "backend_v2/services/orchestrator/schema_factory.py",
-        "backend_v2/services/pii_analyzer.py",
-        "backend_v2/tests/unit/services/orchestrator/test_schema_healing_prompt.py",
-        "backend_v2/tests/unit/test_seed_architectural_guardrails.py",
         "scripts/backend_audit_loop.py",
         "scripts/flutter_audit_loop.py",
-        "tools/check_trace_size.py",
-        "backend_v2/services/orchestrator/extractive_sensor_service.py",
-        "backend_v2/services/orchestrator/localization_compiler.py",
-        "backend_v2/services/orchestrator/prompt_compiler_adapter.py",
-        "backend_v2/services/orchestrator/strategies/llm.py",
-        "backend_v2/services/source_verification_service.py",
-        "backend_v2/tests/unit/hooks/test_scoring.py",
-        "backend_v2/tests/unit/services/orchestrator/strategies/test_fail_fast_inputs_resolution.py",
-        "backend_v2/tests/unit/services/test_blueprint.py",
-        "backend_v2/utils/alias_engine.py",
     }
 )
 

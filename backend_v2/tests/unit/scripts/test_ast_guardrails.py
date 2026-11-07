@@ -1277,11 +1277,14 @@ def test_qgr015_typeguard_import_and_usage_fatal() -> None:
 
 
 def test_purged_boundary_exemption_files() -> None:
-    """Verify non-driver files are purged and BOUNDARY_EXEMPTION_FILES contains the 15 SSOT paths."""
+    """Verify non-driver files are purged and BOUNDARY_EXEMPTION_FILES contains the 13 SSOT paths."""
     purged = [
         "backend_v2/database/tinydb_driver.py",
         "backend_v2/database/firestore_driver.py",
         "backend_v2/database/wrapper.py",
+        "backend_v2/database/driver.py",
+        "backend_v2/database/postgres/graph_adapter.py",
+        "backend_v2/llm/provider/__init__.py",
         "backend_v2/models/dtos/telemetry.py",
         "backend_v2/api/routers/system/telemetry.py",
         "backend_v2/services/sdui/adapters/base_adapter.py",
@@ -1297,9 +1300,7 @@ def test_purged_boundary_exemption_files() -> None:
         {
             "backend_v2/database/postgres/storage_driver.py",
             "backend_v2/database/postgres/entity_adapter/__init__.py",
-            "backend_v2/database/postgres/graph_adapter.py",
-            "backend_v2/database/driver.py",
-            "backend_v2/llm/provider/__init__.py",
+            "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
             "backend_v2/llm/handler.py",
             "backend_v2/logging_config.py",
             "backend_v2/core/telemetry.py",
@@ -1801,7 +1802,12 @@ def test_qgr018_typeadapter_mapping_laundering_fatal() -> None:
 def test_boundary_exemption_files_preserved() -> None:
     """Verify QGR001 reflection calls inside boundary exemption files still emit FATAL severity."""
     code = "val = getattr(obj, 'k', None)\n"
-    for exempt_file in ["storage_driver.py", "entity_adapter/__init__.py", "graph_adapter.py", "logging_config.py"]:
+    for exempt_file in [
+        "storage_driver.py",
+        "entity_adapter/__init__.py",
+        "entity_adapter/seed_and_collection_stage.py",
+        "logging_config.py",
+    ]:
         violations = _scan_snippet(code, filepath=f"backend_v2/database/postgres/{exempt_file}")
         assert all(v.severity == GuardrailSeverity.FATAL for v in violations)
 
@@ -2105,8 +2111,8 @@ async def sync_progress():
 
 
 def test_boundary_exemption_files_contains_only_relative_paths() -> None:
-    """Verify that all 15 BOUNDARY_EXEMPTION_FILES members are workspace-relative POSIX paths matching physical files."""
-    assert len(BOUNDARY_EXEMPTION_FILES) == 15
+    """Verify that all 13 BOUNDARY_EXEMPTION_FILES members are workspace-relative POSIX paths matching physical files."""
+    assert len(BOUNDARY_EXEMPTION_FILES) == 13
     for file_path_str in BOUNDARY_EXEMPTION_FILES:
         path = Path(file_path_str)
         assert not path.is_absolute(), f"Exemption path must be relative: {file_path_str}"
@@ -2342,15 +2348,20 @@ async def compile_artifact(self, execution_id: str, profile_id: str, step_id: st
 
 
 def test_qgr028_residual_future_phase_exemption() -> None:
-    """QGR028: Files in RESIDUAL_FUTURE_PHASE_QGR028_FILES emit zero violations."""
+    """QGR028: Files in RESIDUAL_FUTURE_PHASE_QGR028_FILES emit zero violations while pruned files trigger QGR028."""
     code = """
 def legacy_override(record):
     new_states = dict(record.step_states)
     return new_states
 """
-    violations = _scan_snippet(code, filepath="backend_v2/services/execution/override_service.py")
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution/ingress_service.py")
     qgr028 = [v for v in violations if v.rule_code == "QGR028"]
     assert len(qgr028) == 0
+
+    pruned_violations = _scan_snippet(code, filepath="backend_v2/services/execution/override_service.py")
+    pruned_qgr028 = [v for v in pruned_violations if v.rule_code == "QGR028"]
+    assert len(pruned_qgr028) == 1
+    assert pruned_qgr028[0].severity == GuardrailSeverity.FATAL
 
 
 def test_qgr028_expanded_backend_domain_scope_and_database_exemption() -> None:
@@ -2558,12 +2569,23 @@ b1 = StorageBackend.POSTGRES
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     assert [v for v in violations if v.rule_code == "QGR030"] == []
 
-    enum_code = """
+    enum_def_code = """
+from enum import StrEnum
+
+class StorageBackend(StrEnum):
+    FIRESTORE = "FIRESTORE"
+    LOCAL = "LOCAL"
+    POSTGRES = "POSTGRES"
+"""
+    enum_def_violations = _scan_snippet(enum_def_code, filepath="backend_v2/models/enums.py")
+    assert [v for v in enum_def_violations if v.rule_code == "QGR030"] == []
+
+    enum_attr_code = """
 from backend_v2.models.enums import StorageBackend
 legacy = (StorageBackend.LOCAL, StorageBackend.FIRESTORE)
 """
-    enum_violations = _scan_snippet(enum_code, filepath="backend_v2/models/enums.py")
-    assert [v for v in enum_violations if v.rule_code == "QGR030"] == []
+    enum_attr_violations = _scan_snippet(enum_attr_code, filepath="backend_v2/models/enums.py")
+    assert len([v for v in enum_attr_violations if v.rule_code == "QGR030"]) == 2
 
 
 def test_qgr030_valid_hexadecimal_ids_and_snake_case_identifiers_allowed() -> None:

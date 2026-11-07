@@ -474,7 +474,18 @@ def test_check_config_suppression_ratchet_detects_unapproved_dart_analyzer_error
 
 
 def test_check_config_suppression_ratchet_passes_production_config() -> None:
-    """Verifies that production pyproject.toml and analysis_options.yaml pass with 0 violations."""
+    """Verifies that production pyproject.toml and analysis_options.yaml pass with 0 violations and exact pruned set."""
+    from scripts.audit_dict_eradication import FROZEN_APPROVED_PER_FILE_IGNORE_PATHS
+
+    assert FROZEN_APPROVED_PER_FILE_IGNORE_PATHS == frozenset(
+        {
+            "scripts/backend_audit_loop.py",
+            "scripts/flutter_audit_loop.py",
+        }
+    )
+    for rel_path in FROZEN_APPROVED_PER_FILE_IGNORE_PATHS:
+        assert Path(rel_path).is_file(), f"Missing per-file-ignore target: {rel_path}"
+
     violations = check_config_suppression_ratchet()
     assert len(violations) == 0, f"Unexpected production config violations: {violations}"
 
