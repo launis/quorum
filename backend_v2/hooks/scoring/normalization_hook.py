@@ -75,23 +75,16 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
-        step_obj = await repository.get_step_by_id(blueprint_id)
-        if not step_obj:
+        # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
+        step_model: Step | None = await repository.get_step_by_id(blueprint_id)
+        if not step_model:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in registry."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
 
-        try:
-            step_model = Step.model_validate(step_obj)
-            prompt_block_ids = step_model.criteria_block_ids
-        except ValidationError as e:
-            msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' validation failed."
-            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
+        prompt_block_ids = step_model.criteria_block_ids
 
         updates_made = False
         normalized_matrix_outputs: dict[str, LightweightMatrixOutput] = {}
@@ -278,8 +271,9 @@ async def recalculate(
     if profile_id is None:
         return payload
 
-    profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
-    if not profile_dict:
+    # Phase 3, Step 3.2: Consume typed OutputProfile and Workflow domain models directly
+    profile_model: OutputProfile | None = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
+    if not profile_model:
         msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
@@ -288,9 +282,8 @@ async def recalculate(
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    profile_model = OutputProfile.model_validate(profile_dict, strict=False)
-    workflow_dict = await deps.workflow_repo.get_workflow_by_id(profile_model.workflow_id)
-    if not workflow_dict:
+    workflow_model: Workflow | None = await deps.workflow_repo.get_workflow_by_id(profile_model.workflow_id)
+    if not workflow_model:
         msg = (
             f"Strict Fail-Fast Enforced: Missing mandatory workflow '{profile_model.workflow_id}' "
             f"for profile '{profile_id}'."
@@ -302,17 +295,15 @@ async def recalculate(
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    try:
-        workflow_model = Workflow.model_validate(workflow_dict, strict=False)
-    except ValidationError as exc:
-        msg = f"Strict Fail-Fast Enforced: Invalid workflow model for profile '{profile_id}': {exc}"
+    strictness_level = workflow_model.default_strictness_level
+    if strictness_level is None:
+        msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{workflow_model.id}'."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
             message=msg,
             status_code=400,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-        ) from exc
-    strictness_level = workflow_model.default_strictness_level
+        )
 
     total_true_atoms = 0
     total_false_atoms = 0

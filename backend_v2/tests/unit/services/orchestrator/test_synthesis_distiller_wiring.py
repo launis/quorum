@@ -23,6 +23,7 @@ from backend_v2.core.hook_registry import (
     HookState,
 )
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
@@ -62,16 +63,19 @@ def _build_mock_deps() -> HookDependencies:
         },
     )
     repo.set_execution(
-        {
-            "id": "exe_0195f3a00000700283456789abcdef01",
-            "workflow_id": "wor_0195f3a00000700283456789abcdef01",
-            "status": "PASSED",
-            "target_locale": "en",
-            "metadata": {},
-            "output_profile_id": "pro_0195f3a00000700283456789abcdef01",
-            "raw_inputs": {"dynamic_inputs": {}},
-            "step_states": {},
-        }
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a00000700283456789abcdef01",
+                "workflow_id": "wor_0195f3a00000700283456789abcdef01",
+                "status": "PASSED",
+                "target_locale": "en",
+                "metadata": {},
+                "output_profile_id": "pro_0195f3a00000700283456789abcdef01",
+                "raw_inputs": {"dynamic_inputs": {}},
+                "step_states": {},
+            },
+            strict=False,
+        )
     )
     repo.set_output_profiles(
         [

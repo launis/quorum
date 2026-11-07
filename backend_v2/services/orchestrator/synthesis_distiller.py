@@ -253,20 +253,18 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         )
 
     # Phase 2, Milestone 1.6: Fetch workflow and execution for context resolution
-    raw_workflow_data = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
-    if not raw_workflow_data:
+    # Phase 3, Step 3.2: Consume typed Workflow, ExecutionRecord, OutputProfile, and Step domain models directly
+    workflow_data: Workflow | None = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
+    if not workflow_data:
         msg = f"Workflow '{state.workflow_id}' not found."
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_404_NOT_FOUND,
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
-    workflow_data = Workflow.model_validate(raw_workflow_data)
 
-    raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
-    execution_data: ExecutionRecord | None = None
-    if raw_exec_data:
-        execution_data = ExecutionRecord.model_validate(raw_exec_data)
+    execution_data: ExecutionRecord | None = await deps.exec_repo.get_execution(state.execution_id)
 
     output_profile_id: str | None = None
     if execution_data:
@@ -281,8 +279,8 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         )
 
     # Phase 2, Milestone 1.6: Resolve output profile for historical context mode
-    p_dict = await deps.output_profile_repo.get_output_profile_by_id(output_profile_id)
-    if not p_dict:
+    output_profile: OutputProfile | None = await deps.output_profile_repo.get_output_profile_by_id(output_profile_id)
+    if not output_profile:
         msg = f"Resolved output profile '{output_profile_id}' not found in SSOT database."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
         raise AppException(
@@ -290,9 +288,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             status_code=status.HTTP_404_NOT_FOUND,
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
-
-    # Enforce strict hydration of the raw repository dictionary
-    output_profile = OutputProfile.model_validate(p_dict)
 
     # Ensure available_dtos contains the unfiltered execution state for `<source>` prompt blocks assembly
     # Target_blocks layout filtering is explicitly removed to prevent Context Deprivation
@@ -305,8 +300,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     )
 
     # Phase 2, Milestone 1.4: Build title map
-    raw_steps = await deps.workflow_repo.get_all_steps()
-    all_steps = [Step.model_validate(rs) for rs in raw_steps]
+    all_steps: list[Step] = await deps.workflow_repo.get_all_steps()
 
     raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
     validated_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in raw_blocks]

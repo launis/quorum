@@ -379,9 +379,12 @@ async def _create_test_scoring_repo(
             "wor_0195f3a0000070018234567890123456",
         ]
         if strictness_level is None:
-            repo._workflows._storage[workflow_id] = wf_dict
+            wf_model = Workflow.model_validate({**wf_dict, "default_strictness_level": 75}).model_copy(
+                update={"default_strictness_level": None}
+            )
+            repo._workflows._storage[workflow_id] = wf_model
             for wf_alias in wf_aliases:
-                repo._workflows._storage[wf_alias] = wf_dict
+                repo._workflows._storage[wf_alias] = wf_model
         else:
             wf_model = Workflow.model_validate(wf_dict)
             await repo.save_workflow(wf_model)
@@ -706,7 +709,7 @@ async def test_normalize_matrix_scores_non_matrix_prompt_block_skipped() -> None
 
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_step_validation_error_raises() -> None:
-    """Test that normalize_matrix_scores_hook raises VALIDATION_FAILED when Step model validation fails."""
+    """Test that normalize_matrix_scores_hook raises HOOK_EXECUTION_FAILED when step state is corrupted."""
     repo = await _create_test_scoring_repo(corrupt_step=True)
     repo._workflows._steps["st_invalid"] = {"invalid": "schema"}
     state = HookState(
@@ -723,7 +726,7 @@ async def test_normalize_matrix_scores_step_validation_error_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
 
-    assert exc_info.value.error_code == "VALIDATION_FAILED"
+    assert exc_info.value.error_code == "HOOK_EXECUTION_FAILED"
 
 
 @pytest.mark.asyncio
@@ -981,7 +984,7 @@ async def test_recalculate_skips_non_matrix_prompt_block() -> None:
 
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_step_validation_failure_raises() -> None:
-    """Test that matrix_scoring_hook raises VALIDATION_FAILED when step fails Pydantic validation."""
+    """Test that matrix_scoring_hook raises HOOK_EXECUTION_FAILED when step state is corrupted."""
     repo = await _create_test_scoring_repo(corrupt_step=True)
     repo._workflows._steps["st_invalid"] = {"invalid": "schema"}
     state = HookState(
@@ -998,7 +1001,7 @@ async def test_matrix_scoring_hook_step_validation_failure_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
 
-    assert exc_info.value.error_code == "VALIDATION_FAILED"
+    assert exc_info.value.error_code == "HOOK_EXECUTION_FAILED"
 
 
 @pytest.mark.asyncio

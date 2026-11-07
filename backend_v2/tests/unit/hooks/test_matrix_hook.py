@@ -638,7 +638,7 @@ async def test_matrix_scoring_hook_block_no_scales_raises(matrix_setup: MatrixSe
 
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_step_validation_error_raises(matrix_setup: MatrixSetupDTO) -> None:
-    """Malformed Step blueprint data raises AppException(VALIDATION_FAILED)."""
+    """Corrupted Step blueprint state raises AppException(HOOK_EXECUTION_FAILED)."""
     deps = matrix_setup.deps
     deps.workflow_repo._workflows._steps[matrix_setup.step_id] = {"id": "bad_step"}
 
@@ -655,7 +655,7 @@ async def test_matrix_scoring_hook_step_validation_error_raises(matrix_setup: Ma
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.HOOK_EXECUTION_FAILED.value
 
 
 @pytest.mark.asyncio

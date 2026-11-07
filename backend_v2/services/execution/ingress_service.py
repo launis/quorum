@@ -256,19 +256,9 @@ async def _load_and_validate_step_blueprint(workflow_repo: IWorkflowRepository, 
         ConfigurationError: If the step blueprint is missing from the repository.
         AppException: With ErrorCodes.VALIDATION_FAILED if step validation fails.
     """
-    step_dict = await workflow_repo.get_step_by_id(task_blueprint_id)
-    if not step_dict:
-        msg = f"Missing task blueprint {task_blueprint_id} for DAG."
-        logger.error(
-            "[ExecutionIngressService] %s: %s",
-            ErrorCodes.VALIDATION_FAILED.name,
-            msg,
-            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-        )
-        raise ConfigurationError(msg)
-
+    # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
     try:
-        return Step.model_validate(step_dict)
+        step_obj = await workflow_repo.get_step_by_id(task_blueprint_id)
     except Exception as e:
         msg = f"Invalid step format in blueprint {task_blueprint_id}: {e}"
         logger.error(
@@ -281,6 +271,17 @@ async def _load_and_validate_step_blueprint(workflow_repo: IWorkflowRepository, 
         raise AppException(
             message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
         ) from e
+    if not step_obj:
+        msg = f"Missing task blueprint {task_blueprint_id} for DAG."
+        logger.error(
+            "[ExecutionIngressService] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+        raise ConfigurationError(msg)
+
+    return step_obj
 
 
 async def _populate_step_prompt_block_hints(
@@ -414,8 +415,8 @@ class ExecutionIngressService:
         Raises:
             ResourceNotFoundError: If the specified workflow cannot be located.
         """
-        workflow_record = await self.workflow_repo.get_workflow_by_id(workflow_id)
-        if not workflow_record:
+        workflow = await self.workflow_repo.get_workflow_by_id(workflow_id)
+        if not workflow:
             logger.error(
                 "[ExecutionIngressService] %s: Resource 'workflow' with id '%s' not found",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -423,7 +424,6 @@ class ExecutionIngressService:
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
-        workflow = Workflow.model_validate(workflow_record)
         return WorkflowSchemaResponseDTO(expected_inputs=workflow.expected_inputs)
 
     async def start_execution(
@@ -485,8 +485,8 @@ class ExecutionIngressService:
             ResourceNotFoundError: If the workflow does not exist.
             PermissionDeniedError: If the caller cannot access the workflow.
         """
-        workflow_dict = await self.workflow_repo.get_workflow_by_id(workflow_id)
-        if not workflow_dict:
+        workflow = await self.workflow_repo.get_workflow_by_id(workflow_id)
+        if not workflow:
             logger.error(
                 "[ExecutionIngressService] %s: Resource 'workflow' with id '%s' not found",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -495,7 +495,6 @@ class ExecutionIngressService:
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
 
-        workflow = Workflow.model_validate(workflow_dict)
         if not is_resource_accessible(initiator, workflow.organization_id, is_public=workflow.is_public):
             logger.error(
                 "[ExecutionIngressService] %s: User '%s' denied access to workflow '%s'",
@@ -617,8 +616,8 @@ class ExecutionIngressService:
                 status_code=500,
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
             )
-        profile_dict = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
-        if not profile_dict:
+        profile_obj: OutputProfile | None = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
+        if not profile_obj:
             logger.error(
                 "[ExecutionIngressService] %s: Profile '%s' not found",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -630,7 +629,6 @@ class ExecutionIngressService:
                 status_code=404,
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
-        profile_obj = OutputProfile.model_validate(profile_dict)
         if profile_obj.workflow_id and profile_obj.workflow_id != workflow.id:
             logger.error(
                 "[ExecutionIngressService] %s: Profile '%s' mismatch with workflow '%s'",

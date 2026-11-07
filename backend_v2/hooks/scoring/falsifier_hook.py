@@ -354,16 +354,12 @@ async def apply_scoring_logic_hook(state: HookState | None, deps: HookDependenci
         logger.error("[ScoringHook] %s: %s", ErrorCodes.HOOK_EXECUTION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
-    workflow_raw = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
-    if workflow_raw is None:
+    # Phase 3, Step 3.2: Consume typed Workflow domain model directly without redundant .model_validate()
+    workflow: Workflow | None = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
+    if workflow is None:
         msg = f"Strict Fail-Fast Enforced: Workflow not found for ID '{state.workflow_id}'."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value})
-
-    if isinstance(workflow_raw, Workflow):
-        workflow = workflow_raw
-    else:
-        workflow = Workflow.model_validate(workflow_raw, strict=False)
 
     # 1. Security Penalty Check (Guard)
     security_threat = _extract_guard_flag(state.inputs, state.global_context_vars)

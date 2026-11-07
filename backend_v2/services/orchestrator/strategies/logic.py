@@ -88,8 +88,9 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        step_def = await self.workflow_repo.get_step_by_id(blueprint_id)
-        if not step_def:
+        # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
+        step_obj: V2Step | None = await self.workflow_repo.get_step_by_id(blueprint_id)
+        if not step_obj:
             logger.error(
                 "Configuration error: Step '%s' not found.",
                 blueprint_id,
@@ -100,8 +101,6 @@ class LogicNodeStrategy(NodeStrategy):
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
-
-        step_obj = V2Step.model_validate(step_def)
 
         logic_hook = step_obj.hook
         if not logic_hook:

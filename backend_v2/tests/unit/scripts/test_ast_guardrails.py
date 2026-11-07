@@ -28,7 +28,6 @@ from scripts._ast_guardrails import (
     OPEN_JSON_EXEMPTION_FILES,
     REPO_ROOT,
     RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
-    RESIDUAL_FUTURE_PHASE_QGR028_FILES,
     GuardrailSeverity,
     GuardrailViolation,
     _find_nested_dict_subscript,
@@ -2351,21 +2350,67 @@ async def compile_artifact(self, execution_id: str, profile_id: str, step_id: st
     assert len(qgr028) == 0
 
 
-def test_qgr028_residual_future_phase_exemption() -> None:
-    """QGR028: Files in RESIDUAL_FUTURE_PHASE_QGR028_FILES emit zero violations while pruned files trigger QGR028."""
-    code = """
-def legacy_override(record):
-    new_states = dict(record.step_states)
-    return new_states
-"""
-    violations = _scan_snippet(code, filepath="backend_v2/services/execution/ingress_service.py")
-    qgr028 = [v for v in violations if v.rule_code == "QGR028"]
-    assert len(qgr028) == 0
+def test_qgr028_zero_residual_exemption_set() -> None:
+    """Positive: Verify RESIDUAL_FUTURE_PHASE_QGR028_FILES is deleted and QGR028 reports 0 violations across all 10 former residual files."""
+    # Phase 3, Step 3.2: Verify RESIDUAL_FUTURE_PHASE_QGR028_FILES no longer exists and QGR028 passes across backend_v2
+    assert "RESIDUAL_FUTURE_PHASE_QGR028_FILES" not in dir(guardrails_mod)
 
-    pruned_violations = _scan_snippet(code, filepath="backend_v2/services/execution/override_service.py")
-    pruned_qgr028 = [v for v in pruned_violations if v.rule_code == "QGR028"]
-    assert len(pruned_qgr028) == 1
-    assert pruned_qgr028[0].severity == GuardrailSeverity.FATAL
+    former_qgr028_files = [
+        REPO_ROOT / "backend_v2/hooks/atom_flattening.py",
+        REPO_ROOT / "backend_v2/hooks/scoring/falsifier_hook.py",
+        REPO_ROOT / "backend_v2/hooks/scoring/matrix_hook.py",
+        REPO_ROOT / "backend_v2/hooks/scoring/normalization_hook.py",
+        REPO_ROOT / "backend_v2/services/execution/ingress_service.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/strategies/logic.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/synthesis_distiller.py",
+        REPO_ROOT / "backend_v2/workers/execution_worker.py",
+        REPO_ROOT / "backend_v2/workers/synthesis_reducers.py",
+        REPO_ROOT / "backend_v2/workers/synthesis_worker.py",
+    ]
+    violations, _ = scan_files_for_guardrails(former_qgr028_files, strict=True)
+    qgr028_violations = [v for v in violations if v.rule_code == "QGR028"]
+    assert qgr028_violations == [], f"Unexpected QGR028 violations:\n{format_violations_table(qgr028_violations)}"
+
+
+def test_qgr028_flags_dict_record_step_states_unpacking() -> None:
+    """Negative: Verify QGR028 raises a FATAL violation on states = dict(record.step_states) inside a worker module."""
+    # Phase 3, Step 3.2: Verify dict(record.step_states) unpacking inside worker module triggers FATAL QGR028
+    code = """
+def mutate_worker_states(record):
+    states = dict(record.step_states)
+    return states
+"""
+    for filepath in (
+        "backend_v2/workers/execution_worker.py",
+        "backend_v2/workers/synthesis_reducers.py",
+        "backend_v2/workers/synthesis_worker.py",
+    ):
+        violations = _scan_snippet(code, filepath=filepath)
+        qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+        assert len(qgr028) == 1
+        assert qgr028[0].severity == GuardrailSeverity.FATAL
+        assert "domain state dictionary conversion" in qgr028[0].message
+
+
+def test_qgr028_flags_redundant_model_validate_on_typed_dto() -> None:
+    """Boundary: Verify QGR028 raises a FATAL violation when invoking Model.model_validate(already_typed_dto) inside a service or hook module."""
+    # Phase 3, Step 3.2: Verify redundant .model_validate() on repository return in hook/service triggers FATAL QGR028
+    code = """
+async def process_hook(workflow_repo, step_id: str):
+    already_typed_dto = await workflow_repo.get_step_by_id(step_id)
+    return Step.model_validate(already_typed_dto)
+"""
+    for filepath in (
+        "backend_v2/hooks/atom_flattening.py",
+        "backend_v2/hooks/scoring/matrix_hook.py",
+        "backend_v2/services/execution/ingress_service.py",
+        "backend_v2/services/orchestrator/synthesis_distiller.py",
+    ):
+        violations = _scan_snippet(code, filepath=filepath)
+        qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+        assert len(qgr028) == 1
+        assert qgr028[0].severity == GuardrailSeverity.FATAL
+        assert "redundant repository model reconstitution" in qgr028[0].message
 
 
 def test_qgr028_expanded_backend_domain_scope_and_database_exemption() -> None:
@@ -2500,7 +2545,6 @@ def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
         ("BOUNDARY_EXEMPTION_FILES", BOUNDARY_EXEMPTION_FILES),
         ("OPEN_JSON_EXEMPTION_FILES", OPEN_JSON_EXEMPTION_FILES),
         ("RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES", RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES),
-        ("RESIDUAL_FUTURE_PHASE_QGR028_FILES", RESIDUAL_FUTURE_PHASE_QGR028_FILES),
     ]
     for set_name, file_set in exemption_sets:
         for path in file_set:

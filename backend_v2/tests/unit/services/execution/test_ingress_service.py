@@ -536,15 +536,18 @@ async def test_generate_sdui_hints_invalid_step_format_raises() -> None:
     workflow = _create_test_workflow()
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(workflow)
-    repo.seed_raw_step("stp_0195f3a0000070008123456789abcdef", {"id": "invalid_id_not_matching_step_schema"})
 
-    with pytest.raises(AppException) as exc_info:
-        await _generate_sdui_hints(
-            workflow=workflow,
-            prompt_block_repo=repo,
-            workflow_repo=repo,
-            target_locale="en",
-        )
+    repo.inject_fault("get_step_by_id", ValueError("invalid_id_not_matching_step_schema"))
+    try:
+        with pytest.raises(AppException) as exc_info:
+            await _generate_sdui_hints(
+                workflow=workflow,
+                prompt_block_repo=repo,
+                workflow_repo=repo,
+                target_locale="en",
+            )
+    finally:
+        repo.clear_faults()
     assert exc_info.value.status_code == 400
 
 

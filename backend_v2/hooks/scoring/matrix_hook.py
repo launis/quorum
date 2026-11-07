@@ -126,23 +126,16 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
-        step_obj = await repository.get_step_by_id(blueprint_id)
-        if not step_obj:
+        # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
+        step_model: Step | None = await repository.get_step_by_id(blueprint_id)
+        if not step_model:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in database."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
 
-        try:
-            step_model = Step.model_validate(step_obj)
-            prompt_block_ids = step_model.criteria_block_ids
-        except ValidationError as e:
-            msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' validation failed."
-            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
+        prompt_block_ids = step_model.criteria_block_ids
 
         # Determine if this step actually contains matrix blocks
         matrix_blocks = []
@@ -170,24 +163,21 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
-        if not raw_exec_data:
+        execution_data: ExecutionRecord | None = await deps.exec_repo.get_execution(state.execution_id)
+        if not execution_data:
             msg = f"Strict Fail-Fast Enforced: Execution {state.execution_id} missing from database."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
 
-        execution_data = ExecutionRecord.model_validate(raw_exec_data, strict=False)
-
-        raw_workflow = await repository.get_workflow_by_id(execution_data.workflow_id)
-        if not raw_workflow:
+        workflow: Workflow | None = await repository.get_workflow_by_id(execution_data.workflow_id)
+        if not workflow:
             msg = f"Strict Fail-Fast Enforced: Workflow {execution_data.workflow_id} missing from database."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
-        workflow = Workflow.model_validate(raw_workflow, strict=False)
         enable_contextual_overrides = workflow.enable_contextual_overrides
 
         # Dynamic Orchestration & Scoring Resolution (Phase 1, Step 1: Anti-Duct-Tape)
@@ -196,14 +186,13 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         profile_id = execution_data.output_profile_id
         if profile_id:
-            profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
-            if not profile_dict:
+            profile_model: OutputProfile | None = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
+            if not profile_model:
                 msg = f"Strict Fail-Fast Enforced: Missing mandatory output profile '{profile_id}'."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
-            profile_model = OutputProfile.model_validate(profile_dict, strict=False)
             visible_block_extensions = profile_model.visible_block_extensions
 
         if strictness_level is None:

@@ -29,7 +29,6 @@ __all__ = [
     "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
-    "RESIDUAL_FUTURE_PHASE_QGR028_FILES",
     "_find_direct_app_exception_raises",
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
@@ -166,21 +165,6 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
         "backend_v2/models/dtos/system.py",
         "backend_v2/models/dtos/trace.py",
         "backend_v2/models/state.py",
-    }
-)
-
-RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
-    {
-        "backend_v2/hooks/atom_flattening.py",
-        "backend_v2/hooks/scoring/falsifier_hook.py",
-        "backend_v2/hooks/scoring/matrix_hook.py",
-        "backend_v2/hooks/scoring/normalization_hook.py",
-        "backend_v2/services/execution/ingress_service.py",
-        "backend_v2/services/orchestrator/strategies/logic.py",
-        "backend_v2/services/orchestrator/synthesis_distiller.py",
-        "backend_v2/workers/execution_worker.py",
-        "backend_v2/workers/synthesis_reducers.py",
-        "backend_v2/workers/synthesis_worker.py",
     }
 )
 
@@ -1729,7 +1713,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             and "database" not in self._path_parts
             and not self._is_test_file
             and not self._is_boundary_exempt
-            and self._normalized_path not in RESIDUAL_FUTURE_PHASE_QGR028_FILES
         )
 
         if is_services_scope:
