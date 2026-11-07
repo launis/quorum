@@ -106,7 +106,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_163_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"` to audit all modified backend files:
   - [x] @[backend_v2/core/hook_registry.py]
   - [x] @[backend_v2/core/registry.py]
-  - [ ] @[backend_v2/exceptions.py]
+  - [x] @[backend_v2/exceptions.py]
   - [ ] @[backend_v2/hooks/atom_flattening.py]
   - [ ] @[backend_v2/hooks/scoring/falsifier_hook.py]
   - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]

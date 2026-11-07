@@ -3,11 +3,11 @@
 Tests RFC 7807 problem details, error codes, format_validation_error, and exception hierarchy.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 import pytest
 from fastapi import status
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -17,6 +17,7 @@ from backend_v2.exceptions import (
     ConflictError,
     ErrorCodes,
     ExecutionNotFoundError,
+    ExecutionNotReadyError,
     FatalInterruption,
     LLMSchemaValidationError,
     LogicalValidationError,
@@ -40,17 +41,26 @@ from backend_v2.exceptions import (
 
 
 class DummyModel(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
     name: str
-    age: int = Field(ge=0)
+    age: Annotated[int, Field(ge=0)]
 
 
 def test_format_validation_error_valid_pydantic() -> None:
-    """Test that a valid Pydantic error is properly formatted."""
+    """Test that a valid Pydantic error is properly formatted for missing and boundary violations."""
     try:
-        DummyModel(name="test")
+        DummyModel.model_validate_json('{"name": "test"}')
     except ValidationError as e:
         result = format_validation_error(e)
         assert "DummyModel validation failed. Missing required fields: age" in result
+
+    try:
+        DummyModel(name="test", age=-1)
+    except ValidationError as e:
+        result_bva = format_validation_error(e)
+        assert "DummyModel validation failed." in result_bva
+        assert "age:" in result_bva
 
 
 def test_format_validation_error_internal_error(monkeypatch: Any) -> None:
@@ -168,6 +178,23 @@ def test_domain_exception_subclasses() -> None:
 
     conf_simple = ConflictError("Simple conflict")
     assert conf_simple.status_code == 409
+
+    not_ready = ExecutionNotReadyError(
+        execution_id="exe_0195f3a0000070008000000000000001",
+        current_status="RUNNING",
+        details={"phase": "phase_1"},
+    )
+    assert not_ready.status_code == 409
+    assert not_ready.error_code == ErrorCodes.EXECUTION_NOT_READY.value
+    assert not_ready.details["phase"] == "phase_1"
+
+    with pytest.raises(AppException) as not_ready_exc:
+        raise ExecutionNotReadyError(
+            execution_id="exe_0195f3a0000070008000000000000002",
+            current_status="PENDING",
+        )
+    assert not_ready_exc.value.status_code == 409
+    assert not_ready_exc.value.error_code == ErrorCodes.EXECUTION_NOT_READY.value
 
     perm = PermissionDeniedError("Access restricted", details={"user": "usr_anon"})
     assert perm.status_code == 403
@@ -291,6 +318,7 @@ def test_problem_detail_dto_serialization_omits_none() -> None:
         status=400,
         detail="Test detail",
         instance=None,
+        extensions={},
     )
     dumped = dto.model_dump(mode="json", exclude_none=True)
     assert "instance" not in dumped
