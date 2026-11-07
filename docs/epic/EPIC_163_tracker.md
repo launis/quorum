@@ -113,7 +113,7 @@
   - [x] @[backend_v2/hooks/scoring/normalization_hook.py]
   - [x] @[backend_v2/llm/client.py]
   - [x] @[backend_v2/llm/ingress_pipeline.py]
-  - [ ] @[backend_v2/llm/mock_data.py]
+  - [x] @[backend_v2/llm/mock_data.py]
   - [ ] @[backend_v2/logging_config.py]
   - [ ] @[backend_v2/models/auth.py]
   - [ ] @[backend_v2/models/chunking.py]

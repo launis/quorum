@@ -1,5 +1,7 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timezone
 from typing import cast
@@ -494,6 +496,7 @@ def get_mock_structured_response(block: MatrixPromptBlock) -> LightweightMatrixO
     if block.computed_min is None or block.computed_max is None:
         logger.error(
             "Fail-Fast: MatrixPromptBlock is missing computed scale bounds.",
+            exc_info=True,
             extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block.id},
         )
         raise AppException(
