@@ -962,3 +962,15 @@ def test_resolve_mypy_targets_maps_tests_subdir_to_source_package(
     assert "backend_v2/workers" in mypy_cmd
     assert "backend_v2" in mypy_cmd
     assert mock_run_tests.call_count == 2
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_macro_gate_with_backend_v2_and_scripts_dir_deduplicates_scripts_dir(
+    mock_sub: MagicMock, mock_scan: MagicMock
+) -> None:
+    """Verify passing both backend_v2/ and scripts/ in macro mode avoids duplicate scripts/ + scripts/__init__.py in MyPy."""
+    main(["backend_v2/", "scripts/"])
+    mypy_cmd = mock_sub.call_args_list[2][0][0]
+    assert "scripts/" not in mypy_cmd
+    assert "scripts/__init__.py" in mypy_cmd

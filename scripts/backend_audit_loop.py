@@ -931,7 +931,9 @@ def _resolve_stage_targets(targets: list[str], micro: bool) -> list[str]:
         OSError: If directory traversal fails on the filesystem.
     """
     is_macro_backend_gate = not micro and any(t.replace("\\", "/").rstrip("/") == "backend_v2" for t in targets)
-    stage_targets: list[str] = list(targets)
+    stage_targets: list[str] = [
+        t for t in targets if not (is_macro_backend_gate and t.replace("\\", "/").rstrip("/") == "scripts")
+    ]
     if is_macro_backend_gate:
         for script_path in discover_authoritative_scripts():
             if script_path not in stage_targets:

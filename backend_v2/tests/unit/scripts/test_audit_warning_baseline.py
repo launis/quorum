@@ -7,8 +7,16 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
+import scripts._ast_guardrails as ast_guardrails_mod
 from scripts._ast_guardrails import GuardrailSeverity, GuardrailViolation
+from scripts._dart_guardrails import DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES
+from scripts.audit_dict_eradication import (
+    FROZEN_APPROVED_PER_FILE_IGNORE_PATHS,
+    check_config_suppression_ratchet,
+)
+from scripts.audit_dto_parity import audit_parity_report
 from scripts.audit_warning_baseline import (
     CURRENT_RESIDUAL_CEILINGS,
     BaselineLedgerReportDTO,
@@ -258,8 +266,6 @@ def test_residual_debt_ceilings_dto_asserts_exact_equality() -> None:
 
     Positive: ResidualDebtCeilingsDTO validates successfully with extra='forbid' and frozen=True.
     """
-    from pydantic import ValidationError
-
     dto = ResidualDebtCeilingsDTO(
         d=821,
         f=51,
@@ -498,3 +504,33 @@ def test_audit_warning_baseline_verify_ceilings_all_zero(capsys: pytest.CaptureF
         assert exc_info.value.code == 0
         out, _ = capsys.readouterr()
         assert "PASSED: All residual debt categories strictly conform to ratchet ceilings." in out
+
+
+def test_full_stack_epic_163_verification_gates_pass() -> None:
+    """Phase 6, Step 6.3: Verify zero fatal violations, zero warnings, and zero residual debt ceilings across repository."""
+    report = generate_baseline_report("backend_v2", verify_zero=True)
+    assert report.fatal_count == 0
+    assert report.warning_count == 0
+    assert report.is_clean_of_fatals is True
+    assert report.is_under_ceiling is True
+
+    live_counts = compute_census_counts()
+    is_valid, _ = verify_residual_debt_ceilings(live_counts, CURRENT_RESIDUAL_CEILINGS)
+    assert is_valid is True
+
+
+def test_guardrail_unit_suites_reject_regressed_exemptions() -> None:
+    """Phase 6, Step 6.3: Verify zero RESIDUAL_* sets, zero per-file-ignores, and 9 transport files in DGR005."""
+    residual_attrs = [name for name in dir(ast_guardrails_mod) if name.startswith("RESIDUAL_")]
+    assert residual_attrs == []
+    assert FROZEN_APPROVED_PER_FILE_IGNORE_PATHS == frozenset()
+    assert check_config_suppression_ratchet(Path.cwd()) == []
+    assert len(DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES) == 9
+
+
+def test_sdui_and_dto_parity_across_python_and_flutter() -> None:
+    """Phase 6, Step 6.3: Verify 1:1 DTO parity across backend Pydantic V2 models and Flutter Freezed models."""
+    parity_report = audit_parity_report(Path("backend_v2/models"), Path("client_app_v2/lib"))
+    assert parity_report.is_success is True
+    assert parity_report.mismatches == []
+    assert parity_report.shared_models_count >= 80
