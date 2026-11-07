@@ -5,16 +5,19 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal
 
-from pydantic import BaseModel, JsonValue, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.matrix import TDAAssertion
 from backend_v2.models.dtos.atom_evaluation import (
     EvaluatedMatrixRefDTO,
+    ExtractedAtomScalar,
+    GlobalMetricValue,
     LightweightMatrixDTO,
     RawXAIExtensionDTO,
     ReducedAtomDTO,
+    ScalarExtensionValue,
 )
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.enums import ExecutionStatus
@@ -39,17 +42,13 @@ def _parse_raw_extension(raw: Any) -> RawXAIExtensionDTO:
     if isinstance(raw, RawXAIExtensionDTO):
         return raw
     if type(raw) is dict:
+        # Phase 4, Step 4.3: Hydrate RawXAIExtensionDTO with typed ScalarExtensionValue map
         known_keys = set(RawXAIExtensionDTO.model_fields.keys())
-        known_data: dict[str, JsonValue] = {}
-        extra_data: dict[str, JsonValue] = {}
-        for k, v in raw.items():
-            if k in known_keys:
-                known_data[k] = v
-            else:
-                extra_data[k] = v
+        extra_data: dict[str, ScalarExtensionValue] = {k: v for k, v in raw.items() if k not in known_keys}
+        payload = {k: v for k, v in raw.items() if k in known_keys}
         if extra_data:
-            known_data["raw_payload"] = extra_data
-        return RawXAIExtensionDTO.model_validate(known_data)
+            payload["raw_payload"] = extra_data
+        return RawXAIExtensionDTO.model_validate(payload)
     return RawXAIExtensionDTO(raw_payload={"raw": str(raw)})
 
 
@@ -208,7 +207,7 @@ class MatrixReducer:
                     if atom.status in (ExecutionStatus.PENDING, ExecutionStatus.QUEUED, ExecutionStatus.RUNNING):
                         continue
 
-                    extracted_data_dict: dict[str, JsonValue] | None = None
+                    extracted_data_dict: dict[str, ExtractedAtomScalar] | None = None
                     if atom.extracted_data:
                         extracted_data_dict = atom.extracted_data.model_dump(mode="json")
 
@@ -231,7 +230,7 @@ class MatrixReducer:
         logger.info("[MatrixReducer] Reduced %d atoms to %d for synthesis.", total_atoms, len(reduced_atoms))
 
         evaluated_matrices = [EvaluatedMatrixRefDTO(matrix_id=mid) for mid in sorted(list(evaluated_matrix_ids))]
-        global_metrics: dict[str, JsonValue] = {
+        global_metrics: dict[str, GlobalMetricValue] = {
             "total_atoms": total_atoms,
             "evaluated": total_atoms,
             "duration_ms": record.duration_ms,

@@ -10,11 +10,12 @@ import logging
 from collections import Counter
 from typing import Any
 
-from pydantic import BaseModel, JsonValue, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import DistilledEvaluation, DistilledMatrixPayloadDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluatedAtomDTO
+from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.step_output import StepPayloadValue
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.settings import get_settings
@@ -237,7 +238,8 @@ class SynthesisPayloadCompressor:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
-        filtered: dict[str, JsonValue] = {k: v for k, v in val_items if k not in _HEAVY_KEYS_TO_EXCLUDE}
+        # Phase 4, Step 4.3: Replace dict[str, JsonValue] with typed JsonSchemaNode map
+        filtered: dict[str, JsonSchemaNode] = {k: v for k, v in val_items if k not in _HEAVY_KEYS_TO_EXCLUDE}
 
         if "results" in filtered:
             results_data = filtered["results"]
@@ -350,7 +352,7 @@ class SynthesisPayloadCompressor:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
 
-                    eval_dict: dict[str, JsonValue] = {"atom_id": str(atom_id_val)}
+                    eval_dict: dict[str, JsonSchemaNode] = {"atom_id": str(atom_id_val)}
                     if "exact_quotes" in ev:
                         eval_dict["exact_quotes"] = ev["exact_quotes"]
                     elif "source_quotes" in ev and ev["source_quotes"]:
@@ -490,7 +492,7 @@ class SynthesisPayloadCompressor:
             dumped_matrix = matrix_dto.model_dump(mode="json", exclude_none=True)
 
             # Preserve any remaining non-heavy keys on filtered dict
-            result_dict: dict[str, JsonValue] = {}
+            result_dict: dict[str, JsonSchemaNode] = {}
             for k, v in filtered.items():
                 if k in ("results", "normalized_score", "level_breakdown"):
                     continue

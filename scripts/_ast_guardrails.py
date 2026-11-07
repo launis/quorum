@@ -28,7 +28,6 @@ __all__ = [
     "OPEN_JSON_EXEMPTION_FILES",
     "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
-    "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
     "_find_direct_app_exception_raises",
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
@@ -138,33 +137,6 @@ OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset(
         "backend_v2/models/domain/validation.py",
         "backend_v2/models/domain/base.py",
         "backend_v2/models/llm.py",
-    }
-)
-
-RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
-    {
-        # Hooks, LLM, and Ingress
-        "backend_v2/hooks/scoring/matrix_hook.py",
-        "backend_v2/llm/client.py",
-        "backend_v2/llm/ingress_pipeline.py",
-        "backend_v2/llm/mock_data.py",
-        "backend_v2/services/llm_task_executor.py",
-        # Orchestrator and DAG
-        "backend_v2/services/orchestrator/context_router.py",
-        "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
-        "backend_v2/services/orchestrator/matrix_reducer.py",
-        "backend_v2/services/orchestrator/result_projector.py",
-        "backend_v2/services/orchestrator/strategies/logic.py",
-        "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
-        # Residual Domain and DTO Models
-        "backend_v2/models/dtos/atom_evaluation.py",
-        "backend_v2/models/dtos/hook_delta.py",
-        "backend_v2/models/dtos/lightweight_matrix.py",
-        "backend_v2/models/dtos/prompt_context.py",
-        "backend_v2/models/dtos/schema_manifest.py",
-        "backend_v2/models/dtos/system.py",
-        "backend_v2/models/dtos/trace.py",
-        "backend_v2/models/state.py",
     }
 )
 
@@ -322,11 +294,10 @@ def is_open_json_exempt(filepath: str | Path, repo_root: Path | None = None) -> 
     p = Path(filepath)
     try:
         rel_posix = p.resolve().relative_to(root.resolve()).as_posix()
-        return rel_posix in OPEN_JSON_EXEMPTION_FILES or rel_posix in RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES
+        return rel_posix in OPEN_JSON_EXEMPTION_FILES
     except ValueError, RuntimeError:
         posix_str = p.as_posix()
-        all_allowed = OPEN_JSON_EXEMPTION_FILES | RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES
-        return any(posix_str == target or posix_str.endswith("/" + target) for target in all_allowed)
+        return any(posix_str == target or posix_str.endswith("/" + target) for target in OPEN_JSON_EXEMPTION_FILES)
 
 
 def _find_jsonvalue_dict_subscript(node: ast.AST | None) -> ast.Subscript | None:

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import opentelemetry.trace as otel_trace
-from pydantic import JsonValue, TypeAdapter
+from pydantic import TypeAdapter
 
 from backend_v2.core.hook_registry import GlobalContextVarsDTO
 from backend_v2.core.telemetry import get_tracer
@@ -23,7 +23,7 @@ from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
-from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO, JsonSchemaNode
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
@@ -177,7 +177,8 @@ async def _apply_step_events(
     _update_lock = state.update_lock
     async with _update_lock:
         step_mcp_traces: list[MCPAuditTrace] = []
-        step_generated_schemas: dict[str, JsonValue] = {}
+        # Phase 4, Step 4.3: Replace dict[str, JsonValue] accumulator with typed JsonSchemaNode map
+        step_generated_schemas: dict[str, JsonSchemaNode] = {}
         new_cv = state.exec_record.context_variables
         has_cv_updates, has_gvar_updates = False, False
         for evt in events:

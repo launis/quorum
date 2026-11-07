@@ -510,7 +510,7 @@ async def test_synthesis_engine_with_lightweight_matrix_output(
     """Tests synthesis execution with LightweightMatrixOutput under matrix_reducer_output."""
     matrix_output = LightweightMatrixOutput(
         evaluated_atoms={"atm_1": LaxExecutionStatus.PASSED},
-        extensions={XaiExtensionType.RISK_FLAG: {"risk": "high"}},
+        extensions={XaiExtensionType.RISK_FLAG: ["high"]},
     )
     req = base_request.model_copy(
         update={

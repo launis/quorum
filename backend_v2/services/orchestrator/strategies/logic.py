@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -19,7 +19,11 @@ from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
-from backend_v2.models.dtos.node_execution import LogicEvaluationContextDTO, LogicNodeStateDTO
+from backend_v2.models.dtos.node_execution import (
+    LogicEvaluationContextDTO,
+    LogicNodeStateDTO,
+    StepOutputContentValue,
+)
 from backend_v2.models.dtos.trace import ProgressTracePayloadDTO, TraceEventMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import VirtualSystemStepID
 from backend_v2.models.state import StateProjector, StepOutputDTO, TraceEvent
@@ -208,7 +212,8 @@ class LogicNodeStrategy(NodeStrategy):
             hook_state=hook_state,
             hook_deps=hook_deps,
         )
-        final_outputs: dict[str, JsonValue] = {}
+        # Phase 4, Step 4.3: Replace dict[str, JsonValue] with typed StepOutputContentValue map
+        final_outputs: dict[str, StepOutputContentValue] = {}
         if main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
             if isinstance(delta_val, TraceScoringPayloadDTO):

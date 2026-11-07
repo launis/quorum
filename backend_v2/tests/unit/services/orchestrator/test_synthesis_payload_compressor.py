@@ -12,8 +12,9 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.domain.synthesis import DistilledEvaluation
+from backend_v2.models.domain.synthesis import DistilledEvaluation, DistilledMatrixPayloadDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluatedAtomDTO, HydratedAtomDTO
+from backend_v2.models.dtos.step_output import StepPayloadValue
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.settings import Settings
@@ -629,3 +630,61 @@ def test_distilled_evaluation_extra_field_raises_validation_error() -> None:
                 "unpermitted_extra_key": "forbidden",
             }
         )
+
+
+def test_synthesis_payload_compressor_typed_dto_across_four_partitions() -> None:
+    """Positive & boundary contract: Verify SynthesisPayloadCompressor across all 4 ISTQB Equivalence Partitions."""
+    # Phase 4, Step 4.3: Cover 1) Structured DTO, 2) List of DTOs, 3) Markdown string, 4) Scalars and falsy inputs
+    # Partition 1: Structured DTO (DistilledMatrixPayloadDTO)
+    structured_dto = DistilledMatrixPayloadDTO(
+        results=[
+            DistilledEvaluation(
+                atom_id="tda_0195f3a0000070008000000000000001",
+                status="PASSED",
+                exact_quotes=["Verbatim governance quote"],
+                semantic_reasoning="Structured DTO reasoning",
+            )
+        ],
+        normalized_score=88.5,
+    )
+    dto_json = json.loads(SynthesisPayloadCompressor.compress_synthesis_payload(structured_dto))
+    assert dto_json["normalized_score"] == 88.5
+    assert dto_json["results"][0]["atom_id"] == "tda_0195f3a0000070008000000000000001"
+
+    # Partition 2: List of DTOs
+    dto_list = [
+        EvaluatedAtomDTO(
+            tda_id="tda_0195f3a0000070008000000000000002",
+            atom_id="tda_0195f3a0000070008000000000000002",
+            status=ExecutionStatus.PASSED,
+            exact_quotes=["Quote A"],
+            evaluation_reasoning="Reasoning A",
+        ),
+        AtomResultDTO(
+            tda_id="tda_0195f3a0000070008000000000000003",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="Reasoning B",
+        ),
+    ]
+    list_json = json.loads(SynthesisPayloadCompressor.compress_synthesis_payload(dto_list))
+    assert isinstance(list_json, list)
+    assert len(list_json) == 2
+    assert list_json[0]["tda_id"] == "tda_0195f3a0000070008000000000000002"
+    assert list_json[1]["tda_id"] == "tda_0195f3a0000070008000000000000003"
+
+    # Partition 3: Pure String / Markdown
+    md_out = SynthesisPayloadCompressor.compress_synthesis_payload("  ## Executive Synthesis\n\nKey takeaway.  ")
+    assert md_out == "## Executive Synthesis\n\nKey takeaway."
+
+    # Partition 4: Scalars/Primitives (int, float, bool) and falsy inputs (None, "", {})
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(42) == "42"
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(0) == "0"
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(3.14) == "3.14"
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(True) == "True"
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(False) == "False"
+
+    falsy_values: list[StepPayloadValue] = [None, "", "   ", {}, []]
+    for falsy_val in falsy_values:
+        with pytest.raises(AppException) as exc_info:
+            SynthesisPayloadCompressor.compress_synthesis_payload(falsy_val)
+        assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"

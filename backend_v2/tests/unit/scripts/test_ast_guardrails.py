@@ -27,7 +27,6 @@ from scripts._ast_guardrails import (
     BOUNDARY_EXEMPTION_FILES,
     OPEN_JSON_EXEMPTION_FILES,
     REPO_ROOT,
-    RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
     GuardrailSeverity,
     GuardrailViolation,
     _find_nested_dict_subscript,
@@ -2540,11 +2539,10 @@ def test_find_nested_dict_subscript_coverage() -> None:
 
 
 def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
-    """Verify every file in BOUNDARY_EXEMPTION_FILES and residual exemption sets exists on disk."""
+    """Verify every file in BOUNDARY_EXEMPTION_FILES and OPEN_JSON_EXEMPTION_FILES exists on disk."""
     exemption_sets: list[tuple[str, frozenset[str]]] = [
         ("BOUNDARY_EXEMPTION_FILES", BOUNDARY_EXEMPTION_FILES),
         ("OPEN_JSON_EXEMPTION_FILES", OPEN_JSON_EXEMPTION_FILES),
-        ("RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES", RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES),
     ]
     for set_name, file_set in exemption_sets:
         for path in file_set:
@@ -3442,3 +3440,60 @@ class SampleSilentDefaultModel(BaseModel):
         "Banned default value on identity, relational, slug, name, label, title, or storage_mode field"
         in qgr020[0].message
     )
+
+
+def test_qgr027_flags_jsonvalue_in_non_boundary_module() -> None:
+    """Negative: Verify QGR027 raises a fatal violation on dict[str, JsonValue] in orchestrator and DTO modules."""
+    # Phase 4, Step 4.3: Verify QGR027 flags JsonValue containers in non-boundary modules and former residual files pass
+    snippet = '''"""Synthetic orchestrator snippet with banned JsonValue dict."""
+
+from pydantic import BaseModel, ConfigDict, JsonValue
+
+
+class SampleJsonValueModel(BaseModel):
+    """Sample model."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    payload: dict[str, JsonValue]
+'''
+    for target_path in (
+        "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
+        "backend_v2/models/dtos/atom_evaluation.py",
+    ):
+        violations = _scan_snippet(snippet, filepath=target_path)
+        qgr027 = [v for v in violations if v.rule_code == "QGR027"]
+        assert len(qgr027) == 1
+        assert qgr027[0].severity == GuardrailSeverity.FATAL
+
+    former_jsonvalue_paths = [
+        REPO_ROOT / "backend_v2/hooks/scoring/matrix_hook.py",
+        REPO_ROOT / "backend_v2/llm/client.py",
+        REPO_ROOT / "backend_v2/llm/ingress_pipeline.py",
+        REPO_ROOT / "backend_v2/llm/mock_data.py",
+        REPO_ROOT / "backend_v2/services/llm_task_executor.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/context_router.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/matrix_reducer.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/result_projector.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/strategies/logic.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
+        REPO_ROOT / "backend_v2/models/dtos/atom_evaluation.py",
+        REPO_ROOT / "backend_v2/models/dtos/hook_delta.py",
+        REPO_ROOT / "backend_v2/models/dtos/lightweight_matrix.py",
+        REPO_ROOT / "backend_v2/models/dtos/prompt_context.py",
+        REPO_ROOT / "backend_v2/models/dtos/schema_manifest.py",
+        REPO_ROOT / "backend_v2/models/dtos/system.py",
+        REPO_ROOT / "backend_v2/models/dtos/trace.py",
+        REPO_ROOT / "backend_v2/models/state.py",
+    ]
+    assert len(set(former_jsonvalue_paths)) == 19
+    live_violations, _ = scan_files_for_guardrails(former_jsonvalue_paths, strict=True)
+    live_qgr027 = [v for v in live_violations if v.rule_code == "QGR027"]
+    assert live_qgr027 == [], f"Unexpected QGR027 violations:\n{format_violations_table(live_qgr027)}"
+
+
+def test_ast_guardrails_has_zero_residual_sets() -> None:
+    """Boundary: Verify zero module-level attributes starting with RESIDUAL_ exist in scripts/_ast_guardrails.py."""
+    # Phase 4, Step 4.3: Verify complete eradication of RESIDUAL_* exemption sets
+    residual_attrs = [attr for attr in dir(guardrails_mod) if attr.startswith("RESIDUAL_")]
+    assert residual_attrs == []
