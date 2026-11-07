@@ -140,6 +140,7 @@ __all__ = [
     "parse_tracker_unhardened_targets",
     "process_target_with_retries",
     "release_windows_wake_lock",
+    "resolve_target_rule_files",
     "resolve_target_unit_test_files",
     "run_frontend_macro_quality_gate",
     "run_hardening_pipeline",
@@ -633,16 +634,47 @@ def resolve_target_unit_test_files(target_file: str, repo_root: Path) -> list[Pa
     return sorted(candidates, key=lambda p: p.as_posix())
 
 
+def resolve_target_rule_files(target_file: str) -> tuple[str, ...]:
+    """Resolve the ordered tuple of `.agents/rules/*.md` files applicable to a hardening target file.
+
+    Args:
+        target_file: Workspace-relative target file path.
+
+    Returns:
+        Ordered tuple of workspace-relative `.agents/rules/*.md` paths for the target domain.
+    """
+    # Phase 7, Step 7.4: Deterministically map target path to domain-scoped .agents/rules/ files
+    norm_target = target_file.replace("\\", "/").strip().lstrip("/")
+    if norm_target.endswith(".dart") or norm_target.startswith("client_app_v2/"):
+        return (
+            ".agents/rules/00-antigravity-core.md",
+            ".agents/rules/02_flutter_desktop.md",
+            ".agents/rules/04_directory_reference.md",
+        )
+
+    parts = set(norm_target.split("/"))
+    rules: list[str] = [
+        ".agents/rules/00-antigravity-core.md",
+        ".agents/rules/01-python-backend.md",
+    ]
+    if "seed" in parts or "database" in parts:
+        rules.append(".agents/rules/03_seed_vault.md")
+    rules.append(".agents/rules/04_directory_reference.md")
+    if parts & {"llm", "prompts", "orchestrator", "hooks"}:
+        rules.append(".agents/rules/05_llm_architecture.md")
+    return tuple(rules)
+
+
 def compute_rules_sha256(repo_root: Path) -> str:
-    """Compute a composite SHA-256 hexadecimal digest across all `.agents/rules/*.md` files.
+    """Compute a composite SHA-256 hexadecimal digest across `.agents/rules/*.md`, `AGENTS.md`, and Tier 2 hardening `SKILL.md` files.
 
     Args:
         repo_root: Workspace root directory.
 
     Returns:
-        Lowercase 64-character hexadecimal SHA-256 digest of all rule files.
+        Lowercase 64-character hexadecimal SHA-256 digest of all rule and hardening skill files.
     """
-    # Phase 2, Step 4: Include .agents/rules/*.md in composite SHA-256 to invalidate cache on rule changes
+    # Phase 2, Step 4 & Phase 7, Step 7.4: Include .agents/rules/*.md, AGENTS.md, and Tier 2 hardening SKILL.md files
     hasher = hashlib.sha256()
     rules_dir = repo_root / ".agents" / "rules"
     if rules_dir.is_dir():
@@ -650,6 +682,18 @@ def compute_rules_sha256(repo_root: Path) -> str:
             if rule_file.is_file():
                 file_digest = compute_file_sha256(rule_file)
                 hasher.update(f"{rule_file.name}:{file_digest}\n".encode())
+
+    extra_rule_paths = (
+        Path("AGENTS.md"),
+        Path(".agents/skills/tier2-hardening-backend/SKILL.md"),
+        Path(".agents/skills/tier2-hardening-frontend/SKILL.md"),
+    )
+    for rel_path in extra_rule_paths:
+        candidate = repo_root / rel_path
+        if candidate.is_file():
+            file_digest = compute_file_sha256(candidate)
+            hasher.update(f"{rel_path.as_posix()}:{file_digest}\n".encode())
+
     return hasher.hexdigest()
 
 
@@ -1224,6 +1268,85 @@ def _is_transient_subagent_startup_error(returncode: int, output: str) -> bool:
     return False
 
 
+def _inject_subagent_context_rules(
+    subagent_template: str | None,
+    model: str,
+    target_file: str,
+    previous_error: str | None = None,
+) -> list[str]:
+    """Build subagent command arguments with domain-scoped `.agents/rules/` directives and retry error feedback.
+
+    Args:
+        subagent_template: Configured subagent command template or None for default template.
+        model: Target LLM model identifier.
+        target_file: Target file path being hardened.
+        previous_error: Optional failure output from a prior quality gate attempt.
+
+    Returns:
+        Parsed command argument list with context rules and retry feedback injected into the final argument.
+    """
+    # Phase 7, Step 7.4: Inject domain-scoped .agents/rules/ directives and retry feedback
+    resolved_template = subagent_template
+    if not resolved_template:
+        resolved_template = (
+            DEFAULT_FRONTEND_AGENT_TEMPLATE if target_file.endswith(".dart") else DEFAULT_BACKEND_AGENT_TEMPLATE
+        )
+    elif target_file.endswith(".dart") and "/tier2-hardening-backend" in resolved_template:
+        resolved_template = resolved_template.replace("/tier2-hardening-backend", "/tier2-hardening-frontend")
+
+    formatted_cmd = resolved_template.format(model=model, target=target_file, target_file=target_file)
+    cmd_args = shlex.split(formatted_cmd, posix=sys.platform != "win32")
+    if not cmd_args:
+        return cmd_args
+
+    rule_refs = ", ".join(f"@[{rule_path}]" for rule_path in resolve_target_rule_files(target_file))
+    suffix = f" [REQUIRED CONTEXT RULES: @[AGENTS.md], {rule_refs}]"
+    if previous_error and previous_error.strip():
+        sanitized_error = " ".join(previous_error.strip()[-RETRY_ERROR_FEEDBACK_MAX_CHARS:].split())
+        suffix += f" [PREVIOUS ATTEMPT FAILED QUALITY GATE - FIX THESE ERRORS: {sanitized_error}]"
+
+    last_arg = cmd_args[-1]
+    is_quoted = len(last_arg) >= 2 and last_arg[0] == last_arg[-1] and last_arg[0] in ('"', "'")
+    cmd_args[-1] = f"{last_arg[:-1]}{suffix}{last_arg[-1]}" if is_quoted else f"{last_arg}{suffix}"
+    return cmd_args
+
+
+def _run_subagent_auto_fix_prepass(target_file: str, root: Path) -> None:
+    """Execute automated Ruff or Dart formatting passes on the target file after subagent completion.
+
+    Args:
+        target_file: Target file path to format.
+        root: Workspace root directory.
+    """
+    # Phase 7, Step 7.4: Extracted pre-gate auto-fix helper to keep execute_subagent_pass C901 <= 10
+    if target_file.endswith(".py"):
+        subprocess.run(
+            ["uv", "run", "ruff", "check", "--fix", target_file],
+            cwd=root,
+            capture_output=True,
+            timeout=FORMATTER_TIMEOUT_SECONDS,
+            check=False,
+            shell=False,
+        )
+        subprocess.run(
+            ["uv", "run", "ruff", "format", target_file],
+            cwd=root,
+            capture_output=True,
+            timeout=FORMATTER_TIMEOUT_SECONDS,
+            check=False,
+            shell=False,
+        )
+    elif target_file.endswith(".dart"):
+        subprocess.run(
+            ["dart", "format", target_file],
+            cwd=root,
+            capture_output=True,
+            timeout=FORMATTER_TIMEOUT_SECONDS,
+            check=False,
+            shell=sys.platform == "win32",
+        )
+
+
 def execute_subagent_pass(
     target_file: str,
     args: HardeningRunnerArgsDTO,
@@ -1249,83 +1372,30 @@ def execute_subagent_pass(
     """
     root = repo_root or get_repo_root()
 
-    subagent_template = args.agent_cmd
-    if not subagent_template and not args.no_agent:
-        subagent_template = (
-            DEFAULT_FRONTEND_AGENT_TEMPLATE if target_file.endswith(".dart") else DEFAULT_BACKEND_AGENT_TEMPLATE
-        )
-
-    if subagent_template and not args.no_agent:
-        if target_file.endswith(".dart") and "/tier2-hardening-backend" in subagent_template:
-            subagent_template = subagent_template.replace("/tier2-hardening-backend", "/tier2-hardening-frontend")
-
-        # Step 2: Format subagent_template with model=args.model
-        formatted_cmd = subagent_template.format(model=args.model, target=target_file, target_file=target_file)
-        cmd_args = shlex.split(formatted_cmd, posix=False if sys.platform == "win32" else True)
-        if previous_error and previous_error.strip() and cmd_args:
-            # Phase 2, Step 2: Inject truncated failure diagnostics into retry prompt argument
-            sanitized_error = " ".join(previous_error.strip()[-RETRY_ERROR_FEEDBACK_MAX_CHARS:].split())
-            suffix = f" [PREVIOUS ATTEMPT FAILED QUALITY GATE - FIX THESE ERRORS: {sanitized_error}]"
-            last_arg = cmd_args[-1]
-            if len(last_arg) >= 2 and last_arg[0] == last_arg[-1] and last_arg[0] in ('"', "'"):
-                cmd_args[-1] = f"{last_arg[:-1]}{suffix}{last_arg[-1]}"
-            else:
-                cmd_args[-1] = f"{last_arg}{suffix}"
-        subagent_success = False
-
+    if not args.no_agent:
+        cmd_args = _inject_subagent_context_rules(args.agent_cmd, args.model, target_file, previous_error)
         for attempt in range(1, DEFAULT_SUBAGENT_MAX_RETRIES + 1):
             try:
                 res = execute_subprocess_with_tree_kill(cmd_args, timeout_seconds=args.timeout_seconds, cwd=root)
-                if res.returncode == 0:
-                    subagent_success = True
-                    break
-
-                output = f"{res.stdout}\n{res.stderr}".strip()
-                if _is_transient_subagent_startup_error(res.returncode, output):
-                    if attempt < DEFAULT_SUBAGENT_MAX_RETRIES:
-                        backoff = DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS * attempt
-                        print(
-                            f"\n{ANSIColors.YELLOW}[RETRY] Transient subagent startup error on {target_file} "
-                            f"(exit code {res.returncode}). Retrying attempt {attempt + 1}/{DEFAULT_SUBAGENT_MAX_RETRIES} in {backoff:.1f}s...{ANSIColors.RESET}\n",
-                            flush=True,
-                        )
-                        time.sleep(backoff)
-                        continue
-
-                break
             except subprocess.TimeoutExpired:
+                return False
+            if res.returncode == 0:
                 break
-
-        if not subagent_success:
+            output = f"{res.stdout}\n{res.stderr}".strip()
+            if _is_transient_subagent_startup_error(res.returncode, output) and attempt < DEFAULT_SUBAGENT_MAX_RETRIES:
+                backoff = DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS * attempt
+                print(
+                    f"\n{ANSIColors.YELLOW}[RETRY] Transient subagent startup error on {target_file} "
+                    f"(exit code {res.returncode}). Retrying attempt {attempt + 1}/{DEFAULT_SUBAGENT_MAX_RETRIES} "
+                    f"in {backoff:.1f}s...{ANSIColors.RESET}\n",
+                    flush=True,
+                )
+                time.sleep(backoff)
+                continue
             return False
 
     if not args.no_auto_fix:
-        if target_file.endswith(".py"):
-            subprocess.run(
-                ["uv", "run", "ruff", "check", "--fix", target_file],
-                cwd=root,
-                capture_output=True,
-                timeout=FORMATTER_TIMEOUT_SECONDS,
-                check=False,
-                shell=False,
-            )
-            subprocess.run(
-                ["uv", "run", "ruff", "format", target_file],
-                cwd=root,
-                capture_output=True,
-                timeout=FORMATTER_TIMEOUT_SECONDS,
-                check=False,
-                shell=False,
-            )
-        elif target_file.endswith(".dart"):
-            subprocess.run(
-                ["dart", "format", target_file],
-                cwd=root,
-                capture_output=True,
-                timeout=FORMATTER_TIMEOUT_SECONDS,
-                check=False,
-                shell=sys.platform == "win32",
-            )
+        _run_subagent_auto_fix_prepass(target_file, root)
 
     return True
 

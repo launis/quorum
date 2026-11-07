@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from scripts.audit_skills_architecture import SkillsArchitectureAuditor
 from scripts.auto_hardening_runner import (
     DEFAULT_BACKEND_AGENT_TEMPLATE,
     DEFAULT_FRONTEND_AGENT_TEMPLATE,
@@ -29,6 +30,7 @@ from scripts.auto_hardening_runner import (
     capture_workspace_snapshot,
     check_tracker_has_unparsed_hardening_items,
     clean_path_arg,
+    compute_rules_sha256,
     compute_target_cache_entry,
     discover_completed_trackers,
     discover_tracker_files,
@@ -46,6 +48,7 @@ from scripts.auto_hardening_runner import (
     parse_tracker_unhardened_targets,
     process_target_with_retries,
     release_windows_wake_lock,
+    resolve_target_rule_files,
     resolve_target_unit_test_files,
     run_frontend_macro_quality_gate,
     run_hardening_pipeline,
@@ -1774,3 +1777,104 @@ def test_dynamic_tracker_and_target_discovery_and_ssot_delegation(
     monkeypatch.setattr("scripts.auto_hardening_runner.get_repo_root", lambda: tmp_path)
     exit_code = main(["--discover", "--gate", "frontend", "--cache-file", str(cache_file), "--dry-run"])
     assert exit_code == 0
+
+
+def test_resolve_target_rule_files_and_subagent_prompt_injection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Positive: Verify resolve_target_rule_files and execute_subagent_pass inject domain-scoped .agents/rules/."""
+    # Phase 7, Step 7.4: Test contract 1 for resolve_target_rule_files and subagent prompt rule injection
+    assert resolve_target_rule_files("backend_v2/services/auth/organization_service.py") == (
+        ".agents/rules/00-antigravity-core.md",
+        ".agents/rules/01-python-backend.md",
+        ".agents/rules/04_directory_reference.md",
+    )
+    assert resolve_target_rule_files("backend_v2/seed/run_seed.py") == (
+        ".agents/rules/00-antigravity-core.md",
+        ".agents/rules/01-python-backend.md",
+        ".agents/rules/03_seed_vault.md",
+        ".agents/rules/04_directory_reference.md",
+    )
+    assert resolve_target_rule_files("backend_v2/services/orchestrator/schema_factory.py") == (
+        ".agents/rules/00-antigravity-core.md",
+        ".agents/rules/01-python-backend.md",
+        ".agents/rules/04_directory_reference.md",
+        ".agents/rules/05_llm_architecture.md",
+    )
+    assert resolve_target_rule_files("scripts/auto_hardening_runner.py") == (
+        ".agents/rules/00-antigravity-core.md",
+        ".agents/rules/01-python-backend.md",
+        ".agents/rules/04_directory_reference.md",
+    )
+    assert resolve_target_rule_files("client_app_v2/lib/features/studio/views/workflow_step_editor_view.dart") == (
+        ".agents/rules/00-antigravity-core.md",
+        ".agents/rules/02_flutter_desktop.md",
+        ".agents/rules/04_directory_reference.md",
+    )
+
+    captured_cmds: list[list[str]] = []
+
+    def mock_tree_kill(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        captured_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Hardened", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
+
+    args = HardeningRunnerArgsDTO(
+        targets=["backend_v2/services/orchestrator/schema_factory.py"],
+        gate=HardeningGate.BACKEND,
+        no_auto_fix=True,
+    )
+    assert execute_subagent_pass("backend_v2/services/orchestrator/schema_factory.py", args, repo_root=tmp_path) is True
+    prompt_arg = captured_cmds[-1][-1]
+    assert "REQUIRED CONTEXT RULES: @[AGENTS.md]" in prompt_arg
+    assert "@[.agents/rules/01-python-backend.md]" in prompt_arg
+    assert "@[.agents/rules/05_llm_architecture.md]" in prompt_arg
+
+
+def test_compute_rules_sha256_invalidates_cache_on_skill_or_agents_md_mutation(tmp_path: Path) -> None:
+    """Negative: Verify compute_rules_sha256 changes digest when AGENTS.md or Tier 2 SKILL.md files mutate."""
+    # Phase 7, Step 7.4: Test contract 2 for SHA-256 invalidation on AGENTS.md and Tier 2 SKILL.md mutations
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    (rules_dir / "00-antigravity-core.md").write_text("# Core\n", encoding="utf-8")
+
+    agents_md = tmp_path / "AGENTS.md"
+    agents_md.write_text("# Agents v1\n", encoding="utf-8")
+
+    backend_skill = tmp_path / ".agents" / "skills" / "tier2-hardening-backend" / "SKILL.md"
+    backend_skill.parent.mkdir(parents=True, exist_ok=True)
+    backend_skill.write_text("# Backend Skill v1\n", encoding="utf-8")
+
+    frontend_skill = tmp_path / ".agents" / "skills" / "tier2-hardening-frontend" / "SKILL.md"
+    frontend_skill.parent.mkdir(parents=True, exist_ok=True)
+    frontend_skill.write_text("# Frontend Skill v1\n", encoding="utf-8")
+
+    digest_initial = compute_rules_sha256(tmp_path)
+
+    agents_md.write_text("# Agents v2\n", encoding="utf-8")
+    digest_after_agents = compute_rules_sha256(tmp_path)
+    assert digest_after_agents != digest_initial
+
+    backend_skill.write_text("# Backend Skill v2\n", encoding="utf-8")
+    digest_after_backend_skill = compute_rules_sha256(tmp_path)
+    assert digest_after_backend_skill not in {digest_initial, digest_after_agents}
+
+    frontend_skill.write_text("# Frontend Skill v2\n", encoding="utf-8")
+    digest_after_frontend_skill = compute_rules_sha256(tmp_path)
+    assert digest_after_frontend_skill not in {
+        digest_initial,
+        digest_after_agents,
+        digest_after_backend_skill,
+    }
+
+
+def test_audit_skills_architecture_passes_with_updated_tier2_skills() -> None:
+    """Boundary: Verify SkillsArchitectureAuditor passes with 0 findings across updated Tier 2 skills."""
+    # Phase 7, Step 7.4: Test contract 3 verifying 0 SKL001-SKL005 violations
+    repo_root = Path(__file__).resolve().parents[4]
+    auditor = SkillsArchitectureAuditor(repo_root=repo_root)
+    summary = auditor.run_audit()
+    assert summary.findings == []
