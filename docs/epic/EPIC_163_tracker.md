@@ -110,7 +110,7 @@
   - [x] @[backend_v2/hooks/atom_flattening.py]
   - [x] @[backend_v2/hooks/scoring/falsifier_hook.py]
   - [x] @[backend_v2/hooks/scoring/matrix_hook.py]
-  - [ ] @[backend_v2/hooks/scoring/normalization_hook.py]
+  - [x] @[backend_v2/hooks/scoring/normalization_hook.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/llm/ingress_pipeline.py]
   - [ ] @[backend_v2/llm/mock_data.py]
