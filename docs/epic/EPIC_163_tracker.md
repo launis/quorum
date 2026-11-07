@@ -89,7 +89,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_163/07_phase7_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/07_phase7_plan.md`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]` (`fbe6e1b33`)
   - [x] Step 7.1: Pre-Implementation Docstring (`ValidationHookPayloadDTO.model_validate`) & Dart Test Fixture (`test_dgr010_guarded_async_value_allowed`) Cleanups
   - [x] Step 7.2: Dart 3.11+ Freezed Switch (`DGR013`) & Riverpod 3.1 (`DGR014`) Guardrails
   - [x] Step 7.3: Python 3.14 PEP 695 `TypeAlias` (`QGR013`) & Public Function / Module Docstring Ordering (`QGR033` Check 33B) Guardrails
@@ -104,7 +104,7 @@
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide verification of zero `RESIDUAL_*` exemption sets in `@[scripts/_ast_guardrails.py]`, zero `per-file-ignores` in `@[pyproject.toml]`, 9 transport boundary files in `@[scripts/_dart_guardrails.py]`, and `CURRENT_RESIDUAL_CEILINGS["f"] = 0` in `@[scripts/audit_warning_baseline.py]`.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_163_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"` to audit all modified backend files:
-  - [ ] @[backend_v2/core/hook_registry.py]
+  - [x] @[backend_v2/core/hook_registry.py]
   - [ ] @[backend_v2/core/registry.py]
   - [ ] @[backend_v2/exceptions.py]
   - [ ] @[backend_v2/hooks/atom_flattening.py]
