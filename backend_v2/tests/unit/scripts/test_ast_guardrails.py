@@ -26,7 +26,6 @@ from scripts._ast_guardrails import (
     RESIDUAL_DEFAULT_VALUE_MODEL_FILES,
     RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
     RESIDUAL_FUTURE_PHASE_QGR028_FILES,
-    RESIDUAL_LOCAL_SHADOW_STATE_FILES,
     GuardrailSeverity,
     GuardrailViolation,
     _find_nested_dict_subscript,
@@ -2501,7 +2500,6 @@ def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
         ("RESIDUAL_FUTURE_PHASE_QGR028_FILES", RESIDUAL_FUTURE_PHASE_QGR028_FILES),
         ("RESIDUAL_BARE_FIELD_FILES", RESIDUAL_BARE_FIELD_FILES),
         ("RESIDUAL_DEFAULT_VALUE_MODEL_FILES", RESIDUAL_DEFAULT_VALUE_MODEL_FILES),
-        ("RESIDUAL_LOCAL_SHADOW_STATE_FILES", RESIDUAL_LOCAL_SHADOW_STATE_FILES),
     ]
     for set_name, file_set in exemption_sets:
         for path in file_set:
@@ -3237,3 +3235,37 @@ def test_setup_logging_logs_error_before_raising_app_exception_on_mkdir_failure(
         ErrorCodes.CONFIGURATION_ERROR.name in record.getMessage() and "Permission denied" in record.getMessage()
         for record in caplog.records
     )
+
+
+def test_qgr030_flags_local_shadow_state_dict_on_service_as_fatal() -> None:
+    """Boundary: Verify QGR030 emits FATAL violation when self._local_invitations or self._memory_entries is assigned on a service class."""
+    # Phase 1, Step 1.3: Verify RESIDUAL_LOCAL_SHADOW_STATE_FILES is deleted and QGR030 flags local shadow dicts as FATAL
+    assert "RESIDUAL_LOCAL_SHADOW_STATE_FILES" not in dir(guardrails_mod)
+
+    for service_target in (
+        REPO_ROOT / "backend_v2/services/auth/organization_service.py",
+        REPO_ROOT / "backend_v2/services/execution/assignment_service.py",
+        REPO_ROOT / "backend_v2/services/cache/typed_cache.py",
+    ):
+        assert scan_file_for_guardrails(service_target) == []
+
+    shadow_snippet = '''"""Service snippet with banned shadow state."""
+
+
+class SampleShadowService:
+    """Service class assigning banned shadow dicts."""
+
+    def __init__(self) -> None:
+        """Initialize banned shadow dicts."""
+        self._local_invitations: dict[str, str] = {}
+        self._memory_entries = {}
+'''
+    for virtual_path in (
+        "backend_v2/services/auth/organization_service.py",
+        "backend_v2/services/execution/assignment_service.py",
+        "backend_v2/services/cache/typed_cache.py",
+    ):
+        violations = _scan_snippet(shadow_snippet, filepath=virtual_path)
+        qgr030 = [v for v in violations if v.rule_code == "QGR030"]
+        assert len(qgr030) == 2
+        assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)

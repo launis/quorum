@@ -958,12 +958,10 @@ async def test_assignment_edge_and_negative_branches() -> None:
     raw_token = assignment_service.get_last_generated_token(created.id)
     assert raw_token is not None
 
-    # Clear in-memory cache so entity_adapter persistence lookup branches are exercised
-    assignment_service._local_assignments.clear()
+    # Exercise entity_adapter persistence lookup branches
     preview = await assignment_service.preview_assignment(raw_token)
     assert preview.id == created.id
 
-    assignment_service._local_assignments.clear()
     fetched_list_root = await assignment_service.list_assignments(
         TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.ROOT, organization_id=None)
     )
@@ -1029,8 +1027,7 @@ async def test_assignment_edge_and_negative_branches() -> None:
         arq_pool=AsyncMock(),
     )
 
-    # Exercise get_assignment_by_execution_id from entity_adapter when local cache is cleared
-    assignment_service._local_assignments.clear()
+    # Exercise get_assignment_by_execution_id from entity_adapter
     by_exec = await assignment_service.get_assignment_by_execution_id(record.id)
     assert by_exec is not None
     assert by_exec.id == created.id

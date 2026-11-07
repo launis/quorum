@@ -2,19 +2,26 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import logging
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from backend_v2.database.interfaces import (
+    get_registered_uow_factory,
+    register_default_uow_factory,
+)
 from backend_v2.exceptions import (
     AppException,
+    ConfigurationError,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import (
+    ExecutionAssignmentCreateDTO,
     InvitationAcceptRequestDTO,
     InvitationBatchCreateDTO,
     InvitationCreateDTO,
@@ -29,15 +36,30 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import EmailDeliveryStatus, EntityPrefix, ExecutionStatus, InvitationStatus, SystemLocale
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.enums import (
+    EmailDeliveryStatus,
+    EntityPrefix,
+    ExecutionStatus,
+    HistoricalContextMode,
+    InvitationStatus,
+    StepType,
+    SystemLocale,
+)
 from backend_v2.services.auth import (
     AuthService,
     OrganizationRepository,
     OrganizationService,
     UserRepository,
+)
+from backend_v2.services.execution import (
+    ExecutionAssignmentService,
+    ExecutionIngressService,
 )
 from backend_v2.services.execution.ingress_service import create_execution_record
 from backend_v2.services.execution.lifecycle_service import ExecutionLifecycleService
@@ -46,6 +68,7 @@ from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
     InMemoryUnifiedWorkflowRepository,
 )
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.fixture
@@ -1327,7 +1350,9 @@ async def test_invitation_domain_allowlist_and_role_hierarchy_negative(
             InvitationAcceptRequestDTO(raw_token=raw_token),
         )
     assert exp_exc.value.error_code == ErrorCodes.INVITATION_EXPIRED.value
-    assert auth.org_service._local_invitations[inv_dto.id].status == InvitationStatus.REVOKED
+    revoked_inv = await auth.org_service._get_invitation_by_id(inv_dto.id)
+    assert revoked_inv is not None
+    assert revoked_inv.status == InvitationStatus.REVOKED
 
 
 @pytest.mark.asyncio
@@ -1465,3 +1490,241 @@ async def test_rbac_four_tier_matrix_boundaries_boundary(
     assert [e.id for e in await lifecycle.list_executions(viewer_tok)] == [exe_peer_id]
     assert {e.id for e in await lifecycle.list_executions(manager_tok)} == {exe_member_id, exe_peer_id}
     assert {e.id for e in await lifecycle.list_executions(admin_tok)} == {exe_member_id, exe_peer_id}
+
+
+@pytest.mark.asyncio
+async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Positive: Verify OrganizationService and ExecutionAssignmentService persist and retrieve via InMemoryUnitOfWork with zero _local_* attributes."""
+    # Phase 1, Step 1.3: Verify UoW persistence roundtrip with zero process-local shadow dicts
+    uow = InMemoryUnitOfWork()
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_id = generate_opaque_id(EntityPrefix.USER)
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    prf_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
+    stp_id = generate_opaque_id(EntityPrefix.STEP)
+
+    await mock_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="UoW Roundtrip Org",
+            is_active=True,
+            created_at=datetime.now(UTC),
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+            allowed_email_domains=[],
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=admin_id,
+            email="admin@uow-roundtrip.fi",
+            name="Admin",
+            role=UserRole.ADMIN,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.save_step(
+        Step(
+            id=stp_id,
+            slug="uow-step",
+            name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
+            type=StepType.LOGIC,
+            hook="my_hook",
+            mcp_tool_params={},
+        )
+    )
+    await mock_repo.save_workflow(
+        Workflow(
+            id=wf_id,
+            slug="uow-wf",
+            name="UoW Workflow",
+            description="Workflow for UoW assignment roundtrip",
+            status="active",
+            version=1,
+            default_strictness_level=50,
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            historical_context_mode=HistoricalContextMode.DISABLED,
+            expected_inputs=[
+                ExpectedInput(
+                    input_key="manager_context",
+                    label=I18nText(translations={"en": "Context", "fi": "Konteksti"}),
+                    required=True,
+                    is_chat_history=False,
+                    input_modes=["paste"],
+                    description=I18nText(translations={"en": "Context", "fi": "Konteksti"}),
+                ),
+                ExpectedInput(
+                    input_key="candidate_answer",
+                    label=I18nText(translations={"en": "Answer", "fi": "Vastaus"}),
+                    required=True,
+                    is_chat_history=False,
+                    input_modes=["paste"],
+                    description=I18nText(translations={"en": "Answer", "fi": "Vastaus"}),
+                ),
+            ],
+            steps=[
+                StepRule(
+                    id=stp_id,
+                    task_blueprint=stp_id,
+                )
+            ],
+            default_profile_id=prf_id,
+        )
+    )
+    await mock_repo.save_output_profile(
+        OutputProfile(
+            id=prf_id,
+            slug="uow-prf",
+            name=I18nText(translations={"en": "Profile", "fi": "Profiili"}),
+            workflow_id=wf_id,
+            target_block_order=[],
+            visible_block_extensions=[],
+            visible_workflow_extensions=[],
+        )
+    )
+
+    org_repo = OrganizationRepository(mock_repo)
+    user_repo = UserRepository(mock_repo)
+    org_service = OrganizationService(
+        org_repo=org_repo,
+        user_repo=user_repo,
+        entity_adapter=None,
+        uow_factory=lambda: uow,
+    )
+    ingress_service = ExecutionIngressService(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+    assignment_service = ExecutionAssignmentService(
+        ingress_service=ingress_service,
+        org_repo=org_repo,
+        user_repo=user_repo,
+        workflow_repo=mock_repo,
+        entity_adapter=None,
+        uow_factory=lambda: uow,
+    )
+
+    assert not any(attr.startswith("_local_") for attr in dir(org_service))
+    assert not any(attr.startswith("_local_") for attr in dir(assignment_service))
+
+    admin_tok = TokenData(id=admin_id, role=UserRole.ADMIN, organization_id=org_id, email="admin@uow-roundtrip.fi")
+    inv_dto = await org_service.create_invitation(
+        admin_tok,
+        org_id,
+        InvitationCreateDTO(email="invitee@uow-roundtrip.fi", role=UserRole.MEMBER),
+    )
+    inv_raw_token = org_service.get_last_generated_token(inv_dto.id)
+    assert inv_raw_token is not None
+
+    persisted_inv = await uow.entities.get_invitation(inv_dto.id)
+    assert persisted_inv is not None
+    assert persisted_inv.email == "invitee@uow-roundtrip.fi"
+
+    listed_invs = await org_service.list_invitations(admin_tok, org_id)
+    assert [item.id for item in listed_invs] == [inv_dto.id]
+
+    fetched_inv = await org_service._get_invitation_by_id(inv_dto.id)
+    assert fetched_inv is not None
+    assert fetched_inv.id == inv_dto.id
+
+    asg_dto = await assignment_service.create_assignment(
+        initiator=admin_tok,
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="assignee@uow-roundtrip.fi",
+            workflow_id=wf_id,
+            output_profile_id=prf_id,
+            locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+            assignee_input_keys=["candidate_answer"],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
+        ),
+    )
+    asg_raw_token = assignment_service.get_last_generated_token(asg_dto.id)
+    assert asg_raw_token is not None
+
+    persisted_asg = await uow.entities.get_execution_assignment(asg_dto.id)
+    assert persisted_asg is not None
+    assert persisted_asg.id == asg_dto.id
+
+    preview_asg = await assignment_service.preview_assignment(asg_raw_token)
+    assert preview_asg.id == asg_dto.id
+
+    fetched_asg = await assignment_service._get_assignment_or_raise(asg_dto.id)
+    assert fetched_asg.id == asg_dto.id
+
+    listed_asgs = await assignment_service.list_assignments(admin_tok)
+    assert [item.id for item in listed_asgs] == [asg_dto.id]
+
+
+@pytest.mark.asyncio
+async def test_organization_and_assignment_services_fail_fast_when_uow_unconfigured(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Negative: Verify OrganizationService and ExecutionAssignmentService log CONFIGURATION_ERROR and raise ConfigurationError when persistence is unconfigured."""
+    # Phase 1, Step 1.3: Verify Fail-Fast ConfigurationError when entity_adapter and uow_factory are None
+    org_repo = OrganizationRepository(mock_repo)
+    user_repo = UserRepository(mock_repo)
+    org_service = OrganizationService(
+        org_repo=org_repo,
+        user_repo=user_repo,
+        entity_adapter=None,
+        uow_factory=None,
+    )
+    ingress_service = ExecutionIngressService(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+    assignment_service = ExecutionAssignmentService(
+        ingress_service=ingress_service,
+        org_repo=org_repo,
+        user_repo=user_repo,
+        workflow_repo=mock_repo,
+        entity_adapter=None,
+        uow_factory=None,
+    )
+
+    previous_factory = get_registered_uow_factory()
+    register_default_uow_factory(None)
+    try:
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(ConfigurationError) as org_exc,
+        ):
+            await org_service._get_invitation_by_id("inv_0195f3a0000070008000000000000001")
+        assert org_exc.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+        assert any(ErrorCodes.CONFIGURATION_ERROR.name in rec.getMessage() for rec in caplog.records)
+
+        with pytest.raises(ConfigurationError):
+            await org_service._list_org_invitations("org_0195f3a0000070008000000000000001")
+
+        with pytest.raises(ConfigurationError):
+            await org_service._find_invitation_by_token_hash("a" * 64)
+
+        caplog.clear()
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(ConfigurationError) as asg_exc,
+        ):
+            await assignment_service._get_assignment_or_raise("tsk_0195f3a0000070008000000000000001")
+        assert asg_exc.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+        assert any(ErrorCodes.CONFIGURATION_ERROR.name in rec.getMessage() for rec in caplog.records)
+
+        with pytest.raises(ConfigurationError):
+            await assignment_service._list_all_assignments()
+    finally:
+        register_default_uow_factory(previous_factory)

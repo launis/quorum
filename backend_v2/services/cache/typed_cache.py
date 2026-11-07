@@ -5,7 +5,7 @@ and auto-eviction firewall on ValidationError as mandated by Phase 6.
 """
 
 import logging
-from typing import Any
+from typing import Protocol
 
 from pydantic import BaseModel, ValidationError
 
@@ -14,19 +14,112 @@ from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["MCPGatewayCache", "TypedCacheService"]
+__all__ = [
+    "InMemoryRedisClient",
+    "MCPGatewayCache",
+    "RedisClientProtocol",
+    "TypedCacheService",
+]
+
+
+class RedisClientProtocol(Protocol):
+    """Protocol defining the asynchronous Redis key-value operations required by TypedCacheService."""
+
+    async def get(self, key: str) -> str | bytes | None:
+        """Retrieve a raw string or bytes value for a cache key.
+
+        Args:
+            key: Cache storage key.
+
+        Returns:
+            Cached serialized payload or None on cache miss.
+        """
+        ...
+
+    async def set(self, key: str, value: str, *, ex: int | None = None) -> object:
+        """Persist a serialized JSON payload under a cache key with an optional TTL.
+
+        Args:
+            key: Cache storage key.
+            value: Serialized JSON string.
+            ex: Optional expiration TTL in seconds.
+
+        Returns:
+            Driver acknowledgment result.
+        """
+        ...
+
+    async def delete(self, key: str) -> object:
+        """Delete a cache key.
+
+        Args:
+            key: Cache storage key to evict.
+
+        Returns:
+            Driver deletion result.
+        """
+        ...
+
+
+class InMemoryRedisClient:
+    """In-memory implementation of RedisClientProtocol for local and test TypedCacheService instances.
+
+    Attributes:
+        entries: Dictionary mapping cache keys to serialized JSON payloads.
+    """
+
+    def __init__(self) -> None:
+        """Initialize an empty in-memory Redis store."""
+        self.entries: dict[str, str] = {}
+
+    async def get(self, key: str) -> str | None:
+        """Retrieve a serialized JSON string for a cache key.
+
+        Args:
+            key: Cache storage key.
+
+        Returns:
+            Serialized JSON string if present, else None.
+        """
+        if key in self.entries:
+            return self.entries[key]
+        return None
+
+    async def set(self, key: str, value: str, *, ex: int | None = None) -> None:
+        """Store a serialized JSON string under a cache key.
+
+        Args:
+            key: Cache storage key.
+            value: Serialized JSON string.
+            ex: Optional expiration TTL in seconds.
+        """
+        _ = ex
+        self.entries[key] = value
+
+    async def delete(self, key: str) -> None:
+        """Delete a key from the in-memory store if present.
+
+        Args:
+            key: Cache storage key to delete.
+        """
+        if key in self.entries:
+            del self.entries[key]
 
 
 class TypedCacheService:
-    """Generic typed cache service wrapping Redis with Pydantic V2 serialization."""
+    """Generic typed cache service wrapping Redis with Pydantic V2 serialization.
 
-    def __init__(self, redis: Any | None = None) -> None:
+    Attributes:
+        redis: Optional RedisClientProtocol client instance.
+    """
+
+    def __init__(self, redis: RedisClientProtocol | None = None) -> None:
         """Initialize TypedCacheService with an optional Redis client.
 
         Args:
-            redis: Asynchronous Redis client instance or connection pool.
+            redis: Asynchronous Redis client instance implementing RedisClientProtocol.
         """
-        self.redis = redis
+        self.redis: RedisClientProtocol | None = redis
 
     async def get_cached[T: BaseModel](self, key: str, model_cls: type[T]) -> T | None:
         """Retrieve and validate a cached Pydantic model from Redis.
@@ -111,7 +204,8 @@ class TypedCacheService:
 class MCPGatewayCache:
     """Typed cache namespace for discovered SystemConfigMCPGateways tool manifests.
 
-    # Phase 2, Step 2.3: Register MCPGatewayCache with deterministic invalidation
+    Attributes:
+        cache_service: Underlying TypedCacheService instance.
     """
 
     KEY_PREFIX: str = "mcp_gateway:"
@@ -120,10 +214,12 @@ class MCPGatewayCache:
         """Initialize MCPGatewayCache with an underlying TypedCacheService.
 
         Args:
-            cache_service: Optional TypedCacheService instance wrapping Redis.
+            cache_service: Optional TypedCacheService instance wrapping RedisClientProtocol.
         """
-        self.cache_service = cache_service if cache_service is not None else TypedCacheService()
-        self._memory_entries: dict[str, str] = {}
+        # Phase 1, Step 1.3: Route all gateway caching exclusively through TypedCacheService
+        self.cache_service: TypedCacheService = (
+            cache_service if cache_service is not None else TypedCacheService(redis=InMemoryRedisClient())
+        )
 
     @classmethod
     def build_key(cls, gateway_id: str) -> str:
@@ -150,15 +246,7 @@ class MCPGatewayCache:
             AppException: With ErrorCodes.VALIDATION_FAILED if cached payload is corrupted.
         """
         key = self.build_key(gateway_id)
-        redis_hit = await self.cache_service.get_cached(key, SystemConfigMCPGateways)
-        if redis_hit is not None:
-            self._memory_entries[key] = redis_hit.model_dump_json()
-            return redis_hit
-
-        if key in self._memory_entries:
-            return SystemConfigMCPGateways.model_validate_json(self._memory_entries[key])
-
-        return None
+        return await self.cache_service.get_cached(key, SystemConfigMCPGateways)
 
     async def set_gateway(
         self,
@@ -172,7 +260,6 @@ class MCPGatewayCache:
             expire_seconds: Optional expiration TTL in seconds.
         """
         key = self.build_key(gateway.id)
-        self._memory_entries[key] = gateway.model_dump_json()
         await self.cache_service.set_cached(key, gateway, expire_seconds=expire_seconds)
 
     async def invalidate(self, gateway_id: str) -> None:
@@ -182,6 +269,4 @@ class MCPGatewayCache:
             gateway_id: Canonical Opaque Stripe ID of the gateway to evict.
         """
         key = self.build_key(gateway_id)
-        if key in self._memory_entries:
-            del self._memory_entries[key]
         await self.cache_service.delete(key)

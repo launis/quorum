@@ -8,15 +8,21 @@ import logging
 import secrets
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, NoReturn
 
 import jwt
 from pydantic import SecretStr
 
-from backend_v2.database.interfaces import EntityPersistencePort, IWorkflowRepository
+from backend_v2.database.interfaces import (
+    EntityPersistencePort,
+    IWorkflowRepository,
+    UnitOfWorkFactory,
+    get_registered_uow_factory,
+)
 from backend_v2.exceptions import (
     AppException,
     AuthenticationError,
+    ConfigurationError,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
@@ -143,6 +149,7 @@ class ExecutionAssignmentService:
         email_service: EmailService | None = None,
         audit_service: Any = None,
         entity_adapter: EntityPersistencePort | None = None,
+        uow_factory: UnitOfWorkFactory | None = None,
     ) -> None:
         """Initialize the ExecutionAssignmentService.
 
@@ -155,6 +162,7 @@ class ExecutionAssignmentService:
             email_service: Optional EmailService instance.
             audit_service: Optional audit logging service.
             entity_adapter: Optional hexagonal EntityPersistencePort for assignments.
+            uow_factory: Optional UnitOfWork factory for transactional assignment persistence.
         """
         self.ingress_service = ingress_service
         self.org_repo = org_repo
@@ -164,8 +172,33 @@ class ExecutionAssignmentService:
         self.email_service: EmailService = email_service if email_service is not None else EmailService()
         self.audit_service = audit_service
         self._entity_adapter: EntityPersistencePort | None = entity_adapter
-        self._local_assignments: dict[str, ExecutionAssignment] = {}
+        self._uow_factory: UnitOfWorkFactory | None = uow_factory
         self._last_generated_tokens: dict[str, str] = {}
+
+    def _resolve_uow_factory(self) -> UnitOfWorkFactory | None:
+        """Resolve explicit or globally registered UnitOfWork factory.
+
+        Returns:
+            Configured UnitOfWorkFactory callable or None.
+        """
+        return self._uow_factory if self._uow_factory is not None else get_registered_uow_factory()
+
+    @staticmethod
+    def _raise_unconfigured_persistence_error() -> NoReturn:
+        """Raise Fail-Fast ConfigurationError when no persistence port or UoW is configured.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR.
+        """
+        # Phase 1, Step 1.3: Enforce single-pipeline assignment persistence with zero local dict fallback
+        logger.error(
+            "[ExecutionAssignmentService] %s: ExecutionAssignmentService requires an entity_adapter or uow_factory.",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+        )
+        raise ConfigurationError(
+            message="ExecutionAssignmentService requires an entity_adapter or uow_factory for assignment persistence.",
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
 
     def get_last_generated_token(self, assignment_id: str) -> str | None:
         """Return the raw token generated for an assignment ID in test/local workflows.
@@ -644,16 +677,14 @@ class ExecutionAssignmentService:
 
         Returns:
             Matching ExecutionAssignment or None.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        for local_item in self._local_assignments.values():
-            if local_item.execution_id == execution_id:
-                return local_item
-        if self._entity_adapter is not None:
-            persisted = await self._entity_adapter.list_execution_assignments()
-            for item in persisted:
-                if item.execution_id == execution_id:
-                    self._local_assignments[item.id] = item
-                    return item
+        persisted = await self._list_all_assignments()
+        for item in persisted:
+            if item.execution_id == execution_id:
+                return item
         return None
 
     async def _authorize_and_load_assignment_org(
@@ -1482,15 +1513,19 @@ class ExecutionAssignmentService:
             ExecutionAssignment domain model.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if assignment does not exist.
         """
-        if assignment_id in self._local_assignments:
-            return self._local_assignments[assignment_id]
         if self._entity_adapter is not None:
             persisted = await self._entity_adapter.get_execution_assignment(assignment_id)
-            if persisted is not None:
-                self._local_assignments[persisted.id] = persisted
-                return persisted
+        else:
+            uow_factory = self._resolve_uow_factory()
+            if uow_factory is None:
+                self._raise_unconfigured_persistence_error()
+            async with uow_factory() as uow:
+                persisted = await uow.entities.get_execution_assignment(assignment_id)
+        if persisted is not None:
+            return persisted
         logger.error(
             "[ExecutionAssignmentService] %s: Assignment '%s' not found.",
             ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -1499,33 +1534,44 @@ class ExecutionAssignmentService:
         raise ResourceNotFoundError(resource_type="execution_assignment", resource_id=assignment_id)
 
     async def _save_assignment(self, assignment: ExecutionAssignment) -> None:
-        """Persist an ExecutionAssignment to local cache and EntityPersistencePort if configured.
+        """Persist an ExecutionAssignment to EntityPersistencePort or UnitOfWork.
 
         Args:
             assignment: Validated ExecutionAssignment domain model.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        self._local_assignments[assignment.id] = assignment
+        # Phase 1, Step 1.3: Route assignment persistence exclusively through entity_adapter or uow_factory
         if self._entity_adapter is not None:
             await self._entity_adapter.upsert_execution_assignment(assignment)
+            return
+        uow_factory = self._resolve_uow_factory()
+        if uow_factory is not None:
+            async with uow_factory() as uow:
+                await uow.entities.upsert_execution_assignment(assignment)
+            return
+        self._raise_unconfigured_persistence_error()
 
     async def _list_all_assignments(self, organization_id: str | None = None) -> list[ExecutionAssignment]:
-        """List all persisted and in-memory execution assignments.
+        """List all persisted execution assignments.
 
         Args:
             organization_id: Optional organization filter.
 
         Returns:
             List of ExecutionAssignment models.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        merged: dict[str, ExecutionAssignment] = {}
         if self._entity_adapter is not None:
-            persisted = await self._entity_adapter.list_execution_assignments(organization_id=organization_id)
-            for item in persisted:
-                merged[item.id] = item
-        for item_id, local_item in self._local_assignments.items():
-            if organization_id is None or local_item.organization_id == organization_id:
-                merged[item_id] = local_item
-        return list(merged.values())
+            return await self._entity_adapter.list_execution_assignments(organization_id=organization_id)
+        uow_factory = self._resolve_uow_factory()
+        if uow_factory is not None:
+            async with uow_factory() as uow:
+                return await uow.entities.list_execution_assignments(organization_id=organization_id)
+        self._raise_unconfigured_persistence_error()
 
     async def _find_assignment_by_token_hash(self, token_hash: str) -> ExecutionAssignment | None:
         """Locate an ExecutionAssignment matching the SHA-256 token digest in constant time.
@@ -1535,16 +1581,14 @@ class ExecutionAssignmentService:
 
         Returns:
             Matching ExecutionAssignment or None.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        for local_item in self._local_assignments.values():
-            if secrets.compare_digest(local_item.token_hash, token_hash):
-                return local_item
-        if self._entity_adapter is not None:
-            persisted = await self._entity_adapter.list_execution_assignments()
-            for item in persisted:
-                if secrets.compare_digest(item.token_hash, token_hash):
-                    self._local_assignments[item.id] = item
-                    return item
+        persisted = await self._list_all_assignments()
+        for item in persisted:
+            if secrets.compare_digest(item.token_hash, token_hash):
+                return item
         return None
 
     async def _log_audit(

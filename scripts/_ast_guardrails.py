@@ -32,7 +32,6 @@ __all__ = [
     "RESIDUAL_DEFAULT_VALUE_MODEL_FILES",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
     "RESIDUAL_FUTURE_PHASE_QGR028_FILES",
-    "RESIDUAL_LOCAL_SHADOW_STATE_FILES",
     "_find_direct_app_exception_raises",
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
@@ -219,15 +218,7 @@ RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
     }
 )
 
-# Residual exemption sets for QGR030 local shadow state and QGR020 model field defaults
-RESIDUAL_LOCAL_SHADOW_STATE_FILES: frozenset[str] = frozenset(
-    {
-        "backend_v2/services/auth/organization_service.py",
-        "backend_v2/services/cache/typed_cache.py",
-        "backend_v2/services/execution/assignment_service.py",
-    }
-)
-
+# Residual exemption set for QGR020 model field defaults
 RESIDUAL_DEFAULT_VALUE_MODEL_FILES: frozenset[str] = frozenset(
     {
         "backend_v2/models/auth.py",
@@ -2903,14 +2894,13 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         severity=GuardrailSeverity.FATAL,
                     )
 
-        # Phase 1, Step 1: QGR030 In-memory shadow state fallback attribute ban on AnnAssign in services
+        # Phase 1, Step 1.3: QGR030 In-memory shadow state fallback attribute ban on AnnAssign in services
         if (
             not self.is_guardrail_self
             and (
                 self._normalized_path.startswith("backend_v2/services/")
                 or "/backend_v2/services/" in self._normalized_path
             )
-            and not _matches_residual_set(self._normalized_path, RESIDUAL_LOCAL_SHADOW_STATE_FILES)
             and isinstance(node.target, ast.Attribute)
             and isinstance(node.target.value, ast.Name)
             and node.target.value.id == "self"
@@ -3000,14 +2990,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         severity=GuardrailSeverity.FATAL,
                     )
 
-        # Phase 1, Step 1: QGR030 In-memory shadow state fallback attribute ban on Assign in services
-        if (
-            not self.is_guardrail_self
-            and (
-                self._normalized_path.startswith("backend_v2/services/")
-                or "/backend_v2/services/" in self._normalized_path
-            )
-            and not _matches_residual_set(self._normalized_path, RESIDUAL_LOCAL_SHADOW_STATE_FILES)
+        # Phase 1, Step 1.3: QGR030 In-memory shadow state fallback attribute ban on Assign in services
+        if not self.is_guardrail_self and (
+            self._normalized_path.startswith("backend_v2/services/") or "/backend_v2/services/" in self._normalized_path
         ):
             for target in node.targets:
                 if (

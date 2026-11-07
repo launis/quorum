@@ -24,11 +24,11 @@
 **Plan:** @[docs/epic/tasks_EPIC_163/01_phase1_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/01_phase1_plan.md`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
   - [x] Step 1.1: PEP 257 Docstring Remediation (`QGR001`) & Unlogged `AppException` Dual-Reporting (`QGR002`)
   - [x] Step 1.2: Audit Script `C901` McCabe Complexity Decomposition & Per-File-Ignore Removal
-  - [ ] Step 1.3: Eradicate Process-Local Shadow State Fallbacks (`QGR030`) in Organization, Assignment & Cache Services
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 1.3: Eradicate Process-Local Shadow State Fallbacks (`QGR030`) in Organization, Assignment & Cache Services
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 2: Pydantic V2 Schema Strictness — Zero Silent Defaults (`QGR020` Check 20C) & 100% PEP 593 `Annotated` (`QGR020` Check 20B)
@@ -227,7 +227,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `REQ-163-001` | Add PEP 257 docstrings to 4 files (`QGR001`), add `logger.error` before `AppException` in `logging_config.py` (`QGR002`), and delete `RESIDUAL_MISSING_DOCSTRING_FILES` and `RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES` | Phase 1, Step 1.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-002` | Decompose C901 functions in `backend_audit_loop.py` and `flutter_audit_loop.py`, remove `[tool.ruff.lint.per-file-ignores]` from `pyproject.toml`, and empty `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS` | Phase 1, Step 1.2 | `audit_dict_eradication.py` & `ruff check` | `[x]` |
-| `REQ-163-003` | Eradicate `_local_invitations`, `_local_assignments`, and `_memory_entries` (`QGR030`) and delete `RESIDUAL_LOCAL_SHADOW_STATE_FILES` | Phase 1, Step 1.3 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-003` | Eradicate `_local_invitations`, `_local_assignments`, and `_memory_entries` (`QGR030`) and delete `RESIDUAL_LOCAL_SHADOW_STATE_FILES` | Phase 1, Step 1.3 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-004` | Remove all 14 silent identity, relational, and display field defaults across 8 files (`QGR020` Check 20C) and delete `RESIDUAL_DEFAULT_VALUE_MODEL_FILES` | Phase 2, Step 2.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-005` | Convert bare `Field(...)` declarations in core, exceptions, chunking, and domain models to PEP 593 `Annotated[T, Field(...)]` (`QGR020` Check 20B Batch 1) | Phase 2, Step 2.2 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-006` | Convert bare `Field(...)` declarations in DTOs, view, packer, and scripts to PEP 593 `Annotated[T, Field(...)]` and delete `RESIDUAL_BARE_FIELD_FILES` (`QGR020` Check 20B Batch 2) | Phase 2, Step 2.3 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
@@ -255,17 +255,21 @@
   - @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] (Phase 4: `QGR027` `JsonValue` Eradication)
   - @[docs/epic/tasks_EPIC_163/05_phase5_plan.md] (Phase 5: Flutter `DGR005` Open-JSON DTO & UI Consumer Eradication)
   - @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] (Phase 6: Worker Test Migration `Census F = 0` & Final E2E Verification Gate)
-- Completed Tier 0 Red-Teaming (`/tier0-research-plan`) on @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] with `CONVERGENCE ACHIEVED: 0 architectural defects found` (`audit_markdown_boundaries.py`, `audit_planner_output.py`, `audit_technical_debt.py --include-one-hop`, and `audit_tracker_output.py` all passed with `0` findings).
+- Completed Tier 0 Red-Teaming (`/tier0-research-plan`) and Tier 2 Execution (`/tier2-execute --full-auto`) for Phase 1 (@[docs/epic/tasks_EPIC_163/01_phase1_plan.md]):
+  - **Step 1.1 (`0ca707436`):** Restored PEP 257 module, class, and function docstrings across @[backend_v2/models/dtos/variance.py#L17-L38], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L83-L168], @[backend_v2/services/orchestrator/rag_preflight_service.py#L108-L325], and @[backend_v2/services/orchestrator/schema_factory.py#L39-L411]; added RFC 7807 `logger.error` calls with `ErrorCodes.CONFIGURATION_ERROR.name` before raising `AppException` in `setup_logging` (@[backend_v2/logging_config.py#L138-L282]); and deleted `RESIDUAL_MISSING_DOCSTRING_FILES` and `RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES` from @[scripts/_ast_guardrails.py].
+  - **Step 1.2 (`650c05504`):** Decomposed high-branching functions in @[scripts/backend_audit_loop.py] and @[scripts/flutter_audit_loop.py] so all functions achieve McCabe complexity $\le 10$ (well below $\le 15$), removed `[tool.ruff.lint.per-file-ignores]` from @[pyproject.toml], and set `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS = frozenset()` in @[scripts/audit_dict_eradication.py].
+  - **Step 1.3:** Eradicated process-local shadow state dictionaries (`self._local_invitations`, `self._local_assignments`, `self._memory_entries`) across @[backend_v2/services/auth/organization_service.py#L66-L1325], @[backend_v2/services/execution/assignment_service.py#L129-L1654], and @[backend_v2/services/cache/typed_cache.py#L109-L201]; routed all persistence through `entity_adapter` / `uow_factory` (`get_registered_uow_factory()`) and `TypedCacheService` (`RedisClientProtocol` / `InMemoryRedisClient`); deleted `RESIDUAL_LOCAL_SHADOW_STATE_FILES` from @[scripts/_ast_guardrails.py]; and verified all 6 Phase 1 test contracts and the full Phase 1 `<validation_gate>` with 0 errors and >90% test coverage.
 
 ## Learned
-- In `RESIDUAL_MISSING_DOCSTRING_FILES`, `@[backend_v2/models/dtos/variance.py#L17-L38]`, `@[backend_v2/services/orchestrator/extraction_schema_factory.py#L171-L238]`, `@[backend_v2/services/orchestrator/rag_preflight_service.py#L108-L305]`, and `@[backend_v2/services/orchestrator/schema_factory.py#L39-L411]` place `from __future__ import annotations` on line 1 before the module docstring on line 3, causing `ast.get_docstring(module_node)` to return `None`. Moving the module docstring to line 1 before `from __future__ import annotations` resolves the module-level `QGR001` violation.
-- `QuorumUnitOfWork` (`@[backend_v2/database/interfaces.py#L437-L477]`) and `InMemoryUnitOfWork` (`@[backend_v2/tests/fakes/in_memory_uow.py#L1960-L2034]`) already implement all persistence methods for `OrganizationInvitation` and `ExecutionTaskAssignment`, enabling clean removal of `_local_invitations` and `_local_assignments` in Phase 1 Step 1.3.
+- In `RESIDUAL_MISSING_DOCSTRING_FILES`, @[backend_v2/models/dtos/variance.py#L17-L38], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L83-L168], @[backend_v2/services/orchestrator/rag_preflight_service.py#L108-L325], and @[backend_v2/services/orchestrator/schema_factory.py#L39-L411] placed `from __future__ import annotations` on line 1 before the module docstring on line 3, causing `ast.get_docstring(module_node)` to return `None`. Placing the module docstring at line 1 before `from __future__ import annotations` resolves the module-level `QGR001` violation.
+- `QuorumUnitOfWork` (@[backend_v2/database/interfaces.py#L437-L477]) and `InMemoryUnitOfWork` (@[backend_v2/tests/fakes/in_memory_uow.py#L1960-L2034]) natively implement all persistence methods for `OrganizationInvitation` and `ExecutionTaskAssignment`, enabling deterministic UoW persistence and Fail-Fast `ConfigurationError` when neither `entity_adapter` nor `uow_factory` is configured.
+- In @[backend_v2/tests/unit/scripts/test_flutter_audit_loop.py], `test_cli_micro_lib_leaf_directory_positive_and_negative` must patch `scripts.flutter_audit_loop.os.chdir` so multi-file `scripts/` pytest runs do not mutate the process working directory.
 
 ## Remaining
-- Execute Phase 1 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`), followed by `/tier8-audit-plan` on Phase 1, then sequentially execute Tier 0 Research and Tier 2 Execution across Phases 2 through 6, Post-Implementation Hardening, Architecture Documentation Sync, and Final Epic Audit.
+- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]` to audit Phase 1, then sequentially execute Tier 0 Research, Tier 2 Execution, and Tier 8 Audit across Phases 2 through 6, Post-Implementation Hardening, Architecture Documentation Sync, and Final Epic Audit.
 
 ## Resume Command
 ```text
-/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]
 ```
 

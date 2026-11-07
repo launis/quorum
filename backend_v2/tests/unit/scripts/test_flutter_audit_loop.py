@@ -486,7 +486,10 @@ def test_cli_micro_unit_test_failure_triggers_exit(mock_sub: MagicMock, mock_exi
 
 
 @patch("scripts.flutter_audit_loop.subprocess.run", return_value=_mock_completed_process(0))
-def test_cli_micro_lib_leaf_directory_positive_and_negative(mock_sub: MagicMock, tmp_path: Path) -> None:
+@patch("scripts.flutter_audit_loop.os.chdir")
+def test_cli_micro_lib_leaf_directory_positive_and_negative(
+    mock_chdir: MagicMock, mock_sub: MagicMock, tmp_path: Path
+) -> None:
     """Verify resolve_flutter_unit_test_files and --micro handle lib/ leaf directories positively and negatively."""
     client_app = tmp_path / "client_app_v2"
     feature_dir = client_app / "lib" / "features" / "studio"
@@ -505,6 +508,7 @@ def test_cli_micro_lib_leaf_directory_positive_and_negative(mock_sub: MagicMock,
         main(["client_app_v2/lib/features/studio", "--micro"])
         calls = [c[0][0] for c in mock_sub.call_args_list]
         assert ["flutter", "test", "test/unit/features/studio/studio_view_test.dart"] in calls
+        mock_chdir.assert_called_once_with(client_app)
 
     untested_dir = client_app / "lib" / "features" / "untested_leaf"
     untested_dir.mkdir(parents=True)

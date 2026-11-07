@@ -7,13 +7,18 @@ import hashlib
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, NoReturn
 
 from pydantic import SecretStr
 
-from backend_v2.database.interfaces import EntityPersistencePort
+from backend_v2.database.interfaces import (
+    EntityPersistencePort,
+    UnitOfWorkFactory,
+    get_registered_uow_factory,
+)
 from backend_v2.exceptions import (
     AppException,
+    ConfigurationError,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
@@ -81,6 +86,7 @@ class OrganizationService:
         user_creator: UserCreatorProtocol | None = None,
         email_service: EmailService | None = None,
         entity_adapter: EntityPersistencePort | None = None,
+        uow_factory: UnitOfWorkFactory | None = None,
     ) -> None:
         """Initialize the OrganizationService.
 
@@ -93,6 +99,7 @@ class OrganizationService:
             user_creator: Optional protocol handler for creating users.
             email_service: Optional EmailService instance for invitation dispatch.
             entity_adapter: Optional hexagonal entity persistence port for invitations.
+            uow_factory: Optional UnitOfWork factory for transactional invitation persistence.
         """
         self.org_repo = org_repo
         self.user_repo = user_repo
@@ -102,8 +109,33 @@ class OrganizationService:
         self.user_creator = user_creator
         self.email_service: EmailService = email_service if email_service is not None else EmailService()
         self._entity_adapter: EntityPersistencePort | None = entity_adapter
-        self._local_invitations: dict[str, Invitation] = {}
+        self._uow_factory: UnitOfWorkFactory | None = uow_factory
         self._last_generated_tokens: dict[str, str] = {}
+
+    def _resolve_uow_factory(self) -> UnitOfWorkFactory | None:
+        """Resolve explicit or globally registered UnitOfWork factory.
+
+        Returns:
+            Configured UnitOfWorkFactory callable or None.
+        """
+        return self._uow_factory if self._uow_factory is not None else get_registered_uow_factory()
+
+    @staticmethod
+    def _raise_unconfigured_persistence_error() -> NoReturn:
+        """Raise Fail-Fast ConfigurationError when no persistence port or UoW is configured.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR.
+        """
+        # Phase 1, Step 1.3: Enforce single-pipeline invitation persistence with zero local dict fallback
+        logger.error(
+            "[OrganizationService] %s: OrganizationService requires an entity_adapter or uow_factory.",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+        )
+        raise ConfigurationError(
+            message="OrganizationService requires an entity_adapter or uow_factory for invitation persistence.",
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
 
     def get_last_generated_token(self, invitation_id: str) -> str | None:
         """Return the raw token generated for an invitation ID in test/local workflows.
@@ -1169,14 +1201,24 @@ class OrganizationService:
         return new_user
 
     async def _save_invitation(self, invitation: Invitation) -> None:
-        """Persist an Invitation to the entity adapter (if configured) and local cache.
+        """Persist an Invitation to the entity adapter or UnitOfWork.
 
         Args:
             invitation: Validated Invitation model to store.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        self._local_invitations[invitation.id] = invitation
+        # Phase 1, Step 1.3: Route invitation persistence exclusively through entity_adapter or uow_factory
         if self._entity_adapter is not None:
             await self._entity_adapter.upsert_invitation(invitation)
+            return
+        uow_factory = self._resolve_uow_factory()
+        if uow_factory is not None:
+            async with uow_factory() as uow:
+                await uow.entities.upsert_invitation(invitation)
+            return
+        self._raise_unconfigured_persistence_error()
 
     async def _get_invitation_by_id(self, invitation_id: str) -> Invitation | None:
         """Fetch an Invitation by its canonical ID.
@@ -1186,12 +1228,17 @@ class OrganizationService:
 
         Returns:
             Invitation model if found, else None.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        if invitation_id in self._local_invitations:
-            return self._local_invitations[invitation_id]
         if self._entity_adapter is not None:
             return await self._entity_adapter.get_invitation(invitation_id)
-        return None
+        uow_factory = self._resolve_uow_factory()
+        if uow_factory is not None:
+            async with uow_factory() as uow:
+                return await uow.entities.get_invitation(invitation_id)
+        self._raise_unconfigured_persistence_error()
 
     async def _list_org_invitations(self, org_id: str) -> list[Invitation]:
         """List all invitations belonging to a specific organization.
@@ -1201,17 +1248,19 @@ class OrganizationService:
 
         Returns:
             List of Invitation models for the organization.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        merged: dict[str, Invitation] = {}
         if self._entity_adapter is not None:
             persisted = await self._entity_adapter.list_invitations(organization_id=org_id)
-            for item in persisted:
-                if item.organization_id == org_id:
-                    merged[item.id] = item
-        for inv_id, local_inv in self._local_invitations.items():
-            if local_inv.organization_id == org_id:
-                merged[inv_id] = local_inv
-        return list(merged.values())
+            return [item for item in persisted if item.organization_id == org_id]
+        uow_factory = self._resolve_uow_factory()
+        if uow_factory is not None:
+            async with uow_factory() as uow:
+                persisted = await uow.entities.list_invitations(organization_id=org_id)
+                return [item for item in persisted if item.organization_id == org_id]
+        self._raise_unconfigured_persistence_error()
 
     async def _get_active_pending_emails(self, *, org_id: str, now: datetime) -> set[str]:
         """Return lowercase email addresses that currently have an unexpired PENDING invitation in org_id.
@@ -1236,16 +1285,21 @@ class OrganizationService:
 
         Returns:
             Matching Invitation model if found, else None.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        for local_inv in self._local_invitations.values():
-            if secrets.compare_digest(local_inv.token_hash, token_hash):
-                return local_inv
         if self._entity_adapter is not None:
             persisted = await self._entity_adapter.list_invitations()
-            for item in persisted:
-                if secrets.compare_digest(item.token_hash, token_hash):
-                    self._local_invitations[item.id] = item
-                    return item
+        else:
+            uow_factory = self._resolve_uow_factory()
+            if uow_factory is None:
+                self._raise_unconfigured_persistence_error()
+            async with uow_factory() as uow:
+                persisted = await uow.entities.list_invitations()
+        for item in persisted:
+            if secrets.compare_digest(item.token_hash, token_hash):
+                return item
         return None
 
     @staticmethod
