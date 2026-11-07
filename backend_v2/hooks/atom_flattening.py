@@ -56,6 +56,11 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
     repo = deps.workflow_repo
     if not repo:
+        logger.error(
+            "[AtomFlatteningHook] %s: HookDependencies missing workflow_repo for step '%s'.",
+            ErrorCodes.EXECUTION_NOT_FOUND.name,
+            state.step_id,
+        )
         raise AppException(
             message="HookDependencies missing repository.",
             status_code=500,
@@ -78,6 +83,12 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
     sampling_limit_val = state.metadata.matrix_sampling_strategy
 
     if not isinstance(sampling_limit_val, int) or sampling_limit_val < 0:
+        logger.error(
+            "[AtomFlatteningHook] %s: Invalid matrix_sampling_strategy '%s' for step '%s'.",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            sampling_limit_val,
+            state.step_id,
+        )
         raise AppException(
             message=f"Invalid matrix_sampling_strategy '{sampling_limit_val}'. Exiting via Fail-Fast.",
             status_code=400,
@@ -94,7 +105,12 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
             block = PromptBlockAdapter.validate_python(raw_block, strict=False)
         except (ValidationError, ValueError) as e:
             msg = f"Strict Fail-Fast Enforced: Invalid legacy block format: {e}"
-            logger.error("[AtomFlatteningHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error(
+                "[AtomFlatteningHook] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             ) from e

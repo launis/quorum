@@ -107,7 +107,7 @@
   - [x] @[backend_v2/core/hook_registry.py]
   - [x] @[backend_v2/core/registry.py]
   - [x] @[backend_v2/exceptions.py]
-  - [ ] @[backend_v2/hooks/atom_flattening.py]
+  - [x] @[backend_v2/hooks/atom_flattening.py]
   - [ ] @[backend_v2/hooks/scoring/falsifier_hook.py]
   - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]
   - [ ] @[backend_v2/hooks/scoring/normalization_hook.py]

@@ -57,6 +57,10 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixP
                     TDAAssertion(
                         tda_id=f"tda_{score:016x}{i:016x}",
                         concept_description=f"Concept Atom {score}-{i}",
+                        facts_to_find=[],
+                        acceptance_criteria=[],
+                        anti_patterns=[],
+                        syntactic_anchors=[],
                         inverse_evidence=False,
                         aggregation_mode="EXISTS",
                         depends_on=(),
@@ -81,6 +85,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixP
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         scales=scales,
+        output_extensions=[],
     )
 
 
@@ -91,7 +96,7 @@ def base_hook_state() -> HookState:
         execution_id="exec_123",
         workflow_id="wf_123",
         task_blueprint="step_0123456789abcdef0123456789abcdef",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(matrix_sampling_strategy=1),
     )
@@ -107,7 +112,11 @@ def mock_step() -> Step:
         extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
         criteria_block_ids=["blk_0123456789abcdef0123456789abcdef", "blk_1123456789abcdef0123456789abcdef"],
         cognitive_tier=CognitiveTier.FAST,
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
         mcp_tool_params={},
+        expected_inputs=[],
     )
 
 
@@ -302,6 +311,10 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
     parent_tda = TDAAssertion(
         tda_id="tda_00000000000000010000000000000000",
         concept_description="Parent Root Assertion",
+        facts_to_find=[],
+        acceptance_criteria=[],
+        anti_patterns=[],
+        syntactic_anchors=[],
         inverse_evidence=False,
         aggregation_mode="EXISTS",
         depends_on=(),
@@ -309,6 +322,10 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
     child_tda = TDAAssertion(
         tda_id="tda_00000000000000010000000000000001",
         concept_description="Child Dependent Assertion",
+        facts_to_find=[],
+        acceptance_criteria=[],
+        anti_patterns=[],
+        syntactic_anchors=[],
         inverse_evidence=False,
         aggregation_mode="EXISTS",
         depends_on=(edge,),
@@ -326,6 +343,7 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         scales=[scale],
+        output_extensions=[],
     )
 
     repo = InMemoryUnifiedWorkflowRepository()
@@ -369,6 +387,10 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     atom_a = TDAAssertion(
         tda_id="tda_0000000000000001000000000000000a",
         concept_description="Root Atom A",
+        facts_to_find=[],
+        acceptance_criteria=[],
+        anti_patterns=[],
+        syntactic_anchors=[],
         inverse_evidence=False,
         aggregation_mode="EXISTS",
         depends_on=(),
@@ -376,6 +398,10 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     atom_b = TDAAssertion(
         tda_id="tda_0000000000000001000000000000000b",
         concept_description="Middle Atom B",
+        facts_to_find=[],
+        acceptance_criteria=[],
+        anti_patterns=[],
+        syntactic_anchors=[],
         inverse_evidence=False,
         aggregation_mode="EXISTS",
         depends_on=(edge_a_to_b,),
@@ -383,27 +409,43 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     atom_c = TDAAssertion(
         tda_id="tda_0000000000000001000000000000000c",
         concept_description="Leaf Atom C",
+        extraction_rule="  Extract Leaf Rule  ",
+        anchor_target="  Target Speaker Anchor  ",
+        facts_to_find=[],
+        acceptance_criteria=[],
+        anti_patterns=[],
+        syntactic_anchors=[],
         inverse_evidence=False,
         aggregation_mode="EXISTS",
         depends_on=(edge_b_to_c,),
     )
 
-    # Put all 3 atoms in scale 1 with 7 filler atoms (10 total)
+    # Place atom_a and atom_b in scale 1 with 8 filler atoms, and atom_c alone in scale 5
+    # so sampling_limit=1 deterministically selects atom_c from scale 5 and pulls B and A via closure.
     fillers = [
         TDAAssertion(
             tda_id=f"tda_0195f3a000007001{i:016x}",
             concept_description=f"Filler Atom {i}",
+            facts_to_find=[],
+            acceptance_criteria=[],
+            anti_patterns=[],
+            syntactic_anchors=[],
             inverse_evidence=False,
             aggregation_mode="EXISTS",
             depends_on=(),
         )
-        for i in range(1, 8)
+        for i in range(1, 9)
     ]
-    claim = MatrixClaim(
+    claim_1 = MatrixClaim(
         label=I18nText(translations={"en": "Scale 1", "fi": "Scale 1"}),
-        tda_assertions=[atom_a, atom_b, atom_c, *fillers],
+        tda_assertions=[atom_a, atom_b, *fillers],
     )
-    scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
+    claim_5 = MatrixClaim(
+        label=I18nText(translations={"en": "Scale 5", "fi": "Scale 5"}),
+        tda_assertions=[atom_c],
+    )
+    scale_1 = MatrixScale(score=1, ai_label="Level 1", claims=[claim_1])
+    scale_5 = MatrixScale(score=5, ai_label="Level 5", claims=[claim_5])
     mock_block = MatrixPromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="slug-transitive",
@@ -411,7 +453,8 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
-        scales=[scale],
+        scales=[scale_1, scale_5],
+        output_extensions=[],
     )
 
     repo = InMemoryUnifiedWorkflowRepository()
@@ -419,7 +462,7 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     await repo.create_prompt_block(mock_block)
     deps = _make_deps(workflow_repo=repo, comp_repo=repo)
 
-    # Use sampling strategy 1 (select 1 atom initially)
+    # Use sampling strategy 1 (select 1 atom per scale initially)
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=1)})
     result = await process_matrix_flattening(state, deps)
 
@@ -429,11 +472,9 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     shuffled = result.state_delta.delta.shuffled_atoms
     atom_ids = {a.atom_id for a in shuffled}
 
-    # If atom_c was selected, atom_b and atom_a MUST also be in the output set
-    if "tda_0000000000000001000000000000000c" in atom_ids:
-        assert "tda_0000000000000001000000000000000b" in atom_ids
-        assert "tda_0000000000000001000000000000000a" in atom_ids
-
-    # If atom_b was selected, atom_a MUST also be in the output set
-    if "tda_0000000000000001000000000000000b" in atom_ids:
-        assert "tda_0000000000000001000000000000000a" in atom_ids
+    assert "tda_0000000000000001000000000000000c" in atom_ids
+    assert "tda_0000000000000001000000000000000b" in atom_ids
+    assert "tda_0000000000000001000000000000000a" in atom_ids
+    leaf_atom = next(a for a in shuffled if a.atom_id == "tda_0000000000000001000000000000000c")
+    assert leaf_atom.extraction_rule == "Extract Leaf Rule"
+    assert leaf_atom.anchor_target == "Target Speaker Anchor"
