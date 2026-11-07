@@ -141,6 +141,7 @@ __all__ = [
     "SkillsArchitectureAuditor",
     "SkillsAuditFindingDTO",
     "SkillsAuditSummaryDTO",
+    "build_arg_parser",
     "discover_canonical_ki_artifacts",
     "main",
 ]
@@ -236,7 +237,7 @@ class SkillsAuditSummaryDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     verified_skills_count: Annotated[int, Field(ge=0, description="Number of valid SKILL.md files verified")]
-    verified_plugins_count: Annotated[int, Field(ge=0, description="Number of valid workspace plugins verified")] = 0
+    verified_plugins_count: Annotated[int, Field(ge=0, description="Number of valid workspace plugins verified")]
     always_on_total_bytes: Annotated[int, Field(ge=0, description="Total UTF-8 byte count of always_on rules")]
     findings: Annotated[list[SkillsAuditFindingDTO], Field(description="Accumulated audit findings")]
 
@@ -706,7 +707,8 @@ class SkillsArchitectureAuditor:
                 )
             )
 
-        url_and_args = [val for val in (entry.url, entry.serverUrl, *(entry.args or [])) if val is not None]
+        resolved_args = entry.args if entry.args is not None else ()
+        url_and_args = [val for val in (entry.url, entry.serverUrl, *resolved_args) if val is not None]
         for target_str in url_and_args:
             lowered = target_str.lower()
             if "localhost" in lowered or "127.0.0.1" in lowered:
