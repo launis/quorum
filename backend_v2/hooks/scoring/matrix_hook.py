@@ -422,6 +422,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                             eq_dto = QuoteEvidenceDTO(
                                                 source_quotes=ev_dto.source_quotes,
                                                 verified_source_ids=[],
+                                                unverified_aliases=[],
                                             )
                                             block_atom_quotes.append(eq_dto)
                                         elif (ev_dto.contextual_override and effective_override) or (
@@ -439,6 +440,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 QuoteEvidenceDTO(
                                                     source_quotes=(f"[OVERRIDE] {loc}: {rsn}",),
                                                     verified_source_ids=[],
+                                                    unverified_aliases=[],
                                                 )
                                             )
 
@@ -455,6 +457,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                         QuoteEvidenceDTO(
                                                             source_quotes=(f"[{ext_key_str.upper()}]: {ext_v}",),
                                                             verified_source_ids=[],
+                                                            unverified_aliases=[],
                                                         )
                                                     )
                                                     if ext_key_str not in block_matrix_extensions:

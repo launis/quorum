@@ -19,10 +19,11 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.hooks import scoring
 from backend_v2.models.auth import TokenData
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.execution import EvaluatedMatrixContextDTO, ExecutionRecord
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO, ContextVariableValue
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideDTO, HumanOverrideRequest
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataDTO
 from backend_v2.models.state import EvidenceOverrideDTO, TraceEvent
 from backend_v2.services import storage
 from backend_v2.services.file_driver import FileDriver
@@ -384,9 +385,13 @@ class ExecutionOverrideService:
             ),
         )
         event = TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=datetime.now(timezone.utc),
             step_name="manual_override",
             event_type="evidence_override",
             content={"atom_id": atom_id, "override": override_dto.model_dump(mode="json", exclude_none=True)},
+            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=[],
         )
         await self.exec_repo.append_trace_event(execution_id, event)
 
@@ -437,8 +442,12 @@ class ExecutionOverrideService:
             ),
         )
         event = TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=datetime.now(timezone.utc),
             step_name="manual_override",
             event_type="evidence_override",
             content=dto.model_dump(mode="json", exclude_none=True),
+            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=[],
         )
         await self.exec_repo.append_trace_event(execution_id, event)

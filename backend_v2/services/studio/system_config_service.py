@@ -14,6 +14,7 @@ from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     ModelProfile,
+    ProviderExtraParamsDTO,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
@@ -290,22 +291,30 @@ class StudioSystemConfigService:
                     provider="ai_studio",
                     model_name="gemini/gemini-2.5-flash",
                     temperature=0.2,
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
                 ),
                 CognitiveTier.BALANCED: ModelProfile(
                     provider="ai_studio",
                     model_name="gemini/gemini-2.5-flash",
                     temperature=0.4,
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
                 ),
                 CognitiveTier.DEEP: ModelProfile(
                     provider="ai_studio",
                     model_name="gemini/gemini-2.5-pro",
                     temperature=0.7,
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
                 ),
                 CognitiveTier.REASONING: ModelProfile(
                     provider="ai_studio",
                     model_name="gemini/gemini-2.5-pro",
                     temperature=1.0,
                     thinking_budget_tokens=4096,
+                    allowed_tools=[],
+                    additional_params=ProviderExtraParamsDTO(),
                 ),
             },
         )

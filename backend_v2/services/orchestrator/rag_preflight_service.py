@@ -83,7 +83,7 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> ExecutionInputs
             if isinstance(content, ExecutionInputsDTO):
                 return content
             if isinstance(content, WorkflowInputs):
-                return ExecutionInputsDTO(dynamic_inputs=content.dynamic_inputs)
+                return ExecutionInputsDTO(raw_inputs={}, dynamic_inputs=content.dynamic_inputs)
             if not isinstance(content, (str, int, float, bool, list, BaseModel)) and content is not None:
                 if (
                     "dynamic_inputs" in content
@@ -101,7 +101,7 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> ExecutionInputs
     if isinstance(exec_record.raw_inputs, ExecutionInputsDTO):
         return exec_record.raw_inputs
     if isinstance(exec_record.raw_inputs, WorkflowInputs):
-        return ExecutionInputsDTO(dynamic_inputs=exec_record.raw_inputs.dynamic_inputs)
+        return ExecutionInputsDTO(raw_inputs={}, dynamic_inputs=exec_record.raw_inputs.dynamic_inputs)
     return ExecutionInputsDTO.model_validate(exec_record.raw_inputs)
 
 

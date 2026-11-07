@@ -60,6 +60,8 @@ from backend_v2.models.domain.execution import (
     FrozenContext,
 )
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import (
     AssignmentResultVisibility,
     AssignmentStatus,
@@ -118,7 +120,13 @@ def redact_execution_for_confirmation_only(record: ExecutionRecord) -> Execution
         update={
             "profile_syntheses": {},
             "pdf_report_path": None,
-            "frozen_context": FrozenContext(),
+            "frozen_context": FrozenContext(
+                compiled_prompts={},
+                injected_theory=InjectedTheoryManifestDTO(theories={}),
+                generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+                ui_hints_snapshot={},
+                mcp_tool_audit=[],
+            ),
             "frozen_context_storage_path": None,
             "steps": redacted_steps,
             "step_states": redacted_step_states,
@@ -982,7 +990,7 @@ class ExecutionAssignmentService:
             target_locale=target_locale,
             locked_inputs=locked_inputs,
             assignee_input_keys=list(assignee_input_keys),
-            draft_inputs=WorkflowInputs(),
+            draft_inputs=WorkflowInputs(dynamic_inputs={}),
             token_hash=token_hash,
             status=AssignmentStatus.PENDING,
             email_delivery_status=EmailDeliveryStatus.PENDING,

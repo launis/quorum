@@ -1366,6 +1366,7 @@ def test_configure_llm_context_hook_success() -> None:
         mock_settings.return_value.model_registry = {
             "id": "reg_0123456789abcdef0123456789abcdef",
             "slug": "model_registry",
+            "name": "Default Model Registry",
             "type": "model_registry",
             "tier_definitions": {
                 "fast": {

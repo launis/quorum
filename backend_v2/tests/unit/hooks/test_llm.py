@@ -7,7 +7,6 @@ from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDependencies,
-    HookResult,
     HookState,
 )
 from backend_v2.exceptions import AppException
@@ -17,7 +16,7 @@ from backend_v2.models.llm import LLMProviderConfig
 
 
 def test_configure_llm_context_hook_no_state() -> None:
-    result = cast(HookResult, configure_llm_context_hook(None, MagicMock(spec=HookDependencies)))
+    result = configure_llm_context_hook(cast(HookState, None), MagicMock(spec=HookDependencies))
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta.delta is None
@@ -27,7 +26,7 @@ def test_configure_llm_context_hook_no_step_id() -> None:
     state = HookState(
         execution_id="exe1",
         workflow_id="wf1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -50,7 +49,7 @@ def test_configure_llm_context_hook_no_default_strategy(mock_get_settings: Magic
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -71,6 +70,7 @@ async def test_configure_llm_context_hook_valid(mock_get_settings: MagicMock) ->
     mock_settings.model_registry = {
         "id": "sys_abcdef0123456789abcdef0123456789",
         "slug": "sys_reg",
+        "name": "Default Model Registry",
         "type": "model_registry",
         "tier_definitions": {
             tier: {
@@ -92,14 +92,15 @@ async def test_configure_llm_context_hook_valid(mock_get_settings: MagicMock) ->
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 
-    result = cast(HookResult, configure_llm_context_hook(state, deps))
+    result = configure_llm_context_hook(state, deps)
     assert result.success is True
+    assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, LLMProviderConfig)
     assert result.state_delta.delta.model_name == "gpt-4o-mini"
 
@@ -135,6 +136,7 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
     mock_settings.model_registry = {
         "id": "sys_abcdef0123456789abcdef0123456789",
         "slug": "sys_reg",
+        "name": "Default Model Registry",
         "type": "model_registry",
         "tier_definitions": tier_defs,
     }
@@ -144,14 +146,15 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 
-    result = cast(HookResult, configure_llm_context_hook(state, deps))
+    result = configure_llm_context_hook(state, deps)
     assert result.success is True
+    assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, LLMProviderConfig)
     assert result.state_delta.delta.model_name == "gemini-2.0-flash"
 
@@ -167,7 +170,7 @@ def test_configure_llm_context_hook_missing_registry(mock_get_settings: MagicMoc
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -185,6 +188,7 @@ def test_configure_llm_context_hook_strategy_not_found(mock_get_settings: MagicM
     mock_settings.model_registry = {
         "id": "sys_abcdef0123456789abcdef0123456789",
         "slug": "sys_reg",
+        "name": "Default Model Registry",
         "type": "model_registry",
         "tier_definitions": {
             tier: {
@@ -205,7 +209,7 @@ def test_configure_llm_context_hook_strategy_not_found(mock_get_settings: MagicM
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -226,6 +230,7 @@ def test_configure_llm_context_hook_corrupt_registry(mock_get_settings: MagicMoc
     mock_settings.model_registry = {
         "id": "sys_abcdef0123456789abcdef0123456789",
         "slug": "sys_reg",
+        "name": "Default Model Registry",
         "type": "model_registry",
     }
     mock_get_settings.return_value = mock_settings
@@ -237,7 +242,7 @@ def test_configure_llm_context_hook_corrupt_registry(mock_get_settings: MagicMoc
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -259,6 +264,7 @@ def test_configure_llm_context_hook_tier_not_in_definitions(
     mock_settings.model_registry = {
         "id": "sys_abcdef0123456789abcdef0123456789",
         "slug": "sys_reg",
+        "name": "Default Model Registry",
         "type": "model_registry",
     }
     mock_get_settings.return_value = mock_settings
@@ -270,7 +276,7 @@ def test_configure_llm_context_hook_tier_not_in_definitions(
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -289,6 +295,7 @@ def test_configure_llm_context_hook_missing_limits(mock_get_settings: MagicMock)
     mock_settings.model_registry = {
         "id": "sys_abcdef0123456789abcdef0123456789",
         "slug": "sys_reg",
+        "name": "Default Model Registry",
         "type": "model_registry",
         "tier_definitions": {
             tier: {
@@ -309,7 +316,7 @@ def test_configure_llm_context_hook_missing_limits(mock_get_settings: MagicMock)
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -334,7 +341,7 @@ def test_configure_llm_context_hook_unexpected_exception(mock_get_settings: Magi
         execution_id="exe1",
         workflow_id="wf1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )

@@ -191,4 +191,5 @@ class SduiMapperService:
             metrics=metrics,
             status_theme=status_theme,
             inner_sdui_blocks=inner_blocks,
+            references=[],
         )

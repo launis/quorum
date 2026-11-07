@@ -6,6 +6,7 @@ import contextlib
 import logging
 import sys
 from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -16,9 +17,11 @@ from backend_v2.core.telemetry import get_tracer
 from backend_v2.database.interfaces import CausalReasoningPort
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
@@ -196,7 +199,13 @@ async def prepare_step_strategy_context(
                 # Phase 2, Step 2: Only emit matrix_reducer trace event when evaluated atoms exist
                 if lightweight_matrix.reduced_atoms:
                     reduce_event = TraceEvent(
-                        step_name="matrix_reducer", event_type="output", content=lightweight_matrix
+                        event_id=generate_uuid7(),
+                        timestamp=datetime.now(timezone.utc),
+                        step_name="matrix_reducer",
+                        event_type="output",
+                        content=lightweight_matrix,
+                        metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                        mcp_audit_traces=[],
                     )
                     async with _update_lock:
                         state.exec_record.execution_trace.append(reduce_event)
@@ -388,7 +397,15 @@ async def execute_dag_step_wrapper(
                 for snap_dto in reversed(state.projector.snapshot):
                     if snap_dto.step_id == step_id and isinstance(snap_dto.payload, CausalTdaFusionResultDTO):
                         enriched_fusion = snap_dto.payload.model_copy(update={"falsified_claims": falsified_claims})
-                        fusion_evt = TraceEvent(step_name=step_id, event_type="output", content=enriched_fusion)
+                        fusion_evt = TraceEvent(
+                            event_id=generate_uuid7(),
+                            timestamp=datetime.now(timezone.utc),
+                            step_name=step_id,
+                            event_type="output",
+                            content=enriched_fusion,
+                            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                            mcp_audit_traces=[],
+                        )
                         async with _update_lock:
                             state.exec_record.execution_trace.append(fusion_evt)
                             state.projector.apply_delta(fusion_evt)
@@ -405,7 +422,14 @@ async def execute_dag_step_wrapper(
             )
             err_content = {"error_code": err_code, "message": str(e)}
             error_evt = ErrorTraceEvent(
-                step_name=step_id, error_code=err_code, error_message=str(e), content=err_content
+                event_id=generate_uuid7(),
+                timestamp=datetime.now(timezone.utc),
+                step_name=step_id,
+                error_code=err_code,
+                error_message=str(e),
+                content=err_content,
+                metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                mcp_audit_traces=[],
             )
             state.exec_record.execution_trace.append(error_evt)
             state.projector.apply_delta(error_evt)

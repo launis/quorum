@@ -9,6 +9,8 @@ from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.services import storage
 from backend_v2.services.file_driver import FileDriver
 
@@ -113,6 +115,16 @@ class ExecutionContextService:
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 ) from strg_err
 
-        fc = record.frozen_context if record.frozen_context is not None else FrozenContext()
+        fc = (
+            record.frozen_context
+            if record.frozen_context is not None
+            else FrozenContext(
+                compiled_prompts={},
+                injected_theory=InjectedTheoryManifestDTO(theories={}),
+                generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+                ui_hints_snapshot={},
+                mcp_tool_audit=[],
+            )
+        )
         frozen_json = fc.model_dump_json(indent=2)
         return frozen_json.encode("utf-8"), f"frozen_context_{execution_id}.json"

@@ -468,7 +468,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     return HookResult(
         success=True,
         state_delta=HookDeltaDTO(
-            delta=ExecutionInputsDTO(raw_inputs=output_dict),
+            delta=ExecutionInputsDTO(raw_inputs=output_dict, dynamic_inputs={}),
             metadata_updates=ExecutionMetadataDeltaDTO(estimated_token_count=estimated_token_count),
         ),
     )

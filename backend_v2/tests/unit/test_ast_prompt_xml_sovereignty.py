@@ -87,10 +87,15 @@ def test_ast_matrix_prompt_block_scales_required() -> None:
         if isinstance(node, ast.ClassDef) and node.name == "MatrixPromptBlock":
             for stmt in node.body:
                 if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name) and stmt.target.id == "scales":
-                    if stmt.value and isinstance(stmt.value, ast.Call):
-                        for kw in stmt.value.keywords:
-                            if kw.arg == "min_length" and isinstance(kw.value, ast.Constant) and kw.value.value == 1:
-                                found_scales_constraint = True
+                    for sub in ast.walk(stmt):
+                        if isinstance(sub, ast.Call):
+                            for kw in sub.keywords:
+                                if (
+                                    kw.arg == "min_length"
+                                    and isinstance(kw.value, ast.Constant)
+                                    and kw.value.value == 1
+                                ):
+                                    found_scales_constraint = True
 
     assert found_scales_constraint, "MatrixPromptBlock does not enforce min_length=1 on scales"
 

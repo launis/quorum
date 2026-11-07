@@ -50,7 +50,7 @@ async def simulate_step(
     return await studio_simulation_service.simulate_step(
         current_user,
         data.step,
-        ExecutionInputsDTO(raw_inputs=data.mock_inputs),
+        ExecutionInputsDTO(raw_inputs=data.mock_inputs, dynamic_inputs={}),
         target_locale=data.target_locale,
         context_text=data.context_text,
     )

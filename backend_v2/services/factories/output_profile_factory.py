@@ -9,7 +9,7 @@ import re
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, generate_opaque_id
-from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.output_profile import STANDARD_MATRIX_VISIBLE_COLUMNS, OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import EntityPrefix, PresetView, TargetBlockType
 from backend_v2.settings import get_settings
@@ -160,6 +160,11 @@ def build_draft_output_profile(
             }
         ),
         user_role_label=I18nText(translations={"en": "Target Audience:", "fi": "Kohdeyleisö:"}),
+        visible_metadata=["date", "organization", "user", "scoring_engine", "strictness"],
+        matrix_visible_columns=list(STANDARD_MATRIX_VISIBLE_COLUMNS),
+        visible_block_extensions=[],
+        visible_workflow_extensions=[],
+        content_blocks=[],
         target_block_order=target_block_order,
         matrix_synthesis_groups=matrix_synthesis_groups,
         tone_instruction=DEFAULT_FACTORY_TONE_INSTRUCTION,

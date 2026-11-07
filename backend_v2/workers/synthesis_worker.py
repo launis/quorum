@@ -174,6 +174,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         status=ExecutionStatus.RUNNING,
                         progress=0,
                         has_warning=False,
+                        scorecard_atoms={},
                     )
                 new_states: dict[str, ExecutionStep] = {
                     k: v for k, v in exec_record_local.step_states.items() if isinstance(v, ExecutionStep)
@@ -237,7 +238,11 @@ async def generate_profile_synthesis_and_pdf_task(
             workflow_id=execution.workflow_id,
             metadata=hook_metadata,
             global_context_vars=GlobalContextVarsDTO(language=accept_language, profile_id=profile_id),
-            inputs=ExecutionInputsDTO(target_locale=accept_language, dynamic_inputs={"steps": final_inputs}),
+            inputs=ExecutionInputsDTO(
+                target_locale=accept_language,
+                raw_inputs={},
+                dynamic_inputs={"steps": final_inputs},
+            ),
         )
         hook_deps = HookDependencies(
             exec_repo=repo,

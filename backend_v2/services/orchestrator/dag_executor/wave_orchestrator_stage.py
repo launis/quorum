@@ -7,6 +7,7 @@ import contextlib
 import logging
 import sys
 from collections.abc import Callable, Coroutine
+from datetime import datetime, timezone
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -15,6 +16,7 @@ from pydantic import JsonValue, TypeAdapter
 from backend_v2.core.hook_registry import GlobalContextVarsDTO
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -22,6 +24,7 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -90,7 +93,17 @@ def _append_causal_fusion_and_cohesion_events(
     fusion_res = compute_causal_tda_fusion_result(
         upstream_graph, eval_m, atoms_arg, damp, state.workflow.expected_inputs
     )
-    events.append(TraceEvent(step_name=step_id, event_type="output", content={"fusion": fusion_res}))
+    events.append(
+        TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=datetime.now(timezone.utc),
+            step_name=step_id,
+            event_type="output",
+            content={"fusion": fusion_res},
+            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=[],
+        )
+    )
     if src_step_id not in state.evaluated_causal_sources:
         state.evaluated_causal_sources.add(src_step_id)
         # Phase 4, Step 4: Resolve cohesion_matrix_id and BARS TDAAssertion rows from step blueprint
@@ -105,14 +118,28 @@ def _append_causal_fusion_and_cohesion_events(
         a_res, h_refs, m_id = eval_dto.atom_results, eval_dto.hydrated_references, eval_dto.matrix_block_id
         events.append(
             TraceEvent(
+                event_id=generate_uuid7(),
+                timestamp=datetime.now(timezone.utc),
                 step_name=src_step_id,
                 event_type="output",
                 content={"results": a_res, "hydrated_references": h_refs, m_id: m_dump},
+                metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                mcp_audit_traces=[],
             )
         )
         gvar_evt = GlobalContextVarsDTO(evaluative_matrices={m_id: eval_dto.score_result.score})
         meta_upd = TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[])
-        events.append(TraceEvent(step_name=src_step_id, event_type="decision", metadata=meta_upd, content=gvar_evt))
+        events.append(
+            TraceEvent(
+                event_id=generate_uuid7(),
+                timestamp=datetime.now(timezone.utc),
+                step_name=src_step_id,
+                event_type="decision",
+                metadata=meta_upd,
+                content=gvar_evt,
+                mcp_audit_traces=[],
+            )
+        )
 
 
 def _merge_global_context_vars(state: WorkflowExecutionState, parsed: GlobalContextVarsDTO) -> bool:
@@ -177,7 +204,17 @@ async def _apply_step_events(
             base_meta = state.exec_record.metadata if state.exec_record.metadata is not None else default_meta
             updated_meta = base_meta.model_copy(update={"global_context_vars": state.global_context_vars})
             state.exec_record = state.exec_record.model_copy(update={"metadata": updated_meta})
-        base_fc = state.exec_record.frozen_context if state.exec_record.frozen_context is not None else FrozenContext()
+        base_fc = (
+            state.exec_record.frozen_context
+            if state.exec_record.frozen_context is not None
+            else FrozenContext(
+                compiled_prompts={},
+                injected_theory=InjectedTheoryManifestDTO(theories={}),
+                generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+                ui_hints_snapshot={},
+                mcp_tool_audit=[],
+            )
+        )
         new_mcp_traces = list(base_fc.mcp_tool_audit)
         if step_mcp_traces:
             new_unique = _deduplicate_mcp_traces(new_mcp_traces, step_mcp_traces)

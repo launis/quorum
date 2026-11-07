@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
@@ -32,6 +33,9 @@ from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptB
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import DataDictionaryField, SystemValidationRulesDTO
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.enums import ComponentType, EntityPrefix, ExecutionStatus
@@ -145,6 +149,7 @@ def create_execution_record(
         if step_states is not None:
             final_step_states = step_states
 
+        now_utc = datetime.now(timezone.utc)
         return ExecutionRecord(
             id=execution_id,
             workflow_id=workflow_id,
@@ -157,6 +162,12 @@ def create_execution_record(
             source_identity_manifest=source_identity_manifest,
             steps=final_steps,
             step_states=final_step_states,
+            execution_trace=[],
+            context_variables=ContextVariablesDTO(variables={}),
+            profile_syntheses={},
+            models_used={},
+            created_at=now_utc,
+            updated_at=now_utc,
             created_by=created_by,
             organization_id=organization_id,
             progress=None,
@@ -213,7 +224,12 @@ async def _generate_sdui_hints(
 
     for step_rule in workflow.steps:
         step_obj = await _load_and_validate_step_blueprint(workflow_repo, step_rule.task_blueprint)
-        st = ExecutionStep(id=step_rule.id, label=step_obj.name.resolve(target_locale), status=ExecutionStatus.PENDING)
+        st = ExecutionStep(
+            id=step_rule.id,
+            label=step_obj.name.resolve(target_locale),
+            status=ExecutionStatus.PENDING,
+            scorecard_atoms={},
+        )
         steps.append(st)
         step_states[step_rule.id] = st
         await _populate_step_prompt_block_hints(
@@ -740,7 +756,13 @@ class ExecutionIngressService:
             execution_id=execution_id,
             workflow_id=workflow.id,
             raw_inputs=WorkflowInputs.model_validate(payload.raw_inputs.model_dump(exclude_unset=True)),
-            frozen_context=FrozenContext(ui_hints_snapshot=sdui_hints.ui_hints),
+            frozen_context=FrozenContext(
+                compiled_prompts={},
+                injected_theory=InjectedTheoryManifestDTO(theories={}),
+                generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+                ui_hints_snapshot=sdui_hints.ui_hints,
+                mcp_tool_audit=[],
+            ),
             source_identity_manifest=source_identity_manifest,
             output_profile_id=resolved_profile_id,
             target_locale=payload.target_locale,

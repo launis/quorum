@@ -10,6 +10,7 @@ import json
 import logging
 import sys
 from collections.abc import Callable, Mapping
+from datetime import datetime, timezone
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -26,7 +27,7 @@ from backend_v2.core.telemetry import inject_trace_context
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.models.auth import User
 from backend_v2.models.core_base import I18nText, generate_uuid7
-from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.prompt_blocks import (
     AnyPromptBlock,
@@ -37,8 +38,11 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
-from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
+from backend_v2.models.dtos.trace import ProgressTracePayloadDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
@@ -392,7 +396,7 @@ async def bootstrap_workflow_execution_state(
         s_name = None if bp_def is None else bp_def.name
         raw_lbl = s_name if isinstance(s_name, str) and s_name.strip() else step.id
         step_label = s_name.resolve(target_loc) if isinstance(s_name, I18nText) else raw_lbl
-        steps.append(ExecutionStep(id=step.id, label=step_label, status=ExecutionStatus.PENDING))
+        steps.append(ExecutionStep(id=step.id, label=step_label, status=ExecutionStatus.PENDING, scorecard_atoms={}))
 
     step_states = {s.id: s for s in steps}
     default_meta = ExecutionMetadata(workflow_version=workflow.version, model_registry_id=workflow.model_registry_id)
@@ -415,8 +419,29 @@ async def bootstrap_workflow_execution_state(
     else:
         tel = default_meta.telemetry if default_meta.telemetry is not None else inject_trace_context()
         res_meta, def_prof = default_meta.model_copy(update={"telemetry": tel}), workflow.default_profile_id
+        now_utc = datetime.now(timezone.utc)
         rec_base = ExecutionRecord(
-            id=execution_id, workflow_id=workflow.id, target_locale="en", metadata=res_meta, raw_inputs=raw_inputs
+            id=execution_id,
+            workflow_id=workflow.id,
+            target_locale="en",
+            metadata=res_meta,
+            raw_inputs=raw_inputs,
+            execution_trace=[],
+            context_variables=ContextVariablesDTO(variables={}),
+            frozen_context=FrozenContext(
+                compiled_prompts={},
+                injected_theory=InjectedTheoryManifestDTO(theories={}),
+                generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+                ui_hints_snapshot={},
+                mcp_tool_audit=[],
+            ),
+            steps=[],
+            step_states={},
+            profile_syntheses={},
+            source_identity_manifest={},
+            models_used={},
+            created_at=now_utc,
+            updated_at=now_utc,
         )
         exec_record = rec_base.model_copy(
             update={"status": run_st, "steps": steps, "step_states": step_states, "output_profile_id": def_prof}
@@ -450,7 +475,15 @@ async def bootstrap_workflow_execution_state(
     for evt in exec_record.execution_trace:
         projector.apply_delta(evt)
     if not exec_record.execution_trace:
-        input_event = TraceEvent(step_name="raw_inputs", event_type="input", content=exec_record.raw_inputs)
+        input_event = TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=datetime.now(timezone.utc),
+            step_name="raw_inputs",
+            event_type="input",
+            content=exec_record.raw_inputs,
+            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=[],
+        )
         exec_record.execution_trace.append(input_event)
         projector.apply_delta(input_event)
         try:
@@ -469,7 +502,15 @@ async def bootstrap_workflow_execution_state(
                 delta_content = StepOutputContentDTO.model_validate(
                     {"data": _extract_input_delta_dict(processed_result.state_delta)}
                 )
-                proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
+                proc_event = TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(timezone.utc),
+                    step_name="inputs",
+                    event_type="input",
+                    content=delta_content,
+                    metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
+                )
                 exec_record.execution_trace.append(proc_event)
                 projector.apply_delta(proc_event)
         except Exception as e:
@@ -562,7 +603,15 @@ async def execute_rag_preflight_stage(
 
     async def _emit_preflight_progress(message: str, pct: int) -> None:
         prog_dto = ProgressTracePayloadDTO(message=message, progress_pct=pct)
-        evt = TraceEvent(step_name=vid, event_type="progress", content=prog_dto)
+        evt = TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=datetime.now(timezone.utc),
+            step_name=vid,
+            event_type="progress",
+            content=prog_dto,
+            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=[],
+        )
         async with _update_lock:
             state.exec_record.execution_trace.append(evt)
             state.projector.apply_delta(evt)

@@ -875,6 +875,7 @@ class StudioWorkflowService:
             role_block_id=None,
             extraction_protocol_block_id=protocol_block_id,
             criteria_block_ids=[default_criteria_id],
+            expected_inputs=[],
             pre_hooks=[],
             post_hooks=[],
             safety="safe",

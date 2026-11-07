@@ -245,7 +245,7 @@ class ReportView(V2CoreBase):
     title: Annotated[StrictStr, Field(description="Page title")]
     status_theme: Annotated[
         VisualIntent, Field(default=VisualIntent.SUCCESS, description="Visual theme: 'success' | 'warning' | 'danger'")
-    ]
+    ] = VisualIntent.SUCCESS
     # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     inner_sdui_blocks: Annotated[
         list[AnySduiBlock],

@@ -7,6 +7,7 @@ import dataclasses
 import logging
 import sys
 from collections.abc import Awaitable, Callable
+from datetime import datetime, timezone
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -15,10 +16,12 @@ from pydantic import ValidationError
 from backend_v2.core.hook_registry import GlobalContextVarsDTO
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import CognitiveTier, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
@@ -74,7 +77,14 @@ class NodeExecutor:
         logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step_id, str(exc), exc_info=True)
         return [
             ErrorTraceEvent(
-                step_name=step_id, error_code="STEP_FAILED", error_message=str(exc), content={"traceback": str(exc)}
+                event_id=generate_uuid7(),
+                timestamp=datetime.now(timezone.utc),
+                step_name=step_id,
+                error_code="STEP_FAILED",
+                error_message=str(exc),
+                content={"traceback": str(exc)},
+                metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                mcp_audit_traces=[],
             )
         ]
 
@@ -232,7 +242,9 @@ class NodeExecutor:
                     None if not isinstance(metadata, ExecutionMetadata) else metadata.model_registry_id
                 )
                 resolved_context_vars = (
-                    context_variables if isinstance(context_variables, ContextVariablesDTO) else ContextVariablesDTO()
+                    context_variables
+                    if isinstance(context_variables, ContextVariablesDTO)
+                    else ContextVariablesDTO(variables={})
                 )
                 resolved_cognitive_tier = (
                     step_def.cognitive_tier if step_def.cognitive_tier is not None else CognitiveTier.FAST
