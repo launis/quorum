@@ -23,7 +23,7 @@
   - [x] Step 2: Phase 1B: Extend audit_skills_architecture.py (SKL003) to Enforce 4-Way Dynamic KI, Rule, and Script Coverage
   - [x] Step 3: Phase 1C: Harden backend_audit_loop.py, flutter_audit_loop.py, and auto_hardening_runner.py Companion Test SSOT, Dynamic Tracker/Target Discovery, and Micro/Macro Gates
   - [x] Step 4: Phase 2: Synchronize .agents/rules/00-antigravity-core.md, tier2-hardening-backend/SKILL.md, and tier2-hardening-frontend/SKILL.md
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]`
 
 ### Post-Implementation Gates
 
@@ -58,7 +58,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -93,6 +93,7 @@
 - Executed Step 2 (Phase 1B — commit `b0d6129e7`): Extended `@[scripts/audit_skills_architecture.py]` (`SKL003`) with `discover_canonical_ki_artifacts`, `CANONICAL_KI_ARTIFACTS`, `PLACEHOLDER_KI_TOKENS`, and 4-way KI/rule/script coverage enforcement across `.agents/skills/*/SKILL.md` and `.agents/rules/*.md`.
 - Executed Step 3 (Phase 1C — commit `1a75d1c68`): Added `repo_root` and `f"test_{pkg_name}_init.py"` support to `discover_companion_test_targets`, wired `audit_dto_parity.py --fail-on-mismatch`, `audit_skills_architecture.py`, and `--micro` target-scoped `audit_dict_eradication.py` + `audit_technical_debt.py` in `@[scripts/backend_audit_loop.py]`; added `lib/` leaf directory `--micro` test resolution in `@[scripts/flutter_audit_loop.py]`; and replaced hardcoded `HISTORICAL_COMPLETED_TRACKERS` in `@[scripts/auto_hardening_runner.py]` with `discover_tracker_files`, `discover_completed_trackers`, `expand_dynamic_target_paths`, `discover_unhardened_targets` (`--discover`), and companion test SSOT delegation.
 - Executed Step 4 (Phase 2 — commit `c972c978f`): Synchronized `@[.agents/rules/00-antigravity-core.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, and `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, passing the 10-stage macro audit loop with `0` violations and >90% test coverage across all modified modules.
+- Executed Tier 8 Plan Audit (`/tier8-audit-plan`): Verified 100% physical implementation across all 14 target files and 12 requirements (`REQ-001` through `REQ-012`), synchronized AST line bounds in `@[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md]`, and verified `0` technical debt findings, `0` DTO parity mismatches, `0` `SKL001`–`SKL005` violations, and `100%` plan-tracker parity.
 
 ## Learned
 - Using `ast.parse(..., mode="eval").body` in AST unit test assertions avoids `ast.Expr` `.value` attribute narrowing issues without requiring `# type: ignore[attr-defined]`, preserving Census `T = 0` in `scripts/audit_warning_baseline.py`.
@@ -100,10 +101,10 @@
 - `discover_canonical_ki_artifacts` must use `rglob("ki_*.md")` because Antigravity Knowledge Item artifacts reside in nested `knowledge/<ki_name>/artifacts/` subdirectories.
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]`.
-- Execute `Tier 2 Hardening (Backend)` via `scripts/auto_hardening_runner.py` and `/tier7-describe-architecture` as listed in the Tracker gates.
+- Execute `Tier 2 Hardening (Backend)` via `scripts/auto_hardening_runner.py` across the 6 modified scripts (`scripts/_ast_guardrails.py`, `scripts/audit_skills_architecture.py`, `scripts/audit_technical_debt.py`, `scripts/auto_hardening_runner.py`, `scripts/backend_audit_loop.py`, `scripts/flutter_audit_loop.py`).
+- Execute `/tier7-describe-architecture @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md] @[ki_zero_permissive_typing.md]`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 ```
