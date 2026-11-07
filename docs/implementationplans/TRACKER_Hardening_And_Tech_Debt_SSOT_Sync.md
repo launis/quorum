@@ -35,13 +35,13 @@
   - [x] @[scripts/auto_hardening_runner.py]
   - [x] @[scripts/backend_audit_loop.py]
   - [x] @[scripts/flutter_audit_loop.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md] @[ki_zero_permissive_typing.md]
   ```
@@ -95,16 +95,18 @@
 - Executed Step 4 (Phase 2 — commit `c972c978f`): Synchronized `@[.agents/rules/00-antigravity-core.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, and `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, passing the 10-stage macro audit loop with `0` violations and >90% test coverage across all modified modules.
 - Executed Tier 8 Plan Audit (`/tier8-audit-plan`): Verified 100% physical implementation across all 14 target files and 12 requirements (`REQ-001` through `REQ-012`), synchronized AST line bounds in `@[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md]`, and verified `0` technical debt findings, `0` DTO parity mismatches, `0` `SKL001`–`SKL005` violations, and `100%` plan-tracker parity.
 
+- Executed Tier 2 Hardening (`scripts/auto_hardening_runner.py`): Hardened and verified all 6 modified scripts (`scripts/_ast_guardrails.py`, `scripts/audit_skills_architecture.py`, `scripts/audit_technical_debt.py`, `scripts/auto_hardening_runner.py`, `scripts/backend_audit_loop.py`, `scripts/flutter_audit_loop.py`).
+- Executed Tier 7 As-Built Architectural Sync (`/tier7-describe-architecture`): Synchronized `@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`, and `@[ki_zero_permissive_typing.md]` (along with their `metadata.json` files), updated `<module path="scripts/">` in `@[.agents/rules/04_directory_reference.md]`, and integrated the timeless architectural narratives into `@[docs/architecture/01_system_context_and_invariants.md]` and `@[docs/architecture/05_resilience_and_observability.md]`.
+
 ## Learned
 - Using `ast.parse(..., mode="eval").body` in AST unit test assertions avoids `ast.Expr` `.value` attribute narrowing issues without requiring `# type: ignore[attr-defined]`, preserving Census `T = 0` in `scripts/audit_warning_baseline.py`.
 - `parse_tracker_unhardened_targets` in `scripts/auto_hardening_runner.py` must check `has_ext = "." in Path(clean_path).name` before filtering by `.py`/`.dart` so extensionless directory targets in tracker checklists flow into `expand_dynamic_target_paths`.
 - `discover_canonical_ki_artifacts` must use `rglob("ki_*.md")` because Antigravity Knowledge Item artifacts reside in nested `knowledge/<ki_name>/artifacts/` subdirectories.
 
 ## Remaining
-- Execute `Tier 2 Hardening (Backend)` via `scripts/auto_hardening_runner.py` across the 6 modified scripts (`scripts/_ast_guardrails.py`, `scripts/audit_skills_architecture.py`, `scripts/audit_technical_debt.py`, `scripts/auto_hardening_runner.py`, `scripts/backend_audit_loop.py`, `scripts/flutter_audit_loop.py`).
-- Execute `/tier7-describe-architecture @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md] @[ki_zero_permissive_typing.md]`.
+- None — all plan steps, Tier 2 Hardening, Tier 8 Plan Audit, and Tier 7 As-Built Architecture Sync are 100% complete.
 
 ## Resume Command
 ```powershell
-$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_And_Tech_Debt_SSOT_Sync.md] @[docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md]
 ```

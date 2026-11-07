@@ -2666,27 +2666,27 @@
     },
     "scripts/_ast_guardrails.py": {
       "target_file": "scripts/_ast_guardrails.py",
-      "target_sha256": "9da0bc58616b994a19f1746caeb56360ce3d510dfd0572a01c5e79c2798257ac",
+      "target_sha256": "378db4d63d5107f5348f4a68b54fa3d6710fcd3f6a433e713c923e899c60b67c",
       "unit_test_sha256": "961c9fa6c5ef915ccfcf2a21c556fa8d092c996f444a1dbc354038c37ce0eea3",
-      "rules_sha256": "f7aed3d15c9916ef08293a3c9a61f02e63576b7456dd45954227ec1f7ad33db3",
-      "composite_sha256": "c77ce507599848e41ce047bf9fb935159ff0b2d969e71f9a6f3d14fd600adfea",
-      "source_tracker": "docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md"
+      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
+      "composite_sha256": "d5e17d041af242cc7f55ce186379fd0751c8ab9ba7fe53ddf72a877b4ccaa0c5",
+      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
     },
     "scripts/backend_audit_loop.py": {
       "target_file": "scripts/backend_audit_loop.py",
-      "target_sha256": "25018d0370e8a871a54b4dc1d42c6720e97839fac4c45d23c641f3273cd607dc",
-      "unit_test_sha256": "b83a10d2ae2516491bf0e0fb38c7b04b0b72e0302846a4b532f22c8571235b9e",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "6e0e803b2898abe18726baf349725b369499dca57ab980f82113da22ed7bbbfd",
-      "source_tracker": "docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md"
+      "target_sha256": "e4dcf464179a5626c0b990659dc8b29c73cca3d58bf14dd9e9d102d64b652451",
+      "unit_test_sha256": "c67aaab8660090ff5ff20850f202cde8e6d95b57d25715194c4ab243c1a88e25",
+      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
+      "composite_sha256": "6d6a944b7ba3d7960214b499130792adcb167d2f159ae87dc953f0fca9e52821",
+      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
     },
     "scripts/auto_hardening_runner.py": {
       "target_file": "scripts/auto_hardening_runner.py",
-      "target_sha256": "cfc2d0f5e7b360d8c65ddc653905b45bd9a87bc08475b03eb56ad544433dff7e",
-      "unit_test_sha256": "ff2521c13c9ecd0349dc4270054e73f8f88f10f73959eb2151cc03281b87138b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "99121c41b47c8262e8397abd1674a4478b7c4000f6f0f5f7fac77903e56f0aae",
-      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
+      "target_sha256": "7a4a730892198937adec7c4ff9d48681e35dfc98ef03a7bedcf5cd392b6960c3",
+      "unit_test_sha256": "21816745c2f0e68d0a82d1abe8f2b2ef005148232c163e277ee0b43da723dcd7",
+      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
+      "composite_sha256": "260db7ac1f63d1fac03f82dec9bb4389706cd77d94b5bb3a7b080bf664272eed",
+      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
     },
     "backend_v2/api/routers/studio/__init__.py": {
       "target_file": "backend_v2/api/routers/studio/__init__.py",
@@ -2938,11 +2938,11 @@
     },
     "scripts/flutter_audit_loop.py": {
       "target_file": "scripts/flutter_audit_loop.py",
-      "target_sha256": "223c416cc7af03cbfe54cc54b732c798dc36b84bdae6bd2e92c7e00821f2b436",
-      "unit_test_sha256": "3474696286e9a374757f3c4165d4b3aab368e4bd1249fdb59235dc239bf29dd7",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "18d90e94b12867a6c8cbe589653c89bb7eef0167e7a0b26e5813c0f1cb4f58c5",
-      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
+      "target_sha256": "9de27d69113fa4be16c89f2badb15815288d9e8d24dd1d13955d64204196ccb9",
+      "unit_test_sha256": "596ec127420826339cc5504d109cb6851327f41c3d7073e85445092390417611",
+      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
+      "composite_sha256": "bd099f9f0d9e4c773f629604db7088df1ab20700f77edfb825b242cc66f28f6e",
+      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
     },
     "client_app_v2/lib/router/router.dart": {
       "target_file": "client_app_v2/lib/router/router.dart",
@@ -4231,6 +4231,22 @@
       "rules_sha256": "90bc9101edc65af2552332094366b73b72158fbcf369ae55bb3f8a96d802e006",
       "composite_sha256": "ca780f348d69986d9666c81a3c81fe56ecbbbbde722ee22918ec000312c31d2c",
       "source_tracker": "docs/implementationplans/TRACKER_CANONICAL_ID_RELATIONS_AND_ZERO_FALLBACK_GUARDRAILS.md"
+    },
+    "scripts/audit_skills_architecture.py": {
+      "target_file": "scripts/audit_skills_architecture.py",
+      "target_sha256": "c1071e7358495eff652519290c3cf928f72f62bf558a92351ede011a6197e1e2",
+      "unit_test_sha256": "fa662a1c8bdffc553ddd7d36bfd2400a6f2db9271ca7084dc06521aeed7a650b",
+      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
+      "composite_sha256": "889648473d68e607f3747cde4bdc2dfb7975558dfd94ecb2b4171b3de653da25",
+      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
+    },
+    "scripts/audit_technical_debt.py": {
+      "target_file": "scripts/audit_technical_debt.py",
+      "target_sha256": "972e167fee09407b649853c1a867b84d83b1b4d5eb086be77953bedf8b9a2ee9",
+      "unit_test_sha256": "2d9ae85645f2dd76a8f8458e3e188f4c8819a89df077e4acd4dbf448ea5f69bd",
+      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
+      "composite_sha256": "4a2ba34d63e951b4dfe535d058a604e9fcf01aa414e991e5c59aed29d7e95972",
+      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
     }
   }
 }
