@@ -119,7 +119,7 @@
   - [x] @[backend_v2/models/chunking.py]
   - [x] @[backend_v2/models/domain/execution.py]
   - [x] @[backend_v2/models/domain/inputs.py]
-  - [ ] @[backend_v2/models/domain/matrix.py]
+  - [x] @[backend_v2/models/domain/matrix.py]
   - [ ] @[backend_v2/models/domain/metadata.py]
   - [ ] @[backend_v2/models/domain/output_profile.py]
   - [ ] @[backend_v2/models/domain/prompt_blocks.py]
