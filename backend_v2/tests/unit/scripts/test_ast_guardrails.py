@@ -7,6 +7,7 @@ comment suppression across multiline spans, CLI execution, and zero-reflection s
 from __future__ import annotations
 
 import ast
+import logging
 import sys
 import tokenize
 from pathlib import Path
@@ -14,6 +15,9 @@ from unittest.mock import patch
 
 import pytest
 
+import scripts._ast_guardrails as guardrails_mod
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.logging_config import setup_logging
 from scripts._ast_guardrails import (
     BOUNDARY_EXEMPTION_FILES,
     OPEN_JSON_EXEMPTION_FILES,
@@ -23,8 +27,6 @@ from scripts._ast_guardrails import (
     RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
     RESIDUAL_FUTURE_PHASE_QGR028_FILES,
     RESIDUAL_LOCAL_SHADOW_STATE_FILES,
-    RESIDUAL_MISSING_DOCSTRING_FILES,
-    RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES,
     GuardrailSeverity,
     GuardrailViolation,
     _find_nested_dict_subscript,
@@ -2500,8 +2502,6 @@ def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
         ("RESIDUAL_BARE_FIELD_FILES", RESIDUAL_BARE_FIELD_FILES),
         ("RESIDUAL_DEFAULT_VALUE_MODEL_FILES", RESIDUAL_DEFAULT_VALUE_MODEL_FILES),
         ("RESIDUAL_LOCAL_SHADOW_STATE_FILES", RESIDUAL_LOCAL_SHADOW_STATE_FILES),
-        ("RESIDUAL_MISSING_DOCSTRING_FILES", RESIDUAL_MISSING_DOCSTRING_FILES),
-        ("RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES", RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES),
     ]
     for set_name, file_set in exemption_sets:
         for path in file_set:
@@ -3197,3 +3197,43 @@ class ShadowService:
     qgr030 = [v for v in pipeline_violations if v.rule_code == "QGR030"]
     assert len(qgr030) == 4
     assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)
+
+
+def test_qgr001_and_qgr002_pass_with_zero_residual_exemptions() -> None:
+    """Positive: Verify variance.py, extraction_schema_factory.py, rag_preflight_service.py, schema_factory.py, and logging_config.py pass AST guardrails with zero docstring or unlogged AppException exemptions."""
+    # Phase 1, Step 1.1: Verify QGR001/QGR002/QGR033 pass with zero residual exemptions
+    assert "RESIDUAL_MISSING_DOCSTRING_FILES" not in dir(guardrails_mod)
+    assert "RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES" not in dir(guardrails_mod)
+
+    targets = [
+        REPO_ROOT / "backend_v2/models/dtos/variance.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/extraction_schema_factory.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/rag_preflight_service.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/schema_factory.py",
+        REPO_ROOT / "backend_v2/logging_config.py",
+    ]
+    for target in targets:
+        violations = scan_file_for_guardrails(target)
+        assert violations == [], f"Unexpected violations in {target}: {violations}"
+
+
+def test_setup_logging_logs_error_before_raising_app_exception_on_mkdir_failure(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Negative: Verify setup_logging logs structured logger.error with CONFIGURATION_ERROR before raising AppException when Path.mkdir fails."""
+    # Phase 1, Step 1.1: Verify RFC 7807 dual-reporting in setup_logging when mkdir raises OSError
+    with (
+        patch("backend_v2.logging_config.configure_logfire"),
+        patch("backend_v2.logging_config.Path.exists", return_value=False),
+        patch("backend_v2.logging_config.Path.mkdir", side_effect=OSError("Permission denied")),
+        caplog.at_level(logging.ERROR, logger="backend_v2.logging_config"),
+        pytest.raises(AppException) as exc_info,
+    ):
+        setup_logging()
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+    assert any(
+        ErrorCodes.CONFIGURATION_ERROR.name in record.getMessage() and "Permission denied" in record.getMessage()
+        for record in caplog.records
+    )

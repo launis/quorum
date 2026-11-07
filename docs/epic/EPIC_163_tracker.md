@@ -25,7 +25,7 @@
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/01_phase1_plan.md`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-  - [ ] Step 1.1: PEP 257 Docstring Remediation (`QGR001`) & Unlogged `AppException` Dual-Reporting (`QGR002`)
+  - [x] Step 1.1: PEP 257 Docstring Remediation (`QGR001`) & Unlogged `AppException` Dual-Reporting (`QGR002`)
   - [ ] Step 1.2: Audit Script `C901` McCabe Complexity Decomposition & Per-File-Ignore Removal
   - [ ] Step 1.3: Eradicate Process-Local Shadow State Fallbacks (`QGR030`) in Organization, Assignment & Cache Services
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -225,7 +225,7 @@
 
 | Requirement ID | Epic Requirement Summary | Target Phase & Step | Verification Gate | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `REQ-163-001` | Add PEP 257 docstrings to 4 files (`QGR001`), add `logger.error` before `AppException` in `logging_config.py` (`QGR002`), and delete `RESIDUAL_MISSING_DOCSTRING_FILES` and `RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES` | Phase 1, Step 1.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-001` | Add PEP 257 docstrings to 4 files (`QGR001`), add `logger.error` before `AppException` in `logging_config.py` (`QGR002`), and delete `RESIDUAL_MISSING_DOCSTRING_FILES` and `RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES` | Phase 1, Step 1.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-002` | Decompose C901 functions in `backend_audit_loop.py` and `flutter_audit_loop.py`, remove `[tool.ruff.lint.per-file-ignores]` from `pyproject.toml`, and empty `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS` | Phase 1, Step 1.2 | `audit_dict_eradication.py` & `ruff check` | `[ ]` |
 | `REQ-163-003` | Eradicate `_local_invitations`, `_local_assignments`, and `_memory_entries` (`QGR030`) and delete `RESIDUAL_LOCAL_SHADOW_STATE_FILES` | Phase 1, Step 1.3 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-004` | Remove all 14 silent identity, relational, and display field defaults across 8 files (`QGR020` Check 20C) and delete `RESIDUAL_DEFAULT_VALUE_MODEL_FILES` | Phase 2, Step 2.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |

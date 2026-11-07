@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Schema Factory for generating dynamic Pydantic schemas for LLM Structured Outputs.
 
 Extracts and centralizes all dynamic Pydantic model creation logic from the
 monolithic PromptCompiler, following SRP (Rule 88).
 """
+
+from __future__ import annotations
 
 import logging
 import re

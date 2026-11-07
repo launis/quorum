@@ -163,7 +163,15 @@ def setup_logging(log_level: int = logging.INFO) -> None:
         try:
             log_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
-            # FAIL FAST: Cannot start without logging capabilities
+            # Phase 1, Step 1.1: Log structured error before raising AppException per RFC 7807 Dual-Reporting
+            logging.getLogger(__name__).error(
+                "[LoggingConfig] %s: Failed to create log directory %s: %s",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                log_dir,
+                e,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            )
             raise AppException(
                 message=f"FAILED TO CREATE LOG DIRECTORY {log_dir}: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -257,7 +265,12 @@ def setup_logging(log_level: int = logging.INFO) -> None:
             _litellm.set_verbose = False
             _litellm.suppress_debug_info = True  # Suppress print statements
         except (RuntimeError, TypeError, ValueError, AttributeError) as e:
-            logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
+            # Phase 1, Step 1.1: Log structured error with error_code extra before raising AppException
+            logging.getLogger(__name__).error(
+                "Unexpected error configuring LiteLLM.",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            )
             raise AppException(
                 message="Failed to configure LiteLLM logging.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

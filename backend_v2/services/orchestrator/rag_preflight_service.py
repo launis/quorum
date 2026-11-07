@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Service for extracting knowledge during RAG Preflight."""
+
+from __future__ import annotations
 
 import logging
 import re
@@ -255,6 +255,16 @@ class RAGPreflightService:
                 bp: float = base_progress,
                 ls: float = local_slice,
             ) -> None:
+                """Emit scaled progress event during Phase 0 ontology mapping.
+
+                Args:
+                    completed: Number of completed Phase 0 items.
+                    total: Total number of Phase 0 items.
+                    pf: Zero-based index of currently processed file.
+                    tf: Total number of candidate files.
+                    bp: Base percentage progress before current file.
+                    ls: Percentage slice allocated to current file.
+                """
                 prog = int(bp + ((completed / total) * 0.3 * ls))
                 await emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Mapping)", prog)
 
@@ -270,6 +280,16 @@ class RAGPreflightService:
                 bp: float = base_progress,
                 ls: float = local_slice,
             ) -> None:
+                """Emit scaled progress event during Phase 1 draft atom reduction.
+
+                Args:
+                    completed: Number of completed Phase 1 items.
+                    total: Total number of Phase 1 items.
+                    pf: Zero-based index of currently processed file.
+                    tf: Total number of candidate files.
+                    bp: Base percentage progress before current file.
+                    ls: Percentage slice allocated to current file.
+                """
                 prog = int(bp + (0.3 * ls) + ((completed / total) * 0.7 * ls))
                 await emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Reducing)", prog)
 

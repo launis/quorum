@@ -33,8 +33,6 @@ __all__ = [
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
     "RESIDUAL_FUTURE_PHASE_QGR028_FILES",
     "RESIDUAL_LOCAL_SHADOW_STATE_FILES",
-    "RESIDUAL_MISSING_DOCSTRING_FILES",
-    "RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES",
     "_find_direct_app_exception_raises",
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
@@ -254,21 +252,6 @@ _ZERO_DEFAULT_FIELD_NAMES: frozenset[str] = frozenset(
         "updated_by",
         "created_by",
         "target_identifier",
-    }
-)
-
-RESIDUAL_MISSING_DOCSTRING_FILES: frozenset[str] = frozenset(
-    {
-        "backend_v2/models/dtos/variance.py",
-        "backend_v2/services/orchestrator/extraction_schema_factory.py",
-        "backend_v2/services/orchestrator/rag_preflight_service.py",
-        "backend_v2/services/orchestrator/schema_factory.py",
-    }
-)
-
-RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES: frozenset[str] = frozenset(
-    {
-        "backend_v2/logging_config.py",
     }
 )
 
@@ -837,6 +820,11 @@ def _function_has_error_log(fn_node: ast.FunctionDef | ast.AsyncFunctionDef) -> 
                     attr="error" | "critical" | "exception",
                 ) if "log" in recv_attr.lower():
                     return True
+                case ast.Attribute(
+                    value=ast.Call(func=ast.Attribute(attr=call_attr) | ast.Name(id=call_attr)),
+                    attr="error" | "critical" | "exception",
+                ) if "log" in call_attr.lower():
+                    return True
                 case ast.Name(id=fn_name) if "log_error" in fn_name or "_log_" in fn_name:
                     return True
                 case ast.Attribute(attr=attr_name) if "log_error" in attr_name or "_log_" in attr_name:
@@ -1199,7 +1187,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 not self._is_test_file
                 and self._is_domain_code
                 and ("backend_v2/" in norm_path or norm_path.startswith("backend_v2/"))
-                and not _matches_residual_set(norm_path, RESIDUAL_MISSING_DOCSTRING_FILES)
                 and not mod_doc
             ):
                 self._add_violation(
@@ -2772,12 +2759,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
 
-        if (
-            not self.is_guardrail_self
-            and self._is_domain_code
-            and not self._is_test_file
-            and not _matches_residual_set(self._normalized_path, RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES)
-        ):
+        if not self.is_guardrail_self and self._is_domain_code and not self._is_test_file:
             direct_raises = _find_direct_app_exception_raises(node)
             if direct_raises and not _function_has_error_log(node):
                 for raise_node in direct_raises:

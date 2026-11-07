@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Dynamic Pydantic model factory for Decoupled TDA Architecture.
 
 Constructs exact JSON schemas for LLM structured outputs dynamically at runtime,
 enforcing strict validation, deterministic sorting, and Zero-Compromise pledges.
 """
+
+from __future__ import annotations
 
 import logging
 import secrets

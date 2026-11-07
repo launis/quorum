@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Variance DTOs for Mechanical-Cognitive Variance Validation."""
+
+from __future__ import annotations
 
 from typing import Annotated
 
