@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import CognitiveTier, VirtualSystemStepID
@@ -231,6 +233,8 @@ def build_llm_step_trace_events(
         mcp_audit_traces=stage3.mcp_audit_traces,
     )
     output_event = TraceEvent(
+        event_id=generate_uuid7(),
+        timestamp=datetime.now(UTC),
         step_name=step.id,
         event_type="output",
         content=final_dict,

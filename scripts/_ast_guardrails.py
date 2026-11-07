@@ -28,8 +28,6 @@ __all__ = [
     "OPEN_JSON_EXEMPTION_FILES",
     "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
-    "RESIDUAL_BARE_FIELD_FILES",
-    "RESIDUAL_DEFAULT_VALUE_MODEL_FILES",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
     "RESIDUAL_FUTURE_PHASE_QGR028_FILES",
     "_find_direct_app_exception_raises",
@@ -183,52 +181,6 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
         "backend_v2/workers/execution_worker.py",
         "backend_v2/workers/synthesis_reducers.py",
         "backend_v2/workers/synthesis_worker.py",
-    }
-)
-
-# Self-verifying residual sets for QGR020 Check 20B and QGR033 Checks 33B/33C
-RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
-    {
-        "backend_v2/core/hook_registry.py",
-        "backend_v2/core/registry.py",
-        "backend_v2/exceptions.py",
-        "backend_v2/models/chunking.py",
-        "backend_v2/models/domain/execution.py",
-        "backend_v2/models/domain/inputs.py",
-        "backend_v2/models/domain/matrix.py",
-        "backend_v2/models/domain/output_profile.py",
-        "backend_v2/models/domain/prompt_blocks.py",
-        "backend_v2/models/domain/step.py",
-        "backend_v2/models/domain/system_config.py",
-        "backend_v2/models/domain/workflow.py",
-        "backend_v2/models/dtos/context_variables.py",
-        "backend_v2/models/dtos/engine.py",
-        "backend_v2/models/dtos/hook_state.py",
-        "backend_v2/models/dtos/quote_evidence.py",
-        "backend_v2/models/dtos/schema_manifest.py",
-        "backend_v2/models/dtos/theory_manifest.py",
-        "backend_v2/models/dtos/workflow_schema.py",
-        "backend_v2/models/execution_core.py",
-        "backend_v2/models/llm.py",
-        "backend_v2/models/state.py",
-        "backend_v2/models/view/sdui.py",
-        "backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py",
-        "scripts/diff_executions.py",
-        "scripts/reconcile_storage.py",
-    }
-)
-
-# Residual exemption set for QGR020 model field defaults
-RESIDUAL_DEFAULT_VALUE_MODEL_FILES: frozenset[str] = frozenset(
-    {
-        "backend_v2/models/auth.py",
-        "backend_v2/models/domain/metadata.py",
-        "backend_v2/models/domain/system_config.py",
-        "backend_v2/models/dtos/mcp.py",
-        "backend_v2/models/dtos/studio.py",
-        "backend_v2/models/view/sdui.py",
-        "backend_v2/utils/finops_trace_analyzer.py",
-        "scripts/ablation_live_executor.py",
     }
 )
 
@@ -2834,14 +2786,13 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
                     severity=GuardrailSeverity.FATAL,
                 )
-            # Phase 1, Step 1: QGR020 Check 20B - Bare Field(...) assignment without Annotated[T, Field(...)] on Pydantic classes
+            # Phase 2, Step 2.3: QGR020 Check 20B - Bare Field(...) assignment without Annotated[T, Field(...)] on Pydantic classes
             elif (
                 self._current_class_name in self._pydantic_base_classes_in_file
                 and self._function_depth == 0
                 and node.value is not None
                 and _is_field_call(node.value)
                 and not _has_annotated_field(node.annotation)
-                and not _matches_residual_set(self._normalized_path, RESIDUAL_BARE_FIELD_FILES)
             ):
                 self._add_violation(
                     node,
@@ -2850,7 +2801,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Wrap the field annotation in PEP 593 `Annotated[T, Field(...)]` per `pydantic_annotated_fields_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
-            # Phase 1, Step 1: QGR020 Ban non-None default values on identity, relational, slug, name, label, title, and storage_mode fields
+            # Phase 2, Step 2.3: QGR020 Ban non-None default values on identity, relational, slug, name, label, title, and storage_mode fields
             if (
                 not self.is_guardrail_self
                 and self._current_class_name in self._pydantic_base_classes_in_file
@@ -2858,7 +2809,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 and self._function_depth == 0
                 and isinstance(node.target, ast.Name)
                 and not _is_literal_discriminator_annotation(node.annotation)
-                and not _matches_residual_set(self._normalized_path, RESIDUAL_DEFAULT_VALUE_MODEL_FILES)
             ):
                 target_attr = node.target.id
                 if target_attr in _ZERO_DEFAULT_FIELD_NAMES or target_attr.endswith(("_id", "_ids")):

@@ -8,6 +8,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+from datetime import UTC, datetime
 from enum import Enum
 from typing import override
 
@@ -17,10 +18,12 @@ from pydantic import BaseModel, ValidationError
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, RawXAIExtensionDTO, ReducedAtomDTO
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TraceEvent
@@ -266,9 +269,13 @@ class SynthesisEngine(ExecutionEngine):
                     reason=starvation_reason,
                 )
                 starvation_event = TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=request.step.id,
                     event_type="output",
                     content=starvation_dto,
+                    metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
                 )
                 return EngineExecutionResult(
                     results=[],
@@ -360,9 +367,13 @@ class SynthesisEngine(ExecutionEngine):
 
             trace_events.append(
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=request.step.id,
                     event_type="output",
                     content=output_dict,
+                    metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
                 )
             )
 

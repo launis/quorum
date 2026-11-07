@@ -90,13 +90,14 @@ class ReasoningTrace(V2CoreBase):
     ]
     confidence_score: Annotated[float, Field(description="Confidence in the conclusion.")]
     model_name: Annotated[str | None, Field(default=None, description="The model used for reasoning.")] = None
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     token_usage: Annotated[
         TokenUsage,
-        "Token usage statistics.",
-    ] = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-        description="Token usage statistics.",
-    )
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Token usage statistics.",
+        ),
+    ]
 
     @field_validator("confidence_score", mode="after")
     @classmethod
@@ -160,18 +161,19 @@ class TraceEvent(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     event_id: Annotated[
         uuid.UUID,
-        "Unique event identifier.",
-    ] = Field(default_factory=generate_uuid7, description="Unique event identifier.")
+        Field(default_factory=generate_uuid7, description="Unique event identifier."),
+    ]
     v: Annotated[int, Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")] = 1
     timestamp: Annotated[
         datetime,
-        "Event timestamp.",
-    ] = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Event timestamp.",
-    )
+        Field(
+            default_factory=lambda: datetime.now(timezone.utc),
+            description="Event timestamp.",
+        ),
+    ]
 
     step_name: Annotated[
         str,
@@ -200,17 +202,18 @@ class TraceEvent(V2CoreBase):
         Field(default=None, description="Typed event payload"),
     ] = None
     reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Associated reasoning trace.")] = None
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     metadata: Annotated[
         TraceEventMetadataDTO,
-        "Additional metadata.",
-    ] = Field(
-        default_factory=lambda: TraceEventMetadataDTO(mcp_audit_traces=[]),
-        description="Additional metadata.",
-    )
+        Field(
+            default_factory=lambda: TraceEventMetadataDTO(mcp_audit_traces=[]),
+            description="Additional metadata.",
+        ),
+    ]
     mcp_audit_traces: Annotated[
         list[MCPAuditTrace],
-        "Associated MCP tool audit traces.",
-    ] = Field(default_factory=list, description="Associated MCP tool audit traces.")
+        Field(default_factory=list, description="Associated MCP tool audit traces."),
+    ]
 
 
 class ErrorTraceEvent(TraceEvent):

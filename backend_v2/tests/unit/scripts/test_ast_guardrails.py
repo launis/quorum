@@ -14,16 +14,19 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
 import scripts._ast_guardrails as guardrails_mod
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.logging_config import setup_logging
+from backend_v2.models.auth import TenantSecretDTO
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix, SecretScope, SecretStorageMode
+from backend_v2.models.view.sdui import ReportView
 from scripts._ast_guardrails import (
     BOUNDARY_EXEMPTION_FILES,
     OPEN_JSON_EXEMPTION_FILES,
     REPO_ROOT,
-    RESIDUAL_BARE_FIELD_FILES,
-    RESIDUAL_DEFAULT_VALUE_MODEL_FILES,
     RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
     RESIDUAL_FUTURE_PHASE_QGR028_FILES,
     GuardrailSeverity,
@@ -2498,8 +2501,6 @@ def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
         ("OPEN_JSON_EXEMPTION_FILES", OPEN_JSON_EXEMPTION_FILES),
         ("RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES", RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES),
         ("RESIDUAL_FUTURE_PHASE_QGR028_FILES", RESIDUAL_FUTURE_PHASE_QGR028_FILES),
-        ("RESIDUAL_BARE_FIELD_FILES", RESIDUAL_BARE_FIELD_FILES),
-        ("RESIDUAL_DEFAULT_VALUE_MODEL_FILES", RESIDUAL_DEFAULT_VALUE_MODEL_FILES),
     ]
     for set_name, file_set in exemption_sets:
         for path in file_set:
@@ -2696,8 +2697,8 @@ class SampleDTO(BaseModel):
 
 
 def test_qgr020_annotated_field_and_residual_exemption_allowed() -> None:
-    """QGR020 Check 20B: PEP 593 Annotated[T, Field(...)] and residual files pass cleanly."""
-    # Phase 1, Step 3: Verify Annotated[T, Field(...)] passes with 0 QGR020 violations
+    """QGR020 Check 20B: PEP 593 Annotated[T, Field(...)] passes cleanly while bare Field(...) raises FATAL everywhere."""
+    # Phase 2, Step 2.3: Verify Annotated[T, Field(...)] passes with 0 QGR020 violations and zero residual exemptions remain
     valid_code = '''"""Module docstring."""
 
 from typing import Annotated
@@ -2714,7 +2715,7 @@ class SampleDTO(BaseModel):
         v for v in _scan_snippet(valid_code, filepath="backend_v2/models/dtos/new_sample.py") if v.rule_code == "QGR020"
     ] == []
 
-    residual_code = '''"""Module docstring."""
+    bare_field_code = '''"""Module docstring."""
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -2725,11 +2726,16 @@ class LegacyDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
     count: int = Field(default=1)
 '''
-    assert [
-        v
-        for v in _scan_snippet(residual_code, filepath="backend_v2/models/domain/workflow.py")
-        if v.rule_code == "QGR020"
-    ] == []
+    assert (
+        len(
+            [
+                v
+                for v in _scan_snippet(bare_field_code, filepath="backend_v2/models/domain/workflow.py")
+                if v.rule_code == "QGR020" and v.severity == GuardrailSeverity.FATAL
+            ]
+        )
+        == 1
+    )
 
 
 def test_qgr032_model_factory_hardcoded_or_uuid4_id_raises_fatal() -> None:
@@ -3049,9 +3055,9 @@ def test_ast_guardrail_flags_string_literal_in_from_tier_as_fatal() -> None:
 
 
 def test_audit_database_atoms_removed_from_residual_bare_field_files() -> None:
-    """Verify scripts/audit_database_atoms.py is migrated to PEP 593 Annotated and removed from RESIDUAL_BARE_FIELD_FILES."""
-    # Phase 1, Step 1 (REQ-001): Confirm removal from RESIDUAL_BARE_FIELD_FILES and 0 AST violations
-    assert "scripts/audit_database_atoms.py" not in RESIDUAL_BARE_FIELD_FILES
+    """Verify scripts/audit_database_atoms.py is migrated to PEP 593 Annotated and RESIDUAL_BARE_FIELD_FILES is deleted."""
+    # Phase 2, Step 2.3 (REQ-163-006): Confirm RESIDUAL_BARE_FIELD_FILES deletion and 0 AST violations
+    assert "RESIDUAL_BARE_FIELD_FILES" not in dir(guardrails_mod)
     violations = scan_file_for_guardrails(REPO_ROOT / "scripts/audit_database_atoms.py")
     assert violations == []
 
@@ -3269,3 +3275,126 @@ class SampleShadowService:
         qgr030 = [v for v in violations if v.rule_code == "QGR030"]
         assert len(qgr030) == 2
         assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)
+
+
+def test_qgr020_passes_across_all_models_and_scripts_with_zero_residual_sets() -> None:
+    """Positive: Verify all 31 files previously in RESIDUAL_DEFAULT_VALUE_MODEL_FILES and RESIDUAL_BARE_FIELD_FILES pass QGR020 with zero residual sets."""
+    # Phase 2, Step 2.3: Verify RESIDUAL_DEFAULT_VALUE_MODEL_FILES and RESIDUAL_BARE_FIELD_FILES are deleted and all 31 files return 0 QGR020 violations
+    assert "RESIDUAL_DEFAULT_VALUE_MODEL_FILES" not in dir(guardrails_mod)
+    assert "RESIDUAL_BARE_FIELD_FILES" not in dir(guardrails_mod)
+
+    former_residual_paths = [
+        REPO_ROOT / "backend_v2/models/auth.py",
+        REPO_ROOT / "backend_v2/models/domain/metadata.py",
+        REPO_ROOT / "backend_v2/models/domain/system_config.py",
+        REPO_ROOT / "backend_v2/models/dtos/mcp.py",
+        REPO_ROOT / "backend_v2/models/dtos/studio.py",
+        REPO_ROOT / "backend_v2/models/view/sdui.py",
+        REPO_ROOT / "backend_v2/utils/finops_trace_analyzer.py",
+        REPO_ROOT / "scripts/ablation_live_executor.py",
+        REPO_ROOT / "backend_v2/core/hook_registry.py",
+        REPO_ROOT / "backend_v2/core/registry.py",
+        REPO_ROOT / "backend_v2/exceptions.py",
+        REPO_ROOT / "backend_v2/models/chunking.py",
+        REPO_ROOT / "backend_v2/models/domain/execution.py",
+        REPO_ROOT / "backend_v2/models/domain/inputs.py",
+        REPO_ROOT / "backend_v2/models/domain/matrix.py",
+        REPO_ROOT / "backend_v2/models/domain/output_profile.py",
+        REPO_ROOT / "backend_v2/models/domain/prompt_blocks.py",
+        REPO_ROOT / "backend_v2/models/domain/step.py",
+        REPO_ROOT / "backend_v2/models/domain/workflow.py",
+        REPO_ROOT / "backend_v2/models/dtos/context_variables.py",
+        REPO_ROOT / "backend_v2/models/dtos/engine.py",
+        REPO_ROOT / "backend_v2/models/dtos/hook_state.py",
+        REPO_ROOT / "backend_v2/models/dtos/quote_evidence.py",
+        REPO_ROOT / "backend_v2/models/dtos/schema_manifest.py",
+        REPO_ROOT / "backend_v2/models/dtos/theory_manifest.py",
+        REPO_ROOT / "backend_v2/models/dtos/workflow_schema.py",
+        REPO_ROOT / "backend_v2/models/execution_core.py",
+        REPO_ROOT / "backend_v2/models/llm.py",
+        REPO_ROOT / "backend_v2/models/state.py",
+        REPO_ROOT / "backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py",
+        REPO_ROOT / "scripts/diff_executions.py",
+        REPO_ROOT / "scripts/reconcile_storage.py",
+    ]
+    assert len(set(former_residual_paths)) == 32
+    violations, _ = scan_files_for_guardrails(former_residual_paths, strict=True)
+    qgr020_violations = [v for v in violations if v.rule_code == "QGR020"]
+    assert qgr020_violations == [], f"Unexpected QGR020 violations:\n{format_violations_table(qgr020_violations)}"
+
+
+def test_report_view_and_tenant_secret_dto_reject_missing_required_fields() -> None:
+    """Negative: Verify ReportView without title and TenantSecretDTO without storage_mode or updated_by raise ValidationError immediately."""
+    # Phase 2, Step 2.1: Verify silent defaults are removed from ReportView and TenantSecretDTO
+    with pytest.raises(ValidationError):
+        ReportView.model_validate({"view_id": generate_opaque_id(EntityPrefix.EXECUTION)})
+
+    with pytest.raises(ValidationError):
+        TenantSecretDTO.model_validate(
+            {
+                "id": generate_opaque_id(EntityPrefix.TENANT_SECRET),
+                "organization_id": generate_opaque_id(EntityPrefix.ORGANIZATION),
+                "scope": SecretScope.LLM_PROVIDER,
+                "target_identifier": "openai",
+                "masked_value": "****1234",
+                "updated_by": generate_opaque_id(EntityPrefix.USER),
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        TenantSecretDTO.model_validate(
+            {
+                "id": generate_opaque_id(EntityPrefix.TENANT_SECRET),
+                "organization_id": generate_opaque_id(EntityPrefix.ORGANIZATION),
+                "scope": SecretScope.LLM_PROVIDER,
+                "target_identifier": "openai",
+                "masked_value": "****1234",
+                "storage_mode": SecretStorageMode.ENVELOPE_KMS,
+            }
+        )
+
+
+def test_qgr020_flags_bare_field_assignment_as_fatal() -> None:
+    """Negative: Verify QGR020 Check 20B flags bare count: int = Field(default=0, description='Count') as FATAL."""
+    # Phase 2, Step 2.3: Verify bare Field(...) assignment triggers QGR020 Check 20B FATAL violation
+    snippet = '''"""Model snippet with bare Field assignment."""
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class SampleBareFieldModel(BaseModel):
+    """Sample model."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    count: int = Field(default=0, description="Count")
+'''
+    violations = scan_source_code_for_guardrails("backend_v2/models/view/sdui.py", snippet.encode("utf-8"))
+    qgr020 = [v for v in violations if v.rule_code == "QGR020"]
+    assert len(qgr020) == 1
+    assert qgr020[0].severity == GuardrailSeverity.FATAL
+    assert "Bare `= Field(...)` assignment without PEP 593 `Annotated[...]`" in qgr020[0].message
+
+
+def test_qgr020_flags_silent_string_default_on_identity_field_as_fatal() -> None:
+    """Boundary: Verify QGR020 Check 20C flags title: Annotated[str, Field(default='', description='Title')] = '' as FATAL."""
+    # Phase 2, Step 2.3: Verify silent string default on title triggers QGR020 Check 20C FATAL violation
+    snippet = '''"""Model snippet with silent string default on title."""
+
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class SampleSilentDefaultModel(BaseModel):
+    """Sample model."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    title: Annotated[str, Field(default="", description="Title")] = ""
+'''
+    violations = scan_source_code_for_guardrails("backend_v2/models/view/sdui.py", snippet.encode("utf-8"))
+    qgr020 = [v for v in violations if v.rule_code == "QGR020"]
+    assert len(qgr020) == 1
+    assert qgr020[0].severity == GuardrailSeverity.FATAL
+    assert (
+        "Banned default value on identity, relational, slug, name, label, title, or storage_mode field"
+        in qgr020[0].message
+    )

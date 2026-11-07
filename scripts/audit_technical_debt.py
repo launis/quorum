@@ -29,11 +29,9 @@ if _workspace_root not in sys.path:
 
 from scripts._ast_boundary_utils import extract_target_files
 from scripts._ast_guardrails import (
-    RESIDUAL_BARE_FIELD_FILES,
     _has_annotated_field,
     _is_annotated_subscript,
     _is_field_call,
-    _matches_residual_set,
     is_boundary_exempt,
     is_exempt_dict_get_call,
 )
@@ -301,11 +299,7 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                         )
                     )
                 if (
-                    _has_annotated_field(item.annotation)
-                    or (
-                        _is_annotated_subscript(item.annotation)
-                        and not _matches_residual_set(self.normalized_path, RESIDUAL_BARE_FIELD_FILES)
-                    )
+                    _has_annotated_field(item.annotation) or _is_annotated_subscript(item.annotation)
                 ) and _is_field_call(item.value):
                     self.findings.append(
                         TechnicalDebtFindingDTO(

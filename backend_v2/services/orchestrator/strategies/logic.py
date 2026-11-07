@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, JsonValue
@@ -13,12 +14,13 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.node_execution import LogicEvaluationContextDTO, LogicNodeStateDTO
-from backend_v2.models.dtos.trace import ProgressTracePayloadDTO, TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import ProgressTracePayloadDTO, TraceEventMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import VirtualSystemStepID
 from backend_v2.models.state import StateProjector, StepOutputDTO, TraceEvent
 from backend_v2.services.orchestrator.state_reducer import reduce_hook_delta
@@ -223,9 +225,13 @@ class LogicNodeStrategy(NodeStrategy):
             + post_events
             + [
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=step.id,
                     event_type="output",
                     content=final_outputs,
+                    metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
                 )
             ]
         )

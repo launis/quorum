@@ -245,6 +245,7 @@ class TestLoadInputsAndKeyMatching:
                 is_chat_history=True,
                 input_modes=["file", "paste"],
                 description=I18nText(translations={"en": "Chat history", "fi": "Keskusteluhistoria"}),
+                questionnaire_definition=[],
             ),
             ExpectedInput(
                 input_key="product_text",
@@ -258,6 +259,7 @@ class TestLoadInputsAndKeyMatching:
                 is_chat_history=False,
                 input_modes=["file", "paste"],
                 description=I18nText(translations={"en": "Final product", "fi": "Lopputuote"}),
+                questionnaire_definition=[],
             ),
             ExpectedInput(
                 input_key="reflection_text",
@@ -271,6 +273,7 @@ class TestLoadInputsAndKeyMatching:
                 is_chat_history=False,
                 input_modes=["file", "paste"],
                 description=I18nText(translations={"en": "Reflection document", "fi": "Reflektiodokumentti"}),
+                questionnaire_definition=[],
             ),
         ]
 
@@ -1366,6 +1369,7 @@ class TestKeyMatchingAndInputLoadingEdgeCases:
                 description=desc,
                 input_modes=["file"],
                 required=True,
+                questionnaire_definition=[],
             ),
             ExpectedInput(
                 input_key="slota",
@@ -1373,6 +1377,7 @@ class TestKeyMatchingAndInputLoadingEdgeCases:
                 description=desc,
                 input_modes=["file"],
                 required=True,
+                questionnaire_definition=[],
             ),
         ]
         with pytest.raises(ValueError, match="Ambiguous Tier 1 match"):
@@ -1387,6 +1392,7 @@ class TestKeyMatchingAndInputLoadingEdgeCases:
                 description=I18nText(translations={"en": "Chat description"}),
                 input_modes=["file"],
                 required=True,
+                questionnaire_definition=[],
             )
         ]
         assert _match_input_key("conversation", expected) == "chat_slot"
@@ -1401,6 +1407,7 @@ class TestKeyMatchingAndInputLoadingEdgeCases:
                 description=desc,
                 input_modes=["file"],
                 required=True,
+                questionnaire_definition=[],
             ),
             ExpectedInput(
                 input_key="slot_2",
@@ -1408,6 +1415,7 @@ class TestKeyMatchingAndInputLoadingEdgeCases:
                 description=desc,
                 input_modes=["file"],
                 required=True,
+                questionnaire_definition=[],
             ),
         ]
         with pytest.raises(ValueError, match="Ambiguous Tier 2 match"):
@@ -1637,6 +1645,7 @@ class TestCoverageExpansion:
             "system_config": [
                 {
                     "id": "cfg_1",
+                    "name": "Test OpenAI Registry",
                     "type": "model_registry",
                     "default_provider": "openai",
                     "models": {

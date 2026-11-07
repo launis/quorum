@@ -21,10 +21,11 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     schemas: Annotated[
         dict[str, JsonValue],
-        "Mapping of step IDs to schema definitions",
-    ] = Field(default_factory=dict, description="Mapping of step IDs to schema definitions")
+        Field(default_factory=dict, description="Mapping of step IDs to schema definitions"),
+    ]
 
     def __contains__(self, key: str) -> bool:
         """Check if a step or schema ID exists in the manifest.

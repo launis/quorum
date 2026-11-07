@@ -6,6 +6,7 @@ import json
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
@@ -26,21 +27,31 @@ class ContextTargetFilterDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    allowed_input_keys: frozenset[str] | None = Field(
-        default=None,
-        description=(
-            "Specifically allowed input document keys (e.g. 'product_text'). "
-            "None means unrestricted if targets was not provided."
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    allowed_input_keys: Annotated[
+        frozenset[str] | None,
+        Field(
+            default=None,
+            description=(
+                "Specifically allowed input document keys (e.g. 'product_text'). "
+                "None means unrestricted if targets was not provided."
+            ),
         ),
-    )
-    allowed_step_ids: frozenset[str] | None = Field(
-        default=None,
-        description="Specifically allowed step identifiers or compound targets (e.g. 'sr_1', 'sr_1.blk_1').",
-    )
-    wants_all_steps: bool = Field(
-        default=False,
-        description="Whether all prior step outputs are requested (e.g. '$steps' or '$steps.*').",
-    )
+    ] = None
+    allowed_step_ids: Annotated[
+        frozenset[str] | None,
+        Field(
+            default=None,
+            description="Specifically allowed step identifiers or compound targets (e.g. 'sr_1', 'sr_1.blk_1').",
+        ),
+    ] = None
+    wants_all_steps: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Whether all prior step outputs are requested (e.g. '$steps' or '$steps.*').",
+        ),
+    ] = False
 
 
 @dataclass(frozen=True)

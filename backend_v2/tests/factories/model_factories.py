@@ -480,11 +480,13 @@ class MatrixPromptBlockFactory(ModelFactory[MatrixPromptBlock]):
                 score=1,
                 ai_label="POOR",
                 name=I18nText(translations={"en": "Poor", "fi": "Heikko"}),
+                claims=[],
             ),
             MatrixScale(
                 score=5,
                 ai_label="EXCELLENT",
                 name=I18nText(translations={"en": "Excellent", "fi": "Erinomainen"}),
+                claims=[],
             ),
         ]
 
@@ -649,7 +651,7 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
         Returns:
             Initialized WorkflowInputs model instance.
         """
-        return WorkflowInputs()
+        return WorkflowInputs(dynamic_inputs={})
 
     @classmethod
     def context_variables(cls) -> ContextVariablesDTO:
@@ -669,8 +671,8 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
         """
         return FrozenContext(
             compiled_prompts={},
-            injected_theory=InjectedTheoryManifestDTO(),
-            generated_schemas=GeneratedSchemaManifestDTO(),
+            injected_theory=InjectedTheoryManifestDTO(theories={}),
+            generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
             ui_hints_snapshot={},
             mcp_tool_audit=[],
         )

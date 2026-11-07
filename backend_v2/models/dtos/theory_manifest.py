@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -18,6 +20,8 @@ class InjectedTheoryManifestDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    theories: dict[str, str] = Field(
-        default_factory=dict, description="Mapping of theory or block IDs to retrieved theory content"
-    )
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    theories: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Mapping of theory or block IDs to retrieved theory content"),
+    ]

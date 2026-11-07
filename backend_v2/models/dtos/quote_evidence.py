@@ -158,8 +158,15 @@ class QuoteEvidenceDTO(V2CoreBase):
         BeforeValidator(coerce_source_quotes_tuple),
         Field(default=None, description="The exact text segments of the quote."),
     ] = None
-    verified_source_ids: list[str] = Field(default_factory=list, description="Resolved Opaque IDs.")
-    unverified_aliases: list[str] = Field(default_factory=list, description="Aliases that could not be verified.")
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    verified_source_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Resolved Opaque IDs."),
+    ]
+    unverified_aliases: Annotated[
+        list[str],
+        Field(default_factory=list, description="Aliases that could not be verified."),
+    ]
     is_verified: Annotated[
         bool, Field(default=False, description="True if there are verified aliases and no unverified aliases.")
     ] = False

@@ -35,11 +35,11 @@
 **Plan:** @[docs/epic/tasks_EPIC_163/02_phase2_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/02_phase2_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
   - [x] Step 2.1: Eradicate Silent Identity, Relational & Display Field Defaults (`QGR020` Check 20C)
   - [x] Step 2.2: Convert Bare `Field(...)` Declarations in Core, Exceptions, Chunking & Domain Models (`QGR020` Check 20B — Batch 1)
-  - [ ] Step 2.3: Convert Bare `Field(...)` Declarations in DTOs, View, Packer & Scripts and Delete `QGR020` Exemption Sets (`QGR020` Check 20B — Batch 2)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 2.3: Convert Bare `Field(...)` Declarations in DTOs, View, Packer & Scripts and Delete `QGR020` Exemption Sets (`QGR020` Check 20B — Batch 2)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 3: Immutable `ExecutionRecord` State Transitions & Zero Redundant Re-Validation (`QGR028`)
@@ -85,6 +85,18 @@
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
+### Phase 7: Non-Residual Static Guardrail Modernization (`DGR013`, `DGR014`, `QGR013`, `QGR033` Check 33B) & Tier 2 Hardening Rules Synchronization
+**Plan:** @[docs/epic/tasks_EPIC_163/07_phase7_plan.md]
+- [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/07_phase7_plan.md`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+  - [ ] Step 7.1: Pre-Implementation Docstring (`ValidationHookPayloadDTO.model_validate`) & Dart Test Fixture (`test_dgr010_guarded_async_value_allowed`) Cleanups
+  - [ ] Step 7.2: Dart 3.11+ Freezed Switch (`DGR013`) & Riverpod 3.1 (`DGR014`) Guardrails
+  - [ ] Step 7.3: Python 3.14 PEP 695 `TypeAlias` (`QGR013`) & Public Function / Module Docstring Ordering (`QGR033` Check 33B) Guardrails
+  - [ ] Step 7.4: Tier 2 Hardening Skills, Phase 1 Learnings & `auto_hardening_runner.py` `.agents/rules/` Enforcement
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+
 ### Integration Checkpoint: Full-Stack Validation
 - [ ] **[NOK] Integration Checkpoint**: Run full-stack quality gates (`uv run python scripts/backend_audit_loop.py backend_v2/ scripts/ --test --ast-strict` and `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`) to verify cross-boundary contract parity before hardening.
 
@@ -113,6 +125,7 @@
   - [ ] @[backend_v2/models/domain/prompt_blocks.py]
   - [ ] @[backend_v2/models/domain/step.py]
   - [ ] @[backend_v2/models/domain/system_config.py]
+  - [ ] @[backend_v2/models/domain/validation.py]
   - [ ] @[backend_v2/models/domain/workflow.py]
   - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
   - [ ] @[backend_v2/models/dtos/context_variables.py]
@@ -160,6 +173,7 @@
   - [ ] @[scripts/ablation_live_executor.py]
   - [ ] @[scripts/audit_dict_eradication.py]
   - [ ] @[scripts/audit_warning_baseline.py]
+  - [ ] @[scripts/auto_hardening_runner.py]
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/diff_executions.py]
   - [ ] @[scripts/flutter_audit_loop.py]
@@ -215,7 +229,7 @@
 
 ## Instructions for the Execution Agent
 
-1. **Before Starting Any Phase:** Run `/tier0-research-plan` on the target phase plan (`01_phase1_plan.md` through `06_phase6_plan.md`) alongside `@[docs/epic/EPIC_163_tracker.md]` to perform System 2 validation before `/tier2-execute`.
+1. **Before Starting Any Phase:** Run `/tier0-research-plan` on the target phase plan (`01_phase1_plan.md` through `07_phase7_plan.md`) alongside `@[docs/epic/EPIC_163_tracker.md]` to perform System 2 validation before `/tier2-execute`.
 2. **Double-Entry Bookkeeping:** Upon completing each step (`Step X.Y`), immediately mark `[x]` on both the step checkbox in `@[docs/epic/EPIC_163_tracker.md]` and the corresponding `<dod_checklist>` item in the phase plan before creating an atomic `git commit`.
 3. **Zero Residual Exemptions:** Do not introduce any new `RESIDUAL_*` sets in `@[scripts/_ast_guardrails.py]` or `per-file-ignores` in `@[pyproject.toml]`.
 
@@ -230,7 +244,7 @@
 | `REQ-163-003` | Eradicate `_local_invitations`, `_local_assignments`, and `_memory_entries` (`QGR030`) and delete `RESIDUAL_LOCAL_SHADOW_STATE_FILES` | Phase 1, Step 1.3 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-004` | Remove all 14 silent identity, relational, and display field defaults across 8 files (`QGR020` Check 20C) and delete `RESIDUAL_DEFAULT_VALUE_MODEL_FILES` | Phase 2, Step 2.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-005` | Convert bare `Field(...)` declarations in core, exceptions, chunking, and domain models to PEP 593 `Annotated[T, Field(...)]` (`QGR020` Check 20B Batch 1) | Phase 2, Step 2.2 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
-| `REQ-163-006` | Convert bare `Field(...)` declarations in DTOs, view, packer, and scripts to PEP 593 `Annotated[T, Field(...)]` and delete `RESIDUAL_BARE_FIELD_FILES` (`QGR020` Check 20B Batch 2) | Phase 2, Step 2.3 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-006` | Convert bare `Field(...)` declarations in DTOs, view, packer, and scripts to PEP 593 `Annotated[T, Field(...)]` and delete `RESIDUAL_BARE_FIELD_FILES` (`QGR020` Check 20B Batch 2) | Phase 2, Step 2.3 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-007` | Add immutable `ExecutionRecord` transition helpers (`with_updated_step_state`, `with_updated_profile_synthesis`, `with_cleared_profile_syntheses`) and refactor worker state transitions (`QGR028`) | Phase 3, Step 3.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-008` | Eliminate redundant `.model_validate()` calls on typed DTOs across 7 hook and service files and delete `RESIDUAL_FUTURE_PHASE_QGR028_FILES` (`QGR028`) | Phase 3, Step 3.2 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-009` | Replace `dict[str, JsonValue]` and `list[JsonValue]` across 8 DTO and state files in `backend_v2/models/` with closed Pydantic V2 DTOs (`QGR027`) | Phase 4, Step 4.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
@@ -242,6 +256,10 @@
 | `REQ-163-015` | Replace 35 `UnifiedWorkflowRepository` patches across `test_worker.py`, `test_worker_synthesis.py`, and `test_worker_synthesis_accumulation.py` with stateful `InMemoryUnifiedWorkflowRepository` fixtures | Phase 6, Step 6.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 | `REQ-163-016` | Replace 9 `UnifiedWorkflowRepository` patches across `tests/unit/workers/` with stateful `InMemoryUnifiedWorkflowRepository` fixtures and lock `CURRENT_RESIDUAL_CEILINGS["f"] = 0` | Phase 6, Step 6.2 | `audit_warning_baseline.py --verify-ceilings` | `[ ]` |
 | `REQ-163-017` | Execute global Backend, Frontend, Dict Eradication, Warning Baseline, DTO Parity, SDUI Semantic Parity, and Live E2E verification gates | Phase 6, Step 6.3 | Full-Stack & Live E2E Gates | `[ ]` |
+| `REQ-163-018` | Add PEP 257 docstring to `ValidationHookPayloadDTO.model_validate` (`validation.py`) and migrate `test_dgr010_guarded_async_value_allowed` (`test_dart_guardrails.py`) to Dart 3 `switch (state)` | Phase 7, Step 7.1 | `backend_audit_loop.py --test --ast-strict` | `[ ]` |
+| `REQ-163-019` | Enforce `DGR013` (`freezed_when_ban`) and `DGR014` (`manual_riverpod_providers` & `riverpod_read_vs_watch_ban`) at `GuardrailSeverity.FATAL` in `scripts/_dart_guardrails.py` (`C901 <= 10`) | Phase 7, Step 7.2 | `backend_audit_loop.py --test --ast-strict` & `_dart_guardrails.py --strict` | `[ ]` |
+| `REQ-163-020` | Extend `QGR013` (`TypeAlias` ban) and `QGR033` Check 33B (public function/method docstrings and line-1 module docstring ordering before `from __future__ import annotations`) in `scripts/_ast_guardrails.py` (`C901 <= 10`) | Phase 7, Step 7.3 | `backend_audit_loop.py --test --ast-strict` & `_ast_guardrails.py --strict` | `[ ]` |
+| `REQ-163-021` | Synchronize Tier 2 hardening `SKILL.md` playbooks and `scripts/auto_hardening_runner.py` (`resolve_target_rule_files`, `execute_subagent_pass` `C901 <= 10`, and `compute_rules_sha256` hashing `AGENTS.md` + `SKILL.md`) | Phase 7, Step 7.4 | `audit_skills_architecture.py` & `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 
 ---
 
@@ -258,18 +276,23 @@
 - Completed Tier 0 Red-Teaming (`/tier0-research-plan`) and Tier 2 Execution (`/tier2-execute --full-auto`) for Phase 1 (@[docs/epic/tasks_EPIC_163/01_phase1_plan.md]):
   - **Step 1.1 (`0ca707436`):** Restored PEP 257 module, class, and function docstrings across @[backend_v2/models/dtos/variance.py#L17-L38], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L83-L168], @[backend_v2/services/orchestrator/rag_preflight_service.py#L108-L325], and @[backend_v2/services/orchestrator/schema_factory.py#L39-L411]; added RFC 7807 `logger.error` calls with `ErrorCodes.CONFIGURATION_ERROR.name` before raising `AppException` in `setup_logging` (@[backend_v2/logging_config.py#L138-L282]); and deleted `RESIDUAL_MISSING_DOCSTRING_FILES` and `RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES` from @[scripts/_ast_guardrails.py].
   - **Step 1.2 (`650c05504`):** Decomposed high-branching functions in @[scripts/backend_audit_loop.py] and @[scripts/flutter_audit_loop.py] so all functions achieve McCabe complexity $\le 10$ (well below $\le 15$), removed `[tool.ruff.lint.per-file-ignores]` from @[pyproject.toml], and set `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS = frozenset()` in @[scripts/audit_dict_eradication.py].
-  - **Step 1.3:** Eradicated process-local shadow state dictionaries (`self._local_invitations`, `self._local_assignments`, `self._memory_entries`) across @[backend_v2/services/auth/organization_service.py#L66-L1325], @[backend_v2/services/execution/assignment_service.py#L129-L1654], and @[backend_v2/services/cache/typed_cache.py#L109-L201]; routed all persistence through `entity_adapter` / `uow_factory` (`get_registered_uow_factory()`) and `TypedCacheService` (`RedisClientProtocol` / `InMemoryRedisClient`); deleted `RESIDUAL_LOCAL_SHADOW_STATE_FILES` from @[scripts/_ast_guardrails.py]; and verified all 6 Phase 1 test contracts and the full Phase 1 `<validation_gate>` with 0 errors and >90% test coverage.
+  - **Step 1.3 (`30aba5589`):** Eradicated process-local shadow state dictionaries (`self._local_invitations`, `self._local_assignments`, `self._memory_entries`) across @[backend_v2/services/auth/organization_service.py#L66-L1325], @[backend_v2/services/execution/assignment_service.py#L129-L1654], and @[backend_v2/services/cache/typed_cache.py#L109-L201]; routed all persistence through `entity_adapter` / `uow_factory` (`get_registered_uow_factory()`) and `TypedCacheService` (`RedisClientProtocol` / `InMemoryRedisClient`); deleted `RESIDUAL_LOCAL_SHADOW_STATE_FILES` from @[scripts/_ast_guardrails.py]; and verified all 6 Phase 1 test contracts and the full Phase 1 `<validation_gate>` with 0 errors and >90% test coverage.
+- Completed Tier 2 Execution (`/tier2-execute --full-auto`) for Phase 2 (@[docs/epic/tasks_EPIC_163/02_phase2_plan.md]):
+  - **Step 2.1 (`6ab6c4b31`):** Removed all 14 silent identity, relational, and display field defaults (`= ""`, `= "unknown"`, `= "system"`) across all 8 files in `RESIDUAL_DEFAULT_VALUE_MODEL_FILES`, added `TenantSecretDTOFactory` and `ReportViewFactory` to @[backend_v2/tests/factories/model_factories.py], and updated callers and tests.
+  - **Step 2.2 (`71f58275d`):** Converted all bare `Field(...)` declarations across @[backend_v2/core/hook_registry.py], @[backend_v2/core/registry.py], @[backend_v2/exceptions.py], @[backend_v2/models/chunking.py], and all 8 files in `backend_v2/models/domain/` to PEP 593 `Annotated[T, Field(...)]` syntax.
+  - **Step 2.3:** Converted all bare `Field(...)` declarations across all 14 Batch 2 files in `backend_v2/models/dtos/`, `backend_v2/models/execution_core.py`, `backend_v2/models/llm.py`, `backend_v2/models/state.py`, `backend_v2/models/view/sdui.py`, `backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py`, `scripts/diff_executions.py`, and `scripts/reconcile_storage.py` to PEP 593 `Annotated[T, Field(...)]` syntax; deleted `RESIDUAL_DEFAULT_VALUE_MODEL_FILES` and `RESIDUAL_BARE_FIELD_FILES` from @[scripts/_ast_guardrails.py] and @[scripts/audit_technical_debt.py]; implemented all 4 Phase 2 `<test_contracts>` in @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]; and passed the full Phase 2 `<validation_gate>` (`task-785`) and SDUI semantic parity suite with 0 violations and >90% coverage.
 
 ## Learned
 - In `RESIDUAL_MISSING_DOCSTRING_FILES`, @[backend_v2/models/dtos/variance.py#L17-L38], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L83-L168], @[backend_v2/services/orchestrator/rag_preflight_service.py#L108-L325], and @[backend_v2/services/orchestrator/schema_factory.py#L39-L411] placed `from __future__ import annotations` on line 1 before the module docstring on line 3, causing `ast.get_docstring(module_node)` to return `None`. Placing the module docstring at line 1 before `from __future__ import annotations` resolves the module-level `QGR001` violation.
 - `QuorumUnitOfWork` (@[backend_v2/database/interfaces.py#L437-L477]) and `InMemoryUnitOfWork` (@[backend_v2/tests/fakes/in_memory_uow.py#L1960-L2034]) natively implement all persistence methods for `OrganizationInvitation` and `ExecutionTaskAssignment`, enabling deterministic UoW persistence and Fail-Fast `ConfigurationError` when neither `entity_adapter` nor `uow_factory` is configured.
 - In @[backend_v2/tests/unit/scripts/test_flutter_audit_loop.py], `test_cli_micro_lib_leaf_directory_positive_and_negative` must patch `scripts.flutter_audit_loop.os.chdir` so multi-file `scripts/` pytest runs do not mutate the process working directory.
+- Under `pydantic.mypy` `--strict`, fields declared as `Annotated[list[T] | dict[K, V], Field(default_factory=...)]` without an RHS assignment (required because `= []`/`= {}` is banned as a mutable default and `= Field(...)` is banned as a duplicate `Field()`) are treated by MyPy as required keyword arguments on direct `Model(...)` construction, whereas `Model.model_validate(...)` and `Polyfactory` builders hydrate `default_factory` at runtime.
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]` to audit Phase 1, then sequentially execute Tier 0 Research, Tier 2 Execution, and Tier 8 Audit across Phases 2 through 6, Post-Implementation Hardening, Architecture Documentation Sync, and Final Epic Audit.
+- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]` to audit Phase 2 (and `/tier8-audit-plan` on Phase 1), then sequentially execute Tier 0 Research, Tier 2 Execution, and Tier 8 Audit across Phases 3 through 7, Post-Implementation Hardening, Architecture Documentation Sync, and Final Epic Audit.
 
 ## Resume Command
 ```text
-/tier8-audit-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]
 ```
 

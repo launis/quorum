@@ -33,7 +33,7 @@ import unicodedata
 from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 # Ensure project root is in sys.path before any local or third-party project imports
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -168,7 +168,8 @@ class FileInspectionsByRunDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    by_run: dict[str, InputFileInspectionDTO] = Field(default_factory=dict)
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    by_run: Annotated[dict[str, InputFileInspectionDTO], Field(default_factory=dict)]
 
     def __contains__(self, key: str) -> bool:
         return key in self.by_run
@@ -185,7 +186,7 @@ class RunFileHashesDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    hashes: dict[str, str] = Field(default_factory=dict)
+    hashes: Annotated[dict[str, str], Field(default_factory=dict)]
 
 
 class IsolationAuditDTO(BaseModel):
@@ -256,8 +257,8 @@ class MacroBlockScoreDTO(BaseModel):
     scale_max: float = 5.0
     run1_waterfall_breakpoint: str | None = None
     run2_waterfall_breakpoint: str | None = None
-    run1_level_breakdown: dict[str, int] = Field(default_factory=dict)
-    run2_level_breakdown: dict[str, int] = Field(default_factory=dict)
+    run1_level_breakdown: Annotated[dict[str, int], Field(default_factory=dict)]
+    run2_level_breakdown: Annotated[dict[str, int], Field(default_factory=dict)]
 
 
 class EvidenceDistributionDTO(BaseModel):
@@ -367,9 +368,9 @@ class TdaAtomDefinitionDTO(BaseModel):
     extraction_rule: str | None = None
     anchor_target: str | None = None
     contrastive_example: ContrastivePairDTO | None = None
-    anti_patterns: list[str] = Field(default_factory=list)
-    acceptance_criteria: list[str] = Field(default_factory=list)
-    syntactic_anchors: list[str] = Field(default_factory=list)
+    anti_patterns: Annotated[list[str], Field(default_factory=list)]
+    acceptance_criteria: Annotated[list[str], Field(default_factory=list)]
+    syntactic_anchors: Annotated[list[str], Field(default_factory=list)]
     target_speaker: str = "USER"
     bounding_box_scope: str = "paragraph"
     inverse_evidence: bool = False
@@ -421,10 +422,10 @@ class DiffReportSnapshotDTO(BaseModel):
     summary_2way: dict[str, int]
     root_causes: RootCauseBreakdownDTO | None = None
     isolation_audit: IsolationAuditDTO | None = None
-    scale_breakdowns: list[ScaleBreakdownDTO] = Field(default_factory=list)
-    block_heatmaps: list[BlockHeatmapDTO] = Field(default_factory=list)
-    macro_scores: list[MacroBlockScoreDTO] = Field(default_factory=list)
-    evidence_distributions: list[EvidenceDistributionDTO] = Field(default_factory=list)
+    scale_breakdowns: Annotated[list[ScaleBreakdownDTO], Field(default_factory=list)]
+    block_heatmaps: Annotated[list[BlockHeatmapDTO], Field(default_factory=list)]
+    macro_scores: Annotated[list[MacroBlockScoreDTO], Field(default_factory=list)]
+    evidence_distributions: Annotated[list[EvidenceDistributionDTO], Field(default_factory=list)]
     prompt_provenance: PromptProvenanceDTO
     atom_definitions: dict[str, TdaAtomDefinitionDTO]
     all_evaluations: dict[str, list[AtomEvaluationSnapshotDTO]]

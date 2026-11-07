@@ -6,6 +6,7 @@ import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.chunking import Chunk, ChunkingRequest
+from backend_v2.models.core_base import generate_uuid7
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ class ChunkingService:
             chunk_items = items[i : i + n]
 
             chunk = Chunk[T](
+                id=f"chk_{generate_uuid7().hex}",
                 parent_id=parent_id,
                 index=index,
                 items=chunk_items,

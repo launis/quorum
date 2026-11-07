@@ -12,6 +12,7 @@ import pytest
 from pydantic import JsonValue
 
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 from scripts.reconcile_storage import ReconciliationReport, reconcile_storage
 
 
@@ -385,7 +386,7 @@ def test_reconstitute_execution_record_with_template(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    template = ExecutionRecord(
+    template = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070008000000000000000",
         workflow_id="wor_original",
         target_locale="en",

@@ -85,21 +85,22 @@ class ExecutionCoreFields(V2CoreBase):
         str,
         Field(description="Target locale code for execution outputs, e.g. 'fi'."),
     ]
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     execution_trace: Annotated[
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
-        "Immutable log of all events.",
-    ] = Field(default_factory=list, description="Immutable log of all events.")
+        Field(default_factory=list, description="Immutable log of all events."),
+    ]
     execution_trace_storage_path: Annotated[
         str | None,
         Field(description="Path to offloaded trace JSON in Cloud Storage."),
     ] = None
     context_variables: Annotated[
         ContextVariablesDTO,
-        "Current snapshots of context variables (the dynamic blackboard).",
-    ] = Field(
-        default_factory=ContextVariablesDTO,
-        description="Current snapshots of context variables (the dynamic blackboard).",
-    )
+        Field(
+            default_factory=ContextVariablesDTO,
+            description="Current snapshots of context variables (the dynamic blackboard).",
+        ),
+    ]
     context_variables_storage_path: Annotated[
         str | None,
         Field(description="Path to offloaded context variables JSON in Cloud Storage."),

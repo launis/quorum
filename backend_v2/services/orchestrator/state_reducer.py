@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, cast
 
 from pydantic import JsonValue
 
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
@@ -69,7 +71,7 @@ def merge_execution_inputs(
         A new ExecutionInputsDTO representing the merged state.
     """
     if base is None and delta is None:
-        return ExecutionInputsDTO()
+        return ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={})
     if base is None:
         assert delta is not None
         return delta
@@ -157,6 +159,8 @@ def reduce_hook_delta(
             raw_traces = [t.model_dump(mode="json") for t in meta_delta.mcp_audit_traces]
             emitted_events.append(
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
                     content={"mcp_audit_traces": cast(JsonValue, raw_traces)},
@@ -168,6 +172,8 @@ def reduce_hook_delta(
         if meta_delta.estimated_token_count is not None:
             emitted_events.append(
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
                     content={"estimated_token_count": meta_delta.estimated_token_count},
@@ -175,6 +181,7 @@ def reduce_hook_delta(
                         estimated_token_count=meta_delta.estimated_token_count,
                         mcp_audit_traces=[],
                     ),
+                    mcp_audit_traces=[],
                 )
             )
 
@@ -192,10 +199,13 @@ def reduce_hook_delta(
             new_global_vars = base_vars.model_copy(update={"passivity_detected": delta.passivity_detected})
             emitted_events.append(
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
                     content={"passivity_detected": delta.passivity_detected},
                     metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
                 )
             )
         elif isinstance(delta, AnomalyRetryResultDTO):
@@ -228,19 +238,23 @@ def reduce_hook_delta(
                 merged_eval = new_scores
             new_global_vars = base_vars.model_copy(update={"evaluative_matrices": merged_eval})
             matrix_inputs = ExecutionInputsDTO(
+                raw_inputs={},
                 dynamic_inputs={
                     **{pb_id: out for pb_id, out in delta.matrix_outputs.items()},
                     "_evaluative_matrices": merged_eval,
                     "evaluative_matrices": merged_eval,
-                }
+                },
             )
             new_inputs = merge_execution_inputs(new_inputs, matrix_inputs)
             emitted_events.append(
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
                     content={"evaluative_matrices": cast(JsonValue, merged_eval)},
                     metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
                 )
             )
         elif isinstance(delta, (AnalystOutput, EvaluationResult)):
@@ -278,10 +292,13 @@ def reduce_hook_delta(
             new_global_vars = base_vars.model_copy(update={"step_linguistics": delta})
             emitted_events.append(
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
                     content={"step_linguistics": delta.model_dump(mode="json")},
                     metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
                 )
             )
         elif isinstance(delta, LLMProviderConfig):
@@ -296,10 +313,13 @@ def reduce_hook_delta(
             new_global_vars = delta
             emitted_events.append(
                 TraceEvent(
+                    event_id=generate_uuid7(),
+                    timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
                     content=delta.model_dump(mode="json"),
                     metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
+                    mcp_audit_traces=[],
                 )
             )
 

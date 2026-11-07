@@ -30,6 +30,7 @@ if isinstance(sys.stderr, io.TextIOWrapper):
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -64,9 +65,11 @@ class ExecutionSnapshotDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    executions: dict[str, ExecutionRecord] = Field(
-        default_factory=dict, description="Indexed mapping of execution records."
-    )
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    executions: Annotated[
+        dict[str, ExecutionRecord],
+        Field(default_factory=dict, description="Indexed mapping of execution records."),
+    ]
 
 
 ExecutionSnapshotDTO.model_rebuild()
@@ -121,14 +124,23 @@ class ReconciliationReport(BaseModel):
 
     db_path: Annotated[str, Field(description="Path to the execution snapshot file.")]
     storage_dir: Annotated[str, Field(description="Path to the physical storage directory.")]
-    orphaned_db_ids: list[str] = Field(
-        default_factory=list, description="Execution IDs present in snapshot but missing from disk."
-    )
-    unindexed_disk_ids: list[str] = Field(
-        default_factory=list, description="Execution IDs present on disk but missing from snapshot."
-    )
-    pruned_db_ids: list[str] = Field(default_factory=list, description="Execution IDs removed during fix mode.")
-    recovered_disk_ids: list[str] = Field(default_factory=list, description="Execution IDs registered during fix mode.")
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    orphaned_db_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Execution IDs present in snapshot but missing from disk."),
+    ]
+    unindexed_disk_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Execution IDs present on disk but missing from snapshot."),
+    ]
+    pruned_db_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Execution IDs removed during fix mode."),
+    ]
+    recovered_disk_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Execution IDs registered during fix mode."),
+    ]
     is_synced: Annotated[bool, Field(description="True if storage artifacts and snapshot are fully synchronized.")]
 
 
@@ -273,9 +285,9 @@ def _reconstitute_execution_record(
     cv_storage_path = f"executions/{exe_id}/context_variables.json" if cv_file.exists() else None
     pdf_storage_path = str(pdf_file).replace("\\", "/") if pdf_file.exists() else None
     status = ExecutionStatus.PASSED
+    now_dt = datetime.now(timezone.utc)
 
     if template_record is not None:
-        now_dt = datetime.now(timezone.utc)
         resolved_wf_id = (
             workflow_id
             if workflow_id != "wor_default"
@@ -299,7 +311,7 @@ def _reconstitute_execution_record(
                 "pdf_report_path": pdf_storage_path,
                 "steps": [],
                 "execution_trace": [],
-                "context_variables": ContextVariablesDTO(),
+                "context_variables": ContextVariablesDTO(variables={}),
                 "frozen_context": None,
                 "is_resumable": False,
                 "updated_at": now_dt,
@@ -317,8 +329,17 @@ def _reconstitute_execution_record(
         context_variables_storage_path=cv_storage_path,
         pdf_report_path=pdf_storage_path,
         is_resumable=False,
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=None,
+        steps=[],
+        step_states={},
+        profile_syntheses={},
+        source_identity_manifest={},
+        models_used={},
+        created_at=now_dt,
+        updated_at=now_dt,
         execution_trace=[],
-        context_variables=ContextVariablesDTO(),
+        context_variables=ContextVariablesDTO(variables={}),
         progress=None,
         status_message=None,
     )
@@ -380,6 +401,10 @@ def reconcile_storage(
         return ReconciliationReport(
             db_path=str(db_path),
             storage_dir=str(storage_dir),
+            orphaned_db_ids=[],
+            unindexed_disk_ids=[],
+            pruned_db_ids=[],
+            recovered_disk_ids=[],
             is_synced=False,
         )
 

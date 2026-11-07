@@ -12,6 +12,8 @@ from backend_v2.models.core_base import generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -194,7 +196,13 @@ class ExecutionRepositoryImpl(BaseRepository):
                         fc_updated = fc.model_copy(update={"mcp_tool_audit": audit_models})
                         data["frozen_context"] = fc_updated
                     else:
-                        data["frozen_context"] = FrozenContext(mcp_tool_audit=audit_models)
+                        data["frozen_context"] = FrozenContext(
+                            compiled_prompts={},
+                            injected_theory=InjectedTheoryManifestDTO(theories={}),
+                            generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+                            ui_hints_snapshot={},
+                            mcp_tool_audit=audit_models,
+                        )
             except Exception as e:
                 msg = f"Failed to hydrate audit_trails for {doc_id}: {e}"
                 logger.error(

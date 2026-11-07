@@ -655,6 +655,7 @@ class ToolDispatcher:
             source_urls=deduped_urls,
             timestamp=datetime.now(UTC),
             duration_ms=duration_ms,
+            impacted_axis_names=[],
         )
 
     def _validate_tool_execution_request(

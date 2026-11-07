@@ -246,12 +246,19 @@ class ReportView(V2CoreBase):
     status_theme: Annotated[
         VisualIntent, Field(default=VisualIntent.SUCCESS, description="Visual theme: 'success' | 'warning' | 'danger'")
     ]
-    inner_sdui_blocks: list[AnySduiBlock] = Field(default_factory=list, description="Ordered list of SDUI components")
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    inner_sdui_blocks: Annotated[
+        list[AnySduiBlock],
+        Field(default_factory=list, description="Ordered list of SDUI components"),
+    ]
     metrics: Annotated[ReportViewMetricsDTO | None, Field(default=None, description="Global audit metrics")] = None
     system_notification: Annotated[
         SystemNotification | None, Field(default=None, description="Global notification/warning")
     ] = None
-    references: list[ReferenceItem] = Field(default_factory=list, description="Global bibliography and references")
+    references: Annotated[
+        list[ReferenceItem],
+        Field(default_factory=list, description="Global bibliography and references"),
+    ]
 
 
 class StepProgressItem(V2CoreBase):
@@ -722,8 +729,9 @@ class SduiMetadataBlock(SduiBlockBase):
     model_config = ConfigDict(title="metadata", strict=True, extra="forbid")
     block_type: Literal["metadata"] = "metadata"
     title: Annotated[str, Field(..., description="Main title of the report")]
-    badges: list[str] = Field(default_factory=list, description="Highlighted badges")
-    metadata_lines: list[str] = Field(default_factory=list, description="Metadata strings")
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    badges: Annotated[list[str], Field(default_factory=list, description="Highlighted badges")]
+    metadata_lines: Annotated[list[str], Field(default_factory=list, description="Metadata strings")]
     costs: Annotated[str | None, Field(default=None, description="Formatted cost string")] = None
     tokens: Annotated[dict[str, str] | None, Field(default=None, description="Token usage details")] = None
     custom_preface_md: Annotated[str | None, Field(default=None, description="Optional preface markdown")] = None
@@ -753,7 +761,7 @@ class SduiRadarChartBlock(SduiBlockBase):
     model_config = ConfigDict(title="3d_matrix", strict=True, extra="forbid")
     block_type: Literal["3d_matrix"] = "3d_matrix"
     title: I18nText | None = None
-    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
 
 
 class SduiScatterPlotBlock(SduiBlockBase):
@@ -762,7 +770,7 @@ class SduiScatterPlotBlock(SduiBlockBase):
     model_config = ConfigDict(title="2d_compare", strict=True, extra="forbid")
     block_type: Literal["2d_compare"] = "2d_compare"
     title: I18nText | None = None
-    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
 
 
 class SduiQuadrantMatrixBlock(SduiBlockBase):
@@ -771,7 +779,7 @@ class SduiQuadrantMatrixBlock(SduiBlockBase):
     model_config = ConfigDict(title="quadrant_matrix", strict=True, extra="forbid")
     block_type: Literal["quadrant_matrix"] = "quadrant_matrix"
     title: I18nText | None = None
-    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
 
 
 class SduiMatrixTableBlock(SduiBlockBase):
@@ -780,10 +788,10 @@ class SduiMatrixTableBlock(SduiBlockBase):
     model_config = ConfigDict(title="matrix_summary", strict=True, extra="forbid", frozen=True)
     block_type: Literal["matrix_summary"] = "matrix_summary"
     title: I18nText | None = None
-    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    matrix_column_labels: dict[str, I18nText] = Field(default_factory=dict)
-    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(default_factory=dict)
-    matrix_visible_columns: list[str] = Field(default_factory=list)
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
+    matrix_column_labels: Annotated[dict[str, I18nText], Field(default_factory=dict)]
+    extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
+    matrix_visible_columns: Annotated[list[str], Field(default_factory=list)]
     # Phase 3, Step 3.1: Inline topological short-circuit and Toulmin falsification lineage
     short_circuited_by_claims: Annotated[
         list[str],
@@ -810,7 +818,7 @@ class SduiMetrics1DBlock(SduiBlockBase):
     model_config = ConfigDict(title="1d_metrics", strict=True, extra="forbid")
     block_type: Literal["1d_metrics"] = "1d_metrics"
     title: I18nText | None = None
-    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
 
 
 class SduiCausalGraphBlock(SduiBlockBase):
@@ -818,11 +826,11 @@ class SduiCausalGraphBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="causal_graph", strict=True, extra="forbid", frozen=True)
     block_type: Literal["causal_graph"] = "causal_graph"
-    critical_path_nodes: list[CausalNodeDTO] = Field(default_factory=list)
-    critical_edges: list[CausalEdgeDTO] = Field(default_factory=list)
-    root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO] = Field(default_factory=list)
+    critical_path_nodes: Annotated[list[CausalNodeDTO], Field(default_factory=list)]
+    critical_edges: Annotated[list[CausalEdgeDTO], Field(default_factory=list)]
+    root_cause_diagnoses: Annotated[list[CausalRootCauseDiagnosisDTO], Field(default_factory=list)]
     anti_fluff_audit: AntiFluffAuditDTO
-    prescriptive_remediations: list[PrescriptiveRemediationDTO] = Field(default_factory=list)
+    prescriptive_remediations: Annotated[list[PrescriptiveRemediationDTO], Field(default_factory=list)]
     fair_scoring: FairScoringBreakdownDTO | None = None
     intact_claims_count: int
     total_claims_count: int

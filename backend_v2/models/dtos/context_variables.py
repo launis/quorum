@@ -68,9 +68,11 @@ class ContextVariablesDTO(V2CoreBase):
         DomainInputValue | None,
         Field(default=None, description="Evaluated matrices summary"),
     ] = None
-    variables: Annotated[dict[str, ContextVariableValue], "Typed arbitrary context variables"] = Field(
-        default_factory=dict, description="Typed arbitrary context variables"
-    )
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
+    variables: Annotated[
+        dict[str, ContextVariableValue],
+        Field(default_factory=dict, description="Typed arbitrary context variables"),
+    ]
 
     def with_update(
         self,

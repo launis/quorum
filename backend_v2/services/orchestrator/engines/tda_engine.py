@@ -122,6 +122,7 @@ class TDAEngine(ExecutionEngine):
             return EngineExecutionResult(
                 results=projected.results,
                 hydrated_references=projected.hydrated_references,
+                trace_events=[],
                 usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
             )
 
@@ -212,6 +213,7 @@ class TDAEngine(ExecutionEngine):
             return EngineExecutionResult(
                 results=projected.results,
                 hydrated_references=projected.hydrated_references,
+                trace_events=[],
                 usage=total_usage,
             )
         except AppException:

@@ -73,5 +73,6 @@ class PromptEngine(ExecutionEngine):
             results=[],
             hydrated_references={},
             synthesis_output=synthesis_output,
+            trace_events=[],
             usage=usage,
         )

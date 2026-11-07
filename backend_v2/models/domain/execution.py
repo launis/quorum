@@ -136,7 +136,7 @@ class ExecutionCreate(V2CoreBase):
     ]
     raw_inputs: Annotated[
         WorkflowInputsIngress | WorkflowInputs,
-        Field(default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"),
+        Field(default_factory=lambda: WorkflowInputsIngress(dynamic_inputs={}), description="User provided raw inputs"),
     ]
     provider_override: Annotated[
         LLMProvider | None,
@@ -281,7 +281,7 @@ class ExecutionRecord(ExecutionCoreFields):
     ] = None
     raw_inputs: Annotated[
         WorkflowInputs,
-        Field(default_factory=lambda: WorkflowInputs(), description="Raw user inputs by role"),
+        Field(default_factory=lambda: WorkflowInputs(dynamic_inputs={}), description="Raw user inputs by role"),
     ]
     frozen_context: Annotated[
         FrozenContext | None,

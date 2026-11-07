@@ -412,5 +412,6 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 results=[],
                 hydrated_references={},
                 synthesis_output=graph_payload,
+                trace_events=[],
                 usage=u_p0 + u_p1 + u_link,
             )

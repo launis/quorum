@@ -23,10 +23,11 @@ class WorkflowSchemaResponseDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
+    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     expected_inputs: Annotated[
         list[ExpectedInput],
-        "List of expected inputs required by the workflow blueprint.",
-    ] = Field(
-        default_factory=list,
-        description="List of expected inputs required by the workflow blueprint.",
-    )
+        Field(
+            default_factory=list,
+            description="List of expected inputs required by the workflow blueprint.",
+        ),
+    ]
