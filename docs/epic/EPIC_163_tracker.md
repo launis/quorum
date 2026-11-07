@@ -92,7 +92,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
   - [x] Step 7.1: Pre-Implementation Docstring (`ValidationHookPayloadDTO.model_validate`) & Dart Test Fixture (`test_dgr010_guarded_async_value_allowed`) Cleanups
   - [x] Step 7.2: Dart 3.11+ Freezed Switch (`DGR013`) & Riverpod 3.1 (`DGR014`) Guardrails
-  - [ ] Step 7.3: Python 3.14 PEP 695 `TypeAlias` (`QGR013`) & Public Function / Module Docstring Ordering (`QGR033` Check 33B) Guardrails
+  - [x] Step 7.3: Python 3.14 PEP 695 `TypeAlias` (`QGR013`) & Public Function / Module Docstring Ordering (`QGR033` Check 33B) Guardrails
   - [ ] Step 7.4: Tier 2 Hardening Skills, Phase 1 Learnings & `auto_hardening_runner.py` `.agents/rules/` Enforcement
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
@@ -258,7 +258,7 @@
 | `REQ-163-017` | Execute global Backend, Frontend, Dict Eradication, Warning Baseline, DTO Parity, SDUI Semantic Parity, and Live E2E verification gates | Phase 6, Step 6.3 | Full-Stack & Live E2E Gates | `[x]` |
 | `REQ-163-018` | Add PEP 257 docstring to `ValidationHookPayloadDTO.model_validate` (`validation.py`) and migrate `test_dgr010_guarded_async_value_allowed` (`test_dart_guardrails.py`) to Dart 3 `switch (state)` | Phase 7, Step 7.1 | `backend_audit_loop.py --test --ast-strict` | `[x]` |
 | `REQ-163-019` | Enforce `DGR013` (`freezed_when_ban`) and `DGR014` (`manual_riverpod_providers` & `riverpod_read_vs_watch_ban`) at `GuardrailSeverity.FATAL` in `scripts/_dart_guardrails.py` (`C901 <= 10`) | Phase 7, Step 7.2 | `backend_audit_loop.py --test --ast-strict` & `_dart_guardrails.py --strict` | `[x]` |
-| `REQ-163-020` | Extend `QGR013` (`TypeAlias` ban) and `QGR033` Check 33B (public function/method docstrings and line-1 module docstring ordering before `from __future__ import annotations`) in `scripts/_ast_guardrails.py` (`C901 <= 10`) | Phase 7, Step 7.3 | `backend_audit_loop.py --test --ast-strict` & `_ast_guardrails.py --strict` | `[ ]` |
+| `REQ-163-020` | Extend `QGR013` (`TypeAlias` ban) and `QGR033` Check 33B (public function/method docstrings and line-1 module docstring ordering before `from __future__ import annotations`) in `scripts/_ast_guardrails.py` (`C901 <= 10`) | Phase 7, Step 7.3 | `backend_audit_loop.py --test --ast-strict` & `_ast_guardrails.py --strict` | `[x]` |
 | `REQ-163-021` | Synchronize Tier 2 hardening `SKILL.md` playbooks and `scripts/auto_hardening_runner.py` (`resolve_target_rule_files`, `execute_subagent_pass` `C901 <= 10`, and `compute_rules_sha256` hashing `AGENTS.md` + `SKILL.md`) | Phase 7, Step 7.4 | `audit_skills_architecture.py` & `backend_audit_loop.py --test --ast-strict` | `[ ]` |
 
 ---

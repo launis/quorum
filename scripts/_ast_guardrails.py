@@ -772,6 +772,66 @@ def _matches_residual_set(norm_path: str, residual_set: frozenset[str]) -> bool:
     return norm_path in residual_set or any(norm_path.endswith("/" + target) for target in residual_set)
 
 
+def _is_type_alias_annotation(node: ast.AST) -> bool:
+    """Check whether an AST annotation node is a legacy PEP 613 TypeAlias annotation.
+
+    Args:
+        node: AST annotation node to inspect.
+
+    Returns:
+        True if the annotation references `TypeAlias` or `typing.TypeAlias`.
+    """
+    # Phase 7, Step 7.3: Detect legacy PEP 613 TypeAlias annotations for QGR013
+    match node:
+        case ast.Name(id="TypeAlias") | ast.Attribute(attr="TypeAlias"):
+            return True
+        case _:
+            return False
+
+
+def _is_ellipsis_stub_body(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Check whether a function or method body is a single ellipsis `...` stub (Protocol/overload).
+
+    Args:
+        node: Function or async function definition AST node.
+
+    Returns:
+        True if the body consists solely of an Ellipsis constant expression.
+    """
+    # Phase 7, Step 7.3: Exempt Protocol and overload ellipsis stubs from QGR033 Check 33B
+    if len(node.body) != 1:
+        return False
+    first_stmt = node.body[0]
+    return (
+        isinstance(first_stmt, ast.Expr)
+        and isinstance(first_stmt.value, ast.Constant)
+        and first_stmt.value.value is Ellipsis
+    )
+
+
+def _has_misplaced_docstring_after_future_import(node: ast.Module) -> bool:
+    """Check whether a module places `from __future__ import annotations` before a string literal docstring.
+
+    Args:
+        node: Module AST node to inspect.
+
+    Returns:
+        True if statement 0 is a `__future__` import and statement 1 is a string literal expression.
+    """
+    # Phase 7, Step 7.3: Diagnose misplaced module docstrings placed after from __future__ import annotations
+    if len(node.body) < 2:
+        return False
+    first_stmt = node.body[0]
+    second_stmt = node.body[1]
+    return (
+        isinstance(first_stmt, ast.ImportFrom)
+        and first_stmt.module == "__future__"
+        and isinstance(second_stmt, ast.Expr)
+        and isinstance(second_stmt.value, ast.Constant)
+        and isinstance(second_stmt.value.value, str)
+    )
+
+
 def _find_string_quoted_annotations(node: ast.AST | None) -> list[ast.Constant]:
     """Find string constants used as type annotations while exempting Literal slices and Annotated metadata.
 
@@ -1087,13 +1147,28 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 and ("backend_v2/" in norm_path or norm_path.startswith("backend_v2/"))
                 and not mod_doc
             ):
-                self._add_violation(
-                    node,
-                    "QGR033",
-                    f"Missing PEP 257 module-level docstring in `{norm_path}`.",
-                    "Add a concise PEP 257 module docstring starting with a summary line terminating with a period.",
-                    severity=GuardrailSeverity.FATAL,
-                )
+                if _has_misplaced_docstring_after_future_import(node):
+                    self._add_violation(
+                        node,
+                        "QGR033",
+                        (
+                            f"Misplaced PEP 257 module-level docstring in `{norm_path}`: module docstring must "
+                            "appear at line 1 before `from __future__ import annotations`."
+                        ),
+                        (
+                            "Place the PEP 257 module docstring at line 1 before `from __future__ import annotations` "
+                            "so `ast.get_docstring(module)` resolves it."
+                        ),
+                        severity=GuardrailSeverity.FATAL,
+                    )
+                else:
+                    self._add_violation(
+                        node,
+                        "QGR033",
+                        f"Missing PEP 257 module-level docstring in `{norm_path}`.",
+                        "Add a concise PEP 257 module docstring starting with a summary line terminating with a period.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
 
         self.generic_visit(node)
 
@@ -2639,12 +2714,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             )
 
     def _check_qgr033_function_contracts(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        """Enforce QGR033 banning `Raises: None` in docstrings and unlogged `raise AppException(...)` in domain code.
+        """Enforce QGR033 banning `Raises: None`, missing public docstrings, and unlogged `raise AppException(...)`.
 
         Args:
             node: Function or async function AST node to inspect.
         """
-        # Phase 1, Step 1: QGR033 Check 33A (Raises: None ban) & Check 33C (RFC 7807 logger.error before AppException)
+        # Phase 1, Step 1 & Phase 7, Step 7.3: QGR033 Check 33A, Check 33B & Check 33C
         if not self.is_guardrail_self:
             fn_doc = ast.get_docstring(node, clean=False)
             if fn_doc and _RAISES_NONE_REGEX.search(fn_doc):
@@ -2653,6 +2728,22 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR033",
                     f"Banned `Raises: None` detected in docstring of `{node.name}()`.",
                     "Remove `Raises: None` from function docstrings; explicitly list actual AppException error codes or omit the Raises section if none.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            if (
+                not self._is_test_file
+                and self._is_domain_code
+                and ("backend_v2/" in self._normalized_path or self._normalized_path.startswith("backend_v2/"))
+                and self._function_depth == 0
+                and not node.name.startswith("_")
+                and not fn_doc
+                and not _is_ellipsis_stub_body(node)
+            ):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    f"Missing PEP 257 docstring on public domain function `{node.name}()`.",
+                    "Add a PEP 257 Google-style docstring starting with a concise summary line terminating with a period.",
                     severity=GuardrailSeverity.FATAL,
                 )
 
@@ -2702,12 +2793,32 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._function_stack.pop()
         self._function_depth -= 1
 
+    def _check_qgr013_ann_assign(self, node: ast.AnnAssign) -> None:
+        """Enforce QGR013 banning legacy PEP 613 `: TypeAlias = ...` type alias declarations.
+
+        Args:
+            node: AnnAssign AST node to inspect.
+        """
+        # Phase 7, Step 7.3: Ban legacy PEP 613 `: TypeAlias = ...` declarations
+        if not self.is_guardrail_self and _is_type_alias_annotation(node.annotation):
+            self._add_violation(
+                node,
+                "QGR013",
+                (
+                    f"Banned legacy PEP 613 `TypeAlias` annotation on `{ast.unparse(node.target)}` "
+                    "(`modern_type_aliases_pep695`)."
+                ),
+                "Use Python 3.12+ PEP 695 `type Alias = ...` syntax instead of `: TypeAlias = ...`.",
+                severity=GuardrailSeverity.FATAL,
+            )
+
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Audits annotated assignments for quoted annotations, JsonValue dicts, and Field defaults.
 
         Args:
             node: The `ast.AnnAssign` AST node.
         """
+        self._check_qgr013_ann_assign(node)
         if not self._is_test_file and not self._is_boundary_exempt:
             if self._is_domain_code:
                 # QGR024: String-Quoted Forward-Reference Annotation Ban
@@ -3153,12 +3264,33 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 )
         self.generic_visit(node)
 
+    def _check_qgr013_import_from(self, node: ast.ImportFrom) -> None:
+        """Enforce QGR013 banning legacy PEP 613 `from typing import TypeAlias` imports.
+
+        Args:
+            node: ImportFrom AST node to inspect.
+        """
+        # Phase 7, Step 7.3: Ban legacy PEP 613 TypeAlias imports in favor of PEP 695 `type Alias = ...`
+        if self.is_guardrail_self:
+            return
+        if node.module in ("typing", "typing_extensions"):
+            for alias in node.names:
+                if alias.name == "TypeAlias":
+                    self._add_violation(
+                        node,
+                        "QGR013",
+                        "Banned legacy `TypeAlias` import detected (`modern_type_aliases_pep695`).",
+                        "Use Python 3.12+ PEP 695 `type Alias = ...` syntax instead of `from typing import TypeAlias`.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        """Audits `from ... import` statements for `TypeGuard`, eradicated modules, and debug loggers.
+        """Audits `from ... import` statements for `TypeGuard`, `TypeAlias`, eradicated modules, and debug loggers.
 
         Args:
             node: The `ast.ImportFrom` AST node.
         """
+        self._check_qgr013_import_from(node)
         # QGR015: TypeGuard import ban per PEP 742 (pep742_typeis_over_typeguard)
         if node.module in ("typing", "typing_extensions"):
             for alias in node.names:

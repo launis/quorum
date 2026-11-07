@@ -2866,8 +2866,8 @@ class MyService:
 
 
 def test_qgr033_missing_module_or_public_class_docstring_raises_fatal() -> None:
-    """QGR033 Check 33B: Missing PEP 257 module or top-level public class docstring raises FATAL violations."""
-    # Phase 1, Step 3: Verify QGR033 detects missing module and public class docstrings in domain code
+    """QGR033 Check 33B: Missing PEP 257 module, public class, or public method docstring raises FATAL violations."""
+    # Phase 1, Step 3 & Phase 7, Step 7.3: Verify QGR033 detects missing module, public class, and public method docstrings
     code = """
 class UndocumentedService:
     def run(self) -> int:
@@ -2875,9 +2875,10 @@ class UndocumentedService:
 """
     violations = _scan_snippet(code, filepath="backend_v2/services/undocumented.py", include_qgr033=True)
     qgr033 = [v for v in violations if v.rule_code == "QGR033"]
-    assert len(qgr033) == 2
+    assert len(qgr033) == 3
     assert any("Missing PEP 257 module-level docstring" in v.message for v in qgr033)
     assert any("Missing PEP 257 docstring on public domain class `UndocumentedService`" in v.message for v in qgr033)
+    assert any("Missing PEP 257 docstring on public domain function `run()`" in v.message for v in qgr033)
 
 
 def test_qgr033_unlogged_app_exception_in_domain_function_raises_fatal() -> None:
@@ -3497,3 +3498,80 @@ def test_ast_guardrails_has_zero_residual_sets() -> None:
     # Phase 4, Step 4.3: Verify complete eradication of RESIDUAL_* exemption sets
     residual_attrs = [attr for attr in dir(guardrails_mod) if attr.startswith("RESIDUAL_")]
     assert residual_attrs == []
+
+
+def test_qgr013_and_qgr033_allow_pep695_type_alias_and_documented_public_functions() -> None:
+    """Positive: Verify PEP 695 type alias, documented public functions, private helpers, and Protocol stubs pass."""
+    # Phase 7, Step 7.3: Positive test contract for QGR013 and QGR033 Check 33B
+    code = '''"""Compliant domain module with line-1 docstring."""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+type MatrixMap = list[str]
+
+
+class FetcherProtocol(Protocol):
+    """Protocol with ellipsis stub."""
+
+    def fetch(self) -> str: ...
+
+
+def _private_helper(val: int) -> int:
+    return val + 1
+
+
+def process_items(items: MatrixMap) -> int:
+    """Process items and return count.
+
+    Args:
+        items: List of matrix item strings.
+
+    Returns:
+        Processed integer count.
+    """
+
+    def nested_undocumented() -> int:
+        return len(items)
+
+    return _private_helper(nested_undocumented())
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/compliant_module.py", include_qgr033=True)
+    flagged = [v for v in violations if v.rule_code in {"QGR013", "QGR033"}]
+    assert flagged == []
+
+
+def test_qgr013_rejects_legacy_typing_type_alias_import_and_ann_assign() -> None:
+    """Negative: Verify QGR013 flags legacy `from typing import TypeAlias` and `: TypeAlias = ...` as FATAL."""
+    # Phase 7, Step 7.3: Negative test contract for QGR013 PEP 613 TypeAlias ban
+    code = '''"""Module using legacy PEP 613 TypeAlias."""
+
+from typing import TypeAlias
+
+MatrixMap: TypeAlias = list[str]
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/legacy_alias.py")
+    qgr013 = [v for v in violations if v.rule_code == "QGR013"]
+    assert len(qgr013) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr013)
+    assert any("Banned legacy `TypeAlias` import detected" in v.message for v in qgr013)
+    assert any("Banned legacy PEP 613 `TypeAlias` annotation on `MatrixMap`" in v.message for v in qgr013)
+
+
+def test_qgr033_flags_undocumented_public_function_and_misplaced_module_docstring() -> None:
+    """Boundary: Verify QGR033 flags misplaced module docstring after __future__ import and undocumented public function."""
+    # Phase 7, Step 7.3: Boundary test contract for QGR033 Check 33B
+    code = '''from __future__ import annotations
+"""Misplaced module docstring."""
+
+
+def process_data() -> int:
+    return 1
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/misplaced_doc.py", include_qgr033=True)
+    qgr033 = [v for v in violations if v.rule_code == "QGR033"]
+    assert len(qgr033) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr033)
+    assert any("before `from __future__ import annotations`" in v.message for v in qgr033)
+    assert any("Missing PEP 257 docstring on public domain function `process_data()`" in v.message for v in qgr033)
