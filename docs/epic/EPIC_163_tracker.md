@@ -56,7 +56,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_163/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_163/04_phase4_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]` (`3d4c0ed3b`)
   - [x] Step 4.1: Replace `JsonValue` Containers in Backend DTOs & State Envelopes
   - [x] Step 4.2: Migrate LLM Client, Ingress Pipeline, Task Executor & Matrix Hook Away from `JsonValue`
   - [x] Step 4.3: Migrate Orchestrator Stages, Compressor, Projector & Reducer and Delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`
