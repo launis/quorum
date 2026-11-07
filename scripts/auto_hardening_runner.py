@@ -53,6 +53,7 @@ uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplan
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import re
 import shlex
@@ -321,7 +322,7 @@ class WorkspaceSnapshotDTO(BaseModel):
 
     modified_files: Annotated[list[str], Field(default_factory=list, description="Tracked files with modifications.")]
     untracked_files: Annotated[list[str], Field(default_factory=list, description="Untracked newly created files.")]
-    head_sha: Annotated[str | None, Field(default=None, description="Git HEAD commit SHA prior to target attempt")] = (
+    head_sha: Annotated[str | None, Field(default=None, description="Git HEAD commit SHA prior to target attempt.")] = (
         None
     )
 
@@ -1770,8 +1771,6 @@ def acquire_windows_wake_lock() -> int | None:
     if sys.platform != "win32":
         return None
     try:
-        import ctypes
-
         flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED
         prev = ctypes.windll.kernel32.SetThreadExecutionState(flags)
         return int(prev) if prev else None
@@ -1793,8 +1792,6 @@ def release_windows_wake_lock(previous_state: int | None) -> None:
     if sys.platform != "win32" or previous_state is None:
         return
     try:
-        import ctypes
-
         ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
     except AttributeError, OSError, ValueError:
         pass

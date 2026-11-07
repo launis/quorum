@@ -137,7 +137,7 @@ def test_successful_backend_audit_marks_tracker_and_commits(tmp_path: Path, monk
         executed_cmds.append(cmd)
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr("subprocess.run", mock_subprocess_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", mock_subprocess_run)
 
     runner_args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.BACKEND, max_retries=0)
     iter_res = process_target_with_retries("backend_v2/target.py", runner_args, repo_root=tmp_path)
@@ -246,8 +246,8 @@ def test_dry_run_mode_produces_zero_side_effects(
     def fail_if_run(*args: object, **kwargs: object) -> None:
         pytest.fail("Subprocess should not be invoked during --dry-run")
 
-    monkeypatch.setattr("subprocess.run", fail_if_run)
-    monkeypatch.setattr("subprocess.Popen", fail_if_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", fail_if_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.Popen", fail_if_run)
 
     args = HardeningRunnerArgsDTO(tracker=tracker_file, dry_run=True, gate=HardeningGate.BACKEND)
     summary = run_hardening_pipeline(args, repo_root=tmp_path)
@@ -330,7 +330,10 @@ def test_custom_agent_command_template_formatting(tmp_path: Path, monkeypatch: p
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Agent Success", stderr="")
 
     monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
-    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: subprocess.CompletedProcess(args=[], returncode=0))
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args=[], returncode=0),
+    )
 
     args = HardeningRunnerArgsDTO(
         agent_cmd="echo CustomAgent {target} --run",
@@ -357,7 +360,7 @@ def test_subprocess_timeout_triggers_tree_kill_and_circuit_breaker(monkeypatch: 
     mock_proc.pid = 9999
     mock_proc.communicate.side_effect = subprocess.TimeoutExpired(cmd=["test_cmd"], timeout=5)
 
-    monkeypatch.setattr("subprocess.Popen", lambda *args, **kwargs: mock_proc)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.Popen", lambda *args, **kwargs: mock_proc)
 
     taskkill_cmds: list[list[str]] = []
 
@@ -365,8 +368,8 @@ def test_subprocess_timeout_triggers_tree_kill_and_circuit_breaker(monkeypatch: 
         taskkill_cmds.append(cmd)
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr("subprocess.run", mock_sub_run)
-    monkeypatch.setattr("sys.platform", "win32")
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", mock_sub_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.sys.platform", "win32")
 
     with pytest.raises(subprocess.TimeoutExpired):
         execute_subprocess_with_tree_kill(["test_cmd"], timeout_seconds=5)
@@ -421,7 +424,7 @@ def test_workspace_snapshot_restores_collateral_modifications(tmp_path: Path, mo
             restored_files.append(cmd[2])
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr("subprocess.run", mock_git_restore)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", mock_git_restore)
 
     execute_circuit_breaker_rollback(baseline_snapshot, "backend_v2/target.py", repo_root=tmp_path)
 
@@ -450,7 +453,7 @@ def test_state_file_discovery_and_persistence(tmp_path: Path, monkeypatch: pytes
     assert remaining == ["file2.py", "file3.py"]
 
     monkeypatch.setattr(
-        "subprocess.run",
+        "scripts.auto_hardening_runner.subprocess.run",
         lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
     )
 
@@ -477,7 +480,7 @@ def test_mark_tracker_target_done_edge_cases(tmp_path: Path) -> None:
 def test_capture_workspace_snapshot_nonzero_exit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify capture_workspace_snapshot returns empty lists if git status fails."""
     monkeypatch.setattr(
-        "subprocess.run",
+        "scripts.auto_hardening_runner.subprocess.run",
         lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=""),
     )
     snap = capture_workspace_snapshot()
@@ -559,13 +562,13 @@ def test_execute_subprocess_with_tree_kill_taskkill_oserror(monkeypatch: pytest.
         subprocess.TimeoutExpired(cmd=["test"], timeout=1),
     ]
 
-    monkeypatch.setattr("subprocess.Popen", lambda *a, **k: mock_proc)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.Popen", lambda *a, **k: mock_proc)
 
     def mock_taskkill(*a: object, **k: object) -> subprocess.CompletedProcess[str]:
         raise OSError("Taskkill unavailable")
 
-    monkeypatch.setattr("subprocess.run", mock_taskkill)
-    monkeypatch.setattr("sys.platform", "win32")
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", mock_taskkill)
+    monkeypatch.setattr("scripts.auto_hardening_runner.sys.platform", "win32")
 
     with pytest.raises(subprocess.TimeoutExpired):
         execute_subprocess_with_tree_kill(["test"], timeout_seconds=1)
@@ -604,7 +607,7 @@ def test_execute_subagent_pass_frontend_dart_format(tmp_path: Path, monkeypatch:
         subagent_cmds.append(cmd)
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Frontend Agent OK", stderr="")
 
-    monkeypatch.setattr("subprocess.run", mock_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", mock_run)
     monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
     args = HardeningRunnerArgsDTO(gate=HardeningGate.FRONTEND, targets=["lib/view.dart"], no_auto_fix=False)
     assert execute_subagent_pass("lib/view.dart", args, repo_root=tmp_path) is True
@@ -653,7 +656,10 @@ def test_execute_circuit_breaker_rollback_untracked_directory(tmp_path: Path, mo
     current = WorkspaceSnapshotDTO(modified_files=[], untracked_files=["scratch_dir"])
 
     monkeypatch.setattr("scripts.auto_hardening_runner.capture_workspace_snapshot", lambda root: current)
-    monkeypatch.setattr("subprocess.run", lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0))
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.subprocess.run",
+        lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0),
+    )
 
     execute_circuit_breaker_rollback(baseline, "target.py", repo_root=tmp_path)
     assert not untracked_dir.exists()
@@ -760,7 +766,7 @@ def test_execute_subagent_pass_retry_on_transient_model_glitch(tmp_path: Path, m
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Hardened successfully.", stderr="")
 
     monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
-    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("scripts.auto_hardening_runner.time.sleep", lambda s: None)
 
     args = HardeningRunnerArgsDTO(
         agent_cmd="agy {target}", targets=["f.py"], gate=HardeningGate.BACKEND, no_auto_fix=True
@@ -786,7 +792,7 @@ def test_execute_subagent_pass_retry_exhaustion_on_persistent_transient_error(
         )
 
     monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
-    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("scripts.auto_hardening_runner.time.sleep", lambda s: None)
 
     args = HardeningRunnerArgsDTO(
         agent_cmd="agy {target}", targets=["f.py"], gate=HardeningGate.BACKEND, no_auto_fix=True
@@ -1038,7 +1044,10 @@ def test_default_model_selection_medium_and_cli_override(tmp_path: Path, monkeyp
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="OK", stderr="")
 
     monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
-    monkeypatch.setattr("subprocess.run", lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0))
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.subprocess.run",
+        lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0),
+    )
 
     # Default model in execute_subagent_pass
     args_default = HardeningRunnerArgsDTO(
@@ -1269,7 +1278,7 @@ def test_frontend_macro_quality_gate_and_phase2_resilience_capabilities(
         reset_cmds.append(cmd)
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr("subprocess.run", _mock_reset_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", _mock_reset_run)
     baseline = WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="abc1234567")
     execute_circuit_breaker_rollback(baseline, "client_app_v2/lib/app.dart", repo_root=tmp_path)
     assert ["git", "reset", "--hard", "abc1234567"] in reset_cmds
@@ -1290,7 +1299,7 @@ def test_frontend_macro_quality_gate_and_phase2_resilience_capabilities(
         staged_cmds.append(cmd)
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr("subprocess.run", _mock_stage_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", _mock_stage_run)
     mark_tracker_and_checkpoint("client_app_v2/lib/models/item.dart", None, None, repo_root=tmp_path)
     git_add_cmd = next(c for c in staged_cmds if c[:2] == ["git", "add"])
     assert "client_app_v2/lib/models/item.dart" in git_add_cmd
@@ -1299,7 +1308,7 @@ def test_frontend_macro_quality_gate_and_phase2_resilience_capabilities(
     assert "client_app_v2/lib/models/item.freezed.dart" in git_add_cmd
 
     # 5. Windows wake-lock acquire/release on non-win32 and win32
-    monkeypatch.setattr("sys.platform", "linux")
+    monkeypatch.setattr("scripts.auto_hardening_runner.sys.platform", "linux")
     assert acquire_windows_wake_lock() is None
     release_windows_wake_lock(None)
 
@@ -1348,7 +1357,7 @@ def test_unquote_git_path_and_capture_workspace_snapshot_octal_filtering(
         '?? "corrupt\\357\\200\\272.txt"\n'
     )
     monkeypatch.setattr(
-        "subprocess.run",
+        "scripts.auto_hardening_runner.subprocess.run",
         lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0, stdout=porcelain_out, stderr=""),
     )
     snap = capture_workspace_snapshot(tmp_path)
@@ -1406,7 +1415,7 @@ def test_sha256_cache_hit_skips_subagent_and_marks_tracker_zero_seconds(
     monkeypatch.setattr("scripts.auto_hardening_runner.execute_subagent_pass", _forbid_subagent)
     monkeypatch.setattr("scripts.auto_hardening_runner.run_quality_gate", _forbid_gate)
     monkeypatch.setattr(
-        "subprocess.run",
+        "scripts.auto_hardening_runner.subprocess.run",
         lambda *_a, **_k: subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
     )
 
@@ -1486,7 +1495,7 @@ def test_sha256_cache_invalidates_on_target_test_or_rule_mutation(
         lambda *_a, **_k: QualityGateResultDTO(success=True, output="ok", exit_code=0),
     )
     monkeypatch.setattr(
-        "subprocess.run",
+        "scripts.auto_hardening_runner.subprocess.run",
         lambda *_a, **_k: subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
     )
 
@@ -1613,7 +1622,7 @@ def test_no_cache_flag_bypasses_sha256_cache(tmp_path: Path, monkeypatch: pytest
         lambda *_a, **_k: QualityGateResultDTO(success=True, output="ok", exit_code=0),
     )
     monkeypatch.setattr(
-        "subprocess.run",
+        "scripts.auto_hardening_runner.subprocess.run",
         lambda *_a, **_k: subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
     )
 
