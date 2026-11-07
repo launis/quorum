@@ -10,24 +10,33 @@ from backend_v2.models.domain.execution import (
     EvidenceRejectionRequest,
     ExecutionAssignment,
     ExecutionCreate,
-    ExecutionRecord,
     ExecutionStep,
     ExecutionSummarySnapshot,
     FrozenContext,
     JobAcceptedDTO,
+    _resolve_default_matrix_sampling_limit,
 )
+from backend_v2.models.domain.inputs import WorkflowInputsIngress
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import ExecutionStatus, LLMProvider
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory, ExecutionStepFactory
 
 
 def test_frozen_context_instantiation() -> None:
-    fc = FrozenContext()
+    """Verify FrozenContext defaults via typed constructor."""
+    fc = FrozenContext(
+        compiled_prompts={},
+        injected_theory=InjectedTheoryManifestDTO(theories={}),
+        generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+        ui_hints_snapshot={},
+        mcp_tool_audit=[],
+    )
     assert fc.compiled_prompts == {}
-    assert fc.injected_theory == InjectedTheoryManifestDTO()
-    assert fc.generated_schemas == GeneratedSchemaManifestDTO()
+    assert fc.injected_theory == InjectedTheoryManifestDTO(theories={})
+    assert fc.generated_schemas == GeneratedSchemaManifestDTO(schemas={})
     assert fc.ui_hints_snapshot == {}
     assert fc.mcp_tool_audit == []
 
@@ -37,7 +46,7 @@ def test_theory_manifest_immutability() -> None:
     manifest = InjectedTheoryManifestDTO(theories={"th_1": "Theory text"})
     assert manifest.theories["th_1"] == "Theory text"
     with pytest.raises((ValidationError, TypeError)):
-        manifest.theories = {"th_2": "New"}
+        del manifest.theories
 
 
 def test_schema_manifest_immutability() -> None:
@@ -46,47 +55,46 @@ def test_schema_manifest_immutability() -> None:
     assert "stp_1" in manifest
     assert manifest["stp_1"] == {"type": "object"}
     with pytest.raises((ValidationError, TypeError)):
-        manifest.schemas = {"stp_2": {"type": "string"}}
+        del manifest.schemas
 
 
 def test_execution_create_defaults() -> None:
-    ec = ExecutionCreate.model_validate(
-        {
-            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
-            "target_locale": "fi",
-        }
+    """Verify ExecutionCreate default field resolution."""
+    ec = ExecutionCreate.model_validate_json(
+        '{"workflow_id": "wor_0195f3a0000070018234567890abcdef", "target_locale": "fi"}'
     )
     assert ec.workflow_id == "wor_0195f3a0000070018234567890abcdef"
     assert ec.target_locale == "fi"
     assert ec.profile_id is None
-    assert ec.matrix_sampling_strategy > 0
+    assert ec.matrix_sampling_strategy == _resolve_default_matrix_sampling_limit()
     assert ec.provider_override is None
     assert ec.model_registry_id is None
 
 
 def test_execution_create_custom_and_validator() -> None:
-    ec = ExecutionCreate.model_validate(
-        {
-            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
-            "target_locale": "en",
-            "profile_id": "pro_0195f3a0000070018234567890abcdef",
-            "matrix_sampling_strategy": None,
-            "provider_override": LLMProvider.OPENAI,
-            "model_registry_id": "reg_0195f3a0000070018234567890abcdef",
-        }
+    """Verify ExecutionCreate custom fields and None sampling strategy coercion."""
+    ec = ExecutionCreate.model_validate_json(
+        '{"workflow_id": "wor_0195f3a0000070018234567890abcdef", '
+        '"target_locale": "en", '
+        '"profile_id": "pro_0195f3a0000070018234567890abcdef", '
+        '"matrix_sampling_strategy": null, '
+        '"provider_override": "openai", '
+        '"model_registry_id": "reg_0195f3a0000070018234567890abcdef"}'
     )
-    assert ec.matrix_sampling_strategy > 0
+    assert ec.matrix_sampling_strategy == _resolve_default_matrix_sampling_limit()
     assert ec.provider_override == LLMProvider.OPENAI
 
     ec2 = ExecutionCreate(
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="en",
         matrix_sampling_strategy=5,
+        raw_inputs=WorkflowInputsIngress(dynamic_inputs={}),
     )
     assert ec2.matrix_sampling_strategy == 5
 
 
 def test_execution_create_extra_forbidden() -> None:
+    """Verify ExecutionCreate rejects extra fields."""
     with pytest.raises(ValidationError):
         ExecutionCreate.model_validate(
             {
@@ -98,10 +106,12 @@ def test_execution_create_extra_forbidden() -> None:
 
 
 def test_execution_step_instantiation() -> None:
+    """Verify ExecutionStep instantiation and default field values."""
     step = ExecutionStep(
         id="stp_step12345678",
         label="Analyst Step",
         status=ExecutionStatus.RUNNING,
+        scorecard_atoms={},
     )
     assert step.id == "stp_step12345678"
     assert step.label == "Analyst Step"
@@ -112,6 +122,7 @@ def test_execution_step_instantiation() -> None:
 
 
 def test_execution_step_extra_forbidden() -> None:
+    """Verify ExecutionStep rejects extra fields."""
     with pytest.raises(ValidationError):
         ExecutionStep.model_validate(
             {
@@ -123,10 +134,12 @@ def test_execution_step_extra_forbidden() -> None:
 
 
 def test_execution_summary_snapshot() -> None:
+    """Verify ExecutionSummarySnapshot instantiation."""
     snap = ExecutionSummarySnapshot(
         strictness_level=85,
         is_ensemble_run=True,
         is_degraded=False,
+        system_concurrency_snapshot={},
     )
     assert snap.strictness_level == 85
     assert snap.is_ensemble_run is True
@@ -140,14 +153,16 @@ def test_execution_summary_snapshot_zero_strictness_boundary() -> None:
         strictness_level=0,
         is_ensemble_run=False,
         is_degraded=False,
+        system_concurrency_snapshot={},
     )
     assert snap.strictness_level == 0
 
 
 def test_evaluated_matrix_context_dto() -> None:
+    """Verify EvaluatedMatrixContextDTO instantiation."""
     dto = EvaluatedMatrixContextDTO(
         evaluated_atoms={"atm_1": "PASSED"},
-        raw_atoms=[EvaluatedAtomDTO.model_validate({"tda_id": "atm_1", "status": "PASSED", "score": 1.0})],
+        raw_atoms=[EvaluatedAtomDTO(tda_id="atm_1", status="PASSED", score=1.0, exact_quotes=[])],
     )
     assert dto.evaluated_atoms == {"atm_1": "PASSED"}
     assert len(dto.raw_atoms) == 1
@@ -155,6 +170,7 @@ def test_evaluated_matrix_context_dto() -> None:
 
 
 def test_job_accepted_dto() -> None:
+    """Verify JobAcceptedDTO instantiation."""
     dto = JobAcceptedDTO(
         status="ACCEPTED",
         message="Job queued",
@@ -165,12 +181,14 @@ def test_job_accepted_dto() -> None:
 
 
 def test_evidence_rejection_request() -> None:
+    """Verify EvidenceRejectionRequest instantiation."""
     req = EvidenceRejectionRequest(rejection_reason="Quote out of context")
     assert req.rejection_reason == "Quote out of context"
 
 
 def test_execution_record_instantiation() -> None:
-    rec = ExecutionRecord(
+    """Verify ExecutionRecord instantiation via ExecutionRecordFactory."""
+    rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
@@ -186,7 +204,8 @@ def test_execution_record_instantiation() -> None:
 
 
 def test_execution_record_transition_step_new_step() -> None:
-    rec = ExecutionRecord(
+    """Verify ExecutionRecord.transition_step adds a new step immutably."""
+    rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
@@ -214,12 +233,13 @@ def test_execution_record_transition_step_new_step() -> None:
 
 
 def test_execution_record_transition_step_existing_step() -> None:
-    initial_step = ExecutionStep(
+    """Verify ExecutionRecord.transition_step updates an existing step immutably."""
+    initial_step = ExecutionStepFactory.build(
         id="stp_0195f3a0000070018234567890abcdef",
         label="Original Label",
         status=ExecutionStatus.PENDING,
     )
-    rec = ExecutionRecord(
+    rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
@@ -247,7 +267,8 @@ def test_execution_record_transition_step_existing_step() -> None:
 
 
 def test_execution_record_with_step_passed_forwarder() -> None:
-    rec = ExecutionRecord(
+    """Verify ExecutionRecord.with_step_passed transitions step to PASSED at 100%."""
+    rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
@@ -266,8 +287,16 @@ def test_execution_record_with_step_passed_forwarder() -> None:
 
 
 def test_execution_record_without_profile_synthesis() -> None:
-    cache_item = RenderedSynthesisCache.model_validate({})
-    rec = ExecutionRecord(
+    """Verify ExecutionRecord.without_profile_synthesis removes target profile synthesis immutably."""
+    cache_item = RenderedSynthesisCache(
+        section_syntheses={},
+        row_explanations={},
+        row_curated_quotes={},
+        cited_sources=[],
+        xai_highlights=[],
+        created_at=datetime.now(timezone.utc),
+    )
+    rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
@@ -283,13 +312,57 @@ def test_execution_record_without_profile_synthesis() -> None:
     assert "prf_0195f3a0000070018234567890abcdef" in rec.profile_syntheses
 
 
+def test_execution_record_with_updated_and_cleared_profile_syntheses() -> None:
+    """Verify ExecutionRecord profile synthesis update and clear helpers."""
+    cache_item = RenderedSynthesisCache(
+        section_syntheses={},
+        row_explanations={},
+        row_curated_quotes={},
+        cited_sources=[],
+        xai_highlights=[],
+        created_at=datetime.now(timezone.utc),
+    )
+    rec = ExecutionRecordFactory.build(
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        target_locale="fi",
+        status=ExecutionStatus.PASSED,
+        created_at=datetime.now(timezone.utc),
+    )
+    updated_only_cache = rec.with_updated_profile_synthesis(
+        profile_id="prf_0195f3a0000070018234567890abcdef",
+        cache=cache_item,
+    )
+    assert "prf_0195f3a0000070018234567890abcdef" in updated_only_cache.profile_syntheses
+    assert updated_only_cache.steps == []
+
+    render_step = ExecutionStepFactory.build(
+        id="stp_render",
+        label="Render Step",
+        status=ExecutionStatus.PASSED,
+    )
+    updated_with_step = rec.with_updated_profile_synthesis(
+        profile_id="prf_0195f3a0000070018234567890abcdef",
+        cache=cache_item,
+        step_id="stp_render",
+        step_state=render_step,
+    )
+    assert "prf_0195f3a0000070018234567890abcdef" in updated_with_step.profile_syntheses
+    assert "stp_render" in updated_with_step.step_states
+    assert len(updated_with_step.steps) == 1
+
+    cleared = updated_with_step.with_cleared_profile_syntheses()
+    assert cleared.profile_syntheses == {}
+
+
 def test_execution_record_transition_step_updates_label_and_merkle_hash() -> None:
-    initial_step = ExecutionStep(
+    """Verify ExecutionRecord.transition_step updates label and input_merkle_hash."""
+    initial_step = ExecutionStepFactory.build(
         id="stp_0195f3a0000070018234567890abcdef",
         label="Initial Label",
         status=ExecutionStatus.RUNNING,
     )
-    rec = ExecutionRecord(
+    rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
@@ -312,31 +385,31 @@ def test_execution_record_transition_step_updates_label_and_merkle_hash() -> Non
 def test_execution_summary_snapshot_invalid_strictness_bounds(invalid_strictness: int) -> None:
     """ISTQB Negative Boundary Test: strictness_level outside [0, 100] raises ValidationError."""
     with pytest.raises(ValidationError):
-        ExecutionSummarySnapshot(strictness_level=invalid_strictness)
+        ExecutionSummarySnapshot.model_validate({"strictness_level": invalid_strictness})
 
 
 @pytest.mark.parametrize("invalid_progress", [-1, 101])
 def test_execution_step_invalid_progress_bounds(invalid_progress: int) -> None:
     """ISTQB Negative Boundary Test: progress outside [0, 100] raises ValidationError."""
     with pytest.raises(ValidationError):
-        ExecutionStep(
-            id="stp_step12345678",
-            label="Analyst Step",
-            progress=invalid_progress,
+        ExecutionStep.model_validate(
+            {
+                "id": "stp_step12345678",
+                "label": "Analyst Step",
+                "progress": invalid_progress,
+            }
         )
 
 
 def test_execution_assignment_instantiation_and_iso_coercion() -> None:
     """Verify ExecutionAssignment instantiation and ISO 8601 string timestamp coercion."""
-    assignment = ExecutionAssignment.model_validate(
-        {
-            "organization_id": "org_0195f3a0000070018234567890abcdef",
-            "assigned_email": "candidate@example.com",
-            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
-            "token_hash": "a" * 64,
-            "hard_deadline_at": "2026-12-31T23:59:59Z",
-            "created_by": "usr_0195f3a0000070018234567890abcdef",
-        }
+    assignment = ExecutionAssignment.model_validate_json(
+        '{"organization_id": "org_0195f3a0000070018234567890abcdef", '
+        '"assigned_email": "candidate@example.com", '
+        '"workflow_id": "wor_0195f3a0000070018234567890abcdef", '
+        '"token_hash": "' + ("a" * 64) + '", '
+        '"hard_deadline_at": "2026-12-31T23:59:59Z", '
+        '"created_by": "usr_0195f3a0000070018234567890abcdef"}'
     )
     assert assignment.id.startswith("tsk_")
     assert assignment.hard_deadline_at == datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
