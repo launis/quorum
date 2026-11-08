@@ -125,7 +125,7 @@
   - [x] @[backend_v2/models/domain/prompt_blocks.py]
   - [x] @[backend_v2/models/domain/step.py]
   - [x] @[backend_v2/models/domain/system_config.py]
-  - [ ] @[backend_v2/models/domain/validation.py]
+  - [x] @[backend_v2/models/domain/validation.py]
   - [ ] @[backend_v2/models/domain/workflow.py]
   - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
   - [ ] @[backend_v2/models/dtos/context_variables.py]
