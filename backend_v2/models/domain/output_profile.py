@@ -46,7 +46,6 @@ class OutputProfile(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Profile ID")]
     slug: Annotated[str, Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Fallback slug identifier")]
     workflow_id: Annotated[str, Field(description="ID of the associated Workflow")]
@@ -250,7 +249,14 @@ class OutputProfile(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_variance_target_block_coherence(self) -> Self:
-        """Enforce that variance_target_block is populated if variance validation is active."""
+        """Enforce that variance_target_block is populated if variance validation is active.
+
+        Returns:
+            Validated OutputProfile instance.
+
+        Raises:
+            ValueError: If ErrorCodes.VALIDATION_FAILED is triggered due to missing variance_target_block.
+        """
         has_variance_block = any(
             t
             in (
@@ -280,7 +286,14 @@ class OutputProfile(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_matrix_graphs_coherence(self) -> Self:
-        """Enforce that matrix_synthesis_groups is populated if MATRIX_GRAPHS_BLOCK is in target_block_order."""
+        """Enforce that matrix_synthesis_groups is populated if MATRIX_GRAPHS_BLOCK is in target_block_order.
+
+        Returns:
+            Validated OutputProfile instance.
+
+        Raises:
+            ValueError: If ErrorCodes.VALIDATION_FAILED is triggered due to empty matrix_synthesis_groups.
+        """
         has_matrix_graphs = any(
             t in (TargetBlockType.MATRIX_GRAPHS_BLOCK, TargetBlockType.MATRIX_GRAPHS_BLOCK.value, "matrix_graphs_block")
             for t in self.target_block_order
@@ -296,7 +309,14 @@ class OutputProfile(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_custom_scale_bounds(self) -> Self:
-        """Enforce that custom scale bounds are valid when display_scale is CUSTOM."""
+        """Enforce that custom scale bounds are valid when display_scale is CUSTOM.
+
+        Returns:
+            Validated OutputProfile instance.
+
+        Raises:
+            ValueError: If ErrorCodes.VALIDATION_FAILED is triggered due to missing or inverted scale bounds.
+        """
         if self.display_scale in (DisplayScale.CUSTOM, "custom"):
             if self.custom_scale_min is None or self.custom_scale_max is None:
                 msg = (
@@ -310,20 +330,35 @@ class OutputProfile(V2CoreBase):
                     f"OutputProfile '{self.id}': custom_scale_max ({self.custom_scale_max}) "
                     f"must be strictly greater than custom_scale_min ({self.custom_scale_min})."
                 )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         return self
 
     @field_validator("matrix_visible_columns")
     @classmethod
     def validate_matrix_visible_columns(cls, v: list[str]) -> list[str]:
-        """Enforces that all visible columns match valid ReportMatrixColumn members Fail-Fast."""
+        """Enforce that all visible columns match valid ReportMatrixColumn members Fail-Fast.
+
+        Args:
+            v: Candidate list of matrix visible column identifiers.
+
+        Returns:
+            Validated list of matrix visible column identifiers.
+
+        Raises:
+            ValueError: If any column string is not a valid ReportMatrixColumn member.
+        """
         for col in v:
             ReportMatrixColumn(col)
         return v
 
     @property
     def requires_executive_synthesis(self) -> bool:
-        """Check if executive summary synthesis is requested in target block order."""
+        """Check if executive summary synthesis is requested in target block order.
+
+        Returns:
+            True if EXECUTIVE_SUMMARY_BLOCK is present in target_block_order.
+        """
         return any(
             t
             in (
@@ -336,7 +371,11 @@ class OutputProfile(V2CoreBase):
 
     @property
     def requires_group_synthesis(self) -> bool:
-        """Check if comparative matrix groups synthesis is requested."""
+        """Check if comparative matrix groups synthesis is requested.
+
+        Returns:
+            True if MATRIX_GRAPHS_BLOCK is active and matrix_synthesis_groups is non-empty.
+        """
         return (
             any(
                 t
@@ -352,14 +391,25 @@ class OutputProfile(V2CoreBase):
 
     @property
     def requires_row_explanations(self) -> bool:
-        """Check if row explanations are configured in visible matrix columns."""
+        """Check if row explanations are configured in visible matrix columns.
+
+        Returns:
+            True if 'row_explanation' is present in matrix_visible_columns.
+        """
         if not self.matrix_visible_columns:
             return False
         return "row_explanation" in self.matrix_visible_columns
 
     @model_validator(mode="after")
     def validate_matrix_group_ids_unique(self) -> Self:
-        """Enforce that all MatrixSynthesisGroup IDs in matrix_synthesis_groups are strictly unique."""
+        """Enforce that all MatrixSynthesisGroup IDs in matrix_synthesis_groups are strictly unique.
+
+        Returns:
+            Validated OutputProfile instance.
+
+        Raises:
+            ValueError: If ErrorCodes.VALIDATION_FAILED is triggered due to duplicate synthesis group IDs.
+        """
         seen_ids: set[str] = set()
         duplicate_ids: list[str] = []
         for grp in self.matrix_synthesis_groups:
@@ -377,7 +427,11 @@ class OutputProfile(V2CoreBase):
 
     @property
     def is_synthesis_expected(self) -> bool:
-        """Check if any synthesis phase generation is expected for this profile."""
+        """Check if any synthesis phase generation is expected for this profile.
+
+        Returns:
+            True if executive, group, or row explanation synthesis is required.
+        """
         return self.requires_executive_synthesis or self.requires_group_synthesis or self.requires_row_explanations
 
 
