@@ -11,11 +11,12 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
-from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
+from backend_v2.models.auth import ResolvedCredentialDTO, SystemOrganizations, TokenData, UserRole
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, PrefixedUUID7
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     ModelProfile,
+    ProviderExtraParamsDTO,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
@@ -72,10 +73,30 @@ def _make_dummy_registry(
         type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={
-            CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
-            CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
-            CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
-            CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+            CognitiveTier.FAST: ModelProfile(
+                provider=LLMProvider.AI_STUDIO,
+                model_name="gemini-2.5-flash",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.BALANCED: ModelProfile(
+                provider=LLMProvider.AI_STUDIO,
+                model_name="gemini-2.5-flash",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.DEEP: ModelProfile(
+                provider=LLMProvider.AI_STUDIO,
+                model_name="gemini-2.5-pro",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.REASONING: ModelProfile(
+                provider=LLMProvider.AI_STUDIO,
+                model_name="gemini-2.5-pro",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
         },
     )
 
@@ -760,3 +781,53 @@ async def test_save_mcp_gateways_id_mismatch_updates_id(
     target_id = "sys_0195f3a0000070018122334455667788"
     res = await service.save_mcp_gateways(root_token, target_id, gw)
     assert res.id == target_id
+
+
+@pytest.mark.asyncio
+async def test_discover_mcp_gateway_tools_forwards_initiator_organization_id(
+    monkeypatch: pytest.MonkeyPatch,
+    system_repo: InMemorySystemRepository,
+    root_token: TokenData,
+) -> None:
+    """Verify discover_mcp_gateway_tools forwards initiator.organization_id (and ROOT_SYSTEM when None) to mcp_client.list_tools."""
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda host, port, type=0: [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))],
+    )
+
+    captured_org_ids: list[str | None] = []
+
+    class _CapturingMCPClient(GenericMCPClient):
+        async def list_tools(
+            self,
+            gateway: SystemConfigMCPGateways,
+            *,
+            organization_id: PrefixedUUID7 | None = None,
+            resolved_credential: ResolvedCredentialDTO | None = None,
+        ) -> list[AllowedMCPTool]:
+            captured_org_ids.append(organization_id)
+            return []
+
+    svc = StudioSystemConfigService(
+        system_repo=system_repo,
+        mcp_client=_CapturingMCPClient(),
+        gateway_cache=MCPGatewayCache(),
+    )
+    gw = SystemConfigMCPGateways(
+        id="sys_0195f3a00000700080008172bda70c86",
+        name="Custom Enterprise MCP",
+        slug="custom_enterprise_mcp",
+        type="mcp_gateways",
+        endpoint_url="https://mcp.custom.example.com/mcp",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        tools=[],
+    )
+    await svc.save_mcp_gateways(root_token, gw.id, gw)
+
+    await svc.discover_mcp_gateway_tools(root_token, gw.id)
+    assert captured_org_ids == [root_token.organization_id]
+
+    root_no_org = root_token.model_copy(update={"organization_id": None})
+    await svc.discover_mcp_gateway_tools(root_no_org, gw.id)
+    assert captured_org_ids[-1] == SystemOrganizations.ROOT_SYSTEM.value

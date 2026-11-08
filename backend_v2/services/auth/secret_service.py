@@ -28,6 +28,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.models.auth import (
     ResolvedCredentialDTO,
+    SystemOrganizations,
     TenantSecretCreateDTO,
     TenantSecretDTO,
     TenantSecretResponseDTO,
@@ -329,6 +330,14 @@ class SecretService:
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=provider_id,
         )
+        root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        if record is None and organization_id != root_org_id:
+            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM before .env fallback
+            record = await self._find_secret_record(
+                organization_id=root_org_id,
+                scope=SecretScope.LLM_PROVIDER,
+                target_identifier=provider_id,
+            )
         if record is not None:
             plaintext = await self._decrypt_or_fetch_secret(record)
             return ResolvedCredentialDTO(
@@ -376,6 +385,14 @@ class SecretService:
             scope=SecretScope.MCP_GATEWAY,
             target_identifier=gateway.id,
         )
+        root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        if record is None and organization_id != root_org_id:
+            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM before .env fallback
+            record = await self._find_secret_record(
+                organization_id=root_org_id,
+                scope=SecretScope.MCP_GATEWAY,
+                target_identifier=gateway.id,
+            )
         if record is not None:
             plaintext = await self._decrypt_or_fetch_secret(record)
             return ResolvedCredentialDTO(
@@ -438,6 +455,12 @@ class SecretService:
         Returns:
             Redacted hint formatted as '****<last4>' or '****' for short secrets.
         """
+        # Step 1: Sanitize multiline JSON secrets (such as Vertex AI Service Account JSON) to a clean 4-char suffix
+        if raw_secret.startswith("{"):
+            alnum_tail = "".join(ch for ch in raw_secret if ch.isalnum())[-4:]
+            if len(alnum_tail) == 4:
+                return f"****{alnum_tail}"
+            return "****"
         if len(raw_secret) >= 4:
             return f"****{raw_secret[-4:]}"
         return "****"

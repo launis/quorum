@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import PrefixedUUID7, generate_opaque_id
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     ModelProfile,
@@ -650,7 +650,11 @@ class StudioSystemConfigService:
             gateway.endpoint_url,
             allow_private_networks=settings.mcp_allow_private_networks,
         )
-        discovered_tools = await self.mcp_client.list_tools(gateway)
+        # Step 1: Resolve caller organization_id (defaulting to ROOT_SYSTEM) for dynamic UI secret binding
+        effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        if initiator.organization_id is not None:
+            effective_org_id = initiator.organization_id
+        discovered_tools = await self.mcp_client.list_tools(gateway, organization_id=effective_org_id)
         merged_tools = self._merge_discovered_tools(
             existing_tools=gateway.tools,
             discovered_tools=discovered_tools,

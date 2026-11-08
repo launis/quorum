@@ -883,3 +883,88 @@ def safe_header_bind(cred: ResolvedCredentialDTO) -> str:
     )
     clean_qgr033 = [v for v in clean_violations if v.rule_code == "QGR033" and "get_secret_value" in v.message]
     assert clean_qgr033 == []
+
+
+@pytest.mark.asyncio
+async def test_secret_service_root_system_inheritance_and_custom_mcp_gateway_without_env_var_positive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Positive: Verify ROOT_SYSTEM DB secrets inherit for tenants without overrides and support custom MCP gateways with auth_env_var=None."""
+    clean_settings = get_settings().model_copy(
+        update={"openai_api_key": None, "google_api_key": None, "anthropic_api_key": None}
+    )
+    monkeypatch.setattr("backend_v2.services.auth.secret_service.get_settings", lambda: clean_settings)
+
+    uow = InMemoryUnitOfWork()
+    service = SecretService(entity_adapter=uow.entities)
+
+    root_org_id = SystemOrganizations.ROOT_SYSTEM.value
+    tenant_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    root_token = _make_token_data(role=UserRole.ROOT, organization_id=root_org_id)
+
+    multiline_vertex_sa_json = (
+        '{\n  "type": "service_account",\n  "project_id": "vertex-proj-1234",\n'
+        '  "client_email": "sa@vertex-proj-1234.iam.gserviceaccount.com",\n'
+        '  "private_key": "-----BEGIN PRIVATE KEY-----\\nabc9876\\n-----END PRIVATE KEY-----\\n"\n}'
+    )
+    vertex_resp = await service.upsert_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.VERTEX_AI.value,
+            plaintext_secret=SecretStr(multiline_vertex_sa_json),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    assert vertex_resp.masked_hint == "****KEYn"
+    assert "\n" not in vertex_resp.masked_hint
+    assert "}" not in vertex_resp.masked_hint
+
+    resolved_llm = await service.resolve_llm_key(
+        organization_id=tenant_org_id,
+        provider=LLMProvider.VERTEX_AI,
+    )
+    assert resolved_llm.is_tenant_byok is True
+    assert resolved_llm.secret_value.get_secret_value() == multiline_vertex_sa_json
+
+    custom_gateway = SystemConfigMCPGateways(
+        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        name="Custom Enterprise MCP Server",
+        slug="custom_enterprise_mcp",
+        endpoint_url="https://mcp.custom.example.com/v1/mcp",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.API_KEY_HEADER,
+        auth_header_name="X-Custom-Mcp-Key",
+        auth_env_var=None,
+        timeout_seconds=10,
+        tools=[],
+    )
+    await service.upsert_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.MCP_GATEWAY,
+            target_identifier=custom_gateway.id,
+            plaintext_secret=SecretStr("custom-mcp-header-secret-xyz9"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
+    resolved_mcp = await service.resolve_mcp_credential(
+        organization_id=tenant_org_id,
+        gateway=custom_gateway,
+    )
+    assert resolved_mcp.is_tenant_byok is True
+    assert resolved_mcp.secret_value.get_secret_value() == "custom-mcp-header-secret-xyz9"
+
+    client = GenericMCPClient(secret_service=service)
+    headers = client._build_request_headers(custom_gateway, resolved_credential=resolved_mcp)
+    assert headers["X-Custom-Mcp-Key"] == "custom-mcp-header-secret-xyz9"
+
+
+def test_secret_service_masked_hint_short_json_boundary() -> None:
+    """Boundary: Verify _build_masked_hint returns '****' when a JSON secret has fewer than 4 alphanumeric characters."""
+    assert SecretService._build_masked_hint("{}") == "****"
+    assert SecretService._build_masked_hint('{"a": 1}') == "****"
+    assert SecretService._build_masked_hint('{"key": "ab12"}') == "****ab12"
