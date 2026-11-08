@@ -134,7 +134,7 @@
   - [x] @[backend_v2/models/dtos/hook_state.py]
   - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
   - [x] @[backend_v2/models/dtos/mcp.py]
-  - [ ] @[backend_v2/models/dtos/prompt_context.py]
+  - [x] @[backend_v2/models/dtos/prompt_context.py]
   - [ ] @[backend_v2/models/dtos/quote_evidence.py]
   - [ ] @[backend_v2/models/dtos/schema_manifest.py]
   - [ ] @[backend_v2/models/dtos/studio.py]
