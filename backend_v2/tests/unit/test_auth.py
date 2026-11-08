@@ -713,7 +713,7 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     bva_limiter = TenantRateLimitService(redis=FakeRedis(), get_settings_fn=lambda: bva_settings)
     active_member = member.model_copy(update={"is_active": True, "deleted_at": None})
     await mock_repo.create_user(active_member)
-    valid_payload = TokenExchangeRequestDTO.model_validate({"target_user_id": USER_1_ID})
+    valid_payload = TokenExchangeRequestDTO(target_user_id=USER_1_ID)
 
     res_1 = await exchange_firebase_token(
         request=mock_req,

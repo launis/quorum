@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import importlib
 import json
 import sys
-import types
-from typing import Any, NoReturn
+import warnings
+from collections.abc import Iterator
+from types import ModuleType
+from typing import Annotated, Any, NoReturn
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,21 +22,45 @@ from backend_v2.llm.adapters.ai_studio_adapter import (
     get_redis_client,
     is_gemini_v3_or_higher,
 )
-from backend_v2.models.domain.system_config import ModelProfile
+from backend_v2.models.domain.system_config import ModelProfile, ProviderExtraParamsDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
-# Setup mock modules for google.genai BEFORE importing adapter
-if "_mock_genai_client" not in dir(sys):
-    sys._mock_genai_client = MagicMock()
+# Phase 3, Step 3: Pre-import and snapshot canonical google.genai modules once without collection-time sys.modules mutation
+_mock_genai_client: MagicMock = MagicMock()
+mock_genai_client: MagicMock = _mock_genai_client
 
-mock_genai_client = sys._mock_genai_client
+_real_google_pkg: Any = None
+_real_google_genai: ModuleType | None = None
+_real_google_genai_types: ModuleType | None = None
+_real_google_genai_errors: ModuleType | None = None
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", DeprecationWarning)
+    try:
+        _real_google_pkg = importlib.import_module("google")
+        _real_google_genai = importlib.import_module("google.genai")
+        _real_google_genai_types = importlib.import_module("google.genai.types")
+        _real_google_genai_errors = importlib.import_module("google.genai.errors")
+    except ImportError:
+        pass
 
 
-class MockGenAITypes(types.ModuleType):
+class MockGenAITypes(ModuleType):
+    """Hermetic mock module for google.genai.types."""
+
     @staticmethod
     def CreateCachedContentConfig(*args: Any, **kwargs: Any) -> Any:
+        """Build a mock CreateCachedContentConfig instance.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments for cached content configuration.
+
+        Returns:
+            Configured MagicMock representing CreateCachedContentConfig.
+        """
         config = MagicMock()
         config.contents = kwargs["contents"] if "contents" in kwargs else None
         config.ttl = kwargs["ttl"] if "ttl" in kwargs else None
@@ -41,61 +68,66 @@ class MockGenAITypes(types.ModuleType):
         return config
 
 
-class MockGenAIModule(types.ModuleType):
+class MockGenAIModule(ModuleType):
+    """Hermetic mock module for google.genai."""
+
     __path__: list[str] = []
-    types = MockGenAITypes("google.genai.types")
+    types: MockGenAITypes = MockGenAITypes("google.genai.types")
+    errors: ModuleType = ModuleType("google.genai.errors")
 
     @staticmethod
     def Client(*args: Any, **kwargs: Any) -> Any:
+        """Return the module-scoped mock GenAI client.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            Shared MagicMock client instance.
+        """
         return mock_genai_client
 
 
 mod_genai_types = MockGenAITypes("google.genai.types")
 mod_genai = MockGenAIModule("google.genai")
 mod_genai.types = mod_genai_types
-
-try:
-    import google
-
-    google.genai = mod_genai
-except ImportError:
-
-    class MockGoogleModule(types.ModuleType):
-        __path__: list[str] = []
-        genai: Any = mod_genai
-
-    mock_google = MockGoogleModule("google")
-    sys.modules["google"] = mock_google
-
-sys.modules["google.genai"] = mod_genai
-sys.modules["google.genai.types"] = mod_genai_types
-
-try:
-    import google.genai.errors as real_genai_errors
-
-    mod_genai.errors = real_genai_errors
-    sys.modules["google.genai.errors"] = real_genai_errors
-except ImportError:
-    pass
+if _real_google_genai_errors is not None:
+    mod_genai.errors = _real_google_genai_errors
 
 
 @pytest.fixture(scope="module", autouse=True)
-def cleanup_genai_mock() -> Any:
-    """Restore real google.genai modules after this test module finishes."""
-    yield
+def cleanup_genai_mock() -> Iterator[None]:
+    """Install mock google.genai modules for this test module and restore real module references in finally."""
+    if _real_google_pkg is not None:
+        _real_google_pkg.genai = mod_genai
+    else:
+
+        class MockGoogleModule(ModuleType):
+            """Fallback mock google root package when google is not installed."""
+
+            __path__: list[str] = []
+            genai: Any = mod_genai
+
+        sys.modules["google"] = MockGoogleModule("google")
+
+    sys.modules["google.genai"] = mod_genai
+    sys.modules["google.genai.types"] = mod_genai_types
+    if _real_google_genai_errors is not None:
+        sys.modules["google.genai.errors"] = _real_google_genai_errors
+
     try:
-        import importlib
-
-        for mod_name in ("google.genai", "google.genai.types", "google.genai.errors"):
-            if mod_name in sys.modules:
-                del sys.modules[mod_name]
-        import google
-
-        google.genai = importlib.import_module("google.genai")
-        importlib.import_module("google.genai.types")
-        importlib.import_module("google.genai.errors")
-    except ImportError, AttributeError, KeyError:
-        pass
+        yield
+    finally:
+        # Phase 3, Step 3: Restore exact pre-captured module references without del or importlib re-import
+        if _real_google_pkg is not None and _real_google_genai is not None:
+            _real_google_pkg.genai = _real_google_genai
+        if _real_google_genai is not None:
+            sys.modules["google.genai"] = _real_google_genai
+        if _real_google_genai_types is not None:
+            sys.modules["google.genai.types"] = _real_google_genai_types
+        if _real_google_genai_errors is not None:
+            sys.modules["google.genai.errors"] = _real_google_genai_errors
 
 
 @pytest.fixture(autouse=True)
@@ -126,11 +158,11 @@ async def test_ai_studio_adapter_preparer_bypass() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Small static content under threshold."},
+            LLMMessageDTO(role="system", content="You are a helpful assistant."),
+            LLMMessageDTO(role="user", content="Small static content under threshold."),
         ],
         dynamic_messages=[
-            {"role": "assistant", "content": "Response."},
+            LLMMessageDTO(role="assistant", content="Response."),
         ],
     )
 
@@ -149,10 +181,10 @@ async def test_ai_studio_adapter_bypasses_cache_when_contents_empty_or_system_on
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": large_system_instruction},
+            LLMMessageDTO(role="system", content=large_system_instruction),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Query payload"},
+            LLMMessageDTO(role="user", content="Query payload"),
         ],
     )
 
@@ -210,6 +242,8 @@ def test_ai_studio_adapter_prepare_kwargs_thinking_and_cached_content() -> None:
         provider="google",
         model_name="gemini/gemini-3.7-flash",
         thinking_budget_tokens=2048,
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
     )
 
     call_kwargs: dict[str, JsonValue] = {
@@ -237,6 +271,8 @@ def test_ai_studio_adapter_prepare_kwargs_gemini_37_sanitization() -> None:
         provider="google",
         model_name="gemini/gemini-3.7-flash",
         thinking_budget_tokens=4096,
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
     )
 
     call_kwargs: dict[str, JsonValue] = {
@@ -266,6 +302,8 @@ def test_ai_studio_adapter_dev_environment_clamping() -> None:
         provider="google",
         model_name="gemini/gemini-3.7-flash",
         thinking_budget_tokens=4096,
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
     )
 
     # In development: clamped to 0
@@ -292,11 +330,11 @@ async def test_ai_studio_thundering_herd_protection() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Query"},
+            LLMMessageDTO(role="user", content="Query"),
         ],
     )
 
@@ -333,11 +371,11 @@ async def test_ai_studio_fail_soft_error(caplog: pytest.LogCaptureFixture) -> No
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Query"},
+            LLMMessageDTO(role="user", content="Query"),
         ],
     )
 
@@ -372,10 +410,10 @@ async def test_ai_studio_cache_immediate_hit_in_shared_ledger() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
-        dynamic_messages=[{"role": "user", "content": "Query"}],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Query")],
     )
 
     redis_client = await get_redis_client()
@@ -401,10 +439,10 @@ async def test_ai_studio_instant_exit_on_failed() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
-        dynamic_messages=[{"role": "user", "content": "Query"}],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Query")],
     )
 
     adapter = GoogleAIStudioCacheAdapter()
@@ -436,7 +474,7 @@ async def test_ai_studio_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyP
 
     large_static = "A" * 150000
     prompt = CompiledPrompt(
-        static_messages=[{"role": "user", "content": large_static}],
+        static_messages=[LLMMessageDTO(role="user", content=large_static)],
         dynamic_messages=[],
     )
 
@@ -489,13 +527,13 @@ def test_ai_studio_adapter_prepare_structured_output() -> None:
     """Verify prepare_structured_output formats JSON schema and strips unsupported constraints."""
 
     class SampleSchema(BaseModel):
-        name: str = Field(min_length=2)
-        score: int = Field(ge=0, le=100)
+        name: Annotated[str, Field(min_length=2)]
+        score: Annotated[int, Field(ge=0, le=100)]
 
     adapter = GoogleAIStudioCacheAdapter()
     result = adapter.prepare_structured_output(SampleSchema)
 
-    assert type(result) is dict
+    assert not isinstance(result, type)
     assert result["type"] == "json_schema"
     assert result["json_schema"]["name"] == "SampleSchema"
     props = result["json_schema"]["schema"]["properties"] if "properties" in result["json_schema"]["schema"] else {}
@@ -523,6 +561,8 @@ def test_ai_studio_adapter_prepare_kwargs_no_duplicate_oneof_cached_content() ->
     config = ModelProfile(
         provider="google",
         model_name="gemini/gemini-3.7-flash",
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
     )
 
     call_kwargs: dict[str, JsonValue] = {
@@ -545,6 +585,18 @@ def test_is_gemini_v3_or_higher_boundaries() -> None:
     assert is_gemini_v3_or_higher("gemini-3-pro") is True
     assert is_gemini_v3_or_higher("gemini-2.5-pro") is False
     assert is_gemini_v3_or_higher("gpt-4o-mini") is False
+
+
+def test_cleanup_genai_mock_preserves_and_restores_real_module_references() -> None:
+    """Verify cleanup_genai_mock snapshots canonical google.genai modules and binds hermetic mocks."""
+    assert sys.modules["google.genai"] is mod_genai
+    assert sys.modules["google.genai.types"] is mod_genai_types
+    assert _real_google_genai is not None
+    assert _real_google_genai_types is not None
+    assert _real_google_genai_errors is not None
+    assert _real_google_genai is not mod_genai
+    assert _real_google_genai_types is not mod_genai_types
+    assert mod_genai.errors is _real_google_genai_errors
 
 
 @pytest.mark.asyncio
