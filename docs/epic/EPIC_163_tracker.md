@@ -115,7 +115,7 @@
   - [x] @[backend_v2/llm/ingress_pipeline.py]
   - [x] @[backend_v2/llm/mock_data.py]
   - [x] @[backend_v2/logging_config.py]
-  - [ ] @[backend_v2/models/auth.py]
+  - [x] @[backend_v2/models/auth.py]
   - [ ] @[backend_v2/models/chunking.py]
   - [ ] @[backend_v2/models/domain/execution.py]
   - [ ] @[backend_v2/models/domain/inputs.py]
