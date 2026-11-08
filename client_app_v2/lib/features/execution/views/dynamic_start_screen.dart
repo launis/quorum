@@ -19,18 +19,15 @@ import 'package:client_app/features/studio/models/workflow.dart';
 
 part 'dynamic_start_screen.g.dart';
 
-/// Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
+/// Fetches the workflow UI input schema from the backend API.
 @riverpod
 Future<WorkflowUiSchema> workflowUiSchema(Ref ref, String workflowId) async {
   final client = ref.watch(workflowClientProvider);
   return await client.getWorkflowUiSchema(workflowId);
 }
 
-/// **Dynamic Start Screen**
-///
-/// V2 Architecture: Renders required inputs using strongly typed `WorkflowUiSchema`
-/// and `ExpectedInput` models matching the backend Pydantic SSOT contract.
-/// Complies with Riverpod and No-String mandates.
+/// Renders required workflow inputs using strongly typed [WorkflowUiSchema]
+/// and [ExpectedInput] models matching the backend Pydantic SSOT contract.
 class DynamicStartScreen extends HookConsumerWidget {
   final String workflowId;
 
@@ -39,7 +36,6 @@ class DynamicStartScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final schemaAsync = ref.watch(workflowUiSchemaProvider(workflowId));
-    // Phase 5, Step 5.2: Store typed WorkflowInputValue entries instead of Map<String, Object?>.
     final collectedInputs = useRef<Map<String, WorkflowInputValue>>(
       <String, WorkflowInputValue>{},
     );
@@ -54,11 +50,11 @@ class DynamicStartScreen extends HookConsumerWidget {
           collectedInputs.value,
           formKey,
         ),
-        AsyncError(:final error) => ErrorView(
-          error: AppLocalizations.of(
-            context,
-          )!.failedToLoadSchema(error.toString()),
+        AsyncError(:final error, :final stackTrace) => ErrorView(
+          error: error,
+          stackTrace: stackTrace,
           compact: true,
+          onRetry: () => ref.invalidate(workflowUiSchemaProvider(workflowId)),
         ),
         AsyncLoading() => const Center(child: CircularProgressIndicator()),
       },
@@ -91,20 +87,25 @@ class DynamicStartScreen extends HookConsumerWidget {
     GlobalKey<FormState> formKey,
   ) {
     final locale = Localizations.localeOf(context).languageCode;
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return SingleChildScrollView(
       padding: AppSpacing.p24,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.s300 + AppSpacing.s300,
+          ),
           child: Form(
             key: formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  AppLocalizations.of(context)!.startWorkflowTitle(workflowId),
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  l10n.startWorkflowTitle(workflowId),
+                  style: theme.textTheme.headlineMedium,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 AppSpacing.h24,
 
@@ -170,7 +171,10 @@ class DynamicStartScreen extends HookConsumerWidget {
                   onPressed: () =>
                       _onStart(context, ref, collectedInputs, formKey),
                   icon: const Icon(Icons.play_arrow),
-                  label: Text(AppLocalizations.of(context)!.startAiExecution),
+                  label: Text(
+                    l10n.startAiExecution,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.s16,
@@ -199,11 +203,13 @@ class DynamicStartScreen extends HookConsumerWidget {
     }
 
     final locale = Localizations.localeOf(context).languageCode;
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(AppSpacing.s12),
       ),
       child: Padding(
@@ -212,10 +218,11 @@ class DynamicStartScreen extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              AppLocalizations.of(context)!.questionnaireTitle(title),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              l10n.questionnaireTitle(title),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
             AppSpacing.h16,
             ...definitions.map((def) {

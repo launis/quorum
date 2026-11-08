@@ -8,12 +8,12 @@ part of 'dynamic_start_screen.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
+/// Fetches the workflow UI input schema from the backend API.
 
 @ProviderFor(workflowUiSchema)
 final workflowUiSchemaProvider = WorkflowUiSchemaFamily._();
 
-/// Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
+/// Fetches the workflow UI input schema from the backend API.
 
 final class WorkflowUiSchemaProvider
     extends
@@ -23,7 +23,7 @@ final class WorkflowUiSchemaProvider
           FutureOr<WorkflowUiSchema>
         >
     with $FutureModifier<WorkflowUiSchema>, $FutureProvider<WorkflowUiSchema> {
-  /// Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
+  /// Fetches the workflow UI input schema from the backend API.
   WorkflowUiSchemaProvider._({
     required WorkflowUiSchemaFamily super.from,
     required String super.argument,
@@ -70,7 +70,7 @@ final class WorkflowUiSchemaProvider
 
 String _$workflowUiSchemaHash() => r'bfd4b493c6f25960d72067b0e92c1e3a20f946a5';
 
-/// Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
+/// Fetches the workflow UI input schema from the backend API.
 
 final class WorkflowUiSchemaFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<WorkflowUiSchema>, String> {
@@ -83,7 +83,7 @@ final class WorkflowUiSchemaFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
+  /// Fetches the workflow UI input schema from the backend API.
 
   WorkflowUiSchemaProvider call(String workflowId) =>
       WorkflowUiSchemaProvider._(argument: workflowId, from: this);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/workflow_client.dart';
@@ -107,18 +108,33 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('Negative 1: renders ErrorView when schema loading fails', (
-      tester,
-    ) async {
-      when(
-        () => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId),
-      ).thenThrow(Exception('Failed to fetch schema'));
+    testWidgets(
+      'Negative 1: renders ErrorView with localized AppException hint and supports retry when schema loading fails',
+      (tester) async {
+        when(
+          () => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId),
+        ).thenThrow(AppException.notFound('Workflow schema missing'));
 
-      await tester.pumpWidget(createTestWidget());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
 
-      expect(find.byType(ErrorView), findsOneWidget);
-    });
+        expect(find.byType(ErrorView), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsOneWidget);
+
+        // Verify retry triggers schema re-fetch
+        when(
+          () => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId),
+        ).thenAnswer(
+          (_) async => WorkflowUiSchema(expectedInputs: [standardInput]),
+        );
+
+        await tester.tap(find.byIcon(Icons.refresh));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ErrorView), findsNothing);
+        expect(find.textContaining('Transcription *'), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'Negative 2: blocks execution submission when required input field is empty (Boundary Validation)',
