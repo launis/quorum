@@ -151,7 +151,7 @@
   - [x] @[backend_v2/services/auth/secret_service.py]
   - [x] @[backend_v2/services/cache/typed_cache.py]
   - [x] @[backend_v2/services/execution/assignment_service.py]
-  - [ ] @[backend_v2/services/execution/ingress_service.py]
+  - [x] @[backend_v2/services/execution/ingress_service.py]
   - [ ] @[backend_v2/services/llm_task_executor.py]
   - [ ] @[backend_v2/services/orchestrator/context_router.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
