@@ -178,7 +178,7 @@
   - [x] @[scripts/diff_executions.py]
   - [x] @[scripts/flutter_audit_loop.py]
   - [x] @[scripts/reconcile_storage.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_163_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"` to audit all modified frontend files:
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_163_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"` to audit all modified frontend files:
   - [x] @[client_app_v2/lib/features/execution/controllers/execution_controller.dart]
   - [x] @[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
@@ -214,7 +214,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
   - [x] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
   - [x] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies or deprecated parameters remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across all modified modules.
 - [ ] **[NOK] Test Coverage Expansion (`/tier8-test-coverage-expansion`)**: Run ISTQB negative and boundary value test expansion across modified DTOs, services, and worker suites.
