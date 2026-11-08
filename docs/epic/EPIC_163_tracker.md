@@ -172,7 +172,7 @@
   - [x] @[scripts/_dart_guardrails.py]
   - [x] @[scripts/ablation_live_executor.py]
   - [x] @[scripts/audit_dict_eradication.py]
-  - [ ] @[scripts/audit_warning_baseline.py]
+  - [x] @[scripts/audit_warning_baseline.py]
   - [ ] @[scripts/auto_hardening_runner.py]
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/diff_executions.py]
