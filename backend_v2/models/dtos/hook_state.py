@@ -26,6 +26,17 @@ __all__ = [
 
 
 def __getattr__(name: str) -> object:
+    """Resolve deferred exports dynamically to prevent circular import cycles.
+
+    Args:
+        name: The attribute name being accessed on the module.
+
+    Returns:
+        The resolved attribute object when matching a deferred export.
+
+    Raises:
+        AttributeError: If the requested attribute name is not exported by this module.
+    """
     if name == "HookDeltaDTO":
         from backend_v2.models.dtos.hook_delta import HookDeltaDTO
 
@@ -45,7 +56,6 @@ class ExecutionInputsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     raw_inputs: Annotated[
         Mapping[str, DomainInputValue],
         Field(default_factory=dict, description="Raw input mapping by input key or role."),
