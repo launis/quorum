@@ -127,7 +127,7 @@
   - [x] @[backend_v2/models/domain/system_config.py]
   - [x] @[backend_v2/models/domain/validation.py]
   - [x] @[backend_v2/models/domain/workflow.py]
-  - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
+  - [x] @[backend_v2/models/dtos/atom_evaluation.py]
   - [ ] @[backend_v2/models/dtos/context_variables.py]
   - [ ] @[backend_v2/models/dtos/engine.py]
   - [ ] @[backend_v2/models/dtos/hook_delta.py]
