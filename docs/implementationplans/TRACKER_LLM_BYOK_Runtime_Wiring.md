@@ -26,12 +26,12 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/llm/client.py]
   - [x] @[backend_v2/services/execution/ingress_service.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
   - [x] @[backend_v2/workers/synthesis_worker.py]
-  - [ ] @[backend_v2/workers/variance_synthesis.py]
+  - [x] @[backend_v2/workers/variance_synthesis.py]
 - [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - N/A (No Frontend files touched in this plan)
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
