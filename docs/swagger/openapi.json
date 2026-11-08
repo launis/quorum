@@ -8574,7 +8574,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ContextVariablesDTO",
-        "description": "Encapsulates execution-level context variables and dynamic blackboard state."
+        "description": "Encapsulates execution-level context variables and dynamic blackboard state.\n\nAttributes:\n    global_atom_blackboard: Optional global atom blackboard output.\n    matrix_reducer_output: Optional matrix reducer output payload.\n    report_context: Optional report generation context value.\n    step_detector: Optional step detector output value.\n    evaluated_matrices: Optional evaluated matrices summary value.\n    variables: Mapping of arbitrary typed context variables."
       },
       "ContrastivePairDTO": {
         "properties": {
@@ -9677,7 +9677,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "EvaluatedMatrixContextDTO",
-        "description": "DTO for evaluated matrix context within execution context_variables."
+        "description": "DTO for evaluated matrix context within execution context_variables.\n\nAttributes:\n    evaluated_atoms: Map of atom IDs to evaluation status strings.\n    raw_atoms: Collection of raw evaluated atom DTO payloads."
       },
       "EvaluatedMatrixRefDTO": {
         "properties": {
@@ -10660,7 +10660,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ExecutionMetadata",
-        "description": "Strictly typed metadata for execution runtime parameters and provenance."
+        "description": "Strictly typed metadata for execution runtime parameters and provenance.\n\nAttributes:\n    matrix_sampling_strategy: Sampling strategy limit for Matrix Flattening.\n    workflow_version: Version number of the executing workflow.\n    global_context_vars: Global context variables for hooks.\n    provider_override: Execution-level LLM provider override.\n    model_registry_id: System config ID of the attached model registry.\n    telemetry: W3C distributed trace context carrier for OpenTelemetry."
       },
       "ExecutionMetricsDTO": {
         "properties": {
