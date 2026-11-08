@@ -26,7 +26,7 @@
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/api/routers/iam/auth.py]
   - [x] @[backend_v2/main.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain (`slowapi`, `rate_limit.py`, `rate_limit_exception_handler`, `_resolve_exchange_rate_limit`).
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic (`@[backend_v2/api/routers/iam/auth.py]` and `@[backend_v2/main.py]`).
 
@@ -83,9 +83,9 @@
 - Narrowing `prepare_structured_output` return type via `assert not isinstance(result, type)` in `@[backend_v2/tests/unit/llm/adapters/test_ai_studio_adapter.py#L526-L541]` satisfies both `mypy --strict` and `QGR001` (`isinstance(..., dict)` ban).
 
 ## Remaining
-- Execute `Tier 2 Hardening (Backend)` on `@[backend_v2/api/routers/iam/auth.py]` and `@[backend_v2/main.py]` via `scripts/auto_hardening_runner.py`, and then run `/tier7-describe-architecture`.
+- Run `/tier7-describe-architecture @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[ki_god_code_prevention.md]` to synchronize As-Built architectural documentation.
 
 ## Resume Command
 ```powershell
-$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+/tier7-describe-architecture @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[ki_god_code_prevention.md]
 ```
