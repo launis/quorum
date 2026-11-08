@@ -18,9 +18,9 @@ This phase replaces all 32 `dict[str, JsonValue]` and `list[JsonValue]` occurren
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| `@[backend_v2/models/dtos/atom_evaluation.py#L151-L174]`, `@[backend_v2/models/dtos/hook_delta.py#HookStateDeltaDTO]`, `@[backend_v2/models/dtos/lightweight_matrix.py#L45-L59]`, `@[backend_v2/models/dtos/lightweight_matrix.py#L126-L189]`, `@[backend_v2/models/dtos/prompt_context.py#PromptCompilationContextDTO]`, `@[backend_v2/models/dtos/schema_manifest.py#StepSchemaManifestDTO]`, `@[backend_v2/models/dtos/system.py#L56-L75]`, `@[backend_v2/models/dtos/trace.py#StepTraceEventDTO]`, `@[backend_v2/models/state.py#AdapterContext]`, `@[backend_v2/models/state.py#ExecutionContext]` | Declaring open `dict[str, JsonValue]` and `list[JsonValue]` fields on internal DTOs and DAG execution state envelopes (`QGR027`). | Define closed Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid", frozen=True)`) with PEP 593 `Annotated` fields and discriminated unions for matrix rows, scale distributions, health component entries, trace outputs, and DAG step outputs. | Zero untyped `JsonValue` bags in `backend_v2/models/dtos/` or `backend_v2/models/state.py`. | `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/models/ --test --ast-strict` |
-| `@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]`, `@[backend_v2/llm/client.py#L42-L879]`, `@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]`, `@[backend_v2/llm/mock_data.py#get_mock_structured_response]`, `@[backend_v2/services/llm_task_executor.py#L106-L525]` | Using `dict[str, JsonValue]` return/parameter annotations in `LLMClient`, `LLMIngressPipeline`, `get_mock_structured_response`, `LLMTaskExecutor`, and `matrix_evaluation_hook` (`QGR027`). | Enforce generic Pydantic `BaseModel` type parameters and typed `LightweightMatrixOutput` / `ScoringResultDTO` models across LLM execution and matrix scoring. | Zero raw JSON dictionary intermediates between `LLMClient` and `LLMTaskExecutor`. | `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/llm/ backend_v2/services/llm_task_executor.py backend_v2/hooks/scoring/matrix_hook.py --test --ast-strict` |
-| `@[backend_v2/services/orchestrator/context_router.py#L50-L196]`, `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py#L345-L436]`, `@[backend_v2/services/orchestrator/matrix_reducer.py#L56-L246]`, `@[backend_v2/services/orchestrator/result_projector.py#L31-L272]`, `@[backend_v2/services/orchestrator/strategies/logic.py#L32-L231]`, `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L36-L501]`, `@[scripts/_ast_guardrails.py]`, `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`, `@[backend_v2/tests/integration/test_sdui_semantic_parity.py]` | Routing `dict[str, JsonValue]` maps across `context_router.py`, `wave_orchestrator_stage.py`, `matrix_reducer.py`, `result_projector.py`, `logic.py`, and `synthesis_payload_compressor.py` (`QGR027`). | Route strongly typed `StepOutputDTO`, `LightweightMatrixOutput`, `LightweightMatrixDTO`, and compressed synthesis payload DTOs across all orchestrator stages, and delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` from `@[scripts/_ast_guardrails.py]`. | Zero `RESIDUAL_*` exemption sets remaining in `@[scripts/_ast_guardrails.py]`. | `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/services/orchestrator/ scripts/_ast_guardrails.py --test --ast-strict` |
+| `@[backend_v2/models/dtos/atom_evaluation.py#L159-L182]`, `@[backend_v2/models/dtos/hook_delta.py#HookStateDeltaDTO]`, `@[backend_v2/models/dtos/lightweight_matrix.py#L39-L54]`, `@[backend_v2/models/dtos/lightweight_matrix.py#L138-L193]`, `@[backend_v2/models/dtos/prompt_context.py#PromptCompilationContextDTO]`, `@[backend_v2/models/dtos/schema_manifest.py#StepSchemaManifestDTO]`, `@[backend_v2/models/dtos/system.py#L60-L79]`, `@[backend_v2/models/dtos/trace.py#StepTraceEventDTO]`, `@[backend_v2/models/state.py#AdapterContext]`, `@[backend_v2/models/state.py#ExecutionContext]` | Declaring open `dict[str, JsonValue]` and `list[JsonValue]` fields on internal DTOs and DAG execution state envelopes (`QGR027`). | Define closed Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid", frozen=True)`) with PEP 593 `Annotated` fields and discriminated unions for matrix rows, scale distributions, health component entries, trace outputs, and DAG step outputs. | Zero untyped `JsonValue` bags in `backend_v2/models/dtos/` or `backend_v2/models/state.py`. | `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/models/ --test --ast-strict` |
+| `@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]`, `@[backend_v2/llm/client.py#L43-L880]`, `@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]`, `@[backend_v2/llm/mock_data.py#L484-L541]`, `@[backend_v2/services/llm_task_executor.py#L107-L526]` | Using `dict[str, JsonValue]` return/parameter annotations in `LLMClient`, `LLMIngressPipeline`, `get_mock_structured_response`, `LLMTaskExecutor`, and `matrix_evaluation_hook` (`QGR027`). | Enforce generic Pydantic `BaseModel` type parameters and typed `LightweightMatrixOutput` / `ScoringResultDTO` models across LLM execution and matrix scoring. | Zero raw JSON dictionary intermediates between `LLMClient` and `LLMTaskExecutor`. | `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/llm/ backend_v2/services/llm_task_executor.py backend_v2/hooks/scoring/matrix_hook.py --test --ast-strict` |
+| `@[backend_v2/services/orchestrator/context_router.py#L54-L204]`, `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py#L383-L474]`, `@[backend_v2/services/orchestrator/matrix_reducer.py#L55-L245]`, `@[backend_v2/services/orchestrator/result_projector.py#L29-L271]`, `@[backend_v2/services/orchestrator/strategies/logic.py#L38-L241]`, `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L37-L503]`, `@[scripts/_ast_guardrails.py]`, `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`, `@[backend_v2/tests/integration/test_sdui_semantic_parity.py]` | Routing `dict[str, JsonValue]` maps across `context_router.py`, `wave_orchestrator_stage.py`, `matrix_reducer.py`, `result_projector.py`, `logic.py`, and `synthesis_payload_compressor.py` (`QGR027`). | Route strongly typed `StepOutputDTO`, `LightweightMatrixOutput`, `LightweightMatrixDTO`, and compressed synthesis payload DTOs across all orchestrator stages, and delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` from `@[scripts/_ast_guardrails.py]`. | Zero `RESIDUAL_*` exemption sets remaining in `@[scripts/_ast_guardrails.py]`. | `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/services/orchestrator/ scripts/_ast_guardrails.py --test --ast-strict` |
 
 ---
 
@@ -44,27 +44,27 @@ This phase replaces all 32 `dict[str, JsonValue]` and `list[JsonValue]` occurren
   </anti_targets>
 
   <touched_artifacts>
-    <file>@[backend_v2/models/dtos/atom_evaluation.py#L151-L174]</file>
+    <file>@[backend_v2/models/dtos/atom_evaluation.py#L159-L182]</file>
     <file>@[backend_v2/models/dtos/hook_delta.py#HookStateDeltaDTO]</file>
-    <file>@[backend_v2/models/dtos/lightweight_matrix.py#L45-L59]</file>
-    <file>@[backend_v2/models/dtos/lightweight_matrix.py#L126-L189]</file>
+    <file>@[backend_v2/models/dtos/lightweight_matrix.py#L39-L54]</file>
+    <file>@[backend_v2/models/dtos/lightweight_matrix.py#L138-L193]</file>
     <file>@[backend_v2/models/dtos/prompt_context.py#PromptCompilationContextDTO]</file>
     <file>@[backend_v2/models/dtos/schema_manifest.py#StepSchemaManifestDTO]</file>
-    <file>@[backend_v2/models/dtos/system.py#L56-L75]</file>
+    <file>@[backend_v2/models/dtos/system.py#L60-L79]</file>
     <file>@[backend_v2/models/dtos/trace.py#StepTraceEventDTO]</file>
     <file>@[backend_v2/models/state.py#AdapterContext]</file>
     <file>@[backend_v2/models/state.py#ExecutionContext]</file>
     <file>@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]</file>
-    <file>@[backend_v2/llm/client.py#L42-L879]</file>
+    <file>@[backend_v2/llm/client.py#L43-L880]</file>
     <file>@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]</file>
-    <file>@[backend_v2/llm/mock_data.py#get_mock_structured_response]</file>
-    <file>@[backend_v2/services/llm_task_executor.py#L106-L525]</file>
-    <file>@[backend_v2/services/orchestrator/context_router.py#L50-L196]</file>
-    <file>@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py#L345-L436]</file>
-    <file>@[backend_v2/services/orchestrator/matrix_reducer.py#L56-L246]</file>
-    <file>@[backend_v2/services/orchestrator/result_projector.py#L31-L272]</file>
-    <file>@[backend_v2/services/orchestrator/strategies/logic.py#L32-L231]</file>
-    <file>@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L36-L501]</file>
+    <file>@[backend_v2/llm/mock_data.py#L484-L541]</file>
+    <file>@[backend_v2/services/llm_task_executor.py#L107-L526]</file>
+    <file>@[backend_v2/services/orchestrator/context_router.py#L54-L204]</file>
+    <file>@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py#L383-L474]</file>
+    <file>@[backend_v2/services/orchestrator/matrix_reducer.py#L55-L245]</file>
+    <file>@[backend_v2/services/orchestrator/result_projector.py#L29-L271]</file>
+    <file>@[backend_v2/services/orchestrator/strategies/logic.py#L38-L241]</file>
+    <file>@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L37-L503]</file>
     <file>@[scripts/_ast_guardrails.py]</file>
     <file>@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]</file>
     <file>@[backend_v2/tests/integration/test_sdui_semantic_parity.py]</file>
@@ -78,12 +78,12 @@ This phase replaces all 32 `dict[str, JsonValue]` and `list[JsonValue]` occurren
       Remove `JsonValue` imports and `dict[str, JsonValue]` / `list[JsonValue]` field declarations across the 8 target model files.
     </demolish>
     <action>
-      1. `[MODIFY]` `@[backend_v2/models/dtos/atom_evaluation.py#L151-L174]`: Replace open `dict[str, JsonValue]` fields with closed Pydantic V2 DTOs.
+      1. `[MODIFY]` `@[backend_v2/models/dtos/atom_evaluation.py#L159-L182]`: Replace open `dict[str, JsonValue]` fields with closed Pydantic V2 DTOs.
       2. `[MODIFY]` `@[backend_v2/models/dtos/hook_delta.py#HookStateDeltaDTO]`: Replace `dict[str, JsonValue]` payload fields with closed typed delta DTOs.
-      3. `[MODIFY]` `@[backend_v2/models/dtos/lightweight_matrix.py#L126-L189]` and `@[backend_v2/models/dtos/lightweight_matrix.py#L45-L59]`: Create closed Pydantic V2 models for matrix rows, scale distributions, and diagnostic trace metadata replacing `dict[str, JsonValue]`.
+      3. `[MODIFY]` `@[backend_v2/models/dtos/lightweight_matrix.py#L138-L193]` and `@[backend_v2/models/dtos/lightweight_matrix.py#L39-L54]`: Create closed Pydantic V2 models for matrix rows, scale distributions, and diagnostic trace metadata replacing `dict[str, JsonValue]`.
       4. `[MODIFY]` `@[backend_v2/models/dtos/prompt_context.py#PromptCompilationContextDTO]`: Replace `dict[str, JsonValue]` context map with typed prompt context DTO fields.
       5. `[MODIFY]` `@[backend_v2/models/dtos/schema_manifest.py#StepSchemaManifestDTO]`: Replace `dict[str, JsonValue]` schema descriptor fields with typed manifest DTOs.
-      6. `[MODIFY]` `@[backend_v2/models/dtos/system.py#L56-L75]`: Create typed health component entries replacing `dict[str, JsonValue]` diagnostic maps on `HealthCheckResponseDTO`.
+      6. `[MODIFY]` `@[backend_v2/models/dtos/system.py#L60-L79]`: Create typed health component entries replacing `dict[str, JsonValue]` diagnostic maps on `HealthCheckResponseDTO`.
       7. `[MODIFY]` `@[backend_v2/models/dtos/trace.py#StepTraceEventDTO]`: Replace `dict[str, JsonValue]` trace output fields with typed trace payload DTOs (`exclude_none=True`).
       8. `[MODIFY]` `@[backend_v2/models/state.py#AdapterContext]` and `@[backend_v2/models/state.py#ExecutionContext]`: Replace `dict[str, JsonValue]` step output maps with typed `StepOutputDTO` and discriminated union values.
     </action>
@@ -111,17 +111,17 @@ This phase replaces all 32 `dict[str, JsonValue]` and `list[JsonValue]` occurren
 
   <step id="4.2" name="Migrate LLM Client, Ingress Pipeline, Task Executor &amp; Matrix Hook Away from JsonValue">
     <context>
-      `@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]`, `@[backend_v2/llm/client.py#L42-L879]`, `@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]`, `@[backend_v2/llm/mock_data.py#get_mock_structured_response]`, and `@[backend_v2/services/llm_task_executor.py#L106-L525]` annotate structured responses or intermediate payloads as `dict[str, JsonValue]`.
+      `@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]`, `@[backend_v2/llm/client.py#L43-L880]`, `@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]`, `@[backend_v2/llm/mock_data.py#L484-L541]`, and `@[backend_v2/services/llm_task_executor.py#L107-L526]` annotate structured responses or intermediate payloads as `dict[str, JsonValue]`.
     </context>
     <demolish>
-      Remove `dict[str, JsonValue]` annotations in `@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]`, `@[backend_v2/llm/client.py#L42-L879]`, `@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]`, `@[backend_v2/llm/mock_data.py#get_mock_structured_response]`, and `@[backend_v2/services/llm_task_executor.py#L106-L525]`.
+      Remove `dict[str, JsonValue]` annotations in `@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]`, `@[backend_v2/llm/client.py#L43-L880]`, `@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]`, `@[backend_v2/llm/mock_data.py#L484-L541]`, and `@[backend_v2/services/llm_task_executor.py#L107-L526]`.
     </demolish>
     <action>
       1. `[MODIFY]` `@[backend_v2/hooks/scoring/matrix_hook.py#matrix_evaluation_hook]`: Consume and return typed `LightweightMatrixOutput` and `ScoringResultDTO` models without `dict[str, JsonValue]`.
-      2. `[MODIFY]` `@[backend_v2/llm/client.py#L42-L879]`: Replace `dict[str, JsonValue]` return/parameter annotations on structured execution helpers with generic Pydantic `BaseModel` type parameters.
+      2. `[MODIFY]` `@[backend_v2/llm/client.py#L43-L880]`: Replace `dict[str, JsonValue]` return/parameter annotations on structured execution helpers with generic Pydantic `BaseModel` type parameters.
       3. `[MODIFY]` `@[backend_v2/llm/ingress_pipeline.py#LLMIngressPipeline]`: Replace `dict[str, JsonValue]` intermediate payload annotations with typed ingress DTOs.
-      4. `[MODIFY]` `@[backend_v2/llm/mock_data.py#get_mock_structured_response]`: Return typed Pydantic DTO fixtures instead of `dict[str, JsonValue]`.
-      5. `[MODIFY]` `@[backend_v2/services/llm_task_executor.py#L106-L525]`: Enforce generic `BaseModel` return typing across structured task execution methods.
+      4. `[MODIFY]` `@[backend_v2/llm/mock_data.py#L484-L541]`: Return typed Pydantic DTO fixtures instead of `dict[str, JsonValue]`.
+      5. `[MODIFY]` `@[backend_v2/services/llm_task_executor.py#L107-L526]`: Enforce generic `BaseModel` return typing across structured task execution methods.
     </action>
     <constraint>
       Use PEP 695 generic syntax (`def execute_structured_task[T: BaseModel](...)`) and preserve lazy imports of `litellm` and `vertexai` (`eager_llm_dependency_loading`).
@@ -153,12 +153,12 @@ This phase replaces all 32 `dict[str, JsonValue]` and `list[JsonValue]` occurren
       Delete all `dict[str, JsonValue]` and `list[JsonValue]` annotations in the 6 orchestrator files and delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` from `@[scripts/_ast_guardrails.py]`.
     </demolish>
     <action>
-      1. `[MODIFY]` `@[backend_v2/services/orchestrator/context_router.py#L50-L196]`: Route typed `StepOutputDTO` payloads without `dict[str, JsonValue]` maps.
-      2. `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py#L345-L436]`: Replace `dict[str, JsonValue]` wave accumulator maps with typed wave execution state DTOs.
-      3. `[MODIFY]` `@[backend_v2/services/orchestrator/matrix_reducer.py#L56-L246]`: Return typed `LightweightMatrixOutput` models from matrix reduction methods.
-      4. `[MODIFY]` `@[backend_v2/services/orchestrator/result_projector.py#L31-L272]`: Project atom and matrix results into typed `LightweightMatrixDTO` and `StepOutputDTO` models instead of `dict[str, JsonValue]`.
-      5. `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/logic.py#L32-L231]`: Return typed logic evaluation DTOs instead of `dict[str, JsonValue]`.
-      6. `[MODIFY]` `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L36-L501]`: Create typed compressed synthesis payload DTOs in `SynthesisPayloadCompressor` instead of `dict[str, JsonValue]`.
+      1. `[MODIFY]` `@[backend_v2/services/orchestrator/context_router.py#L54-L204]`: Route typed `StepOutputDTO` payloads without `dict[str, JsonValue]` maps.
+      2. `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py#L383-L474]`: Replace `dict[str, JsonValue]` wave accumulator maps with typed wave execution state DTOs.
+      3. `[MODIFY]` `@[backend_v2/services/orchestrator/matrix_reducer.py#L55-L245]`: Return typed `LightweightMatrixOutput` models from matrix reduction methods.
+      4. `[MODIFY]` `@[backend_v2/services/orchestrator/result_projector.py#L29-L271]`: Project atom and matrix results into typed `LightweightMatrixDTO` and `StepOutputDTO` models instead of `dict[str, JsonValue]`.
+      5. `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/logic.py#L38-L241]`: Return typed logic evaluation DTOs instead of `dict[str, JsonValue]`.
+      6. `[MODIFY]` `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L37-L503]`: Create typed compressed synthesis payload DTOs in `SynthesisPayloadCompressor` instead of `dict[str, JsonValue]`.
       7. `[MODIFY]` `@[scripts/_ast_guardrails.py]`: Delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`.
       8. `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` and `@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`: Verify that zero `RESIDUAL_*` exemption sets exist in `@[scripts/_ast_guardrails.py]` and that all 4 ISTQB Equivalence Partitions in `SynthesisPayloadCompressor` and SDUI semantic parity pass 100%.
     </action>

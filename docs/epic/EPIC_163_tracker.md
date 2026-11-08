@@ -29,7 +29,7 @@
   - [x] Step 1.2: Audit Script `C901` McCabe Complexity Decomposition & Per-File-Ignore Removal
   - [x] Step 1.3: Eradicate Process-Local Shadow State Fallbacks (`QGR030`) in Organization, Assignment & Cache Services
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/01_phase1_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 2: Pydantic V2 Schema Strictness — Zero Silent Defaults (`QGR020` Check 20C) & 100% PEP 593 `Annotated` (`QGR020` Check 20B)
 **Plan:** @[docs/epic/tasks_EPIC_163/02_phase2_plan.md]
@@ -40,7 +40,7 @@
   - [x] Step 2.2: Convert Bare `Field(...)` Declarations in Core, Exceptions, Chunking & Domain Models (`QGR020` Check 20B — Batch 1)
   - [x] Step 2.3: Convert Bare `Field(...)` Declarations in DTOs, View, Packer & Scripts and Delete `QGR020` Exemption Sets (`QGR020` Check 20B — Batch 2)
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/02_phase2_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 3: Immutable `ExecutionRecord` State Transitions & Zero Redundant Re-Validation (`QGR028`)
 **Plan:** @[docs/epic/tasks_EPIC_163/03_phase3_plan.md]
@@ -50,7 +50,7 @@
   - [x] Step 3.1: Immutable `ExecutionRecord` Transition Helpers & Worker State Updates
   - [x] Step 3.2: Eradicate Redundant `.model_validate()` Calls in Hooks & Services and Delete `RESIDUAL_FUTURE_PHASE_QGR028_FILES`
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/03_phase3_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/03_phase3_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 4: Strongly Typed DAG Context, Matrix Evaluation & Synthesis DTOs (`QGR027` `JsonValue` Eradication)
 **Plan:** @[docs/epic/tasks_EPIC_163/04_phase4_plan.md]
@@ -61,7 +61,7 @@
   - [x] Step 4.2: Migrate LLM Client, Ingress Pipeline, Task Executor & Matrix Hook Away from `JsonValue`
   - [x] Step 4.3: Migrate Orchestrator Stages, Compressor, Projector & Reducer and Delete `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/04_phase4_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 5: Frontend Flutter `DGR005` Open-JSON DTO & UI Consumer Eradication
 **Plan:** @[docs/epic/tasks_EPIC_163/05_phase5_plan.md]
@@ -72,7 +72,7 @@
   - [x] Step 5.2: Migrate Group 3 Execution & Studio Controllers, Utilities & Views
   - [x] Step 5.3: Migrate Group 3 Shared Widgets & Shrink `DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES` to 9 Transport Files
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/05_phase5_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/05_phase5_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 6: Stateful `InMemoryUnitOfWork` Migration for Worker Test Suites (`Census F = 0`) & Final E2E Verification Gate
 **Plan:** @[docs/epic/tasks_EPIC_163/06_phase6_plan.md]
@@ -83,7 +83,7 @@
   - [x] Step 6.2: Migrate `test_report_worker.py`, `test_synthesis_reducers.py` & `test_synthesis_worker.py` and Lock `Census F = 0`
   - [x] Step 6.3: Full-Stack Global Quality Gates & Live E2E Verification
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/06_phase6_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Phase 7: Non-Residual Static Guardrail Modernization (`DGR013`, `DGR014`, `QGR013`, `QGR033` Check 33B) & Tier 2 Hardening Rules Synchronization
 **Plan:** @[docs/epic/tasks_EPIC_163/07_phase7_plan.md]
@@ -95,7 +95,7 @@
   - [x] Step 7.3: Python 3.14 PEP 695 `TypeAlias` (`QGR013`) & Public Function / Module Docstring Ordering (`QGR033` Check 33B) Guardrails
   - [x] Step 7.4: Tier 2 Hardening Skills, Phase 1 Learnings & `auto_hardening_runner.py` `.agents/rules/` Enforcement
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_163/07_phase7_plan.md] @[docs/epic/EPIC_163_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - [x] **[OK] Integration Checkpoint**: Run full-stack quality gates (`uv run python scripts/backend_audit_loop.py backend_v2/ scripts/ --test --ast-strict` and `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`) to verify cross-boundary contract parity before hardening.
@@ -223,7 +223,7 @@
 - [x] **[OK] As-Built Architectural Sync**: Execute `/tier7-describe-architecture @[docs/epic/EPIC_163_tracker.md] @[docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_deterministic_hardening_state.md] @[ki_router_ssot_and_crud_clone_lifecycle.md]` to synchronize `docs/architecture/` and Knowledge Items with the zero-exemption guardrail state.
 
 ### Final Epic Audit
-- [ ] **Reverse Verification Audit**: Execute `/tier8-audit-epic @[docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md] @[docs/epic/EPIC_163_tracker.md]` and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_epic_coverage.py --epic docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md`.
+- [x] **[OK] Reverse Verification Audit**: Execute `/tier8-audit-epic @[docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md] @[docs/epic/EPIC_163_tracker.md]` and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_epic_coverage.py --epic docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md`.
 
 ---
 
@@ -304,6 +304,7 @@
   - **Step 7.4 (`fbe6e1b33`):** Synchronized @[.agents/skills/tier2-hardening-backend/SKILL.md#L72-L136], @[.agents/skills/tier2-hardening-frontend/SKILL.md#L66-L130], @[.agents/rules/04_directory_reference.md#L120], and @[scripts/auto_hardening_runner.py] (`resolve_target_rule_files`, `_inject_subagent_context_rules`, `_run_subagent_auto_fix_prepass`, `execute_subagent_pass` at `C901 <= 10`, and `compute_rules_sha256` hashing `AGENTS.md` + Tier 2 hardening `SKILL.md` playbooks); implemented the 3 Step 7.4 `<test_contracts>` in @[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py]; and passed both the Step 7.4 `<validation_gate>` (`387 passed`) and the full-stack Integration Checkpoint (`backend_audit_loop.py backend_v2/ --test --ast-strict` with `6980 passed` / `97.48%` coverage / 0 violations; `flutter_audit_loop.py client_app_v2/ --build` with 0 violations).
 - Completed `Tier 2 Hardening (Backend)` (`c1218f6c0`, all 74 backend and script targets `[x]`) and `Tier 2 Hardening (Frontend)` (`aa5a3ab62`, all 36 frontend targets `[x]`), aligned `ExecutionTraceItemDto` union fields in @[client_app_v2/lib/features/execution/models/execution_record.dart] with backend `TraceEvent`, `ErrorTraceEvent`, and `TombstoneEvent` contracts, and verified `audit_dto_parity.py --fail-on-mismatch` (`89/89` shared models aligned), `flutter_audit_loop.py client_app_v2/ --build --strict --test` (`1379` tests passed, 0 violations), and `audit_epic_coverage.py --epic docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md` (100% pass).
 - Completed `/tier7-describe-architecture`: synchronized Knowledge Items (`@[ki_god_code_prevention.md]`, `@[ki_zero_permissive_typing.md]`, `@[ki_deterministic_hardening_state.md]`, `@[ki_router_ssot_and_crud_clone_lifecycle.md]`) and their `metadata.json` manifests, `@[docs/architecture/01_system_context_and_invariants.md]`, `@[docs/architecture/05_resilience_and_observability.md]`, and `@[.agents/rules/04_directory_reference.md]` with the zero-exemption AST/Dart guardrail state (`QGR001`–`QGR033`, `DGR001`–`DGR014`, `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS = frozenset()`, `CURRENT_RESIDUAL_CEILINGS` all `0`, `ExecutionRecord` transition helpers, `ExecutionTraceItemDto` union parity, `resolve_target_rule_files`, and `compute_rules_sha256`).
+- Completed `/tier8-audit-epic @[docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md] @[docs/epic/EPIC_163_tracker.md]`: verified 100% of Phases 1 through 7 (`REQ-163-001` through `REQ-163-021`) and all 6 Epic Definition of Done items against the physical codebase (`0` missing files, `0` lingering deprecated symbols, `0` technical debt findings across 74 targets and 260 1-hop callers, `89/89` shared DTOs aligned, `0` AST/Dart guardrail violations, `0` residual debt ceilings across `d, f, k, x, n, t, p, m, r, s`), updated `@[docs/epic/EPIC_163_audit_report.md]`, and re-bound all drifted AST line spans across `@[docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md]` and `@[docs/epic/tasks_EPIC_163/01_phase1_plan.md]` through `@[docs/epic/tasks_EPIC_163/07_phase7_plan.md]`.
 
 ## Learned
 - In `RESIDUAL_MISSING_DOCSTRING_FILES`, @[backend_v2/models/dtos/variance.py#L17-L38], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L83-L168], @[backend_v2/services/orchestrator/rag_preflight_service.py#L108-L325], and @[backend_v2/services/orchestrator/schema_factory.py#L39-L411] placed `from __future__ import annotations` on line 1 before the module docstring on line 3, causing `ast.get_docstring(module_node)` to return `None`. Placing the module docstring at line 1 before `from __future__ import annotations` resolves the module-level `QGR001` violation, and `QGR033` Check 33B (`_has_misplaced_docstring_after_future_import`) now diagnoses this ordering explicitly.
@@ -318,10 +319,10 @@
 - Because `ExecutionRecord.executionTrace` in @[client_app_v2/lib/features/execution/models/execution_record.dart] hydrates polymorphic backend `ExecutionTraceEntry` items (`StepTraceMetadataDTO`, `TraceEvent`, `ErrorTraceEvent`, `TombstoneEvent`) into `ExecutionTraceItemDto` with `@JsonSerializable(disallowUnrecognizedKeys: true)`, `ExecutionTraceItemDto` must declare the full union of fields across all four backend trace event schemas (`anti_semantic_drift_renaming`).
 
 ## Remaining
-- Execute `/tier8-test-coverage-expansion @[docs/epic/EPIC_163_tracker.md]` and `/tier8-audit-epic @[docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md] @[docs/epic/EPIC_163_tracker.md]` to finalize post-implementation test coverage expansion and reverse verification audits.
+- Execute `/tier8-test-coverage-expansion @[docs/epic/EPIC_163_tracker.md]` if additional post-implementation ISTQB boundary value test expansion is desired.
 
 ## Resume Command
 ```text
-/tier8-audit-epic @[docs/epic/EPIC_163_residual_guardrail_and_tech_debt_eradication.md] @[docs/epic/EPIC_163_tracker.md]
+/tier8-test-coverage-expansion @[docs/epic/EPIC_163_tracker.md]
 ```
 
