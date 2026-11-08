@@ -200,7 +200,7 @@
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [x] @[client_app_v2/lib/features/studio/models/workflow_simulation.dart]
   - [x] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
