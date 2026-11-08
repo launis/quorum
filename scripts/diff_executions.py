@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Execution Trace Comparison and Consistency Metric Suite.
 
 Provides forensic cross-execution differential analysis, Fleiss/Cohen Kappa metrics,
@@ -16,6 +15,7 @@ Usage Examples:
     uv run python scripts/diff_executions.py
 """
 
+# mypy: ignore-errors
 from __future__ import annotations
 
 import argparse
@@ -23,6 +23,7 @@ import datetime
 import hashlib
 import io
 import json
+import logging
 import math
 import os
 import random
@@ -45,6 +46,8 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.matrix import ContrastivePairDTO
 from backend_v2.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "AtomEvaluationSnapshotDTO",
@@ -1483,9 +1486,15 @@ def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: 
         List of PhysicalModelBindingDTOs for active strategies (e.g. fast, reasoning, synthesis).
 
     Raises:
-        ResourceNotFoundError: If the model registry or its tier bindings cannot be found in seed.
+        ResourceNotFoundError: ErrorCodes.RESOURCE_NOT_FOUND if the model registry or its tier
+            bindings cannot be found in seed.
     """
     if not registry_id or not registry_id.strip():
+        logger.error(
+            "Missing mandatory ModelRegistry identifier during physical model binding resolution.",
+            extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "registry_id": registry_id},
+            exc_info=True,
+        )
         raise ResourceNotFoundError(
             resource_type="ModelRegistry",
             resource_id="",
@@ -1505,6 +1514,11 @@ def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: 
     )
 
     if not target_cfg:
+        logger.error(
+            "Target ModelRegistry not found in system_config seed collection.",
+            extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "registry_id": registry_id},
+            exc_info=True,
+        )
         raise ResourceNotFoundError(
             resource_type="ModelRegistry",
             resource_id=registry_id,
@@ -1614,6 +1628,11 @@ def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: 
             )
 
     if not bindings:
+        logger.error(
+            "ModelRegistry contains zero resolvable model tier definitions.",
+            extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "registry_id": registry_id},
+            exc_info=True,
+        )
         raise ResourceNotFoundError(
             resource_type="ModelTierDefinitions",
             resource_id=registry_id,
@@ -1724,6 +1743,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
     Returns:
         Path to the generated report file.
+
+    Raises:
+        AppException: ErrorCodes.VALIDATION_FAILED if mandatory model_registry_id or models_used
+            telemetry is missing, or ErrorCodes.RESOURCE_NOT_FOUND if the referenced model
+            registry cannot be resolved.
     """
     base_executions_dir = Path("data/files/executions")
     loaded_runs: list[str] = []
@@ -2544,6 +2568,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             if not reg_id and frozen_data and isinstance(frozen_data, dict):
                 reg_id = frozen_data.get("model_registry_id")
             if not reg_id:
+                logger.error(
+                    "Execution is missing mandatory model_registry_id metadata.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": run_name},
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Execution '{run_name}' is missing mandatory model_registry_id metadata.",
                     status_code=422,
@@ -2784,6 +2813,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     except json.JSONDecodeError, OSError:
                         pass
             if not db_models:
+                logger.error(
+                    "Execution is missing mandatory models_used telemetry.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": run_name},
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Execution '{run_name}' is missing mandatory models_used telemetry.",
                     status_code=422,
@@ -3454,7 +3488,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entry point for execution diff tool."""
+    """CLI entry point for execution diff tool.
+
+    Args:
+        argv: Optional list of command-line arguments.
+    """
     parser = argparse.ArgumentParser(
         description=(
             "Execution Trace Differential Analysis and Statistical Agreement Suite.\n\n"

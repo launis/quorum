@@ -175,7 +175,7 @@
   - [x] @[scripts/audit_warning_baseline.py]
   - [x] @[scripts/auto_hardening_runner.py]
   - [x] @[scripts/backend_audit_loop.py]
-  - [ ] @[scripts/diff_executions.py]
+  - [x] @[scripts/diff_executions.py]
   - [ ] @[scripts/flutter_audit_loop.py]
   - [ ] @[scripts/reconcile_storage.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_163_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"` to audit all modified frontend files:
