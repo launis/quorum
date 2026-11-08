@@ -8,12 +8,14 @@ from pydantic import ValidationError
 
 import backend_v2.workers.synthesis_worker as synthesis_worker_mod
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
-from backend_v2.exceptions import AppException, ResourceNotFoundError
-from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, FrozenContext
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
-from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.base import DataStarvationEvent
@@ -27,7 +29,9 @@ from backend_v2.models.dtos.causal_discovery import (
     FairScoringBreakdownDTO,
     PrescriptiveRemediationDTO,
 )
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import (
     CausalSynthesisBriefDTO,
@@ -39,6 +43,7 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import (
     DependencyRelationType,
     EntityPrefix,
@@ -49,6 +54,7 @@ from backend_v2.models.enums import (
     TargetBlockType,
     XaiExtensionType,
 )
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -1482,3 +1488,343 @@ def test_audit_warning_baseline_verify_ceilings_all_zero() -> None:
     is_valid, _ = verify_residual_debt_ceilings(live_counts)
     assert is_valid is True
     assert live_counts.f == 0
+
+
+def _build_strict_typed_synthesis_fixtures(
+    prof_id: str,
+    wf_id: str,
+    exec_id: str,
+    organization_id: str | None = None,
+    raw_inputs_org_id: str | None = None,
+) -> tuple[ExecutionRecord, OutputProfile, Workflow]:
+    """Create ExecutionRecord, OutputProfile, and Workflow via direct typed constructors."""
+    rec = ExecutionRecord(
+        id=exec_id,
+        workflow_id=wf_id,
+        output_profile_id=prof_id,
+        organization_id=organization_id,
+        status=ExecutionStatus.PASSED,
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        execution_trace=[],
+        context_variables=ContextVariablesDTO(variables={}),
+        raw_inputs=WorkflowInputs(organization_id=raw_inputs_org_id, dynamic_inputs={}),
+        frozen_context=FrozenContext(
+            compiled_prompts={},
+            injected_theory=InjectedTheoryManifestDTO(theories={}),
+            generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+            ui_hints_snapshot={},
+            mcp_tool_audit=[],
+        ),
+        steps=[],
+        step_states={},
+        profile_syntheses={},
+        source_identity_manifest={},
+        models_used={},
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    prof = OutputProfile(
+        id=prof_id,
+        slug="prof_test_strict",
+        workflow_id=wf_id,
+        name=I18nText(translations={"en": "Strict Profile"}),
+        target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+        executive_summary_directive="Synthesize executive summary.",
+        synthesis_length_constraint=500,
+        tone_instruction="Objective",
+        visible_metadata=[],
+        matrix_visible_columns=[],
+        visible_block_extensions=[],
+        visible_workflow_extensions=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0195f3a00000700283456789abcdef01",
+                title=I18nText(translations={"en": "Group 1"}),
+                view_type=PresetView.METRICS_1D,
+                target_blocks=["blk_0195f3a00000700283456789abcdef01"],
+            )
+        ],
+        content_blocks=[],
+    )
+    wf = Workflow(
+        id=wf_id,
+        slug="wf_test_strict",
+        name=I18nText(translations={"en": "Strict Workflow"}),
+        description=I18nText(translations={"en": "Strict Description"}),
+        status="draft",
+        version=1,
+        expected_inputs=[],
+        steps=[],
+        default_profile_id=prof_id,
+        model_registry_id="sys_0195f3a0000070018111222233334444",
+        historical_context_mode=LaxHistoricalContextMode.DISABLED,
+    )
+    return rec, prof, wf
+
+
+@pytest.mark.asyncio
+async def test_synthesis_worker_propagates_tenant_organization_id_to_hook_and_llm_client() -> None:
+    """Phase 1, Step 3: Verify execution.organization_id is forwarded to GlobalContextVarsDTO and LLMClient.from_tier."""
+    prof_id = "prf_0195f3a00000700283456789abcdef01"
+    wf_id = "wf_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
+    tenant_org_id = "org_0195f3a0000070008000000000000777"
+
+    rec, prof, wf = _build_strict_typed_synthesis_fixtures(
+        prof_id=prof_id,
+        wf_id=wf_id,
+        exec_id=exec_id,
+        organization_id=tenant_org_id,
+    )
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(rec)
+    await mock_repo.save_output_profile(prof)
+    await mock_repo.save_workflow(wf)
+
+    distilled_dto = SynthesisDistillationDTO(
+        distilled_inputs="Distilled inputs text",
+        target_locale="en",
+        title_map={},
+        matrices_to_explain=[],
+        source_alias_map={},
+        alias_registry={},
+    )
+    token_usage = TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20, cost_usd=0.001)
+    exec_summary_res = (
+        ExecutiveSummarySectionResult(
+            executive_summary=[ParagraphBlock(text="Executive summary synthesized.", exact_quotes=[], citations=[])],
+            user_role=RoleClassification.ARCHITECT,
+            user_role_justification="Strategic authority",
+            cited_sources=[],
+        ),
+        token_usage,
+    )
+
+    with (
+        patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
+            new_callable=AsyncMock,
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=distilled_dto)),
+        ) as mock_distiller,
+        patch(
+            "backend_v2.workers.synthesis_worker.LLMClient.from_tier",
+            new_callable=AsyncMock,
+        ) as mock_from_tier,
+        patch(
+            "backend_v2.workers.synthesis_worker.create_executive_summary_task",
+            new_callable=AsyncMock,
+            return_value=exec_summary_res,
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.create_matrix_sections_tasks",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.create_xai_highlights_task",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.create_row_explanations_task",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.build_variance_metrics_and_task",
+            new_callable=AsyncMock,
+            return_value=(None, None),
+        ),
+        patch("backend_v2.workers.synthesis_worker.ReportService") as mock_report_service_cls,
+    ):
+        mock_svc = mock_report_service_cls.return_value
+        mock_svc.get_or_create_default_artifact = AsyncMock(
+            return_value=MagicMock(id="rep_0195f3a00000700283456789abcdef01")
+        )
+        mock_svc.compile_and_persist_artifact = AsyncMock()
+
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id=exec_id,
+            accept_language="en",
+            profile_id=prof_id,
+        )
+
+        mock_distiller.assert_awaited_once()
+        assert mock_distiller.await_args is not None
+        hook_state_arg = mock_distiller.await_args.args[0]
+        assert hook_state_arg.global_context_vars.organization_id == tenant_org_id
+
+        mock_from_tier.assert_awaited_once()
+        assert mock_from_tier.await_args is not None
+        assert mock_from_tier.await_args.kwargs["organization_id"] == tenant_org_id
+
+
+@pytest.mark.asyncio
+async def test_synthesis_worker_resolves_organization_id_from_raw_inputs_and_defaults_to_root_system() -> None:
+    """Phase 1, Step 3: Verify fallback to raw_inputs.organization_id and SystemOrganizations.ROOT_SYSTEM."""
+    prof_id = "prf_0195f3a00000700283456789abcdef01"
+    wf_id = "wf_0195f3a00000700283456789abcdef01"
+    exec_id_raw = "exe_0195f3a00000700283456789abcdef02"
+    exec_id_root = "exe_0195f3a00000700283456789abcdef03"
+    raw_org_id = "org_0195f3a0000070008000000000000888"
+
+    rec_raw, prof, wf = _build_strict_typed_synthesis_fixtures(
+        prof_id=prof_id,
+        wf_id=wf_id,
+        exec_id=exec_id_raw,
+        organization_id=None,
+        raw_inputs_org_id=raw_org_id,
+    )
+    rec_root, _, _ = _build_strict_typed_synthesis_fixtures(
+        prof_id=prof_id,
+        wf_id=wf_id,
+        exec_id=exec_id_root,
+        organization_id=None,
+        raw_inputs_org_id=None,
+    )
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(rec_raw)
+    await mock_repo.save_execution(rec_root)
+    await mock_repo.save_output_profile(prof)
+    await mock_repo.save_workflow(wf)
+
+    distilled_dto = SynthesisDistillationDTO(
+        distilled_inputs="Distilled inputs text",
+        target_locale="en",
+        title_map={},
+        matrices_to_explain=[],
+        source_alias_map={},
+        alias_registry={},
+    )
+    token_usage = TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20, cost_usd=0.001)
+    exec_summary_res = (
+        ExecutiveSummarySectionResult(
+            executive_summary=[ParagraphBlock(text="Executive summary synthesized.", exact_quotes=[], citations=[])],
+            user_role=RoleClassification.ARCHITECT,
+            user_role_justification="Strategic authority",
+            cited_sources=[],
+        ),
+        token_usage,
+    )
+
+    with (
+        patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
+            new_callable=AsyncMock,
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=distilled_dto)),
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.LLMClient.from_tier",
+            new_callable=AsyncMock,
+        ) as mock_from_tier,
+        patch(
+            "backend_v2.workers.synthesis_worker.create_executive_summary_task",
+            new_callable=AsyncMock,
+            return_value=exec_summary_res,
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.create_matrix_sections_tasks",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.create_xai_highlights_task",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.create_row_explanations_task",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.build_variance_metrics_and_task",
+            new_callable=AsyncMock,
+            return_value=(None, None),
+        ),
+        patch("backend_v2.workers.synthesis_worker.ReportService") as mock_report_service_cls,
+    ):
+        mock_svc = mock_report_service_cls.return_value
+        mock_svc.get_or_create_default_artifact = AsyncMock(
+            return_value=MagicMock(id="rep_0195f3a00000700283456789abcdef01")
+        )
+        mock_svc.compile_and_persist_artifact = AsyncMock()
+
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id=exec_id_raw,
+            accept_language="en",
+            profile_id=prof_id,
+        )
+        assert mock_from_tier.await_args is not None
+        assert mock_from_tier.await_args.kwargs["organization_id"] == raw_org_id
+
+        mock_from_tier.reset_mock()
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id=exec_id_root,
+            accept_language="en",
+            profile_id=prof_id,
+        )
+        assert mock_from_tier.await_args is not None
+        assert mock_from_tier.await_args.kwargs["organization_id"] == SystemOrganizations.ROOT_SYSTEM.value
+
+
+@pytest.mark.asyncio
+async def test_synthesis_worker_byok_secret_resolution_failure_fails_fast() -> None:
+    """Phase 1, Step 3 (Negative): ConfigurationError from LLMClient.from_tier marks render status failed and re-raises."""
+    prof_id = "prf_0195f3a00000700283456789abcdef01"
+    wf_id = "wf_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef04"
+
+    rec, prof, wf = _build_strict_typed_synthesis_fixtures(
+        prof_id=prof_id,
+        wf_id=wf_id,
+        exec_id=exec_id,
+        organization_id="org_0195f3a0000070008000000000000777",
+    )
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(rec)
+    await mock_repo.save_output_profile(prof)
+    await mock_repo.save_workflow(wf)
+
+    distilled_dto = SynthesisDistillationDTO(
+        distilled_inputs="Distilled inputs text",
+        target_locale="en",
+        title_map={},
+        matrices_to_explain=[],
+        source_alias_map={},
+        alias_registry={},
+    )
+
+    with (
+        patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock),
+        patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
+            new_callable=AsyncMock,
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=distilled_dto)),
+        ),
+        patch(
+            "backend_v2.workers.synthesis_worker.LLMClient.from_tier",
+            new_callable=AsyncMock,
+            side_effect=ConfigurationError(
+                message="BYOK decryption failed for tenant org_0195f3a0000070008000000000000777",
+                details={"error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value},
+            ),
+        ),
+        pytest.raises(ConfigurationError) as exc_info,
+    ):
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id=exec_id,
+            accept_language="en",
+            profile_id=prof_id,
+        )
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+    updated_exec = await mock_repo.get_execution(exec_id)
+    assert updated_exec is not None
+    assert updated_exec.step_states[f"sys_render_{prof_id}"].status == ExecutionStatus.FAILED

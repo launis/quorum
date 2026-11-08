@@ -11,6 +11,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -385,6 +387,13 @@ async def build_variance_metrics_and_task(
         )
         return ext_metrics, None
 
+    # Phase 1, Step 3: Resolve tenant organization_id for Phase 2 variance synthesis
+    effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+    if execution.organization_id is not None:
+        effective_org_id = execution.organization_id
+    elif execution.raw_inputs.organization_id is not None:
+        effective_org_id = execution.raw_inputs.organization_id
+
     var_provider = None
     var_reg_id = None
     if execution.metadata:
@@ -397,6 +406,7 @@ async def build_variance_metrics_and_task(
         repository=repo,
         provider=var_provider,
         registry_id=var_reg_id,
+        organization_id=effective_org_id,
     )
     var_messages = _build_variance_messages(
         active_profile_dto=active_profile_dto,

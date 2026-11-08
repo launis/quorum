@@ -24,6 +24,8 @@ from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
@@ -221,12 +223,23 @@ async def generate_profile_synthesis_and_pdf_task(
             msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{execution.workflow_id}'."
             logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        # Phase 1, Step 3: Resolve tenant organization_id for Phase 2 report synthesis
+        effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        if execution.organization_id is not None:
+            effective_org_id = execution.organization_id
+        elif execution.raw_inputs.organization_id is not None:
+            effective_org_id = execution.raw_inputs.organization_id
+
         hook_metadata = execution.metadata if execution.metadata is not None else ExecutionMetadata()
         hook_state = HookState(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
             metadata=hook_metadata,
-            global_context_vars=GlobalContextVarsDTO(language=accept_language, profile_id=profile_id),
+            global_context_vars=GlobalContextVarsDTO(
+                language=accept_language,
+                profile_id=profile_id,
+                organization_id=effective_org_id,
+            ),
             inputs=ExecutionInputsDTO(
                 target_locale=accept_language,
                 raw_inputs={},
@@ -305,11 +318,13 @@ async def generate_profile_synthesis_and_pdf_task(
         if not synthesis_reg_id:
             synthesis_reg_id = workflow_def.model_registry_id
 
+        # Phase 1, Step 3: Wire tenant organization_id into Phase 2 synthesis LLMClient.from_tier
         client = await LLMClient.from_tier(
             CognitiveTier.BALANCED,
             repository=repo,
             provider=synthesis_provider,
             registry_id=synthesis_reg_id,
+            organization_id=effective_org_id,
         )
 
         matrices_json = ""
