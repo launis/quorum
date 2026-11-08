@@ -26,14 +26,7 @@ $InjectedTheoryManifestDtoCopyWith<InjectedTheoryManifestDto> get copyWith => _$
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InjectedTheoryManifestDto&&const DeepCollectionEquality().equals(other.theories, theories));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(theories));
 
 @override
 String toString() {
@@ -231,14 +224,7 @@ Map<String, dynamic> toJson() {
   return _$InjectedTheoryManifestDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InjectedTheoryManifestDto&&const DeepCollectionEquality().equals(other._theories, _theories));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_theories));
 
 @override
 String toString() {
@@ -295,14 +281,7 @@ $SchemaManifestNodeDtoCopyWith<SchemaManifestNodeDto> get copyWith => _$SchemaMa
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SchemaManifestNodeDto&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.properties, properties)&&const DeepCollectionEquality().equals(other.required, required)&&(identical(other.additionalProperties, additionalProperties) || other.additionalProperties == additionalProperties)&&(identical(other.format, format) || other.format == format));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,type,title,description,const DeepCollectionEquality().hash(properties),const DeepCollectionEquality().hash(required),additionalProperties,format);
 
 @override
 String toString() {
@@ -518,14 +497,7 @@ Map<String, dynamic> toJson() {
   return _$SchemaManifestNodeDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SchemaManifestNodeDto&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._properties, _properties)&&const DeepCollectionEquality().equals(other._required, _required)&&(identical(other.additionalProperties, additionalProperties) || other.additionalProperties == additionalProperties)&&(identical(other.format, format) || other.format == format));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,type,title,description,const DeepCollectionEquality().hash(_properties),const DeepCollectionEquality().hash(_required),additionalProperties,format);
 
 @override
 String toString() {
@@ -588,14 +560,7 @@ $GeneratedSchemaManifestDtoCopyWith<GeneratedSchemaManifestDto> get copyWith => 
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GeneratedSchemaManifestDto&&const DeepCollectionEquality().equals(other.schemas, schemas));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(schemas));
 
 @override
 String toString() {
@@ -793,14 +758,7 @@ Map<String, dynamic> toJson() {
   return _$GeneratedSchemaManifestDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GeneratedSchemaManifestDto&&const DeepCollectionEquality().equals(other._schemas, _schemas));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_schemas));
 
 @override
 String toString() {
@@ -857,14 +815,7 @@ $SystemConfigOptionDtoCopyWith<SystemConfigOptionDto> get copyWith => _$SystemCo
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SystemConfigOptionDto&&(identical(other.value, value) || other.value == value)&&(identical(other.label, label) || other.label == label));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,value,label);
 
 @override
 String toString() {
@@ -1058,14 +1009,7 @@ Map<String, dynamic> toJson() {
   return _$SystemConfigOptionDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SystemConfigOptionDto&&(identical(other.value, value) || other.value == value)&&(identical(other.label, label) || other.label == label));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,value,label);
 
 @override
 String toString() {
@@ -1123,14 +1067,7 @@ $SystemValidationRulesDtoCopyWith<SystemValidationRulesDto> get copyWith => _$Sy
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SystemValidationRulesDto&&(identical(other.min, min) || other.min == min)&&(identical(other.max, max) || other.max == max)&&(identical(other.required, required) || other.required == required)&&(identical(other.pattern, pattern) || other.pattern == pattern));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,min,max,required,pattern);
 
 @override
 String toString() {
@@ -1328,14 +1265,7 @@ Map<String, dynamic> toJson() {
   return _$SystemValidationRulesDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SystemValidationRulesDto&&(identical(other.min, min) || other.min == min)&&(identical(other.max, max) || other.max == max)&&(identical(other.required, required) || other.required == required)&&(identical(other.pattern, pattern) || other.pattern == pattern));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,min,max,required,pattern);
 
 @override
 String toString() {
@@ -1395,14 +1325,7 @@ $DataDictionaryFieldCopyWith<DataDictionaryField> get copyWith => _$DataDictiona
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DataDictionaryField&&(identical(other.fieldId, fieldId) || other.fieldId == fieldId)&&(identical(other.componentType, componentType) || other.componentType == componentType)&&const DeepCollectionEquality().equals(other.options, options)&&(identical(other.validationRules, validationRules) || other.validationRules == validationRules));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,fieldId,componentType,const DeepCollectionEquality().hash(options),validationRules);
 
 @override
 String toString() {
@@ -1620,14 +1543,7 @@ Map<String, dynamic> toJson() {
   return _$DataDictionaryFieldToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DataDictionaryField&&(identical(other.fieldId, fieldId) || other.fieldId == fieldId)&&(identical(other.componentType, componentType) || other.componentType == componentType)&&const DeepCollectionEquality().equals(other._options, _options)&&(identical(other.validationRules, validationRules) || other.validationRules == validationRules));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,fieldId,componentType,const DeepCollectionEquality().hash(_options),validationRules);
 
 @override
 String toString() {

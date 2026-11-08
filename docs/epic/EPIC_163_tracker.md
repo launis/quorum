@@ -184,7 +184,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_metadata.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_record.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/workflow_inputs.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]

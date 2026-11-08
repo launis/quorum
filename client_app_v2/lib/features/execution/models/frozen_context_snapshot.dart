@@ -4,8 +4,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'frozen_context_snapshot.freezed.dart';
 part 'frozen_context_snapshot.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed injected theory manifest DTO matching backend `InjectedTheoryManifestDTO`.
-@freezed
+/// Strongly typed injected theory manifest DTO matching backend `InjectedTheoryManifestDTO`.
+@Freezed(equal: false)
 abstract class InjectedTheoryManifestDto with _$InjectedTheoryManifestDto {
   const InjectedTheoryManifestDto._();
 
@@ -18,8 +18,8 @@ abstract class InjectedTheoryManifestDto with _$InjectedTheoryManifestDto {
       _$InjectedTheoryManifestDtoFromJson(json);
 }
 
-/// Phase 5, Step 5.1: Strongly typed JSON Schema node within a generated schema manifest.
-@freezed
+/// Strongly typed JSON Schema node within a generated schema manifest.
+@Freezed(equal: false)
 abstract class SchemaManifestNodeDto with _$SchemaManifestNodeDto {
   const SchemaManifestNodeDto._();
 
@@ -39,8 +39,8 @@ abstract class SchemaManifestNodeDto with _$SchemaManifestNodeDto {
       _$SchemaManifestNodeDtoFromJson(json);
 }
 
-/// Phase 5, Step 5.1: Strongly typed generated schema manifest DTO matching backend `GeneratedSchemaManifestDTO`.
-@freezed
+/// Strongly typed generated schema manifest DTO matching backend `GeneratedSchemaManifestDTO`.
+@Freezed(equal: false)
 abstract class GeneratedSchemaManifestDto with _$GeneratedSchemaManifestDto {
   const GeneratedSchemaManifestDto._();
 
@@ -54,8 +54,8 @@ abstract class GeneratedSchemaManifestDto with _$GeneratedSchemaManifestDto {
       _$GeneratedSchemaManifestDtoFromJson(json);
 }
 
-/// Phase 5, Step 5.1: Strongly typed option DTO matching backend `SystemConfigOptionDTO`.
-@freezed
+/// Strongly typed option DTO matching backend `SystemConfigOptionDTO`.
+@Freezed(equal: false)
 abstract class SystemConfigOptionDto with _$SystemConfigOptionDto {
   const SystemConfigOptionDto._();
 
@@ -67,8 +67,8 @@ abstract class SystemConfigOptionDto with _$SystemConfigOptionDto {
       _$SystemConfigOptionDtoFromJson(json);
 }
 
-/// Phase 5, Step 5.1: Strongly typed validation rules DTO matching backend `SystemValidationRulesDTO`.
-@freezed
+/// Strongly typed validation rules DTO matching backend `SystemValidationRulesDTO`.
+@Freezed(equal: false)
 abstract class SystemValidationRulesDto with _$SystemValidationRulesDto {
   const SystemValidationRulesDto._();
 
@@ -84,8 +84,8 @@ abstract class SystemValidationRulesDto with _$SystemValidationRulesDto {
       _$SystemValidationRulesDtoFromJson(json);
 }
 
-/// Phase 5, Step 5.1: Strongly typed UI hint dictionary field matching backend `DataDictionaryField`.
-@freezed
+/// Strongly typed UI hint dictionary field matching backend `DataDictionaryField`.
+@Freezed(equal: false)
 abstract class DataDictionaryField with _$DataDictionaryField {
   const DataDictionaryField._();
 

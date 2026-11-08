@@ -31,13 +31,34 @@ void main() {
           },
           'generated_schemas': <String, Object?>{
             'schemas': <String, Object?>{
-              'stp_1': <String, Object?>{'type': 'object'},
+              'stp_1': <String, Object?>{
+                'type': 'object',
+                'title': 'StepOutputSchema',
+                'description': 'Schema for step 1 output',
+                'required': <String>['score'],
+                'additionalProperties': false,
+                'properties': <String, Object?>{
+                  'score': <String, Object?>{
+                    'type': 'number',
+                    'format': 'double',
+                  },
+                },
+              },
             },
           },
           'ui_hints_snapshot': <String, Object?>{
             'score': <String, Object?>{
               'field_id': 'score',
               'component_type': 'badge',
+              'options': <Map<String, Object?>>[
+                <String, Object?>{'value': 'high', 'label': 'High'},
+              ],
+              'validation_rules': <String, Object?>{
+                'min': 0.0,
+                'max': 5.0,
+                'required': true,
+                'pattern': r'^[0-5]$',
+              },
             },
           },
           'mcp_tool_audit': <Map<String, Object?>>[
@@ -76,8 +97,32 @@ void main() {
           equals('object'),
         );
         expect(
+          snapshot.generatedSchemas.schemas['stp_1']?.title,
+          equals('StepOutputSchema'),
+        );
+        expect(
+          snapshot.generatedSchemas.schemas['stp_1']?.additionalProperties,
+          isFalse,
+        );
+        expect(
+          snapshot
+              .generatedSchemas
+              .schemas['stp_1']
+              ?.properties['score']
+              ?.format,
+          equals('double'),
+        );
+        expect(
           snapshot.uiHintsSnapshot['score']?.componentType,
           equals('badge'),
+        );
+        expect(
+          snapshot.uiHintsSnapshot['score']?.options?.first.value,
+          equals('high'),
+        );
+        expect(
+          snapshot.uiHintsSnapshot['score']?.validationRules?.max,
+          equals(5.0),
         );
         expect(snapshot.mcpToolAudit, hasLength(1));
         expect(snapshot.mcpToolAudit.first.toolId, equals('search_docs'));
@@ -131,6 +176,81 @@ void main() {
 
         expect(
           () => FrozenContextSnapshot.fromJson(payloadWithExtraKey),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => InjectedTheoryManifestDto.fromJson(<String, Object?>{
+            'extra': 'bad',
+          }),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => SchemaManifestNodeDto.fromJson(<String, Object?>{
+            'extra': 'bad',
+          }),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => GeneratedSchemaManifestDto.fromJson(<String, Object?>{
+            'extra': 'bad',
+          }),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => SystemConfigOptionDto.fromJson(<String, Object?>{
+            'value': 'ok',
+            'extra': 'bad',
+          }),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => SystemValidationRulesDto.fromJson(<String, Object?>{
+            'extra': 'bad',
+          }),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => DataDictionaryField.fromJson(<String, Object?>{
+            'field_id': 'f1',
+            'component_type': 'text_input',
+            'extra': 'bad',
+          }),
           throwsA(
             anyOf(
               isA<UnrecognizedKeysException>(),
