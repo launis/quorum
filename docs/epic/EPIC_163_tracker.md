@@ -162,7 +162,7 @@
   - [x] @[backend_v2/services/orchestrator/schema_factory.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py]
   - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
-  - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
+  - [x] @[backend_v2/services/orchestrator/synthesis_distiller.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
   - [ ] @[backend_v2/utils/finops_trace_analyzer.py]
   - [ ] @[backend_v2/workers/execution_worker.py]
