@@ -145,7 +145,7 @@
   - [ ] @[backend_v2/models/dtos/workflow_schema.py]
   - [x] @[backend_v2/models/execution_core.py]
   - [x] @[backend_v2/models/llm.py]
-  - [ ] @[backend_v2/models/state.py]
+  - [x] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/models/view/sdui.py]
   - [ ] @[backend_v2/services/auth/organization_service.py]
   - [ ] @[backend_v2/services/auth/secret_service.py]

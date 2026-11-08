@@ -331,8 +331,8 @@ class WorkflowState(ExecutionCoreFields):
 
     execution_id: Annotated[
         uuid.UUID,
-        "Unique execution identifier.",
-    ] = Field(default_factory=generate_uuid7, description="Unique execution identifier.")
+        Field(default_factory=generate_uuid7, description="Unique execution identifier."),
+    ]
     workflow_id: Annotated[
         str,
         Field(
@@ -350,11 +350,11 @@ class WorkflowState(ExecutionCoreFields):
     workflow_name: Annotated[str | None, Field(default=None, description="Human-readable name of the workflow.")] = None
     created_at: Annotated[
         datetime,
-        "Creation timestamp.",
-    ] = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Creation timestamp.",
-    )
+        Field(
+            default_factory=lambda: datetime.now(timezone.utc),
+            description="Creation timestamp.",
+        ),
+    ]
 
     @property
     def start_time(self) -> datetime:
@@ -706,7 +706,7 @@ class StateProjector:
                     self._snapshot[event.step_name] = StepOutputContentDTO(data={"graph": content})
             elif isinstance(content, TraceScoringPayloadDTO):
                 self._snapshot[event.step_name] = StepOutputContentDTO(
-                    data={VirtualSystemStepID.SCORING_RESULT.value: content.model_dump(mode="json")}
+                    data={VirtualSystemStepID.SCORING_RESULT.value: content.model_dump(mode="json", exclude_none=True)}
                 )
             elif isinstance(content, AtomResultDTO):
                 self._append_atom_results(event.step_name, [content])
@@ -715,7 +715,7 @@ class StateProjector:
                 self._append_atom_results(event.step_name, atoms)
             elif isinstance(content, BaseModel):
                 self._snapshot[event.step_name] = StepOutputContentDTO(
-                    data={event.step_name: content.model_dump(mode="json")}
+                    data={event.step_name: content.model_dump(mode="json", exclude_none=True)}
                 )
             elif type(content) is dict:
                 if "anti_fluff_audit" in content and "fair_scoring" in content and "graph" in content:
