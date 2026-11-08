@@ -197,7 +197,7 @@
   - [x] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
   - [x] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]
   - [x] @[client_app_v2/lib/features/studio/models/step_simulation.dart]
-  - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow_simulation.dart]
   - [ ] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]
