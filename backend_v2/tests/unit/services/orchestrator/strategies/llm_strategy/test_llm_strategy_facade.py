@@ -237,7 +237,7 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.output_profile_id = None  # MISSING output_profile_id
     context.target_locale = "en"
     context.metadata = ExecutionMetadata()
@@ -291,7 +291,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
 
     mock_repo.set_step(
@@ -362,7 +362,7 @@ async def test_execute_success_path_structured_output(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -467,7 +467,7 @@ async def test_llm_strategy_missing_atoms_crash(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -576,7 +576,7 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -686,7 +686,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 1
@@ -959,7 +959,7 @@ async def test_execute_anomaly_retry_flow(
     context = MagicMock()
     context.execution_id = "exe_0123456789abcdef0123456789abcdef"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -1072,7 +1072,7 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
 
     mock_repo.set_step(
@@ -1121,7 +1121,7 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
 
     mock_repo.set_step(
@@ -1185,7 +1185,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.output_profile_id = "nonexistent_profile"
     context.target_locale = "en"
     context.metadata = ExecutionMetadata()
@@ -1270,7 +1270,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
 
     mock_repo.set_step(
@@ -1492,7 +1492,7 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.output_profile_id = "prof_123"
     context.target_locale = ""
     context.metadata = ExecutionMetadata()
@@ -1565,7 +1565,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
 
@@ -2265,7 +2265,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -2353,7 +2353,7 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.prompt_blocks = None
 
@@ -2500,7 +2500,7 @@ async def test_llm_node_strategy_execute_without_concurrency(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -2598,7 +2598,7 @@ async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
 
@@ -2733,7 +2733,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     context = MagicMock()
     context.execution_id = "exec_packed"
     context.workflow_id = "wf_packed"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = expected_inputs
     context.strictness_level = 0
@@ -2875,7 +2875,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     context = MagicMock()
     context.execution_id = "exec_step_scoped"
     context.workflow_id = "wf_0195f3a0000070008123456789abcdef"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = expected_inputs
     context.strictness_level = 0
@@ -3031,7 +3031,7 @@ async def test_execute_fails_fast_on_missing_protocol_block(
     context = MagicMock()
     context.execution_id = "exec_prot"
     context.workflow_id = "wf_prot"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
 
     mock_repo.set_step(
@@ -3096,7 +3096,7 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
     context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
     context.target_locale = "en"
     context.expected_inputs = []
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.cognitive_tier = None
 
@@ -3416,7 +3416,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
     context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
     context.target_locale = "en"
     context.expected_inputs = []
-    context.global_context_vars = {"language": "en"}
+    context.global_context_vars = GlobalContextVarsDTO(language="en")
     context.metadata = ExecutionMetadata()
     context.cognitive_tier = CognitiveTier.FAST
     context.prompt_blocks = mock_blocks
@@ -3434,7 +3434,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
         execution_id="exec_schema_map",
         workflow_id=wf_id,
         metadata=ExecutionMetadata(),
-        global_context_vars={"language": "en"},
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         inputs=ExecutionInputsDTO(dynamic_inputs={"_audit_signature": "sig_123"}),
     )
 
@@ -3491,7 +3491,7 @@ async def test_execute_configuration_errors_emit_rfc7807_dual_logs(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.output_profile_id = None
     context.target_locale = "en"
     context.metadata = ExecutionMetadata()
@@ -3544,7 +3544,7 @@ async def test_execute_fails_fast_on_corrupted_execution_record_in_db(
     context = MagicMock()
     context.execution_id = "exec_corrupt"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
     context.target_locale = "en"
     context.metadata = ExecutionMetadata()

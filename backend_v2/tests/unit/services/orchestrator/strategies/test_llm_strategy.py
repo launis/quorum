@@ -39,7 +39,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
             "name": "Default Stack",
             "tier_definitions": {
                 "fast": {
-                    "provider": "google",
+                    "provider": "mock",
                     "model_name": "gemini-2.5-flash",
                     "temperature": 0.0,
                     "max_tokens": 4096,
@@ -47,7 +47,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
                     "rpm_limit": 100,
                 },
                 "balanced": {
-                    "provider": "google",
+                    "provider": "mock",
                     "model_name": "gemini-2.5-flash",
                     "temperature": 0.0,
                     "max_tokens": 4096,
@@ -55,7 +55,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
                     "rpm_limit": 100,
                 },
                 "deep": {
-                    "provider": "google",
+                    "provider": "mock",
                     "model_name": "gemini-2.5-flash",
                     "temperature": 0.0,
                     "max_tokens": 4096,
@@ -63,7 +63,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
                     "rpm_limit": 100,
                 },
                 "reasoning": {
-                    "provider": "google",
+                    "provider": "mock",
                     "model_name": "gemini-2.5-flash",
                     "temperature": 0.0,
                     "max_tokens": 4096,

@@ -186,7 +186,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     context.workflow_id = "wf_0123456789abcdef0123456789abcdef"
     context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
     context.target_locale = "en"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -236,7 +236,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     mock_hook_state = MagicMock()
     mock_hook_state.metadata = ExecutionMetadata()
     mock_hook_state.inputs = mock_inputs
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state.global_context_vars = GlobalContextVarsDTO()
 
     expected_usage = TokenUsage(
         prompt_tokens=500,
