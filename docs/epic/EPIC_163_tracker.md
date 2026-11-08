@@ -211,7 +211,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]
   - [x] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
   - [x] @[client_app_v2/lib/shared/widgets/schema_mapper.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
