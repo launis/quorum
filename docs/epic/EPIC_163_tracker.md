@@ -174,7 +174,7 @@
   - [x] @[scripts/audit_dict_eradication.py]
   - [x] @[scripts/audit_warning_baseline.py]
   - [x] @[scripts/auto_hardening_runner.py]
-  - [ ] @[scripts/backend_audit_loop.py]
+  - [x] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/diff_executions.py]
   - [ ] @[scripts/flutter_audit_loop.py]
   - [ ] @[scripts/reconcile_storage.py]
