@@ -124,7 +124,7 @@
   - [x] @[backend_v2/models/domain/output_profile.py]
   - [x] @[backend_v2/models/domain/prompt_blocks.py]
   - [x] @[backend_v2/models/domain/step.py]
-  - [ ] @[backend_v2/models/domain/system_config.py]
+  - [x] @[backend_v2/models/domain/system_config.py]
   - [ ] @[backend_v2/models/domain/validation.py]
   - [ ] @[backend_v2/models/domain/workflow.py]
   - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
