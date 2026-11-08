@@ -2746,11 +2746,11 @@
     },
     "backend_v2/main.py": {
       "target_file": "backend_v2/main.py",
-      "target_sha256": "5f18ad3e5d4752b7ebf561976f311992bb9b401ecc7e0830565f03fdd21b94b1",
-      "unit_test_sha256": "0539e6a76c4f6da167e9a88aaede6192ff1133484d0c96793331be407c48329e",
-      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
-      "composite_sha256": "2783ca73d7c661d67a4ea6fc02c30cf47948c6296735b16f7f88ce9a0c6e47b3",
-      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
+      "target_sha256": "1b12b3af6ac618de3c99c40e5b79e14d56173c4e6bb41f405d7d8fce6ecfec37",
+      "unit_test_sha256": "0aa9fa5ac98a0a5e76f0b21d92d8670b8f9a65aad2d47221395a8c54a1d85883",
+      "rules_sha256": "af284ef8ec4a444c73f5f712e4e4dc9e3be07d27c4186673742d2ae2846bc856",
+      "composite_sha256": "3a8904892466f0eb288777faa7260fae91676c17dd5aa3aa47cca309d36d2e97",
+      "source_tracker": "docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md"
     },
     "client_app_v2/lib/core/api/reports_client.dart": {
       "target_file": "client_app_v2/lib/core/api/reports_client.dart",
@@ -4074,11 +4074,11 @@
     },
     "backend_v2/api/routers/iam/auth.py": {
       "target_file": "backend_v2/api/routers/iam/auth.py",
-      "target_sha256": "dab3ea8596e96eb88fb1202fc15c842086c309bfe288b7952894f0e3f64f8583",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "9f3cf74b046aff513833cb8019f10d07e9f17c22cf241f5eae365a11d6578ced",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "06a5473be2119c596c4a418f9f6e3f473ed29928cc6f8179188c3eae67673bf0",
+      "unit_test_sha256": "35ee649388094a7a1d36bacc9bfe45550b162a1fd9110fdbbe0ab241483b1868",
+      "rules_sha256": "af284ef8ec4a444c73f5f712e4e4dc9e3be07d27c4186673742d2ae2846bc856",
+      "composite_sha256": "e3056c28645ecd17778057b7520e41a1ae33a6c99a7e47599a7f2b6b565510e8",
+      "source_tracker": "docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md"
     },
     "backend_v2/api/routers/iam/users.py": {
       "target_file": "backend_v2/api/routers/iam/users.py",

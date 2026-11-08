@@ -32,7 +32,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[ki_god_code_prevention.md]
   ```
@@ -77,15 +77,16 @@
   - **Step 1 (`cb9b31531`):** Deleted legacy `backend_v2/core/rate_limit.py` and `backend_v2/tests/unit/core/test_rate_limit.py`, removed `slowapi>=0.1.9` from `@[pyproject.toml#L38-L38]` and `@[uv.lock]`, deleted `rate_limit_exception_handler` from `@[backend_v2/main.py#L355-L383]`, fixed `TD_MODEL_FACTORY` in `@[backend_v2/tests/unit/test_main.py#L182-L202]`, and verified RFC 7807 HTTP 429 `TokenLimitExceededError` handling in `@[backend_v2/tests/unit/test_main.py#L248-L281]`.
   - **Step 2 (`7e8cbe888`):** Cut over `POST /api/v2/iam/auth/exchange` (`exchange_firebase_token` in `@[backend_v2/api/routers/iam/auth.py#L50-L84]`) to `rate_limit_service: TenantRateLimitServiceDep` with `QGR016`-compliant `client_ip` extraction and 4 ISTQB BVA test cases in `@[backend_v2/tests/unit/test_auth.py#L200-L288]` and `@[backend_v2/tests/unit/test_auth.py#L633-L767]`.
   - **Step 3 (`f3ed4506b`):** Refactored `@[backend_v2/tests/unit/llm/adapters/test_ai_studio_adapter.py#L71-L89]` and `@[backend_v2/tests/unit/llm/adapters/test_ai_studio_adapter.py#L99-L130]` (`cleanup_genai_mock`) to snapshot canonical `google.genai` modules once via `importlib.import_module` inside a scoped `warnings.catch_warnings()` block, restore exact original module references in `finally:`, and pass `mypy --strict` and `-W error::DeprecationWarning` with 0 warnings.
+  - **Tier 2 Hardening, Tier 8 Audit & Tier 7 Architectural Sync:** Completed backend hardening on `@[backend_v2/api/routers/iam/auth.py]` and `@[backend_v2/main.py]`, resolved `StarletteDeprecationWarning` by adding `httpx2>=2.16.0` to dev dependencies (`714b32574`), passed `/tier8-audit-plan` (`58b15b1ea`), and synchronized `@[ki_god_code_prevention.md]`, `@[docs/architecture/01_system_context_and_invariants.md]`, and `@[docs/architecture/05_resilience_and_observability.md]` via `/tier7-describe-architecture`.
 
 ## Learned
 - Importing `from types import ModuleType` at module top level in `@[backend_v2/tests/unit/llm/adapters/test_ai_studio_adapter.py#L71-L89]` avoids class-body shadowing of `types` on `MockGenAIModule`, while typing `_real_google_pkg: Any = None` satisfies `ruff` (`B010`), `mypy --strict`, and `QGR001` (`Banned dynamic .__dict__ access`) simultaneously.
 - Narrowing `prepare_structured_output` return type via `assert not isinstance(result, type)` in `@[backend_v2/tests/unit/llm/adapters/test_ai_studio_adapter.py#L526-L541]` satisfies both `mypy --strict` and `QGR001` (`isinstance(..., dict)` ban).
 
 ## Remaining
-- Run `/tier7-describe-architecture @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[ki_god_code_prevention.md]` to synchronize As-Built architectural documentation.
+- None. Plan implementation, hardening, Red-Team audit, and As-Built architectural documentation sync are 100% complete.
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[ki_god_code_prevention.md]
+# Completed
 ```
