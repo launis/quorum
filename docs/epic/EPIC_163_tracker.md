@@ -187,7 +187,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]
   - [x] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/workflow_inputs.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart]
