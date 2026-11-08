@@ -211,6 +211,15 @@ void main() {
             ),
           ),
         );
+
+        // Negative 3: Generic exception wraps in AppException.unknown
+        when(
+          () => mockClient.savePromptBlock(existingId, any()),
+        ).thenThrow(Exception('Unexpected save crash'));
+        await expectLater(
+          () => controller.savePromptBlock(existingId, validBlock),
+          throwsA(isA<AppException>()),
+        );
       },
     );
 
