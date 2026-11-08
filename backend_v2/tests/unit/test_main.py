@@ -188,12 +188,10 @@ async def test_validation_exception_handler() -> None:
     class SampleModel(BaseModel):
         name: str
 
-    try:
+    # Phase 1, Step 1: Use pytest.raises(ValidationError) to avoid TD_MODEL_FACTORY manual try/except
+    with pytest.raises(ValidationError) as exc_info:
         SampleModel.model_validate({"name": 123}, strict=True)
-    except ValidationError:
-        validation_exc = RequestValidationError(
-            errors=[{"loc": ("body", "name"), "msg": "str type expected", "type": "string_type"}]
-        )
+    validation_exc = RequestValidationError(errors=exc_info.value.errors())
 
     response = await validation_exception_handler(mock_request, validation_exc)
     assert response.status_code == 422
@@ -248,22 +246,39 @@ async def test_lifespan_shutdown_closes_arq_pool() -> None:
 
 
 @pytest.mark.asyncio
-async def test_rate_limit_exception_handler_delegation() -> None:
-    """Test rate limit exception handler delegates properly."""
-    from slowapi.errors import RateLimitExceeded
-
-    from backend_v2.main import rate_limit_exception_handler
+async def test_app_exception_handler_429_rate_limit_exceeded() -> None:
+    """Test app_exception_handler formats HTTP 429 TokenLimitExceededError as RFC 7807 problem+json."""
+    from backend_v2.exceptions import ProblemDetailDTO, TokenLimitExceededError
 
     mock_request = MagicMock(spec=Request)
-    mock_request.url.path = "/api/v2/limited"
-    mock_request.scope = {"type": "http", "path": "/api/v2/limited"}
-    mock_exc = MagicMock(spec=RateLimitExceeded)
-    mock_exc.detail = "Rate limit exceeded: 5 per minute"
+    mock_request.url.path = "/api/v2/iam/auth/exchange"
+    exc = TokenLimitExceededError(
+        message="Auth edge rate limit exceeded for scope 'POST /api/v2/iam/auth/exchange' (11/10).",
+        details={
+            "error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value,
+            "limit_type": "auth_edge_rpm",
+            "current": 11,
+            "limit": 10,
+        },
+    )
+    exc.status_code = 429
 
-    with patch("backend_v2.main.rate_limit_exceeded_handler", return_value=MagicMock(status_code=429)) as mock_handler:
-        res = await rate_limit_exception_handler(mock_request, mock_exc)
-        mock_handler.assert_called_once_with(mock_request, mock_exc)
-        assert res.status_code == 429
+    res = await app_exception_handler(mock_request, exc)
+    assert res.status_code == 429
+    assert res.media_type == "application/problem+json"
+
+    problem = ProblemDetailDTO.model_validate_json(bytes(res.body))
+    assert problem.status == 429
+    assert problem.instance == "/api/v2/iam/auth/exchange"
+    assert problem.extensions is not None
+    assert problem.extensions["error_code"] == ErrorCodes.RATE_LIMIT_EXCEEDED.value
+    assert problem.extensions["limit_type"] == "auth_edge_rpm"
+
+    # Negative boundary: ProblemDetailDTO rejects unrecognized top-level keys (extra='forbid')
+    with pytest.raises(ValidationError):
+        ProblemDetailDTO.model_validate_json(
+            b'{"type":"about:blank","title":"Too Many Requests","status":429,"detail":"err","instance":"/x","unexpected":1}'
+        )
 
 
 @pytest.mark.asyncio

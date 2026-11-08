@@ -22,7 +22,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -38,7 +37,6 @@ from backend_v2.api.routers.output_profiles import router as output_profiles_rou
 from backend_v2.api.routers.studio import router as studio_router
 from backend_v2.api.routers.system import router as system_router
 from backend_v2.context import set_request_context
-from backend_v2.core.rate_limit import rate_limit_exceeded_handler
 from backend_v2.core.telemetry import configure_telemetry
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.factory import (
@@ -63,7 +61,6 @@ __all__ = [
     "global_exception_handler",
     "http_exception_handler",
     "lifespan",
-    "rate_limit_exception_handler",
     "validation_exception_handler",
 ]
 
@@ -421,20 +418,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         ),
         media_type="application/problem+json",
     )
-
-
-@app.exception_handler(RateLimitExceeded)
-async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded) -> Any:
-    """Catches RateLimitExceeded and delegates to the strict handler.
-
-    Args:
-        request: The current HTTP Request boundary context.
-        exc: SlowAPI threshold rate restriction.
-
-    Returns:
-        Delegated JSON response indicating client rate lockout.
-    """
-    return rate_limit_exceeded_handler(request, exc)
 
 
 @app.exception_handler(StarletteHTTPException)
