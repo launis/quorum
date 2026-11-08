@@ -167,7 +167,7 @@
   - [x] @[backend_v2/utils/finops_trace_analyzer.py]
   - [x] @[backend_v2/workers/execution_worker.py]
   - [x] @[backend_v2/workers/synthesis_reducers.py]
-  - [ ] @[backend_v2/workers/synthesis_worker.py]
+  - [x] @[backend_v2/workers/synthesis_worker.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/_dart_guardrails.py]
   - [ ] @[scripts/ablation_live_executor.py]
