@@ -51,7 +51,7 @@
     
     <module path="backend_v2/workers/">
         <responsibility>DECOUPLED ASYNC BACKGROUND WORKERS (PILLARS 3 & 4)</responsibility>
-        <key_domains>execution_worker.py (Phase 1 heavy DAG execution), report_worker.py (Phase 2 & 3 synthesis, PDF & export artifact compilation), synthesis_worker.py, synthesis_tasks.py, synthesis_reducers.py, variance_synthesis.py</key_domains>
+        <key_domains>execution_worker.py (Phase 1 heavy DAG execution), report_worker.py (Phase 2 & 3 synthesis, PDF & export artifact compilation), synthesis_worker.py (tenant organization_id BYOK binding & 4-task synthesis orchestration), synthesis_tasks.py, synthesis_reducers.py, variance_synthesis.py (tenant organization_id BYOK binding & variance explanation synthesis)</key_domains>
     </module>
 
     <module path="backend_v2/worker.py">
@@ -92,7 +92,7 @@
 
     <module path="backend_v2/llm/">
         <responsibility>FOUNDATIONAL MODEL ORCHESTRATION & ADAPTERS</responsibility>
-        <key_domains>adapters/, mock.py, provider/ (env_and_schema_utils.py, transient_retry_policy.py, base_and_mock_provider.py, provider_factory.py, litellm_response_stage.py, litellm_provider.py, __init__.py facade), prompt_builder.py, caching_service.py, client.py, handler.py, schema_builder.py</key_domains>
+        <key_domains>adapters/, mock.py, provider/ (env_and_schema_utils.py, transient_retry_policy.py, base_and_mock_provider.py, provider_factory.py, litellm_response_stage.py, litellm_provider.py, __init__.py facade), prompt_builder.py, caching_service.py, client.py (LLMClient.from_tier Dual-Tier BYOK SecretService.resolve_llm_key binding & SecretStr ResolvedCredentialDTO forwarding), handler.py, schema_builder.py</key_domains>
     </module>
 
     <module path="backend_v2/utils/">

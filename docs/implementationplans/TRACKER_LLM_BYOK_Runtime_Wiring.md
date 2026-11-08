@@ -39,7 +39,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[ki_god_code_prevention.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md]
   ```
@@ -90,7 +90,9 @@
 - Completed Step 1 (`c15bcdffa`): Wired `SecretService.resolve_llm_key` and `ResolvedCredentialDTO` into `LLMClient.__init__`, `LLMClient.from_tier`, `LLMClient.run_structured_task`, and `LLMClient.run_chat` in `@[backend_v2/llm/client.py]`, with unit tests in `@[backend_v2/tests/unit/llm/test_client.py]`.
 - Completed Step 2 (`28ebec232`): Populated `GlobalContextVarsDTO(organization_id=initiator.organization_id, initiator_id=initiator.id, target_locale=payload.target_locale, profile_id=resolved_profile_id)` on `ExecutionMetadata` in `@[backend_v2/services/execution/ingress_service.py]` and wired `effective_org_id` into `ToolDispatcher` and `LLMClient.from_tier` inside `@[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]`, with unit tests in `@[backend_v2/tests/unit/services/execution/test_ingress_service.py]` and `@[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_engine_retry_stage.py]`.
 - Completed Step 3 (`c6e5274cf`): Wired `effective_org_id` (from `execution.organization_id` or `execution.raw_inputs.organization_id`, initialized to `SystemOrganizations.ROOT_SYSTEM.value`) into `GlobalContextVarsDTO` and `LLMClient.from_tier` in `@[backend_v2/workers/synthesis_worker.py]` and `@[backend_v2/workers/variance_synthesis.py]`, with unit tests in `@[backend_v2/tests/unit/workers/test_synthesis_worker.py]` and `@[backend_v2/tests/unit/workers/test_variance_synthesis.py]`.
+- Completed Tier 2 Hardening (Backend) across all 5 production modules (`client.py`, `ingress_service.py`, `engine_retry_stage.py`, `synthesis_worker.py`, `variance_synthesis.py`).
 - Completed Tier 8 Audit (`/tier8-audit-plan`): Verified 12/12 requirements (`REQ-001`–`REQ-012`), >90% test coverage across all 5 modified modules (`client.py` 93%, `ingress_service.py` 96%, `engine_retry_stage.py` 100%, `synthesis_worker.py` 92%, `variance_synthesis.py` 100%), 89/89 DTO parity, and 0 fatal/advisory AST or technical debt violations.
+- Completed Tier 7 As-Built Architectural Sync (`/tier7-describe-architecture`): Synchronized `@[ki_global_config_sovereignty.md]`, `@[ki_god_code_prevention.md]`, `@[ki_zero_permissive_typing.md]` (and their `metadata.json` files), `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/01_SYSTEM_CONTEXT_AND_INVARIANTS.md]`, and `@[docs/architecture/03_COGNITIVE_ORCHESTRATION_ENGINE.md]`.
 
 ## Learned
 - The `ROOT_SYSTEM` constant on `SystemOrganizations` in `@[backend_v2/models/auth.py]` is `"org_0195f3a0000070008000000000000001"` (ending in `1`).
@@ -98,9 +100,9 @@
 - In `@[backend_v2/tests/unit/workers/test_variance_synthesis.py]`, `_make_execution` uses `dict[str, ContextVariableValue]` (from `backend_v2.models.dtos.context_variables`) rather than `dict[str, Any]` so `scripts/audit_warning_baseline.py` Census `P` remains at `0`.
 
 ## Remaining
-- Run Tier 2 Hardening (`scripts/auto_hardening_runner.py`) and `/tier7-describe-architecture @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[ki_god_code_prevention.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md]`.
+- None. All implementation steps, Tier 2 hardening passes, Tier 8 Red-Team Audit, and Tier 7 As-Built Architectural Sync are 100% complete.
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[ki_god_code_prevention.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]
 ```
