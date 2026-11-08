@@ -169,7 +169,7 @@
   - [x] @[backend_v2/workers/synthesis_reducers.py]
   - [x] @[backend_v2/workers/synthesis_worker.py]
   - [x] @[scripts/_ast_guardrails.py]
-  - [ ] @[scripts/_dart_guardrails.py]
+  - [x] @[scripts/_dart_guardrails.py]
   - [ ] @[scripts/ablation_live_executor.py]
   - [ ] @[scripts/audit_dict_eradication.py]
   - [ ] @[scripts/audit_warning_baseline.py]
