@@ -103,7 +103,7 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide verification of zero `RESIDUAL_*` exemption sets in `@[scripts/_ast_guardrails.py]`, zero `per-file-ignores` in `@[pyproject.toml]`, 9 transport boundary files in `@[scripts/_dart_guardrails.py]`, and `CURRENT_RESIDUAL_CEILINGS["f"] = 0` in `@[scripts/audit_warning_baseline.py]`.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_163_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"` to audit all modified backend files:
+- [x] **[OK] Tier 2 Hardening (Backend)**: Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_163_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"` to audit all modified backend files:
   - [x] @[backend_v2/core/hook_registry.py]
   - [x] @[backend_v2/core/registry.py]
   - [x] @[backend_v2/exceptions.py]
@@ -142,7 +142,7 @@
   - [x] @[backend_v2/models/dtos/theory_manifest.py]
   - [x] @[backend_v2/models/dtos/trace.py]
   - [x] @[backend_v2/models/dtos/variance.py]
-  - [ ] @[backend_v2/models/dtos/workflow_schema.py]
+  - [x] @[backend_v2/models/dtos/workflow_schema.py]
   - [x] @[backend_v2/models/execution_core.py]
   - [x] @[backend_v2/models/llm.py]
   - [x] @[backend_v2/models/state.py]
