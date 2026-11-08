@@ -122,7 +122,7 @@
   - [x] @[backend_v2/models/domain/matrix.py]
   - [x] @[backend_v2/models/domain/metadata.py]
   - [x] @[backend_v2/models/domain/output_profile.py]
-  - [ ] @[backend_v2/models/domain/prompt_blocks.py]
+  - [x] @[backend_v2/models/domain/prompt_blocks.py]
   - [ ] @[backend_v2/models/domain/step.py]
   - [ ] @[backend_v2/models/domain/system_config.py]
   - [ ] @[backend_v2/models/domain/validation.py]
