@@ -34,6 +34,7 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import DataDictionaryField, SystemValidationRulesDTO
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO
@@ -724,9 +725,16 @@ class ExecutionIngressService:
             Initial ExecutionRecord in PENDING status.
         """
         injected_carrier = inject_trace_context()
+        # Phase 1, Step 2: Populate GlobalContextVarsDTO with tenant organization_id and initiator_id at ingress
         exec_metadata = ExecutionMetadata(
             matrix_sampling_strategy=payload.matrix_sampling_strategy,
             workflow_version=workflow.version,
+            global_context_vars=GlobalContextVarsDTO(
+                organization_id=initiator.organization_id,
+                initiator_id=initiator.id,
+                target_locale=payload.target_locale,
+                profile_id=resolved_profile_id,
+            ),
             provider_override=payload.provider_override,
             model_registry_id=resolved_registry_id,
             telemetry=injected_carrier,

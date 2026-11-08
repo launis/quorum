@@ -17,7 +17,9 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PersonaPro
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.system_config import SystemValidationRulesDTO
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.telemetry import TraceContextCarrierDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import ComponentType, HistoricalContextMode, PromptBlockCategory, StepType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.execution.ingress_service import (
@@ -42,6 +44,16 @@ def initiator() -> TokenData:
     )
 
 
+def _create_empty_frozen_context() -> FrozenContext:
+    return FrozenContext(
+        compiled_prompts={},
+        injected_theory=InjectedTheoryManifestDTO(theories={}),
+        generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+        ui_hints_snapshot={},
+        mcp_tool_audit=[],
+    )
+
+
 def _create_test_workflow() -> Workflow:
     return Workflow(
         id="wor_0195f3a0000070008123456789abcdef",
@@ -61,12 +73,15 @@ def _create_test_workflow() -> Workflow:
                 is_chat_history=True,
                 input_modes=["file", "paste"],
                 description=I18nText(translations={"en": "Chat Log", "fi": "Keskustelu"}),
+                questionnaire_definition=[],
             )
         ],
         steps=[
             StepRule(
                 id="stp_0195f3a0000070008123456789abcdef",
                 task_blueprint="stp_0195f3a0000070008123456789abcdef",
+                depends_on=[],
+                input_mappings={},
             )
         ],
         default_profile_id="prf_0195f3a0000070008123456789abcdef",
@@ -80,8 +95,8 @@ def test_create_execution_record_injects_w3c_telemetry() -> None:
     record = create_execution_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
-        raw_inputs=WorkflowInputs(),
-        frozen_context=FrozenContext(),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=_create_empty_frozen_context(),
         source_identity_manifest={},
     )
 
@@ -97,8 +112,8 @@ def test_create_execution_record_preserves_custom_carrier() -> None:
     record = create_execution_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
-        raw_inputs=WorkflowInputs(),
-        frozen_context=FrozenContext(),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=_create_empty_frozen_context(),
         source_identity_manifest={},
         metadata=meta,
     )
@@ -112,8 +127,8 @@ def test_create_execution_record_handles_dict_metadata() -> None:
     record = create_execution_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
-        raw_inputs=WorkflowInputs(),
-        frozen_context=FrozenContext(),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=_create_empty_frozen_context(),
         source_identity_manifest={},
         metadata=ExecutionMetadata(workflow_version=2),
     )
@@ -129,8 +144,8 @@ def test_create_execution_record_validation_failure() -> None:
         create_execution_record(
             execution_id="invalid_id",  # Invalid ID pattern
             workflow_id="wor_0195f3a0000070008123456789abcdef",
-            raw_inputs=WorkflowInputs(),
-            frozen_context=FrozenContext(),
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+            frozen_context=_create_empty_frozen_context(),
             source_identity_manifest={},
         )
     assert exc_info.value.status_code == 500
@@ -175,6 +190,10 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         role_block_id="blk_0195f3a0000070008123456789abcdef",
         extraction_protocol_block_id="blk_0195f3a0000070018123456789abcdef",
         criteria_block_ids=["blk_0195f3a0000070028123456789abcdef"],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
         mcp_tool_params={},
     )
 
@@ -184,6 +203,8 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         category_id=PromptBlockCategory.AGENT_ROLE,
         label=I18nText(translations={"en": "Role Block"}),
         description=I18nText(translations={"en": "Role Description"}),
+        output_extensions=[],
+        tone_directives=[],
     )
     protocol_block = ProtocolPromptBlock(
         id="blk_0195f3a0000070018123456789abcdef",
@@ -191,6 +212,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         category_id=PromptBlockCategory.PROTOCOL,
         label=I18nText(translations={"en": "Protocol Block"}),
         description=I18nText(translations={"en": "Protocol Description"}),
+        output_extensions=[],
     )
     matrix_block = MatrixPromptBlock(
         id="blk_0195f3a0000070028123456789abcdef",
@@ -198,9 +220,10 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         category_id=PromptBlockCategory.MATRIX,
         label=I18nText(translations={"en": "Matrix Block"}),
         description=I18nText(translations={"en": "Matrix Description"}),
+        output_extensions=[],
         scales=[
-            MatrixScale(score=1, ai_label="LOW"),
-            MatrixScale(score=5, ai_label="HIGH"),
+            MatrixScale(score=1, ai_label="LOW", claims=[]),
+            MatrixScale(score=5, ai_label="HIGH", claims=[]),
         ],
     )
 
@@ -258,6 +281,11 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
         name=I18nText(translations={"en": "Analytical Step", "fi": "Analyysi"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        criteria_block_ids=[],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
         mcp_tool_params={},
     )
 
@@ -267,8 +295,12 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
         name=I18nText(translations={"en": "Test Profile"}),
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
+        visible_metadata=[],
+        matrix_visible_columns=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
+        matrix_synthesis_groups=[],
+        content_blocks=[],
     )
 
     repo = InMemoryUnifiedWorkflowRepository()
@@ -311,6 +343,9 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     assert record.metadata is not None
     assert record.metadata.telemetry is not None
     assert record.metadata.telemetry.traceparent.startswith("00-")
+    assert record.metadata.global_context_vars is not None
+    assert record.metadata.global_context_vars.organization_id == initiator.organization_id
+    assert record.metadata.global_context_vars.initiator_id == initiator.id
 
     # Verify repository persisted the record with telemetry (stateful roundtrip)
     saved_record = await repo.get_execution(record.id)
@@ -318,6 +353,9 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     assert saved_record.metadata is not None
     assert saved_record.metadata.telemetry is not None
     assert saved_record.metadata.telemetry.traceparent.startswith("00-")
+    assert saved_record.metadata.global_context_vars is not None
+    assert saved_record.metadata.global_context_vars.organization_id == initiator.organization_id
+    assert saved_record.metadata.global_context_vars.initiator_id == initiator.id
 
     # Verify arq background worker received execution_id
     assert arq_pool.enqueue_job.called
@@ -443,6 +481,11 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        criteria_block_ids=[],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
         mcp_tool_params={},
     )
     await repo.save_step(step_obj)
@@ -475,8 +518,12 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         name=I18nText(translations={"en": "Mismatch"}),
         workflow_id="wor_mismatched00000000",
         target_block_order=[],
+        visible_metadata=[],
+        matrix_visible_columns=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
+        matrix_synthesis_groups=[],
+        content_blocks=[],
     )
     mismatched_repo = InMemoryUnifiedWorkflowRepository()
     await mismatched_repo.save_workflow(workflow)
@@ -500,8 +547,12 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         name=I18nText(translations={"en": "Matching"}),
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
+        visible_metadata=[],
+        matrix_visible_columns=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
+        matrix_synthesis_groups=[],
+        content_blocks=[],
     )
     await repo.save_output_profile(matching_profile)
     service_no_sys = ExecutionIngressService(
@@ -562,6 +613,11 @@ async def test_generate_sdui_hints_missing_and_invalid_prompt_block_raises() -> 
         type=StepType.LOGIC,
         hook="my_hook",
         role_block_id="blk_0195f3a0000070008123456789abcdef",
+        criteria_block_ids=[],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
         mcp_tool_params={},
     )
     repo = InMemoryUnifiedWorkflowRepository()
@@ -599,6 +655,11 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        criteria_block_ids=[],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
         mcp_tool_params={},
     )
     profile_obj = OutputProfile(
@@ -607,8 +668,12 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
         name=I18nText(translations={"en": "Test Profile"}),
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
+        visible_metadata=[],
+        matrix_visible_columns=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
+        matrix_synthesis_groups=[],
+        content_blocks=[],
     )
 
     repo = InMemoryUnifiedWorkflowRepository()
@@ -657,6 +722,11 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
+        criteria_block_ids=[],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
         mcp_tool_params={},
     )
     profile_obj = OutputProfile(
@@ -665,8 +735,12 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
         name=I18nText(translations={"en": "Test Profile"}),
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
+        visible_metadata=[],
+        matrix_visible_columns=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
+        matrix_synthesis_groups=[],
+        content_blocks=[],
     )
 
     repo = InMemoryUnifiedWorkflowRepository()

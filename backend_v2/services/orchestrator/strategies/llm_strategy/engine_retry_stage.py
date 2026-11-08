@@ -15,6 +15,8 @@ from pydantic import BaseModel
 from backend_v2.core.hook_registry import ExecutionInputsDTO, HookDependencies, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.mcp import MCPRetrievalResultDTO
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
@@ -173,6 +175,10 @@ async def _run_optional_mcp_retrieval(
     active_gateways: list[SystemConfigMCPGateways] = []
     if isinstance(raw_gateways, list):
         active_gateways = [g for g in raw_gateways if isinstance(g, SystemConfigMCPGateways)]
+    # Phase 1, Step 2: Resolve tenant organization_id for MCP ToolDispatcher BYOK binding
+    effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+    if context.global_context_vars.organization_id is not None:
+        effective_org_id = context.global_context_vars.organization_id
     src_ctx = global_source_text if global_source_text else user_payload
     retrieval_result = await mcp_retrieval_fn(
         llm_client=bound_client,
@@ -185,7 +191,7 @@ async def _run_optional_mcp_retrieval(
         source_context=src_ctx,
         alias_engine=stage2.alias_engine,
         repository=deps.system_repo,
-        dispatcher=ToolDispatcher(gateways=active_gateways),
+        dispatcher=ToolDispatcher(gateways=active_gateways, organization_id=effective_org_id),
         mcp_tool_params=step_obj.mcp_tool_params,
     )
     if not retrieval_result.audit_traces:
@@ -476,12 +482,17 @@ async def execute_engine_retry_stage(
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
+    # Phase 1, Step 2: Resolve tenant organization_id for LLMClient.from_tier BYOK binding
+    effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+    if context.global_context_vars.organization_id is not None:
+        effective_org_id = context.global_context_vars.organization_id
     bound_client = await LLMClient.from_tier(
         context.cognitive_tier,
         deps.system_repo,
         provider=context.metadata.provider_override,
         registry_id=context.model_registry_id,
         pipeline_name="chunk_worker",
+        organization_id=effective_org_id,
     )
     enrichment = await _run_optional_mcp_retrieval(
         step_obj=stage1.step_obj,
