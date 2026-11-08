@@ -6,9 +6,11 @@ to completion, and render the resulting report PDF.
 """
 
 import base64
+import io
 import json
 import logging
 import os
+import socket
 import subprocess
 import threading
 import time
@@ -86,7 +88,7 @@ from backend_v2.services.orchestrator.synthesis_payload_compressor import Synthe
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
 from backend_v2.settings import get_settings
-from scripts.run_e2e_variance_test import _get_or_refresh_cli_session
+from scripts.run_e2e_variance_test import _get_or_refresh_cli_session, force_kill_services
 
 logger = logging.getLogger(__name__)
 
@@ -221,16 +223,34 @@ def clear_logs() -> None:  # pragma: no cover
         f.write("")
 
 
+def is_postgres_running(timeout: float = 1.0) -> bool:
+    """Check if PostgreSQL 19 accepts TCP connections on the configured host and port.
+
+    Args:
+        timeout: Socket connection timeout in seconds.
+
+    Returns:
+        True if TCP connection to PostgreSQL 19 succeeds, otherwise False.
+    """
+    settings = get_settings()
+    try:
+        with socket.create_connection((settings.postgres_host, settings.postgres_port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 def is_redis_running() -> bool:  # pragma: no cover
     """Check if Redis is alive on port 6379.
 
     Returns:
         True if Redis responds to ping on port 6379.
     """
+    settings = get_settings()
     try:
         import redis
 
-        client = redis.Redis(host="127.0.0.1", port=6379, socket_timeout=1)
+        client = redis.Redis(host=settings.redis_host, port=settings.redis_port, socket_timeout=1)
         return bool(client.ping())
     except redis.ConnectionError, redis.TimeoutError, OSError:
         return False
@@ -245,8 +265,26 @@ def is_backend_running(timeout: float = 1.0) -> bool:  # pragma: no cover
     Returns:
         True if the backend docs endpoint returns HTTP 200.
     """
+    settings = get_settings()
     try:
-        response = requests.get("http://127.0.0.1:8000/docs", timeout=timeout)
+        response = requests.get(f"http://127.0.0.1:{settings.port}/docs", timeout=timeout)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+
+def is_worker_running(timeout: float = 1.0) -> bool:
+    """Check if the Arq worker health probe listener is alive on worker_health_port.
+
+    Args:
+        timeout: Request timeout in seconds.
+
+    Returns:
+        True if the worker health probe endpoint returns HTTP 200.
+    """
+    settings = get_settings()
+    try:
+        response = requests.get(f"http://127.0.0.1:{settings.worker_health_port}/", timeout=timeout)
         return response.status_code == 200
     except requests.exceptions.RequestException:
         return False
@@ -267,6 +305,196 @@ def wait_for_backend(timeout_seconds: int = 30) -> bool:  # pragma: no cover
             return True
         time.sleep(1)
     return False
+
+
+def wait_for_worker(timeout_seconds: int = 30) -> bool:  # pragma: no cover
+    """Wait for the Arq worker health listener to become ready with retries.
+
+    Args:
+        timeout_seconds: Maximum wait time in seconds.
+
+    Returns:
+        True once the worker health probe responds or False on timeout.
+    """
+    start = time.time()
+    while time.time() - start < timeout_seconds:
+        if is_worker_running():
+            return True
+        time.sleep(1)
+    return False
+
+
+def _prepare_clean_subprocess_env() -> dict[str, str]:
+    """Build a sanitized environment dictionary for live E2E backend and worker subprocesses.
+
+    Strips pytest and conftest synthetic mock credentials so subprocesses load real
+    credentials from .env while enforcing local JWT auth and private MCP network access.
+
+    Returns:
+        Sanitized environment dictionary for subprocess execution.
+    """
+    env = os.environ.copy()
+    if "PYTEST_CURRENT_TEST" in env:
+        del env["PYTEST_CURRENT_TEST"]
+    for mock_env_key, mock_env_val in (
+        ("OPENAI_API_KEY", "mock-openai-key"),
+        ("ANTHROPIC_API_KEY", "mock-anthropic-key"),
+        ("GOOGLE_API_KEY", "mock-google-key"),
+        ("GEMINI_API_KEY", "mock-gemini-key"),
+    ):
+        if mock_env_key in env and env[mock_env_key] == mock_env_val:
+            del env[mock_env_key]
+    env["ENVIRONMENT"] = "development"
+    env["LOG_FILE_NAME"] = "backend_debug.log"
+    env["USE_FIREBASE_AUTH"] = "false"
+    env["MCP_ALLOW_PRIVATE_NETWORKS"] = "true"
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["NO_COLOR"] = "1"
+    env["TERM"] = "dumb"
+    return env
+
+
+def _ensure_docker_daemon_ready(timeout_seconds: int = 90) -> None:  # pragma: no cover
+    """Ensure the Docker daemon is responsive, starting Docker Desktop on Windows if needed.
+
+    Args:
+        timeout_seconds: Maximum seconds to wait for Docker daemon readiness.
+
+    Raises:
+        RuntimeError: If the Docker daemon does not become ready within timeout_seconds.
+    """
+    probe = subprocess.run(["docker", "info"], capture_output=True, timeout=10)
+    if probe.returncode == 0:
+        return
+
+    docker_desktop_exe = Path(r"C:\Program Files\Docker\Docker\Docker Desktop.exe")
+    if docker_desktop_exe.exists():
+        logger.info("Docker daemon is not running. Launching Docker Desktop...")
+        subprocess.Popen([str(docker_desktop_exe)])
+
+    start = time.time()
+    while time.time() - start < timeout_seconds:
+        time.sleep(3)
+        check = subprocess.run(["docker", "info"], capture_output=True, timeout=10)
+        if check.returncode == 0:
+            logger.info("Docker daemon is ready.")
+            return
+
+    raise RuntimeError(f"Docker daemon failed to become ready within {timeout_seconds} seconds.")
+
+
+def _seed_postgres_with_retries(env: dict[str, str], max_attempts: int = 10) -> None:  # pragma: no cover
+    """Idempotently apply PostgreSQL 19 migrations and seed collections with startup retries.
+
+    Args:
+        env: Sanitized subprocess environment dictionary.
+        max_attempts: Maximum seeding attempts while PostgreSQL completes initial boot.
+
+    Raises:
+        RuntimeError: If PostgreSQL 19 seeding fails after all retry attempts.
+    """
+    seed_cmd = ["uv", "run", "python", "backend_v2/seed/run_seed.py", "postgres"]
+    last_err = ""
+    for attempt in range(1, max_attempts + 1):
+        res = subprocess.run(
+            seed_cmd,
+            cwd=WORKSPACE_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=60,
+        )
+        if res.returncode == 0:
+            logger.info("PostgreSQL 19 schema migrations and seed data verified (attempt %d).", attempt)
+            return
+        last_err = res.stderr or res.stdout
+        time.sleep(2)
+
+    raise RuntimeError(f"Failed to seed PostgreSQL 19 after {max_attempts} attempts: {last_err}")
+
+
+def _ensure_postgres_and_redis_ready(env: dict[str, str]) -> object | None:  # pragma: no cover
+    """Ensure PostgreSQL 19 and Redis are running, seeded, and flushed regardless of host state.
+
+    Args:
+        env: Sanitized subprocess environment dictionary.
+
+    Returns:
+        In-process TcpFakeServer instance if a fallback Redis server was started, else None.
+
+    Raises:
+        RuntimeError: If PostgreSQL 19 or Redis cannot be started or seeded.
+    """
+    if not is_postgres_running():
+        logger.info("PostgreSQL 19 not detected on port 5432. Starting Docker infrastructure...")
+        _ensure_docker_daemon_ready()
+        subprocess.run(
+            ["docker", "compose", "up", "-d", "redis", "postgres"],
+            cwd=WORKSPACE_ROOT,
+            check=True,
+            capture_output=True,
+            timeout=120,
+        )
+        start = time.time()
+        while time.time() - start < 60:
+            if is_postgres_running():
+                break
+            time.sleep(1)
+        else:
+            raise RuntimeError("PostgreSQL 19 did not start listening on port 5432 within 60 seconds.")
+
+    _seed_postgres_with_retries(env)
+
+    settings = get_settings()
+    if is_redis_running():
+        import redis
+
+        client = redis.Redis(host=settings.redis_host, port=settings.redis_port, socket_timeout=2)
+        client.flushall()
+        return None
+
+    logger.info("Local Redis not detected on port 6379. Starting TcpFakeServer daemon on port 6379.")
+    from fakeredis import TcpFakeServer
+
+    redis_server = TcpFakeServer((settings.redis_host, settings.redis_port))
+    redis_thread = threading.Thread(target=redis_server.serve_forever, daemon=True)
+    redis_thread.start()
+    time.sleep(0.5)
+    if not is_redis_running():
+        raise RuntimeError("Failed to start TcpFakeServer on port 6379.")
+    return redis_server
+
+
+def _terminate_subprocesses(
+    backend_process: subprocess.Popen[bytes] | None,
+    worker_process: subprocess.Popen[bytes] | None,
+    backend_log_fp: object | None,
+    redis_server: object | None,
+    mcp_server: ThreadingHTTPServer,
+) -> None:  # pragma: no cover
+    """Cleanly terminate all E2E subprocesses, file handles, and local servers.
+
+    Args:
+        backend_process: Spawned Uvicorn backend process if any.
+        worker_process: Spawned Arq worker process if any.
+        backend_log_fp: Open log file handle if any.
+        redis_server: In-process TcpFakeServer if started.
+        mcp_server: In-process MCP JSON-RPC HTTP server.
+    """
+    if backend_process:
+        subprocess.run(f"taskkill /F /T /PID {backend_process.pid}", shell=True, capture_output=True)
+    if worker_process:
+        subprocess.run(f"taskkill /F /T /PID {worker_process.pid}", shell=True, capture_output=True)
+    if isinstance(backend_log_fp, io.IOBase):
+        backend_log_fp.close()
+    if isinstance(redis_server, ThreadingHTTPServer):
+        redis_server.shutdown()
+        redis_server.server_close()
+    mcp_server.shutdown()
+    mcp_server.server_close()
 
 
 def get_base64_file(file_path: str) -> str:  # pragma: no cover
@@ -375,6 +603,7 @@ async def test_integration_real_llm_preserves_topological_deficits_and_causal_br
         ai_description="Evaluate strategic governance assertions with strict empirical grounding.",
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
+        output_extensions=[],
         scales=[
             MatrixScale(
                 score=1,
@@ -389,6 +618,10 @@ async def test_integration_real_llm_preserves_topological_deficits_and_causal_br
                                 inverse_evidence=False,
                                 aggregation_mode="ALL_MUST_COMPLY",
                                 concept_description="Baseline audit trail is verified with immutable timestamps.",
+                                facts_to_find=[],
+                                acceptance_criteria=[],
+                                anti_patterns=[],
+                                syntactic_anchors=[],
                             )
                         ],
                     ),
@@ -401,6 +634,9 @@ async def test_integration_real_llm_preserves_topological_deficits_and_causal_br
                                 inverse_evidence=False,
                                 aggregation_mode="ALL_MUST_COMPLY",
                                 concept_description="Root capital allocation threshold is quantified and enforced.",
+                                facts_to_find=[],
+                                acceptance_criteria=[],
+                                syntactic_anchors=[],
                                 anti_patterns=[
                                     AntiPattern(
                                         pattern="Vague qualitative commitment without numeric cap",
@@ -429,6 +665,9 @@ async def test_integration_real_llm_preserves_topological_deficits_and_causal_br
                                 inverse_evidence=False,
                                 aggregation_mode="ALL_MUST_COMPLY",
                                 concept_description="Downstream portfolio solvency gate depends on root capital control.",
+                                facts_to_find=[],
+                                acceptance_criteria=[],
+                                syntactic_anchors=[],
                                 anti_patterns=[
                                     AntiPattern(
                                         pattern="Unhedged solvency projection",
@@ -716,6 +955,7 @@ async def test_integration_real_llm_preserves_topological_deficits_and_causal_br
             "raw_score": I18nText(translations={"en": "Score"}),
             "row_explanation": I18nText(translations={"en": "Diagnostic Explanation"}),
         },
+        extension_labels={},
         axes=[matrix_row],
         short_circuited_by_claims=child_deficit.short_circuited_by_claims,
         falsified_warrant_claims=["Baseline solvency assumption holds without liquidity reserve."],
@@ -788,21 +1028,44 @@ def test_integration_real_llm_topological_deficit_and_brief_validation_negative(
     """Negative & Boundary: Verify MatrixFailureDeficitDTO, CausalSynthesisBriefDTO, and compressor reject invalid inputs."""
     # Phase 4, Step 4.3: Negative & boundary validation for topological synthesis contracts
     with pytest.raises(ValidationError):
-        MatrixFailureDeficitDTO(
-            claim="Invalid Passed Deficit",
-            status=ExecutionStatus.PASSED,
-            scale_score=1,
+        MatrixFailureDeficitDTO.model_validate(
+            {
+                "claim": "Invalid Passed Deficit",
+                "status": ExecutionStatus.PASSED,
+                "scale_score": 1,
+            }
         )
 
     with pytest.raises(ValidationError):
-        CausalSynthesisBriefDTO(
-            intact_propositions=-1,
-            total_propositions=2,
+        CausalSynthesisBriefDTO.model_validate(
+            {
+                "intact_propositions": -1,
+                "total_propositions": 2,
+            }
         )
 
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload("   ")
     assert exc_info.value.status_code == 400
+
+
+def test_e2e_process_and_env_helpers_positive_and_negative(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify E2E subprocess environment sanitization and port readiness probes."""
+    monkeypatch.setenv("PYTEST_CURRENT_TEST", "test_case")
+    monkeypatch.setenv("OPENAI_API_KEY", "mock-openai-key")
+    monkeypatch.setenv("GOOGLE_API_KEY", "mock-google-key")
+
+    clean_env = _prepare_clean_subprocess_env()
+    assert "PYTEST_CURRENT_TEST" not in clean_env
+    assert "OPENAI_API_KEY" not in clean_env
+    assert "GOOGLE_API_KEY" not in clean_env
+    assert clean_env["ENVIRONMENT"] == "development"
+    assert clean_env["LOG_FILE_NAME"] == "backend_debug.log"
+    assert clean_env["USE_FIREBASE_AUTH"] == "false"
+    assert clean_env["MCP_ALLOW_PRIVATE_NETWORKS"] == "true"
+
+    assert isinstance(is_postgres_running(timeout=0.05), bool)
+    assert isinstance(is_worker_running(timeout=0.05), bool)
 
 
 @pytest.mark.skipif(
@@ -824,91 +1087,50 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         if not os.path.exists(path):
             pytest.skip(f"Required PDF not found: {path}. Skipping test.")
 
+    # Terminate any pre-existing backend or worker processes so port 8000, port 8081,
+    # and Redis Arq queues are exclusively bound to this test's controlled subprocesses.
+    force_kill_services()
     clear_logs()
+
+    env = _prepare_clean_subprocess_env()
+    redis_server = _ensure_postgres_and_redis_ready(env)
 
     mcp_server = ThreadingHTTPServer(("127.0.0.1", 0), _LocalMCPRequestHandler)
     mcp_port = mcp_server.server_address[1]
     mcp_thread = threading.Thread(target=mcp_server.serve_forever, daemon=True)
     mcp_thread.start()
 
-    redis_server = None
-    if not is_redis_running():
-        logger.info("Local Redis not detected on port 6379. Starting TcpFakeServer daemon on port 6379.")
-        from fakeredis import TcpFakeServer
+    backend_log_fp = open(BACKEND_LOG_FILE, "a", encoding="utf-8")
+    backend_cmd = [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "uvicorn",
+        "backend_v2.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+    ]
+    backend_process = subprocess.Popen(
+        backend_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT
+    )
 
-        redis_server = TcpFakeServer(("127.0.0.1", 6379))
-        redis_thread = threading.Thread(target=redis_server.serve_forever, daemon=True)
-        redis_thread.start()
-        time.sleep(0.5)
-        assert is_redis_running(), "Failed to start TcpFakeServer on port 6379."
+    worker_cmd = [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "backend_v2.run_worker",
+    ]
+    worker_process = subprocess.Popen(
+        worker_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT
+    )
 
-    backend_process = None
-    worker_process = None
-    backend_log_fp = None
-    if not is_backend_running():
-        logger.info("Backend is not running. Starting local FastAPI instance on port 8000.")
-        env = os.environ.copy()
-        if "PYTEST_CURRENT_TEST" in env:
-            del env["PYTEST_CURRENT_TEST"]
-        # Phase 4, Step 4.3: Strip synthetic conftest mock keys so subprocesses load real credentials from .env
-        for mock_env_key, mock_env_val in (
-            ("OPENAI_API_KEY", "mock-openai-key"),
-            ("ANTHROPIC_API_KEY", "mock-anthropic-key"),
-            ("GOOGLE_API_KEY", "mock-google-key"),
-            ("GEMINI_API_KEY", "mock-gemini-key"),
-        ):
-            if mock_env_key in env and env[mock_env_key] == mock_env_val:
-                del env[mock_env_key]
-        env["USE_FIREBASE_AUTH"] = "false"
-        env["MCP_ALLOW_PRIVATE_NETWORKS"] = "true"
-        env["PYTHONUTF8"] = "1"
-        env["PYTHONIOENCODING"] = "utf-8"
-        env["NO_COLOR"] = "1"
-        env["TERM"] = "dumb"
-
-        backend_log_fp = open(BACKEND_LOG_FILE, "a", encoding="utf-8")
-        backend_cmd = [
-            "uv",
-            "run",
-            "python",
-            "-m",
-            "uvicorn",
-            "backend_v2.main:app",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            "8000",
-        ]
-        backend_process = subprocess.Popen(
-            backend_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT
-        )
-
-        worker_cmd = [
-            "uv",
-            "run",
-            "python",
-            "-m",
-            "backend_v2.run_worker",
-        ]
-        worker_process = subprocess.Popen(
-            worker_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT
-        )
-
-        if not wait_for_backend(timeout_seconds=30):
-            if backend_process:
-                subprocess.run(f"taskkill /F /T /PID {backend_process.pid}", shell=True, capture_output=True)
-            if worker_process:
-                subprocess.run(f"taskkill /F /T /PID {worker_process.pid}", shell=True, capture_output=True)
-            if backend_log_fp:
-                backend_log_fp.close()
-            if redis_server:
-                redis_server.shutdown()
-                redis_server.server_close()
-            mcp_server.shutdown()
-            mcp_server.server_close()
-            pytest.fail("Failed to start FastAPI backend for testing.")
-    else:
-        logger.info("Backend is already running. Re-using active instance.")
+    if not wait_for_backend(timeout_seconds=30) or not wait_for_worker(timeout_seconds=30):
+        _terminate_subprocesses(backend_process, worker_process, backend_log_fp, redis_server, mcp_server)
+        pytest.fail("Failed to start FastAPI backend or Arq worker for E2E testing.")
 
     # Phase 2, Step 2.3: Exchange headless CLI target_user_id for 15-minute Quorum Local JWT with 13-minute auto-refresh
     base_api_url = "http://127.0.0.1:8000/api/v2"
@@ -1073,14 +1295,4 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
             except requests.exceptions.RequestException:
                 pass
         logger.info("Tearing down E2E orchestrator processes...")
-        if backend_process:
-            subprocess.run(f"taskkill /F /T /PID {backend_process.pid}", shell=True, capture_output=True)
-        if worker_process:
-            subprocess.run(f"taskkill /F /T /PID {worker_process.pid}", shell=True, capture_output=True)
-        if backend_log_fp:
-            backend_log_fp.close()
-        if redis_server:
-            redis_server.shutdown()
-            redis_server.server_close()
-        mcp_server.shutdown()
-        mcp_server.server_close()
+        _terminate_subprocesses(backend_process, worker_process, backend_log_fp, redis_server, mcp_server)
