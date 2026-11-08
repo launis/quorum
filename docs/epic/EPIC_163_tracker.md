@@ -156,7 +156,7 @@
   - [x] @[backend_v2/services/orchestrator/context_router.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [x] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
-  - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_reducer.py]
   - [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py]
   - [ ] @[backend_v2/services/orchestrator/result_projector.py]
   - [ ] @[backend_v2/services/orchestrator/schema_factory.py]
