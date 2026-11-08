@@ -1,7 +1,7 @@
 """Context Router for dynamic UI-driven state pruning.
 
 This module isolates UI-driven routing, step-to-step variable normalization,
-and data culling/pruning logic matching the Phase 9 architecture standards.
+and data culling and pruning logic across workflow execution traces.
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ class RoutingModeConfig(BaseModel):
 
 
 class ContextRouter:
-    """Isolates UI-driven routing and data culling logic conforming to Phase 9 directives."""
+    """Isolates UI-driven routing and data culling logic across step execution traces."""
 
     @staticmethod
     def route_and_prune(
@@ -66,19 +66,22 @@ class ContextRouter:
 
         Returns:
             A LightweightMatrixOutput containing only the requested pruned data.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if trace_event is not a LightweightMatrixOutput.
         """
         if not isinstance(trace_event, LightweightMatrixOutput):
             logger.error(
                 "Invalid trace_event provided to route_and_prune. Expected LightweightMatrixOutput, got %s.",
                 type(trace_event).__name__,
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
             )
             raise ConfigurationError(
                 "Missing required base field or invalid trace event type: "
                 f"expected LightweightMatrixOutput, got {type(trace_event).__name__}"
             )
 
-        # Phase 4, Step 4.3: Route typed XaiExtensionValue without JsonValue
         extensions_extracted: dict[LaxXaiExtensionType, XaiExtensionValue] = {}
         if output_profile:
             for ext in output_profile.visible_block_extensions:
@@ -112,7 +115,7 @@ class ContextRouter:
             The routing mode string.
 
         Raises:
-            MissingRoutingModeError: If routing_mode is not present.
+            MissingRoutingModeError: With ErrorCodes.CONFIGURATION_ERROR if routing_mode is not present.
         """
         try:
             config = RoutingModeConfig.model_validate(mapping_config)
@@ -140,7 +143,7 @@ class ContextRouter:
             The normalized path string if validated successfully.
 
         Raises:
-            AppException: If step is not found or legacy V1 '.output' notation is used.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.RESOURCE_NOT_FOUND if step validation fails.
         """
         if not path:
             return path
@@ -153,7 +156,7 @@ class ContextRouter:
         if clean_path.startswith("steps."):
             if not isinstance(steps, (list, tuple)):
                 msg = "Fail-Fast: Snapshot validation failed. Must match sequence of StepOutputDTO."
-                logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+                logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -163,7 +166,7 @@ class ContextRouter:
             for item in steps:
                 if not isinstance(item, StepOutputDTO):
                     msg = "Fail-Fast: Snapshot validation failed. Items must be StepOutputDTO."
-                    logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+                    logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -177,7 +180,7 @@ class ContextRouter:
                 found = any(dto.step_id == step_key for dto in steps)
                 if not found:
                     msg = f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step)."
-                    logger.error(msg, extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value})
+                    logger.error(msg, extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -191,7 +194,7 @@ class ContextRouter:
                         "Fail-Fast: Legacy V1 '.output' variable format is strictly forbidden. "
                         f"Update the UI mapping to use strict V2 format (e.g. $steps.{step_key})."
                     )
-                    logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+                    logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=400,

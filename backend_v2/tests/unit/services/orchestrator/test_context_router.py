@@ -1,3 +1,9 @@
+"""Unit tests for ContextRouter variable normalization and XAI extension pruning."""
+
+from __future__ import annotations
+
+from typing import Any
+
 import pytest
 
 from backend_v2.exceptions import (
@@ -10,17 +16,16 @@ from backend_v2.models.dtos.lightweight_matrix import (
     LightweightMatrixOutput,
     OutputProfileConfig,
 )
-from backend_v2.models.enums import XaiExtensionType
+from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.context_router import ContextRouter
 
 
 def test_normalize_and_validate_variable_legacy_output_rejected() -> None:
-    # State contract: Sequence of StepOutputDTOs
+    """Verify that legacy .output variable paths are rejected with HTTP 400."""
     steps = [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload=None)]
     path = "$steps.step_1.output"
 
-    # It should strictly reject legacy .output with a 400 error
     with pytest.raises(AppException) as exc_info:
         ContextRouter.normalize_and_validate_variable(path, steps)
 
@@ -29,10 +34,10 @@ def test_normalize_and_validate_variable_legacy_output_rejected() -> None:
 
 
 def test_normalize_and_validate_variable_orphaned_step() -> None:
+    """Verify that referencing an unexecuted step raises AppException with HTTP 500."""
     steps = [StepOutputDTO(step_id="step_2", block_id="b", data_type="text", payload=None)]
     path = "$steps.step_1.output"
 
-    # It should fail-fast since step_1 is not in steps
     with pytest.raises(AppException) as exc_info:
         ContextRouter.normalize_and_validate_variable(path, steps)
 
@@ -41,19 +46,28 @@ def test_normalize_and_validate_variable_orphaned_step() -> None:
 
 
 def test_normalize_and_validate_variable_no_output_suffix() -> None:
+    """Verify that valid step paths without .output suffix pass unchanged."""
     steps = [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload=None)]
     path = "$steps.step_1.some_data"
 
-    # Should validate and not strip because it's not .output
     result = ContextRouter.normalize_and_validate_variable(path, steps)
     assert result == "$steps.step_1.some_data"
 
 
+def test_normalize_and_validate_variable_without_dollar_prefix() -> None:
+    """Verify that unprefixed steps.step_1 paths are validated identically."""
+    steps = [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload=None)]
+    path = "steps.step_1.some_data"
+
+    result = ContextRouter.normalize_and_validate_variable(path, steps)
+    assert result == "steps.step_1.some_data"
+
+
 def test_normalize_and_validate_variable_nested_output_rejected() -> None:
+    """Verify that nested legacy .output paths are rejected with HTTP 400."""
     steps = [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload=None)]
     path = "$steps.step_1.output.nested_key"
 
-    # It should strictly reject legacy .output with a 400 error even if nested
     with pytest.raises(AppException) as exc_info:
         ContextRouter.normalize_and_validate_variable(path, steps)
 
@@ -62,42 +76,38 @@ def test_normalize_and_validate_variable_nested_output_rejected() -> None:
 
 
 def test_normalize_and_validate_variable_inputs_path() -> None:
+    """Verify that non-step paths ($inputs.doc) return unchanged."""
     steps: list[StepOutputDTO] = []
     path = "$inputs.doc"
 
-    # Non-steps path should be returned unchanged
     result = ContextRouter.normalize_and_validate_variable(path, steps)
     assert result == "$inputs.doc"
 
 
 def test_route_and_prune_strictly_follows_block_extensions() -> None:
-    # Output profile demands ONLY falsification at the block level.
-    # variance_validation is a workflow extension, so it's handled elsewhere.
+    """Verify that route_and_prune filters extensions strictly by visible_block_extensions."""
     output_profile = OutputProfileConfig(
         visible_block_extensions=[XaiExtensionType.FALSIFICATION],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
     )
 
-    trace_event = LightweightMatrixOutput.model_validate(
-        {
-            "raw_score": 3.0,
-            "normalized_score": 100.0,
-            "justification": "Test justification",
-            "evaluated_atoms": {},
-            "extensions": {"falsification": "Some falsification evidence"},
-        }
+    trace_event = LightweightMatrixOutput(
+        raw_score=3.0,
+        normalized_score=100.0,
+        justification="Test justification",
+        evaluated_atoms={},
+        extensions={XaiExtensionType.FALSIFICATION: "Some falsification evidence"},
     )
 
-    # Should only prune based on visible_block_extensions and succeed
     pruned = ContextRouter.route_and_prune(trace_event, output_profile)
 
     assert pruned.raw_score == 3.0
-    assert "falsification" in pruned.extensions
-    assert "variance_validation" not in pruned.extensions
+    assert XaiExtensionType.FALSIFICATION in pruned.extensions
+    assert XaiExtensionType.VARIANCE_VALIDATION not in pruned.extensions
 
 
 def test_route_and_prune_with_allowed_extensions() -> None:
-    # Output profile requires falsification, coaching AND emotional_sentiment
+    """Verify that route_and_prune respects block-level allowed_extensions intersection."""
     output_profile = OutputProfileConfig(
         visible_block_extensions=[
             XaiExtensionType.FALSIFICATION,
@@ -107,72 +117,59 @@ def test_route_and_prune_with_allowed_extensions() -> None:
         visible_workflow_extensions=[],
     )
 
-    # The block ONLY allows Falsification and Coaching. Sentiment is not supported by this block.
-    trace_event = LightweightMatrixOutput.model_validate(
-        {
-            "raw_score": 4.0,
-            "normalized_score": 80.0,
-            "justification": "Block logic.",
-            "evaluated_atoms": {},
-            "extensions": {
-                "falsification": "Valid falsification",
-                "coaching": "Good coaching insight",
-            },
-            "allowed_extensions": [
-                XaiExtensionType.FALSIFICATION,
-                XaiExtensionType.COACHING,
-            ],
-        }
+    trace_event = LightweightMatrixOutput(
+        raw_score=4.0,
+        normalized_score=80.0,
+        justification="Block logic.",
+        evaluated_atoms={},
+        extensions={
+            XaiExtensionType.FALSIFICATION: "Valid falsification",
+            XaiExtensionType.COACHING: "Good coaching insight",
+        },
+        allowed_extensions=[
+            XaiExtensionType.FALSIFICATION,
+            XaiExtensionType.COACHING,
+        ],
     )
 
-    # 1. Success case: emotional_sentiment is required by output_profile, but not allowed by this block.
-    # Therefore, prune should skip it and succeed!
     pruned = ContextRouter.route_and_prune(trace_event, output_profile)
     assert pruned.raw_score == 4.0
-    assert "falsification" in pruned.extensions
-    assert "coaching" in pruned.extensions
-    assert "emotional_sentiment" not in pruned.extensions
+    assert XaiExtensionType.FALSIFICATION in pruned.extensions
+    assert XaiExtensionType.COACHING in pruned.extensions
+    assert XaiExtensionType.EMOTIONAL_SENTIMENT not in pruned.extensions
 
-    # 2. Failure case: coaching is in allowed_extensions, but missing from extensions.
-    # It must gracefully skip the extension instead of raising an error or inserting a fallback!
-    trace_event_missing = LightweightMatrixOutput.model_validate(
-        {
-            "raw_score": 4.0,
-            "normalized_score": 80.0,
-            "justification": "Block logic.",
-            "evaluated_atoms": {},
-            "extensions": {
-                "falsification": "Valid falsification",
-            },
-            "allowed_extensions": [
-                XaiExtensionType.FALSIFICATION,
-                XaiExtensionType.COACHING,
-            ],
-        }
+    trace_event_missing = LightweightMatrixOutput(
+        raw_score=4.0,
+        normalized_score=80.0,
+        justification="Block logic.",
+        evaluated_atoms={},
+        extensions={
+            XaiExtensionType.FALSIFICATION: "Valid falsification",
+        },
+        allowed_extensions=[
+            XaiExtensionType.FALSIFICATION,
+            XaiExtensionType.COACHING,
+        ],
     )
 
     pruned_missing = ContextRouter.route_and_prune(trace_event_missing, output_profile)
     assert pruned_missing.raw_score == 4.0
-    assert "falsification" in pruned_missing.extensions
-    assert "coaching" not in pruned_missing.extensions
+    assert XaiExtensionType.FALSIFICATION in pruned_missing.extensions
+    assert XaiExtensionType.COACHING not in pruned_missing.extensions
 
 
 def test_route_and_prune_success() -> None:
     """Test successful pruning of a trace event."""
-    from backend_v2.models.enums import ExecutionStatus
-
-    trace_event = LightweightMatrixOutput.model_validate(
-        {
-            "normalized_score": 85.0,
-            "level_breakdown": {"4.0": {"hits": 1, "total": 1}},
-            "justification": "Good logic.",
-            "evaluated_atoms": {"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED},
-            "extensions": {
-                XaiExtensionType.CITATION: "Source A",
-                XaiExtensionType.COACHING: "Improve here.",
-                "falsification": "No issues found.",
-            },
-        }
+    trace_event = LightweightMatrixOutput(
+        normalized_score=85.0,
+        level_breakdown={"4.0": LevelStatsDTO(hits=1, total=1)},
+        justification="Good logic.",
+        evaluated_atoms={"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED},
+        extensions={
+            XaiExtensionType.CITATION: "Source A",
+            XaiExtensionType.COACHING: "Improve here.",
+            XaiExtensionType.FALSIFICATION: "No issues found.",
+        },
     )
 
     output_profile = OutputProfileConfig(
@@ -187,7 +184,6 @@ def test_route_and_prune_success() -> None:
     assert result.justification == "Good logic."
     assert result.evaluated_atoms == {"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED}
 
-    # Extensions should ONLY contain the requested ones, and handle Enum vs string keys
     assert len(result.extensions) == 2
     assert result.extensions[XaiExtensionType.CITATION] == "Source A"
     assert result.extensions[XaiExtensionType.FALSIFICATION] == "No issues found."
@@ -195,14 +191,12 @@ def test_route_and_prune_success() -> None:
 
 def test_route_and_prune_missing_profile() -> None:
     """Test that all extensions are omitted when output profile is missing (zero all-inclusive fallback)."""
-    trace_event = LightweightMatrixOutput.model_validate(
-        {
-            "normalized_score": 50.0,
-            "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
-            "justification": "Test",
-            "evaluated_atoms": {},
-            "extensions": {"falsification": "Some falsification"},
-        }
+    trace_event = LightweightMatrixOutput(
+        normalized_score=50.0,
+        level_breakdown={"2.0": LevelStatsDTO(hits=1, total=1)},
+        justification="Test",
+        evaluated_atoms={},
+        extensions={XaiExtensionType.FALSIFICATION: "Some falsification"},
     )
 
     result = ContextRouter.route_and_prune(trace_event, None)
@@ -211,11 +205,10 @@ def test_route_and_prune_missing_profile() -> None:
 
 def test_route_and_prune_missing_base_field() -> None:
     """Test that ConfigurationError is raised when an invalid or untyped trace event is provided."""
-    trace_event = {
+    trace_event: Any = {
         "normalized_score": 50.0,
         "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
         "justification": "Test",
-        # evaluated_atoms is missing
         "extensions": {},
     }
 
@@ -229,17 +222,14 @@ def test_route_and_prune_missing_base_field() -> None:
 
 def test_route_and_prune_missing_extension() -> None:
     """Test that missing required extensions are gracefully skipped."""
-    trace_event = LightweightMatrixOutput.model_validate(
-        {
-            "normalized_score": 50.0,
-            "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
-            "justification": "Test",
-            "evaluated_atoms": {},
-            "extensions": {XaiExtensionType.CITATION: "Source A"},
-        }
+    trace_event = LightweightMatrixOutput(
+        normalized_score=50.0,
+        level_breakdown={"2.0": LevelStatsDTO(hits=1, total=1)},
+        justification="Test",
+        evaluated_atoms={},
+        extensions={XaiExtensionType.CITATION: "Source A"},
     )
 
-    # We require COACHING, but it's not in the trace
     output_profile = OutputProfileConfig(
         visible_block_extensions=[XaiExtensionType.CITATION, XaiExtensionType.COACHING], visible_workflow_extensions=[]
     )
@@ -268,22 +258,32 @@ def test_validate_routing_mode_missing() -> None:
 
 def test_normalize_and_validate_variable_empty_path() -> None:
     """Test that empty or falsy path is returned as is."""
-    assert ContextRouter.normalize_and_validate_variable("", {}) == ""
+    assert ContextRouter.normalize_and_validate_variable("", []) == ""
 
 
 def test_normalize_and_validate_variable_invalid_snapshot_state() -> None:
     """Test that invalid snapshot structure raises AppException."""
+    invalid_steps: Any = "not_a_valid_snapshot_structure"
     with pytest.raises(AppException) as exc_info:
-        ContextRouter.normalize_and_validate_variable("$steps.step_1", "not_a_valid_snapshot_structure")
+        ContextRouter.normalize_and_validate_variable("$steps.step_1", invalid_steps)
 
     assert "Snapshot validation failed" in exc_info.value.message
     assert exc_info.value.status_code == 500
 
 
+def test_normalize_and_validate_variable_non_dto_sequence_item() -> None:
+    """Test that a list containing non-StepOutputDTO items raises AppException."""
+    invalid_items: Any = ["not_a_step_output_dto"]
+    with pytest.raises(AppException) as exc_info:
+        ContextRouter.normalize_and_validate_variable("$steps.step_1", invalid_items)
+
+    assert "Items must be StepOutputDTO" in exc_info.value.message
+    assert exc_info.value.status_code == 500
+
+
 def test_normalize_and_validate_variable_legacy_dict_steps() -> None:
     """Test that legacy dict structure for steps in snapshot is rejected."""
-    # When steps is a dict inside the snapshot dictionary
-    legacy_snapshot = {"steps": {"step_1": {"data": 123}}}
+    legacy_snapshot: Any = {"steps": {"step_1": {"data": 123}}}
     with pytest.raises(AppException) as exc_info:
         ContextRouter.normalize_and_validate_variable("$steps.step_1", legacy_snapshot)
 
@@ -295,7 +295,7 @@ def test_normalize_and_validate_variable_legacy_dict_steps() -> None:
 
 def test_route_and_prune_validation_error() -> None:
     """Test that invalid trace_event format raises ConfigurationError."""
-    invalid_trace = {
+    invalid_trace: Any = {
         "raw_score": "not_a_number",
         "normalized_score": 100.0,
         "justification": "Test",
