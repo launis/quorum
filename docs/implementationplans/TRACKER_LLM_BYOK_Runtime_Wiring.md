@@ -21,7 +21,7 @@
   - [x] Step 1: Phase 1, Step 1: Wire SecretService.resolve_llm_key and ResolvedCredentialDTO into LLMClient
   - [x] Step 2: Phase 1, Step 2: Propagate Tenant organization_id Through Execution Ingress and Phase 1 Stage 3
   - [x] Step 3: Phase 1, Step 3: Wire Tenant organization_id into Phase 2 Report and Variance Synthesis Workers
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]`
 
 ### Post-Implementation Gates
 
@@ -29,7 +29,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/llm/client.py]
   - [x] @[backend_v2/services/execution/ingress_service.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
   - [ ] @[backend_v2/workers/synthesis_worker.py]
   - [ ] @[backend_v2/workers/variance_synthesis.py]
 - [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
@@ -56,7 +56,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -89,7 +89,8 @@
 ## Achieved
 - Completed Step 1 (`c15bcdffa`): Wired `SecretService.resolve_llm_key` and `ResolvedCredentialDTO` into `LLMClient.__init__`, `LLMClient.from_tier`, `LLMClient.run_structured_task`, and `LLMClient.run_chat` in `@[backend_v2/llm/client.py]`, with unit tests in `@[backend_v2/tests/unit/llm/test_client.py]`.
 - Completed Step 2 (`28ebec232`): Populated `GlobalContextVarsDTO(organization_id=initiator.organization_id, initiator_id=initiator.id, target_locale=payload.target_locale, profile_id=resolved_profile_id)` on `ExecutionMetadata` in `@[backend_v2/services/execution/ingress_service.py]` and wired `effective_org_id` into `ToolDispatcher` and `LLMClient.from_tier` inside `@[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]`, with unit tests in `@[backend_v2/tests/unit/services/execution/test_ingress_service.py]` and `@[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_engine_retry_stage.py]`.
-- Completed Step 3: Wired `effective_org_id` (from `execution.organization_id` or `execution.raw_inputs.organization_id`, initialized to `SystemOrganizations.ROOT_SYSTEM.value`) into `GlobalContextVarsDTO` and `LLMClient.from_tier` in `@[backend_v2/workers/synthesis_worker.py]` and `@[backend_v2/workers/variance_synthesis.py]`, with unit tests in `@[backend_v2/tests/unit/workers/test_synthesis_worker.py]` and `@[backend_v2/tests/unit/workers/test_variance_synthesis.py]`.
+- Completed Step 3 (`c6e5274cf`): Wired `effective_org_id` (from `execution.organization_id` or `execution.raw_inputs.organization_id`, initialized to `SystemOrganizations.ROOT_SYSTEM.value`) into `GlobalContextVarsDTO` and `LLMClient.from_tier` in `@[backend_v2/workers/synthesis_worker.py]` and `@[backend_v2/workers/variance_synthesis.py]`, with unit tests in `@[backend_v2/tests/unit/workers/test_synthesis_worker.py]` and `@[backend_v2/tests/unit/workers/test_variance_synthesis.py]`.
+- Completed Tier 8 Audit (`/tier8-audit-plan`): Verified 12/12 requirements (`REQ-001`–`REQ-012`), >90% test coverage across all 5 modified modules (`client.py` 93%, `ingress_service.py` 96%, `engine_retry_stage.py` 100%, `synthesis_worker.py` 92%, `variance_synthesis.py` 100%), 89/89 DTO parity, and 0 fatal/advisory AST or technical debt violations.
 
 ## Learned
 - The `ROOT_SYSTEM` constant on `SystemOrganizations` in `@[backend_v2/models/auth.py]` is `"org_0195f3a0000070008000000000000001"` (ending in `1`).
@@ -97,9 +98,9 @@
 - In `@[backend_v2/tests/unit/workers/test_variance_synthesis.py]`, `_make_execution` uses `dict[str, ContextVariableValue]` (from `backend_v2.models.dtos.context_variables`) rather than `dict[str, Any]` so `scripts/audit_warning_baseline.py` Census `P` remains at `0`.
 
 ## Remaining
-- Run Tier 2 Hardening (`scripts/auto_hardening_runner.py`), `/tier7-describe-architecture`, and `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]`.
+- Run Tier 2 Hardening (`scripts/auto_hardening_runner.py`) and `/tier7-describe-architecture @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[ki_god_code_prevention.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md]`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]
+/tier7-describe-architecture @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[ki_god_code_prevention.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md]
 ```
