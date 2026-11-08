@@ -127,10 +127,11 @@ class OrganizationService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR.
         """
-        # Phase 1, Step 1.3: Enforce single-pipeline invitation persistence with zero local dict fallback
+        # Enforce single-pipeline invitation persistence with zero local dict fallback
         logger.error(
             "[OrganizationService] %s: OrganizationService requires an entity_adapter or uow_factory.",
             ErrorCodes.CONFIGURATION_ERROR.name,
+            exc_info=True,
         )
         raise ConfigurationError(
             message="OrganizationService requires an entity_adapter or uow_factory for invitation persistence.",
@@ -1209,7 +1210,7 @@ class OrganizationService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        # Phase 1, Step 1.3: Route invitation persistence exclusively through entity_adapter or uow_factory
+        # Route invitation persistence exclusively through entity_adapter or uow_factory
         if self._entity_adapter is not None:
             await self._entity_adapter.upsert_invitation(invitation)
             return
