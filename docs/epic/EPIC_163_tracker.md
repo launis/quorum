@@ -189,7 +189,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/workflow_inputs.dart]
   - [x] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
   - [x] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
