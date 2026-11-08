@@ -171,7 +171,7 @@
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/_dart_guardrails.py]
   - [x] @[scripts/ablation_live_executor.py]
-  - [ ] @[scripts/audit_dict_eradication.py]
+  - [x] @[scripts/audit_dict_eradication.py]
   - [ ] @[scripts/audit_warning_baseline.py]
   - [ ] @[scripts/auto_hardening_runner.py]
   - [ ] @[scripts/backend_audit_loop.py]
