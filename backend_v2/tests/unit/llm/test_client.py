@@ -1,23 +1,44 @@
+from enum import StrEnum
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 from backend_v2.exceptions import (
     AgentExecutionError,
     AppException,
     ConfigurationError,
+    ErrorCodes,
     LLMSchemaValidationError,
     ResourceNotFoundError,
     ServiceUnavailableError,
 )
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.auth import (
+    SystemOrganizations,
+    TenantSecretCreateDTO,
+    TokenData,
+    UserRole,
+)
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
-from backend_v2.models.enums import CognitiveTier, ExecutionProfile
+from backend_v2.models.dtos.mcp import (
+    MCPFunctionDefinitionDTO,
+    MCPToolDeclarationDTO,
+    MCPToolInputSchemaDTO,
+)
+from backend_v2.models.enums import (
+    CognitiveTier,
+    ExecutionProfile,
+    LLMProvider,
+    SecretScope,
+    SecretStorageMode,
+)
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.services.auth.secret_service import SecretService, get_secret_service
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 class DummyConfig(BaseModel):
@@ -74,7 +95,7 @@ async def test_finops_circuit_breaker_missing_usage(mock_create_provider: MagicM
     # Circuit Breaker must trigger AgentExecutionError (CRITICAL)
     with pytest.raises(AgentExecutionError) as exc:
         await client.run_structured_task(
-            messages=[{"role": "user", "content": "Test"}], response_model=DummyStrictModel
+            messages=[LLMMessageDTO(role="user", content="Test")], response_model=DummyStrictModel
         )
 
     # Check for the correct 7807 Error Code inside the exception representation
@@ -175,7 +196,7 @@ async def test_client_delegates_to_caching_service(mock_prepare: AsyncMock, mock
     c.provider = "anthropic"
     client = LLMClient(config=c.model_dump())
 
-    messages = [{"role": "system", "content": "Hello"}, {"role": "user", "content": "Test"}]
+    messages = [LLMMessageDTO(role="system", content="Hello"), LLMMessageDTO(role="user", content="Test")]
     await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
 
     # Verify delegation
@@ -196,7 +217,7 @@ async def test_client_bubbles_up_service_unavailable_error(mock_create_provider:
     mock_create_provider.return_value = mock_provider
 
     client = LLMClient(config=DummyConfig().model_dump())
-    messages = [{"role": "user", "content": "Test"}]
+    messages = [LLMMessageDTO(role="user", content="Test")]
 
     # It MUST raise ServiceUnavailableError directly, NOT AgentExecutionError or LLMSchemaValidationError
     with pytest.raises(ServiceUnavailableError):
@@ -218,15 +239,12 @@ async def test_client_bubbles_up_upstream_timeout_error(mock_create_provider: Ma
     mock_create_provider.return_value = mock_provider
 
     client = LLMClient(config=DummyConfig().model_dump())
-    messages = [{"role": "user", "content": "Test"}]
+    messages = [LLMMessageDTO(role="user", content="Test")]
 
     with pytest.raises(AppException) as exc_info:
         await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
 
     assert not isinstance(exc_info.value, LLMSchemaValidationError)
-
-
-from enum import StrEnum
 
 
 class DummyEnum(StrEnum):
@@ -260,7 +278,7 @@ async def test_client_parses_strict_enum_from_json(mock_create_provider: MagicMo
     mock_provider.generate.return_value = mock_response
 
     client = LLMClient(config=DummyConfig().model_dump())
-    messages = [{"role": "user", "content": "Test"}]
+    messages = [LLMMessageDTO(role="user", content="Test")]
 
     # This will raise LLMSchemaValidationError if the bug is present, failing the test if we assert it succeeds.
     # The proof of failure step means the test should crash/fail.
@@ -282,7 +300,7 @@ async def test_client_run_chat_success(mock_create_provider: MagicMock) -> None:
     mock_provider.generate.return_value = mock_response
 
     client = LLMClient(config=DummyConfig().model_dump())
-    messages = [{"role": "user", "content": "Test"}]
+    messages = [LLMMessageDTO(role="user", content="Test")]
 
     res = await client.run_chat(messages=messages, model="test-model")
     assert res == "Chat success"
@@ -304,7 +322,7 @@ async def test_client_run_chat_cache_miss_fallback(mock_create_provider: MagicMo
     c = DummyConfig()
     c.caching_strategy = "ephemeral"
     client = LLMClient(config=c.model_dump())
-    messages = [{"role": "user", "content": "Test"}]
+    messages = [LLMMessageDTO(role="user", content="Test")]
 
     with patch(
         "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload", new_callable=AsyncMock
@@ -326,7 +344,7 @@ async def test_client_run_structured_task_missing_config() -> None:
     client = LLMClient(config=None)
     with pytest.raises(AppException) as exc_info:
         await client.run_structured_task(
-            messages=[{"role": "user", "content": "Test"}], response_model=DummyStrictModel
+            messages=[LLMMessageDTO(role="user", content="Test")], response_model=DummyStrictModel
         )
     assert "Model Configuration Missing" in str(exc_info.value)
 
@@ -336,7 +354,7 @@ async def test_client_run_chat_missing_config() -> None:
     """Test AppException is raised when client is not configured via Strategy and model is missing for chat."""
     client = LLMClient(config=None)
     with pytest.raises(AppException) as exc_info:
-        await client.run_chat(messages=[{"role": "user", "content": "Test"}])
+        await client.run_chat(messages=[LLMMessageDTO(role="user", content="Test")])
     assert "Model Configuration Missing" in str(exc_info.value)
 
 
@@ -361,7 +379,7 @@ async def test_client_run_structured_task_cache_miss_fallback(mock_create_provid
     c = DummyConfig()
     c.caching_strategy = "ephemeral"
     client = LLMClient(config=c.model_dump())
-    messages = [{"role": "user", "content": "Test"}]
+    messages = [LLMMessageDTO(role="user", content="Test")]
 
     with patch(
         "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload", new_callable=AsyncMock
@@ -473,7 +491,7 @@ async def test_client_run_chat_raw_content_success(mock_create_provider: MagicMo
 
     c = DummyConfig()
     client = LLMClient(config=c.model_dump())
-    result = await client.run_chat(messages=[{"role": "user", "content": "Hello"}])
+    result = await client.run_chat(messages=[LLMMessageDTO(role="user", content="Hello")])
     assert result == "Chat output"
 
 
@@ -491,8 +509,16 @@ async def test_client_run_chat_tool_calls(mock_create_provider: MagicMock) -> No
     c = DummyConfig()
     client = LLMClient(config=c.model_dump())
     result = await client.run_chat(
-        messages=[{"role": "user", "content": "Call tool"}],
-        tools=[{"type": "function"}],
+        messages=[LLMMessageDTO(role="user", content="Call tool")],
+        tools=[
+            MCPToolDeclarationDTO(
+                function=MCPFunctionDefinitionDTO(
+                    name="search",
+                    description="Search",
+                    parameters=MCPToolInputSchemaDTO(properties={}, required=[]),
+                )
+            )
+        ],
     )
     assert type(result) is dict
     assert "tool_calls" in result
@@ -510,7 +536,7 @@ async def test_client_run_chat_general_exception(mock_create_provider: MagicMock
     c = DummyConfig()
     client = LLMClient(config=c.model_dump())
     with pytest.raises(AgentExecutionError):
-        await client.run_chat(messages=[{"role": "user", "content": "Boom"}])
+        await client.run_chat(messages=[LLMMessageDTO(role="user", content="Boom")])
 
 
 @pytest.mark.asyncio
@@ -532,7 +558,7 @@ async def test_client_run_structured_task_legacy_passthrough(mock_create_provide
 
     client = LLMClient(config=None)
     result, usage = await client.run_structured_task(
-        messages=[{"role": "user", "content": "Score"}],
+        messages=[LLMMessageDTO(role="user", content="Score")],
         model="gpt-4",
         response_model=DummyStrictModel,
     )
@@ -552,7 +578,7 @@ async def test_client_run_structured_task_general_exception(mock_create_provider
     client = LLMClient(config=c.model_dump())
     with pytest.raises(AgentExecutionError):
         await client.run_structured_task(
-            messages=[{"role": "user", "content": "Fail"}],
+            messages=[LLMMessageDTO(role="user", content="Fail")],
             response_model=DummyStrictModel,
         )
 
@@ -569,7 +595,7 @@ async def test_client_run_structured_task_adapter_failure(mock_create_provider: 
     ):
         with pytest.raises(ConfigurationError, match="LLM Adapter loading failed"):
             await client.run_structured_task(
-                messages=[{"role": "user", "content": "Fail"}],
+                messages=[LLMMessageDTO(role="user", content="Fail")],
                 response_model=DummyStrictModel,
             )
 
@@ -599,8 +625,11 @@ async def test_from_tier_query_failure_raises_configuration_error() -> None:
     mock_repo = InMemorySystemRepository()
     mock_repo.inject_fault("get_model_registry", ConnectionError("Database offline"))
     mock_repo.inject_fault("get_all_model_registries", ConnectionError("Database offline"))
-    with pytest.raises(ConfigurationError, match="missing or query failed"):
-        await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
+    try:
+        with pytest.raises(ConfigurationError, match="missing or query failed"):
+            await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
+    finally:
+        mock_repo.clear_faults()
 
 
 @patch("backend_v2.llm.provider.LLMFactory.create_provider")
@@ -617,7 +646,7 @@ async def test_finops_invalid_token_usage_payload(mock_create_provider: MagicMoc
     client = LLMClient(config=c.model_dump())
     with pytest.raises(AgentExecutionError):
         await client.run_structured_task(
-            messages=[{"role": "user", "content": "Hi"}],
+            messages=[LLMMessageDTO(role="user", content="Hi")],
             response_model=DummyStrictModel,
         )
 
@@ -639,7 +668,7 @@ async def test_safety_filter_triggered(mock_create_provider: MagicMock) -> None:
     client = LLMClient(config=c.model_dump())
     with pytest.raises(AgentExecutionError, match="Safety Filter Triggered"):
         await client.run_structured_task(
-            messages=[{"role": "user", "content": "Hi"}],
+            messages=[LLMMessageDTO(role="user", content="Hi")],
             response_model=DummyStrictModel,
         )
 
@@ -659,7 +688,11 @@ async def test_from_tier_empty_tier_definitions_raises_configuration_error() -> 
     mock_repo = InMemorySystemRepository()
     with patch(
         "backend_v2.llm.client.inflate",
-        return_value=SystemConfigModelRegistry.model_construct(tier_definitions={}),
+        return_value=SystemConfigModelRegistry.model_construct(
+            id="sys_0195f3a00000700e826807f3bfa3454d",
+            name="Empty Registry",
+            tier_definitions={},
+        ),
     ):
         with pytest.raises(ConfigurationError, match="severely corrupted or empty"):
             await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
@@ -721,3 +754,166 @@ async def test_client_caching_empty_dynamic_payload_raises_app_exception() -> No
     ):
         with pytest.raises(AppException, match="Context Caching FATAL ERROR"):
             await client.run_structured_task(messages=prompt, response_model=DummyStrictModel)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_from_tier_resolves_tenant_byok_and_forwards_to_provider_factory(
+    mock_create_provider: MagicMock,
+    fake_repository: InMemorySystemRepository,
+) -> None:
+    """Verify LLMClient.from_tier resolves tenant BYOK secret and forwards organization_id and resolved_credential."""
+    tenant_org_id = "org_0195f3a0000070008000000000000777"
+    initiator = TokenData(
+        id="usr_0195f3a00000700a83fd6b3d77c748f4",
+        email="admin@tenant.example.com",
+        role=UserRole.ADMIN,
+        organization_id=tenant_org_id,
+    )
+
+    secret_service = get_secret_service()
+    await secret_service.upsert_tenant_secret(
+        initiator=initiator,
+        organization_id=tenant_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier="openai",
+            plaintext_secret=SecretStr("sk-tenant-byok-openai-key"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
+    mock_provider = AsyncMock()
+    mock_structured_response = MagicMock()
+    mock_structured_response.content = '{"step_4_final_score": 4}'
+    mock_structured_response.token_usage = {
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "total_tokens": 15,
+        "cost_usd": 0.001,
+    }
+    mock_structured_response.provider_metadata = None
+
+    mock_chat_response = MagicMock()
+    mock_chat_response.content = "Tenant BYOK chat reply"
+    mock_chat_response.tool_calls = None
+
+    mock_provider.generate = AsyncMock(side_effect=[mock_structured_response, mock_chat_response])
+    mock_create_provider.return_value = mock_provider
+
+    client = await LLMClient.from_tier(
+        tier=CognitiveTier.FAST,
+        repository=fake_repository,
+        provider=LLMProvider.OPENAI,
+        registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+        organization_id=tenant_org_id,
+        secret_service=secret_service,
+    )
+
+    assert client.organization_id == tenant_org_id
+    assert client.resolved_credential is not None
+    assert client.resolved_credential.is_tenant_byok is True
+    assert client.resolved_credential.secret_value.get_secret_value() == "sk-tenant-byok-openai-key"
+    assert client.config is not None
+    assert client.config.api_key is None
+
+    structured_res, _ = await client.run_structured_task(
+        messages=[LLMMessageDTO(role="user", content="Evaluate tenant prompt")],
+        response_model=DummyStrictModel,
+    )
+    assert structured_res.step_4_final_score == 4
+
+    chat_res = await client.run_chat(messages=[LLMMessageDTO(role="user", content="Chat tenant prompt")])
+    assert chat_res == "Tenant BYOK chat reply"
+
+    assert mock_create_provider.call_count == 2
+    for call in mock_create_provider.call_args_list:
+        assert call.kwargs["organization_id"] == tenant_org_id
+        assert call.kwargs["resolved_credential"] == client.resolved_credential
+
+
+@pytest.mark.asyncio
+async def test_from_tier_resolves_platform_credential_with_root_system_default(
+    fake_repository: InMemorySystemRepository,
+) -> None:
+    """Verify LLMClient.from_tier without tenant BYOK resolves platform credential under ROOT_SYSTEM default."""
+    client = await LLMClient.from_tier(
+        tier=CognitiveTier.FAST,
+        repository=fake_repository,
+        provider=LLMProvider.AI_STUDIO,
+    )
+
+    assert client.organization_id == SystemOrganizations.ROOT_SYSTEM.value
+    assert client.resolved_credential is not None
+    assert client.resolved_credential.is_tenant_byok is False
+    assert client.resolved_credential.organization_id == SystemOrganizations.ROOT_SYSTEM.value
+
+
+@pytest.mark.asyncio
+async def test_from_tier_corrupted_tenant_byok_ciphertext_fails_fast_without_platform_fallback(
+    fake_repository: InMemorySystemRepository,
+) -> None:
+    """ISTQB Negative Test: corrupted tenant BYOK ciphertext raises ConfigurationError with SECRET_RESOLUTION_FAILED."""
+    tenant_org_id = "org_0195f3a0000070008000000000000777"
+    initiator = TokenData(
+        id="usr_0195f3a00000700a83fd6b3d77c748f4",
+        email="admin@tenant.example.com",
+        role=UserRole.ADMIN,
+        organization_id=tenant_org_id,
+    )
+
+    uow = InMemoryUnitOfWork()
+    secret_service = SecretService(uow_factory=lambda: uow)
+    created_resp = await secret_service.upsert_tenant_secret(
+        initiator=initiator,
+        organization_id=tenant_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier="openai",
+            plaintext_secret=SecretStr("sk-tenant-byok-openai-key"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
+    stored_dto = await uow.entities.get_tenant_secret(created_resp.id)
+    assert stored_dto is not None
+    tampered_dto = stored_dto.model_copy(update={"ciphertext": b"corrupted-ciphertext-bytes"})
+    await uow.entities.upsert_tenant_secret(tampered_dto)
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        await LLMClient.from_tier(
+            tier=CognitiveTier.FAST,
+            repository=fake_repository,
+            provider=LLMProvider.OPENAI,
+            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+            organization_id=tenant_org_id,
+            secret_service=secret_service,
+        )
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_from_tier_missing_platform_api_key_without_byok_fails_fast(
+    fake_repository: InMemorySystemRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ISTQB Negative Test: missing platform API key when no tenant BYOK exists raises ConfigurationError."""
+    tenant_org_id = "org_0195f3a0000070008000000000000888"
+    mock_settings = MagicMock()
+    mock_settings.use_mock_llm = False
+    mock_settings.openai_api_key = None
+
+    monkeypatch.setattr("backend_v2.llm.client.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.secret_service.get_settings", lambda: mock_settings)
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        await LLMClient.from_tier(
+            tier=CognitiveTier.FAST,
+            repository=fake_repository,
+            provider=LLMProvider.OPENAI,
+            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+            organization_id=tenant_org_id,
+        )
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value

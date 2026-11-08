@@ -1,0 +1,108 @@
+# Tracker: LLM Provider BYOK Runtime Credential Wiring
+
+**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md]
+
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_global_config_sovereignty.md]</knowledge_item>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+</required_context_rules>
+
+## Step Execution Status
+
+**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md]
+
+- [x] **[OK] Tier 0 Research & Red-Teaming:** `/tier0-research-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]`
+  - [x] Step 1: Phase 1, Step 1: Wire SecretService.resolve_llm_key and ResolvedCredentialDTO into LLMClient
+  - [ ] Step 2: Phase 1, Step 2: Propagate Tenant organization_id Through Execution Ingress and Phase 1 Stage 3
+  - [ ] Step 3: Phase 1, Step 3: Wire Tenant organization_id into Phase 2 Report and Variance Synthesis Workers
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]`
+
+### Post-Implementation Gates
+
+- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+  - [ ] @[backend_v2/llm/client.py]
+  - [ ] @[backend_v2/services/execution/ingress_service.py]
+  - [ ] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
+  - [ ] @[backend_v2/workers/synthesis_worker.py]
+  - [ ] @[backend_v2/workers/variance_synthesis.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+  - N/A (No Frontend files touched in this plan)
+- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+
+### Documentation & Knowledge Item Update
+
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+  ```powershell
+  /tier7-describe-architecture @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[ki_god_code_prevention.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md]
+  ```
+
+  #### Directives for Tier 7 Agent:
+  1. **Target KIs to Synchronize:**
+     - `@[ki_global_config_sovereignty.md]`: Document the end-to-end Dual-Tier BYOK runtime credential resolution path from `LLMClient.from_tier` via `SecretService.resolve_llm_key` into `LLMFactory.create_provider` and `LiteLLMProvider`, including `SecretStr` encapsulation on `LLMClient._resolved_credential` and tenant `organization_id` propagation across Phase 1 Ingress/Stage 3 and Phase 2 Synthesis workers.
+     - `@[ki_god_code_prevention.md]`: Record stage-decoupled `organization_id` forwarding in `execute_engine_retry_stage` (`_run_optional_mcp_retrieval` and `LLMClient.from_tier`) without adding redundant state fields to `StrategyContext`.
+     - `@[ki_zero_permissive_typing.md]`: Document `QGR016`-compliant `effective_org_id` initialization to `ROOT_SYSTEM` on `SystemOrganizations` (`"org_0195f3a0000070008000000000000001"`) across `LLMClient`, `engine_retry_stage.py`, `synthesis_worker.py`, and `variance_synthesis.py`.
+  2. **Directory Reference Sync:**
+     - Update `@[.agents/rules/04_directory_reference.md]` if any module responsibility descriptions in `backend_v2/llm/`, `backend_v2/services/execution/`, or `backend_v2/workers/` require synchronization.
+  3. **Pillar Documentation Sync:**
+     - Update timeless narratives in `docs/architecture/` describing end-to-end tenant BYOK credential resolution across Phase 1 DAG execution and Phase 2 synthesis in present tense without historical language or plan IDs.
+
+### Final Plan Audit
+
+- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+
+## Instructions for the Execution Agent
+
+- **Atomic Commit Mandate**: After completing each cohesive logical step and passing quality gates, execute an atomic git commit using strict Conventional Commits (`<type>(<scope>): <imperative summary in lowercase, max 72 chars>`).
+- **Universal Quality Gate Loops**:
+  - Backend / Scripts: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py <target_path> --test --ast-strict`
+  - Frontend / Flutter: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build`
+- **File Reference Syntax**: Normalize all codebase file references to workspace-relative POSIX paths (`@[backend_v2/llm/client.py]`).
+- **Session Handover Protocol**: Trigger `/tier5-session-handover` if processing >8 user prompts in a session, completing 3 atomic git commits, or modifying >5 distinct complex modules.
+
+## Requirements Traceability Matrix
+
+| Requirement | Description | Plan Step | Status |
+| :--- | :--- | :--- | :--- |
+| REQ-001 | Extend `LLMClient.__init__` in `@[backend_v2/llm/client.py]` to accept keyword-only `organization_id: PrefixedUUID7 \| None = None` and `resolved_credential: ResolvedCredentialDTO \| None = None` and expose read-only `@property` accessors. | Step 1 | [x] Completed |
+| REQ-002 | Wire `SecretService.resolve_llm_key` into `LLMClient.from_tier` for all non-mock providers with `QGR016`-compliant `effective_org_id` initialization to `ROOT_SYSTEM` on `SystemOrganizations` (`"org_0195f3a0000070008000000000000001"`), preserving `SecretStr` encapsulation inside `self._resolved_credential`. | Step 1 | [x] Completed |
+| REQ-003 | Forward `organization_id=self._organization_id` and `resolved_credential=self._resolved_credential` to `LLMFactory.create_provider` inside `LLMClient.run_structured_task` and `LLMClient.run_chat`. | Step 1 | [x] Completed |
+| REQ-004 | Add positive and negative unit tests in `@[backend_v2/tests/unit/llm/test_client.py]` verifying tenant BYOK resolution, platform fallback when no tenant BYOK exists, and Fail-Fast `ConfigurationError` (`ErrorCodes.SECRET_RESOLUTION_FAILED`) on corrupted BYOK ciphertext or missing platform API key. | Step 1 | [x] Completed |
+| REQ-005 | Populate `global_context_vars=GlobalContextVarsDTO(organization_id=initiator.organization_id, initiator_id=initiator.id, target_locale=payload.target_locale, profile_id=resolved_profile_id)` on `ExecutionMetadata` in `ExecutionIngressService._persist_and_enqueue_execution` (`@[backend_v2/services/execution/ingress_service.py]`). | Step 2 | [ ] Pending |
+| REQ-006 | Verify `record.metadata.global_context_vars.organization_id == initiator.organization_id` and `initiator_id == initiator.id` in `@[backend_v2/tests/unit/services/execution/test_ingress_service.py]`. | Step 2 | [ ] Pending |
+| REQ-007 | Resolve `effective_org_id` in `_run_optional_mcp_retrieval` and `execute_engine_retry_stage` (`@[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]`) from `context.global_context_vars.organization_id` (defaulting to `ROOT_SYSTEM` on `SystemOrganizations`) and pass `organization_id=effective_org_id` to `ToolDispatcher` and `LLMClient.from_tier`. | Step 2 | [ ] Pending |
+| REQ-008 | Add positive and negative unit tests in `@[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_engine_retry_stage.py]` verifying `organization_id` propagation to `LLMClient.from_tier` and `ToolDispatcher`, `ROOT_SYSTEM` default, and Fail-Fast `ConfigurationError` propagation. | Step 2 | [ ] Pending |
+| REQ-009 | Resolve `effective_org_id` from `execution.organization_id` or `execution.raw_inputs.organization_id` (defaulting to `ROOT_SYSTEM` on `SystemOrganizations`) in `generate_profile_synthesis_and_pdf_task` (`@[backend_v2/workers/synthesis_worker.py]`) and pass `organization_id=effective_org_id` to `GlobalContextVarsDTO` and `LLMClient.from_tier`. | Step 3 | [ ] Pending |
+| REQ-010 | Resolve `effective_org_id` from `execution.organization_id` or `execution.raw_inputs.organization_id` (defaulting to `ROOT_SYSTEM` on `SystemOrganizations`) in `build_variance_metrics_and_task` (`@[backend_v2/workers/variance_synthesis.py]`) and pass `organization_id=effective_org_id` to `LLMClient.from_tier`. | Step 3 | [ ] Pending |
+| REQ-011 | Add positive and negative unit tests in `@[backend_v2/tests/unit/workers/test_synthesis_worker.py]` (using direct typed constructors `ExecutionRecord(...)`, `OutputProfile(...)`, `Workflow(...)` to satisfy `TD_MODEL_FACTORY`) verifying `organization_id` forwarding and Fail-Fast `ConfigurationError` handling. | Step 3 | [ ] Pending |
+| REQ-012 | Add positive and negative unit tests in `@[backend_v2/tests/unit/workers/test_variance_synthesis.py]` verifying `organization_id` forwarding to `LLMClient.from_tier` and Fail-Fast `ConfigurationError` propagation. | Step 3 | [ ] Pending |
+
+# Session Handover Context
+
+## Achieved
+- Completed `/tier0-research-plan` deep System 2 analysis and red-teaming on `@[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md]`.
+- Verified `audit_markdown_boundaries.py` (`0` findings) and `audit_technical_debt.py --include-one-hop` (`0` production/1-hop findings) across all 10 target files.
+- Generated standalone execution tracker `@[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]` via `/tier1-plan-tracker-generator` with 100% bidirectional plan-tracker parity.
+
+## Learned
+- The `ROOT_SYSTEM` constant on `SystemOrganizations` in `@[backend_v2/models/auth.py]` is `"org_0195f3a0000070008000000000000001"` (ending in `1`).
+- `LLMProviderConfig.api_key` is `str | None` and `LLMFactory._resolve_provider_api_key` (`@[backend_v2/llm/provider/provider_factory.py]`) prioritizes `resolved_credential.secret_value.get_secret_value()` over `config.api_key`, so `LLMClient.from_tier` preserves `SecretStr` encapsulation by storing `self._resolved_credential` and forwarding `resolved_credential=self._resolved_credential` to `LLMFactory.create_provider`.
+- `backend_v2/tests/unit/workers/test_synthesis_worker.py` has pre-existing `TD_MODEL_FACTORY` warnings on legacy `.model_validate({...})` fixtures; all new unit tests in Step 3 must instantiate `ExecutionRecord(...)`, `OutputProfile(...)`, and `Workflow(...)` via direct typed constructors.
+
+## Remaining
+- Execute Step 1: Wire `SecretService.resolve_llm_key` and `ResolvedCredentialDTO` into `LLMClient` (`@[backend_v2/llm/client.py]`, `@[backend_v2/tests/unit/llm/test_client.py]`).
+- Execute Step 2: Propagate tenant `organization_id` through `ExecutionIngressService` and `execute_engine_retry_stage` (`@[backend_v2/services/execution/ingress_service.py]`, `@[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]`, and unit tests).
+- Execute Step 3: Wire tenant `organization_id` into Phase 2 synthesis workers (`@[backend_v2/workers/synthesis_worker.py]`, `@[backend_v2/workers/variance_synthesis.py]`, and unit tests).
+- Run Post-Implementation Gates (`auto_hardening_runner.py`, `/tier7-describe-architecture`, `/tier8-audit-plan`).
+
+## Resume Command
+```powershell
+/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_BYOK_Runtime_Wiring.md] @[docs/implementationplans/TRACKER_LLM_BYOK_Runtime_Wiring.md]
+```

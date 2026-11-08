@@ -23,14 +23,22 @@ from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider.provider_factory import LLMFactory
-from backend_v2.models.core_base import generate_uuid7
+from backend_v2.models.auth import ResolvedCredentialDTO, SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7, generate_uuid7
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
 from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
-from backend_v2.models.enums import PIPELINE_REGISTRY, CognitiveTier, ExecutionProfile, LLMProvider
+from backend_v2.models.enums import (
+    PIPELINE_REGISTRY,
+    CognitiveTier,
+    ExecutionProfile,
+    LLMProvider,
+    LLMProviderName,
+)
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.services.auth.secret_service import SecretService, get_secret_service
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
@@ -49,11 +57,21 @@ class LLMClient:
         model_config: Optional model configuration dictionary.
     """
 
-    def __init__(self, config: Mapping[str, JsonSchemaNode] | LLMProviderConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: Mapping[str, JsonSchemaNode] | LLMProviderConfig | None = None,
+        *,
+        organization_id: PrefixedUUID7 | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
+    ) -> None:
         """Initialize the LLMClient instance.
+
+        # Phase 1, Step 1: Wire organization_id and ResolvedCredentialDTO into LLMClient
 
         Args:
             config: Optional configuration dictionary or typed provider configuration.
+            organization_id: Optional tenant organization identifier (org_<hex32>).
+            resolved_credential: Optional tenant or platform credential resolved via SecretService.
 
         Raises:
             pydantic.ValidationError: If the provided configuration fails schema validation.
@@ -63,6 +81,8 @@ class LLMClient:
             self._config = LLMProviderConfig.model_validate(config)
         else:
             self._config = None
+        self._organization_id: PrefixedUUID7 | None = organization_id
+        self._resolved_credential: ResolvedCredentialDTO | None = resolved_credential
         self.model_config: dict[str, JsonSchemaNode] | None = None
         self._initialize()
 
@@ -88,6 +108,16 @@ class LLMClient:
     def config(self) -> LLMProviderConfig | None:
         """Return the underlying provider configuration."""
         return self._config
+
+    @property
+    def organization_id(self) -> PrefixedUUID7 | None:
+        """Return the bound tenant organization identifier or None if unset."""
+        return self._organization_id
+
+    @property
+    def resolved_credential(self) -> ResolvedCredentialDTO | None:
+        """Return the SecretService-resolved credential envelope or None if unset."""
+        return self._resolved_credential
 
     def _build_structured_schema(
         self,
@@ -140,8 +170,12 @@ class LLMClient:
         execution_profile: ExecutionProfile | None = None,
         pipeline_name: str | None = None,
         registry_id: str | None = None,
+        organization_id: PrefixedUUID7 | None = None,
+        secret_service: SecretService | None = None,
     ) -> Self:
         """Factory: Create an LLMClient strictly bound to a database-defined CognitiveTier and Provider.
+
+        # Phase 1, Step 1: Single-Pipeline BYOK credential resolution via SecretService.resolve_llm_key
 
         Args:
             tier: Canonical CognitiveTier (FAST, BALANCED, DEEP, REASONING).
@@ -150,12 +184,15 @@ class LLMClient:
             execution_profile: Optional intent defining if the cache should be bypassed (e.g. ONE_SHOT).
             pipeline_name: Optional explicit pipeline context to look up configuration for.
             registry_id: Optional specific model registry stack ID. If None, uses default registry.
+            organization_id: Optional tenant organization ID (org_<hex32>) for BYOK secret resolution.
+            secret_service: Optional SecretService instance override for dependency injection.
 
         Returns:
             A configured client instance ready for execution.
 
         Raises:
-            ConfigurationError: If the repository, tier, or provider is missing or misconfigured (ErrorCodes.CONFIGURATION_ERROR).
+            ConfigurationError: If the repository, tier, provider, or BYOK/platform credential is missing
+                or misconfigured (ErrorCodes.CONFIGURATION_ERROR, ErrorCodes.SECRET_RESOLUTION_FAILED).
             ResourceNotFoundError: If no model registries exist in the repository (ErrorCodes.RESOURCE_NOT_FOUND).
         """
         if not repository:
@@ -304,6 +341,23 @@ class LLMClient:
                     tier,
                 )
 
+        # Phase 1, Step 1: Resolve tenant or platform credential via SecretService.resolve_llm_key
+        effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        if organization_id is not None:
+            effective_org_id = organization_id
+
+        resolved_credential: ResolvedCredentialDTO | None = None
+        if not get_settings().use_mock_llm and target_provider_type not in (
+            LLMProviderName.MOCK,
+            "mock",
+            "mock_llm_99",
+        ):
+            active_secret_service = secret_service if secret_service is not None else get_secret_service()
+            resolved_credential = await active_secret_service.resolve_llm_key(
+                organization_id=effective_org_id,
+                provider=LLMProvider(target_provider_type),
+            )
+
         provider_config = LLMProviderConfig(
             # Generate canonical 32-hex RFC 9562 UUIDv7 provider config ID
             id=f"prv_{generate_uuid7().hex}",
@@ -324,7 +378,11 @@ class LLMClient:
             presence_penalty=target_strategy.presence_penalty,
         )
 
-        return cls(config=provider_config)
+        return cls(
+            config=provider_config,
+            organization_id=effective_org_id,
+            resolved_credential=resolved_credential,
+        )
 
     async def run_structured_task[T: BaseModel](
         self,
@@ -485,10 +543,13 @@ class LLMClient:
                     )
 
         # 3. Create Provider via Factory
+        # Phase 1, Step 1: Forward organization_id and resolved_credential to LLMFactory.create_provider
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
             model_name=str(target_model_name),
             config=self._config,
+            organization_id=self._organization_id,
+            resolved_credential=self._resolved_credential,
         )
 
         # STRICT TIMEOUT PROTOCOL: Apply global Enum constraint to structured tasks as well
@@ -791,10 +852,13 @@ class LLMClient:
             extra_kwargs.update(caching_payload.kwargs)
 
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
+        # Phase 1, Step 1: Forward organization_id and resolved_credential to LLMFactory.create_provider
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
             model_name=str(target_model_name),
             config=self._config,
+            organization_id=self._organization_id,
+            resolved_credential=self._resolved_credential,
         )
 
         # Force parallel tool calls to dramatically speed up MCP tool execution
