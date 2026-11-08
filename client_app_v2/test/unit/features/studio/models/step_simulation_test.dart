@@ -83,19 +83,31 @@ void main() {
         final contextJson = <String, Object?>{
           'static_messages': <Object?>[msgJson],
           'dynamic_messages': <Object?>[],
-          'metadata': <String, Object?>{'token_proxy': 512},
+          'metadata': <String, Object?>{
+            'token_proxy': 512,
+            'model_tier': 'fast',
+            'cache_hit': true,
+            'tags': <Object?>['alpha', 'beta'],
+          },
         };
         final ctx = PromptContextDto.fromJson(contextJson);
         expect(ctx.staticMessages, hasLength(1));
         expect(ctx.staticMessages.first.role, equals('system'));
         expect(ctx.dynamicMessages, isEmpty);
-        expect(ctx.metadata['token_proxy'], equals(512));
+        expect(ctx.metadata['token_proxy']?.numberValue, equals(512.0));
+        expect(ctx.metadata['token_proxy']?.rawValue, equals(512.0));
+        expect(ctx.metadata['model_tier']?.stringValue, equals('fast'));
+        expect(ctx.metadata['cache_hit']?.boolValue, isTrue);
+        expect(
+          ctx.metadata['tags']?.stringListValue,
+          equals(<String>['alpha', 'beta']),
+        );
         expect(ctx.toJson(), equals(contextJson));
       },
     );
 
     test(
-      'Negative 1: rejects unrecognized keys in LlmMessageDto and PromptContextDto',
+      'Negative 1: rejects unrecognized keys in LlmMessageDto, PromptContextDto, and PromptContextMetaValue',
       () {
         expect(
           () => LlmMessageDto.fromJson(<String, Object?>{
@@ -113,11 +125,19 @@ void main() {
           }),
           throwsA(isA<CheckedFromJsonException>()),
         );
+
+        expect(
+          () => PromptContextMetaValue.fromJson(<String, Object?>{
+            'string_value': 'ok',
+            'unrecognized_meta_field': 1,
+          }),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
       },
     );
 
     test(
-      'Negative 2: throws CheckedFromJsonException when required LlmMessageDto fields are missing or malformed',
+      'Negative 2: throws CheckedFromJsonException when required LlmMessageDto fields or metadata types are malformed',
       () {
         expect(
           () => LlmMessageDto.fromJson(<String, Object?>{'role': 'user'}),
@@ -128,6 +148,24 @@ void main() {
           () => LlmMessageDto.fromJson(<String, Object?>{
             'role': 999,
             'content': 'Invalid role type',
+          }),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        expect(
+          () => PromptContextDto.fromJson(<String, Object?>{
+            'metadata': <String, Object?>{
+              'nested_object': <String, Object?>{'invalid': true},
+            },
+          }),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        expect(
+          () => PromptContextDto.fromJson(<String, Object?>{
+            'metadata': <String, Object?>{
+              'bad_list': <Object?>['valid_string', 42],
+            },
           }),
           throwsA(isA<CheckedFromJsonException>()),
         );

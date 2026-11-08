@@ -4,18 +4,31 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'step_simulation.freezed.dart';
 part 'step_simulation.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed prompt context metadata value replacing `Map<String, Object?>`.
+/// Converts heterogeneous JSON scalar or string-list metadata values into [PromptContextMetaValue].
 class PromptContextMetaValueConverter
     implements JsonConverter<PromptContextMetaValue, Object?> {
   const PromptContextMetaValueConverter();
 
   @override
   PromptContextMetaValue fromJson(Object? json) {
+    if (json == null) {
+      return const PromptContextMetaValue();
+    }
     if (json is List) {
+      final items = <String>[];
+      for (final Object? element in json) {
+        if (element is! String) {
+          throw CheckedFromJsonException(
+            <String, Object?>{'value': json},
+            'value',
+            'PromptContextMetaValue',
+            'Expected List<String> metadata value, got element of type ${element.runtimeType}.',
+          );
+        }
+        items.add(element);
+      }
       return PromptContextMetaValue(
-        stringListValue: json
-            .map((Object? e) => e.toString())
-            .toList(growable: false),
+        stringListValue: List<String>.unmodifiable(items),
       );
     }
     if (json is num) {
@@ -27,7 +40,12 @@ class PromptContextMetaValueConverter
     if (json is String) {
       return PromptContextMetaValue(stringValue: json);
     }
-    return const PromptContextMetaValue();
+    throw CheckedFromJsonException(
+      <String, Object?>{'value': json},
+      'value',
+      'PromptContextMetaValue',
+      'Unsupported metadata value type: ${json.runtimeType}.',
+    );
   }
 
   @override
@@ -46,7 +64,7 @@ class PromptContextMetaValueConverter
 }
 
 /// Strongly typed metadata value for [PromptContextDto.metadata].
-@freezed
+@Freezed(equal: false)
 abstract class PromptContextMetaValue with _$PromptContextMetaValue {
   const PromptContextMetaValue._();
 
