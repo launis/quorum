@@ -22,8 +22,7 @@ from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
 
 def test_lightweight_matrix_output_coerces_failed_string() -> None:
     """Test that LightweightMatrixOutput correctly coerces 'FAILED' string to ExecutionStatus.FAILED."""
-    payload = {"evaluated_atoms": {"a0": "FAILED", "a1": "PASSED"}}
-    dto = LightweightMatrixOutput.model_validate(payload)
+    dto = LightweightMatrixOutput.model_validate_json('{"evaluated_atoms": {"a0": "FAILED", "a1": "PASSED"}}')
     assert dto.evaluated_atoms["a0"] == ExecutionStatus.FAILED
     assert dto.evaluated_atoms["a1"] == ExecutionStatus.PASSED
 
@@ -130,7 +129,7 @@ def test_output_profile_config() -> None:
 
 def test_xai_log_dto() -> None:
     """Test XAILogDto defaults, trace assignment, and extra forbidden."""
-    log = XAILogDto.model_validate({"pedagogical_key": "test_key"})
+    log = XAILogDto.model_validate_json('{"pedagogical_key": "test_key"}')
     assert log.pedagogical_key == "test_key"
     assert log.engine_debug_trace == {}
 
@@ -176,7 +175,7 @@ def test_merged_facts_dto() -> None:
 
 def test_matrix_aggregation_state_dto() -> None:
     """Test MatrixAggregationStateDTO defaults, explicit fields, immutability, and strict validation."""
-    empty_state = MatrixAggregationStateDTO.model_validate({})
+    empty_state = MatrixAggregationStateDTO.model_validate_json("{}")
     assert empty_state.scale_stats == {}
     assert empty_state.evaluated_atoms == {}
     assert empty_state.extensions == {}

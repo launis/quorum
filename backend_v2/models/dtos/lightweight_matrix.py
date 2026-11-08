@@ -13,7 +13,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LaxXaiExtensionType
 
-# Phase 4, Step 4.1: Typed engine debug trace and XAI extension value unions replacing JsonValue
+# Typed engine debug trace and XAI extension value unions replacing JsonValue
 type LevelStatsDumpEntry = dict[str, int]
 type LevelStatsDumpMap = dict[str, LevelStatsDumpEntry]
 type EngineDebugValue = (
@@ -88,11 +88,11 @@ class LevelStatsDTO(V2CoreBase):
 
     hits: Annotated[int, Field(ge=0, description="Number of passing criteria at this level")]
     total: Annotated[int, Field(ge=0, description="Total number of criteria at this level")]
-    dlqs: Annotated[int, Field(default=0, ge=0, description="Number of items that hit the dead letter queue")] = 0
-    pos_hits: Annotated[int, Field(default=0, ge=0, description="Affirmative passing criteria at this level")] = 0
-    pos_total: Annotated[int, Field(default=0, ge=0, description="Affirmative total criteria at this level")] = 0
-    inv_clean: Annotated[int, Field(default=0, ge=0, description="Inverse clean criteria at this level")] = 0
-    inv_total: Annotated[int, Field(default=0, ge=0, description="Inverse total criteria at this level")] = 0
+    dlqs: Annotated[int, Field(ge=0, description="Number of items that hit the dead letter queue")] = 0
+    pos_hits: Annotated[int, Field(ge=0, description="Affirmative passing criteria at this level")] = 0
+    pos_total: Annotated[int, Field(ge=0, description="Affirmative total criteria at this level")] = 0
+    inv_clean: Annotated[int, Field(ge=0, description="Inverse clean criteria at this level")] = 0
+    inv_total: Annotated[int, Field(ge=0, description="Inverse total criteria at this level")] = 0
 
 
 class MatrixAggregationStateDTO(V2CoreBase):
@@ -152,22 +152,14 @@ class LightweightMatrixOutput(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    raw_score: Annotated[
-        float | None, Field(default=None, description="Original unnormalized float evaluation score")
-    ] = None
-    normalized_score: Annotated[
-        float | None, Field(default=None, description="Final scaled score ranging from 0.0 to 100.0")
-    ] = None
+    raw_score: Annotated[float | None, Field(description="Original unnormalized float evaluation score")] = None
+    normalized_score: Annotated[float | None, Field(description="Final scaled score ranging from 0.0 to 100.0")] = None
     level_breakdown: Annotated[
         dict[str, LevelStatsDTO] | None,
-        Field(default=None, description="Complex dictionary mapping multi-tier performance indicators"),
+        Field(description="Complex dictionary mapping multi-tier performance indicators"),
     ] = None
-    justification: Annotated[
-        str, Field(default="", description="Primary text string explaining the dimension result")
-    ] = ""
-    xai_log: Annotated[
-        XAILogDto | None, Field(default=None, description="Nested logging details isolating debugging data")
-    ] = None
+    justification: Annotated[str, Field(description="Primary text string explaining the dimension result")] = ""
+    xai_log: Annotated[XAILogDto | None, Field(description="Nested logging details isolating debugging data")] = None
     evaluated_atoms: Annotated[
         dict[str, LaxExecutionStatus],
         Field(default_factory=dict, description="Mapping tracking which structural logic atoms were hit"),
@@ -178,9 +170,9 @@ class LightweightMatrixOutput(V2CoreBase):
     ]
     allowed_extensions: Annotated[
         list[LaxXaiExtensionType] | None,
-        Field(default=None, description="Explicit list restricting dynamic schema mappings"),
+        Field(description="Explicit list restricting dynamic schema mappings"),
     ] = None
-    atom_quotes: Annotated[list[str] | None, Field(default=None, description="Atom quotes list if provided")] = None
+    atom_quotes: Annotated[list[str] | None, Field(description="Atom quotes list if provided")] = None
 
     @field_validator("normalized_score")
     @classmethod

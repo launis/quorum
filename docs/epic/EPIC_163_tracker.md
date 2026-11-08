@@ -132,7 +132,7 @@
   - [x] @[backend_v2/models/dtos/engine.py]
   - [x] @[backend_v2/models/dtos/hook_delta.py]
   - [x] @[backend_v2/models/dtos/hook_state.py]
-  - [ ] @[backend_v2/models/dtos/lightweight_matrix.py]
+  - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
   - [ ] @[backend_v2/models/dtos/mcp.py]
   - [ ] @[backend_v2/models/dtos/prompt_context.py]
   - [ ] @[backend_v2/models/dtos/quote_evidence.py]
