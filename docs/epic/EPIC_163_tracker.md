@@ -138,7 +138,7 @@
   - [x] @[backend_v2/models/dtos/quote_evidence.py]
   - [x] @[backend_v2/models/dtos/schema_manifest.py]
   - [x] @[backend_v2/models/dtos/studio.py]
-  - [ ] @[backend_v2/models/dtos/system.py]
+  - [x] @[backend_v2/models/dtos/system.py]
   - [ ] @[backend_v2/models/dtos/theory_manifest.py]
   - [ ] @[backend_v2/models/dtos/trace.py]
   - [ ] @[backend_v2/models/dtos/variance.py]
