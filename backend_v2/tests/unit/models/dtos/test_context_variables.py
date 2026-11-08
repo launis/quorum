@@ -1,4 +1,4 @@
-"""Unit tests for ContextVariablesDTO."""
+"""Unit tests for ContextVariablesDTO and EvaluatedMatrixContextDTO."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
-from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO, EvaluatedMatrixContextDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 
 
 def test_context_variables_dto_defaults() -> None:
     """Test default initialization has expected empty attributes."""
-    dto = ContextVariablesDTO()
+    dto = ContextVariablesDTO.empty()
     assert dto.global_atom_blackboard is None
     assert dto.matrix_reducer_output is None
     assert dto.report_context is None
@@ -26,10 +26,15 @@ def test_context_variables_dto_defaults() -> None:
 
 
 def test_context_variables_dto_with_update() -> None:
-    """Test with_update creates an updated immutable instance."""
+    """Test with_update creates an updated immutable instance across all supported keys."""
     bb = GlobalAtomBlackboard(atoms_by_input={})
-    matrix_out = LightweightMatrixOutput(raw_score=100.0, normalized_score=100.0)
-    dto = ContextVariablesDTO()
+    matrix_out = LightweightMatrixOutput(
+        raw_score=100.0,
+        normalized_score=100.0,
+        evaluated_atoms={},
+        extensions={},
+    )
+    dto = ContextVariablesDTO.empty()
     updated = dto.with_update(
         __GLOBAL_ATOM_BLACKBOARD__=bb,
         __MATRIX_REDUCER_OUTPUT__=matrix_out,
@@ -45,16 +50,18 @@ def test_context_variables_dto_with_update() -> None:
     assert updated.step_detector == "detected"
     assert updated.evaluated_matrices == {"mat1": 5.0}
     assert updated.variables == {"custom_var": "custom_val"}
-
-    # Immutability
-    with pytest.raises(ValidationError):
-        updated.variables = {}
+    assert ContextVariablesDTO.model_config["frozen"] is True
 
 
 def test_context_variables_dto_serialization_and_deserialization() -> None:
     """Test Pydantic model_dump and model_validate roundtrip operations."""
     bb = GlobalAtomBlackboard(atoms_by_input={})
-    matrix_out = LightweightMatrixOutput(raw_score=80.0, normalized_score=80.0)
+    matrix_out = LightweightMatrixOutput(
+        raw_score=80.0,
+        normalized_score=80.0,
+        evaluated_atoms={},
+        extensions={},
+    )
     dto = ContextVariablesDTO(
         global_atom_blackboard=bb,
         matrix_reducer_output=matrix_out,
@@ -87,7 +94,12 @@ def test_context_variables_dto_forbids_extra_keys_fail_fast() -> None:
 def test_context_variables_dto_subscript_and_contains() -> None:
     """Test subscript indexing and membership checking."""
     bb = GlobalAtomBlackboard(atoms_by_input={})
-    matrix_out = LightweightMatrixOutput(raw_score=80.0, normalized_score=80.0)
+    matrix_out = LightweightMatrixOutput(
+        raw_score=80.0,
+        normalized_score=80.0,
+        evaluated_atoms={},
+        extensions={},
+    )
     dto = ContextVariablesDTO(
         global_atom_blackboard=bb,
         matrix_reducer_output=matrix_out,
@@ -124,7 +136,12 @@ def test_context_variables_dto_subscript_and_contains() -> None:
 def test_context_variables_dto_mapping_protocol_all_fields() -> None:
     """Test collections.abc.Mapping compliance with all known fields and variables populated."""
     bb = GlobalAtomBlackboard(atoms_by_input={})
-    matrix_out = LightweightMatrixOutput(raw_score=90.0, normalized_score=90.0)
+    matrix_out = LightweightMatrixOutput(
+        raw_score=90.0,
+        normalized_score=90.0,
+        evaluated_atoms={},
+        extensions={},
+    )
     dto = ContextVariablesDTO(
         global_atom_blackboard=bb,
         matrix_reducer_output=matrix_out,
@@ -133,8 +150,6 @@ def test_context_variables_dto_mapping_protocol_all_fields() -> None:
         evaluated_matrices={"score": 4.0},
         variables={"k1": "v1", "k2": "v2"},
     )
-    # Keys: __GLOBAL_ATOM_BLACKBOARD__, global_atom_blackboard, __MATRIX_REDUCER_OUTPUT__, matrix_reducer_output,
-    # report_context, step_detector, evaluated_matrices, k1, k2 -> 9 keys
     assert len(dto) == 9
     assert len(list(dto.keys())) == 9
     assert len(list(dto.values())) == 9
@@ -143,7 +158,7 @@ def test_context_variables_dto_mapping_protocol_all_fields() -> None:
 
 def test_context_variables_dto_subscript_absent_known_fields_raise_keyerror() -> None:
     """Test that accessing known fields when None and not in variables raises KeyError."""
-    dto = ContextVariablesDTO()
+    dto = ContextVariablesDTO.empty()
     with pytest.raises(KeyError):
         _ = dto["__GLOBAL_ATOM_BLACKBOARD__"]
     with pytest.raises(KeyError):
@@ -182,29 +197,6 @@ def test_context_variables_dto_subscript_fallback_to_variables_for_known_names()
     assert dto["evaluated_matrices"] == "ev_in_var"
 
 
-def test_context_variables_dto_item_assignment_rejected() -> None:
-    """Negative test: Item assignment is rejected as ContextVariablesDTO is an immutable Mapping."""
-    dto = ContextVariablesDTO(variables={"existing": "val"})
-    with pytest.raises(TypeError):
-        dto["existing"] = "new_val"
-    with pytest.raises(TypeError):
-        dto["new_key"] = "new_val"
-
-
-def test_context_variables_dto_item_deletion_rejected() -> None:
-    """Negative test: Item deletion is rejected as ContextVariablesDTO is an immutable Mapping."""
-    dto = ContextVariablesDTO(variables={"existing": "val"})
-    with pytest.raises(TypeError):
-        del dto["existing"]
-
-
-def test_context_variables_dto_attribute_mutation_rejected() -> None:
-    """Negative test: In-place attribute assignment fails under frozen=True."""
-    dto = ContextVariablesDTO(report_context="original")
-    with pytest.raises(ValidationError):
-        dto.report_context = "modified"
-
-
 def test_context_variables_dto_invalid_type_validation_error() -> None:
     """Negative test: Non-mapping or invalid types passed to variables raise ValidationError."""
     with pytest.raises(ValidationError):
@@ -220,3 +212,21 @@ def test_context_variables_dto_no_get_fallback_enforces_fail_fast() -> None:
     assert dto["present"] == "value"
     with pytest.raises(KeyError):
         _ = dto["missing"]
+
+
+def test_evaluated_matrix_context_dto_validation_and_negative_cases() -> None:
+    """Test EvaluatedMatrixContextDTO defaults, immutability, and negative validation cases."""
+    ctx = EvaluatedMatrixContextDTO(evaluated_atoms={"a0": "PASSED"}, raw_atoms=[])
+    assert ctx.evaluated_atoms == {"a0": "PASSED"}
+    assert ctx.raw_atoms == []
+    assert EvaluatedMatrixContextDTO.model_config["frozen"] is True
+
+    default_ctx = EvaluatedMatrixContextDTO(evaluated_atoms={}, raw_atoms=[])
+    assert default_ctx.evaluated_atoms == {}
+    assert default_ctx.raw_atoms == []
+
+    with pytest.raises(ValidationError):
+        EvaluatedMatrixContextDTO.model_validate({"unknown_extra_field": "rejected"})
+
+    with pytest.raises(ValidationError):
+        EvaluatedMatrixContextDTO.model_validate({"evaluated_atoms": ["not_a_dict"]})

@@ -16,7 +16,12 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 
 
 class EvaluatedMatrixContextDTO(V2CoreBase):
-    """DTO for evaluated matrix context within execution context_variables."""
+    """DTO for evaluated matrix context within execution context_variables.
+
+    Attributes:
+        evaluated_atoms: Map of atom IDs to evaluation status strings.
+        raw_atoms: Collection of raw evaluated atom DTO payloads.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
     evaluated_atoms: Annotated[
@@ -36,7 +41,16 @@ __all__ = ["ContextVariableValue", "ContextVariablesDTO", "ContextVariablesUpdat
 
 
 class ContextVariablesDTO(V2CoreBase):
-    """Encapsulates execution-level context variables and dynamic blackboard state."""
+    """Encapsulates execution-level context variables and dynamic blackboard state.
+
+    Attributes:
+        global_atom_blackboard: Optional global atom blackboard output.
+        matrix_reducer_output: Optional matrix reducer output payload.
+        report_context: Optional report generation context value.
+        step_detector: Optional step detector output value.
+        evaluated_matrices: Optional evaluated matrices summary value.
+        variables: Mapping of arbitrary typed context variables.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
 
@@ -68,7 +82,6 @@ class ContextVariablesDTO(V2CoreBase):
         DomainInputValue | None,
         Field(default=None, description="Evaluated matrices summary"),
     ] = None
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     variables: Annotated[
         dict[str, ContextVariableValue],
         Field(default_factory=dict, description="Typed arbitrary context variables"),
@@ -78,7 +91,14 @@ class ContextVariablesDTO(V2CoreBase):
         self,
         **updates: ContextVariableValue,
     ) -> Self:
-        """Return a new immutable instance with updated fields or dynamic blackboard variables."""
+        """Return a new immutable instance with updated fields or dynamic blackboard variables.
+
+        Args:
+            **updates: Key-value pairs of context variables or blackboard fields to update.
+
+        Returns:
+            New immutable instance reflecting the applied updates.
+        """
         new_global_atom_blackboard = self.global_atom_blackboard
         new_matrix_reducer_output = self.matrix_reducer_output
         new_report_context = self.report_context
@@ -115,7 +135,17 @@ class ContextVariablesDTO(V2CoreBase):
         )
 
     def __getitem__(self, key: str) -> ContextVariableValue:
-        """Retrieve variable by key. Fail-fast with KeyError on absent keys."""
+        """Retrieve variable by key and fail fast on absent keys.
+
+        Args:
+            key: Context variable or blackboard field name to resolve.
+
+        Returns:
+            Resolved context variable value.
+
+        Raises:
+            KeyError: If the requested variable key is absent.
+        """
         if key in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard"):
             if self.global_atom_blackboard is not None:
                 return self.global_atom_blackboard
@@ -151,7 +181,14 @@ class ContextVariablesDTO(V2CoreBase):
         raise KeyError(key)
 
     def __contains__(self, key: object) -> bool:
-        """Allow membership checks."""
+        """Check whether a key exists in known fields or dynamic variables.
+
+        Args:
+            key: Candidate key object to inspect.
+
+        Returns:
+            True if the key is present and non-null, otherwise False.
+        """
         if not isinstance(key, str):
             return False
         if key in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard") and self.global_atom_blackboard is not None:
@@ -167,7 +204,11 @@ class ContextVariablesDTO(V2CoreBase):
         return key in self.variables
 
     def _to_view_dict(self) -> dict[str, ContextVariableValue]:
-        """Materialize active keys and values for dictionary views."""
+        """Materialize active keys and values for dictionary views.
+
+        Returns:
+            Dictionary containing all active context variables and populated named fields.
+        """
         d: dict[str, ContextVariableValue] = dict(self.variables)
         if self.global_atom_blackboard is not None:
             d["__GLOBAL_ATOM_BLACKBOARD__"] = self.global_atom_blackboard
@@ -184,24 +225,44 @@ class ContextVariablesDTO(V2CoreBase):
         return d
 
     def __len__(self) -> int:
-        """Return total count of distinct keys."""
+        """Return total count of distinct keys.
+
+        Returns:
+            Number of populated keys in the context variables mapping.
+        """
         return len(self._to_view_dict())
 
     def keys(self) -> KeysView[str]:
-        """Return a view of all present keys."""
+        """Return a view of all present keys.
+
+        Returns:
+            Dictionary keys view over populated context variable names.
+        """
         return self._to_view_dict().keys()
 
     def values(self) -> ValuesView[ContextVariableValue]:
-        """Return a view of all present values."""
+        """Return a view of all present values.
+
+        Returns:
+            Dictionary values view over populated context variable values.
+        """
         return self._to_view_dict().values()
 
     def items(self) -> ItemsView[str, ContextVariableValue]:
-        """Return a view of all present key-value pairs."""
+        """Return a view of all present key-value pairs.
+
+        Returns:
+            Dictionary items view over populated context variable pairs.
+        """
         return self._to_view_dict().items()
 
     @classmethod
     def empty(cls) -> Self:
-        """Convenience constructor for empty blackboard."""
+        """Construct an empty context variables instance.
+
+        Returns:
+            Empty ContextVariablesDTO instance.
+        """
         return cls(variables={})
 
 
