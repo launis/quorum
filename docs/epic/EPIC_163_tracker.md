@@ -213,7 +213,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/schema_mapper.dart]
   - [x] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
   - [x] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies or deprecated parameters remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across all modified modules.
