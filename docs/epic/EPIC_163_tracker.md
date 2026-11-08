@@ -142,7 +142,7 @@
   - [x] @[backend_v2/models/dtos/theory_manifest.py]
   - [x] @[backend_v2/models/dtos/trace.py]
   - [x] @[backend_v2/models/dtos/variance.py]
-  - [ ] @[backend_v2/models/dtos/workflow_schema.py]
+  - [x] @[backend_v2/models/dtos/workflow_schema.py]
   - [ ] @[backend_v2/models/execution_core.py]
   - [ ] @[backend_v2/models/llm.py]
   - [ ] @[backend_v2/models/state.py]
