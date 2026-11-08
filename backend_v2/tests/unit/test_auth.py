@@ -7,11 +7,12 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fakeredis.aioredis import FakeRedis
 from fastapi import Request
 from pydantic import ValidationError
+from starlette.datastructures import Address
 
 from backend_v2.api.routers.iam.auth import (
-    _resolve_exchange_rate_limit,
     accept_invitation,
     exchange_firebase_token,
     firebase_user_deleted_webhook,
@@ -20,11 +21,15 @@ from backend_v2.api.routers.iam.auth import (
     list_available_roles,
     logout_user,
 )
+from backend_v2.core.redis_security import TenantRateLimitService
 from backend_v2.exceptions import (
+    AppException,
     AuthenticationError,
     ErrorCodes,
     PermissionDeniedError,
     ResourceNotFoundError,
+    ServiceUnavailableError,
+    TokenLimitExceededError,
 )
 from backend_v2.models.auth import (
     SYSTEM_ROOT_USER_ID,
@@ -239,10 +244,13 @@ async def test_auth_router_exchange_logout_and_impersonate_flow(
     await mock_repo.create_user(target_user)
 
     mock_req = MagicMock(spec=Request)
+    mock_req.client = Address("203.0.113.10", 50000)
+    rate_limiter = TenantRateLimitService(redis=FakeRedis(), get_settings_fn=lambda: mock_settings)
     exchange_res = await exchange_firebase_token(
         request=mock_req,
         payload=TokenExchangeRequestDTO(target_user_id=USER_1_ID),
         auth_service=service,
+        rate_limit_service=rate_limiter,
     )
     assert exchange_res.user.id == USER_1_ID
     assert exchange_res.expires_in_seconds == 900
@@ -669,6 +677,7 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     assert accepted.id == USER_1_ID
 
     mock_req = MagicMock(spec=Request)
+    mock_req.client = Address("203.0.113.10", 50000)
     mock_req.body = AsyncMock(return_value=b"")
     sig = hmac.new(secret_val.encode("utf-8"), b"fb_uid_router_wh", hashlib.sha256).hexdigest()
     del_res = await firebase_user_deleted_webhook(
@@ -680,9 +689,6 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     assert del_res.status == "success"
     assert del_res.id == "fb_uid_router_wh"
 
-    monkeypatch.setattr("backend_v2.api.routers.iam.auth.get_settings", lambda: mock_settings)
-    assert _resolve_exchange_rate_limit() == f"{mock_settings.auth_edge_rpm_limit}/minute"
-
     with pytest.raises(AuthenticationError) as exc_wh:
         await firebase_user_deleted_webhook(
             request=mock_req,
@@ -692,10 +698,70 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
         )
     assert exc_wh.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
+    rate_limiter = TenantRateLimitService(redis=FakeRedis(), get_settings_fn=lambda: mock_settings)
     with pytest.raises(AuthenticationError) as exc_ex:
         await exchange_firebase_token(
             request=mock_req,
             payload=TokenExchangeRequestDTO(target_user_id=USER_2_ID),
             auth_service=service,
+            rate_limit_service=rate_limiter,
         )
     assert exc_ex.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # Phase 2, Step 2: ISTQB BVA boundary and Fail-Closed tests for exchange_firebase_token rate limiting
+    bva_settings = mock_settings.model_copy(update={"auth_edge_rpm_limit": 2})
+    bva_limiter = TenantRateLimitService(redis=FakeRedis(), get_settings_fn=lambda: bva_settings)
+    active_member = member.model_copy(update={"is_active": True, "deleted_at": None})
+    await mock_repo.create_user(active_member)
+    valid_payload = TokenExchangeRequestDTO.model_validate({"target_user_id": USER_1_ID})
+
+    res_1 = await exchange_firebase_token(
+        request=mock_req,
+        payload=valid_payload,
+        auth_service=service,
+        rate_limit_service=bva_limiter,
+    )
+    assert res_1.user.id == USER_1_ID
+
+    res_2 = await exchange_firebase_token(
+        request=mock_req,
+        payload=valid_payload,
+        auth_service=service,
+        rate_limit_service=bva_limiter,
+    )
+    assert res_2.user.id == USER_1_ID
+
+    # Boundary limit + 1 raises HTTP 429 TokenLimitExceededError with RATE_LIMIT_EXCEEDED
+    with pytest.raises(TokenLimitExceededError) as exc_429:
+        await exchange_firebase_token(
+            request=mock_req,
+            payload=valid_payload,
+            auth_service=service,
+            rate_limit_service=bva_limiter,
+        )
+    assert exc_429.value.status_code == 429
+    assert exc_429.value.details["error_code"] == ErrorCodes.RATE_LIMIT_EXCEEDED.value
+
+    # Missing client IP (request.client is None) raises HTTP 400 VALIDATION_FAILED
+    no_client_req = MagicMock(spec=Request)
+    no_client_req.client = None
+    with pytest.raises(AppException) as exc_400:
+        await exchange_firebase_token(
+            request=no_client_req,
+            payload=valid_payload,
+            auth_service=service,
+            rate_limit_service=bva_limiter,
+        )
+    assert exc_400.value.status_code == 400
+    assert exc_400.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # Fail-Closed Redis unavailability (redis=None) raises HTTP 503 SERVICE_UNAVAILABLE
+    with pytest.raises(ServiceUnavailableError) as exc_503:
+        await exchange_firebase_token(
+            request=mock_req,
+            payload=valid_payload,
+            auth_service=service,
+            rate_limit_service=TenantRateLimitService(redis=None),
+        )
+    assert exc_503.value.status_code == 503
+    assert exc_503.value.details["error_code"] == ErrorCodes.SERVICE_UNAVAILABLE.value

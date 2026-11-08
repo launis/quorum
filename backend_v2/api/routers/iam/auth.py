@@ -13,8 +13,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, Query, Request
 
-from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
-from backend_v2.core.rate_limit import limiter
+from backend_v2.api.dependencies import (
+    AuthServiceDep,
+    CurrentUserDep,
+    TenantRateLimitServiceDep,
+)
 from backend_v2.models.auth import (
     ImpersonationRequest,
     ImpersonationResponse,
@@ -27,7 +30,6 @@ from backend_v2.models.auth import (
     UserDeleteResponse,
     UserRole,
 )
-from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -45,37 +47,40 @@ __all__ = [
 router = APIRouter(prefix="/auth", tags=["Authentication & Users"])
 
 
-def _resolve_exchange_rate_limit() -> str:
-    """Resolve the sliding-window rate limit for token exchange from centralized Settings SSOT.
-
-    Returns:
-        SlowAPI rate limit string formatted from settings.auth_edge_rpm_limit.
-    """
-    return f"{get_settings().auth_edge_rpm_limit}/minute"
-
-
 @router.post("/exchange", response_model=TokenExchangeResponseDTO)
-@limiter.limit(_resolve_exchange_rate_limit)
 async def exchange_firebase_token(
     request: Request,
     payload: TokenExchangeRequestDTO,
     auth_service: AuthServiceDep,
+    rate_limit_service: TenantRateLimitServiceDep,
 ) -> TokenExchangeResponseDTO:
     """Exchange a Firebase ID Token or headless target_user_id for a 15-minute Quorum Local JWT.
 
     Args:
-        request: The HTTP Request object used by the rate limiter.
+        request: The HTTP Request object used to extract the caller IP for edge rate limiting.
         payload: The token exchange request payload.
         auth_service: Authentication service dependency.
+        rate_limit_service: Sliding-window tenant and auth-edge rate limit service dependency.
 
     Returns:
         TokenExchangeResponseDTO containing the signed access token and user profile.
 
     Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED (400) if caller IP metadata is missing.
+        TokenLimitExceededError: With ErrorCodes.RATE_LIMIT_EXCEEDED (429) if auth edge rate limit is exceeded.
+        ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE (503) if Redis rate-limit store is unavailable.
         AuthenticationError: With ErrorCodes.MFA_REQUIRED, ErrorCodes.AUTHENTICATION_FAILED,
             ErrorCodes.PERMISSION_DENIED, or ErrorCodes.AUTH_TOKEN_EXPIRED when exchange fails.
         ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on Firebase UID collision.
     """
+    # Phase 2, Step 2: Enforce sliding-window auth-edge IP rate limit via TenantRateLimitService
+    client_ip = ""
+    if request.client is not None:
+        client_ip = request.client.host
+    await rate_limit_service.enforce_auth_edge_rate_limit(
+        client_ip=client_ip,
+        endpoint_scope="POST /api/v2/iam/auth/exchange",
+    )
     return await auth_service.exchange_firebase_token(payload)
 
 
