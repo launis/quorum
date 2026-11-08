@@ -3,17 +3,27 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'distilled_evaluation.freezed.dart';
 part 'distilled_evaluation.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed scalar/list extension value replacing `Map<String, Object?>`.
+/// Strongly typed scalar or string-list extension value converter for [DistilledEvaluation].
 class DistilledExtensionValueConverter
     implements JsonConverter<DistilledExtensionValue, Object?> {
   const DistilledExtensionValueConverter();
 
   @override
   DistilledExtensionValue fromJson(Object? json) {
+    if (json == null) {
+      return const DistilledExtensionValue();
+    }
     if (json is List) {
       return DistilledExtensionValue(
         stringListValue: json
-            .map((Object? e) => e.toString())
+            .map((Object? e) {
+              if (e is! String) {
+                throw FormatException(
+                  'DistilledExtensionValue list elements must be String, got ${e.runtimeType}',
+                );
+              }
+              return e;
+            })
             .toList(growable: false),
       );
     }
@@ -26,7 +36,9 @@ class DistilledExtensionValueConverter
     if (json is String) {
       return DistilledExtensionValue(stringValue: json);
     }
-    return const DistilledExtensionValue();
+    throw FormatException(
+      'Unsupported DistilledExtensionValue JSON value type: ${json.runtimeType}',
+    );
   }
 
   @override
@@ -45,7 +57,7 @@ class DistilledExtensionValueConverter
 }
 
 /// Strongly typed value wrapper for XAI extension entries in [DistilledEvaluation].
-@freezed
+@Freezed(equal: false)
 abstract class DistilledExtensionValue with _$DistilledExtensionValue {
   const DistilledExtensionValue._();
 

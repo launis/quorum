@@ -26,14 +26,7 @@ $DistilledExtensionValueCopyWith<DistilledExtensionValue> get copyWith => _$Dist
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DistilledExtensionValue&&(identical(other.stringValue, stringValue) || other.stringValue == stringValue)&&(identical(other.numberValue, numberValue) || other.numberValue == numberValue)&&(identical(other.boolValue, boolValue) || other.boolValue == boolValue)&&const DeepCollectionEquality().equals(other.stringListValue, stringListValue));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,stringValue,numberValue,boolValue,const DeepCollectionEquality().hash(stringListValue));
 
 @override
 String toString() {
@@ -239,14 +232,7 @@ Map<String, dynamic> toJson() {
   return _$DistilledExtensionValueToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DistilledExtensionValue&&(identical(other.stringValue, stringValue) || other.stringValue == stringValue)&&(identical(other.numberValue, numberValue) || other.numberValue == numberValue)&&(identical(other.boolValue, boolValue) || other.boolValue == boolValue)&&const DeepCollectionEquality().equals(other._stringListValue, _stringListValue));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,stringValue,numberValue,boolValue,const DeepCollectionEquality().hash(_stringListValue));
 
 @override
 String toString() {
