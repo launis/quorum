@@ -154,7 +154,7 @@
   - [x] @[backend_v2/services/execution/ingress_service.py]
   - [x] @[backend_v2/services/llm_task_executor.py]
   - [x] @[backend_v2/services/orchestrator/context_router.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [ ] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
   - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
   - [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py]
