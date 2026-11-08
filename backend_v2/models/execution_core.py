@@ -28,33 +28,42 @@ __all__ = [
 
 
 class ExecutionMetadata(V2CoreBase):
-    """Strictly typed metadata for execution runtime parameters and provenance."""
+    """Strictly typed metadata for execution runtime parameters and provenance.
+
+    Attributes:
+        matrix_sampling_strategy: Sampling strategy limit for Matrix Flattening.
+        workflow_version: Version number of the executing workflow.
+        global_context_vars: Global context variables for hooks.
+        provider_override: Execution-level LLM provider override.
+        model_registry_id: System config ID of the attached model registry.
+        telemetry: W3C distributed trace context carrier for OpenTelemetry.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     matrix_sampling_strategy: Annotated[
         int,
-        Field(default=10, ge=0, description="Sampling strategy limit for Matrix Flattening."),
+        Field(ge=0, description="Sampling strategy limit for Matrix Flattening."),
     ] = 10
     workflow_version: Annotated[
         int,
-        Field(default=1, ge=1, description="Version number of the executing workflow."),
+        Field(ge=1, description="Version number of the executing workflow."),
     ] = 1
     global_context_vars: Annotated[
         GlobalContextVarsDTO | None,
-        Field(default=None, description="Global context variables for hooks."),
+        Field(description="Global context variables for hooks."),
     ] = None
     provider_override: Annotated[
         LLMProvider | None,
-        Field(default=None, description="Execution-level LLM provider override."),
+        Field(description="Execution-level LLM provider override."),
     ] = None
     model_registry_id: Annotated[
         str | None,
-        Field(default=None, description="System config ID of the attached model registry."),
+        Field(description="System config ID of the attached model registry."),
     ] = None
     telemetry: Annotated[
         TraceContextCarrierDTO | None,
-        Field(default=None, description="W3C distributed trace context carrier for OpenTelemetry."),
+        Field(description="W3C distributed trace context carrier for OpenTelemetry."),
     ] = None
 
 

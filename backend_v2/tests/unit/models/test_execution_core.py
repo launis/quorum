@@ -4,15 +4,19 @@ Tests verify the structural contract, inheritance chain,
 field definitions, and Pydantic V2 strict mode enforcement.
 """
 
+from datetime import datetime, timezone
+
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, generate_uuid7
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
-from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory, GlobalContextVarsDTOFactory
 
 
 class TestExecutionCoreFieldsStructure:
@@ -49,7 +53,11 @@ class TestExecutionCoreFieldsDefaults:
 
     def test_default_status_is_pending(self) -> None:
         """Status must default to ExecutionStatus.PENDING."""
-        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        instance = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+        )
         assert instance.status == ExecutionStatus.PENDING
 
     def test_fail_fast_on_missing_target_locale(self) -> None:
@@ -59,42 +67,68 @@ class TestExecutionCoreFieldsDefaults:
 
     def test_default_execution_trace_is_empty_list(self) -> None:
         """Execution trace must default to an empty list."""
-        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        instance = ExecutionRecordFactory.build(target_locale="en")
         assert instance.execution_trace == []
 
     def test_default_execution_trace_storage_path_is_none(self) -> None:
         """Execution trace storage path must default to None."""
-        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        instance = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+        )
         assert instance.execution_trace_storage_path is None
 
     def test_default_context_variables_is_empty_dto(self) -> None:
         """Context variables must default to an empty ContextVariablesDTO."""
-        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        instance = ExecutionRecordFactory.build(target_locale="en")
         assert isinstance(instance.context_variables, ContextVariablesDTO)
         assert len(instance.context_variables) == 0
         assert instance.context_variables.variables == {}
 
     def test_default_context_variables_storage_path_is_none(self) -> None:
         """Context variables storage path must default to None."""
-        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        instance = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+        )
         assert instance.context_variables_storage_path is None
 
     def test_default_progress_is_none(self) -> None:
         """Progress must default to None."""
-        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        instance = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+        )
         assert instance.progress is None
 
     def test_default_status_message_is_none(self) -> None:
         """Status message must default to None."""
-        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        instance = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+        )
         assert instance.status_message is None
 
     def test_progress_bounds_validation(self) -> None:
         """Progress must enforce 0 <= progress <= 100 per ISTQB boundaries."""
-        valid_0 = ExecutionCoreFields.model_validate({"target_locale": "en", "progress": 0})
+        valid_0 = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+            progress=0,
+        )
         assert valid_0.progress == 0
 
-        valid_100 = ExecutionCoreFields.model_validate({"target_locale": "en", "progress": 100})
+        valid_100 = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+            progress=100,
+        )
         assert valid_100.progress == 100
 
         with pytest.raises(ValidationError):
@@ -105,7 +139,12 @@ class TestExecutionCoreFieldsDefaults:
 
     def test_status_message_validation(self) -> None:
         """Status message must accept strings and reject non-string types."""
-        valid = ExecutionCoreFields.model_validate({"target_locale": "en", "status_message": "Executing Step 1"})
+        valid = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO.empty(),
+            status_message="Executing Step 1",
+        )
         assert valid.status_message == "Executing Step 1"
 
         with pytest.raises(ValidationError):
@@ -127,19 +166,43 @@ class TestExecutionCoreFieldsValidation:
 
     def test_accepts_valid_trace_event_union(self) -> None:
         """Execution trace must accept all union members."""
-        trace_event = TraceEvent(step_name="test", event_type="output")
-        error_event = ErrorTraceEvent(step_name="test", error_code="ERR_TEST", error_message="fail")
-        tombstone_event = TombstoneEvent(step_name="test", redacted_hash="abc123")
+        now = datetime.now(timezone.utc)
+        meta = TraceEventMetadataDTO(mcp_audit_traces=[])
+        trace_event = TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=now,
+            step_name="test",
+            event_type="output",
+            metadata=meta,
+            mcp_audit_traces=[],
+        )
+        error_event = ErrorTraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=now,
+            step_name="test",
+            error_code="ERR_TEST",
+            error_message="fail",
+            metadata=meta,
+            mcp_audit_traces=[],
+        )
+        tombstone_event = TombstoneEvent(
+            event_id=generate_uuid7(),
+            timestamp=now,
+            step_name="test",
+            redacted_hash="abc123",
+            metadata=meta,
+            mcp_audit_traces=[],
+        )
 
-        instance = ExecutionCoreFields.model_validate(
-            {"target_locale": "en", "execution_trace": [trace_event, error_event, tombstone_event]}
+        instance = ExecutionCoreFields(
+            target_locale="en",
+            execution_trace=[trace_event, error_event, tombstone_event],
+            context_variables=ContextVariablesDTO.empty(),
         )
         assert len(instance.execution_trace) == 3
 
     def test_execution_record_missing_target_locale_raises_validation_error(self) -> None:
         """Contract: Verify ExecutionRecord missing target_locale raises ValidationError (Fail-Fast)."""
-        from backend_v2.models.domain.execution import ExecutionRecord
-
         payload = {
             "id": "exe_0195f3a0000070018234567890abcdef",
             "workflow_id": "wor_0195f3a0000070018234567890abcdef",
@@ -150,19 +213,15 @@ class TestExecutionCoreFieldsValidation:
 
     def test_execution_record_accepts_null_frozen_context_when_offloaded(self) -> None:
         """Contract: Verify ExecutionRecord accepts null frozen_context when offloaded to storage."""
-        from backend_v2.models.domain.execution import ExecutionRecord
-
-        payload = {
-            "id": "exe_0195f3a0000070018234567890abcdef",
-            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
-            "output_profile_id": "prof_0195f3a0000070018234567890abcdef",
-            "target_locale": "en",
-            "status": "PASSED",
-            "metadata": {"workflow_version": 1},
-            "frozen_context": None,
-            "frozen_context_storage_path": "executions/exe_0195f3a0000070018234567890abcdef/frozen_context.json",
-        }
-        record = ExecutionRecord.model_validate(payload)
+        record = ExecutionRecordFactory.build(
+            id="exe_0195f3a0000070018234567890abcdef",
+            workflow_id="wor_0195f3a0000070018234567890abcdef",
+            output_profile_id="prof_0195f3a0000070018234567890abcdef",
+            target_locale="en",
+            status=ExecutionStatus.PASSED,
+            frozen_context=None,
+            frozen_context_storage_path="executions/exe_0195f3a0000070018234567890abcdef/frozen_context.json",
+        )
         assert record.id == "exe_0195f3a0000070018234567890abcdef"
         assert record.frozen_context is None
         assert (
@@ -192,14 +251,17 @@ class TestExecutionMetadata:
 
     def test_custom_values(self) -> None:
         """Verify custom values initialization."""
+        global_vars = GlobalContextVarsDTOFactory.build(language="fi")
         meta = ExecutionMetadata(
             matrix_sampling_strategy=20,
             workflow_version=2,
-            global_context_vars={"language": "fi"},
+            global_context_vars=global_vars,
         )
         assert meta.matrix_sampling_strategy == 20
         assert meta.workflow_version == 2
-        assert meta.global_context_vars == GlobalContextVarsDTO(language="fi")
+        assert meta.global_context_vars == global_vars
+        assert meta.global_context_vars is not None
+        assert meta.global_context_vars.language == "fi"
 
     def test_fail_fast_on_extra_fields(self) -> None:
         """Extra fields must crash immediately (extra=forbid)."""
@@ -219,3 +281,15 @@ class TestExecutionMetadata:
 
         with pytest.raises(ValidationError):
             ExecutionMetadata.model_validate({"step_metrics": {}})
+
+    def test_bounds_validation(self) -> None:
+        """Verify ISTQB boundary value analysis on matrix_sampling_strategy and workflow_version."""
+        valid_min = ExecutionMetadata(matrix_sampling_strategy=0, workflow_version=1)
+        assert valid_min.matrix_sampling_strategy == 0
+        assert valid_min.workflow_version == 1
+
+        with pytest.raises(ValidationError):
+            ExecutionMetadata.model_validate({"matrix_sampling_strategy": -1})
+
+        with pytest.raises(ValidationError):
+            ExecutionMetadata.model_validate({"workflow_version": 0})
