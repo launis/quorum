@@ -18,7 +18,7 @@
   - [x] Step 1: Phase 1: Eradicate slowapi Dependency, Legacy Rate Limit Module, Exception Handler, and Touched-Scope Tech Debt
   - [x] Step 2: Phase 2: Cut Over POST /api/v2/iam/auth/exchange to TenantRateLimitServiceDep
   - [x] Step 3: Phase 3: Refactor cleanup_genai_mock in test_ai_studio_adapter.py for Hermetic sys.modules Restoration and MyPy Strictness
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]`
 
 ### Post-Implementation Gates
 
@@ -47,7 +47,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -83,9 +83,9 @@
 - Narrowing `prepare_structured_output` return type via `assert not isinstance(result, type)` in `@[backend_v2/tests/unit/llm/adapters/test_ai_studio_adapter.py#L526-L541]` satisfies both `mypy --strict` and `QGR001` (`isinstance(..., dict)` ban).
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]`, execute `Tier 2 Hardening (Backend)` on `@[backend_v2/api/routers/iam/auth.py]` and `@[backend_v2/main.py]`, and run `/tier7-describe-architecture`.
+- Execute `Tier 2 Hardening (Backend)` on `@[backend_v2/api/routers/iam/auth.py]` and `@[backend_v2/main.py]` via `scripts/auto_hardening_runner.py`, and then run `/tier7-describe-architecture`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_SlowAPI_Removal_and_GenAI_Mock_Restoration.md] @[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 ```
