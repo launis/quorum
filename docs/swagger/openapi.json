@@ -8196,6 +8196,31 @@
         "title": "CitationAudit",
         "description": "Audit result for citation integrity metrics.\n\nAttributes:\n    valid_citations: Count of valid, verified citations found within target sources.\n    invalid_citations: List of identified hallucinated citations.\n    integrity_score: Ratio of verified to total citations (0.0 to 1.0)."
       },
+      "ClientContextValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "ClientErrorPayload": {
         "properties": {
           "session_id": {
@@ -8271,7 +8296,7 @@
           },
           "context_data": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
+              "$ref": "#/components/schemas/ClientContextValue"
             },
             "type": "object",
             "title": "Context Data",
@@ -9327,6 +9352,43 @@
         "title": "EmailDeliveryStatus",
         "description": "Transactional email delivery status enumeration."
       },
+      "EngineDebugValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          {
+            "$ref": "#/components/schemas/LevelStatsDumpEntry"
+          },
+          {
+            "$ref": "#/components/schemas/LevelStatsDumpMap"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "EngineType": {
         "type": "string",
         "enum": [
@@ -9410,17 +9472,7 @@
               },
               {
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/StepPayloadValue"
-                    },
-                    {
-                      "$ref": "#/components/schemas/DomainInputValue-Output"
-                    },
-                    {
-                      "$ref": "#/components/schemas/JsonValue"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/StepOutputContentValue"
                 },
                 "type": "object"
               },
@@ -11411,6 +11463,25 @@
         "title": "ExtensionMetricsDTO",
         "description": "Pre-calculated numeric or boolean metrics for UI adapters.\n\nAttributes:\n    authenticity_score: Authenticity score between 0.0 and 1.0 or None.\n    performative_phrases_count: Count of detected performative phrases or None.\n    variance_score: Calculated variance score or None.\n    alignment_verdict: Categorical alignment verdict string or None.\n    jargon_density: Calculated jargon density float or None.\n    total_word_count: Total word count integer or None."
       },
+      "ExtractedAtomScalar": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "ExtractedValueDTO": {
         "properties": {
           "value": {
@@ -11701,7 +11772,7 @@
         "properties": {
           "schemas": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
+              "$ref": "#/components/schemas/JsonSchemaNode"
             },
             "type": "object",
             "title": "Schemas",
@@ -12107,6 +12178,25 @@
         "type": "object",
         "title": "GlobalContextVarsDTO",
         "description": "Strictly typed global context variables container.\n\nAttributes:\n    language: Target translation or execution language.\n    target_locale: Client localized language code.\n    system_locale: System runtime default locale.\n    profile_id: Active output profile identifier.\n    organization_id: Multi-tenant organization identifier.\n    initiator_id: Execution initiator user identifier.\n    step_coach: Coach stage execution telemetry payload.\n    knowledge_base: Grounding knowledge context attributes.\n    hydration_results: Upstream hydrated input source payloads.\n    step_linguistics: Evaluated linguistic statistics and metrics.\n    external_evidence: Aggregated external search evidence.\n    evaluative_matrices: Dynamic prompt block scores.\n    passivity_detected: Whether passivity was detected.\n    archivist_precedents: Historical archivist precedents retrieved from prior executions.\n    shuffled_atoms: Shuffled flattened atoms for matrix evaluation.\n    profiler_metrics: Profiler telemetry metrics.\n    distillation: Synthesis distillation payload.\n    scoring: Scoring result payload.\n    interaction_analysis: Interaction analysis payload.\n    bibliography: Bibliography citations payload.\n    sanitization: Sanitization payload.\n    llm_anomaly_retry_requested: Whether LLM anomaly retry was requested.\n    input_control_ratio: Input control ratio metric.\n    integrity_verified_output: Integrity verified analyst output or evaluation result.\n    step_metadata: Step metadata payload."
+      },
+      "GlobalMetricValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "GuidedReflectionInputDTO": {
         "properties": {
@@ -12577,8 +12667,7 @@
           },
           "target_id": {
             "$ref": "#/components/schemas/PrefixedUUID7",
-            "description": "ID of the impersonated target user",
-            "default": "usr_0195f3a00000700a83fd6b3d77c748f4"
+            "description": "ID of the impersonated target user"
           },
           "reason": {
             "type": "string",
@@ -12592,7 +12681,8 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "access_token"
+          "access_token",
+          "target_id"
         ],
         "title": "ImpersonationResponse",
         "description": "Response containing the issued administrative impersonation token.\n\nAttributes:\n    access_token: Signed JWT impersonation access token.\n    token_type: Authorization token scheme (defaults to 'bearer').\n    target_id: Identifier of the impersonated target user (usr_<hex32>).\n    reason: Mandatory ticket or support justification recorded for the impersonation."
@@ -13004,6 +13094,37 @@
         ],
         "title": "JSONSchemaPropertyType",
         "description": "JSON Schema Draft 2020-12 primitive and structural property types."
+      },
+      "JsonSchemaNode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/JsonSchemaNode"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonSchemaNode"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "JsonValue": {},
       "JudgeOutput": {
@@ -13575,6 +13696,18 @@
         "title": "LevelStatsDTO",
         "description": "Strict execution stats per scale level.\n\nAttributes:\n    hits: Number of passing criteria at this level.\n    total: Total number of criteria at this level.\n    dlqs: Number of items that hit the dead letter queue (defaults to 0).\n    pos_hits: Affirmative passing criteria at this level.\n    pos_total: Affirmative total criteria at this level.\n    inv_clean: Inverse clean criteria at this level.\n    inv_total: Inverse total criteria at this level."
       },
+      "LevelStatsDumpEntry": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "LevelStatsDumpMap": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/LevelStatsDumpEntry"
+        },
+        "type": "object"
+      },
       "LightweightMatrixDTO": {
         "properties": {
           "execution_id": {
@@ -13592,7 +13725,7 @@
           },
           "global_metrics": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
+              "$ref": "#/components/schemas/GlobalMetricValue"
             },
             "type": "object",
             "title": "Global Metrics",
@@ -13693,7 +13826,7 @@
           },
           "extensions": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
+              "$ref": "#/components/schemas/XaiExtensionValue"
             },
             "propertyNames": {
               "$ref": "#/components/schemas/XaiExtensionType"
@@ -17084,8 +17217,7 @@
           "_sys_initiator_id": {
             "type": "string",
             "minLength": 1,
-            "title": "Sys Initiator Id",
-            "default": "system"
+            "title": "Sys Initiator Id"
           },
           "organization_id": {
             "anyOf": [
@@ -17122,6 +17254,9 @@
         },
         "additionalProperties": false,
         "type": "object",
+        "required": [
+          "_sys_initiator_id"
+        ],
         "title": "MetadataHookPayloadDTO",
         "description": "Payload to extract initiator safely.\n\nAttributes:\n    sys_initiator_id: System initiator ID.\n    organization_id: Optional organization ID.\n    user_id: Optional user ID.\n    simulation_mode: Flag indicating whether execution runs in simulation mode.\n    language: Target ISO language code."
       },
@@ -19460,7 +19595,7 @@
           },
           "metadata": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
+              "$ref": "#/components/schemas/PromptContextMetadataValue"
             },
             "type": "object",
             "title": "Metadata",
@@ -19471,6 +19606,31 @@
         "type": "object",
         "title": "PromptContextDTO",
         "description": "Execution prompt context containing exact compilation boundaries.\n\nAttributes:\n    static_messages: Globally identical content across all chunks (base system prompt + source document).\n    dynamic_messages: Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).\n    metadata: Arbitrary execution metadata (e.g., token proxy scores)."
+      },
+      "PromptContextMetadataValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "ProtocolPromptBlock": {
         "properties": {
@@ -20147,7 +20307,7 @@
             "anyOf": [
               {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/JsonValue"
+                  "$ref": "#/components/schemas/ScalarExtensionValue"
                 },
                 "type": "object"
               },
@@ -20288,7 +20448,7 @@
             "anyOf": [
               {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/JsonValue"
+                  "$ref": "#/components/schemas/ExtractedAtomScalar"
                 },
                 "type": "object"
               },
@@ -21401,6 +21561,31 @@
         ],
         "title": "SDUIComponentType",
         "description": "Canonical SDUI card component identifiers for frontend rendering."
+      },
+      "ScalarExtensionValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "ScorecardAtomDTO-Input": {
         "properties": {
@@ -23266,7 +23451,7 @@
             "$ref": "#/components/schemas/DomainInputValue-Output"
           },
           {
-            "$ref": "#/components/schemas/JsonValue"
+            "$ref": "#/components/schemas/JsonSchemaNode"
           }
         ]
       },
@@ -24147,8 +24332,7 @@
             "minLength": 1,
             "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
             "title": "Slug",
-            "description": "Collision-free gateway namespace slug without double underscores.",
-            "default": "default_mcp_gateway"
+            "description": "Collision-free gateway namespace slug without double underscores."
           },
           "endpoint_url": {
             "type": "string",
@@ -24211,7 +24395,8 @@
         "type": "object",
         "required": [
           "id",
-          "name"
+          "name",
+          "slug"
         ],
         "title": "mcp_gateways",
         "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable gateway title.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
@@ -24242,8 +24427,7 @@
             "minLength": 1,
             "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
             "title": "Slug",
-            "description": "Collision-free gateway namespace slug without double underscores.",
-            "default": "default_mcp_gateway"
+            "description": "Collision-free gateway namespace slug without double underscores."
           },
           "endpoint_url": {
             "type": "string",
@@ -24306,7 +24490,8 @@
         "type": "object",
         "required": [
           "id",
-          "name"
+          "name",
+          "slug"
         ],
         "title": "mcp_gateways",
         "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable gateway title.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
@@ -24321,9 +24506,9 @@
           },
           "name": {
             "type": "string",
+            "minLength": 1,
             "title": "Name",
-            "description": "Human-readable title",
-            "default": "Default Model Registry"
+            "description": "Human-readable title"
           },
           "type": {
             "type": "string",
@@ -24365,6 +24550,7 @@
         "type": "object",
         "required": [
           "id",
+          "name",
           "tier_definitions"
         ],
         "title": "model_registry",
@@ -25235,17 +25421,7 @@
               },
               {
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/StepPayloadValue"
-                    },
-                    {
-                      "$ref": "#/components/schemas/DomainInputValue-Output"
-                    },
-                    {
-                      "$ref": "#/components/schemas/JsonValue"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/StepOutputContentValue"
                 },
                 "type": "object"
               },
@@ -25478,17 +25654,7 @@
               },
               {
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/StepPayloadValue"
-                    },
-                    {
-                      "$ref": "#/components/schemas/DomainInputValue-Output"
-                    },
-                    {
-                      "$ref": "#/components/schemas/JsonValue"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/StepOutputContentValue"
                 },
                 "type": "object"
               },
@@ -25592,7 +25758,7 @@
             "anyOf": [
               {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/JsonValue"
+                  "$ref": "#/components/schemas/JsonSchemaNode"
                 },
                 "type": "object"
               },
@@ -27233,7 +27399,7 @@
           },
           "engine_debug_trace": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
+              "$ref": "#/components/schemas/EngineDebugValue"
             },
             "type": "object",
             "title": "Engine Debug Trace",
@@ -27268,6 +27434,31 @@
         ],
         "title": "XaiExtensionType",
         "description": "Supported XAI Output Extensions for global visibility."
+      },
+      "XaiExtensionValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "XaiHighlightItem": {
         "properties": {
