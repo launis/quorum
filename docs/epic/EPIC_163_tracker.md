@@ -137,7 +137,7 @@
   - [x] @[backend_v2/models/dtos/prompt_context.py]
   - [x] @[backend_v2/models/dtos/quote_evidence.py]
   - [x] @[backend_v2/models/dtos/schema_manifest.py]
-  - [ ] @[backend_v2/models/dtos/studio.py]
+  - [x] @[backend_v2/models/dtos/studio.py]
   - [ ] @[backend_v2/models/dtos/system.py]
   - [ ] @[backend_v2/models/dtos/theory_manifest.py]
   - [ ] @[backend_v2/models/dtos/trace.py]
