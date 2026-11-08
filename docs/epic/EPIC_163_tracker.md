@@ -146,7 +146,7 @@
   - [x] @[backend_v2/models/execution_core.py]
   - [x] @[backend_v2/models/llm.py]
   - [x] @[backend_v2/models/state.py]
-  - [ ] @[backend_v2/models/view/sdui.py]
+  - [x] @[backend_v2/models/view/sdui.py]
   - [ ] @[backend_v2/services/auth/organization_service.py]
   - [ ] @[backend_v2/services/auth/secret_service.py]
   - [ ] @[backend_v2/services/cache/typed_cache.py]
