@@ -11,7 +11,6 @@ part 'prompt_block_simulation.g.dart';
 @Freezed(equal: false)
 abstract class PromptBlockSimulationRequest
     with _$PromptBlockSimulationRequest {
-  // Phase 5, Step 5.1: Replace Map<String, Object?> mockInputs with Map<String, String>
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory PromptBlockSimulationRequest({
     required PromptBlock block,
