@@ -5,8 +5,8 @@ import 'package:client_app/features/execution/models/trace_context_carrier.dart'
 part 'execution_metadata.freezed.dart';
 part 'execution_metadata.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed global context variables DTO matching backend `GlobalContextVarsDTO`.
-@freezed
+/// Strongly typed global context variables DTO matching backend `GlobalContextVarsDTO`.
+@Freezed(equal: false)
 abstract class GlobalContextVarsDto with _$GlobalContextVarsDto {
   const GlobalContextVarsDto._();
 

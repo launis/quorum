@@ -74,12 +74,25 @@ void main() {
     );
 
     test(
-      'Negative 1: ExecutionMetadata rejects unrecognized JSON keys via disallowUnrecognizedKeys',
+      'Negative 1: ExecutionMetadata and GlobalContextVarsDto reject unrecognized JSON keys via disallowUnrecognizedKeys',
       () {
         expect(
           () => ExecutionMetadata.fromJson({
             'workflow_version': 1,
             'unexpected_legacy_key': 'forbidden',
+          }),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => GlobalContextVarsDto.fromJson({
+            'target_locale': 'fi',
+            'unrecognized_context_var': 'forbidden',
           }),
           throwsA(
             anyOf(
