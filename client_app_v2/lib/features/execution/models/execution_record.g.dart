@@ -77,33 +77,66 @@ _ExecutionTraceItemDto _$ExecutionTraceItemDtoFromJson(
     $checkKeys(
       json,
       allowedKeys: const [
+        'event_id',
+        'v',
+        'timestamp',
+        'step_name',
+        'event_type',
         'event',
         'step_id',
         'status',
         'duration_ms',
         'detail',
+        'error_code',
+        'error_message',
+        'redacted_hash',
       ],
     );
     final val = _ExecutionTraceItemDto(
+      eventId: $checkedConvert('event_id', (v) => v as String?),
+      v: $checkedConvert('v', (v) => (v as num?)?.toInt()),
+      timestamp: $checkedConvert('timestamp', (v) => v as String?),
+      stepName: $checkedConvert('step_name', (v) => v as String?),
+      eventType: $checkedConvert('event_type', (v) => v as String?),
       event: $checkedConvert('event', (v) => v as String?),
       stepId: $checkedConvert('step_id', (v) => v as String?),
       status: $checkedConvert('status', (v) => v as String?),
       durationMs: $checkedConvert('duration_ms', (v) => (v as num?)?.toInt()),
       detail: $checkedConvert('detail', (v) => v as String?),
+      errorCode: $checkedConvert('error_code', (v) => v as String?),
+      errorMessage: $checkedConvert('error_message', (v) => v as String?),
+      redactedHash: $checkedConvert('redacted_hash', (v) => v as String?),
     );
     return val;
   },
-  fieldKeyMap: const {'stepId': 'step_id', 'durationMs': 'duration_ms'},
+  fieldKeyMap: const {
+    'eventId': 'event_id',
+    'stepName': 'step_name',
+    'eventType': 'event_type',
+    'stepId': 'step_id',
+    'durationMs': 'duration_ms',
+    'errorCode': 'error_code',
+    'errorMessage': 'error_message',
+    'redactedHash': 'redacted_hash',
+  },
 );
 
 Map<String, dynamic> _$ExecutionTraceItemDtoToJson(
   _ExecutionTraceItemDto instance,
 ) => <String, dynamic>{
+  'event_id': instance.eventId,
+  'v': instance.v,
+  'timestamp': instance.timestamp,
+  'step_name': instance.stepName,
+  'event_type': instance.eventType,
   'event': instance.event,
   'step_id': instance.stepId,
   'status': instance.status,
   'duration_ms': instance.durationMs,
   'detail': instance.detail,
+  'error_code': instance.errorCode,
+  'error_message': instance.errorMessage,
+  'redacted_hash': instance.redactedHash,
 };
 
 _ProfileSynthesisEntryDto _$ProfileSynthesisEntryDtoFromJson(

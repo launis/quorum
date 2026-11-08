@@ -299,7 +299,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$ExecutionTraceItemDto {
 
- String? get event;@JsonKey(name: 'step_id') String? get stepId; String? get status;@JsonKey(name: 'duration_ms') int? get durationMs; String? get detail;
+@JsonKey(name: 'event_id') String? get eventId; int? get v; String? get timestamp;@JsonKey(name: 'step_name') String? get stepName;@JsonKey(name: 'event_type') String? get eventType; String? get event;@JsonKey(name: 'step_id') String? get stepId; String? get status;@JsonKey(name: 'duration_ms') int? get durationMs; String? get detail;@JsonKey(name: 'error_code') String? get errorCode;@JsonKey(name: 'error_message') String? get errorMessage;@JsonKey(name: 'redacted_hash') String? get redactedHash;
 /// Create a copy of ExecutionTraceItemDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -312,16 +312,16 @@ $ExecutionTraceItemDtoCopyWith<ExecutionTraceItemDto> get copyWith => _$Executio
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionTraceItemDto&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionTraceItemDto&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.v, v) || other.v == v)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail)&&(identical(other.errorCode, errorCode) || other.errorCode == errorCode)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.redactedHash, redactedHash) || other.redactedHash == redactedHash));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,event,stepId,status,durationMs,detail);
+int get hashCode => Object.hash(runtimeType,eventId,v,timestamp,stepName,eventType,event,stepId,status,durationMs,detail,errorCode,errorMessage,redactedHash);
 
 @override
 String toString() {
-  return 'ExecutionTraceItemDto(event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail)';
+  return 'ExecutionTraceItemDto(eventId: $eventId, v: $v, timestamp: $timestamp, stepName: $stepName, eventType: $eventType, event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail, errorCode: $errorCode, errorMessage: $errorMessage, redactedHash: $redactedHash)';
 }
 
 
@@ -332,7 +332,7 @@ abstract mixin class $ExecutionTraceItemDtoCopyWith<$Res>  {
   factory $ExecutionTraceItemDtoCopyWith(ExecutionTraceItemDto value, $Res Function(ExecutionTraceItemDto) _then) = _$ExecutionTraceItemDtoCopyWithImpl;
 @useResult
 $Res call({
- String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail
+@JsonKey(name: 'event_id') String? eventId, int? v, String? timestamp,@JsonKey(name: 'step_name') String? stepName,@JsonKey(name: 'event_type') String? eventType, String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'redacted_hash') String? redactedHash
 });
 
 
@@ -349,13 +349,21 @@ class _$ExecutionTraceItemDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionTraceItemDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? eventId = freezed,Object? v = freezed,Object? timestamp = freezed,Object? stepName = freezed,Object? eventType = freezed,Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,Object? errorCode = freezed,Object? errorMessage = freezed,Object? redactedHash = freezed,}) {
   return _then(_self.copyWith(
-event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
+eventId: freezed == eventId ? _self.eventId : eventId // ignore: cast_nullable_to_non_nullable
+as String?,v: freezed == v ? _self.v : v // ignore: cast_nullable_to_non_nullable
+as int?,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
+as String?,stepName: freezed == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
+as String?,eventType: freezed == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
+as String?,event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
 as String?,stepId: freezed == stepId ? _self.stepId : stepId // ignore: cast_nullable_to_non_nullable
 as String?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String?,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
 as int?,detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
+as String?,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
+as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as String?,redactedHash: freezed == redactedHash ? _self.redactedHash : redactedHash // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -441,10 +449,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionTraceItemDto() when $default != null:
-return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail);case _:
+return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
   return orElse();
 
 }
@@ -462,10 +470,10 @@ return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.det
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionTraceItemDto():
-return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail);case _:
+return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -482,10 +490,10 @@ return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.det
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionTraceItemDto() when $default != null:
-return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail);case _:
+return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
   return null;
 
 }
@@ -497,14 +505,22 @@ return $default(_that.event,_that.stepId,_that.status,_that.durationMs,_that.det
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ExecutionTraceItemDto extends ExecutionTraceItemDto {
-  const _ExecutionTraceItemDto({this.event, @JsonKey(name: 'step_id') this.stepId, this.status, @JsonKey(name: 'duration_ms') this.durationMs, this.detail}): super._();
+  const _ExecutionTraceItemDto({@JsonKey(name: 'event_id') this.eventId, this.v, this.timestamp, @JsonKey(name: 'step_name') this.stepName, @JsonKey(name: 'event_type') this.eventType, this.event, @JsonKey(name: 'step_id') this.stepId, this.status, @JsonKey(name: 'duration_ms') this.durationMs, this.detail, @JsonKey(name: 'error_code') this.errorCode, @JsonKey(name: 'error_message') this.errorMessage, @JsonKey(name: 'redacted_hash') this.redactedHash}): super._();
   factory _ExecutionTraceItemDto.fromJson(Map<String, dynamic> json) => _$ExecutionTraceItemDtoFromJson(json);
 
+@override@JsonKey(name: 'event_id') final  String? eventId;
+@override final  int? v;
+@override final  String? timestamp;
+@override@JsonKey(name: 'step_name') final  String? stepName;
+@override@JsonKey(name: 'event_type') final  String? eventType;
 @override final  String? event;
 @override@JsonKey(name: 'step_id') final  String? stepId;
 @override final  String? status;
 @override@JsonKey(name: 'duration_ms') final  int? durationMs;
 @override final  String? detail;
+@override@JsonKey(name: 'error_code') final  String? errorCode;
+@override@JsonKey(name: 'error_message') final  String? errorMessage;
+@override@JsonKey(name: 'redacted_hash') final  String? redactedHash;
 
 /// Create a copy of ExecutionTraceItemDto
 /// with the given fields replaced by the non-null parameter values.
@@ -519,16 +535,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionTraceItemDto&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionTraceItemDto&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.v, v) || other.v == v)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail)&&(identical(other.errorCode, errorCode) || other.errorCode == errorCode)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.redactedHash, redactedHash) || other.redactedHash == redactedHash));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,event,stepId,status,durationMs,detail);
+int get hashCode => Object.hash(runtimeType,eventId,v,timestamp,stepName,eventType,event,stepId,status,durationMs,detail,errorCode,errorMessage,redactedHash);
 
 @override
 String toString() {
-  return 'ExecutionTraceItemDto(event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail)';
+  return 'ExecutionTraceItemDto(eventId: $eventId, v: $v, timestamp: $timestamp, stepName: $stepName, eventType: $eventType, event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail, errorCode: $errorCode, errorMessage: $errorMessage, redactedHash: $redactedHash)';
 }
 
 
@@ -539,7 +555,7 @@ abstract mixin class _$ExecutionTraceItemDtoCopyWith<$Res> implements $Execution
   factory _$ExecutionTraceItemDtoCopyWith(_ExecutionTraceItemDto value, $Res Function(_ExecutionTraceItemDto) _then) = __$ExecutionTraceItemDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail
+@JsonKey(name: 'event_id') String? eventId, int? v, String? timestamp,@JsonKey(name: 'step_name') String? stepName,@JsonKey(name: 'event_type') String? eventType, String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'redacted_hash') String? redactedHash
 });
 
 
@@ -556,13 +572,21 @@ class __$ExecutionTraceItemDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionTraceItemDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? eventId = freezed,Object? v = freezed,Object? timestamp = freezed,Object? stepName = freezed,Object? eventType = freezed,Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,Object? errorCode = freezed,Object? errorMessage = freezed,Object? redactedHash = freezed,}) {
   return _then(_ExecutionTraceItemDto(
-event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
+eventId: freezed == eventId ? _self.eventId : eventId // ignore: cast_nullable_to_non_nullable
+as String?,v: freezed == v ? _self.v : v // ignore: cast_nullable_to_non_nullable
+as int?,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
+as String?,stepName: freezed == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
+as String?,eventType: freezed == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
+as String?,event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
 as String?,stepId: freezed == stepId ? _self.stepId : stepId // ignore: cast_nullable_to_non_nullable
 as String?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String?,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
 as int?,detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
+as String?,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
+as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as String?,redactedHash: freezed == redactedHash ? _self.redactedHash : redactedHash // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

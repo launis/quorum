@@ -16,13 +16,13 @@ void main() {
       final json = {
         'matrix_sampling_strategy': 15,
         'workflow_version': 2,
-        'global_context_vars': {'lang': 'fi'},
+        'global_context_vars': {'language': 'fi'},
       };
 
       final meta = ExecutionMetadata.fromJson(json);
       expect(meta.matrixSamplingStrategy, 15);
       expect(meta.workflowVersion, 2);
-      expect(meta.globalContextVars, {'lang': 'fi'});
+      expect(meta.globalContextVars?.language, 'fi');
     });
 
     test('defaults are populated when optional fields are omitted', () {
@@ -249,7 +249,8 @@ void main() {
       expect(inputs.userId, 'usr_456');
       expect(inputs.simulationMode, isTrue);
       expect(inputs.language, 'fi');
-      expect(inputs.dynamicInputs, {'param_1': 42, 'text': 'Hello'});
+      expect(inputs.dynamicInputs['param_1']?.textValue, '42');
+      expect(inputs.dynamicInputs['text']?.textValue, 'Hello');
     });
 
     test('defaults are populated when optional fields omitted', () {
@@ -436,7 +437,9 @@ void main() {
         'is_resumable': true,
         'frozen_context': {'version_id': 'v2.0.0'},
         'frozen_context_storage_path': 'gs://bucket/context.json',
-        'context_variables': <String, dynamic>{'var1': 'val1'},
+        'context_variables': <String, dynamic>{
+          'variables': <String, String>{'var1': 'val1'},
+        },
         'context_variables_storage_path': 'gs://bucket/vars.json',
         'execution_trace_storage_path': 'gs://bucket/trace.json',
         'pdf_report_path': '/reports/rep_1.pdf',

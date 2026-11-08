@@ -200,7 +200,7 @@ void main() {
           },
         });
         expect(
-          draft.draftInputs.dynamicInputs['draft_key'],
+          draft.draftInputs.dynamicInputs['draft_key']?.textValue,
           equals('Draft text'),
         );
 
@@ -210,7 +210,7 @@ void main() {
           },
         });
         expect(
-          submit.submittedInputs.dynamicInputs['final_key'],
+          submit.submittedInputs.dynamicInputs['final_key']?.textValue,
           equals('Final text'),
         );
       },

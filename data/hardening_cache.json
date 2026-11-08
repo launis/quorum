@@ -2,11 +2,11 @@
   "entries": {
     "backend_v2/workers/execution_worker.py": {
       "target_file": "backend_v2/workers/execution_worker.py",
-      "target_sha256": "49aeec8fc8424c8262cf69262cc81f88d924483b9ce981bc794c6df48cf9b1fd",
-      "unit_test_sha256": "65db7d05d41f42ba2be0275146274fcce5b3490b08b7a4e7e0fede6db0d75440",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "4ef204b4feb6325014ad23095f06a886319cfbd757b1c63ac9e490056ec85fcd",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md"
+      "target_sha256": "b29b584592a10f0a428162c308eb6ff3e6105bec535106f7c4fcdfe71d3784c4",
+      "unit_test_sha256": "c4349912b02a1f6c7877a33e53ed4bd12a3bba088b0205044be41175239b4597",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0565aba1a9f38439f1cd05118573f29993601297049ca7d848bb2fa36c97d2a1",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/workers/report_worker.py": {
       "target_file": "backend_v2/workers/report_worker.py",
@@ -18,11 +18,11 @@
     },
     "backend_v2/workers/synthesis_reducers.py": {
       "target_file": "backend_v2/workers/synthesis_reducers.py",
-      "target_sha256": "7383384ed299296a4754235674885ef052f3239ac363defc09a8760c1644f275",
-      "unit_test_sha256": "333d59e14be74eaf522181bdb5aae108f9bc8800d345d2ba8e921ed09bab6707",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "0b744a7f16d477098c3868bf74bf637fa497c0f0c6b0002678e661b70acf57c2",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md"
+      "target_sha256": "3afbb3f869b7b3dedb86feef84cf3ec132fb3e8886094fd58387a905cea0d7e1",
+      "unit_test_sha256": "8119eb1770cdda7d9924fca4d116f74b15e55866aa749abc625d4ecc05aba8d1",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "9aa1bb16616d80de66794b80a65970a90d9d2156ba25abc3cec60f6a98f32583",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/workers/synthesis_tasks.py": {
       "target_file": "backend_v2/workers/synthesis_tasks.py",
@@ -34,11 +34,11 @@
     },
     "backend_v2/workers/synthesis_worker.py": {
       "target_file": "backend_v2/workers/synthesis_worker.py",
-      "target_sha256": "ab3b50db6da251cf293ff0c6756963f96c38fd008813ef851d67db04cacc7dbe",
-      "unit_test_sha256": "f06e42ff906fa398fa76ec030e77dca2988dba54433bd2de4fc870bb0764885b",
-      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
-      "composite_sha256": "cbcf4ed178792a8fde4d3d6a4ac9ca4a580ba71db19d00bd4194670793c40902",
-      "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
+      "target_sha256": "207de6a6ae2f1242ca6feb9f38f2d6dfce9b6465ca77234285a319ad02c055b3",
+      "unit_test_sha256": "c64984817b68040341ed7f877225e87c7eab90bc79ca45704b4dfbce13d575ec",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0fb37052c6090f26be01ff028e463068f63f7a1f54493051091b5df2a2cbcbdd",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/workers/variance_synthesis.py": {
       "target_file": "backend_v2/workers/variance_synthesis.py",
@@ -226,11 +226,11 @@
     },
     "backend_v2/utils/finops_trace_analyzer.py": {
       "target_file": "backend_v2/utils/finops_trace_analyzer.py",
-      "target_sha256": "24d813211117c60fb680de6e942ce24361fc4728677dca3488d765115a7c1a1b",
-      "unit_test_sha256": "0188e1ca4ea41385e26d478b9a35a4e69719cc29ed4c17d5bb356b4ff8179cdc",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "d0c49ce94090c2c58840bfc05ae503b9c7f0706b7204c79e0de6315fb92c890d",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md"
+      "target_sha256": "7555cd58ab5dff2f0caccaf7586be8d18e02fb2585848a3b822845881b806d90",
+      "unit_test_sha256": "f4542119a44113b9de084194776087c26cbe311137ff9f3896eaf0c6c3a6154d",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "97493c9b3088a6a072f847eae50091574e16fa9528b6b4cf0d740c73366830e7",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/llm/caching_service.py": {
       "target_file": "backend_v2/llm/caching_service.py",
@@ -506,11 +506,11 @@
     },
     "backend_v2/services/orchestrator/schema_factory.py": {
       "target_file": "backend_v2/services/orchestrator/schema_factory.py",
-      "target_sha256": "f1b1a496c0aa23852071383ee2d397205577dc9bca9f4c3369e0d559014a8cbd",
-      "unit_test_sha256": "a334aaa0ead2604df3c4ce95b7af3c5544745a0474271f6e19fe7083edf15268",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "f2685aa9411680f6222232148375f4e0389648ee31498e20a125e55e83e844b6",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md"
+      "target_sha256": "f1aeb8b4c76c11a5b776e45bc17c26fb21a85ab8bb264e56ca1fcf233cd23c84",
+      "unit_test_sha256": "f1a54a74f8b2a5e403bf8bf4c49e51497db3bccae0a592939fb54766f930dc5b",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "be723402b242f2442559a8c8372dfb7d5ad9d05201137e24b6e08f1d6845a6ef",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/orchestrator/chunking_service.py": {
       "target_file": "backend_v2/services/orchestrator/chunking_service.py",
@@ -578,11 +578,11 @@
     },
     "backend_v2/models/domain/metadata.py": {
       "target_file": "backend_v2/models/domain/metadata.py",
-      "target_sha256": "a6d3c17f697a01777bfcdd987bcbe58a5116951131a1a8b1c69d9c7b614d482c",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "e2cc36028023b126e37ff4046198e5afccf887a7b1da718a0280ecb59cf80157",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "target_sha256": "88fc2b4fabc6c4090e3776a5ad94b23190523d8decd25c6f126e8e6edafdbf6f",
+      "unit_test_sha256": "5c072c257352f31f3501f0f1aa7bf68d84022f986cae86776540ed3908548c11",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "8eacf61c484bd78e75e70bb3f75ada1a72601f09a6b34113c7ea7a78d7e5215c",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/domain/usage.py": {
       "target_file": "backend_v2/models/domain/usage.py",
@@ -730,11 +730,11 @@
     },
     "backend_v2/models/domain/workflow.py": {
       "target_file": "backend_v2/models/domain/workflow.py",
-      "target_sha256": "88901c84d39c2103c90f4f397b2a159b52315130dc21815aa000da99a0726152",
+      "target_sha256": "0afba24fd82ad27a287e98db3a33dc5315082baf627f83939a2738628a7cd0db",
       "unit_test_sha256": "ac58605c64eed2fe46fc34df7ae574cf0f8d2bf8c996490c4a1769c525720d73",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "9186588b9dcd3cc488ca76a9008c8599d3b81af254d0039488f6266a305f9d10",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "5b1972ba9c8593e340e488cc2db7f925912485fd665ad158e6479d9a9ae54891",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/prompt.py": {
       "target_file": "backend_v2/models/prompt.py",
@@ -778,11 +778,11 @@
     },
     "backend_v2/models/dtos/schema_manifest.py": {
       "target_file": "backend_v2/models/dtos/schema_manifest.py",
-      "target_sha256": "0ec698bd62ab51289232b110e6b795deafe24c1744570a2657f8ecc7de55c09c",
+      "target_sha256": "97f7081b77f89f37044c7cc23f5321484bd789631cac73a71ba9c7a84db95a4b",
       "unit_test_sha256": "e36f3f817b2381de91c4dd29290986a56ee1a4e0373ce1866ab326593ce82082",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "2e0679e679163aaf8a6d451f2a0012d18d9e0d896bcef8707629ebc330b8a5cb",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "e07782c1e67aa8f7fc94fbb78ccf4f395b00f143527b35fe469f0fd3f5b64a1b",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/state.py": {
       "target_file": "backend_v2/models/dtos/state.py",
@@ -794,27 +794,27 @@
     },
     "backend_v2/models/dtos/variance.py": {
       "target_file": "backend_v2/models/dtos/variance.py",
-      "target_sha256": "d4a6809da9c0f7522be238579bb47d4ef9bf9a9c0b48f080e2feae560d3526af",
+      "target_sha256": "fa37717c11b4278024bf90b8ba7cb2cf2e88132f82e7500c48842105180fc71b",
       "unit_test_sha256": "b856388d57dff7ffeb931979d26eb50cfe6058cbf76947518224d738a0d0cd37",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "ed5e1a036155091c83763c02283b0dade74f221ebf65b496689f0accbeebd9ea",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0c3235b454cb5ce5e13997e45a10d194628932f82c54c3c0413474ab7a8c1d6a",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/workflow_schema.py": {
       "target_file": "backend_v2/models/dtos/workflow_schema.py",
-      "target_sha256": "da5f9a709ff71ce2cf2b492ed2afd6a3a5935091e9b064e218020843dc1d5cb9",
+      "target_sha256": "ad0d1d3067f5e07368eeb3ccfdff4b519d11c38c7504c738a74c032812440339",
       "unit_test_sha256": "7e47f3dcf621f4ee3b422f32db24b37fa837a2f1fe51daa8098cc9f933e2e64e",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "c22019771e2fa5d193d4e80b9578e745371d7ec4580d79202505937403d90bf0",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "db94e8fddb6e5eb8814bcaaa3c5f45a8bd13339f5fb89f82527da6a73030ebb3",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/domain/step.py": {
       "target_file": "backend_v2/models/domain/step.py",
-      "target_sha256": "e84716bd1214badd24a349680535b6d4156fd6da716451b6073769cf0b781aea",
+      "target_sha256": "201688c50cca55bebc95ee72c7b7c978baf8416a6e5a37a3045b71a6664ccb87",
       "unit_test_sha256": "a74d90d4cfd4309a39c796e1c0f56af763f39b0be4c84fbad199275d3d84b6b8",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "f0dd74cfcc1ca650b759174f4cef911f0b9598b5ad15ad3e6a38be7822c9b7b1",
-      "source_tracker": "docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0a413e8f27f4c0d15aa2203ca2bb4a7a4b3800c99b1e71451f70a62412604a02",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/causal_discovery.py": {
       "target_file": "backend_v2/models/dtos/causal_discovery.py",
@@ -842,11 +842,11 @@
     },
     "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py": {
       "target_file": "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
-      "target_sha256": "9dc68e971b613a354c287335aa966362b5c2db03779b9efa2bf48a707023d851",
+      "target_sha256": "2bddc791a091d46c9bc0a84c7fb847d64a76561901fdfcd9e4aae3574c4f985f",
       "unit_test_sha256": "9c13866d7f1ad1bf42419bc1987dfdc209ea91c5ba3eb12a8cf99ccd5e35145c",
-      "rules_sha256": "b6572932fdfd931b45607bb8be5664f9419124b404a4d13eb601d82488d0aa2e",
-      "composite_sha256": "5834ee6c1c68bd525bfa7c609cae36a39250535afa3925f6e3f853a7c9b4e51d",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "cc6fd185687fbe1220bb3452fa0c5e8db0c09c1a2bd3ab20d6aed08738621fb2",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "scripts/sanitize_seed_vault.py": {
       "target_file": "scripts/sanitize_seed_vault.py",
@@ -882,19 +882,19 @@
     },
     "backend_v2/llm/client.py": {
       "target_file": "backend_v2/llm/client.py",
-      "target_sha256": "0d4948a740c9114d0dcd466398e028671b76ec52357eaf92f04ea4a519093a3d",
-      "unit_test_sha256": "4ba34fd591f0e4d777afb4a5a4993ad5b7222c1952a2e3661769964bee62208f",
-      "rules_sha256": "b6572932fdfd931b45607bb8be5664f9419124b404a4d13eb601d82488d0aa2e",
-      "composite_sha256": "2f813f41e9dcc022deff15d9ecc88adf1279ec0f6664389c5749623470a1c669",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "target_sha256": "568c5fc3442e9f8ce142103778fc0c5368651b8e79be633c045d2b843aa50702",
+      "unit_test_sha256": "d00deb378413e682acb8b3aa021d8334762771585fbd66464a90d176f2318292",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "f61d26f847fc906c3ef299ff2622a18e91673197c5c94521516fe2cbb2e7c452",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/llm/mock_data.py": {
       "target_file": "backend_v2/llm/mock_data.py",
-      "target_sha256": "84424978da7297ca6ff0f852d2a5bef19724e98a9fcee2b32015a11d593501d0",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "704636be1a7eac1f8addd364ad0a44aa653096156132e48bd55e79efb4df2340",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "target_sha256": "9330865c10b418ccdd0fe7ac5a5f8acc58dcfc40a1da7f9132469cfe307c698b",
+      "unit_test_sha256": "34006e66e86a63e1a6cc198e5e71c06161e38905fa1964f27449561374d9b347",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0d59959fc3b7ac363fed42c27c7af9ac240dd907807696653f3b11efc24eca2e",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/llm/provider/litellm_response_stage.py": {
       "target_file": "backend_v2/llm/provider/litellm_response_stage.py",
@@ -906,43 +906,43 @@
     },
     "backend_v2/models/auth.py": {
       "target_file": "backend_v2/models/auth.py",
-      "target_sha256": "29f2af79a9ad32b284c5a04a3b9e306ecc4e4aeada84c40b7158819c0e69834d",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "3d736e5bc1d141dd41a65e49b3a2c02c5a48d3d5fc9a8e2e9cec0f1073180182",
-      "composite_sha256": "6b66d39492f86e3260a93ce3bdc6d2ab630bc5f5e11cdaef991bea8e48c46c38",
-      "source_tracker": "docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md"
+      "target_sha256": "c11709e747c3023f1a91c210318c6c4c261e9352740a92f9834e4a47a0db3144",
+      "unit_test_sha256": "5448e75ba0f7900ac007ca8787ff047be7ce53c172d9bc602f4c21c5eab6294c",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "3bbd12a6e3404e25aa299bb81e0c083d19c3b87959e23faec220d5a89b33c4d5",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/chunking.py": {
       "target_file": "backend_v2/models/chunking.py",
-      "target_sha256": "925e46b24975a7ab636f1f4ac2451c0dc8bd758d56ebf2d72910d556831b0d21",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "c87031139330dd7c12fd5a65ce09b4d714cf5864162d14546cf02cc319113b1a",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "target_sha256": "2bbd4471ed2d15e0796b923f71088782d875fa5d1d842fe7b680ca82090d90e2",
+      "unit_test_sha256": "f2912e5fe2f4144f495245c86988b908045d2564349b998cda4694f3f7ceb35e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "30b60dbcf19ce71c1a1760ffca4e4be0bb296e965b4abc49481056e75d29a64d",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/domain/matrix.py": {
       "target_file": "backend_v2/models/domain/matrix.py",
-      "target_sha256": "70966df61f9b3d45f0e5b9f325f254f6a5414e2e7b9b67dadd6589385225654d",
-      "unit_test_sha256": "4a893ae5f1846afea6df3890c2114ab7284baeb27653f3c3a830266a4ad1c7f6",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "ce9825f9e9724c44d750ccc79151a5c0e53ab12f8281c277d2b08ab0f726fba0",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "target_sha256": "1d4ca307ad6cf6452d1b4b97945656afa3a28be2171ae91c3305739bfac59fc7",
+      "unit_test_sha256": "d5dbc12566eb960eaea89900fa32583ace09820c9a8ad687bf691c9ce480c11e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "c7b101fb15249aa8a1e78b2b82c196d3381b7e4bf7f688bcee540f43229a2f55",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/state.py": {
       "target_file": "backend_v2/models/state.py",
-      "target_sha256": "5c96230ba8966af3eeb07ec8d9b25f3e2c581f9a3689af4941b3dcb6ad833515",
-      "unit_test_sha256": "2599e215de4cbfd591bc413d6a53c4422457986ab81e2ea34bd64c6925483ca5",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "51240f7a96fb3bcf8d573529b91fa796f87d24d2e80b4435349995e6b0c36c43",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "target_sha256": "9b9fe8cf797a78267e725e184586a4015ad805794d9dd462b83bd8eb24a644e9",
+      "unit_test_sha256": "8dc40df46af171a8d97cb66dd464ec639af46baaa870e3eb264406019ea7e154",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "29923a6949d44d14201669545c63fae1757bef51d244965091aa073e3da3a436",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/auth/organization_service.py": {
       "target_file": "backend_v2/services/auth/organization_service.py",
-      "target_sha256": "5baabe32765596875927dcf6d42cb61498116c0dea4e1ec56ec7bf0ee4536406",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "71fef183896897a3191e9c74039edb31f1c7f3499905e010a7f98cc32fba757c",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "c129d91fa0129a333e96889aac6123bbcd3a6cacd46d5934076018877e77394f",
+      "unit_test_sha256": "35afe4b3be8aaac1df1a0b5ab8c67acb709aee65e2c50b9d31234aaec95b2ef0",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "bd6b0a388408c1f7d358907b64be37b42ade25bcaac8addf8cd6e422277742ec",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/auth/user_service.py": {
       "target_file": "backend_v2/services/auth/user_service.py",
@@ -1026,11 +1026,11 @@
     },
     "backend_v2/models/domain/execution.py": {
       "target_file": "backend_v2/models/domain/execution.py",
-      "target_sha256": "b294676d97c7a27fa55c721f78d4e258662ca27d9234cfeefb25d3ab10638904",
-      "unit_test_sha256": "75ffab5d4c0417752a70ba7f85e156ac0073485acc1b0d4a862a3c3c3f291cd9",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "619cd61636bfb0e0cacadbf886782cc76aaad7fae048ab75647f07fc3898c234",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "f919ff7ffa92c23ddfcf6e43da6eddb674e718842de279e8d8e9520f33e9ee47",
+      "unit_test_sha256": "632efbcba9cf64b745c02095525de4a007a81fabab4ca7d240ce4e3f1c5b3082",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "27eabcfc997cf19feb59a57d34a2ca0d66260d14f6eb8caaf9f61422dadc1ef1",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/global_context.py": {
       "target_file": "backend_v2/models/dtos/global_context.py",
@@ -1042,11 +1042,11 @@
     },
     "backend_v2/models/view/sdui.py": {
       "target_file": "backend_v2/models/view/sdui.py",
-      "target_sha256": "e1c4c9f4f183f08839dc6132c99d0e5552ce493dc2fb396deadd7eb9f962429f",
+      "target_sha256": "91aa55869757922daeaa66bf436f8122a75e249370182fbb1ac3ba41b5f12646",
       "unit_test_sha256": "ec6758e3b5540e31b092db256228f169a33a76e3419221c2244ceb93fe530002",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "879703f55a6cf06472b6377d4cb89d09941ce18e630f24e7ba048a0809222179",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "64f6e447e50274522c4a93cd8401c33b51a9dcf1397637093672a2fbd96a2bd4",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/orchestrator/state_reducer.py": {
       "target_file": "backend_v2/services/orchestrator/state_reducer.py",
@@ -1170,11 +1170,11 @@
     },
     "scripts/diff_executions.py": {
       "target_file": "scripts/diff_executions.py",
-      "target_sha256": "99b5e664c88601e825534e6c51ce003c47de53bd4c4e9c2dc5afe190b38de954",
+      "target_sha256": "6641c9faab99cb8635f7f4b8a607f6ea37cec3aa89795b6d9fb3b4cac2fe8988",
       "unit_test_sha256": "5267949d8dcefbbf8b0afaf99f398ec62ee9e78ad90397762cf8b39ef05cfa0c",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "a0521b23126dfaf4d4be1de2d4ca65abcd89f28a703cb1a43e3dd32eb0543983",
-      "source_tracker": "docs/implementationplans/TRACKER_Cross_Model_Variance_Harmonization.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "2b655944337903f1b494d04925144b0c06e1aba3f3e1295030f1b75b6cd5e9f5",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart",
@@ -1274,19 +1274,19 @@
     },
     "client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart",
-      "target_sha256": "afeb6f2b871e9d644cef12d6a75620adfad49e891cc701be2e159beb4ad9e3d5",
-      "unit_test_sha256": "2b67dfaef75d35f2278a6c36a26d86a49bf6a7e4dc46452129c8fbee7a106dce",
-      "rules_sha256": "747ceaf66ec2ff8cab18d8f7ed7cf9a1eac6791dbbdbf0b9b66356de95838004",
-      "composite_sha256": "1ce6404a6098ba4d4eb46c9f799efd9e4831b5b37ee89c692c19ca5b37764af2",
-      "source_tracker": "docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md"
+      "target_sha256": "486bd55caac2443435ac66c8390653e14f6f66b51d82d0c1badbd87873024f84",
+      "unit_test_sha256": "dd6c8b2193a955c1bdf4c7001ba57bf7f1f05be92f0362e42cb1105fde87a8e6",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "011794e6755f14e6271515ca267f8a045273136bea2bffaa4050b4f027799284",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/views/step_builder_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/step_builder_view.dart",
-      "target_sha256": "df6f88472e39335a200e9851177a62610b98a7d42b2624e646af539a03020cfe",
-      "unit_test_sha256": "88794421926afd6e3e7521100bb21b71eaebb2b7da25cadfe7f0939aae4d0d2b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "8533581587983f296efb33d917f9c01b4fd2febbbb5a4b347a1a45a12da45b56",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+      "target_sha256": "4f800ee4cd9a088d258d6a8dbb209ff020f5d03e5947b6488376ac39aaed11f1",
+      "unit_test_sha256": "f404559aa480b978b9bea0aa7b08e8900b24bdb6e540f1e1bed4697c679c08fd",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "c971a61e87d34a57c808fa25407467835f8939177ef5369bde3c4aa1461c290c",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/__init__.py": {
       "target_file": "backend_v2/models/dtos/__init__.py",
@@ -1314,19 +1314,19 @@
     },
     "backend_v2/logging_config.py": {
       "target_file": "backend_v2/logging_config.py",
-      "target_sha256": "b4b4508c30bee65525ce10ee207069cb52495fa8f97249886c803b1617853e44",
+      "target_sha256": "4983a03ef18c8102cda56e574ea78337cb4924093a02986d6a736e46d2960a7b",
       "unit_test_sha256": "9cffa9f76deb9c37306e1758d548a31fc6f122e32743adc3cbf20004fdeac96e",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "42db88734d071d68b5f1d97fb6594756993a28c1de0f2b0736b146f11dc90501",
-      "source_tracker": "docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "ef95d4ea4bf161f3f52aefa669a021abc8b3cd2b4fd2b0e499e093446b124c8d",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/execution_core.py": {
       "target_file": "backend_v2/models/execution_core.py",
-      "target_sha256": "f0961c58f37a16053d7f31e6dd3654a1435607fce07deb98c69c16b1a67e68c9",
-      "unit_test_sha256": "afe70bb1752635c1dffc54a433e2a090503320ffbe5b2287f97781458ffb0cdc",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "ba38a9f156f1ef3e368175d5dcff8440cb322a71525abd7d7a44eab9ebd3b988",
-      "source_tracker": "docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md"
+      "target_sha256": "4db6f831b3720ea1f088767f45ee7c0e461a8b344563841226a6e4fa544b0c3a",
+      "unit_test_sha256": "5eb0b853d45db99c23d8e4a6eb4d1119556f250b91ee47090f6ed9101c363310",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "5273149f3ea0442cc88bc39feaa1c095dc403c04eced3bbd8551e6e0fd1a83ae",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/llm/adapters/base_adapter.py": {
       "target_file": "backend_v2/llm/adapters/base_adapter.py",
@@ -1346,11 +1346,11 @@
     },
     "backend_v2/models/dtos/context_variables.py": {
       "target_file": "backend_v2/models/dtos/context_variables.py",
-      "target_sha256": "6f6e137de7fa15468f32ba21de3bd495f2579ad5b83f99de5f30de979a6b5736",
-      "unit_test_sha256": "9f268fb20cbcf2b96b9a70271f58d255cfe28b07b2ede89b30ce4227881c4206",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "2324181f067f44ca0177887415d20601b4970b5e12eed95a64142dfa8dbd6841",
-      "source_tracker": "docs/implementationplans/TRACKER_Pipeline_State_Transit_Type_Safety.md"
+      "target_sha256": "202a705bc9f38409db98e37884ee3bc2803beb68493184a81fbe226f109825db",
+      "unit_test_sha256": "7aed18be3a8b8f3b40f358a617a308fcdb8aa8009cbc304f5c928114bb30189d",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "4f833486cf57dc67f63eff78ae185c20ff1b611b7c227bcbe6294211870aca41",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/step_output.py": {
       "target_file": "backend_v2/models/dtos/step_output.py",
@@ -1370,27 +1370,27 @@
     },
     "backend_v2/models/dtos/hook_delta.py": {
       "target_file": "backend_v2/models/dtos/hook_delta.py",
-      "target_sha256": "44dcc1e4ee937d7ca1b000b53403764578c2e67a377ee801b7504691a3c925cd",
+      "target_sha256": "c88e458e5bfd28e04afc3b8cfd7a24622c047ea5966390459d50752a946fdacc",
       "unit_test_sha256": "af72c9719d2a0b24fbb6a52c08b598d92cbf24495c17d7f300c070192e84b4fa",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "bcce038b0b63cc310ddd637aa54c9a494713b2611dcd1d77c651fab952983d3e",
-      "source_tracker": "docs/implementationplans/TRACKER_Pipeline_State_Transit_Type_Safety.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "71d9eeab8aae4463a8ba0ab3f012eeafbc2f358727594249752e8e9e8450074f",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/lightweight_matrix.py": {
       "target_file": "backend_v2/models/dtos/lightweight_matrix.py",
-      "target_sha256": "01fa263ca66c1d7a01a1f4530feacb7e1069b90c4c424a30b939b07865f7face",
-      "unit_test_sha256": "84eba2dced3f163cbc3edfb1e70c71855796cb456e77c89a5ed0884bad66a549",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "6b23204b53c6ab654fa555e38bd16cafadc097c936b04237d26bee79b4b41826",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "target_sha256": "264882da2d8202126ac9e27a5573acec5fb0bf50e3fd7eb3e1ef8fa7a9e7ee9a",
+      "unit_test_sha256": "11bd8a6f7c4657ee506d4a10ad88142b1fe2b33411bed940faf44ee31bf14566",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "52979a21cff34e264c6a9ed0350bc2ce99125395b4716fa6f2a3bb139ae59ef2",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/core/registry.py": {
       "target_file": "backend_v2/core/registry.py",
-      "target_sha256": "793cc55a101e5f5573c1aad732aba7e83d1603eb6e717146392f61b0c7e8c9c7",
+      "target_sha256": "ac62d12a4342f011e243d1e6f1332182399dfe566e3c6b6bbd082f96290a3699",
       "unit_test_sha256": "66cf6ec4283c8e4228fc510189b36a83f7fdf199ae211ede830114cb7a810f16",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "6a6caef1599bd1c052841a71bba5af4388fde5b9c1e39c597e1a92e8e886454b",
-      "source_tracker": "docs/implementationplans/TRACKER_Pipeline_State_Transit_Type_Safety.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "b4cdd708943c7055002d7d8e96772a5b3d396db656feadcae50ab66bb613efee",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/core/models/enums.dart": {
       "target_file": "client_app_v2/lib/core/models/enums.dart",
@@ -1730,11 +1730,11 @@
     },
     "backend_v2/models/domain/prompt_blocks.py": {
       "target_file": "backend_v2/models/domain/prompt_blocks.py",
-      "target_sha256": "67a7f5cc4ac2aa074c71a1a4abc6489e1c295f3c7c4678c9d23909bdbb0c7231",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "913f8ab5654d09bff54460dc7d93a0f34379cb6ca03c5d2df3a20f2bce4faea6",
-      "source_tracker": "docs/epic/EPIC_146_tracker.md"
+      "target_sha256": "9f6b2e81a4fca11e50cb6288bfac45677751fc4d4778b98e8fbc8d3b65c7ceb2",
+      "unit_test_sha256": "18884a53a0081ea16d407d8b4c76b6b944fd766f7055c998fecc7b28d8104eb8",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "8b71117e8d823bef26611f2319fa4bbd13c2b850f20e94b2cccb2e0130bc4853",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/seed/seed_registry.py": {
       "target_file": "backend_v2/seed/seed_registry.py",
@@ -1778,11 +1778,11 @@
     },
     "backend_v2/services/orchestrator/strategies/logic.py": {
       "target_file": "backend_v2/services/orchestrator/strategies/logic.py",
-      "target_sha256": "8b806f929b0a0efdd80cac9261384207dfc3194df8f4c18b4be986cf37622319",
+      "target_sha256": "29cfd1f2b72b4317e68d61ba685ce416b1c5986f5f11ca1c3816d7079beeb99c",
       "unit_test_sha256": "73646fc3b552c1cd9255823d673fb385592a656e4d5a5728ed65b693377d344d",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "6d67c4122ec96b5746f22532c68a28265c5096a507e82e3a9078a9092d3db637",
-      "source_tracker": "docs/epic/EPIC_147_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "bd52b95c337be7f77f2367d3732f1392fef1dc11c41926aa37e48c3a473ee5c3",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/orchestrator/strategies/registry.py": {
       "target_file": "backend_v2/services/orchestrator/strategies/registry.py",
@@ -1810,19 +1810,19 @@
     },
     "backend_v2/models/dtos/engine.py": {
       "target_file": "backend_v2/models/dtos/engine.py",
-      "target_sha256": "b9a850dbfb753c4d5cfdf6fa0385258f6152c75990214cc9707fc02dcfa615bf",
+      "target_sha256": "4e11ae7582f982b286ce93170fd6949423792947cc4e40668214c4cd74d6b01f",
       "unit_test_sha256": "4e53b0ab3114d298b389edb275a1216ec6bf0593f986211399c3a98577f8ed93",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "9b3c29e97345225822d927e7313b257348642d0dd8d80abb6be505312cbbd9b3",
-      "source_tracker": "docs/epic/EPIC_147_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0f9a1a7786016bf20a3450059cfe7ac8fbba3756a2246519e59e831739db8f8d",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/core/hook_registry.py": {
       "target_file": "backend_v2/core/hook_registry.py",
-      "target_sha256": "ad641f692b5f5c3682255ae0aa7547f6791efee0b585ee20d5381d92f48f06e4",
+      "target_sha256": "ca6ecd65dc8fcd9941df1b62885f75b10cd18879cce3f292ff39917e74c403f9",
       "unit_test_sha256": "e40d1d98f98e733a9ab6e4074b2772b0fd9321336835f996b07cf45f0fb48037",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "778acc5b9505b2105e4592219121d70dc4329e97aceffe83b9ca29919d37a98f",
-      "source_tracker": "docs/epic/EPIC_147_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "7a403c7ce45c4112282b3b4e539a7b48fed1ce3c1ecf0a0591428953c10871d9",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/source_extraction_schema.py": {
       "target_file": "backend_v2/models/dtos/source_extraction_schema.py",
@@ -1882,11 +1882,11 @@
     },
     "client_app_v2/lib/features/studio/controllers/output_profile_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/output_profile_controller.dart",
-      "target_sha256": "489eabc46d7454a1dc8413f95996e0b26477de958bbeb2e894c49b0878a504b4",
+      "target_sha256": "10f4d4ac43e1d6c2bf9c36f8b08eecdb29eba31244847c5c9c397bcaba71c741",
       "unit_test_sha256": "94655d74814f586217067f92d950d21fa7e7eb0f38bbc0cd807c9d7d6085915a",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "da0fd2dc05fb6c62137a784b44e247e5ec0ceecdc6d9fbdc1d24506b2a8e6146",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "dd2a3352499c4ccb46dc66116a8efca99e7fed819c74767a499c2e637fd0c38a",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/views/profile_editor_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/profile_editor_view.dart",
@@ -1906,27 +1906,27 @@
     },
     "backend_v2/models/dtos/hook_state.py": {
       "target_file": "backend_v2/models/dtos/hook_state.py",
-      "target_sha256": "ff016249ad5d2c7113fedb4ef61a5e528355e2a16ff3f7e65825f51f6a6ad423",
-      "unit_test_sha256": "2e4a51f4641a076b5c5592133f388d8f43bc23d2c1615af67ce91440ef98d4a7",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "4e643571e889dcfd4a1a4ab570d26c8948181ec3966121a8d780ef530a00a289",
-      "source_tracker": "docs/epic/EPIC_149_tracker.md"
+      "target_sha256": "6cec84608435fd1c7095f05fde103e8aff5301a8dbff0fb624b68c3f851e9d5b",
+      "unit_test_sha256": "db6fecbb95b440f66435c235b44836c835d4ce44cf3d5a2169f5e9a3197f7da4",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "00ce179126927f8f19010c8cfadd08cdb052c89a9b7a93059e1d4c22ee8ef121",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "scripts/audit_dict_eradication.py": {
       "target_file": "scripts/audit_dict_eradication.py",
-      "target_sha256": "4b8a60fb0e6eda82960d1bf9b178fa464c70bc50eefceec97dbc08b2d412848f",
-      "unit_test_sha256": "143d1f041d12686bdd06603447e037574b7b5d801b7f7072e8516825ea91fba5",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "18ec5d23cba5783a033235c62120a9c366fa0063220c4fc67b017533b68b8181",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "target_sha256": "887f4b3d81078517b2b5ac4f9b8337e9e71257d74b90a5f5949a2afa86131761",
+      "unit_test_sha256": "ca9b49387d63a4db2f861efcba97d026bd8e73ea779ddfe77c7e400891d646d5",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "b0849f5fc6375564907a94f337ab5d197c1a6c7fb5c4162967cd367e76636e16",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/domain/inputs.py": {
       "target_file": "backend_v2/models/domain/inputs.py",
-      "target_sha256": "888f88c1d080c1ed53d63a0394ee4fa6b0eb666d342dc33dbb09c6c654fe7725",
+      "target_sha256": "6e5815f2b1482c53abda24a2ddde0be1dd870d76fbe545d92475a08c6ea5f639",
       "unit_test_sha256": "a1bee45297f74a0d9f32b6d69b1226696a4c85015416565f55f038a38a048e63",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "05294f0c7d1e635d731e3d556e1e8f98f67e42e86ed283c1e7863593410689c1",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "e6e4d04653951d85f91ceb196bdd62fb9d30ba18c4204db420d566465e3e3ede",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/ingress.py": {
       "target_file": "backend_v2/models/dtos/ingress.py",
@@ -1938,11 +1938,11 @@
     },
     "backend_v2/models/dtos/theory_manifest.py": {
       "target_file": "backend_v2/models/dtos/theory_manifest.py",
-      "target_sha256": "77e3f6804861373401b7ef91d3cf7f76090c14c45f1a05fa40c61705be5f94a5",
+      "target_sha256": "a645c2b25aaddc71966d10e821f161b9ae495f26009217726aaf2cf65adb97bd",
       "unit_test_sha256": "954c15318f905f5531060e754b2d96db75bfede2aff2dbc76d277541303c1ce9",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "cd193ebb9a59bf83b960dda12702d4d0ce35508eef30f692f58d80501106e12b",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "9736f0687a6ccb232424c2ea2ac8614676bdec25f2ab42847927549841a93b55",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/synthesis.py": {
       "target_file": "backend_v2/models/dtos/synthesis.py",
@@ -1970,11 +1970,11 @@
     },
     "backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py": {
       "target_file": "backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py",
-      "target_sha256": "373c3ba9e1dda490434e086dd85e2e12696e38cbfe73561892d9aac92ed86c91",
+      "target_sha256": "fffe588d07c0be522f72ce533e0eff0e1041aeccb355e59018511bf816cfab3d",
       "unit_test_sha256": "bafacd9617c3e66477333e0ab683768a39136e3371391bdf76d6b6624f57cd10",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "41037828ac9de0a6484f7beb1422f7a4c4edaec3c4816657763131879a33a8ef",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "784d3c12acb630454310f6a75a38f16fcda41c2f0de96fdda67c9ebcb22466e2",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/orchestrator/ast_evaluator.py": {
       "target_file": "backend_v2/services/orchestrator/ast_evaluator.py",
@@ -2194,11 +2194,11 @@
     },
     "scripts/audit_warning_baseline.py": {
       "target_file": "scripts/audit_warning_baseline.py",
-      "target_sha256": "b3b62ee0d30c6cb18cc653dc2aad6af70363a813586e5f2cfd5babfc4a47f33b",
-      "unit_test_sha256": "848f89bae3158e4a485e137975bff255025b7ea4110742ddf702b0ab2e55adec",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "e1986ded95dbacf80a6eefd2754244d532e6f2fcf964da8d6fb0173e8ec3d040",
-      "source_tracker": "docs/epic/EPIC_156_tracker.md"
+      "target_sha256": "379d4f16211223cd46d63eb5f6cdfa17007a16aebec5152fa66d67165650ecb1",
+      "unit_test_sha256": "f592c5aacbb6dcab9fa8de7d07658cf28eef3fa5779f656928c544e6c09906c5",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "fa2d1084c7a060bc4ce6d41a3db9b5e505c435a7caa4cbec134a5b6c0318d2ce",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "scripts/audit_rules_staleness.py": {
       "target_file": "scripts/audit_rules_staleness.py",
@@ -2226,11 +2226,11 @@
     },
     "backend_v2/llm/ingress_pipeline.py": {
       "target_file": "backend_v2/llm/ingress_pipeline.py",
-      "target_sha256": "95e847e4176c6ec699b49d87df4b1a7c4e6618e02a46a802432ccfa5f1c01bdf",
+      "target_sha256": "7d567c79a4418ba8657913c5fe65cbd1f352e4e28aed29b80846dde4a5a03064",
       "unit_test_sha256": "af31321736195c8bb3a575ad44ce509ff476edf66641084bcd5c4bb671ba4b0c",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "7529b8d7a9302cdd793ecf747ab8c79865dab532f219a2364659f7e414aa2f15",
-      "source_tracker": "docs/epic/EPIC_156_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "5860b59669d6f142906203a6140a7e880f923503dfa2fedc486311c6709d347f",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/llm/mock.py": {
       "target_file": "backend_v2/llm/mock.py",
@@ -2282,11 +2282,11 @@
     },
     "backend_v2/models/llm.py": {
       "target_file": "backend_v2/models/llm.py",
-      "target_sha256": "61af8cf891faf777520987188fa839e4aed2a4e11c0876c33367675d4564693b",
+      "target_sha256": "63deed4d5e81c8aa22c3e0146603dfab942ec66338932b5f7a84d9b3c766d5e1",
       "unit_test_sha256": "a734a1e03c3c65937e90a9a55e991e2734266f76d09b0b9148692fea06aa96d2",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "cd00a40fdc16e1461ebdcc5558a8f388e7227b90de2a42a75c6bc4295d8ab2fb",
-      "source_tracker": "docs/epic/EPIC_156_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "aa32c46a65cf245bde9808585680ea9e584e6ab3d67ccbc24a9bc8ec87291e91",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/document_extraction.py": {
       "target_file": "backend_v2/services/document_extraction.py",
@@ -2370,11 +2370,11 @@
     },
     "backend_v2/models/dtos/quote_evidence.py": {
       "target_file": "backend_v2/models/dtos/quote_evidence.py",
-      "target_sha256": "4cedd2f35782c91d55c69cb84e8e051e000e11679c10a159b53ff2a5c1231256",
+      "target_sha256": "22cda9c379ca5842bcde7cb89da49ded4a1b5aa8e41d4ed989cb9907328d3ff6",
       "unit_test_sha256": "bd9926d0f1c6f0b4a69e3c36dd1d60c415a0da151f7a9d5c0e9529753a5b59e8",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "bdf92cf1a98f2f6a028e50598134ffbe7505ca2fafe2eefeac3e7a6f37813c26",
-      "source_tracker": "docs/epic/EPIC_158_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "a321841f0bdf265f324e6455a31cace4d2b792b7e3f5389c5e34e054144885bd",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/domain/blackboard.py": {
       "target_file": "backend_v2/models/domain/blackboard.py",
@@ -2666,27 +2666,27 @@
     },
     "scripts/_ast_guardrails.py": {
       "target_file": "scripts/_ast_guardrails.py",
-      "target_sha256": "378db4d63d5107f5348f4a68b54fa3d6710fcd3f6a433e713c923e899c60b67c",
-      "unit_test_sha256": "961c9fa6c5ef915ccfcf2a21c556fa8d092c996f444a1dbc354038c37ce0eea3",
-      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
-      "composite_sha256": "d5e17d041af242cc7f55ce186379fd0751c8ab9ba7fe53ddf72a877b4ccaa0c5",
-      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
+      "target_sha256": "31f5c1d6fdd6e15480b841206a68f465d7d4ec7e3472e143c8d96ff5be7b595c",
+      "unit_test_sha256": "a66bb70287119babd242531e7cafc16e964085c0520e95f683c5c166a7f02d12",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "3014ac115239e4a0cf775d939698ef44aa480ede8474382476bf0fee02d670c0",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "scripts/backend_audit_loop.py": {
       "target_file": "scripts/backend_audit_loop.py",
-      "target_sha256": "e4dcf464179a5626c0b990659dc8b29c73cca3d58bf14dd9e9d102d64b652451",
-      "unit_test_sha256": "c67aaab8660090ff5ff20850f202cde8e6d95b57d25715194c4ab243c1a88e25",
-      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
-      "composite_sha256": "6d6a944b7ba3d7960214b499130792adcb167d2f159ae87dc953f0fca9e52821",
-      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
+      "target_sha256": "408aca7e973fb83c7cb4cc550f25ca72ecae1a4cfd46fb9bc95681fbd5569ea9",
+      "unit_test_sha256": "5f254c9f8e69d96b72b2400b0d4e22a4d2a93968db72b91405d3c5a7d6e325e8",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "6ff1d748236d19ceaad12fa845398fbc5fe248b01c4ca56dd0a2fbcfd8e88129",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "scripts/auto_hardening_runner.py": {
       "target_file": "scripts/auto_hardening_runner.py",
-      "target_sha256": "7a4a730892198937adec7c4ff9d48681e35dfc98ef03a7bedcf5cd392b6960c3",
-      "unit_test_sha256": "21816745c2f0e68d0a82d1abe8f2b2ef005148232c163e277ee0b43da723dcd7",
-      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
-      "composite_sha256": "260db7ac1f63d1fac03f82dec9bb4389706cd77d94b5bb3a7b080bf664272eed",
-      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
+      "target_sha256": "d19a529166dc90e8630786191e182b213738119207f51eebde4f9fae6bfde0fa",
+      "unit_test_sha256": "72af845535754cded532e12469b689594606c34487d74d630264beb456964715",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "e094cbcabf47bffd556591b522fd456465945f251dbc02bca1c33160d08f0393",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/api/routers/studio/__init__.py": {
       "target_file": "backend_v2/api/routers/studio/__init__.py",
@@ -2778,11 +2778,11 @@
     },
     "client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart",
-      "target_sha256": "eaca97949eaefb73496275f6224959faba2cb390f1b0654a01ae8c08186f7ff9",
-      "unit_test_sha256": "64074dcc505dbea465d4438a6707d5f973b79e0514fe4b618cfe98466a48fada",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "2f0a55e7adda6df045c7201e4530ce5339e9cb17fe95f3345fddf763e9442657",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "81dbf3c11a6ea766202e24b088a461997721cedcf4539d2294174334e8825806",
+      "unit_test_sha256": "2c45af8e55e3ee850130406da48a33e5444c9958233542f609e17f8d68eaaad5",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "737c785a764bbe040e907510ef21673b0589bc9cc46a3e2ca43910ad1e463fcd",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/views/studio_dashboard_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/studio_dashboard_view.dart",
@@ -2818,11 +2818,11 @@
     },
     "backend_v2/models/dtos/atom_evaluation.py": {
       "target_file": "backend_v2/models/dtos/atom_evaluation.py",
-      "target_sha256": "57e730209331b908a6a74bc53fe2baff69707e179ab306d57889dc355adb9a44",
+      "target_sha256": "5d03fa6c6ac06e58e3b12e98bf391eb6ea6072c6c38806f5f42098576e5410f6",
       "unit_test_sha256": "28e739eeb259c028821b38b4796484599aad64de45ce65b11e96476ef06c2072",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "04a5de005e825199e590a732b8f9cb2e6a887100626f29c97821b3854b32d6bd",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "8ce02a49160a9216a4e89e56f24effab3484c2bee2ede1eaaf59dd106bc56767",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/prompts/synthesis/synthesis_directives.py": {
       "target_file": "backend_v2/models/prompts/synthesis/synthesis_directives.py",
@@ -2858,19 +2858,19 @@
     },
     "backend_v2/services/orchestrator/matrix_reducer.py": {
       "target_file": "backend_v2/services/orchestrator/matrix_reducer.py",
-      "target_sha256": "6db974d9d94f0ddd2e545d861f208894bd5061f19259e0657637757193168c35",
+      "target_sha256": "6d20246ff460c40e6c11f28caac84441bf7b41f2cc8564a6a47ec66bdf12f0e6",
       "unit_test_sha256": "2f0aec699538b29e8a2a3e3163de2079da3d06e477901ffc2b7241ec990262c3",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "61defea846fcd2f37dbb37af428f368dbe4aedb8eab638185a1ae9b6c753320b",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "45fec63f9a4f36b803fd92d534fe3fd5529dfd0c2fb096e86aa260c9b3033069",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/orchestrator/synthesis_payload_compressor.py": {
       "target_file": "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
-      "target_sha256": "93ca5e70fa0c187f6a7d78f75d0e8b876dbf31afd71823f1c1ebae2a34ffe33a",
-      "unit_test_sha256": "781bab35cadb3e51c9672ec429a2122b6f972de88668d52888982452580e4aaf",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "bd5e82d9ec683390b3b33a60514c59ed363eed2a9b2ce8b6de63e0587d73de54",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "target_sha256": "3fa20f61336ee21f802ac86593e636e69c3cc7b8d1fba32b585f7cd315e402fc",
+      "unit_test_sha256": "acc9c8bc24081ed3b6e1c103d6b7a5090c24b2adcd2e28db094867c97799bc8a",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "820b81c512a576d23daa8b642ac13c943d8f04736ebe8f1288114c719a494dde",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/orchestrator/two_pass_atomizer.py": {
       "target_file": "backend_v2/services/orchestrator/two_pass_atomizer.py",
@@ -2922,11 +2922,11 @@
     },
     "scripts/_dart_guardrails.py": {
       "target_file": "scripts/_dart_guardrails.py",
-      "target_sha256": "ca8064acb2e7098c8649e25aaba60f9be2031c9201924456bb86c53157bce7f7",
-      "unit_test_sha256": "fe8120d4ee3c2887f32db5975750f96eb2e26754b809c101211f639b062a6d37",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "985194eeea8f88f706d186048557e216708dd02c3bc302473eecd61b45548223",
-      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
+      "target_sha256": "5ade29c01f643f5fbf6bfc5f6c3f495ec0a1e9220585af234b8ee957ea1e0d13",
+      "unit_test_sha256": "55054b6b2c491af6f3f23316a9da234a3fccd7adf2b171cc955aff5ad74f0dab",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "d9811e6a886845b3a0634f80f765be1e2aefc1ebd4ead64a4afd269913870fbf",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "scripts/audit_markdown_boundaries.py": {
       "target_file": "scripts/audit_markdown_boundaries.py",
@@ -2938,11 +2938,11 @@
     },
     "scripts/flutter_audit_loop.py": {
       "target_file": "scripts/flutter_audit_loop.py",
-      "target_sha256": "9de27d69113fa4be16c89f2badb15815288d9e8d24dd1d13955d64204196ccb9",
-      "unit_test_sha256": "596ec127420826339cc5504d109cb6851327f41c3d7073e85445092390417611",
-      "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
-      "composite_sha256": "bd099f9f0d9e4c773f629604db7088df1ab20700f77edfb825b242cc66f28f6e",
-      "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
+      "target_sha256": "7b8b41fa1a0fdfb02ddc07c066aaf7d9e1e20b5c911ec6021b045df3d2b29e74",
+      "unit_test_sha256": "aae3a3f2f39c168fe7603001ff7347f3a4791e3312d8888fa6f0098bfbb5e1a9",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "8e50f38dba1cf2581c52376dce5eea215ed9e79f01df3327a2564540d99f47ca",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/router/router.dart": {
       "target_file": "client_app_v2/lib/router/router.dart",
@@ -3186,27 +3186,27 @@
     },
     "client_app_v2/lib/features/execution/models/distilled_evaluation.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/distilled_evaluation.dart",
-      "target_sha256": "8f58f5b392c9e9ac08448048a14ce43b33512c51e92ff7ff64fd94cff99eb9f1",
-      "unit_test_sha256": "f099b6228ac4f9f90d516ad9d9a126de37f45faa6a60388aed18314d1283226b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "0c6859ab453c469f53c2e12cff3b6c4990285f09f5c5c050d37771847bb5da1f",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "326b166658e1ff9d3e69ca15d55c6aa79de37f1e95eed962f1b513fe0b5dc3ac",
+      "unit_test_sha256": "e707e9f827c6c5b440c87e78037c4e2b8f40615cacb7f11c123461f4c04ea0f6",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "2f348693b7452f6c747e48bd8df41d22f0dce73b47e3b21ddce70ea7388e2b50",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/models/execution_create_request_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_create_request_dto.dart",
-      "target_sha256": "f76b04e6d940e56bff5234ebf2480638d40ca1cef19b1ba6780a4cd7856eb822",
-      "unit_test_sha256": "a828b985f4ed5d6e1d611b4ea4607ccf26b6e243ee8017b893dbe6e935c04e45",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "8a1262cc10c4dc9920b442c596099dcdda534ab21f1723c1170e5abbe92b2b87",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "4a2773b6e1002718049691512be6230d336b071e725347c23cff826957f05984",
+      "unit_test_sha256": "8accf4371bdb8ed081a9f3a06b0af787b4c46bd313156ba06a792d83763f68f4",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "2b6aefe5bcd73a1fb4d69dc2f415e21fb8ffda0e3ffca90db3eb4eabce1e434b",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/models/execution_metadata.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_metadata.dart",
-      "target_sha256": "d9ac21c5edadb43425e1e428650c8e4bc97f63f8c94b2039e0207aad01113353",
-      "unit_test_sha256": "f04cdd9da2cbc50f0847ab5a11d69eb28b10c0bbe11cf1f51eaf81d2ba67797d",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "e67d4f5e47b8fa842c774336dfc5f28657be6e12fd68453a78f3c7a15fcab777",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "0fc82c250075f36b80f85325fee5e2e4ceab6df6abec8f8d4099b1bec6ee0144",
+      "unit_test_sha256": "d477f9a84583512a14a926e5e91f5cc41a317030b888de158385d54ea9174739",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "e92b08f2a732b66d8149bb8f8d68a780977c2a568eff642c317596acfb0f6609",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/models/execution_metrics_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_metrics_dto.dart",
@@ -3218,19 +3218,19 @@
     },
     "client_app_v2/lib/features/execution/models/execution_record.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_record.dart",
-      "target_sha256": "cecc592b216a80c8e2c41cd2e388638987af13c8812123e5d96e1a47c875178b",
-      "unit_test_sha256": "5c8a513a81a84ba8473ecceb6569bdbba88af1f2f9fcc1d7d1b5b3a250edc9fa",
-      "rules_sha256": "b6572932fdfd931b45607bb8be5664f9419124b404a4d13eb601d82488d0aa2e",
-      "composite_sha256": "b4e270f0b097c7d782e5a71a8239f167395845677804cb7c750339e551b409e3",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "target_sha256": "566788c5edb85c945430bf3ffd21e51ca9f768e00f34883ce6331c05f873cecf",
+      "unit_test_sha256": "d8e68a57cb1a548ae4bd39adb113cc206b34a1152cd3737cb58db8e822309207",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "1de277e855d24852d6e84e4a046a6c47b6f9c676a5493f7ea0588aa77a6797f3",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart",
-      "target_sha256": "843409c4b5060d462ae1da3ac1b0fb3c45d7c1a4f9e0b6029879f166c83eb866",
-      "unit_test_sha256": "8f393d544169da4758eea1e6aa4999deee835a6bc4633078e976de2fa7bb80c1",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "26c827e3f2cd36cbe8ac272b349d9a376985715ac6c4e1af77e33f20c4cdc9a0",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "405d3021ed352ee06ff1dee5c00eb88d2830bb5dd6778a86c6a44ac4121df825",
+      "unit_test_sha256": "3e99386a65486b76239fb24a505e6267d1460d7ae6a42878121c8da51d9a9a62",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "f72713e62335abce48a860cbb26ea2e3d44dd92533023f89ff91cb1bfc6973b5",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart",
@@ -3242,11 +3242,11 @@
     },
     "client_app_v2/lib/features/execution/models/report_data_v2_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/report_data_v2_dto.dart",
-      "target_sha256": "015c2d4e742e70b0dc81aff4867847e28c948673d4e4cba6d52bdb7de448f589",
+      "target_sha256": "468c83905a288252b39fb0195d81494fc42ba07671488d1e73494691d1bb442d",
       "unit_test_sha256": "f94f0a6e0838459a1c98979a80f71774247fd05c79185d5e5f276a69a308fbae",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "c94e52b03e8bc3175673b8ecbb8c68f03729f701d7817c466b870b65d3589b70",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "98a7dd5f7ee6ff679d25482ef68bb5db1a75209d069297b867e3c778298e5000",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/models/synthesis_config_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/synthesis_config_dto.dart",
@@ -3266,11 +3266,11 @@
     },
     "client_app_v2/lib/features/execution/models/workflow_inputs.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/workflow_inputs.dart",
-      "target_sha256": "63a670236b84df73c9f14515ce88f55fa7fb10bdae0da52321c7cce76fb0e73d",
-      "unit_test_sha256": "f41b4a880eab61cfb034229557a23caf135003edcd9351706b61ab23f469ca0e",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "5238eb675de781b0f2d58f16fe55dd353f242fa2efbe624f65d1f143ab2602b7",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "b5a6a1e898bdbf76fcbd4a9e62965aae0914b6467dde469af16a9498317ae7ba",
+      "unit_test_sha256": "316740d224d24580a646e288381fdd3e65c627df3f212b4892118b82b67b026b",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "9171453985417c0a38792651f1bc5fced346c7caaa91ab5b83781b83270b19a6",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/reports/models/report_artifact.dart": {
       "target_file": "client_app_v2/lib/features/reports/models/report_artifact.dart",
@@ -3306,11 +3306,11 @@
     },
     "client_app_v2/lib/features/studio/models/model_config.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/model_config.dart",
-      "target_sha256": "055c19219a57f5785da1af3d9e03e95e439534853ce1da2300271a3771ca8144",
-      "unit_test_sha256": "572545ca848a84689e6c3ab5f1f7ad381a904751a05118249e9cfd544df4ba6b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "33a974625b2d9b772fe0c18e0650cb3a1f3226b137a5a2870fd9c1b2f7b3a3d8",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "3065196ca08731a6c40dfddeb44aed985d0dfaedbc03f86eeed5a36e5dabcaab",
+      "unit_test_sha256": "5adfa8c4aff5fa98a4eb071985978f9ab279570666c7e8c3b64ca53b9f0d94a7",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "85a92477af201248bbdc9abe8119f572dad8b8d0d7fc122e4e1a7aa02dbe49e0",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/models/output_profile.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/output_profile.dart",
@@ -3322,59 +3322,59 @@
     },
     "client_app_v2/lib/features/studio/models/prompt_block.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/prompt_block.dart",
-      "target_sha256": "4a98ab65e5200ec62944fe7ee061890942092fa0fe7baf518cc970e7f4270c98",
+      "target_sha256": "52fdc6764c01c46b71ee1269347203f1cbf7d86d8a2095c7735106bd3b25e13b",
       "unit_test_sha256": "7ce5c1c6a183d3b297ad4a658227a4dcdc7d02ef0ee030b52f69aa2fe79413f6",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "5c41fba7136941d87e8a04bb5ef6011ffef1f830f5fae6f0726316b184be088b",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "becaa18767a051db426b81695c9ff97e74553a961ac96d05576eac6044eb0971",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/models/prompt_block_simulation.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/prompt_block_simulation.dart",
-      "target_sha256": "f3114ea5f492766c7a93f9eed836f700b14325b713b3e105e52379c4582a6886",
-      "unit_test_sha256": "b74fb55d67d60f27435f666d0edef4d2f06bb835d503518fcadb9f37c20f8497",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "9710cde8e78ee04487e844ff4bbd5b277375f8610b0a383cd44e41c6bd60919f",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "536b3db5b2fdb921dd54954d1f4c0aa33142099efd33e9e6874b5e1c65ce73ea",
+      "unit_test_sha256": "f34cc8e035a2ad3307c4ef9cdb95a3a7f2ac4e62cc2156936bbf9cedac483961",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "b57392e7152b831848a1c1a16836139f0fb5513b497e6572857ac253d962c02e",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/models/step_simulation.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/step_simulation.dart",
-      "target_sha256": "aec40bdcc20bc5a3758d2a276046d06fe5614fa75509fdeb27344eb86b24a0fc",
-      "unit_test_sha256": "cb546620a008104c7c41e437e8399d0d998abb0942421638fefe6d9810fa263a",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "2f194b79b2802713745f9df926f1078d509bc441010dc75af26a61a73984587f",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "91fd31a5ba08bb08c504c65b75f211c5523e9cf5cb638fc6db361b05ce9dc9c0",
+      "unit_test_sha256": "967ce262aae97975793e618d904a5f8245011e74d5aeaa53ab6a35746e390fc2",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "634d6f7df95d6f5935f74f84e19a0ef6acfd95106e10b9f2ff073e8816371f87",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/models/workflow.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/workflow.dart",
-      "target_sha256": "372591b83e069b9734e7b1adf9c620c9a5ec0e0071d85e160ff62b2f48c1de6a",
+      "target_sha256": "b7695824e0ca41d3a23621a47ead33f117bab85f54ab902ab451b0471d3921f3",
       "unit_test_sha256": "134a301cb920b60dd813e9bdf1993198f1adfd84afb47b0b64129fc5e5a54bcb",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "d04a4ba44fc311e57c6e4626a966efe8f2d61c74bfffd38df99f88ac1605b394",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "8058b5e3d02695ea7f6fe1403ddb221d32196f438a3a4297da507e6de5918ef8",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/models/workflow_simulation.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/workflow_simulation.dart",
-      "target_sha256": "e9cf8718c8f397efae041a139212fd35560411c01d51607205c752b1341039f6",
-      "unit_test_sha256": "cceb6d8c32415135bffb8739a1088f65dab7968f353ed527a70513086274a127",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "7e4d1bb3f36d90ccb129f30994b125e1e2e1932dc12d6d9f3e3009ae16175602",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "6f4976db9cf7514446e1a482bbb54f2f42464fe0e76c0757dfc9e949627451d8",
+      "unit_test_sha256": "05068edd167e409215dc178548d6ef85650370f855e825f6829d84d97b050c1b",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "ec2125b8d629d7760ba1836d2d41fcccfc431392c8a6c6fbbb22b297d2a6e9bc",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/utils/workflow_cloner.dart": {
       "target_file": "client_app_v2/lib/features/studio/utils/workflow_cloner.dart",
-      "target_sha256": "1bbafa9b4c68a2cc6e8e5de48b46351cbaaf30065811c71e7c3b91f3c53916c2",
-      "unit_test_sha256": "2241d023d26464ee41d21ba79841a1568fbb444d77562fffb4dfbcb27d77696f",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "f3be93c36b955f24a87ee639a4e305f6f0e44f05abfb6282319ce66c512220a1",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "ac4cd9bbd864f6bff915ca13623297927daa96cead3438e95833a7e87086d07d",
+      "unit_test_sha256": "8e5f02cb1c22aed8306d994c161a829ec2cb5a7a6e194fe6d82e3e627be4618d",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "d3b6e7d83ef7c5a8db459529191bc56cc1509c828f1c2302eab084e631201d73",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/controllers/execution_controller.dart": {
       "target_file": "client_app_v2/lib/features/execution/controllers/execution_controller.dart",
-      "target_sha256": "f11bff44a16ca41954e2041c48e546961e88926385a648d3b66dac914e287404",
-      "unit_test_sha256": "46b646e74a481911eeda7c62b28e4122d50e54c8f3a7e18679bf68970bdcfb79",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "cebf3e332cf1220cf35b66745d3bcdbc648ad17123c45a3386072a13046ba87a",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "f1f0d9a659ba7ec33484c5ca51efd39cd66f3dacb3b20a56ef274f9ee5f5fd12",
+      "unit_test_sha256": "ae0895bbf1f0d4bd0853f828c84ff6794aee701b5ce8c3138f2922467a8f5e07",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "34fdfe6f5238d7af875c38c166f852604cd03c323e7440086740fa8766a90fe0",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/providers/atom_result_provider.dart": {
       "target_file": "client_app_v2/lib/features/execution/providers/atom_result_provider.dart",
@@ -3410,35 +3410,35 @@
     },
     "client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart",
-      "target_sha256": "bf636c05dab279e557425dc8653d1e0a78d30e30444dc2cd1e1eb4f0fbeb6928",
-      "unit_test_sha256": "8f1f5283ed2a7dbe3e8d685537f9e85d4244b68884a3ed204599dfe34cf6960e",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "02294328e9c59ed8acbce7a1e855c4515c54d6547c390eda857c1d35ff51c305",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+      "target_sha256": "247fba400d2a5847a4d53615ecdbca035965ebaea7dd1275e91449b5750d657e",
+      "unit_test_sha256": "91d851771cfe83cce33d9457f49fc81e6fe72a6d04cb9a24889b654b74d3f5c3",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "399d36848a0ba05296695ba2fe5fe89b7b9260e3ab1ccc1c8a175b6d6ed1bd6e",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/views/dashboard_view.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/dashboard_view.dart",
-      "target_sha256": "c9671e81c5d5e95e87b28242eb233695d62f5bc66eaff82e5e9013a48c073e43",
+      "target_sha256": "859784ba8fc329ac3e3051cb169ce843d91cc09d137ddfe4b49ebdef99a9aed6",
       "unit_test_sha256": "1eaf8f55d5c7750941168dd622dae61d9668517315ed15a7bdc89618fd15cdab",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "99545760ffe25853b09c9cda144aa103f6ecea63cea71e0352f2edf89cc9691a",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "e7964a511834e38cae3faa178fe564691b607e6455ff518d2e30b90a1a7de6c8",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/views/dynamic_start_screen.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/dynamic_start_screen.dart",
-      "target_sha256": "c7024215e94cb83687be38c6c4b49d34fdd2b054700460342f9c1f4bcf361241",
-      "unit_test_sha256": "17e45ae90586646a0092527369660085e5e71690684493e972140a0f89681147",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "a9e2695bd73891a127fa0f12e0b98d410e5c4a3a7389d9f46e2b3449bb5b691d",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "1432fe2aea10a82bb599d9481a03c8b555f996b58cd854c7d93c3caa73fc7a69",
+      "unit_test_sha256": "a663d0365b84d9f3dd741df449e05e47eb45dfbfbed0504d5d01920a91025790",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "61f9495f938016f8ac217c160299193515d886c0a03625a1b1dac4f951f93f7a",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/views/new_execution_view.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/new_execution_view.dart",
-      "target_sha256": "e75a53b4f6caef9dce8dc4e971f93136fc90db37d137ca28030631b3c7c60b99",
-      "unit_test_sha256": "1893df4565058d581435f9cc46b64b38f44d79c37a35bf561d3283460a1d530d",
-      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
-      "composite_sha256": "e1fb945adb1f57efd14116ea9b17d7e88a2dbabf9b489fcd6e8552d722c82212",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "8bcdbb204a13355602e6e2f900c40d2ede2ab88c436c0abae8185e660e4df5b7",
+      "unit_test_sha256": "c789803de7809eb7b56d1989fe9000301515841d4bcd2740c2aa02d8bc593e55",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "84e7d770e3125562dc89d35f59fd501b0be170e4546e7fbc48b6fd404fd4fa97",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart",
@@ -3490,19 +3490,19 @@
     },
     "client_app_v2/lib/shared/widgets/audit_trail_viewer.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/audit_trail_viewer.dart",
-      "target_sha256": "680c0f18edbfde198b735de04b4b947c34796b5f7959825e88e4e6c626db7b56",
-      "unit_test_sha256": "84622c4021321d26e6ce8f84830a7a0033947a3cd3eb5c2476d8db3f87ff9023",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "66c9dc50203087157ff4032f762f7e2ef0d27d7cc701a2e110f440b334a20f75",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "e57fe05a109e24f628fa7a4c7554c12c1d501e9cdb8eb725e5b3ebeceadea467",
+      "unit_test_sha256": "5e622cd0251ba78a9b6a2fcd49843e9e4af2555354cb880ed2b1c0d55af73ede",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "cb9f721292252aa2edaf658d295f86d169d953fb7d9bb10206b3d6e790a913bc",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/comparison_matrix.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/comparison_matrix.dart",
-      "target_sha256": "1511a438920865bf8352ca929799584b3138888a282974bdbc5fe6bb9c24b4ca",
-      "unit_test_sha256": "9a99a3067356040058466439251d817a181d5db549f3b2d9e974ccc3ad75c22b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "416538acf583a795c52502e6eedbe22b08f206021af234186c473b80653b1319",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "1c1c1e8d92394263e618692c1d30fd78d2f260a117818c3f87d62d1a22c04441",
+      "unit_test_sha256": "51919eec8029a252bdca036911a07555da2b73df3714d8067c2f799274ee6bbe",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "2dbd4cb42a4609c858676bf5584bb5fc7cdf2577311255b80865de8e8904b6d0",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/deep_dive_expander.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/deep_dive_expander.dart",
@@ -3514,11 +3514,11 @@
     },
     "client_app_v2/lib/shared/widgets/dynamic_form.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/dynamic_form.dart",
-      "target_sha256": "112723383bdb2eb27ccf572953583a58ebbb794dbb0e3c8baa3e11d37b4b6985",
-      "unit_test_sha256": "e1e57f7685de6360dd5e71d96b5da465337b840cb112bd8efca38376387aae9b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "a677f723ebfcae003ecc915a0683e8b16dd2bbb6b75055d7ff73c276f93bcdde",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "5bec4c5076a1d1d3912f4e3c702b01295537c6613e91ca9bcc37a595c61b81a2",
+      "unit_test_sha256": "f342c73104d636cb7672ad080a95674e89da660b4431dbcce821ab0303d79dc4",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "96abdbae48212be1911b2ad1c93705166e208aaa5b608f373dfaba8458932e71",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/feedback_section.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/feedback_section.dart",
@@ -3546,11 +3546,11 @@
     },
     "client_app_v2/lib/shared/widgets/generic_grid.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/generic_grid.dart",
-      "target_sha256": "c09eb9652ccd72b83a7f981ea2a51500ebb7ed7a026527346c3c1956b070def9",
-      "unit_test_sha256": "81f7f62de42d6314d790f68a9626841737a4d2f8a06797a585efb438e0e8b46f",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "fbd6f8b563f65caf8605b0811cd5652adecd5eb55c68cdb3ed6b846f5eaa66a2",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "71257e93f20665aa2b9c6378a7100667f73034f4e6c9ad70c68677f2b26a9a56",
+      "unit_test_sha256": "204253c20c51267ef08ecb64298d154a43fc5d8d2f1a712967e3716c82d69783",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "9ffd092105a1aea0a22b0150f4c6d73db05fed05d438a0a32280522af9100488",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/global_error_view.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/global_error_view.dart",
@@ -3610,11 +3610,11 @@
     },
     "client_app_v2/lib/shared/widgets/pre_mortem_card.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/pre_mortem_card.dart",
-      "target_sha256": "ced88def5d57a7f544d63998d5756d8a835b9155f62597f58171e027ae582fd1",
-      "unit_test_sha256": "55c5bc354b6d244538435cf870b2e1d06d5afdb166f5f3aec6e1331da4df08f2",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "0f31803b23d1d31961043f731da6a1581fd798a88cf86c8effd2ea996ab6557c",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "dc1f1cfb344a1167a937fae584d4a22f30c68f0398ec0026a0fd4b969eac3a7e",
+      "unit_test_sha256": "480de4349ee4ff2f1418bbdd78f44b71a0e638e3483a1f18b93b321bc4ebaa37",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "76291f13589080671ccab03097914bd65478f066c70517494556550bdcaab053",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart",
@@ -3626,19 +3626,19 @@
     },
     "client_app_v2/lib/shared/widgets/result_dashboard.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/result_dashboard.dart",
-      "target_sha256": "413592981bc68014d6e60d0538d9b1016074654d2c40cb04cdf6c5c4228b0bf0",
-      "unit_test_sha256": "8a7aac12f746d14ad3951e11d76e1ea92d845a59c07bf79582e6f22cb486fe6b",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "0863971174af6d49ff12675e4beadf488a1f3049bc566cb6c83e2c0128ae905e",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "c5ffb1975a49c4fcc7d1c46fe1d67f79d249c9e65edd6f14b54ae111dc4c8e8e",
+      "unit_test_sha256": "fbe42d2728abcf8e825233470f850653040ae7d849acfeb5d68971de3690056e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "c4719a6fdb41559e3bdcf240b53eb37796b74073cc812d75dbb31947370eadd4",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/schema_mapper.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/schema_mapper.dart",
-      "target_sha256": "7d41caf87b3cc85294269cd2ebbf3261358d39941335a86703abe363f92958aa",
-      "unit_test_sha256": "f00e842a1ec76c8df72939a968a0428bbf194e1570a7a1f366ef17a7d68cc7c8",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "54515cbc57b9812ff1cd454a78aa37849e35de5fc7290d802f55e90f090190b6",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "f9abcd3228691aa65fe3750ce08fa55f4bb7a03e0ad18d1e1cd9714c0b2fc2db",
+      "unit_test_sha256": "343a62460cfd6342689567479dd71ce42b868554f899bb55f7240fc43ac140ae",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "3c0a3fd59d129443cbbddb2f8c7cc06912e0f8d473d5a53e2067f0683303f877",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/score_card.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/score_card.dart",
@@ -3650,19 +3650,19 @@
     },
     "client_app_v2/lib/shared/widgets/score_card_radar.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/score_card_radar.dart",
-      "target_sha256": "50681b7d1232473e817cb937c55d5126f7abb81c5597b15cd1249bb9b2486fb9",
-      "unit_test_sha256": "40f0cd869991904238a7e6a5b07aa48120751f97a294e80b46f55d742f0d2aa6",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "5a07d4e8342ec11b928a01b7a255830dfc67a83bfd976dd865307fb5e210728a",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "0a26a78ed9de56d36244a11f83406769f90bbe9f47578ea484f0ae5a55f672a0",
+      "unit_test_sha256": "5536096f48fc681aca6b203f07dd2819c121c6778b6e4ecfe71c1d8f0ff5d9cc",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "46718125fb17385a092cf5ded76c4dc224acf1e8374ede836c50f14b081a8023",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/specialist_section.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/specialist_section.dart",
-      "target_sha256": "ab1560b74d143c93b4f90a07b578fc800c5fe9a0edc8d593d8a492af82de12c3",
-      "unit_test_sha256": "764e3c2e86b27b057094abce6ec9792e0b3dc5e0ead388a07d2dc72ab36b92bf",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "fbc811f7ffd6d8c5c2c7ef842df496e74c88505522d339cb4f64ed4e7856dd52",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "b0f7866a8462958f8964d8b739c28f4eb4a53029eb0c13effea0ac2cce963369",
+      "unit_test_sha256": "77e3c3e465abd95e38e7aac7fa842558b4048915948d2a8ebcc9343dacf66213",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "3b40251db35853dd3ccc6510b7a499fdbb5c0d365353b1afb916f356e1a4835f",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/unified_metric_gauge.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/unified_metric_gauge.dart",
@@ -3674,27 +3674,27 @@
     },
     "client_app_v2/lib/shared/widgets/validation_timeline_widget.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/validation_timeline_widget.dart",
-      "target_sha256": "67725912a0d88f015eda3d0a8bb43af9cfcd0e2ab60754a7ed02779088d95eeb",
-      "unit_test_sha256": "28bad38955a8b43c3a955e66b021972227089cb06baede9ee930cdc23eba5fd3",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "b23339d8db27193a0b843236fbd44f062c97ab662df932011987cd8fe85835e8",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "00cfa4ac84766020b29c969493611d08c686a71d49bacc02eaf906c0d9653a1c",
+      "unit_test_sha256": "bf45f43ffbc02932294e1ce14602a1f18fb5c325032956b98ea61d4818e64219",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "f61bf9217f28bf1742aff9d4bf978102d57af7aeae084705093c2d75e28998ff",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/shared/widgets/workflow_selector.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/workflow_selector.dart",
-      "target_sha256": "b99790a37cc42ca8d07926b63f7fbe11aeba819121d265033ac958dad0a70d2c",
-      "unit_test_sha256": "c915b2be06e5ab792e15bcb8562dc20618f7abad05caad31b95338ade7cf1e87",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "83dff3542acd6379d78aebca862f177202420e0cdea85bd54796c026de229e84",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+      "target_sha256": "26ec6994c077ab7c026e2abef7c6dcbb7a8c78c0bae864b195205e4716e27880",
+      "unit_test_sha256": "a15018e5fa57349864fd1387b093257bd74758dceaf034888b35f6a6ca2d3ea2",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "dd237d6df02990a84b9986706031c09efa80d07ca6c724f57fa081f1cd20a12a",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/views/blueprint_editor_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/blueprint_editor_view.dart",
-      "target_sha256": "bc56dc9eea7d07be3a7f2133f2110c5077eab712096d0cdc2f23fbdbefab3723",
-      "unit_test_sha256": "5fee95dd6a086771208c65cb76a49dcb9543e560b8d8f4abab394f0579bc22db",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "17634798ffd1b4f90289d93e504543f358e1f257cf0b93f1d2cb9b593d1e2197",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+      "target_sha256": "8632a10061d1e053016977c83bfbb3a52627997e6dc2285bd19e7a8bed460e93",
+      "unit_test_sha256": "4330a96ce40fb05664e8afb1555e12761d176c6140e42a485c936bc1c913c1ac",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "9deb353a7e46c60cea3d22f5cd36524fd16018e2793c0be7bc417803fcfe7519",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/views/components/clone_entity_button.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/components/clone_entity_button.dart",
@@ -3722,11 +3722,11 @@
     },
     "client_app_v2/lib/features/studio/views/model_registry_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/model_registry_view.dart",
-      "target_sha256": "1dad8279979c876d0cdc7cab3db746968a8cd434b036362c3410320548e61bbd",
-      "unit_test_sha256": "e320e1dcb6ad2cc77de18f5ab5d8a2520494445f7a8cc1592f0f27b4f769feee",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "c66ce84d5de3f8140f19e7450113887290c7f16c0d5e18120ca570e723d58072",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+      "target_sha256": "9aae36d64c96bdd1a578bf7df83836c648124a0ca10ee5939bb457487c019130",
+      "unit_test_sha256": "f1b067a8063c092cbea02fabdb22757773e87dd0129c46c50b514e80708d8f7e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "80afc4ff0873fcdf12d6f0fcdde7939742e7cc941c0c5f056808d5cbbcb0a604",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart",
@@ -3954,11 +3954,11 @@
     },
     "backend_v2/models/dtos/trace.py": {
       "target_file": "backend_v2/models/dtos/trace.py",
-      "target_sha256": "b814d96de0796a9bee1bd3c68ea40e3908723f3c6205b8842cee69b1ce3a0510",
+      "target_sha256": "b33eb87f5751257f48de736ab91fd19f64c56f6a1c80fba0ccb7a28d4bdbf8fc",
       "unit_test_sha256": "a8fa26c418511716a7c68ca114944aa13b2bfb0a5aa24911e359037bade84315",
-      "rules_sha256": "b6572932fdfd931b45607bb8be5664f9419124b404a4d13eb601d82488d0aa2e",
-      "composite_sha256": "3e5180baa53fc5f8599153e7dcb997e95aad373c64d06aff561d91a13736f315",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "cd4fce8e32cfb95551380d0e16ce23aa3173216c31fc5cb79301838f29a4617e",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/enums.py": {
       "target_file": "backend_v2/models/enums.py",
@@ -3986,11 +3986,11 @@
     },
     "scripts/ablation_live_executor.py": {
       "target_file": "scripts/ablation_live_executor.py",
-      "target_sha256": "a3639a2fb43055bcc35479e2af2f2b6728873e3585e347635a2d0321ec0a4d08",
+      "target_sha256": "5caec20e16c28e4133548397576d67f39d438c7c159c3695c6436d7f8e0e1458",
       "unit_test_sha256": "8ca6566c0500898309fad7ccf7b6661e76dae2ee5b7efc70bda95d078b61353b",
-      "rules_sha256": "b6572932fdfd931b45607bb8be5664f9419124b404a4d13eb601d82488d0aa2e",
-      "composite_sha256": "25c5c42869dd508cfc1618d297ab96614ecf5994ad2f586b6ca5564c443d7a96",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "2027dbbbd15c6bfa8f310ce1454d0b2df6f8e7fead82271ba808a5ef048967c0",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "scripts/audit_zero_orm_strictness.py": {
       "target_file": "scripts/audit_zero_orm_strictness.py",
@@ -4002,11 +4002,11 @@
     },
     "backend_v2/exceptions.py": {
       "target_file": "backend_v2/exceptions.py",
-      "target_sha256": "595992bc96d37fbb81998f1a8435922cbe5af14d6b7131958aacf8fe3d11f89b",
-      "unit_test_sha256": "3f163e553c34e0e573a240d6f4a56565ddc64aa633b3be8c13df695fdb11c18d",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "07e1656d2aaf36d229e66bfa2000f9f538232916bdd7075750ee1d8fa3cfe549",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "d6099bff0ba8df49cc2aae52d203ee03edaba2778278ad0c2983e32c334ad271",
+      "unit_test_sha256": "9ff87b50ca1dc6fd0ac1d1786a18695e82d5bf6c263868faada75ddfd2cbcd1a",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0894b5f9e49bce803843f8a24630a773c492ab60d425c137396d5504d16bc2de",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/database/interfaces.py": {
       "target_file": "backend_v2/database/interfaces.py",
@@ -4019,10 +4019,10 @@
     "backend_v2/services/auth/secret_service.py": {
       "target_file": "backend_v2/services/auth/secret_service.py",
       "target_sha256": "0977693ed2074b54b47a74491219bc5efc86674599f195864b2ef83003b5023f",
-      "unit_test_sha256": "a084ea8cc2d0dfe74c0a6a3c5a3fdd04b65cf3863871ee5a9abc16aa53d5ff31",
-      "rules_sha256": "3d736e5bc1d141dd41a65e49b3a2c02c5a48d3d5fc9a8e2e9cec0f1073180182",
-      "composite_sha256": "9d3f53585c89506872491d4e7c8ed3409fed6fb9fd5dd9edf4e6b9fde26b1d4d",
-      "source_tracker": "docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md"
+      "unit_test_sha256": "f92d6d24971341ab28a2d7b313550074f28cf0ce1c4979000d81b140fe01e823",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "7025c77c067c8b21ca598ebcc6145883e9a42f5002efbf66142e1ae221aa0e25",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/auth/email_service.py": {
       "target_file": "backend_v2/services/auth/email_service.py",
@@ -4034,11 +4034,11 @@
     },
     "backend_v2/services/execution/assignment_service.py": {
       "target_file": "backend_v2/services/execution/assignment_service.py",
-      "target_sha256": "441a930d0217132f46a0c0345ff846c2d5728a34f2a0cf7d1f78c1e7078e93aa",
-      "unit_test_sha256": "51ef32729be2c0078f7826a0f4bcee65c0649c4d63edb8ca0c157f099d2ce388",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "6297ef8d5c67da65f6434dc5b8a0f20609613a8e3ef296dc7189f5cd224625ea",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "76be37c7f1345b5ce9fa75dced2bb14ac6d388e956f6c7a221c79afaa0735db8",
+      "unit_test_sha256": "c4451889645edaf8d4d35a4a90313d581f237b2775705dc2279cbd7a1e158451",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "cfa5a9d29553e4fe7d4c27e36fb50c0d03341e3b028a615d4c13075babe6ef93",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/services/execution/lifecycle_service.py": {
       "target_file": "backend_v2/services/execution/lifecycle_service.py",
@@ -4050,11 +4050,11 @@
     },
     "backend_v2/services/execution/ingress_service.py": {
       "target_file": "backend_v2/services/execution/ingress_service.py",
-      "target_sha256": "145314fc0bc098cc0ddc1f760c7476854d05503613609f3e08a7421497cbc87f",
-      "unit_test_sha256": "1bfd7dedbe737dd00cf2511b083360dcb609d993b9ec0f3e1a68f85daca0efda",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "f412c0716bd49c7a0ded51dfe25debef03ba4d9da87e0a21ab1c92d252680386",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "33a8533142319eb68737a17cbb272b4de25c65c7d1f2850e81c170af49907f85",
+      "unit_test_sha256": "221e4482b53fa47d7a3c9ea1846bb1a2a454b76ede07b3fd528e5d6aac42a861",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "1ee6a27136f61e8363b150ed3f6b93305696bfe66ee4cf4ad5b2a7c7b6ade1f0",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/core/redis_security.py": {
       "target_file": "backend_v2/core/redis_security.py",
@@ -4194,27 +4194,27 @@
     },
     "backend_v2/models/dtos/mcp.py": {
       "target_file": "backend_v2/models/dtos/mcp.py",
-      "target_sha256": "8aa2dc8950d1f8872c1fe2608b4c367cf50e06ca2399fa69073ce00dd23d37f9",
-      "unit_test_sha256": "dccdf26cec56195e4b06dd0541df1c410d1bc0cd0417234211af77b3a88e9f25",
-      "rules_sha256": "747ceaf66ec2ff8cab18d8f7ed7cf9a1eac6791dbbdbf0b9b66356de95838004",
-      "composite_sha256": "e11d7b299a4d1761d607e9bc487e109a72755cd9fc454b44aec51135ffb97c7d",
-      "source_tracker": "docs/implementationplans/TRACKER_MCP_SCHEMA_AND_TAVILY_VAULT.md"
+      "target_sha256": "5214b528d73fc1a6cf75d5c9b58911d804fb8da290975d5655c0d8e2bb959ae0",
+      "unit_test_sha256": "631051c210984edcc10fca36854e313b31abb60b8bcda23ce6e5ca0996d69b15",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "378269782e73510bcd1b0f0d230eccb55a0e76a958868ea7aff05a9340d66fa9",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/dtos/system.py": {
       "target_file": "backend_v2/models/dtos/system.py",
-      "target_sha256": "def130d037398572539dff3fc34021fd47ae8a31fb4ec873f08f50c5b3cbbc5a",
-      "unit_test_sha256": "51e96e899df940ca0b8b3d12324ecb991c34431315d5cf061ad7d6abc71d31c2",
-      "rules_sha256": "30ce0d7d684e05f6c2c362d428a3f986f35a1b891724d9a2fa09c1fa8fcd951a",
-      "composite_sha256": "0d2d3858e9db2253b5b3b6dc3fd57aed91ed0cdfba18e349470aca2347a4170b",
-      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
+      "target_sha256": "04ad09077be79cae27d00d4d9b9125848ce4c7da199bbeaa90b61d5a6119a5bc",
+      "unit_test_sha256": "4f5af703426cff6d2f15a7a695b9df1e9a5988ecbaeca2decabb01315b7f6029",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "f103bb0dd48074e44e342bd812a2e99de26122b6c26092f4f2a3bfd1aa2b2369",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/models/domain/system_config.py": {
       "target_file": "backend_v2/models/domain/system_config.py",
-      "target_sha256": "9e2c28c3efa557b1aa01be5e8d76d0ed1ce075ddf23424610db998f882defe62",
+      "target_sha256": "cd01524be5f740ca0fe4d94554054149b6069f69af4556bd7edc3d8b56f4aed2",
       "unit_test_sha256": "67e0c832c0f6f382963be376d9ba47c97145b46ffb937f443ea584b6c89deb2a",
-      "rules_sha256": "3d736e5bc1d141dd41a65e49b3a2c02c5a48d3d5fc9a8e2e9cec0f1073180182",
-      "composite_sha256": "57c1fedbee50cc3932af6c85cb048729bdaa376fe70a238f195f8d7163f126ff",
-      "source_tracker": "docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md"
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "32e4cc251220a597851a86d7adbbbb40e0c9b4cdb41e629ca0fe1480ea448a12",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     },
     "backend_v2/database/factory.py": {
       "target_file": "backend_v2/database/factory.py",
@@ -4247,6 +4247,134 @@
       "rules_sha256": "7d3e410a5a5ee7041c10a1ae4f3acda6853decf177de0065fdc09c286241789c",
       "composite_sha256": "4a2ba34d63e951b4dfe535d058a604e9fcf01aa414e991e5c59aed29d7e95972",
       "source_tracker": "docs/implementationplans/TRACKER_Hardening_And_Tech_Debt_SSOT_Sync.md"
+    },
+    "backend_v2/hooks/atom_flattening.py": {
+      "target_file": "backend_v2/hooks/atom_flattening.py",
+      "target_sha256": "735e3aebe089788de4c9b141018de50a60f50c9c7de619896da0bea25f6daf13",
+      "unit_test_sha256": "a27b532b5b8f4786e33ae7d5abe8e5eac6633ec81137cc2da2388fda5dc89dd6",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "3d30277a0b10cd0b0fc0cb97c8ff39da7e26ebe8f37aa23f733d33ee7dde20a4",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/hooks/scoring/falsifier_hook.py": {
+      "target_file": "backend_v2/hooks/scoring/falsifier_hook.py",
+      "target_sha256": "72137dd46c5668a1e0027491877dbf5c227a3d82fc49da316dcb3bd1081022ac",
+      "unit_test_sha256": "1a59a530731f3583c5de8ed58987323c79fabefaef85c6b45ba8124ff3f2630e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "c75b8909b712d51269eedf10b19b990fe34362f1c951bd22d2471a30027e8d33",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/hooks/scoring/matrix_hook.py": {
+      "target_file": "backend_v2/hooks/scoring/matrix_hook.py",
+      "target_sha256": "c1c35124a800d6222438d75409326a108d2f370b7f0c2473a60093426f4a1e09",
+      "unit_test_sha256": "80b1810c97419829f7a1582457012ebee9da4fb8aa2b3eb8e7cb398c654d1a37",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "fa1aa4a0653ebf5b965d626052bf2b17c10c12ab4b043fc890c9613d3158751d",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/hooks/scoring/normalization_hook.py": {
+      "target_file": "backend_v2/hooks/scoring/normalization_hook.py",
+      "target_sha256": "bc9da9dea0148793b1586de60b70c9ab2ec520dd90eef501c0fabc3e9ec9da05",
+      "unit_test_sha256": "1a59a530731f3583c5de8ed58987323c79fabefaef85c6b45ba8124ff3f2630e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "07e4e8f204ae396978fd9e910f25654c925994b315f3a02cb5b93d1bf125ddbf",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/models/domain/output_profile.py": {
+      "target_file": "backend_v2/models/domain/output_profile.py",
+      "target_sha256": "87bb6eeaec334831a68e379fa591b68fc7273c4cb2bb68837745baac20477c78",
+      "unit_test_sha256": "da46e8ce9a46950c9f0fa7ebd64c38e4be98f25bedc85ea31916df216ef762b2",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "3a29868e19700a57d22e76642cd62d3fccf47e290872d943d9ea889bb9f56377",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/models/domain/validation.py": {
+      "target_file": "backend_v2/models/domain/validation.py",
+      "target_sha256": "bd1cb5688046dec0901cd842fc61bd8f4f311d0bda8e81f0e3f3fcc4be79b8ee",
+      "unit_test_sha256": "a2ca7c28dfc60f220b559a041764d315b462257a50e621f7ff7c2b6d7e375efc",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "8d6f0804768dce49ea0bbc2cecac6a90fa6cdf97e61563ebc66db7109c028607",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/models/dtos/prompt_context.py": {
+      "target_file": "backend_v2/models/dtos/prompt_context.py",
+      "target_sha256": "b8fd0bf69458a2647ffa9bb15f81a2a9f5aaa1883ed5ef2fd45f6f7de607403a",
+      "unit_test_sha256": "458e4729620069a80b11e8e173c31b56364366fb58c6268ef41713869198ed0c",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "71eb78e2fff82471e17144e8cf9205166796cb250cd2c47a068e531b03b78689",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/models/dtos/studio.py": {
+      "target_file": "backend_v2/models/dtos/studio.py",
+      "target_sha256": "771a76333ff51e089d2712898761e3defc07edb1d1a7eeddedcb19b993c25212",
+      "unit_test_sha256": "243a9a472a5ad1b2357ffa7abb757e36c475ad862bb2e484a152795b1a8b9432",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "62d3fc8109499f42a83bd752e9dc20881b226bb009044649270c9be59b3f477b",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/services/cache/typed_cache.py": {
+      "target_file": "backend_v2/services/cache/typed_cache.py",
+      "target_sha256": "c1be176f3f6b1eb1db09068b4e09a18db9ebd1f8cdc59b735fac18f805c79985",
+      "unit_test_sha256": "be6f1a5394e9b9573ed650bfde6aec79435e5610ff663f0c245b548c2d72a1b4",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "87f815ab0edd95115f01fef971f756ec8fac29c73e3b5931fc3dfc67698db151",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/services/llm_task_executor.py": {
+      "target_file": "backend_v2/services/llm_task_executor.py",
+      "target_sha256": "4b083fb98f6c8fa0d86a254b9568e422c88ae6ae3d9f1ac2f76593216e82f3b4",
+      "unit_test_sha256": "d9763d2553d570c351b0ec14454661db18704ee791281a73bff23a0b985be6d9",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "53dde1b9bde16cafc2f1c886fe33bf3d4be8d2cf81e70c8c1a4c985ae618340d",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/services/orchestrator/context_router.py": {
+      "target_file": "backend_v2/services/orchestrator/context_router.py",
+      "target_sha256": "6885af43e4854cca0e52df65902b44676da1867329955f5faf848026a3724fa1",
+      "unit_test_sha256": "9101f220c592818168fe355f2df9f8243fb8594441f679fbc988b4069882384e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "0c5f1a6cb7b30262a7ce205e78e5ed586d52a7fef26e5fc6827b0fb6dc93a3e5",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/services/orchestrator/extraction_schema_factory.py": {
+      "target_file": "backend_v2/services/orchestrator/extraction_schema_factory.py",
+      "target_sha256": "32d26a5ab60eafd17a1513e25deddaab4a3b913712e7a09f8ec11a398a1f4d8e",
+      "unit_test_sha256": "4b36f19726344580ed1033a1afaf8b062a8e556673a85fc77c3e8807a6efc193",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "70be45ef69bd15c59d084a8e0bdc4c62f62446b548b29b7e1182d14dd1b9f46f",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/services/orchestrator/rag_preflight_service.py": {
+      "target_file": "backend_v2/services/orchestrator/rag_preflight_service.py",
+      "target_sha256": "f44e398d902af8404b8a4182d268a58bbd43a0b7a8b67b4014db4aab37583705",
+      "unit_test_sha256": "42161dcbeca118e1cf4a488400500472df1771cf0db1b0ec62e9f94c8ab47a85",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "ec70ec4f1a15e9a8ced6f040ed4963c834303fa193e4c81359959faa00f72bd3",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/services/orchestrator/result_projector.py": {
+      "target_file": "backend_v2/services/orchestrator/result_projector.py",
+      "target_sha256": "6e5ba5a15cafb53d54dcb616a2220616bc4db5dbaebab02e4a2ea5a5a9a5d13b",
+      "unit_test_sha256": "27a046f33d4ee65ab985b79ddabd74ad13343395dcc4b590b068956070d7f9d9",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "59c07afcee5a7b653bafccb19f8882165dc4c2cab2bbb98966a333b67eeb3147",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "backend_v2/services/orchestrator/synthesis_distiller.py": {
+      "target_file": "backend_v2/services/orchestrator/synthesis_distiller.py",
+      "target_sha256": "afc771314225bf088b4abf8d469434a10d8bd87d421890c13bd068666a3cd6ff",
+      "unit_test_sha256": "9b9153d52e2d7497bdf84a779548786e9a3df6ce6f8fd90e5b6164f2a09fb791",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "df275697208385806b3431e041ef933d912717a0d6578a7b3ddd2d04012199e3",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+    },
+    "scripts/reconcile_storage.py": {
+      "target_file": "scripts/reconcile_storage.py",
+      "target_sha256": "f427fc1a6718bca1f2f1a543d2f92b8979ee8d2fd1f714b444cce5990f774bbb",
+      "unit_test_sha256": "fe97281b76448289c2f65b155bdbc11b3d121f37ea494cb88037841b4e4ab39e",
+      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
+      "composite_sha256": "226eeb8524f367112ea6b845249784e4f1412f184a9e7f521ff85fd757b5cf84",
+      "source_tracker": "docs/epic/EPIC_163_tracker.md"
     }
   }
 }

@@ -197,9 +197,8 @@ void main() {
         );
 
         expect(
-          () => SchemaManifestNodeDto.fromJson(<String, Object?>{
-            'extra': 'bad',
-          }),
+          () =>
+              SchemaManifestNodeDto.fromJson(<String, Object?>{'extra': 'bad'}),
           throwsA(
             anyOf(
               isA<UnrecognizedKeysException>(),

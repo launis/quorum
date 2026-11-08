@@ -41,11 +41,19 @@ abstract class ExecutionTraceItemDto with _$ExecutionTraceItemDto {
 
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory ExecutionTraceItemDto({
+    @JsonKey(name: 'event_id') String? eventId,
+    int? v,
+    String? timestamp,
+    @JsonKey(name: 'step_name') String? stepName,
+    @JsonKey(name: 'event_type') String? eventType,
     String? event,
     @JsonKey(name: 'step_id') String? stepId,
     String? status,
     @JsonKey(name: 'duration_ms') int? durationMs,
     String? detail,
+    @JsonKey(name: 'error_code') String? errorCode,
+    @JsonKey(name: 'error_message') String? errorMessage,
+    @JsonKey(name: 'redacted_hash') String? redactedHash,
   }) = _ExecutionTraceItemDto;
 
   /// Instantiates a strictly typed [ExecutionTraceItemDto] from raw JSON.
