@@ -207,7 +207,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/audit_trail_viewer.dart]
   - [x] @[client_app_v2/lib/shared/widgets/comparison_matrix.dart]
   - [x] @[client_app_v2/lib/shared/widgets/dynamic_form.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/generic_grid.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/generic_grid.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/schema_mapper.dart]
