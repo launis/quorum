@@ -161,6 +161,9 @@ class StepBuilderView extends HookConsumerWidget {
     final nameToDisplay = trans[currentLocale] ?? trans['en'];
 
     if (nameToDisplay == null || nameToDisplay.trim().isEmpty) {
+      const msg =
+          'Fail-Fast: Step lacks required localization for active language or English fallback.';
+      ref.read(loggerServiceProvider).error('Studio', '$msg (id: $id)');
       throw AppException.validation(
         'Fail-Fast: Step $id lacks required localization for active language or English fallback.',
       );
@@ -255,9 +258,7 @@ class StepBuilderView extends HookConsumerWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          final errorMsg = e is AppException
-              ? AppExceptionX.extractLocalizedHint(e, l10n)
-              : e.toString();
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
           ref
               .read(loggerServiceProvider)
               .error('Studio', 'Failed to save step: $e', e);
@@ -525,9 +526,12 @@ class StepBuilderView extends HookConsumerWidget {
                               final labelText = tool.name.get(currentLocale);
 
                               if (labelText.trim().isEmpty) {
-                                throw AppException.validation(
-                                  'Fail-Fast: MCP tool $namespacedAlias lacks required translation for locale $currentLocale or en fallback.',
-                                );
+                                final msg =
+                                    'Fail-Fast: MCP tool $namespacedAlias lacks required translation for locale $currentLocale or en fallback.';
+                                ref
+                                    .read(loggerServiceProvider)
+                                    .error('Studio', msg);
+                                throw AppException.validation(msg);
                               }
 
                               final allowedMcpTools = List<String>.from(
@@ -552,7 +556,6 @@ class StepBuilderView extends HookConsumerWidget {
                                   } else {
                                     allowedMcpTools.remove(namespacedAlias);
                                   }
-                                  // Phase 5, Step 5.2: Replace Map<String, Object?> with McpToolParamValue.
                                   final updatedToolParams =
                                       <String, Map<String, McpToolParamValue>>{
                                         for (final entry
@@ -786,9 +789,12 @@ class StepBuilderView extends HookConsumerWidget {
 
                                   if (rawLabel == null ||
                                       rawLabel.trim().isEmpty) {
-                                    throw AppException.validation(
-                                      'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
-                                    );
+                                    final msg =
+                                        'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.';
+                                    ref
+                                        .read(loggerServiceProvider)
+                                        .error('Studio', msg);
+                                    throw AppException.validation(msg);
                                   }
 
                                   return DropdownMenuItem(
@@ -884,9 +890,12 @@ class StepBuilderView extends HookConsumerWidget {
 
                                   if (rawLabel == null ||
                                       rawLabel.trim().isEmpty) {
-                                    throw AppException.validation(
-                                      'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
-                                    );
+                                    final msg =
+                                        'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.';
+                                    ref
+                                        .read(loggerServiceProvider)
+                                        .error('Studio', msg);
+                                    throw AppException.validation(msg);
                                   }
 
                                   return DropdownMenuItem(
@@ -1013,9 +1022,9 @@ class StepBuilderView extends HookConsumerWidget {
       'score_hook',
     ];
     if (hookDef.isNotEmpty && !knownHooks.contains(hookDef)) {
-      throw AppException.validation(
-        'Fail-Fast: Unsupported pre-hook "$hookDef" in step $stepId.',
-      );
+      final msg = 'Fail-Fast: Unsupported pre-hook "$hookDef" in step $stepId.';
+      ref.read(loggerServiceProvider).error('Studio', msg);
+      throw AppException.validation(msg);
     }
 
     return Card(
@@ -1123,9 +1132,10 @@ class StepBuilderView extends HookConsumerWidget {
       'enforce_hypothesis_linking',
     ];
     if (hookDef.isNotEmpty && !knownHooks.contains(hookDef)) {
-      throw AppException.validation(
-        'Fail-Fast: Unsupported post-hook "$hookDef" in step $stepId.',
-      );
+      final msg =
+          'Fail-Fast: Unsupported post-hook "$hookDef" in step $stepId.';
+      ref.read(loggerServiceProvider).error('Studio', msg);
+      throw AppException.validation(msg);
     }
 
     return Card(
@@ -1299,9 +1309,10 @@ class StepBuilderView extends HookConsumerWidget {
                           m.label.translations['en'];
 
                       if (rawLabel == null || rawLabel.trim().isEmpty) {
-                        throw AppException.validation(
-                          'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
-                        );
+                        final msg =
+                            'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.';
+                        ref.read(loggerServiceProvider).error('Studio', msg);
+                        throw AppException.validation(msg);
                       }
 
                       final displayText = '$rawLabel (${m.id})';

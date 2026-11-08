@@ -202,7 +202,7 @@
   - [x] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
   - [x] @[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/audit_trail_viewer.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/comparison_matrix.dart]

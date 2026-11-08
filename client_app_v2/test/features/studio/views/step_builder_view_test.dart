@@ -209,6 +209,67 @@ void main() {
         ErrorWidget.builder = originalErrorBuilder;
       },
     );
+
+    testWidgets(
+      'negative: displays localized hint via AppExceptionX.extractLocalizedHint when save submit throws error',
+      (WidgetTester tester) async {
+        final originalErrorBuilder = ErrorWidget.builder;
+
+        final mockStep = NodeStrategy.llm(
+          id: 'stp_0195f000000070008000000000000004',
+          slug: 'save_error_slug',
+          name: const I18nText(translations: {'en': 'Error Step'}),
+          isSystemCore: true,
+        );
+
+        final mockClient = MockStudioClient();
+        when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
+        when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+
+        final mockLogger = MockLoggerService();
+        when(
+          () => mockLogger.error(any(), any(), any(), any()),
+        ).thenReturn(null);
+
+        final stepForm = _TestStepForm(
+          mockStep,
+          submitError: StateError('RAW_INTERNAL_CRASH_STRING'),
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              studioClientProvider.overrideWithValue(mockClient),
+              loggerServiceProvider.overrideWithValue(mockLogger),
+              promptBlocksControllerProvider.overrideWith(() {
+                return _TestPromptBlocksController([]);
+              }),
+              modelRegistryControllerProvider.overrideWith(() {
+                return _TestModelRegistryController();
+              }),
+              stepFormProvider(mockStep.id).overrideWith(() => stepForm),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: StepBuilderView(stepId: mockStep.id),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.save));
+        await tester.pumpAndSettle();
+
+        expect(stepForm.submitCalled, isTrue);
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.textContaining('RAW_INTERNAL_CRASH_STRING'), findsNothing);
+
+        ErrorWidget.builder = originalErrorBuilder;
+      },
+    );
   });
 }
 
@@ -279,8 +340,9 @@ class _TestModelRegistryController extends AsyncNotifier<List<ModelConfig>>
 
 class _TestStepForm extends StepForm {
   final NodeStrategy initialData;
+  final Object? submitError;
   bool submitCalled = false;
-  _TestStepForm(this.initialData);
+  _TestStepForm(this.initialData, {this.submitError});
 
   @override
   FutureOr<NodeStrategy> build(String arg) async => initialData;
@@ -293,5 +355,8 @@ class _TestStepForm extends StepForm {
   @override
   Future<void> submit(NodeStrategy payload) async {
     submitCalled = true;
+    if (submitError != null) {
+      throw submitError!;
+    }
   }
 }
