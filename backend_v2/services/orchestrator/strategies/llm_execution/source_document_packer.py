@@ -27,7 +27,6 @@ class ContextTargetFilterDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     allowed_input_keys: Annotated[
         frozenset[str] | None,
         Field(
@@ -238,7 +237,9 @@ class SourceDocumentPacker:
                         dict_payload = {**inputs_dto.raw_inputs, **inputs_dto.dynamic_inputs}
                     except (ValidationError, ValueError, TypeError) as err:
                         logger.error(
-                            "[SourceDocumentPacker] Inputs payload validation failed: %s", type(inputs_payload)
+                            "[SourceDocumentPacker] Inputs payload validation failed: %s",
+                            type(inputs_payload),
+                            exc_info=True,
                         )
                         raise AppException(
                             message=(
@@ -307,7 +308,7 @@ class SourceDocumentPacker:
                         b_id = dto.block_id
                         payload = dto.payload
                     except ValidationError as e:
-                        logger.error("[SourceDocumentPacker] Invalid StepOutputDTO item: %s", e)
+                        logger.error("[SourceDocumentPacker] Invalid StepOutputDTO item: %s", e, exc_info=True)
                         raise AppException(
                             message=f"Invalid StepOutputDTO item: {e}",
                             status_code=500,
@@ -351,7 +352,10 @@ class SourceDocumentPacker:
                                 except (TypeError, ValueError) as exc:
                                     msg = f"Failed to serialize step payload for step {s_id}: {exc}"
                                     logger.error(
-                                        "[SourceDocumentPacker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg
+                                        "[SourceDocumentPacker] %s: %s",
+                                        ErrorCodes.VALIDATION_FAILED.name,
+                                        msg,
+                                        exc_info=True,
                                     )
                                     raise AppException(
                                         message=msg,
@@ -372,7 +376,7 @@ class SourceDocumentPacker:
                 if missing_targets:
                     missing_sorted = sorted(list(missing_targets))
                     msg = f"Strict Fail-Fast: Mapped step(s) {missing_sorted} not found in prior step outputs."
-                    logger.error("[SourceDocumentPacker] %s", msg)
+                    logger.error("[SourceDocumentPacker] %s", msg, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=400,
