@@ -90,6 +90,7 @@ EXECUTION_POST_TIMEOUT: float = 300.0
 
 # Ensure project root is in sys.path before any local or third-party project imports
 _project_root = Path(__file__).resolve().parent.parent
+BACKEND_LOG_FILE: Path = _project_root / "backend_debug.log"
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
@@ -816,6 +817,19 @@ def make_noise_injector(run_index: int) -> Callable[[str], str]:
         return str(marked_payload.marked_inputs["text"])
 
     return injector
+
+
+def clear_backend_debug_log(log_path: Path = BACKEND_LOG_FILE) -> None:
+    """Truncate backend_debug.log so E2E execution begins with an empty log file.
+
+    Args:
+        log_path: Target log file path to truncate (defaults to BACKEND_LOG_FILE).
+    """
+    try:
+        log_path.write_text("", encoding="utf-8")
+        print(f"[Clean-up] Truncated debug log: {log_path}")
+    except OSError as e:
+        print(f"[Clean-up] Warning truncating {log_path}: {e}")
 
 
 def force_kill_services() -> None:
@@ -1835,6 +1849,7 @@ def run_variance_test(
     for i in range(num_runs):
         print(f"\n=== RUN {i + 1} ===")
         force_kill_services()
+        clear_backend_debug_log()
 
         if cooldown_seconds > 0 and i > 0:
             print(f"[Cooldown] Pausing for {cooldown_seconds}s for port and TCP socket drain...")

@@ -88,7 +88,11 @@ from backend_v2.services.orchestrator.synthesis_payload_compressor import Synthe
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
 from backend_v2.settings import get_settings
-from scripts.run_e2e_variance_test import _get_or_refresh_cli_session, force_kill_services
+from scripts.run_e2e_variance_test import (
+    _get_or_refresh_cli_session,
+    clear_backend_debug_log,
+    force_kill_services,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -217,10 +221,19 @@ class _LocalMCPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(payload_bytes)
 
 
-def clear_logs() -> None:  # pragma: no cover
-    """Clear backend debug log."""
-    with open(BACKEND_LOG_FILE, "w", encoding="utf-8") as f:
-        f.write("")
+def clear_logs(log_path: str | Path = BACKEND_LOG_FILE) -> None:
+    """Truncate the backend debug log file so E2E test execution starts with an empty log.
+
+    Args:
+        log_path: Target log file path to truncate (defaults to BACKEND_LOG_FILE).
+    """
+    clear_backend_debug_log(Path(log_path))
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _clear_backend_debug_log_before_e2e_module() -> None:
+    """Automatically truncate backend_debug.log before any test in the E2E module executes."""
+    clear_logs()
 
 
 def is_postgres_running(timeout: float = 1.0) -> bool:
@@ -1049,8 +1062,20 @@ def test_integration_real_llm_topological_deficit_and_brief_validation_negative(
     assert exc_info.value.status_code == 400
 
 
-def test_e2e_process_and_env_helpers_positive_and_negative(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify E2E subprocess environment sanitization and port readiness probes."""
+def test_e2e_process_and_env_helpers_positive_and_negative(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify E2E subprocess environment sanitization, log truncation, and port readiness probes."""
+    sample_log = tmp_path / "backend_debug.log"
+    sample_log.write_text("2026-11-08 INFO residual log line\n", encoding="utf-8")
+    assert sample_log.read_text(encoding="utf-8") != ""
+    clear_logs(sample_log)
+    assert sample_log.read_text(encoding="utf-8") == ""
+
+    # Negative / boundary: passing a directory path to clear_backend_debug_log handles OSError safely
+    clear_logs(tmp_path)
+
     monkeypatch.setenv("PYTEST_CURRENT_TEST", "test_case")
     monkeypatch.setenv("OPENAI_API_KEY", "mock-openai-key")
     monkeypatch.setenv("GOOGLE_API_KEY", "mock-google-key")
@@ -1094,6 +1119,9 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
 
     env = _prepare_clean_subprocess_env()
     redis_server = _ensure_postgres_and_redis_ready(env)
+    # Re-truncate backend_debug.log after PostgreSQL seeding so the log contains
+    # exclusively the live E2E backend and worker execution output.
+    clear_logs()
 
     mcp_server = ThreadingHTTPServer(("127.0.0.1", 0), _LocalMCPRequestHandler)
     mcp_port = mcp_server.server_address[1]
