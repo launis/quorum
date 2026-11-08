@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Phase 5, Step 5.3: Strongly typed ResultDashboard models without Map<String, Object?>.
 @immutable
 class ResultDashboardNodeValue {
   final String? stringValue;

@@ -209,7 +209,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/dynamic_form.dart]
   - [x] @[client_app_v2/lib/shared/widgets/generic_grid.dart]
   - [x] @[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/schema_mapper.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
