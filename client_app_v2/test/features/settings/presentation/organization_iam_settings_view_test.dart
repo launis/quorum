@@ -196,23 +196,29 @@ class _FakeUserRepository implements UserRepository {
     return Right(List<User>.unmodifiable(users));
   }
 
+  List<TenantSecretResponseDto> secrets = [
+    TenantSecretResponseDto(
+      id: 'sec_01960000000070008000000000000001',
+      organizationId: primaryOrgId,
+      scope: SecretScope.llmProvider,
+      targetIdentifier: 'openai',
+      storageMode: SecretStorageMode.envelopeKms,
+      configured: true,
+      maskedHint: '****abcd',
+      kekVersion: 'v1',
+      updatedAt: DateTime.utc(2026, 11, 1),
+    ),
+  ];
+
   @override
   Future<Either<AppException, List<TenantSecretResponseDto>>> listSecrets(
     String orgId,
   ) async {
-    return Right([
-      TenantSecretResponseDto(
-        id: 'sec_01960000000070008000000000000001',
-        organizationId: orgId,
-        scope: SecretScope.llmProvider,
-        targetIdentifier: 'openai',
-        storageMode: SecretStorageMode.envelopeKms,
-        configured: true,
-        maskedHint: '****abcd',
-        kekVersion: 'v1',
-        updatedAt: DateTime.utc(2026, 11, 1),
-      ),
-    ]);
+    return Right(
+      secrets
+          .map((s) => s.copyWith(organizationId: orgId))
+          .toList(growable: false),
+    );
   }
 
   @override
@@ -221,19 +227,26 @@ class _FakeUserRepository implements UserRepository {
     TenantSecretCreateDto payload,
   ) async {
     lastSavedSecret = payload;
-    return Right(
-      TenantSecretResponseDto(
-        id: 'sec_01960000000070008000000000000002',
-        organizationId: orgId,
-        scope: payload.scope,
-        targetIdentifier: payload.targetIdentifier,
-        storageMode: payload.storageMode,
-        configured: true,
-        maskedHint: '****9999',
-        kekVersion: 'v1',
-        updatedAt: DateTime.utc(2026, 11, 2),
-      ),
+    final saved = TenantSecretResponseDto(
+      id: 'sec_01960000000070008000000000000002',
+      organizationId: orgId,
+      scope: payload.scope,
+      targetIdentifier: payload.targetIdentifier,
+      storageMode: payload.storageMode,
+      configured: true,
+      maskedHint: '****9999',
+      kekVersion: 'v1',
+      updatedAt: DateTime.utc(2026, 11, 2),
     );
+    secrets = [
+      ...secrets.where(
+        (s) =>
+            !(s.scope == payload.scope &&
+                s.targetIdentifier == payload.targetIdentifier),
+      ),
+      saved,
+    ];
+    return Right(saved);
   }
 
   @override
@@ -923,6 +936,98 @@ void main() {
         expect(
           find.byKey(const ValueKey<String>('org_secret_target_dropdown')),
           findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'Positive: BYOK secrets card toggles visibility for multiline Vertex AI Service Account JSON and renders MCP gateway display name and badges in saved secrets list',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1440, 2200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final userRepo = _FakeUserRepository();
+        userRepo.secrets = [
+          ...userRepo.secrets,
+          TenantSecretResponseDto(
+            id: 'sec_01960000000070008000000000000003',
+            organizationId: _FakeUserRepository.primaryOrgId,
+            scope: SecretScope.mcpGateway,
+            targetIdentifier: 'sys_0195f3a00000700080008172bda70c86',
+            storageMode: SecretStorageMode.cloudSecretManager,
+            configured: true,
+            maskedHint: '****v1',
+            kekVersion: 'v1',
+            updatedAt: DateTime.utc(2026, 11, 1),
+          ),
+        ];
+        final execClient = _FakeExecutionClient();
+        final studioClient = _FakeStudioClient();
+
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: userWithRole(UserRole.admin),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: studioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Saved MCP gateway secret displays human-readable gateway name + ID and scope/storageMode badges
+        expect(
+          find.text(
+            'Tavily MCP Gateway (sys_0195f3a00000700080008172bda70c86)',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text(SecretScope.mcpGateway.name), findsWidgets);
+        expect(
+          find.text(SecretStorageMode.cloudSecretManager.name),
+          findsWidgets,
+        );
+
+        // Verify visibility toggle expands secret field from masked single-line to unmasked 6-line for Vertex AI JSON
+        final toggleBtn = find.byKey(
+          const Key('org_secret_visibility_toggle_btn'),
+        );
+        expect(toggleBtn, findsOneWidget);
+        await tester.ensureVisible(toggleBtn);
+        await tester.tap(toggleBtn);
+        await tester.pumpAndSettle();
+
+        // Select vertex_ai in target dropdown
+        final targetDropdown = find.byKey(
+          const ValueKey<String>('org_secret_target_dropdown'),
+        );
+        await tester.ensureVisible(targetDropdown);
+        await tester.tap(targetDropdown);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('vertex_ai').last);
+        await tester.pumpAndSettle();
+
+        const serviceAccountJson =
+            '{\n  "type": "service_account",\n  "project_id": "vertex-byok-proj"\n}';
+        await tester.enterText(
+          find.byKey(const Key('org_secret_value_field')),
+          serviceAccountJson,
+        );
+
+        final saveBtn = find.byKey(const Key('org_save_secret_btn'));
+        await tester.ensureVisible(saveBtn);
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(userRepo.lastSavedSecret, isNotNull);
+        expect(
+          userRepo.lastSavedSecret!.scope,
+          equals(SecretScope.llmProvider),
+        );
+        expect(userRepo.lastSavedSecret!.targetIdentifier, equals('vertex_ai'));
+        expect(
+          userRepo.lastSavedSecret!.plaintextSecret,
+          equals(serviceAccountJson),
         );
       },
     );

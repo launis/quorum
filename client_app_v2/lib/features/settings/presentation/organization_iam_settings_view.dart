@@ -1312,6 +1312,24 @@ class _ByokSecretsCard extends HookConsumerWidget {
         LLMProvider.local => 'local',
       };
 
+  static String _formatSecretTarget(
+    TenantSecretResponseDto secret,
+    AsyncValue<List<McpGateway>> gatewaysAsync,
+  ) => switch (secret.scope) {
+    SecretScope.llmProvider => secret.targetIdentifier,
+    SecretScope.mcpGateway => switch (gatewaysAsync) {
+      AsyncData(:final value) => () {
+        for (final gw in value) {
+          if (gw.id == secret.targetIdentifier) {
+            return '${gw.name} (${secret.targetIdentifier})';
+          }
+        }
+        return secret.targetIdentifier;
+      }(),
+      _ => secret.targetIdentifier,
+    },
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final secretsAsync = ref.watch(organizationSecretsProvider(orgId));
@@ -1323,6 +1341,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
     final selectedTarget = useState<String?>(
       _llmProviderBackendValue(LLMProvider.openai),
     );
+    final obscureSecret = useState<bool>(true);
     final secretValueController = useTextEditingController();
     final mutation = useMutation<void>();
 
@@ -1522,10 +1541,23 @@ class _ByokSecretsCard extends HookConsumerWidget {
             TextFormField(
               key: const Key('org_secret_value_field'),
               controller: secretValueController,
-              obscureText: true,
+              obscureText: obscureSecret.value,
+              minLines: 1,
+              maxLines: obscureSecret.value ? 1 : 6,
               decoration: InputDecoration(
                 labelText: l10n.orgSecretPlaintextLabel,
                 prefixIcon: const Icon(Icons.key_outlined),
+                suffixIcon: IconButton(
+                  key: const Key('org_secret_visibility_toggle_btn'),
+                  icon: Icon(
+                    obscureSecret.value
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () {
+                    obscureSecret.value = !obscureSecret.value;
+                  },
+                ),
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -1568,7 +1600,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                secret.targetIdentifier,
+                                _formatSecretTarget(secret, gatewaysAsync),
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -1577,6 +1609,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
                               AppSpacing.h4,
                               Wrap(
                                 spacing: AppSpacing.s8,
+                                runSpacing: AppSpacing.s4,
                                 children: [
                                   if (secret.configured)
                                     Container(
@@ -1596,6 +1629,41 @@ class _ByokSecretsCard extends HookConsumerWidget {
                                         style: theme.textTheme.labelSmall,
                                       ),
                                     ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.s8,
+                                      vertical: AppSpacing.s2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(
+                                        AppSpacing.s12,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      secret.scope.name,
+                                      style: theme.textTheme.labelSmall,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.s8,
+                                      vertical: AppSpacing.s2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          theme.colorScheme.tertiaryContainer,
+                                      borderRadius: BorderRadius.circular(
+                                        AppSpacing.s12,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      secret.storageMode.name,
+                                      style: theme.textTheme.labelSmall,
+                                    ),
+                                  ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: AppSpacing.s8,
