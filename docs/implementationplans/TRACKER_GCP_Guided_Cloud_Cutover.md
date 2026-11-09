@@ -43,7 +43,7 @@
 
   #### Directives for Tier 7 Agent:
   1. **Target KIs to Synchronize:**
-     - `@[ki_global_config_sovereignty.md]`: Document the 6-stage GCP cloud provisioning and client environment cutover orchestrator (`@[scripts/provision_gcp_cloud.py]`), covering `"pilot"` vs. `"ha"` sizing, `SecretStr` stdin secret injection, `.ai` registrar NS delegation verification, and `client_app_v2/.env` switching.
+     - `@[ki_global_config_sovereignty.md]`: Document the 6-stage GCP cloud provisioning and client environment cutover orchestrator (`@[scripts/provision_gcp_cloud.py]`), `@[docker-compose.yml#L1-L57]` cleanup, and the 3-tier B2B SaaS secret governance architecture (Tier 1: Infrastructure Bootstrap Secrets `quorum-jwt-secret` and `quorum-db-url` in `.env` / GCP Secret Manager; Tier 2: `ROOT_SYSTEM` `org_0195f3a0000070008000000000000001` platform baseline secrets in PostgreSQL 19 `tenant_secrets`; Tier 3: Customer Tenant `org_<hex32>` self-service BYOK secrets in PostgreSQL 19 `tenant_secrets` encrypted with NIST SP 800-57 `ENVELOPE_KMS` AES-256-GCM DEK/KEK), `.ai` registrar NS delegation verification, and `client_app_v2/.env` switching.
   2. **Directory Reference Sync:**
      - Verify `@[.agents/rules/04_directory_reference.md]` indexes `provision_gcp_cloud.py` and `scripts/test_provision_gcp_cloud.py`.
   3. **Pillar Documentation Sync:**
@@ -68,24 +68,24 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| **REQ-CUTOVER-01** | Implement `[NEW] @[scripts/provision_gcp_cloud.py]` with typed Pydantic V2 DTOs (`GCPProvisionConfigDTO`, `CommandSpecDTO`, `CommandExecutionResultDTO`, `DNSVerificationResultDTO`, `StageExecutionReportDTO`), `ProvisionStage`, `DeploymentTier` (`pilot` vs. `ha`), `ClientEnvMode` (`local` vs. `cloud`), `SecretStr` stdin secret injection, DNS NS verification, HTTP health verification, and `client_app_v2/.env` switching. | Step 1 | `[ ]` |
-| **REQ-CUTOVER-02** | Implement `[NEW] @[backend_v2/tests/unit/scripts/test_provision_gcp_cloud.py]` with >90% coverage and >=2 ISTQB negative boundary tests per feature, and register `provision_gcp_cloud.py` and `scripts/test_provision_gcp_cloud.py` in `@[.agents/rules/04_directory_reference.md#L25-L121]`. | Step 2 | `[ ]` |
+| **REQ-CUTOVER-01** | Implement `[NEW] @[scripts/provision_gcp_cloud.py]` with typed Pydantic V2 DTOs (`GCPProvisionConfigDTO`, `CommandSpecDTO`, `CommandExecutionResultDTO`, `DNSVerificationResultDTO`, `StageExecutionReportDTO`), `ProvisionStage`, `DeploymentTier` (`pilot` vs. `ha`), `ClientEnvMode` (`local` vs. `cloud`), `SecretStr` stdin secret injection (`quorum-jwt-secret`, `quorum-db-url`), pure infrastructure Cloud Run deployment flags (zero legacy `USE_VERTEX_LLM` / `VERTEX_PROJECT_ID` / `VERTEX_LOCATION` flags), DNS NS verification, HTTP health verification, and `client_app_v2/.env` switching, and clean `[MODIFY] @[docker-compose.yml#L1-L57]` to remove legacy LLM environment variables and `service-account.json` volume mounts. | Step 1 | `[ ]` |
+| **REQ-CUTOVER-02** | Implement `[NEW] @[backend_v2/tests/unit/scripts/test_provision_gcp_cloud.py]` with >90% coverage and >=2 ISTQB negative boundary tests per feature (including verification that `build_stage_commands` and `docker-compose.yml` contain zero legacy `USE_VERTEX_LLM`, `VERTEX_PROJECT_ID`, or `VERTEX_LOCATION` references), and register `provision_gcp_cloud.py` and `scripts/test_provision_gcp_cloud.py` in `@[.agents/rules/04_directory_reference.md#L25-L121]`. | Step 2 | `[ ]` |
 
 ---
 
 # Session Handover Context
 
 ## Achieved
-- Authored `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Guided_Cloud_Cutover.md]` and `@[docs/implementationplans/TRACKER_GCP_Guided_Cloud_Cutover.md]` as the Stage 2 guided cloud provisioning and cutover companion to `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`.
-- Included complete Human-in-the-Loop interactive guides for `qrum.ai` domain registration and `.ai` registrar `NS` delegation (Section 1.1), GCP project and Billing Account setup (Section 1.2), `pilot` vs. `ha` infrastructure cost-tier selection (Section 1.3), and transactional email activation from `CONSOLE` to `HTTP_API` with Resend EU (Section 1.4).
-- Designed the 6-stage typed provisioning and cutover CLI (`[NEW] @[scripts/provision_gcp_cloud.py]`) and its unit test suite (`[NEW] @[backend_v2/tests/unit/scripts/test_provision_gcp_cloud.py]`).
+- Authored and hardened `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Guided_Cloud_Cutover.md]` and `@[docs/implementationplans/TRACKER_GCP_Guided_Cloud_Cutover.md]` as the Stage 2 guided cloud provisioning and cutover companion to the completed `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`.
+- Included complete Human-in-the-Loop interactive guides for `qrum.ai` domain registration and `.ai` registrar `NS` delegation (Section 1.1), GCP project and Billing Account setup (Section 1.2), `pilot` vs. `ha` infrastructure cost-tier selection (Section 1.3), transactional email activation from `CONSOLE` to `HTTP_API` with Resend EU (Section 1.4), and migrating local `.env` LLM/MCP keys and `service-account.json` into PostgreSQL 19 `tenant_secrets` (`ROOT_SYSTEM` `org_0195f3a0000070008000000000000001`) via `ENVELOPE_KMS` or `CLOUD_SECRET_MANAGER` (Section 1.5).
+- Aligned `[NEW] @[scripts/provision_gcp_cloud.py]`, `[MODIFY] @[docker-compose.yml#L1-L57]`, and `[NEW] @[backend_v2/tests/unit/scripts/test_provision_gcp_cloud.py]` with `@[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md]` so zero legacy LLM `.env` variables (`USE_VERTEX_LLM`, `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`) or `service-account.json` container mounts remain.
 
 ## Learned
-- Separating local cloud-readiness code hardening (`@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`) from interactive GCP infrastructure provisioning and client cutover (`@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Guided_Cloud_Cutover.md]`) lets the team verify 100% of backend/container invariants locally with zero cloud spend before provisioning live GCP resources.
-- Piping generated `SecretStr` secrets via `subprocess.run(..., input=...)` to `gcloud secrets versions add --data-file=-` prevents secret leakage in process tables and terminal logs (`QGR033`).
+- Because `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]` is already 100% completed, consolidating the `@[docker-compose.yml#L1-L57]` legacy LLM environment variable and `service-account.json` mount cleanup directly into Step 1 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Guided_Cloud_Cutover.md]` keeps completed trackers untouched while ensuring zero legacy LLM `.env` drift remains in container or Cloud Run specifications.
+- Piping generated `SecretStr` infrastructure bootstrap secrets (`quorum-jwt-secret`, `quorum-db-url`) via `subprocess.run(..., input=...)` to `gcloud secrets versions add --data-file=-` prevents secret leakage in process tables and terminal logs (`QGR033`), while all LLM and MCP credentials reside in PostgreSQL 19 `tenant_secrets`.
 
 ## Remaining
-- Execute `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]` first, then execute Steps 1–2 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Guided_Cloud_Cutover.md]`.
+- Execute Steps 1–2 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Guided_Cloud_Cutover.md]` (after or alongside `@[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md]`).
 
 ## Resume Command
 ```powershell

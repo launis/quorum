@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CausalNodeDto {
 
-@JsonKey(name: 'node_id') String get nodeId; String get claim;@JsonKey(name: 'source_quotes') List<String>? get sourceQuotes;@JsonKey(name: 'paragraph_ref') String? get paragraphRef; ExecutionStatus get status;@JsonKey(name: 'blame_parent_ids') List<String> get blameParentIds;@JsonKey(name: 'dependent_child_ids') List<String> get dependentChildIds;@JsonKey(name: 'tda_score') double? get tdaScore;@JsonKey(name: 'tda_level_key') String? get tdaLevelKey;@JsonKey(name: 'source_input_key') String? get sourceInputKey;// Phase 3, Step 3.3: Node-level topological short-circuit and Toulmin falsification lineage
+@JsonKey(name: 'node_id') String get nodeId; String get claim;@JsonKey(name: 'source_quotes') List<String>? get sourceQuotes;@JsonKey(name: 'paragraph_ref') String? get paragraphRef; ExecutionStatus get status;@JsonKey(name: 'blame_parent_ids') List<String> get blameParentIds;@JsonKey(name: 'dependent_child_ids') List<String> get dependentChildIds;@JsonKey(name: 'tda_score') double? get tdaScore;@JsonKey(name: 'tda_level_key') String? get tdaLevelKey;@JsonKey(name: 'source_input_key') String? get sourceInputKey;// Node-level topological short-circuit and Toulmin falsification lineage
 @JsonKey(name: 'short_circuited_by_claims') List<String> get shortCircuitedByClaims;@JsonKey(name: 'falsified_warrant_claims') List<String> get falsifiedWarrantClaims;
 /// Create a copy of CausalNodeDto
 /// with the given fields replaced by the non-null parameter values.
@@ -247,9 +247,9 @@ class _CausalNodeDto implements CausalNodeDto {
 @override@JsonKey(name: 'tda_score') final  double? tdaScore;
 @override@JsonKey(name: 'tda_level_key') final  String? tdaLevelKey;
 @override@JsonKey(name: 'source_input_key') final  String? sourceInputKey;
-// Phase 3, Step 3.3: Node-level topological short-circuit and Toulmin falsification lineage
+// Node-level topological short-circuit and Toulmin falsification lineage
  final  List<String> _shortCircuitedByClaims;
-// Phase 3, Step 3.3: Node-level topological short-circuit and Toulmin falsification lineage
+// Node-level topological short-circuit and Toulmin falsification lineage
 @override@JsonKey(name: 'short_circuited_by_claims') List<String> get shortCircuitedByClaims {
   if (_shortCircuitedByClaims is EqualUnmodifiableListView) return _shortCircuitedByClaims;
   // ignore: implicit_dynamic_type

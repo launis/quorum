@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
-@StrictOpaqueIdConverter()@JsonKey(name: 'id') String get id;@JsonKey(name: 'slug') String? get slug;// Phase 2, Step 2: Synchronize firebase_uid and deleted_at with backend User SSOT
+@StrictOpaqueIdConverter()@JsonKey(name: 'id') String get id;@JsonKey(name: 'slug') String? get slug;// Synchronize firebase_uid and deleted_at with backend User SSOT
 @JsonKey(name: 'firebase_uid') String? get firebaseUid;@JsonKey(name: 'email') String get email;@JsonKey(name: 'role') UserRole get role;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'name') String? get name;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'language') String? get language;@JsonKey(name: 'theme_mode') String? get themeMode;@JsonKey(name: 'last_login_at') DateTime? get lastLoginAt;@JsonKey(name: 'execution_count') int? get executionCount;@JsonKey(name: 'is_active') bool? get isActive;@JsonKey(name: 'created_by') String? get createdBy;@JsonKey(name: 'deleted_at') DateTime? get deletedAt;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
@@ -222,7 +222,7 @@ class _User extends User {
 
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'id') final  String id;
 @override@JsonKey(name: 'slug') final  String? slug;
-// Phase 2, Step 2: Synchronize firebase_uid and deleted_at with backend User SSOT
+// Synchronize firebase_uid and deleted_at with backend User SSOT
 @override@JsonKey(name: 'firebase_uid') final  String? firebaseUid;
 @override@JsonKey(name: 'email') final  String email;
 @override@JsonKey(name: 'role') final  UserRole role;
@@ -1088,7 +1088,7 @@ as bool,
 /// @nodoc
 mixin _$LogoutResponseDto {
 
-// Phase 2, Step 2: Synchronize default logout status with backend LogoutResponseDTO
+// Synchronize default logout status with backend LogoutResponseDTO
 @JsonKey(name: 'status') String get status;@JsonKey(name: 'revoked_jti') String get revokedJti;@JsonKey(name: 'all_sessions_revoked') bool get allSessionsRevoked;
 /// Create a copy of LogoutResponseDto
 /// with the given fields replaced by the non-null parameter values.
@@ -1281,7 +1281,7 @@ class _LogoutResponseDto extends LogoutResponseDto {
   const _LogoutResponseDto({@JsonKey(name: 'status') this.status = 'logged_out', @JsonKey(name: 'revoked_jti') required this.revokedJti, @JsonKey(name: 'all_sessions_revoked') required this.allSessionsRevoked}): super._();
   factory _LogoutResponseDto.fromJson(Map<String, dynamic> json) => _$LogoutResponseDtoFromJson(json);
 
-// Phase 2, Step 2: Synchronize default logout status with backend LogoutResponseDTO
+// Synchronize default logout status with backend LogoutResponseDTO
 @override@JsonKey(name: 'status') final  String status;
 @override@JsonKey(name: 'revoked_jti') final  String revokedJti;
 @override@JsonKey(name: 'all_sessions_revoked') final  bool allSessionsRevoked;
@@ -1345,7 +1345,7 @@ as bool,
 /// @nodoc
 mixin _$UserCreate {
 
-@JsonKey(name: 'email') String get email;@JsonKey(name: 'name', includeIfNull: false) String? get name;@JsonKey(name: 'role') UserRole get role;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'is_active') bool get isActive;// Phase 1, Step 1: Align UserCreate language and themeMode defaults with backend UserBase SSOT
+@JsonKey(name: 'email') String get email;@JsonKey(name: 'name', includeIfNull: false) String? get name;@JsonKey(name: 'role') UserRole get role;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'is_active') bool get isActive;// Align UserCreate language and themeMode defaults with backend UserBase SSOT
 @JsonKey(name: 'language') String get language;@JsonKey(name: 'theme_mode') String get themeMode;@JsonKey(name: 'created_by', includeIfNull: false) String? get createdBy;@JsonKey(name: 'password', includeIfNull: false) String? get password;
 /// Create a copy of UserCreate
 /// with the given fields replaced by the non-null parameter values.
@@ -1549,7 +1549,7 @@ class _UserCreate extends UserCreate {
 @override@JsonKey(name: 'role') final  UserRole role;
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') final  String organizationId;
 @override@JsonKey(name: 'is_active') final  bool isActive;
-// Phase 1, Step 1: Align UserCreate language and themeMode defaults with backend UserBase SSOT
+// Align UserCreate language and themeMode defaults with backend UserBase SSOT
 @override@JsonKey(name: 'language') final  String language;
 @override@JsonKey(name: 'theme_mode') final  String themeMode;
 @override@JsonKey(name: 'created_by', includeIfNull: false) final  String? createdBy;
