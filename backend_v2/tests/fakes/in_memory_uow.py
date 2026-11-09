@@ -1246,6 +1246,7 @@ class InMemoryEntityAdapter:
         counts: dict[str, int] = {
             "organizations": len(self._store.seed_tables["organizations"]),
             "users": len(self._store.seed_tables["users"]),
+            "tenant_secrets": len(self._store.seed_tables["tenant_secrets"]),
             "system_configs": len(self._store.seed_tables["system_configs"]),
             "prompt_blocks": len(self._store.seed_tables["prompt_blocks"]),
             "steps": len(self._store.seed_tables["steps"]),

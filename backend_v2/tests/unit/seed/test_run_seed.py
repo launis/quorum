@@ -5,14 +5,17 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import JsonValue, ValidationError
+from pydantic import JsonValue, SecretStr, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import SYSTEM_ROOT_USER_ID, SystemOrganizations
+from backend_v2.models.enums import LLMProvider
 from backend_v2.seed import run_seed
+from backend_v2.services.auth.secret_service import SecretService
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 VALID_ORGANIZATION: dict[str, JsonValue] = {
-    "id": "org_0195f3a0000070018234567890abcdef",
+    "id": "org_0195f3a0000070008000000000000001",
     "name": "Acme Corp",
     "is_active": True,
     "tier": "enterprise",
@@ -23,10 +26,10 @@ VALID_ORGANIZATION: dict[str, JsonValue] = {
 }
 
 VALID_USER: dict[str, JsonValue] = {
-    "id": "usr_0195f3a0000070018234567890abcdef",
+    "id": "usr_0195f3a00000700a83fd6b3d77c748f4",
     "email": "admin@quorum.com",
     "role": "ROOT",
-    "organization_id": "org_0195f3a0000070018234567890abcdef",
+    "organization_id": "org_0195f3a0000070008000000000000001",
     "is_active": True,
     "language": "fi",
     "theme_mode": "dark",
@@ -90,18 +93,18 @@ VALID_OUTPUT_PROFILE: dict[str, JsonValue] = {
 
 def _build_full_valid_seed_payload() -> run_seed.ValidatedSeedBufferDTO:
     """Return a minimal valid 8-collection seed payload as ValidatedSeedBufferDTO."""
-    return run_seed.ValidatedSeedBufferDTO.model_validate(
-        {
-            "organizations": [VALID_ORGANIZATION],
-            "users": [VALID_USER],
-            "system_config": [VALID_SYSTEM_CONFIG],
-            "prompt_blocks": [VALID_PROMPT_BLOCK],
-            "steps": [VALID_STEP],
-            "workflows": [VALID_WORKFLOW],
-            "output_profiles": [VALID_OUTPUT_PROFILE],
-            "executions": [],
-        }
-    )
+    raw_seed_payload: dict[str, JsonValue] = {
+        "organizations": [VALID_ORGANIZATION],
+        "users": [VALID_USER],
+        "system_config": [VALID_SYSTEM_CONFIG],
+        "prompt_blocks": [VALID_PROMPT_BLOCK],
+        "steps": [VALID_STEP],
+        "workflows": [VALID_WORKFLOW],
+        "output_profiles": [VALID_OUTPUT_PROFILE],
+        "executions": [],
+    }
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        return run_seed.validate_all_seed_collections(raw_seed_payload)
 
 
 def test_run_seed_main_help(capsys: pytest.CaptureFixture[str]) -> None:
@@ -201,6 +204,7 @@ async def test_seed_postgres_full_materialization_and_count_verification() -> No
 
     assert counts["organizations"] == 1
     assert counts["users"] == 1
+    assert counts["tenant_secrets"] == 0
     assert counts["system_configs"] == 1
     assert counts["prompt_blocks"] == 1
     assert counts["steps"] == 1
@@ -209,6 +213,134 @@ async def test_seed_postgres_full_materialization_and_count_verification() -> No
     assert counts["executions"] == 0
     assert counts["report_artifacts"] == 0
     assert counts["report_binaries"] == 0
+
+
+@pytest.mark.asyncio
+async def test_run_seed_seeds_local_secrets_and_provisions_root_firebase_user() -> None:
+    """Positive test: _seed_postgres encrypts local secrets into tenant_secrets and provisions ROOT Firebase user."""
+    payload = _build_full_valid_seed_payload()
+    uow = InMemoryUnitOfWork()
+    secrets_settings = run_seed.LocalSeedSecretsSettings(
+        _env_file=None,
+        secret_ai_studio_api_key=SecretStr("AIzaSyDummyAiStudioKey1234567890"),
+        secret_vertex_ai_sa_json=SecretStr('{"type":"service_account","project_id":"demo-proj"}'),
+        secret_logfire_token=SecretStr("lf_tok_dummy_write_1234567890"),
+        secret_root_user_email=SecretStr("root@example.com"),
+        secret_root_user_password=SecretStr("QuorumRootPassword2026!"),
+    )
+
+    fb_user_record = MagicMock()
+    fb_user_record.uid = SYSTEM_ROOT_USER_ID
+
+    fake_fb_auth = MagicMock()
+    fake_fb_auth.get_user_by_email.side_effect = [
+        ValueError("User with email root@example.com not found"),
+        fb_user_record,
+    ]
+    fake_fb_auth.create_user.return_value = fb_user_record
+    fake_fb_auth.update_user.return_value = fb_user_record
+
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        counts = await run_seed._seed_postgres(
+            payload,
+            dry_run=False,
+            uow=uow,
+            secrets_settings=secrets_settings,
+            firebase_auth_client=fake_fb_auth,
+        )
+
+    assert counts["tenant_secrets"] == 3
+    fake_fb_auth.create_user.assert_called_once_with(
+        uid=SYSTEM_ROOT_USER_ID,
+        email="root@example.com",
+        password="QuorumRootPassword2026!",
+        email_verified=True,
+    )
+
+    root_user = await uow.entities.get_user(SYSTEM_ROOT_USER_ID)
+    assert root_user is not None
+    assert root_user.firebase_uid == SYSTEM_ROOT_USER_ID
+    assert root_user.email == "root@example.com"
+
+    secret_service = SecretService(entity_adapter=uow.entities)
+    resolved_ai_studio = await secret_service.resolve_llm_key(
+        SystemOrganizations.ROOT_SYSTEM.value,
+        LLMProvider.AI_STUDIO,
+    )
+    assert resolved_ai_studio.secret_value.get_secret_value() == "AIzaSyDummyAiStudioKey1234567890"
+    resolved_logfire = await secret_service.resolve_telemetry_secret("logfire")
+    assert resolved_logfire.secret_value.get_secret_value() == "lf_tok_dummy_write_1234567890"
+
+    # Re-run to verify idempotent update-on-existing Firebase user branch
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        await run_seed._seed_postgres(
+            payload,
+            dry_run=False,
+            uow=uow,
+            secrets_settings=secrets_settings,
+            firebase_auth_client=fake_fb_auth,
+        )
+    fake_fb_auth.update_user.assert_called_once_with(
+        SYSTEM_ROOT_USER_ID,
+        email="root@example.com",
+        password="QuorumRootPassword2026!",
+        email_verified=True,
+    )
+
+
+def test_local_seed_secrets_settings_rejects_extra_unknown_keys(tmp_path: Path) -> None:
+    """Negative test: LocalSeedSecretsSettings rejects unrecognized keys under extra='forbid'."""
+    bad_env_file = tmp_path / ".env.secrets.bad"
+    bad_env_file.write_text("UNKNOWN_SECRET_KEY='xyz'\n", encoding="utf-8")
+    with pytest.raises(ValidationError):
+        run_seed.LocalSeedSecretsSettings(_env_file=str(bad_env_file))
+
+
+@pytest.mark.asyncio
+async def test_provision_root_firebase_user_negative_and_boundary_cases() -> None:
+    """Negative and boundary tests for _provision_root_firebase_user validation and error handling."""
+    uow = InMemoryUnitOfWork()
+
+    # 1. Incomplete credentials (email without password) raises AppException
+    incomplete_secrets = run_seed.LocalSeedSecretsSettings(
+        _env_file=None,
+        secret_root_user_email=SecretStr("root@example.com"),
+    )
+    with pytest.raises(AppException) as exc_incomplete:
+        await run_seed._provision_root_firebase_user(uow, incomplete_secrets)
+    assert exc_incomplete.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+    # 2. Missing SECRET_VERTEX_AI_SA_JSON when ROOT email + password are set raises AppException
+    missing_sa_secrets = run_seed.LocalSeedSecretsSettings(
+        _env_file=None,
+        secret_root_user_email=SecretStr("root@example.com"),
+        secret_root_user_password=SecretStr("QuorumRootPassword2026!"),
+    )
+    with pytest.raises(AppException) as exc_missing_sa:
+        await run_seed._provision_root_firebase_user(uow, missing_sa_secrets)
+    assert exc_missing_sa.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+    # 3. Non-JSON prefix in SECRET_VERTEX_AI_SA_JSON raises AppException
+    bad_prefix_secrets = run_seed.LocalSeedSecretsSettings(
+        _env_file=None,
+        secret_vertex_ai_sa_json=SecretStr("not-a-json-object"),
+        secret_root_user_email=SecretStr("root@example.com"),
+        secret_root_user_password=SecretStr("QuorumRootPassword2026!"),
+    )
+    with pytest.raises(AppException) as exc_bad_prefix:
+        await run_seed._provision_root_firebase_user(uow, bad_prefix_secrets)
+    assert exc_bad_prefix.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+    # 4. Malformed JSON syntax in SECRET_VERTEX_AI_SA_JSON raises AppException
+    malformed_json_secrets = run_seed.LocalSeedSecretsSettings(
+        _env_file=None,
+        secret_vertex_ai_sa_json=SecretStr("{bad_json"),
+        secret_root_user_email=SecretStr("root@example.com"),
+        secret_root_user_password=SecretStr("QuorumRootPassword2026!"),
+    )
+    with pytest.raises(AppException) as exc_malformed:
+        await run_seed._provision_root_firebase_user(uow, malformed_json_secrets)
+    assert exc_malformed.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio

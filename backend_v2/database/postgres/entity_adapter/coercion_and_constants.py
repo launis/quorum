@@ -47,6 +47,7 @@ __all__ = [
 CANONICAL_SEED_TABLES: tuple[str, ...] = (
     "organizations",
     "users",
+    "tenant_secrets",
     "system_configs",
     "prompt_blocks",
     "steps",

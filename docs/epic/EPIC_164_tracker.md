@@ -22,12 +22,12 @@
 ### Phase 1: Backend `SecretScope.TELEMETRY`, `.env.secrets.local` Seeding Pipeline & Root Firebase User Provisioning
 **Plan:** @[docs/epic/tasks_EPIC_164/01_phase1_plan.md]
 - [x] **[OK] Create Plan:** @[docs/epic/tasks_EPIC_164/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
   - [x] Step 1.1: SecretScope.TELEMETRY Cross-Language Enum Parity & Root-Only UI Selector Filtering
   - [x] Step 1.2: SecretService Root-Only SecretScope.TELEMETRY RBAC Enforcement & resolve_telemetry_secret
-  - [ ] Step 1.3: CANONICAL_SEED_TABLES tenant_secrets Registration, .env.secrets.local Hydration & ROOT Firebase User Provisioning in run_seed.py
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 1.3: CANONICAL_SEED_TABLES tenant_secrets Registration, .env.secrets.local Hydration & ROOT Firebase User Provisioning in run_seed.py
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 
 ### Phase 2: Database-Driven Telemetry & Firebase Admin Startup Initialization, `.env` Sanitation & `service-account.json` Deletion
@@ -122,7 +122,7 @@
 | :--- | :--- | :--- | :--- |
 | REQ-164-001 | Add `SecretScope.TELEMETRY` (`"telemetry"`) to Python `enums.py` and Dart `enums.dart`, and filter `_ByokSecretsCard` so `SecretScope.telemetry` is selectable only by `UserRole.root` on `"org_0195f3a0000070008000000000000001"` | Phase 1, Step 1.1 | [x] Completed |
 | REQ-164-002 | Enforce `initiator.role == UserRole.ROOT` and `organization_id == "org_0195f3a0000070008000000000000001"` for `SecretScope.TELEMETRY` in `SecretService` and add `resolve_telemetry_secret` | Phase 1, Step 1.2 | [x] Completed |
-| REQ-164-003 | Add `"tenant_secrets"` to `CANONICAL_SEED_TABLES` and `InMemoryEntityAdapter.verify_seed_table_counts`, create `.env.secrets.example` and `.env.secrets.local`, and implement `LocalSeedSecretsSettings`, `_seed_local_secrets`, and `_provision_root_firebase_user` in `run_seed.py` | Phase 1, Step 1.3 | [ ] Pending |
+| REQ-164-003 | Add `"tenant_secrets"` to `CANONICAL_SEED_TABLES` and `InMemoryEntityAdapter.verify_seed_table_counts`, create `.env.secrets.example` and `.env.secrets.local`, and implement `LocalSeedSecretsSettings`, `_seed_local_secrets`, and `_provision_root_firebase_user` in `run_seed.py` | Phase 1, Step 1.3 | [x] Completed |
 | REQ-164-004 | Add `resolve_startup_logfire_token` in `telemetry.py` and `initialize_firebase_admin_from_secrets` in `token_service.py`, and wire both into `main.py` and `worker.py` startup | Phase 2, Step 2.1 | [ ] Pending |
 | REQ-164-005 | Remove `service-account.json` checks, `allow_mock_tokens`, and `mock_*_user_id` from `settings.py`, `logging_config.py`, `token_service.py`, and `run_e2e_variance_test.py`, sanitize `.env`, and delete `service-account.json` | Phase 2, Step 2.2 | [ ] Pending |
 | REQ-164-006 | Delete `MockLoginPanel`, `allowMockTokens`, `_requireMockUserId`, and `mock*UserId` from `login_screen.dart`, `env.dart`, and `client_app_v2/.env` | Phase 3, Step 3.1 | [ ] Pending |
@@ -134,24 +134,20 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Tier 1 Planning (`/tier1-planner`) for `@[docs/epic/EPIC_164_unified_secret_seeding_and_authentic_iam_parity.md]` and `@[docs/epic/EPIC_164_audit_report.md]`.
-- Generated 4 phased implementation plans in `docs/epic/tasks_EPIC_164/`:
-  - `@[docs/epic/tasks_EPIC_164/01_phase1_plan.md]` (Phase 1: Backend `SecretScope.TELEMETRY`, `.env.secrets.local` Seeding Pipeline & Root Firebase User Provisioning)
-  - `@[docs/epic/tasks_EPIC_164/02_phase2_plan.md]` (Phase 2: Database-Driven Telemetry & Firebase Admin Startup Initialization, `.env` Sanitation & `service-account.json` Deletion)
-  - `@[docs/epic/tasks_EPIC_164/03_phase3_plan.md]` (Phase 3: Frontend `MockLoginPanel` & `MOCK_*_USER_ID` Eradication and Authentic Email/Password Login Parity)
-  - `@[docs/epic/tasks_EPIC_164/04_phase4_plan.md]` (Phase 4: Comprehensive Unit, Integration, Seed & E2E Verification Gate)
-- Created and synchronized `@[docs/epic/EPIC_164_tracker.md]` with 100% line-boundary, target-file, and Requirements Traceability Matrix parity.
+- Completed Phase 1 (`/tier2-execute --full-auto`) of `@[docs/epic/tasks_EPIC_164/01_phase1_plan.md]` across 3 atomic commits:
+  - **Step 1.1 (`cd25ecd0e`)**: Added `SecretScope.TELEMETRY = "telemetry"` to `@[backend_v2/models/enums.py#L1395-L1400]` and `SecretScope.telemetry('telemetry')` to `@[client_app_v2/lib/core/models/enums.dart#L711-L724]`, updated `_ByokSecretsCard` in `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart#L1315-L1574]` to filter `SecretScope.telemetry` exclusively to `UserRole.root` on `"org_0195f3a0000070008000000000000001"`, and verified cross-language enum and widget tests (`@[backend_v2/tests/unit/test_enum_parity.py]`, `@[client_app_v2/test/core/models/enums_test.dart]`, `@[client_app_v2/test/features/settings/presentation/organization_iam_settings_view_test.dart]`).
+  - **Step 1.2 (`028ffc61b`)**: Enforced `UserRole.ROOT` and `"org_0195f3a0000070008000000000000001"` RBAC isolation for `SecretScope.TELEMETRY` (`_validate_telemetry_scope_rbac`, `_validate_target_identifier` against `frozenset({"logfire", "logfire_read"})`) and added `resolve_telemetry_secret` in `@[backend_v2/services/auth/secret_service.py#L841-L925]`, verified by positive, negative, and boundary unit tests in `@[backend_v2/tests/unit/services/auth/test_secret_service.py]`.
+  - **Step 1.3**: Registered `"tenant_secrets"` in `CANONICAL_SEED_TABLES` (`@[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]`) and `InMemoryEntityAdapter.verify_seed_table_counts` (`@[backend_v2/tests/fakes/in_memory_uow.py#L1231-L1290]`), created `@[.env.secrets.example]` and git-ignored `@[.env.secrets.local]` (registered in `@[.gitignore#L124-L128]`), implemented `LocalSeedSecretsSettings`, `_seed_local_secrets`, and `_provision_root_firebase_user` in `@[backend_v2/seed/run_seed.py]`, verified unit tests in `@[backend_v2/tests/unit/database/postgres/entity_adapter/test_coercion_and_constants.py]` and `@[backend_v2/tests/unit/seed/test_run_seed.py]`, and executed live `uv run python backend_v2/seed/run_seed.py local` to seed all 6 Root System Organization secrets into PostgreSQL 19 `tenant_secrets` and provision/synchronize `usr_0195f3a00000700a83fd6b3d77c748f4` (`root@example.com`, `email_verified=True`) in Firebase Authentication (`cognitive-quorum`).
 
 ## Learned
-- `test_enum_parity.py` (`@[backend_v2/tests/unit/test_enum_parity.py]`) enforces 1:1 member parity between `SecretScope` in `@[backend_v2/models/enums.py#L1395-L1399]` and `@[client_app_v2/lib/core/models/enums.dart#L711-L722]`, so both files and `_ByokSecretsCard` (`@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart#L1315-L1525]`) must be updated atomically in Phase 1 Step 1.1.
-- Adding `"tenant_secrets"` to `CANONICAL_SEED_TABLES` (`@[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]`) requires paired updates in `InMemoryEntityAdapter.verify_seed_table_counts` (`@[backend_v2/tests/fakes/in_memory_uow.py#L1231-L1289]`) and `@[backend_v2/tests/unit/database/postgres/entity_adapter/test_coercion_and_constants.py]` (`len(CANONICAL_SEED_TABLES) == 11`).
-- Delegating MFA enforcement in `AuthRepository.signInWithEmailAndPassword` (`@[client_app_v2/lib/features/auth/data/auth_repository.dart#L110-L176]`) to the backend `exchangeToken(idToken)` response (`MFA_REQUIRED`) enables single-factor Email + Password login on Windows Desktop when `REQUIRE_MFA=false` while preserving mandatory TOTP enrollment when `REQUIRE_MFA=true`.
+- Returning `list[TenantSecretCreateDTO]` directly from `LocalSeedSecretsSettings.iter_secret_entries()` in `@[backend_v2/seed/run_seed.py]` satisfies `QGR023` (`ban_anonymous_state_tuples`) with 100% typed Pydantic V2 DTO transit.
+- Initializing Firebase Authentication (`identityPlatform:initializeAuth` and enabling `signIn.email`) on GCP project `cognitive-quorum` resolved `ConfigurationNotFoundError` and allowed `run_seed.py local` to idempotently create and update `usr_0195f3a00000700a83fd6b3d77c748f4` in live Firebase Authentication and PostgreSQL 19 `users`.
 
 ## Remaining
-- The next agent must run `/tier0-research-plan` to analyze Phase 1 (`@[docs/epic/tasks_EPIC_164/01_phase1_plan.md]`) before executing Phase 1.
+- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]` to audit Phase 1 before proceeding to Phase 2 (`@[docs/epic/tasks_EPIC_164/02_phase2_plan.md]`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]
 ```
 
