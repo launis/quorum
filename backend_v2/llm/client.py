@@ -82,11 +82,6 @@ class LLMClient:
         self._organization_id: PrefixedUUID7 | None = organization_id
         self._resolved_credential: ResolvedCredentialDTO | None = resolved_credential
         self.model_config: dict[str, JsonSchemaNode] | None = None
-        self._initialize()
-
-    def _initialize(self) -> None:
-        """Initialize the client."""
-        pass
 
     @property
     def provider_name(self) -> str:
@@ -116,6 +111,77 @@ class LLMClient:
     def resolved_credential(self) -> ResolvedCredentialDTO | None:
         """Return the SecretService-resolved credential envelope or None if unset."""
         return self._resolved_credential
+
+    def _resolve_target_model_name(self, model: str | None) -> str:
+        """Resolve the target model identifier from an explicit override or bound strategy config.
+
+        Args:
+            model: Optional explicit model override.
+
+        Returns:
+            The resolved model name string.
+
+        Raises:
+            AppException: If neither an explicit model nor a bound strategy config is present
+                (ErrorCodes.CONFIGURATION_ERROR).
+        """
+        if model is not None:
+            return model
+        if not self._config:
+            logger.error(
+                "Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+            raise AppException(
+                message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+        return self._config.model_name
+
+    @staticmethod
+    def _extract_flat_messages(
+        messages: Sequence[LLMMessageDTO | ChatMessageDTO] | CompiledPrompt,
+    ) -> list[LLMMessageDTO]:
+        """Normalize a CompiledPrompt or message sequence into a flat list of LLMMessageDTOs.
+
+        Args:
+            messages: Input message sequence or CompiledPrompt instance.
+
+        Returns:
+            A flat list of validated LLMMessageDTO instances.
+        """
+        if isinstance(messages, CompiledPrompt):
+            return messages.to_flat_messages()
+        return [
+            m
+            if isinstance(m, LLMMessageDTO)
+            else LLMMessageDTO(role=m.role, content=m.content)
+            if isinstance(m, ChatMessageDTO)
+            else LLMMessageDTO.model_validate(m)
+            for m in messages
+        ]
+
+    @staticmethod
+    def _strip_cache_miss_kwargs(extra_kwargs: dict[str, JsonSchemaNode]) -> None:
+        """Remove ephemeral context-caching keys from provider kwargs after a 404 cache miss.
+
+        Args:
+            extra_kwargs: Mutable dictionary of provider keyword arguments to sanitize in-place.
+        """
+        if "cached_content" in extra_kwargs:
+            del extra_kwargs["cached_content"]
+        if "extra_headers" in extra_kwargs:
+            extra_headers = extra_kwargs["extra_headers"]
+            if type(extra_headers) is dict and "cached_content" in extra_headers:
+                del extra_headers["cached_content"]
+        if "extra_body" in extra_kwargs:
+            extra_body = extra_kwargs["extra_body"]
+            if type(extra_body) is dict:
+                if "cachedContent" in extra_body:
+                    del extra_body["cachedContent"]
+                if "cached_content" in extra_body:
+                    del extra_body["cached_content"]
 
     def _build_structured_schema(
         self,
@@ -414,21 +480,9 @@ class LLMClient:
         # ZERO-FALLBACK ENFORCEMENT
         # Resolve Configuration (SSOT Priority)
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
-        if model is None:
-            if not self._config:
-                logger.error(
-                    "Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
-                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-                raise AppException(
-                    message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-            # Use Strategy Config
-            target_model_name = self._config.model_name
-            target_provider_type = "litellm"  # Base Default
-
+        target_model_name = self._resolve_target_model_name(model)
+        target_provider_type = "litellm"
+        if model is None and self._config is not None:
             # Apply Strategy defaults only if caller didn't override
             if temperature is None:
                 temperature = self._config.temperature
@@ -440,27 +494,15 @@ class LLMClient:
             presence_penalty = self._config.presence_penalty
         else:
             # Legacy pass-through
-            target_model_name = model
-            target_provider_type = "litellm"
             top_p = None
             top_k = None
             frequency_penalty = None
             presence_penalty = None
 
         compiled_prompt: CompiledPrompt | None = None
-        final_messages: list[LLMMessageDTO]
         if isinstance(messages, CompiledPrompt):
             compiled_prompt = messages
-            final_messages = compiled_prompt.to_flat_messages()
-        else:
-            final_messages = [
-                m
-                if isinstance(m, LLMMessageDTO)
-                else LLMMessageDTO(role=m.role, content=m.content)
-                if isinstance(m, ChatMessageDTO)
-                else LLMMessageDTO.model_validate(m)
-                for m in messages
-            ]
+        final_messages: list[LLMMessageDTO] = self._extract_flat_messages(messages)
 
         # 1. Evaluate Context Caching Requirements
         # We process the raw messages array dynamically before handing it to the provider.
@@ -589,15 +631,7 @@ class LLMClient:
                     err_str = str(gen_err).lower()
                     if "404" in err_str and ("cache" in err_str or "not found" in err_str):
                         logger.warning("Cache Miss Fallback Triggered. Resending full payload natively.", exc_info=True)
-                        if "cached_content" in extra_kwargs:
-                            del extra_kwargs["cached_content"]
-                        if "extra_headers" in extra_kwargs and "cached_content" in extra_kwargs["extra_headers"]:
-                            del extra_kwargs["extra_headers"]["cached_content"]
-                        if "extra_body" in extra_kwargs:
-                            if "cachedContent" in extra_kwargs["extra_body"]:
-                                del extra_kwargs["extra_body"]["cachedContent"]
-                            if "cached_content" in extra_kwargs["extra_body"]:
-                                del extra_kwargs["extra_body"]["cached_content"]
+                        self._strip_cache_miss_kwargs(extra_kwargs)
 
                         fallback_messages: list[LLMMessageDTO]
                         if compiled_prompt is not None:
@@ -784,21 +818,9 @@ class LLMClient:
         # ZERO-FALLBACK ENFORCEMENT
         # Resolve Configuration (SSOT Priority)
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
-        if model is None:
-            if not self._config:
-                logger.error(
-                    "Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
-                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-                raise AppException(
-                    message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-            # Use Strategy Config
-            target_model_name = self._config.model_name
-            target_provider_type = "litellm"
-
+        target_model_name = self._resolve_target_model_name(model)
+        target_provider_type = "litellm"
+        if model is None and self._config is not None:
             # Apply Strategy defaults only if caller didn't override
             if temperature is None:
                 temperature = self._config.temperature
@@ -810,8 +832,6 @@ class LLMClient:
             presence_penalty = self._config.presence_penalty
         else:
             # Legacy pass-through
-            target_model_name = model
-            target_provider_type = "litellm"
             top_p = None
             top_k = None
             frequency_penalty = None
@@ -821,12 +841,9 @@ class LLMClient:
         strict_timeout = get_settings().llm_default_timeout_seconds
 
         compiled_prompt: CompiledPrompt | None = None
-        final_messages: list[LLMMessageDTO]
         if isinstance(messages, CompiledPrompt):
             compiled_prompt = messages
-            final_messages = compiled_prompt.to_flat_messages()
-        else:
-            final_messages = [m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages]
+        final_messages: list[LLMMessageDTO] = self._extract_flat_messages(messages)
 
         # 1. Evaluate Context Caching Requirements
         has_ephemeral_caching = False
@@ -882,19 +899,7 @@ class LLMClient:
                 err_str = str(gen_err).lower()
                 if "404" in err_str and ("cache" in err_str or "not found" in err_str):
                     logger.warning("Cache Miss Fallback Triggered. Resending full payload natively.", exc_info=True)
-                    if "cached_content" in extra_kwargs:
-                        del extra_kwargs["cached_content"]
-                    if "extra_headers" in extra_kwargs:
-                        extra_headers = extra_kwargs["extra_headers"]
-                        if type(extra_headers) is dict and "cached_content" in extra_headers:
-                            del extra_headers["cached_content"]
-                    if "extra_body" in extra_kwargs:
-                        extra_body = extra_kwargs["extra_body"]
-                        if type(extra_body) is dict:
-                            if "cachedContent" in extra_body:
-                                del extra_body["cachedContent"]
-                            if "cached_content" in extra_body:
-                                del extra_body["cached_content"]
+                    self._strip_cache_miss_kwargs(extra_kwargs)
 
                     fallback_messages: list[LLMMessageDTO]
                     if compiled_prompt is not None:
