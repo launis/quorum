@@ -41,7 +41,7 @@
   - [x] @[backend_v2/llm/adapters/mock_adapter.py]
   - [x] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
   - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
-  - [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py]
+  - [x] @[backend_v2/services/orchestrator/rag_preflight_service.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/hooks/interaction_hook.py]
   - [ ] @[backend_v2/hooks/linguistics.py]
