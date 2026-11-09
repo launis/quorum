@@ -11,11 +11,15 @@ void main() {
       'Positive 1: ExecutionMetadata roundtrips full JSON payload with nested telemetry and enum',
       () {
         final registryId = generateOpaqueUuid7('reg');
+        final orgId = generateOpaqueUuid7('org');
+        final initiatorId = generateOpaqueUuid7('usr');
         final rawPayload = {
           'matrix_sampling_strategy': 10,
           'workflow_version': 3,
           'global_context_vars': <String, Object?>{
             'target_locale': 'fi',
+            'organization_id': orgId,
+            'initiator_id': initiatorId,
             'passivity_detected': false,
           },
           'provider_override': 'vertex_ai',
@@ -32,6 +36,8 @@ void main() {
         expect(metadata.matrixSamplingStrategy, equals(10));
         expect(metadata.workflowVersion, equals(3));
         expect(metadata.globalContextVars?.targetLocale, equals('fi'));
+        expect(metadata.globalContextVars?.organizationId, equals(orgId));
+        expect(metadata.globalContextVars?.initiatorId, equals(initiatorId));
         expect(metadata.globalContextVars?.passivityDetected, isFalse);
         expect(metadata.providerOverride, equals(LLMProvider.vertexAi));
         expect(metadata.modelRegistryId, equals(registryId));
@@ -48,6 +54,11 @@ void main() {
         final roundtripped = ExecutionMetadata.fromJson(serialized);
         expect(roundtripped.matrixSamplingStrategy, equals(10));
         expect(roundtripped.workflowVersion, equals(3));
+        expect(roundtripped.globalContextVars?.organizationId, equals(orgId));
+        expect(
+          roundtripped.globalContextVars?.initiatorId,
+          equals(initiatorId),
+        );
         expect(roundtripped.providerOverride, equals(LLMProvider.vertexAi));
         expect(roundtripped.modelRegistryId, equals(registryId));
         expect(
@@ -93,6 +104,19 @@ void main() {
           () => GlobalContextVarsDto.fromJson({
             'target_locale': 'fi',
             'unrecognized_context_var': 'forbidden',
+          }),
+          throwsA(
+            anyOf(
+              isA<UnrecognizedKeysException>(),
+              isA<CheckedFromJsonException>(),
+            ),
+          ),
+        );
+
+        expect(
+          () => GlobalContextVarsDto.fromJson({
+            'target_locale': 'fi',
+            '_sys_initiator_id': generateOpaqueUuid7('usr'),
           }),
           throwsA(
             anyOf(

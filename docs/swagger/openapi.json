@@ -11893,7 +11893,7 @@
             "title": "Organization Id",
             "description": "Multi-tenant organization identifier."
           },
-          "_sys_initiator_id": {
+          "initiator_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -11902,7 +11902,7 @@
                 "type": "null"
               }
             ],
-            "title": "Sys Initiator Id",
+            "title": "Initiator Id",
             "description": "Execution initiator user identifier."
           },
           "step_coach": {
