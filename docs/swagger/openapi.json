@@ -22998,7 +22998,8 @@
         "type": "string",
         "enum": [
           "llm_provider",
-          "mcp_gateway"
+          "mcp_gateway",
+          "telemetry"
         ],
         "title": "SecretScope",
         "description": "Target capability scope for tenant-scoped BYOK secrets."
