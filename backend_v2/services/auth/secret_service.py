@@ -67,6 +67,7 @@ _DEK_BYTE_LENGTH: int = 32
 _AES_GCM_NONCE_BYTE_LENGTH: int = 12
 _MIN_WRAPPED_DEK_BYTE_LENGTH: int = 28
 _VALID_LLM_PROVIDER_IDS: frozenset[str] = frozenset(provider.value for provider in LLMProvider)
+_VALID_TELEMETRY_TARGET_IDS: frozenset[str] = frozenset({"logfire", "logfire_read"})
 
 
 class AuditLoggerProtocol(Protocol):
@@ -160,7 +161,14 @@ class SecretService:
         """
         self._verify_tenant_admin_access(initiator=initiator, organization_id=organization_id)
         records = await self._list_org_secret_records(organization_id)
-        return [self._to_response_dto(record) for record in records]
+        can_view_telemetry = (
+            initiator.role == UserRole.ROOT and organization_id == SystemOrganizations.ROOT_SYSTEM.value
+        )
+        return [
+            self._to_response_dto(record)
+            for record in records
+            if record.scope != SecretScope.TELEMETRY or can_view_telemetry
+        ]
 
     async def upsert_tenant_secret(
         self,
@@ -184,11 +192,14 @@ class SecretService:
             Redacted TenantSecretResponseDTO with masked_hint and active kek_version.
 
         Raises:
-            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks tenant admin rights.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks tenant admin rights
+                or attempts to mutate SecretScope.TELEMETRY outside UserRole.ROOT on ROOT_SYSTEM.
             AppException: With ErrorCodes.VALIDATION_FAILED if secret payload, target_identifier, or URI is invalid.
             ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if KMS wrapping fails or ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         self._verify_tenant_admin_access(initiator=initiator, organization_id=organization_id)
+        if payload.scope == SecretScope.TELEMETRY:
+            self._verify_telemetry_root_access(initiator=initiator, organization_id=organization_id)
         self._validate_target_identifier(
             organization_id=organization_id,
             scope=payload.scope,
@@ -288,6 +299,8 @@ class SecretService:
                     "organization_id": organization_id,
                 },
             )
+        if record.scope == SecretScope.TELEMETRY:
+            self._verify_telemetry_root_access(initiator=initiator, organization_id=organization_id)
 
         await self._delete_secret_record(secret_id)
 
@@ -349,6 +362,37 @@ class SecretService:
             target_identifier=gateway.id,
             target_kind_label="MCP gateway",
             detail_key="gateway_id",
+        )
+
+    async def resolve_telemetry_secret(
+        self,
+        target_identifier: str = "logfire",
+    ) -> ResolvedCredentialDTO:
+        """Resolve a platform-level telemetry credential strictly from ROOT_SYSTEM in tenant_secrets.
+
+        Args:
+            target_identifier: Telemetry target identifier ('logfire' or 'logfire_read').
+
+        Returns:
+            Non-nullable ResolvedCredentialDTO wrapping the decrypted SecretStr.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if target_identifier is not a valid telemetry target.
+            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
+                or if ROOT_SYSTEM has no telemetry secret record in tenant_secrets.
+        """
+        root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        self._validate_target_identifier(
+            organization_id=root_org_id,
+            scope=SecretScope.TELEMETRY,
+            target_identifier=target_identifier,
+        )
+        return await self._resolve_scoped_secret(
+            organization_id=root_org_id,
+            scope=SecretScope.TELEMETRY,
+            target_identifier=target_identifier,
+            target_kind_label="telemetry target",
+            detail_key="target_identifier",
         )
 
     async def _resolve_scoped_secret(
@@ -450,6 +494,44 @@ class SecretService:
                 details={
                     "error_code": ErrorCodes.PERMISSION_DENIED.value,
                     "organization_id": organization_id,
+                },
+            )
+
+    @staticmethod
+    def _verify_telemetry_root_access(initiator: TokenData, organization_id: str) -> None:
+        """Verify that SecretScope.TELEMETRY operations are performed by ROOT on ROOT_SYSTEM.
+
+        Args:
+            initiator: Authenticated caller token data.
+            organization_id: Target organization ID.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller is not ROOT
+                or organization_id is not ROOT_SYSTEM.
+        """
+        root_org_id: str = SystemOrganizations.ROOT_SYSTEM.value
+        if initiator.role != UserRole.ROOT or organization_id != root_org_id:
+            msg = (
+                f"Caller '{initiator.id}' (role='{initiator.role.value}') is not authorized to manage "
+                f"telemetry secrets for organization '{organization_id}'."
+            )
+            logger.error(
+                "[SecretService] %s: %s",
+                ErrorCodes.PERMISSION_DENIED.name,
+                msg,
+                exc_info=True,
+                extra={
+                    "error_code": ErrorCodes.PERMISSION_DENIED.value,
+                    "organization_id": organization_id,
+                    "scope": SecretScope.TELEMETRY.value,
+                },
+            )
+            raise PermissionDeniedError(
+                message=msg,
+                details={
+                    "error_code": ErrorCodes.PERMISSION_DENIED.value,
+                    "organization_id": organization_id,
+                    "scope": SecretScope.TELEMETRY.value,
                 },
             )
 
@@ -778,6 +860,29 @@ class SecretService:
                 msg = (
                     f"Target identifier '{target_identifier}' is not a valid LLMProvider value "
                     f"for organization '{organization_id}'."
+                )
+                logger.error(
+                    "[SecretService] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={
+                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                        "organization_id": organization_id,
+                        "target_identifier": target_identifier,
+                    },
+                )
+            return
+
+        if scope == SecretScope.TELEMETRY:
+            if target_identifier not in _VALID_TELEMETRY_TARGET_IDS:
+                msg = (
+                    f"Telemetry target_identifier '{target_identifier}' is not in "
+                    f"{sorted(_VALID_TELEMETRY_TARGET_IDS)} for organization '{organization_id}'."
                 )
                 logger.error(
                     "[SecretService] %s: %s",

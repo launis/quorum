@@ -26,7 +26,6 @@ from backend_v2.models.auth import (
     ResolvedCredentialDTO,
     SystemOrganizations,
     TenantSecretCreateDTO,
-    TenantSecretDTO,
     TokenData,
 )
 from backend_v2.models.core_base import I18nText, generate_opaque_id
@@ -56,6 +55,7 @@ from backend_v2.services.auth.secret_service import (
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.settings import get_settings
+from backend_v2.tests.factories.model_factories import TenantSecretDTOFactory
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 from scripts._ast_guardrails import scan_source_code_for_guardrails
 
@@ -646,7 +646,7 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
     assert mcp_unset_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
 
     # 5. Incomplete ENVELOPE_KMS record missing nonce
-    incomplete_record = TenantSecretDTO(
+    incomplete_record = TenantSecretDTOFactory.build(
         id=generate_opaque_id(EntityPrefix.TENANT_SECRET),
         organization_id=org_id,
         scope=SecretScope.LLM_PROVIDER,
@@ -986,3 +986,157 @@ def test_secret_service_masked_hint_short_json_boundary() -> None:
     assert SecretService._build_masked_hint("{}") == "****"
     assert SecretService._build_masked_hint('{"a": 1}') == "****"
     assert SecretService._build_masked_hint('{"key": "ab12"}') == "****ab12"
+
+
+@pytest.mark.asyncio
+async def test_secret_service_telemetry_scope_allows_root_on_root_org() -> None:
+    """Positive: Verify UserRole.ROOT on ROOT_SYSTEM can upsert, list, resolve, and delete SecretScope.TELEMETRY secrets."""
+    uow = InMemoryUnitOfWork()
+    audit_logger = _RecordingAuditLogger()
+    service = SecretService(entity_adapter=uow.entities, audit_service=audit_logger)
+
+    root_org_id = SystemOrganizations.ROOT_SYSTEM.value
+    root_token = _make_token_data(role=UserRole.ROOT, organization_id=root_org_id)
+
+    created_write = await service.upsert_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.TELEMETRY,
+            target_identifier="logfire",
+            plaintext_secret=SecretStr("lf_tok_12345678"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    assert created_write.scope == SecretScope.TELEMETRY
+    assert created_write.target_identifier == "logfire"
+    assert created_write.masked_hint == "****5678"
+
+    created_read = await service.upsert_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.TELEMETRY,
+            target_identifier="logfire_read",
+            plaintext_secret=SecretStr("lf_read_tok_9876"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    assert created_read.scope == SecretScope.TELEMETRY
+    assert created_read.target_identifier == "logfire_read"
+
+    listed = await service.list_tenant_secrets(initiator=root_token, organization_id=root_org_id)
+    assert {item.target_identifier for item in listed} == {"logfire", "logfire_read"}
+
+    resolved_write = await service.resolve_telemetry_secret("logfire")
+    assert resolved_write.organization_id == root_org_id
+    assert resolved_write.scope == SecretScope.TELEMETRY
+    assert resolved_write.target_identifier == "logfire"
+    assert resolved_write.secret_value.get_secret_value() == "lf_tok_12345678"
+
+    resolved_read = await service.resolve_telemetry_secret("logfire_read")
+    assert resolved_read.secret_value.get_secret_value() == "lf_read_tok_9876"
+
+    deleted = await service.delete_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org_id,
+        secret_id=created_read.id,
+    )
+    assert deleted is True
+
+
+@pytest.mark.asyncio
+async def test_secret_service_telemetry_scope_rejects_tenant_admin_and_non_root_org() -> None:
+    """Negative: Verify SecretScope.TELEMETRY rejects UserRole.ADMIN and non-ROOT_SYSTEM organizations with PermissionDeniedError."""
+    uow = InMemoryUnitOfWork()
+    service = SecretService(entity_adapter=uow.entities)
+
+    root_org_id = SystemOrganizations.ROOT_SYSTEM.value
+    tenant_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    root_token = _make_token_data(role=UserRole.ROOT, organization_id=root_org_id)
+    admin_on_root_org = _make_token_data(role=UserRole.ADMIN, organization_id=root_org_id)
+
+    # Seed a valid telemetry secret as ROOT on ROOT_SYSTEM
+    seeded_telemetry = await service.upsert_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.TELEMETRY,
+            target_identifier="logfire",
+            plaintext_secret=SecretStr("lf_tok_root_only"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
+    # 1. ADMIN on ROOT_SYSTEM cannot list SecretScope.TELEMETRY (filtered out)
+    admin_listed = await service.list_tenant_secrets(initiator=admin_on_root_org, organization_id=root_org_id)
+    assert admin_listed == []
+
+    # 2. ADMIN on ROOT_SYSTEM cannot upsert SecretScope.TELEMETRY
+    with pytest.raises(PermissionDeniedError) as admin_upsert_exc:
+        await service.upsert_tenant_secret(
+            initiator=admin_on_root_org,
+            organization_id=root_org_id,
+            payload=TenantSecretCreateDTO(
+                scope=SecretScope.TELEMETRY,
+                target_identifier="logfire",
+                plaintext_secret=SecretStr("lf_tok_admin_attempt"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            ),
+        )
+    assert admin_upsert_exc.value.status_code == 403
+    assert admin_upsert_exc.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+
+    # 3. ADMIN on ROOT_SYSTEM cannot delete SecretScope.TELEMETRY
+    with pytest.raises(PermissionDeniedError) as admin_del_exc:
+        await service.delete_tenant_secret(
+            initiator=admin_on_root_org,
+            organization_id=root_org_id,
+            secret_id=seeded_telemetry.id,
+        )
+    assert admin_del_exc.value.status_code == 403
+    assert admin_del_exc.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+
+    # 4. ROOT targeting a non-ROOT_SYSTEM tenant organization cannot upsert SecretScope.TELEMETRY
+    with pytest.raises(PermissionDeniedError) as non_root_org_exc:
+        await service.upsert_tenant_secret(
+            initiator=root_token,
+            organization_id=tenant_org_id,
+            payload=TenantSecretCreateDTO(
+                scope=SecretScope.TELEMETRY,
+                target_identifier="logfire",
+                plaintext_secret=SecretStr("lf_tok_wrong_org"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            ),
+        )
+    assert non_root_org_exc.value.status_code == 403
+    assert non_root_org_exc.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+
+
+@pytest.mark.asyncio
+async def test_secret_service_telemetry_scope_rejects_unknown_target_identifier() -> None:
+    """Boundary: Verify SecretScope.TELEMETRY rejects target identifiers outside {'logfire', 'logfire_read'}."""
+    uow = InMemoryUnitOfWork()
+    service = SecretService(entity_adapter=uow.entities)
+
+    root_org_id = SystemOrganizations.ROOT_SYSTEM.value
+    root_token = _make_token_data(role=UserRole.ROOT, organization_id=root_org_id)
+
+    with pytest.raises(AppException) as invalid_target_exc:
+        await service.upsert_tenant_secret(
+            initiator=root_token,
+            organization_id=root_org_id,
+            payload=TenantSecretCreateDTO(
+                scope=SecretScope.TELEMETRY,
+                target_identifier="invalid_target",
+                plaintext_secret=SecretStr("lf_tok_12345678"),
+                storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            ),
+        )
+    assert invalid_target_exc.value.status_code == 400
+    assert invalid_target_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises(AppException) as resolve_invalid_exc:
+        await service.resolve_telemetry_secret("invalid_target")
+    assert resolve_invalid_exc.value.status_code == 400
+    assert resolve_invalid_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
