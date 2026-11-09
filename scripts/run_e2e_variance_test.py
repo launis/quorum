@@ -522,8 +522,8 @@ class ScaleTelemetryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    score: Annotated[int, Field(description="Numerical score level")]
-    name: Annotated[str, Field(description="Localized name of scale level")]
+    scale_score: Annotated[int, Field(description="Numerical score level")]
+    scale_name: Annotated[str, Field(description="Localized name of scale level")]
     ai_label: Annotated[str, Field(default="", description="AI instruction label for this scale")] = ""
     claim_count: Annotated[int, Field(default=0, description="Total claims linked to this scale")] = 0
     atom_count: Annotated[int, Field(default=0, description="Total atoms linked to this scale")] = 0
@@ -536,7 +536,7 @@ class MatrixTelemetryDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     block_id: Annotated[str, Field(description="Matrix block identifier")]
-    label: Annotated[str, Field(description="Display label for the matrix")]
+    matrix_label: Annotated[str, Field(description="Display label for the matrix")]
     category: Annotated[str, Field(default="matrix", description="Category identifier")] = "matrix"
     computed_min: Annotated[int, Field(description="Minimum score of the matrix")]
     computed_max: Annotated[int, Field(description="Maximum score of the matrix")]
@@ -559,8 +559,8 @@ class StepTelemetryDTO(BaseModel):
 
     step_rule_id: Annotated[str, Field(description="Step rule identifier")]
     blueprint_id: Annotated[str, Field(description="Task blueprint identifier")]
-    name: Annotated[str, Field(description="Step name")]
-    type: Annotated[str, Field(description="Step execution type")]
+    step_name: Annotated[str, Field(description="Step name")]
+    step_type: Annotated[str, Field(description="Step execution type")]
     cognitive_tier: Annotated[str | None, Field(default=None, description="Cognitive tier or model strategy")] = None
     model_strategy: Annotated[str | None, Field(default=None, description="Model strategy alias")] = None
     is_synthesis_source: Annotated[bool, Field(default=True, description="Whether step is a synthesis source")] = True
@@ -577,7 +577,6 @@ class WorkflowTelemetryDTO(BaseModel):
     source_path: Annotated[str, Field(description="Source path where workflow was loaded from")]
     workflow_id: Annotated[str, Field(description="Canonical workflow identifier")]
     workflow_name: Annotated[str, Field(description="Localized workflow name")]
-    workflow_slug: Annotated[str, Field(default="", description="Workflow slug")] = ""
     strictness_level: Annotated[int, Field(default=50, description="Evaluator strictness percentage 0-100")] = 50
     strictness_exponent: Annotated[float, Field(description="Calculated strictness exponent")]
     enable_contextual_overrides: Annotated[
@@ -1229,9 +1228,6 @@ def resolve_comparison_registries(
             if str(r["id"] if "id" in r else "").lower() == term_clean:
                 return r
         for r in registries:
-            if str(r["slug"] if "slug" in r else "").lower() == term_clean:
-                return r
-        for r in registries:
             if str(r["default_provider"] if "default_provider" in r else "").lower() == term_clean:
                 return r
         for r in registries:
@@ -1276,12 +1272,7 @@ def resolve_comparison_registries(
     target_wf: Mapping[str, JsonValue] | None = None
     if workflow_id:
         target_wf = next(
-            (
-                w
-                for w in wfs_list
-                if type(w) is dict
-                and (("id" in w and w["id"] == workflow_id) or ("slug" in w and w["slug"] == workflow_id))
-            ),
+            (w for w in wfs_list if type(w) is dict and ("id" in w and w["id"] == workflow_id)),
             None,
         )
     if not target_wf:
@@ -1311,7 +1302,7 @@ def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = N
 
     Args:
         db_path: Path to database file or seed data.
-        workflow_id: Optional workflow ID or slug to resolve.
+        workflow_id: Optional canonical workflow ID to resolve.
 
     Returns:
         Structured dictionary of workflow strictness, penalties, and attached step matrices,
@@ -1321,7 +1312,7 @@ def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = N
     if not all_wfs:
         return None
     if workflow_id:
-        return next((w for w in all_wfs if w.workflow_id == workflow_id or w.workflow_slug == workflow_id), None)
+        return next((w for w in all_wfs if w.workflow_id == workflow_id), None)
     # Dynamically find unique core workflow, or sole workflow in database
     target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
     with target_path.open("r", encoding="utf-8") as f:
@@ -1389,7 +1380,6 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
 
     for target_wf in workflows_map.values():
         wf_id = str(target_wf["id"] if "id" in target_wf else None)
-        wf_slug = str(target_wf["slug"] if "slug" in target_wf else "")
         wf_name = _resolve_text(target_wf["name"] if "name" in target_wf else None)
         strictness_level = int(target_wf["default_strictness_level"] if "default_strictness_level" in target_wf else 50)
         strictness_exponent = calculate_strictness_exponent(strictness_level)
@@ -1462,8 +1452,8 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
 
                     m_scales.append(
                         ScaleTelemetryDTO(
-                            score=sc_score,
-                            name=sc_name,
+                            scale_score=sc_score,
+                            scale_name=sc_name,
                             ai_label=sc_ai_label,
                             claim_count=len(claims),
                             atom_count=sc_atoms,
@@ -1472,19 +1462,19 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
                     )
 
                 comp_min_val = (
-                    blk["computed_min"] if "computed_min" in blk else min((s.score for s in m_scales), default=1)
+                    blk["computed_min"] if "computed_min" in blk else min((s.scale_score for s in m_scales), default=1)
                 )
                 comp_max_val = (
                     blk["computed_max"]
                     if "computed_max" in blk
-                    else max((s.score for s in m_scales), default=len(m_scales))
+                    else max((s.scale_score for s in m_scales), default=len(m_scales))
                 )
                 allow_override_val = blk["allow_contextual_override"] if "allow_contextual_override" in blk else False
                 target_input_raw = blk["target_input_key"] if "target_input_key" in blk else None
                 step_matrices.append(
                     MatrixTelemetryDTO(
                         block_id=cid,
-                        label=m_label,
+                        matrix_label=m_label,
                         category="matrix",
                         computed_min=int(comp_min_val),
                         computed_max=int(comp_max_val),
@@ -1501,8 +1491,8 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
                 StepTelemetryDTO(
                     step_rule_id=srule_id,
                     blueprint_id=bp_id,
-                    name=sname,
-                    type=stype,
+                    step_name=sname,
+                    step_type=stype,
                     cognitive_tier=strat_val,
                     model_strategy=strat_val,
                     is_synthesis_source=bool(srule["is_synthesis_source"] if "is_synthesis_source" in srule else True),
@@ -1515,7 +1505,6 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
                 source_path=str(target_path),
                 workflow_id=wf_id,
                 workflow_name=wf_name,
-                workflow_slug=wf_slug,
                 strictness_level=strictness_level,
                 strictness_exponent=strictness_exponent,
                 enable_contextual_overrides=enable_contextual_overrides,
@@ -1599,12 +1588,12 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
         for idx, s in enumerate(telemetry.steps, 1):
             tier = s.cognitive_tier or s.model_strategy
             strat_display = f"Taso: {tier.upper()}" if tier else "Ei LLM-kutsua (Logiikkakoukku)"
-            if s.type == "logic":
+            if s.step_type == "logic":
                 strat_display = "Deterministinen UnifiedScoringEngine"
             matrices_count = len(s.matrices)
-            print(f"  [{idx}] Askel: {s.name}")
+            print(f"  [{idx}] Askel: {s.step_name}")
             print(f"      - Tunnisteet:            sääntö={s.step_rule_id} / pohja={s.blueprint_id}")
-            print(f"      - Tyyppi ja taso:        {s.type} | {strat_display}")
+            print(f"      - Tyyppi ja taso:        {s.step_type} | {strat_display}")
             print(f"      - Matriiseja sidottu:    {matrices_count} kpl")
 
             for m in s.matrices:
@@ -1620,7 +1609,7 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
                     if he_atoms > 0
                     else "EI KÄYTÖSSÄ (Single Pass, 100% atomeista)"
                 )
-                print(f"      -> MATRIISI '{m.block_id}': \"{m.label}\"")
+                print(f"      -> MATRIISI '{m.block_id}': \"{m.matrix_label}\"")
                 print(
                     f"         * Asteikko (min..max):    {m.computed_min} .. {m.computed_max} ({len(m.scales)} tasoa)"
                 )
@@ -1646,7 +1635,7 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
                         else f"Single Pass (1x LLM, {sc_calls} kutsua)"
                     )
                     print(
-                        f"           - Taso {sc.score}: {sc.name}{ai_lbl} | "
+                        f"           - Taso {sc.scale_score}: {sc.scale_name}{ai_lbl} | "
                         f"{sc.claim_count} väitettä, {sc_tot} atomia | "
                         f"Äänestys: {voting_tag}"
                     )

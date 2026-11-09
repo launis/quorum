@@ -523,7 +523,7 @@ class TestWorkflowMatrixTelemetry:
         assert kahneman.high_entropy_atoms == 15
 
         scoring = steps["sr_0195f3a0000070028fa56dc36614469a"]
-        assert scoring.type == "logic"
+        assert scoring.step_type == "logic"
         assert len(scoring.matrices) == 0
 
     def test_resolve_all_workflows_matrix_telemetry(self) -> None:
@@ -548,7 +548,7 @@ class TestWorkflowMatrixTelemetry:
         )
 
     def test_resolve_workflow_matrix_telemetry_targeted_id(self) -> None:
-        """Verify targeted workflow resolution parses specific workflow parameters by ID and slug."""
+        """Verify targeted workflow resolution parses specific workflow parameters by canonical ID."""
         from scripts.run_e2e_variance_test import resolve_workflow_matrix_telemetry
 
         telemetry_by_id = resolve_workflow_matrix_telemetry(
@@ -559,12 +559,12 @@ class TestWorkflowMatrixTelemetry:
         assert telemetry_by_id.workflow_id == "wf_0195f3a00000700a88f1d71000000001"
         assert telemetry_by_id.total_matrices == 5
 
-        telemetry_by_slug = resolve_workflow_matrix_telemetry(
+        telemetry_core_by_id = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
-            workflow_id="kokonaisvaltainen_auditointi",
+            workflow_id="wf_0195f3a0000070098d68c573802341db",
         )
-        assert telemetry_by_slug is not None
-        assert telemetry_by_slug.workflow_id == "wf_0195f3a0000070098d68c573802341db"
+        assert telemetry_core_by_id is not None
+        assert telemetry_core_by_id.workflow_id == "wf_0195f3a0000070098d68c573802341db"
 
     def test_print_workflow_matrix_telemetry_smoke(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Verify print_workflow_matrix_telemetry outputs formatted telemetry cleanly."""
