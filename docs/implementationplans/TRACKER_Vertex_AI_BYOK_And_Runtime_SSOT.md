@@ -39,7 +39,7 @@
   - [x] @[backend_v2/llm/adapters/anthropic_adapter.py]
   - [x] @[backend_v2/llm/adapters/openai_adapter.py]
   - [x] @[backend_v2/llm/adapters/mock_adapter.py]
-  - [ ] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
+  - [x] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
   - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
