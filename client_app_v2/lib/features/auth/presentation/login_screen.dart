@@ -1,13 +1,10 @@
-import 'package:client_app/core/environment/env.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
-import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/auth/data/auth_repository.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -155,10 +152,6 @@ class LoginScreen extends HookConsumerWidget {
                           child: Text(l10n.signInButton),
                         ),
                       ),
-                      if (Env.allowMockTokens) ...[
-                        AppSpacing.h24,
-                        const MockLoginPanel(),
-                      ],
                     ],
                   ),
                 ),
@@ -360,115 +353,6 @@ class LoginScreen extends HookConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class MockLoginPanel extends HookConsumerWidget {
-  const MockLoginPanel({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final mockIdController = useTextEditingController();
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final semanticColors = context.semanticColors;
-    final mockMutation = useMutation<void>(
-      onSuccess: (_) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.mockLoginSuccess)));
-      },
-      onError: (e) {
-        if (!context.mounted) return;
-        final msg = AppExceptionX.extractLocalizedHint(e, l10n);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.mockLoginFailed(msg))));
-      },
-    );
-
-    Future<void> mockLogin(String id) async {
-      await mockMutation.mutate(() async {
-        await ref.read(authControllerProvider.notifier).debugMockLogin(id);
-      });
-    }
-
-    return Column(
-      children: [
-        const Divider(),
-        Text(
-          l10n.devToolsHeader,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        AppSpacing.h8,
-        TextFormField(
-          controller: mockIdController,
-          decoration: InputDecoration(
-            labelText: l10n.customMockUserIdLabel,
-            border: const OutlineInputBorder(),
-            isDense: true,
-          ),
-        ),
-        AppSpacing.h8,
-        TextButton(
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.secondary,
-          ),
-          onPressed: mockMutation.isLoading
-              ? null
-              : () {
-                  if (mockIdController.text.isNotEmpty) {
-                    mockLogin(mockIdController.text.trim());
-                  }
-                },
-          child: Text(l10n.mockLoginCustomIdBtn),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.tertiary,
-          ),
-          onPressed: mockMutation.isLoading
-              ? null
-              : () => mockLogin(Env.mockRootUserId),
-          child: Text(l10n.mockLoginRootMasterBtn),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(foregroundColor: semanticColors.warning),
-          onPressed: mockMutation.isLoading
-              ? null
-              : () => mockLogin(Env.mockAdminUserId),
-          child: Text(l10n.mockLoginAdminBtn),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(foregroundColor: semanticColors.success),
-          onPressed: mockMutation.isLoading
-              ? null
-              : () => mockLogin(Env.mockAnalystUserId),
-          child: Text(l10n.mockLoginAnalystBtn),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.primary,
-          ),
-          onPressed: mockMutation.isLoading
-              ? null
-              : () => mockLogin(Env.mockMemberUserId),
-          child: Text(l10n.mockLoginMemberBtn),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.onSurfaceVariant,
-          ),
-          onPressed: mockMutation.isLoading
-              ? null
-              : () => mockLogin(Env.mockViewerUserId),
-          child: Text(l10n.mockLoginViewerBtn),
-        ),
-      ],
     );
   }
 }

@@ -8,9 +8,7 @@ import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/auth/presentation/login_screen.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/l10n/gen/app_localizations_en.dart';
-import 'package:client_app/utils/json_converters.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,7 +17,6 @@ class _FakeAuthController extends AuthController {
   String? lastSignInPassword;
   String? lastChallengeTotp;
   String? lastEnrollmentTotp;
-  String? lastMockLoginId;
   bool cancelledMfa = false;
   AppException? errorToThrow;
 
@@ -50,33 +47,10 @@ class _FakeAuthController extends AuthController {
     cancelledMfa = true;
     ref.read(mfaSessionControllerProvider.notifier).reset();
   }
-
-  @override
-  Future<void> debugMockLogin(String id) async {
-    lastMockLoginId = id;
-    if (errorToThrow != null) throw errorToThrow!;
-  }
 }
 
 void main() {
   final l10n = AppLocalizationsEn();
-  final mockRootId = generateOpaqueUuid7('usr');
-  final mockAdminId = generateOpaqueUuid7('usr');
-  final mockAnalystId = generateOpaqueUuid7('usr');
-  final mockMemberId = generateOpaqueUuid7('usr');
-  final mockViewerId = generateOpaqueUuid7('usr');
-
-  setUp(() {
-    dotenv.loadFromString(
-      envString:
-          'ENVIRONMENT=development\n'
-          'MOCK_ROOT_USER_ID=$mockRootId\n'
-          'MOCK_ADMIN_USER_ID=$mockAdminId\n'
-          'MOCK_ANALYST_USER_ID=$mockAnalystId\n'
-          'MOCK_MEMBER_USER_ID=$mockMemberId\n'
-          'MOCK_VIEWER_USER_ID=$mockViewerId\n',
-    );
-  });
 
   Widget buildTestApp({required _FakeAuthController authController}) {
     return ProviderScope(
@@ -89,9 +63,9 @@ void main() {
     );
   }
 
-  group('LoginScreen & MockLoginPanel Widget & ISTQB Boundary Tests', () {
+  group('LoginScreen Widget & ISTQB Boundary Tests', () {
     testWidgets(
-      'Positive 1: renders primary login form and MockLoginPanel, submits trimmed email/password, and executes mock login',
+      'Positive 1: renders primary Email + Password login form without MockLoginPanel and submits trimmed credentials',
       (WidgetTester tester) async {
         final fakeAuth = _FakeAuthController();
         await tester.pumpWidget(buildTestApp(authController: fakeAuth));
@@ -99,7 +73,8 @@ void main() {
 
         expect(find.text(l10n.loginBrandTitle), findsOneWidget);
         expect(find.text(l10n.signInSubtitle), findsOneWidget);
-        expect(find.byType(TextFormField), findsNWidgets(3));
+        expect(find.byType(TextFormField), findsNWidgets(2));
+        expect(find.text(l10n.devToolsHeader), findsNothing);
 
         // Enter valid email with surrounding whitespace and password
         final fields = find.byType(TextFormField);
@@ -110,15 +85,6 @@ void main() {
 
         expect(fakeAuth.lastSignInEmail, equals('coach@quorum.ai'));
         expect(fakeAuth.lastSignInPassword, equals('SecretPass123!'));
-
-        // Verify Mock Login buttons and trigger Root Master mock login
-        final rootButton = find.text(l10n.mockLoginRootMasterBtn);
-        await tester.ensureVisible(rootButton);
-        await tester.tap(rootButton);
-        await tester.pumpAndSettle();
-
-        expect(fakeAuth.lastMockLoginId, equals(mockRootId));
-        expect(find.text(l10n.mockLoginSuccess), findsOneWidget);
       },
     );
 
@@ -249,7 +215,7 @@ void main() {
     );
 
     testWidgets(
-      'Negative 2 (Runtime Auth Exceptions): renders ErrorView on signIn failure and localized SnackBar on MockLoginPanel failure',
+      'Negative 2 (Runtime Auth Exceptions): renders ErrorView on signIn and MFA verification failures',
       (WidgetTester tester) async {
         final fakeAuth = _FakeAuthController()
           ..errorToThrow = AppException.unauthorized();
@@ -265,17 +231,28 @@ void main() {
 
         expect(find.byType(ErrorView), findsOneWidget);
 
-        // 2. Trigger MockLoginPanel error -> shows localized SnackBar via AppExceptionX.extractLocalizedHint
-        final adminButton = find.text(l10n.mockLoginAdminBtn);
-        await tester.ensureVisible(adminButton);
-        await tester.tap(adminButton);
+        // 2. Trigger MFA challenge error -> renders ErrorView in challenge form
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(LoginScreen)),
+        );
+        container
+            .read(mfaSessionControllerProvider.notifier)
+            .setPendingState(
+              const MfaPendingState(
+                type: MfaRequirementType.challenge,
+                email: 'coach@quorum.ai',
+              ),
+            );
         await tester.pumpAndSettle();
 
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(
-          find.text(l10n.mockLoginFailed(l10n.errorUnauthorized)),
-          findsOneWidget,
+        final challengeField = find.byKey(
+          const Key('mfa_challenge_totp_field'),
         );
+        await tester.enterText(challengeField, '123456');
+        await tester.tap(find.text(l10n.mfaVerifyBtn));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ErrorView), findsOneWidget);
       },
     );
   });

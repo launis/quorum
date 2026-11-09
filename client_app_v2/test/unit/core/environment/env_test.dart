@@ -11,17 +11,12 @@ void main() {
 
   group('Env Hardening Tests (Profile A)', () {
     test(
-      'Positive 1: resolves apiUrl, environment, allowMockTokens, and 32-hex UUIDv7 mock user IDs from initialized .env',
+      'Positive 1: resolves trimmed apiUrl and environment from initialized .env and provides Env instance',
       () {
         dotenv.loadFromString(
           envString: '''
-API_URL=https://api.cognitivequorum.com
-ENVIRONMENT=development
-MOCK_ADMIN_USER_ID=usr_0195f3a00000700188a0d5f6151349a5
-MOCK_ROOT_USER_ID=usr_0195f3a00000700a83fd6b3d77c748f4
-MOCK_ANALYST_USER_ID=usr_0195f3a000007009836983a7a6c643ab
-MOCK_MEMBER_USER_ID=usr_0195f3a0000070018c1cf9c5178846bb
-MOCK_VIEWER_USER_ID=usr_0195f3a00000700b82d6e4487afc4e69
+API_URL=  https://api.cognitivequorum.com  
+ENVIRONMENT=  development  
 ''',
         );
 
@@ -32,50 +27,25 @@ MOCK_VIEWER_USER_ID=usr_0195f3a00000700b82d6e4487afc4e69
         expect(envInstance, isA<Env>());
         expect(Env.apiUrl, equals('https://api.cognitivequorum.com'));
         expect(Env.environment, equals('development'));
-        expect(Env.allowMockTokens, isTrue);
-        expect(
-          Env.mockAdminUserId,
-          equals('usr_0195f3a00000700188a0d5f6151349a5'),
-        );
-        expect(
-          Env.mockRootUserId,
-          equals('usr_0195f3a00000700a83fd6b3d77c748f4'),
-        );
-        expect(
-          Env.mockAnalystUserId,
-          equals('usr_0195f3a000007009836983a7a6c643ab'),
-        );
-        expect(
-          Env.mockMemberUserId,
-          equals('usr_0195f3a0000070018c1cf9c5178846bb'),
-        );
-        expect(
-          Env.mockViewerUserId,
-          equals('usr_0195f3a00000700b82d6e4487afc4e69'),
-        );
       },
     );
 
-    test(
-      'Positive 2: allowMockTokens returns false when ENVIRONMENT is production',
-      () {
-        dotenv.loadFromString(
-          envString: '''
-API_URL=https://api.cognitivequorum.com
+    test('Positive 2: resolves production environment and custom API URL', () {
+      dotenv.loadFromString(
+        envString: '''
+API_URL=https://api.qrum.ai
 ENVIRONMENT=production
 ''',
-        );
+      );
 
-        expect(Env.environment, equals('production'));
-        expect(Env.allowMockTokens, isFalse);
-      },
-    );
+      expect(Env.apiUrl, equals('https://api.qrum.ai'));
+      expect(Env.environment, equals('production'));
+    });
 
     test(
-      'Negative/Boundary 1: throws AppException (VALIDATION_FAILED) when dotenv is not initialized or required variables are missing/blank',
+      'test_env_throws_app_exception_when_required_api_url_or_environment_missing',
       () {
         dotenv.clean();
-        expect(Env.allowMockTokens, isFalse);
 
         expect(
           () => Env.apiUrl,
@@ -88,6 +58,35 @@ ENVIRONMENT=production
           ),
         );
 
+        dotenv.loadFromString(envString: 'ENVIRONMENT=development\n');
+        expect(
+          () => Env.apiUrl,
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.errorCode,
+              'errorCode',
+              'VALIDATION_FAILED',
+            ),
+          ),
+        );
+
+        dotenv.loadFromString(envString: 'API_URL=https://api.qrum.ai\n');
+        expect(
+          () => Env.environment,
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.errorCode,
+              'errorCode',
+              'VALIDATION_FAILED',
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'Negative/Boundary 2: throws AppException (VALIDATION_FAILED) when API_URL or ENVIRONMENT is empty or whitespace-only',
+      () {
         dotenv.loadFromString(envString: 'API_URL=   \nENVIRONMENT=\n');
 
         expect(
@@ -110,50 +109,6 @@ ENVIRONMENT=production
             ),
           ),
         );
-        expect(
-          () => Env.mockAdminUserId,
-          throwsA(
-            isA<AppException>().having(
-              (e) => e.errorCode,
-              'errorCode',
-              'VALIDATION_FAILED',
-            ),
-          ),
-        );
-      },
-    );
-
-    test(
-      'Negative/Boundary 2: throws AppException (VALIDATION_FAILED) when mock user IDs violate 32-hex UUIDv7 format or usr_ prefix',
-      () {
-        dotenv.loadFromString(
-          envString: '''
-MOCK_ADMIN_USER_ID=usr_short16hex000000
-MOCK_ROOT_USER_ID=wf_0195f3a00000700a83fd6b3d77c748f4
-MOCK_ANALYST_USER_ID=invalid_id
-MOCK_MEMBER_USER_ID=usr_0195f3a0000070018c1cf9c5178846bz
-MOCK_VIEWER_USER_ID=usr_0195f3a00000700b82d6e4487afc4e690
-''',
-        );
-
-        for (final getter in <String Function()>[
-          () => Env.mockAdminUserId,
-          () => Env.mockRootUserId,
-          () => Env.mockAnalystUserId,
-          () => Env.mockMemberUserId,
-          () => Env.mockViewerUserId,
-        ]) {
-          expect(
-            getter,
-            throwsA(
-              isA<AppException>().having(
-                (e) => e.errorCode,
-                'errorCode',
-                'VALIDATION_FAILED',
-              ),
-            ),
-          );
-        }
       },
     );
   });
