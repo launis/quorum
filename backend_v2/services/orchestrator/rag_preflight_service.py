@@ -13,6 +13,8 @@ from pydantic import BaseModel
 from backend_v2.database.interfaces import ISystemRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
@@ -208,12 +210,18 @@ class RAGPreflightService:
             provider = exec_record.metadata.provider_override
             registry_id = exec_record.metadata.model_registry_id
 
+        # Step 3: Resolve tenant organization_id from exec_record (defaulting to ROOT_SYSTEM)
+        effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        if exec_record.organization_id is not None:
+            effective_org_id = exec_record.organization_id
+
         bound_client = await LLMClient.from_tier(
             cognitive_tier,
             self.system_repo,
             provider=provider,
             registry_id=registry_id,
             pipeline_name="chunk_worker",
+            organization_id=effective_org_id,
         )
         llm_executor = LLMTaskExecutor(self.compiler)
         atomizer = TwoPassAtomizer(llm_executor)

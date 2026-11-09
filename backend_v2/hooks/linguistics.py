@@ -17,7 +17,8 @@ from backend_v2.core.hook_registry import (
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.core_base import generate_uuid7
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7, generate_uuid7
 from backend_v2.models.domain.linguistics import (
     DynamicLinguisticsExtractorDTO,
     LinguisticsPayloadDTO,
@@ -153,6 +154,10 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     if settings.enable_dynamic_performative_extraction and text_to_scan.strip():
         try:
             # Phase 1, Step 1.2: Route internal utility LLM execution through CognitiveTier.FAST
+            # Step 3: Propagate tenant organization_id from state.global_context_vars
+            effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+            if gvars is not None and gvars.organization_id is not None:
+                effective_org_id = gvars.organization_id
             registry_id = state.metadata.model_registry_id
             provider = state.metadata.provider_override
             if registry_id is not None or provider is not None:
@@ -162,12 +167,14 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
                     pipeline_name="linguistics_hook",
                     registry_id=registry_id,
                     provider=provider,
+                    organization_id=effective_org_id,
                 )
             else:
                 llm_client = await LLMClient.from_tier(
                     CognitiveTier.FAST,
                     repository=deps.system_repo,
                     pipeline_name="linguistics_hook",
+                    organization_id=effective_org_id,
                 )
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
             user_content = TemplateProcessor.render_prompt(

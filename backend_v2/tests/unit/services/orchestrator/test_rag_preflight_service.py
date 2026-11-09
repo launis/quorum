@@ -1,30 +1,33 @@
 """Unit tests for RAGPreflightService."""
 
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_uuid7
 from backend_v2.models.domain.blackboard import (
     DraftAtomList,
     DraftExtractedAtom,
     GlobalAtomBlackboard,
 )
-from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
+from backend_v2.models.enums import CognitiveTier, StepType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator.rag_preflight_service import (
     RAGPreflightService,
     _extract_inputs_from_record,
 )
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemorySystemRepository,
     InMemoryWorkflowRepository,
@@ -65,28 +68,37 @@ def preflight_service(
 
 def make_valid_step_def(cognitive_tier: str | None = "fast") -> Step:
     """Helper to create a valid Step object for testing."""
-    return Step.model_validate(
-        {
-            "id": "stp_0195f3a0000070018234567890abcdef",
-            "slug": "test_step",
-            "name": {"translations": {"en": "Test Step"}},
-            "description": {"translations": {"en": "Test Description"}},
-            "cognitive_tier": cognitive_tier or "fast",
-            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
-            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
-            "type": "llm",
-        }
+    resolved_tier = CognitiveTier.FAST
+    if cognitive_tier is not None:
+        resolved_tier = CognitiveTier(cognitive_tier)
+    return Step(
+        id="stp_0195f3a0000070018234567890abcdef",
+        slug="test_step",
+        name=I18nText(translations={"en": "Test Step"}),
+        description=I18nText(translations={"en": "Test Description"}),
+        cognitive_tier=resolved_tier,
+        criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
+        type=StepType.LLM,
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
     )
 
 
 @pytest.mark.asyncio
 async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: RAGPreflightService) -> None:
     """Tests that missing task_blueprint raises CONFIGURATION_ERROR AppException."""
-    step_rule = StepRule.model_construct(
-        id="stp_0195f3a0000070018234567890abcdef", task_blueprint=None, input_mappings={}, depends_on=[]
-    )
+    step_rule = StepRule(
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
+    ).model_copy(update={"task_blueprint": ""})
     step_def = make_valid_step_def()
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -104,6 +116,7 @@ async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: R
         )
 
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
@@ -116,15 +129,8 @@ async def test_rag_preflight_missing_cognitive_tier_crashes(preflight_service: R
         input_mappings={},
         depends_on=[],
     )
-    step_def = Step.model_construct(
-        id="stp_0195f3a0000070018234567890abcdef",
-        slug="test_step",
-        name=I18nText(translations={"en": "Test Step"}),
-        description=I18nText(translations={"en": "Test Description"}),
-        cognitive_tier=None,
-        type="llm",
-    )
-    exec_record = ExecutionRecord(
+    step_def = make_valid_step_def().model_copy(update={"cognitive_tier": None})
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -142,6 +148,7 @@ async def test_rag_preflight_missing_cognitive_tier_crashes(preflight_service: R
         )
 
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
     assert "has no cognitive_tier" in exc_info.value.message
 
@@ -158,7 +165,7 @@ async def test_rag_preflight_input_below_character_threshold_skips(
         depends_on=[],
     )
     step_def = make_valid_step_def()
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -197,10 +204,11 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
     text_content = (
         "Paragraph one is substantive and provides context.\n\nParagraph two provides additional insights and evidence."
     )
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
+        organization_id="org_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content, "skipped_key": "too short"}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -258,6 +266,8 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
         assert "doc_1" in result.atoms_by_input
         assert len(result.atoms_by_input["doc_1"].atoms) == 1
         assert emit_mock.call_count >= 3
+        mock_client_factory.assert_awaited_once()
+        assert mock_client_factory.call_args.kwargs["organization_id"] == "org_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -273,7 +283,7 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
     )
     step_def = make_valid_step_def()
     text_content = "Valid long input text with more than fifty characters for analysis."
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -323,6 +333,7 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
             )
 
         assert exc_info.value.status_code == 400
+        assert exc_info.value.details is not None
         assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
@@ -341,7 +352,7 @@ async def test_rag_preflight_excludes_metadata_keys_from_count_and_atomization(
     long_metadata = "2026-07-22T04:43:36+00:00" * 10  # 250 chars
     sparse_doc = "Sparse doc with only 30 chars."
 
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -387,7 +398,7 @@ async def test_rag_preflight_chat_log_with_large_ai_text_sparse_user_text_skips(
         "<ai_draft_context>\n" + ("Tämä on erittäin pitkä tekoälyn vastausteksti. " * 50) + "\n</ai_draft_context>"
     )
 
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -434,7 +445,7 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
         "<ai_draft_context>\nKiitos tiedoista! Kerro lisää johtamiskokemuksestasi.\n</ai_draft_context>"
     )
 
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -511,6 +522,8 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
     # In raw_inputs, chat_log was unparsed (443 chars).
     # In execution_trace inputs event, chat_log is parsed (48 user chars), with helper keys.
     trace_event = TraceEvent(
+        event_id=generate_uuid7(),
+        timestamp=datetime.now(UTC),
         step_name="inputs",
         event_type="input",
         content={
@@ -522,11 +535,13 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
                 "chat_log_ai_only": "Kello on tällä hetkellä 7.43.\n\nOle hyvä! Autan mielelläni...",
                 "document_date": "2026-07-22T04:43:36+00:00",
             },
-            "metadata": {"estimated_token_count": 100},
+            "metadata": {"estimated_token_count": "100"},
         },
+        metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+        mcp_audit_traces=[],
     )
 
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -562,13 +577,17 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
 
 def test_extract_inputs_from_record_variations() -> None:
     """Test _extract_inputs_from_record with ExecutionInputsDTO and dynamic_inputs trace contents."""
-    # 1. Test with ExecutionInputsDTO via model_construct
-    event_dto = TraceEvent.model_construct(
+    # 1. Test with ExecutionInputsDTO via model_copy
+    event_dto = TraceEvent(
+        event_id=generate_uuid7(),
+        timestamp=datetime.now(UTC),
         step_name="inputs",
         event_type="input",
-        content=ExecutionInputsDTO(dynamic_inputs={"file_a": "content from dto"}),
-    )
-    rec_dto = ExecutionRecord(
+        content={"inputs": {}},
+        metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+        mcp_audit_traces=[],
+    ).model_copy(update={"content": ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={"file_a": "content from dto"})})
+    rec_dto = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070008000000000000001",
         workflow_id="wf_0195f3a0000070008000000000000001",
         output_profile_id="prof_0195f3a0000070008000000000000001",
@@ -582,11 +601,15 @@ def test_extract_inputs_from_record_variations() -> None:
 
     # 2. Test with content containing dynamic_inputs mapping
     event_dict = TraceEvent(
+        event_id=generate_uuid7(),
+        timestamp=datetime.now(UTC),
         step_name="inputs",
         event_type="input",
         content={"dynamic_inputs": {"file_b": "content from dict"}},
+        metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+        mcp_audit_traces=[],
     )
-    rec_dict = ExecutionRecord(
+    rec_dict = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070008000000000000002",
         workflow_id="wf_0195f3a0000070008000000000000002",
         output_profile_id="prof_0195f3a0000070008000000000000002",
@@ -621,7 +644,7 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
         "Unique paragraph two with sufficient length for preflight analysis.\n\n"
         "Duplicate header line for testing."
     )
-    exec_record = ExecutionRecord(
+    exec_record = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
@@ -675,3 +698,35 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
     assert len(block_ids) == 4
     assert len(set(block_ids)) == 4, f"Duplicate block IDs detected: {block_ids}"
     assert block_ids == ["B0", "B1", "B2", "B3"]
+
+
+@pytest.mark.asyncio
+async def test_execute_missing_query_step_configuration_error(
+    preflight_service: RAGPreflightService,
+) -> None:
+    """Negative boundary test: missing task_blueprint on target_step raises CONFIGURATION_ERROR."""
+    step_rule = StepRule(
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
+    ).model_copy(update={"task_blueprint": ""})
+    step_def = make_valid_step_def()
+    exec_record = ExecutionRecordFactory.build(
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"text": "A" * 100}),
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await preflight_service.execute(
+            target_step=step_rule,
+            step_def=step_def,
+            exec_record=exec_record,
+            emit_progress=AsyncMock(),
+        )
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value

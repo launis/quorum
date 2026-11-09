@@ -452,6 +452,7 @@ async def test_analyze_interaction_role_registry_and_provider_override(
         pipeline_name="interaction_hook",
         registry_id="sys_0195f3a0000070018234567890abcdef",
         provider=LLMProvider.VERTEX_AI,
+        organization_id="org_0195f3a0000070008000000000000001",
     )
 
 

@@ -533,6 +533,7 @@ async def test_detect_performative_patterns_fuzzy_fallback_and_provider_override
             pipeline_name="linguistics_hook",
             registry_id=sys_id,
             provider=LLMProvider.VERTEX_AI,
+            organization_id="org_0195f3a0000070008000000000000001",
         )
 
     assert result.success is True

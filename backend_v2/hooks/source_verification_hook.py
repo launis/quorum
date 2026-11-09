@@ -19,6 +19,8 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
@@ -215,9 +217,13 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         set_language(target_locale)
 
     try:
+        # Step 3: Propagate tenant organization_id from state.global_context_vars
+        effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+        if state.global_context_vars is not None and state.global_context_vars.organization_id is not None:
+            effective_org_id = state.global_context_vars.organization_id
         raw_gateways = await deps.system_repo.get_all_mcp_gateways()
         gateways = [gw for gw in raw_gateways if isinstance(gw, SystemConfigMCPGateways)]
-        dispatcher = ToolDispatcher(gateways=gateways)
+        dispatcher = ToolDispatcher(gateways=gateways, organization_id=effective_org_id)
 
         enabled_search_aliases = dispatcher.get_all_enabled_tool_aliases(capability=ToolCapability.SEARCH)
         if dispatcher.resolve_primary_search_tool(enabled_search_aliases) is None:
@@ -240,12 +246,14 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
                 pipeline_name="source_verification",
                 registry_id=registry_id,
                 provider=provider,
+                organization_id=effective_org_id,
             )
         else:
             llm_client = await LLMClient.from_tier(
                 CognitiveTier.FAST,
                 repository=deps.system_repo,
                 pipeline_name="source_verification",
+                organization_id=effective_org_id,
             )
         task_executor = LLMTaskExecutor(PromptCompiler())
         service = SourceVerificationService(

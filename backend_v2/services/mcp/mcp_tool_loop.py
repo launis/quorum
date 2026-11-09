@@ -20,6 +20,7 @@ from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.core_base import PrefixedUUID7
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
     CitationExtractionFailure,
@@ -56,12 +57,16 @@ __all__ = [
 async def _resolve_dispatcher(
     dispatcher: ToolDispatcher | None,
     repository: Any,
+    organization_id: PrefixedUUID7 | None = None,
 ) -> ToolDispatcher:
     """Resolve an active ToolDispatcher from explicit injection or system repository.
+
+    # Step 3: Propagate tenant organization_id into ToolDispatcher
 
     Args:
         dispatcher: Optional pre-instantiated ToolDispatcher.
         repository: Optional system config repository exposing get_all_mcp_gateways().
+        organization_id: Optional tenant organization ID for BYOK MCP credential resolution.
 
     Returns:
         Configured ToolDispatcher instance.
@@ -72,8 +77,8 @@ async def _resolve_dispatcher(
         gateways_res = await repository.get_all_mcp_gateways()
         if isinstance(gateways_res, list):
             valid_gateways = [g for g in gateways_res if isinstance(g, SystemConfigMCPGateways)]
-            return ToolDispatcher(gateways=valid_gateways)
-    return ToolDispatcher(gateways=[])
+            return ToolDispatcher(gateways=valid_gateways, organization_id=organization_id)
+    return ToolDispatcher(gateways=[], organization_id=organization_id)
 
 
 def validate_query_relevance(query: str, source_context: str) -> bool:
@@ -222,8 +227,17 @@ async def _resolve_fast_extraction_client(llm_client: Any, repository: Any) -> A
     """
     if repository is None:
         return llm_client
+    # Step 3: Propagate tenant organization_id from bound llm_client into FAST extraction client
+    org_id: PrefixedUUID7 | None = None
+    if isinstance(llm_client, LLMClient):
+        org_id = llm_client.organization_id
     try:
-        return await LLMClient.from_tier(CognitiveTier.FAST, repository=repository, pipeline_name="mcp_tool_loop")
+        return await LLMClient.from_tier(
+            CognitiveTier.FAST,
+            repository=repository,
+            pipeline_name="mcp_tool_loop",
+            organization_id=org_id,
+        )
     except Exception as e:
         logger.error("Could not initialize 'fast' client for extraction: %s", e, exc_info=True)
         raise AppException(
@@ -550,7 +564,15 @@ async def execute_mcp_retrieval(
         evidence_payload="",
     )
 
-    resolved_dispatcher = await _resolve_dispatcher(dispatcher=dispatcher, repository=repository)
+    # Step 3: Extract tenant organization_id from bound llm_client for ToolDispatcher
+    client_org_id: PrefixedUUID7 | None = None
+    if isinstance(llm_client, LLMClient):
+        client_org_id = llm_client.organization_id
+    resolved_dispatcher = await _resolve_dispatcher(
+        dispatcher=dispatcher,
+        repository=repository,
+        organization_id=client_org_id,
+    )
     if not resolved_dispatcher.get_declarations(allowed_tools):
         return empty_result
 
@@ -823,7 +845,15 @@ async def execute_tool_loop[T: BaseModel](
         m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
     ]
 
-    resolved_dispatcher = await _resolve_dispatcher(dispatcher=dispatcher, repository=repository)
+    # Step 3: Extract tenant organization_id from bound llm_client for ToolDispatcher
+    client_org_id: PrefixedUUID7 | None = None
+    if isinstance(llm_client, LLMClient):
+        client_org_id = llm_client.organization_id
+    resolved_dispatcher = await _resolve_dispatcher(
+        dispatcher=dispatcher,
+        repository=repository,
+        organization_id=client_org_id,
+    )
     tool_declarations = resolved_dispatcher.get_declarations(allowed_tools)
     active_search_tool = resolved_dispatcher.resolve_primary_search_tool(allowed_tools)
 

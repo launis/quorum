@@ -117,8 +117,13 @@ class TwoPassAtomizer:
             dynamic_messages=[],
         )
 
+        # Step 3: Forward config and resolved_credential into LLMCachingService.pre_cache_document
         await LLMCachingService.pre_cache_document(
-            provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
+            provider_name=client.provider_name,
+            compiled_prompt=compiled_prompt,
+            model_name=client.model_name,
+            config=client.config,
+            resolved_credential=client.resolved_credential,
         )
 
         try:
@@ -215,8 +220,13 @@ class TwoPassAtomizer:
             dynamic_messages=[],
         )
 
+        # Step 3: Forward config and resolved_credential into LLMCachingService.pre_cache_document
         await LLMCachingService.pre_cache_document(
-            provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
+            provider_name=client.provider_name,
+            compiled_prompt=compiled_prompt,
+            model_name=client.model_name,
+            config=client.config,
+            resolved_credential=client.resolved_credential,
         )
 
         all_atoms: list[ExtractedAtom] = []
@@ -397,8 +407,13 @@ class TwoPassAtomizer:
             dynamic_messages=[],
         )
 
+        # Step 3: Forward config and resolved_credential into LLMCachingService.pre_cache_document
         await LLMCachingService.pre_cache_document(
-            provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
+            provider_name=client.provider_name,
+            compiled_prompt=compiled_prompt,
+            model_name=client.model_name,
+            config=client.config,
+            resolved_credential=client.resolved_credential,
         )
 
         all_atoms: list[DraftExtractedAtom] = []
