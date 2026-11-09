@@ -1,12 +1,14 @@
 """Logging configuration module for the Cognitive Quorum backend."""
 
-import collections.abc
+from __future__ import annotations
+
 import io
 import json
 import logging
 import re
 import sys
 import types
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -57,6 +59,22 @@ except (RuntimeError, TypeError, OSError) as e:
 _LOGFIRE_CONFIGURED = False
 
 
+def _extract_active_span_ids() -> tuple[str | None, str | None]:
+    """Extract formatted OpenTelemetry trace_id and span_id from the current recording span.
+
+    Returns:
+        A 2-tuple of (trace_id, span_id) strings, or (None, None) if no span is recording.
+    """
+    span = otel_trace.get_current_span()
+    if span.is_recording():
+        span_ctx = span.get_span_context()
+        return (
+            otel_trace.format_trace_id(span_ctx.trace_id),
+            otel_trace.format_span_id(span_ctx.span_id),
+        )
+    return None, None
+
+
 class ContextFilter(logging.Filter):
     """Inject execution_id from contextvars into log records."""
 
@@ -83,14 +101,9 @@ class ContextFilter(logging.Filter):
             record.context_id = "SYSTEM"
             record.execution_id = "SYSTEM"
 
-        span = otel_trace.get_current_span()
-        if span.is_recording():
-            span_ctx = span.get_span_context()
-            record.trace_id = otel_trace.format_trace_id(span_ctx.trace_id)
-            record.span_id = otel_trace.format_span_id(span_ctx.span_id)
-        else:
-            record.trace_id = None
-            record.span_id = None
+        trace_id, span_id = _extract_active_span_ids()
+        record.trace_id = trace_id
+        record.span_id = span_id
 
         return True
 
@@ -125,7 +138,6 @@ def configure_logfire() -> None:
 
     try:
         from backend_v2.core.telemetry import configure_telemetry
-        from backend_v2.settings import get_settings
 
         configure_telemetry(get_settings())
     except (RuntimeError, TypeError, ValueError, AttributeError, OSError, KeyError) as e:
@@ -296,6 +308,73 @@ class StructuredLogContextDTO(BaseModel):
 class JSONFormatter(logging.Formatter):
     """JSON formatter for production structured logging."""
 
+    @staticmethod
+    def _get_record_optional_str(record: logging.LogRecord, attr_name: str) -> str | None:
+        """Safely extract an optional string attribute from a LogRecord without reflection builtins.
+
+        Args:
+            record: Target LogRecord instance.
+            attr_name: Attribute name to inspect on the record.
+
+        Returns:
+            Resolved string attribute value or None when absent.
+        """
+        try:
+            raw_val = object.__getattribute__(record, attr_name)
+            if isinstance(raw_val, str):
+                return raw_val
+        except AttributeError:
+            pass
+        return None
+
+    @classmethod
+    def _get_record_str_or_system(cls, record: logging.LogRecord, attr_name: str) -> str:
+        """Extract a string attribute from a LogRecord or return 'SYSTEM' when absent.
+
+        Args:
+            record: Target LogRecord instance.
+            attr_name: Attribute name to inspect on the record.
+
+        Returns:
+            Resolved string attribute value or 'SYSTEM'.
+        """
+        resolved = cls._get_record_optional_str(record, attr_name)
+        if resolved is not None:
+            return resolved
+        return "SYSTEM"
+
+    def _resolve_context_dto(self, record: logging.LogRecord) -> StructuredLogContextDTO:
+        """Resolve or construct a StructuredLogContextDTO from a LogRecord.
+
+        Args:
+            record: Target LogRecord instance.
+
+        Returns:
+            Populated StructuredLogContextDTO instance.
+        """
+        try:
+            raw_dto = object.__getattribute__(record, "context_dto")
+            if isinstance(raw_dto, StructuredLogContextDTO):
+                return raw_dto
+            return StructuredLogContextDTO()
+        except AttributeError:
+            details_dict: dict[str, Any] | None = None
+            try:
+                raw_details = object.__getattribute__(record, "details")
+                if isinstance(raw_details, Mapping):
+                    details_dict = dict(raw_details)
+            except AttributeError:
+                pass
+
+            return StructuredLogContextDTO(
+                execution_id=self._get_record_str_or_system(record, "execution_id"),
+                context_id=self._get_record_str_or_system(record, "context_id"),
+                trace_id=self._get_record_optional_str(record, "trace_id"),
+                span_id=self._get_record_optional_str(record, "span_id"),
+                error_code=self._get_record_optional_str(record, "error_code"),
+                details=details_dict,
+            )
+
     def format(self, record: logging.LogRecord) -> str:
         """Format the record as JSON.
 
@@ -305,70 +384,7 @@ class JSONFormatter(logging.Formatter):
         Returns:
             A JSON-formatted string of the log data.
         """
-        context: StructuredLogContextDTO
-        try:
-            raw_dto = object.__getattribute__(record, "context_dto")
-            if isinstance(raw_dto, StructuredLogContextDTO):
-                context = raw_dto
-            else:
-                context = StructuredLogContextDTO()
-        except AttributeError:
-            exec_id = "SYSTEM"
-            try:
-                raw_exec = object.__getattribute__(record, "execution_id")
-                if isinstance(raw_exec, str):
-                    exec_id = raw_exec
-            except AttributeError:
-                pass
-
-            ctx_id = "SYSTEM"
-            try:
-                raw_ctx = object.__getattribute__(record, "context_id")
-                if isinstance(raw_ctx, str):
-                    ctx_id = raw_ctx
-            except AttributeError:
-                pass
-
-            trace_id_val = None
-            try:
-                raw_trace_id = object.__getattribute__(record, "trace_id")
-                if isinstance(raw_trace_id, str):
-                    trace_id_val = raw_trace_id
-            except AttributeError:
-                pass
-
-            span_id_val = None
-            try:
-                raw_span_id = object.__getattribute__(record, "span_id")
-                if isinstance(raw_span_id, str):
-                    span_id_val = raw_span_id
-            except AttributeError:
-                pass
-
-            err_code = None
-            try:
-                raw_err = object.__getattribute__(record, "error_code")
-                if isinstance(raw_err, str):
-                    err_code = raw_err
-            except AttributeError:
-                pass
-
-            details_dict = None
-            try:
-                raw_details = object.__getattribute__(record, "details")
-                if isinstance(raw_details, collections.abc.Mapping):
-                    details_dict = dict(raw_details)
-            except AttributeError:
-                pass
-
-            context = StructuredLogContextDTO(
-                execution_id=exec_id,
-                context_id=ctx_id,
-                trace_id=trace_id_val,
-                span_id=span_id_val,
-                error_code=err_code,
-                details=details_dict,
-            )
+        context = self._resolve_context_dto(record)
 
         log_record: dict[str, Any] = {
             "timestamp": self.formatTime(record, self.datefmt),
@@ -418,13 +434,7 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
     if details:
         details_val = details
 
-    t_id = None
-    s_id = None
-    curr_span = otel_trace.get_current_span()
-    if curr_span.is_recording():
-        s_ctx = curr_span.get_span_context()
-        t_id = otel_trace.format_trace_id(s_ctx.trace_id)
-        s_id = otel_trace.format_span_id(s_ctx.span_id)
+    t_id, s_id = _extract_active_span_ids()
 
     context = StructuredLogContextDTO(
         execution_id="SYSTEM",

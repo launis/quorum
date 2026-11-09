@@ -71,7 +71,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_164_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/core/telemetry.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
-  - [ ] @[backend_v2/logging_config.py]
+  - [x] @[backend_v2/logging_config.py]
   - [ ] @[backend_v2/main.py]
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/seed/run_seed.py]
