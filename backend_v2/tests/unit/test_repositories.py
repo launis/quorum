@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -410,7 +410,7 @@ async def test_user_repository_additional_coverage(mock_repo: InMemoryUnifiedWor
         email="existing@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a000007000800000001234abcd",
@@ -447,7 +447,7 @@ async def test_organization_repository_update_and_delete(
         id="org_0195f3a0000070008000000000000099",
         name="Repo CRUD",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=500.0,
@@ -480,7 +480,7 @@ async def test_user_repository_get_by_firebase_uid_and_list_all(
         email="fb_active@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a000007000800000001234abcd",
@@ -491,8 +491,8 @@ async def test_user_repository_get_by_firebase_uid_and_list_all(
         email="fb_deleted@test.com",
         role=UserRole.MEMBER,
         is_active=False,
-        created_at=datetime.now(timezone.utc),
-        deleted_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        deleted_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a000007000800000001234abcd",

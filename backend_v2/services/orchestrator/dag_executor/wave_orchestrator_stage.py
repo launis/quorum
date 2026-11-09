@@ -7,7 +7,7 @@ import contextlib
 import logging
 import sys
 from collections.abc import Callable, Coroutine
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -96,7 +96,7 @@ def _append_causal_fusion_and_cohesion_events(
     events.append(
         TraceEvent(
             event_id=generate_uuid7(),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             step_name=step_id,
             event_type="output",
             content={"fusion": fusion_res},
@@ -118,7 +118,7 @@ def _append_causal_fusion_and_cohesion_events(
         events.append(
             TraceEvent(
                 event_id=generate_uuid7(),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 step_name=src_step_id,
                 event_type="output",
                 content={"results": a_res, "hydrated_references": h_refs, m_id: m_dump},
@@ -131,7 +131,7 @@ def _append_causal_fusion_and_cohesion_events(
         events.append(
             TraceEvent(
                 event_id=generate_uuid7(),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 step_name=src_step_id,
                 event_type="decision",
                 metadata=meta_upd,

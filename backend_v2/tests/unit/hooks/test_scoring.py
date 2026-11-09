@@ -3,7 +3,7 @@
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -146,8 +146,8 @@ def _build_valid_execution(execution_id: str, strategy: str = "WATERFALL") -> Ex
         execution_trace=[],
         step_states={},
         frozen_context={},
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
 
 
@@ -3640,8 +3640,8 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
         execution_trace=[],
         step_states={},
         frozen_context={},
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
 
     repo = InMemoryUnifiedWorkflowRepository()
@@ -3864,8 +3864,8 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
         execution_trace=[],
         step_states={},
         frozen_context={},
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
 
     repo = InMemoryUnifiedWorkflowRepository()

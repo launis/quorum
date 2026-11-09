@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -270,9 +270,9 @@ def _create_ctx(cognitive_tier: CognitiveTier | None = CognitiveTier.FAST) -> St
 @pytest.fixture
 def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     """Provide a stateful in-memory repository with an active ExecutionRecord."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     repo = InMemoryUnifiedWorkflowRepository()
     repo.set_execution(
         ExecutionRecord(
@@ -395,7 +395,7 @@ async def test_execute_anomaly_retry_flow(
         return resolved_state, [
             TraceEvent(
                 event_id=generate_uuid7(),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 step_name=step.id,
                 event_type="decision",
                 content={"ok": True},
@@ -524,7 +524,7 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
         duration_ms=42,
         source_urls=[],
         impacted_axis_names=[],
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     mcp_res = MCPRetrievalResultDTO(
         evidence_payload="<mcp_evidence>Verified fact</mcp_evidence>",
@@ -748,7 +748,7 @@ async def test_execute_engine_retry_stage_accumulates_token_usage_across_retries
         duration_ms=10,
         source_urls=[],
         impacted_axis_names=[],
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     mcp_res = MCPRetrievalResultDTO(
         evidence_payload="<mcp_evidence>Fact</mcp_evidence>",

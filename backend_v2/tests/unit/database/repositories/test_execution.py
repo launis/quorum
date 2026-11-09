@@ -1,7 +1,7 @@
 """Unit tests for ExecutionRepositoryImpl."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -317,7 +317,7 @@ async def test_audit_trails_offload_and_hydrate(repo: ExecutionRepositoryImpl, m
             "step_name": _STP_ID_2,
             "query": "q2",
             "reasoning": "r2",
-            "timestamp": datetime(2026, 8, 31, 1, 0, 0, tzinfo=timezone.utc),
+            "timestamp": datetime(2026, 8, 31, 1, 0, 0, tzinfo=UTC),
         },
         {
             "id": _TRC_ID_1,

@@ -1,7 +1,7 @@
 """Test suite for execution router endpoints."""
 
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -321,13 +321,13 @@ def _sample_assignment_dto(
         status=status,
         email_delivery_status=EmailDeliveryStatus.SENT,
         result_visibility=AssignmentResultVisibility.CONFIRMATION_ONLY,
-        hard_deadline_at=datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        hard_deadline_at=datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC),
         relative_duration_seconds=2700,
         activated_at=None,
         submitted_at=None,
         execution_id=None,
         created_by=MOCK_USER_ID,
-        created_at=datetime(2026, 11, 2, 12, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2026, 11, 2, 12, 0, 0, tzinfo=UTC),
     )
 
 
@@ -385,7 +385,7 @@ def test_execution_assignment_public_endpoints_positive(
         workflow_id=MOCK_WOR_ID,
         target_locale=SystemLocale.FI,
         status=AssignmentStatus.PENDING,
-        hard_deadline_at=datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        hard_deadline_at=datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC),
         relative_duration_seconds=2700,
     )
     mock_execution_service.onboard_assignee.return_value = TokenExchangeResponseDTO(
@@ -400,7 +400,7 @@ def test_execution_assignment_public_endpoints_positive(
             is_active=True,
             language=SystemLocale.FI,
             theme_mode="system",
-            created_at=datetime(2026, 11, 2, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 11, 2, 12, 0, 0, tzinfo=UTC),
         ),
     )
     prev = client.get("/api/v2/execution/executions/assignments/preview?token=valid_token_12345")

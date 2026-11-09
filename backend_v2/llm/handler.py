@@ -18,7 +18,6 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
     ServiceUnavailableError,
 )
-
 from backend_v2.llm.provider.base_and_mock_provider import LLMProvider
 from backend_v2.llm.provider.provider_factory import LLMFactory
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry

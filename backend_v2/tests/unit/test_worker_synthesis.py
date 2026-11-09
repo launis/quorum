@@ -1,7 +1,7 @@
 """Unit tests for worker background synthesis tasks and trace extraction."""
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -90,7 +90,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
             "execution_trace": [
                 {
                     "v": 1,
-                    "timestamp": datetime.now(timezone.utc),
+                    "timestamp": datetime.now(UTC),
                     "event_type": "output",
                     "step_name": "sr_0195f3a0000070018234567812345678",
                     "content": {"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
@@ -197,7 +197,7 @@ async def _setup_mock_repo_for_metrics(
             TraceEvent.model_validate(
                 {
                     "v": 1,
-                    "timestamp": datetime.now(timezone.utc),
+                    "timestamp": datetime.now(UTC),
                     "event_type": "decision",
                     "step_name": "ling",
                     "content": {"step_linguistics": trace_content_ling},
@@ -210,7 +210,7 @@ async def _setup_mock_repo_for_metrics(
             TraceEvent.model_validate(
                 {
                     "v": 1,
-                    "timestamp": datetime.now(timezone.utc),
+                    "timestamp": datetime.now(UTC),
                     "event_type": "output",
                     "step_name": "sr_det_step12345678",
                     "content": trace_content_det,

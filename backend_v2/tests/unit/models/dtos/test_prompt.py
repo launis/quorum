@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -42,7 +42,7 @@ def test_prompt_mapping_dto_default_empty() -> None:
 
 def test_llm_context_data_dto_subscript_and_membership() -> None:
     """Test LLMContextDataDTO subscript and contains behavior."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     metadata = ExecutionMetadata(
         workflow_version=1,
     )

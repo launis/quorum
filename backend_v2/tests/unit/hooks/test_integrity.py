@@ -1,4 +1,5 @@
 from collections.abc import Awaitable
+from datetime import UTC
 from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -165,7 +166,7 @@ def test_verify_payload_citations_analyst() -> None:
 
 
 def test_verify_payload_citations_evaluation_result() -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from backend_v2.models.domain.evaluation import EvaluationResult
     from backend_v2.models.domain.judge import DimensionResultItem
@@ -175,7 +176,7 @@ def test_verify_payload_citations_evaluation_result() -> None:
         conclusion="Concluded.",
         confidence_score=0.9,
         matrix_id="mat_1",
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         total_score=5.0,
         final_verdict="PASSED",
         dimensions=[DimensionResultItem(dimension_id="dim_1", dimension_label="Dim 1", score=5.0, reasoning="Good")],

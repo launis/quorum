@@ -1170,7 +1170,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         reasoning="Verification",
         response_summary="Verified truth",
         source_urls=["https://example.com"],
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        timestamp=datetime.datetime.now(datetime.UTC),
         duration_ms=150,
     )
 

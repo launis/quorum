@@ -7,7 +7,6 @@ from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer impor
     normalize_text_with_mapping,
     strict_match,
 )
-
 from backend_v2.utils.alias_engine import AliasEngine
 
 __all__ = ["process_atom_evaluation"]

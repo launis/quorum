@@ -16,7 +16,7 @@ Covers all 11 endpoints and ISTQB failure partitions per Step 8 and Step 10:
 """
 
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import ANY, AsyncMock
 
@@ -88,7 +88,7 @@ def test_post_create_report_success(
 ) -> None:
     """Test POST /api/v2/executions/{id}/reports enqueues artifact creation and returns 202."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.list_reports_for_execution.return_value = []
     mock_report_service.create_report_artifact.return_value = ReportArtifact(
         id=MOCK_REP_ID,
@@ -125,7 +125,7 @@ def test_post_create_report_with_force_resynthesis_true(
 ) -> None:
     """Test POST /api/v2/executions/{id}/reports forwards force_resynthesis=True to service."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.list_reports_for_execution.return_value = []
     mock_report_service.create_report_artifact.return_value = ReportArtifact(
         id=MOCK_REP_ID,
@@ -157,7 +157,7 @@ def test_post_create_report_defaults_force_resynthesis_false(
 ) -> None:
     """Test POST /api/v2/executions/{id}/reports defaults force_resynthesis=False when omitted."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.list_reports_for_execution.return_value = []
     mock_report_service.create_report_artifact.return_value = ReportArtifact(
         id=MOCK_REP_ID,
@@ -224,7 +224,7 @@ def test_post_create_report_concurrent_generation_409(
 ) -> None:
     """Test POST /api/v2/executions/{id}/reports rejects concurrent generation for same profile with 409."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.list_reports_for_execution.return_value = [
         ReportArtifactSummaryDTO(
             id=MOCK_REP_ID,
@@ -253,7 +253,7 @@ def test_get_execution_reports_list_success(
 ) -> None:
     """Test GET /api/v2/executions/{id}/reports returns summary list."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_execution_service.get_execution.return_value = AsyncMock()
     mock_report_service.list_reports_for_execution.return_value = [
         ReportArtifactSummaryDTO(
@@ -307,7 +307,7 @@ def test_get_report_artifact_detail_success(
 ) -> None:
     """Test GET /api/v2/reports/{id} returns full ReportArtifact domain model."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.get_report.return_value = ReportArtifact(
         id=MOCK_REP_ID,
         execution_id=MOCK_EXE_ID,
@@ -480,7 +480,7 @@ def test_post_regenerate_report_artifact_success(
 ) -> None:
     """Test POST /api/v2/reports/{id}/regenerate re-enqueues compilation and returns 202."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.get_report.return_value = ReportArtifact(
         id=MOCK_REP_ID,
         execution_id=MOCK_EXE_ID,
@@ -509,7 +509,7 @@ def test_get_public_external_report_success_api_key(
 ) -> None:
     """Test GET /api/v2/external/reports/{id} returns PublicReportDTO using X-API-Key."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.get_public_report.return_value = PublicReportDTO(
         report_id=MOCK_REP_ID,
         created_at=now,

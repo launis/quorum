@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import cast
 
 from pydantic import BaseModel
@@ -116,7 +116,7 @@ __all__ = [
 
 # 0. Shared Metadata
 MOCK_METADATA = Metadata(
-    luontiaika=datetime.now(timezone.utc), agentti="MockAgent", vaihe=1, versio="1.0", suoritus_ymparisto="Testing"
+    luontiaika=datetime.now(UTC), agentti="MockAgent", vaihe=1, versio="1.0", suoritus_ymparisto="Testing"
 )
 
 MOCK_CHAT_HISTORY = ChatHistoryDTO(
@@ -248,7 +248,7 @@ MOCK_JUDGE_OUTPUT = EvaluationResult(
     conclusion="High quality output.",
     confidence_score=0.9,
     matrix_id="matrix_standard_v1",
-    timestamp=datetime.now(timezone.utc),
+    timestamp=datetime.now(UTC),
     total_score=4.5,
     final_verdict="Excellent",
     dimensions=[DimensionResultItem(dimension_id="logic", dimension_label="Logic", score=5, reasoning="Perfect logic")],

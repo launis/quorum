@@ -8,7 +8,7 @@ Adheres to V2 Architecture (De-Generator Policy / SDUI Block Building):
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -259,7 +259,7 @@ class PdfReportService:
                 charts = self._render_block_charts(report_dto.inner_sdui_blocks, target_locale)
 
             template = self.env.get_template("report_template.jinja2")
-            printed_at = datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M")
+            printed_at = datetime.now(UTC).astimezone().strftime("%d.%m.%Y %H:%M")
             l10n = self._resolve_localization(target_locale)
 
             html_content = template.render(

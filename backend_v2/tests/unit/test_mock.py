@@ -126,7 +126,7 @@ def test_mock_llm_service_json_serial_handling(monkeypatch: pytest.MonkeyPatch) 
     service = MockLLMService()
 
     # Test serialization of datetime object in fallback data
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     monkeypatch.setattr("backend_v2.llm.mock.get_fallback_data", lambda key: {"timestamp": now, "date": now.date()})
     res = service.generate_content("hello", agent_identity="guard_agent")
     parsed = json.loads(res)

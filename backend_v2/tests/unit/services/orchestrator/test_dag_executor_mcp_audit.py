@@ -86,7 +86,7 @@ async def test_dag_executor_mcp_audit_trace_event_direct_accumulation(
         reasoning="Fact check",
         response_summary="Google claimed supremacy in 2019",
         source_urls=["https://example.com/quantum"],
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        timestamp=datetime.datetime.now(datetime.UTC),
         duration_ms=120,
     )
 
@@ -134,7 +134,7 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
         prompt_compiler=mock_compiler,
     )
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     trace1 = MCPAuditTrace(
         id="tavily_dup_1",
         tool_id="mcp_tavily_search",

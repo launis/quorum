@@ -16,7 +16,7 @@ on Dumb Painter frontend surfaces.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -264,7 +264,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
         }
     )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     exec_rec = ExecutionRecord.model_validate(
         {
             "id": execution_id,

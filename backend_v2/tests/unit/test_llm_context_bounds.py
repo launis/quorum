@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import litellm.exceptions
@@ -64,8 +64,8 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         target_locale="en",
         raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
         metadata={},
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     repo._executions._save_isolated(record.id, record)
 

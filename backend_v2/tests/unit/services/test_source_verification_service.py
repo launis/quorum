@@ -104,7 +104,7 @@ def mock_audit_trace() -> MCPAuditTrace:
         reasoning="Fact checking claim",
         response_summary="Yes, it is true.",
         source_urls=["http://test.com"],
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        timestamp=datetime.datetime.now(datetime.UTC),
         duration_ms=100,
     )
 

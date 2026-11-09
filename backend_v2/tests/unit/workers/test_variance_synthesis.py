@@ -1,6 +1,6 @@
 """Unit tests for variance_synthesis.py covering metrics extraction, validation, and task building."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal, cast
 from unittest.mock import AsyncMock, patch
 
@@ -70,7 +70,7 @@ def _make_trace_event(
     return TraceEvent(
         event_id=generate_uuid7(),
         v=1,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         event_type=event_type,
         step_name=step_name,
         content=content,
@@ -109,8 +109,8 @@ def _make_execution(
         profile_syntheses={},
         source_identity_manifest={},
         models_used={},
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
 
 
@@ -416,7 +416,7 @@ async def test_build_variance_metrics_trace_extraction_direct_models() -> None:
     evt_mat = TraceEvent.model_construct(
         event_id=generate_uuid7(),
         v=1,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         event_type="output",
         step_name="st_out",
         content=mat,

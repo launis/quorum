@@ -160,7 +160,7 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
     assert "Date: 2026-05-01" in res1
 
     # Datetime object
-    dt = datetime.datetime(2026, 7, 7, 8, 30, tzinfo=datetime.timezone.utc)
+    dt = datetime.datetime(2026, 7, 7, 8, 30, tzinfo=datetime.UTC)
     res2 = compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time=dt)
     assert "Date: 2026-07-07" in res2
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -184,7 +184,7 @@ def test_user_admin_view_inherits_all_user_fields() -> None:
     assert admin_view.execution_count == 7
 
     # Also verify direct typed datetime pass-through on last_login_at
-    ts = datetime(2026, 11, 2, 11, 0, tzinfo=timezone.utc)
+    ts = datetime(2026, 11, 2, 11, 0, tzinfo=UTC)
     admin_view_typed = UserAdminView(
         id=VALID_USER_ID,
         email="admin@quorum.ai",
@@ -284,7 +284,7 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
             recipients=[InvitationCreateDTO(email=f"u{i}@example.com", role=UserRole.MEMBER) for i in range(501)]
         )
 
-    deadline = datetime(2027, 1, 1, tzinfo=timezone.utc)
+    deadline = datetime(2027, 1, 1, tzinfo=UTC)
     rec_1 = ExecutionAssignmentRecipientDTO(email="candidate1@example.com")
     assign_batch_1 = ExecutionAssignmentBatchCreateDTO(
         recipients=[rec_1],
@@ -327,7 +327,7 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
 
 def test_invitation_and_tenant_secret_datetime_parsing() -> None:
     """Verify Invitation and TenantSecretDTO parse ISO 8601 strings and pass through datetime objects."""
-    ts = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    ts = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
     inv_from_str = Invitation.model_validate(
         {
             "organization_id": VALID_ORG_ID,
@@ -339,7 +339,7 @@ def test_invitation_and_tenant_secret_datetime_parsing() -> None:
         }
     )
     assert inv_from_str.id.startswith("inv_")
-    assert inv_from_str.expires_at == datetime(2026, 12, 1, 0, 0, tzinfo=timezone.utc)
+    assert inv_from_str.expires_at == datetime(2026, 12, 1, 0, 0, tzinfo=UTC)
 
     inv_from_dt = Invitation(
         organization_id=VALID_ORG_ID,

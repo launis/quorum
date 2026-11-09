@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Any, cast
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
@@ -36,7 +36,6 @@ from backend_v2.models.state import (
 )
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
-
 from backend_v2.services.report import ReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
@@ -440,7 +439,7 @@ async def handle_starvation_if_detected(
         user_role_justification=None,
         extension_metrics=None,
         data_starvation=starvation_dto,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     starvation_pid = "default"
     if profile_id is not None:

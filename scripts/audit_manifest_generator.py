@@ -17,7 +17,7 @@ import random
 import sys
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final
@@ -419,11 +419,11 @@ def generate_audit_manifest(
                 rng.shuffle(selected_items)
                 selected_items = selected_items[:sample_size]
 
-    manifest_id = f"man_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{manifest_type.value}"
+    manifest_id = f"man_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}_{manifest_type.value}"
 
     return AuditManifestDTO(
         manifest_id=manifest_id,
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=datetime.now(UTC).isoformat(),
         manifest_type=manifest_type,
         sample_size=len(selected_items),
         items=selected_items,
@@ -558,7 +558,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.output_file:
             out_path = Path(args.output_file)
         else:
-            ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            ts_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             ext = "json" if m_fmt == ManifestFormat.JSON else "csv"
             out_path = Path(f"data/files/manifests/manifest_{m_type.value}_{ts_str}.{ext}")
 

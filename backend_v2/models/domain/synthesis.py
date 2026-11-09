@@ -7,7 +7,7 @@ MatrixSynthesisGroup, RenderedSynthesisCache, BaseMatrixXAI, and BaseTDAExtracti
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any, Self
 
 if TYPE_CHECKING:
@@ -337,7 +337,7 @@ class RenderedSynthesisCache(V2CoreBase):
     ] = None
     created_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(timezone.utc)),
+        Field(default_factory=lambda: datetime.now(UTC)),
     ]
 
 

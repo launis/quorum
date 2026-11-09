@@ -449,7 +449,7 @@ def load_inputs_from_path(
             valid_dates = sorted(extracted_dates, reverse=True)
             inputs["document_date"] = valid_dates[0]
         else:
-            inputs["document_date"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            inputs["document_date"] = datetime.datetime.now(datetime.UTC).isoformat()
 
         return inputs
 

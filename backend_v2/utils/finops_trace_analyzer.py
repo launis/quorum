@@ -403,7 +403,7 @@ def main() -> None:
         else:
             telemetry_file = f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
         monitor_res = analyze_monitor_state(args.monitor, telemetry_file)
-        print(json.dumps(monitor_res.model_dump(mode="json"), indent=2))
+        print(monitor_res.model_dump_json(indent=2))
     elif args.finalize:
         execution_id = args.finalize
         if args.trace_file is not None:
@@ -416,7 +416,7 @@ def main() -> None:
         else:
             telemetry_file = f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
         finalize_res = finalize_execution(trace_file, telemetry_file)
-        print(json.dumps(finalize_res.model_dump(mode="json"), indent=2))
+        print(finalize_res.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

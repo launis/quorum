@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -335,7 +335,7 @@ def test_system_organizations_is_system() -> None:
 
 def test_auth_models_validation_coverage_and_invalid_inputs_error() -> None:
     """Verify Organization, User, OrganizationCreate, and TokenData validation and negative error cases."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     org = Organization(
         id=ORG_1_ID,
         name="Valid Name",
@@ -523,7 +523,7 @@ async def test_auth_service_facade_delegates_all_operations(
     assert tok.id == USER_1_ID
     mock_verify_tok.assert_awaited_once_with("bearer_xyz")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     dummy_org = Organization(
         id=ORG_1_ID,
         name="Delegate Org",
@@ -654,7 +654,7 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     monkeypatch.setattr("backend_v2.services.auth.user_service.get_settings", lambda: mock_settings)
 
     service = AuthService(mock_repo, use_firebase=False)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     member = User(
         id=USER_1_ID,
         email="webhook_user@test.com",

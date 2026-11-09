@@ -125,7 +125,7 @@ def fix_mock_dict(d: Any) -> Any:
     return d
 
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -239,7 +239,7 @@ def mock_repo_transformer() -> Any:
         "computed_max": 100,
     }
     repo.set_prompt_blocks(fix_mock_dict([pb_dict]))
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     repo.set_user(
         User(
@@ -250,7 +250,7 @@ def mock_repo_transformer() -> Any:
             is_active=True,
             language="fi",
             theme_mode="system",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
     )
     from backend_v2.models.domain.system_config import SystemConfigMCPGateways
@@ -1481,7 +1481,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Verify that if step_detector is missing in cv, authenticity_evaluation falls back to folded trace extraction."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from backend_v2.models.domain.matrix import MatrixScale
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
@@ -1531,7 +1531,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                             "justification": "Fallback trace test.",
                         }
                     },
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=datetime.now(UTC),
                     v=1,
                 )
             ],
@@ -2265,7 +2265,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
 @pytest.mark.asyncio
 async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer: Any) -> None:
     """Verifies that OutputProfile settings strictly drive SDUI block dispatch, metadata filtering, and XAI highlight limits."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from backend_v2.models.view.sdui import AccordionBlock, ParagraphBlock, SduiMetadataBlock
 
@@ -2302,7 +2302,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=custom_profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         created_by="usr_0195f3a0000070008123456789abcdef",
         metadata=ExecutionMetadata(),
         execution_trace=[],
@@ -2333,7 +2333,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
             is_active=True,
             language="fi",
             theme_mode="system",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
     )
 
@@ -2384,7 +2384,7 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         created_by="usr_admin",
         metadata=ExecutionMetadata(),
         execution_trace=[],
@@ -2401,7 +2401,7 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
             is_active=True,
             language="fi",
             theme_mode="system",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
     )
 
@@ -2457,7 +2457,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_nonexistent",
         output_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
@@ -2489,7 +2489,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         target_locale="",
         metadata=ExecutionMetadata(),
         execution_trace=[],
@@ -2505,7 +2505,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
@@ -2551,7 +2551,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
         organization_id="org_err",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
@@ -2575,7 +2575,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
         created_by="usr_err",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
@@ -2599,7 +2599,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
@@ -2642,7 +2642,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         execution_trace=[
             TraceEvent(
@@ -2670,7 +2670,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         execution_trace=[],
         profile_syntheses={profile.id: mock_cache},
@@ -2753,7 +2753,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
             reason="Manual fix",
             evidence_quotes=[],
             overridden_by="usr_admin",
-            overridden_at=datetime.now(timezone.utc),
+            overridden_at=datetime.now(UTC),
         ),
     )
 
@@ -2817,7 +2817,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         frozen_context=FrozenContext(mcp_tool_audit=[audit_trace]),
         step_states={"step_1": step_state},
@@ -2896,7 +2896,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
         id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
         output_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         frozen_context=FrozenContext(
             mcp_tool_audit=[
@@ -2921,7 +2921,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                     "evq_id": "evq_00000000000000000000000000000001",
                     "rejection_reason": "Rejected evidence",
                     "rejected_by": "usr_0195f3a0000070008123456789abcdef",
-                    "rejected_at": datetime.now(timezone.utc),
+                    "rejected_at": datetime.now(UTC),
                 },
             ),
             TraceEvent(
@@ -2932,7 +2932,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                     "evq_id": "evq_00000000000000000000000000000002",
                     "rejection_reason": "Not rejected",
                     "rejected_by": "usr_0195f3a0000070008123456789abcdef",
-                    "rejected_at": datetime.now(timezone.utc),
+                    "rejected_at": datetime.now(UTC),
                 },
             ),
             TraceEvent(
@@ -3040,7 +3040,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         id="exe_99998888777766665555444433332222",
         workflow_id="wf_1234abcd1234abcd1234abcd1234abcd",
         output_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         profile_syntheses={
             profile.id: RenderedSynthesisCache(
@@ -3157,7 +3157,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
 @pytest.mark.asyncio
 async def test_blueprint_transformer_direct_results_and_human_overrides(mock_repo_transformer: Any) -> None:
     """Test direct results/hydrated_references and human_override preservation in step_states."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
@@ -3196,7 +3196,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
 
     existing_override = HumanOverrideDTO(
         overridden_by="admin",
-        overridden_at=datetime.now(timezone.utc),
+        overridden_at=datetime.now(UTC),
         new_status=ExecutionStatus.PASSED,
         reason="Corrected by coach",
         evidence_quotes=[],

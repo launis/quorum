@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -53,7 +53,7 @@ async def test_worker_preserves_models_used() -> None:
         target_locale="fi",
         metadata=ExecutionMetadata(),
         models_used={},
-        created_at=datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2026, 6, 16, 12, 0, 0, tzinfo=UTC),
         created_by="usr_0195f3a00000700c83d4e5f678901234",
         organization_id="org_0195f3a00000700c83d4e5f678901234",
     )
@@ -67,7 +67,7 @@ async def test_worker_preserves_models_used() -> None:
         metadata=ExecutionMetadata(),
         output_profile_id="prf_test",
         models_used={"gemini-2.5-flash": 1500},
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         created_by="usr_0195f3a00000700c83d4e5f678901234",
         organization_id="org_0195f3a00000700c83d4e5f678901234",
     )

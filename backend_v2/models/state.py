@@ -10,7 +10,7 @@ import json
 import logging
 import uuid
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 if TYPE_CHECKING:
@@ -169,7 +169,7 @@ class TraceEvent(V2CoreBase):
     timestamp: Annotated[
         datetime,
         Field(
-            default_factory=lambda: datetime.now(timezone.utc),
+            default_factory=lambda: datetime.now(UTC),
             description="Event timestamp.",
         ),
     ]
@@ -348,7 +348,7 @@ class WorkflowState(ExecutionCoreFields):
     created_at: Annotated[
         datetime,
         Field(
-            default_factory=lambda: datetime.now(timezone.utc),
+            default_factory=lambda: datetime.now(UTC),
             description="Creation timestamp.",
         ),
     ]

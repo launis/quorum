@@ -8,7 +8,7 @@ invitations, single-use workflow execution assignments, and tenant BYOK secrets.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, Self
 
@@ -887,7 +887,7 @@ class Invitation(V2CoreBase):
     expires_at: Annotated[datetime, Field(description="UTC expiration timestamp")]
     created_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC creation timestamp"),
+        Field(default_factory=lambda: datetime.now(UTC), description="UTC creation timestamp"),
     ]
 
     @field_validator("expires_at", "created_at", mode="before")
@@ -1413,7 +1413,7 @@ class TenantSecretDTO(V2CoreBase):
     ]
     updated_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC timestamp of last update"),
+        Field(default_factory=lambda: datetime.now(UTC), description="UTC timestamp of last update"),
     ]
 
     @field_validator("updated_at", mode="before")

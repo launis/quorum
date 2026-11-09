@@ -1,6 +1,6 @@
 """Unit tests for execution domain models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -193,7 +193,7 @@ def test_execution_record_instantiation() -> None:
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.PENDING,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     assert rec.id == "exe_0195f3a0000070018234567890abcdef"
     assert rec.workflow_id == "wor_0195f3a0000070018234567890abcdef"
@@ -210,7 +210,7 @@ def test_execution_record_transition_step_new_step() -> None:
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.PENDING,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     updated = rec.transition_step(
         step_id="stp_0195f3a0000070018234567890abcdef",
@@ -246,7 +246,7 @@ def test_execution_record_transition_step_existing_step() -> None:
         status=ExecutionStatus.RUNNING,
         steps=[initial_step],
         step_states={"stp_0195f3a0000070018234567890abcdef": initial_step},
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     updated = rec.transition_step(
         step_id="stp_0195f3a0000070018234567890abcdef",
@@ -273,7 +273,7 @@ def test_execution_record_with_step_passed_forwarder() -> None:
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.RUNNING,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     updated = rec.with_step_passed(step_id="stp_render", label="Render Report")
     assert "stp_render" in updated.step_states
@@ -294,7 +294,7 @@ def test_execution_record_without_profile_synthesis() -> None:
         row_curated_quotes={},
         cited_sources=[],
         xai_highlights=[],
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
@@ -302,7 +302,7 @@ def test_execution_record_without_profile_synthesis() -> None:
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         profile_syntheses={"prf_0195f3a0000070018234567890abcdef": cache_item},
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     unchanged = rec.without_profile_synthesis("prf_99999999999970018234567890abcdef")
     assert unchanged is rec
@@ -320,14 +320,14 @@ def test_execution_record_with_updated_and_cleared_profile_syntheses() -> None:
         row_curated_quotes={},
         cited_sources=[],
         xai_highlights=[],
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     rec = ExecutionRecordFactory.build(
         id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     updated_only_cache = rec.with_updated_profile_synthesis(
         profile_id="prf_0195f3a0000070018234567890abcdef",
@@ -369,7 +369,7 @@ def test_execution_record_transition_step_updates_label_and_merkle_hash() -> Non
         status=ExecutionStatus.RUNNING,
         steps=[initial_step],
         step_states={"stp_0195f3a0000070018234567890abcdef": initial_step},
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     updated = rec.transition_step(
         step_id="stp_0195f3a0000070018234567890abcdef",
@@ -412,7 +412,7 @@ def test_execution_assignment_instantiation_and_iso_coercion() -> None:
         '"created_by": "usr_0195f3a0000070018234567890abcdef"}'
     )
     assert assignment.id.startswith("tsk_")
-    assert assignment.hard_deadline_at == datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    assert assignment.hard_deadline_at == datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC)
     assert assignment.activated_at is None
 
 
@@ -425,7 +425,7 @@ def test_execution_assignment_negative_boundaries() -> None:
                 "assigned_email": "candidate@example.com",
                 "workflow_id": "wor_0195f3a0000070018234567890abcdef",
                 "token_hash": "a" * 64,
-                "hard_deadline_at": datetime.now(timezone.utc),
+                "hard_deadline_at": datetime.now(UTC),
                 "relative_duration_seconds": 59,
                 "created_by": "usr_0195f3a0000070018234567890abcdef",
             }

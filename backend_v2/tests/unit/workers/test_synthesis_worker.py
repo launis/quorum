@@ -1,6 +1,6 @@
 """Unit tests for synthesis_worker.py covering error handling, caching, validation, and full execution."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -384,7 +384,7 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
                 TraceEvent.model_validate(
                     {
                         "v": 1,
-                        "timestamp": datetime.now(timezone.utc),
+                        "timestamp": datetime.now(UTC),
                         "event_type": "progress",
                         "step_name": "causal_discovery",
                         "content": fusion_result,
@@ -826,7 +826,7 @@ async def test_synthesis_worker_fans_out_causal_synthesis_brief_to_all_four_task
                 TraceEvent.model_validate(
                     {
                         "v": 1,
-                        "timestamp": datetime.now(timezone.utc),
+                        "timestamp": datetime.now(UTC),
                         "event_type": "progress",
                         "step_name": "causal_discovery",
                         "content": fusion_result,
@@ -1050,7 +1050,7 @@ async def test_synthesis_worker_hydrates_quiescent_fusion_from_jsonb_trace_outpu
                 TraceEvent.model_validate(
                     {
                         "v": 1,
-                        "timestamp": datetime.now(timezone.utc),
+                        "timestamp": datetime.now(UTC),
                         "event_type": "output",
                         "step_name": step_id,
                         "content": {"fusion": fusion_result.model_dump(mode="json", exclude_none=True)},
@@ -1205,7 +1205,7 @@ async def test_synthesis_worker_corrupted_fusion_payload_in_trace_raises_app_exc
                 TraceEvent.model_validate(
                     {
                         "v": 1,
-                        "timestamp": datetime.now(timezone.utc),
+                        "timestamp": datetime.now(UTC),
                         "event_type": "output",
                         "step_name": step_id,
                         "content": {"fusion": {"corrupted": "invalid_schema"}},
@@ -1285,7 +1285,7 @@ async def test_synthesis_worker_data_starvation_short_circuits() -> None:
                 TraceEvent.model_validate(
                     {
                         "v": 1,
-                        "timestamp": datetime.now(timezone.utc),
+                        "timestamp": datetime.now(UTC),
                         "event_type": "output",
                         "step_name": "stp_starvation",
                         "content": DataStarvationEvent.model_validate(
@@ -1520,8 +1520,8 @@ def _build_strict_typed_synthesis_fixtures(
         profile_syntheses={},
         source_identity_manifest={},
         models_used={},
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     prof = OutputProfile(
         id=prof_id,

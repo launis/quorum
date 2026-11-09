@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
@@ -205,7 +205,7 @@ class ExecutionOverrideService:
             ExecutionUpdateDTO(
                 profile_syntheses=execution_rec.profile_syntheses,
                 pdf_report_path=target_pdf_path,
-                updated_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(UTC),
                 expected_state_version=execution_rec.state_version,
             ),
         )
@@ -369,7 +369,7 @@ class ExecutionOverrideService:
             reason=payload.reason,
             evidence_quotes=payload.evidence_quotes,
             overridden_by=initiator.id,
-            overridden_at=datetime.now(timezone.utc),
+            overridden_at=datetime.now(UTC),
         )
         record = self._apply_atom_override_to_record(record, found_step_id, atom_id, payload, override_dto)
         recalculated_vars = await self._recalculate_scores(record)
@@ -386,7 +386,7 @@ class ExecutionOverrideService:
         )
         event = TraceEvent(
             event_id=generate_uuid7(),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             step_name="manual_override",
             event_type="evidence_override",
             content={"atom_id": atom_id, "override": override_dto.model_dump(mode="json", exclude_none=True)},
@@ -431,19 +431,19 @@ class ExecutionOverrideService:
             user_rejected=True,
             rejection_reason=reason,
             rejected_by=initiator.id,
-            rejected_at=datetime.now(timezone.utc),
+            rejected_at=datetime.now(UTC),
         )
         # Enforce expected_state_version OCC before appending rejection event.
         await self.exec_repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
-                updated_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(UTC),
                 expected_state_version=record.state_version,
             ),
         )
         event = TraceEvent(
             event_id=generate_uuid7(),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             step_name="manual_override",
             event_type="evidence_override",
             content=dto.model_dump(mode="json", exclude_none=True),

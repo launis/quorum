@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -127,7 +127,7 @@ def test_report_row_item_dto_rejects_invalid_types_and_extra() -> None:
 
 def test_public_report_dto_validation() -> None:
     """Verify PublicReportDTO initialization, dict roundtrip, and JSON roundtrip."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     public = PublicReportDTO(
         report_id="rep_public_1",
         created_at=now,
@@ -157,7 +157,7 @@ def test_public_report_dto_rejects_extra() -> None:
         PublicReportDTO.model_validate(
             {
                 "report_id": "rep_1",
-                "created_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(UTC),
                 "title": "Title",
                 "extra_key": "bad",
             }
@@ -242,7 +242,7 @@ def test_report_artifact_update_dto_rejects_extra() -> None:
 
 def test_report_artifact_summary_dto_validation() -> None:
     """Verify ReportArtifactSummaryDTO representation."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     summary = ReportArtifactSummaryDTO(
         id="rep_summary_1",
         execution_id="exe_summary_1",
@@ -269,7 +269,7 @@ def test_report_artifact_summary_dto_rejects_missing_and_extra() -> None:
         )
 
     with pytest.raises(ValidationError):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ReportArtifactSummaryDTO.model_validate(
             {
                 "id": "rep_1",

@@ -1,6 +1,6 @@
 """Unit tests for UnifiedWorkflowRepository and sub-repository delegation."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -326,7 +326,7 @@ async def test_all_passthrough_methods() -> None:
             is_active=True,
             language=SystemLocale.EN,
             theme_mode="system",
-            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
             organization_id="org_0195f3a0000070008123456789abcdef",
         )
     )

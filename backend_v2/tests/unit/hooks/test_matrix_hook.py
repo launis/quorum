@@ -5,7 +5,7 @@ DLQ tolerance, contextual overrides without emojis, and comprehensive Fail-Fast 
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import JsonValue, ValidationError
@@ -139,7 +139,7 @@ def _build_test_workflow(workflow_id: str, profile_id: str) -> Workflow:
 
 def _build_test_execution(execution_id: str, workflow_id: str, profile_id: str) -> ExecutionRecord:
     """Construct a valid ExecutionRecord."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return ExecutionRecord.model_validate(
         {
             "id": execution_id,

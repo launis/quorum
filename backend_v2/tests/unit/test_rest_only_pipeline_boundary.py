@@ -20,7 +20,7 @@ from __future__ import annotations
 import ast
 import json
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -220,7 +220,7 @@ def test_rest_only_entrypoint_creates_report(override_test_deps: Any) -> None:
     app.dependency_overrides[get_report_service] = lambda: mock_report_service
     app.dependency_overrides[get_execution_service] = lambda: mock_execution_service
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_report_service.list_reports_for_execution.return_value = []
     mock_report_service.create_report_artifact.return_value = ReportArtifact(
         id=MOCK_REP_ID,

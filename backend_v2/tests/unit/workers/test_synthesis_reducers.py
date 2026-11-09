@@ -1,7 +1,7 @@
 """Unit tests for synthesis_reducers.py covering user role extraction, starvation handling, result processing, and telemetry recovery."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -67,7 +67,7 @@ def test_extract_user_role_from_trace_lightweight_output() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"blk_role": matrix_out.model_dump(mode="json")},
         },
@@ -89,7 +89,7 @@ def test_extract_user_role_from_trace_dict_with_matrix_output() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"blk_role": matrix_out.model_dump(mode="json")},
         },
@@ -107,7 +107,7 @@ def test_extract_user_role_from_trace_raw_dict_hydration() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"blk_role": raw_payload},
         },
@@ -125,7 +125,7 @@ def test_extract_user_role_from_trace_corrupted_dict_raises() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"blk_role": corrupted_payload},
         },
@@ -310,7 +310,7 @@ async def test_handle_starvation_if_detected_true() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"event_type": "starvation", "total_atoms": 0, "reason": "insufficient"},
         },
@@ -360,7 +360,7 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"event_type": "starvation", "total_atoms": 0, "reason": "none"},
         },
@@ -409,7 +409,7 @@ async def test_handle_starvation_if_detected_corrupted_dict_raises() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"event_type": "starvation", "total_atoms": "invalid-int"},
         },
@@ -471,7 +471,7 @@ async def test_recover_trace_telemetry_from_blob() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": env.model_dump(mode="json"),
         },
@@ -532,7 +532,7 @@ def test_extract_user_role_from_trace_invalid_entry_continues() -> None:
     evt = TraceEvent.model_validate(
         {
             "v": 1,
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "step_name": "st",
             "content": {"blk_role": 123},
@@ -602,7 +602,7 @@ async def test_recover_trace_telemetry_corrupted_envelope_raises() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"step_metadata": "corrupted_non_dict"},
         },
@@ -768,7 +768,7 @@ async def test_synthesis_reducers_atomic_persistence_roundtrip() -> None:
         {
             "v": 1,
             "step_name": "step_test",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "event_type": "output",
             "content": {"event_type": "starvation", "total_atoms": 0, "reason": "insufficient"},
         },

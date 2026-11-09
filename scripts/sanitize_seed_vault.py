@@ -528,7 +528,7 @@ def create_vault_backup(seed_path: Path) -> Path:
             status_code=404,
             details={"error_code": ErrorCodes.FILE_NOT_FOUND.value, "seed_path": str(seed_path)},
         )
-    timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d_%H%M%S")
     backup_dir = seed_path.parent / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
     backup_file = backup_dir / f"seed_data_backup_{timestamp}.json"

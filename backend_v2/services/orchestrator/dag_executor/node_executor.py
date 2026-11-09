@@ -7,7 +7,7 @@ import dataclasses
 import logging
 import sys
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -78,7 +78,7 @@ class NodeExecutor:
         return [
             ErrorTraceEvent(
                 event_id=generate_uuid7(),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 step_name=step_id,
                 error_code="STEP_FAILED",
                 error_message=str(exc),

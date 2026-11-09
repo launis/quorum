@@ -4,7 +4,7 @@ Verifies that consecutive synthesis runs accumulate costs and tokens monotonical
 without losing DAG execution costs or token figures.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -145,7 +145,7 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
             "execution_trace": [
                 {
                     "v": 1,
-                    "timestamp": datetime.now(timezone.utc),
+                    "timestamp": datetime.now(UTC),
                     "event_type": "output",
                     "step_name": "sr_0195f3a0000070018234567812345678",
                     "content": {"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
@@ -222,7 +222,7 @@ async def test_worker_synthesis_accumulation_preserves_multi_profile_caches(
             "execution_trace": [
                 {
                     "v": 1,
-                    "timestamp": datetime.now(timezone.utc),
+                    "timestamp": datetime.now(UTC),
                     "event_type": "output",
                     "step_name": "sr_0195f3a0000070018234567812345678",
                     "content": {"blk_synth12345678": {"synthesized_markdown": "Test MD"}},

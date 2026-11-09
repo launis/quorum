@@ -15,7 +15,7 @@ import sys
 import types
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 from unittest.mock import AsyncMock
@@ -331,7 +331,7 @@ async def test_single_round_wave_materialization(uow: QuorumUnitOfWork) -> None:
             target_id=materialized[2].node_id,
             relation_type=DependencyRelationType.CAUSES,
             causal_weight=0.75,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         await uow.graph.upsert_wave_batch((updated_ground,), (direct_edge,))
         await uow.graph.assert_acyclic(run_id)
@@ -453,7 +453,7 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
     """Verify ReportBinaryPayloadDTO TOAST roundtrip, ExecutionRecord FinOps + MCP trace roundtrip, and JSONB codec."""
     report_id = generate_uuid7_opaque_id(EntityPrefix.REPORT)
     pdf_payload = b"%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
 
     binary_dto = ReportBinaryPayloadDTO(
         report_id=report_id,
@@ -1114,7 +1114,7 @@ async def test_istqb_boundary_value_and_wire_header_failures(
         report_id=generate_uuid7_opaque_id(EntityPrefix.REPORT),
         pdf_bytes=b"12345",
         size_bytes=999,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     async with PostgresUnitOfWork(pool_manager=manager_pw) as active_uow:
         with pytest.raises(AppException) as exc_size:
@@ -1219,7 +1219,7 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
     node_id_2 = generate_uuid7_opaque_id(EntityPrefix.NODE)
     edge_id = generate_uuid7_opaque_id(EntityPrefix.EDGE)
     report_id = generate_uuid7_opaque_id(EntityPrefix.REPORT)
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
 
     # Verify column coercion and graph adapter helpers
     assert _graph_coerce_uuid_or_str(12345) == "12345"
@@ -1720,7 +1720,7 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
     seed_buffer = ValidatedSeedBufferDTO.model_validate_json(
         (repo_root / "backend_v2" / "seed" / "seed_data.json").read_bytes()
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     sample_exec = ExecutionRecord(
         id=generate_uuid7_opaque_id(EntityPrefix.EXECUTION),
@@ -2051,7 +2051,7 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
         is_active=True,
         language=SystemLocale.FI,
         theme_mode="dark",
-        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
     expected_org = Organization(
         id=org_id,

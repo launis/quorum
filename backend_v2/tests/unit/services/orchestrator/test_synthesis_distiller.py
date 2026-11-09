@@ -4,6 +4,7 @@ Epic 93 Phase 2, Milestone 1.7: Tests for metadata stripping and matrices_to_exp
 """
 
 import json
+from datetime import UTC
 from unittest.mock import patch
 
 import pytest
@@ -221,7 +222,7 @@ def test_build_title_map_missing_blueprint_raises() -> None:
 
 @pytest.mark.asyncio
 async def test_build_historical_context_all_branches() -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from backend_v2.core.hook_registry import (
         ExecutionInputsDTO,
@@ -280,7 +281,7 @@ async def test_build_historical_context_all_branches() -> None:
         status=ExecutionStatus.PASSED,
         progress=100,
         status_message="Completed",
-        completed_at=datetime.now(timezone.utc),
+        completed_at=datetime.now(UTC),
         target_locale="en",
         organization_id="org1",
         created_by="u1",

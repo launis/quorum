@@ -152,7 +152,7 @@
     </rule_block>
 
     <rule_block id="strict_pydantic_v2_rust">
-        <mandate>NEVER use legacy V1 instantiation (`MyModel(**data)`), Python standard JSON parsing (`json.loads()`), legacy methods (`.dict()`, `@validator`), or duck typing/arbitrary checks (`hasattr(obj, 'key')`, `isinstance(data, dict)`). ALWAYS use `.model_validate()`, Rust-based `.model_validate_json()`, `.model_dump()`, and `@field_validator`. Enforce `model_config = ConfigDict(extra='forbid', strict=True)` to Fail-Fast on invalid structures with `ValidationError`.</mandate>
+        <mandate>NEVER use legacy V1 instantiation (`MyModel(**data)`), Python standard JSON parsing (`json.loads()`), `json.dumps(model.model_dump(...))` (which allocates intermediate Python dicts before CPython serialization), legacy methods (`.dict()`, `@validator`), or duck typing/arbitrary checks (`hasattr(obj, 'key')`, `isinstance(data, dict)`). ALWAYS use `.model_validate()`, Rust-based `.model_validate_json()`, direct Rust `.model_dump_json()` (or `TypeAdapter(...).dump_json()`), `.model_dump()`, and `@field_validator`. Enforce `model_config = ConfigDict(extra='forbid', strict=True)` to Fail-Fast on invalid structures with `ValidationError`.</mandate>
     </rule_block>
 
     <rule_block id="strict_enum_hydration_and_validation">
@@ -207,7 +207,7 @@
     </rule_block>
 
     <rule_block id="python_314_modern_syntax">
-        <mandate>NEVER use legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`), forward string return annotations (`-> "MyClass"`), or `asyncio.gather()`. ALWAYS use PEP 695 generics (`class Repository[T]:`), `@override`, bitwise unions (`X | None`), `async with asyncio.TaskGroup() as tg:`, and PEP 673 `-> Self` for classmethods returning the class itself.</mandate>
+        <mandate>NEVER use legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`), forward string return annotations (`-> "MyClass"`), legacy `timezone.utc` / `datetime.utcnow()`, or `asyncio.gather()`. ALWAYS use PEP 695 generics (`class Repository[T]:`), `@override`, bitwise unions (`X | None`), canonical `from datetime import UTC` (`datetime.now(UTC)`), PEP 758 parenthesis-free multi-exception catches (`except ValueError, TypeError:`), `async with asyncio.TaskGroup() as tg:`, and PEP 673 `-> Self` for classmethods returning the class itself.</mandate>
     </rule_block>
 
     <rule_block id="no_string_l10n">
@@ -251,7 +251,7 @@
     </rule_block>
 
     <rule_block id="global_settings_import">
-        <mandate>NEVER import `get_settings` locally inside a function (`from backend_v2.settings import get_settings` inside `def`). ALWAYS import `get_settings` globally at the top of the file. In unit tests, `monkeypatch` the module where it is used (e.g. `backend_v2.hooks.scoring.get_settings`).</mandate>
+        <mandate>NEVER import `get_settings` locally inside a function (`from backend_v2.settings import get_settings` inside `def`), and NEVER read or mutate `os.environ` or `os.getenv` directly in service, router, hook, or worker modules. ALWAYS import `get_settings` globally at the top of the file for infrastructure settings, and resolve runtime LLM/MCP credentials exclusively via `SecretService` (`tenant_secrets` in PostgreSQL 19). Direct `os.environ` access is permitted exclusively at bootstrap/telemetry boundaries (`settings.py`, `main.py`, `telemetry.py`) and inside the locked LiteLLM provider environment context manager. In unit tests, `monkeypatch` the module where `get_settings` is used (e.g. `backend_v2.hooks.scoring.get_settings`).</mandate>
     </rule_block>
 
     <rule_block id="cross_language_enum_parity">

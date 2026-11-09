@@ -57,7 +57,7 @@ def test_resolve_client_supplied_iso_date_from_raw_inputs() -> None:
 
 def test_parse_datetime_direct_datetime_and_string() -> None:
     """Positive test: Verifies _parse_datetime handles direct datetime, ISO strings, and None."""
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     assert ExecutionTimeResolver._parse_datetime(now) == now
     parsed = ExecutionTimeResolver._parse_datetime("2026-01-01T00:00:00Z")
     assert parsed is not None
@@ -68,7 +68,7 @@ def test_parse_datetime_direct_datetime_and_string() -> None:
 
 def test_resolve_llm_context_data_dto_execution_time() -> None:
     """Positive test: Resolves execution_time directly from LLMContextDataDTO."""
-    expected = datetime.datetime(2026, 3, 25, 8, 0, tzinfo=datetime.timezone.utc)
+    expected = datetime.datetime(2026, 3, 25, 8, 0, tzinfo=datetime.UTC)
     context_data = LLMContextDataDTO(execution_time=expected)
     resolved = ExecutionTimeResolver.resolve(llm_context_data=context_data)
     assert resolved == expected

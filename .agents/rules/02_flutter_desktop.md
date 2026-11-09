@@ -21,7 +21,7 @@
     </rule_block>
 
     <rule_block id="monolithic_god_widgets">
-        <mandate>NEVER combine UI rendering, heavy JSON string parsing, HTTP calls, or manual state management in a Widget's `build()`. ALWAYS enforce strict Riverpod SRP boundaries: Widgets ONLY render, Riverpod Notifiers ONLY hold state, Repositories ONLY handle HTTP/Network calls.</mandate>
+        <mandate>NEVER combine UI rendering, heavy JSON string parsing, HTTP calls, or manual state management in a Widget's `build()`, and NEVER duplicate identical widget subtrees or controller mutation sequences across sibling methods. ALWAYS enforce strict Riverpod SRP boundaries (Widgets ONLY render, Riverpod Notifiers ONLY hold state, Repositories ONLY handle HTTP/Network calls) and extract shared intra-class or intra-widget sequences into private SSOT helper methods (`_build*`, `_resolve*`).</mandate>
     </rule_block>
 
     <rule_block id="go_router_extra_ban">
@@ -33,7 +33,7 @@
     </rule_block>
     
     <rule_block id="manual_riverpod_providers">
-        <mandate>NEVER write `ChangeNotifier`, `StateProvider`, or manual un-annotated legacy `Provider` declarations. Riverpod Code Generation (`@riverpod`) is ABSOLUTELY MANDATORY for all state providers.</mandate>
+        <mandate>NEVER write `ChangeNotifier`, `StateProvider`, manual un-annotated legacy `Provider` declarations, or legacy Riverpod 2 generated provider-specific `*Ref` parameter types (`MyProviderRef ref`). Riverpod 3.0 Code Generation (`@riverpod` with `riverpod_generator: ^4.0.0`) is ABSOLUTELY MANDATORY for all state providers, and functional providers MUST use the unified `Ref ref` type.</mandate>
     </rule_block>
 
     <rule_block id="id_backend_authority_and_frontend_read_only_mandate">
@@ -45,7 +45,7 @@
     </rule_block>
 
     <rule_block id="o1_lists">
-        <mandate>NEVER use immutable collections packages for list state or deeply check massive arrays manually. ALWAYS use native Dart `List<T>` combined explicitly with `@Freezed(equal: false)` to bypass O(N^2) deep equality hits on Master Views.</mandate>
+        <mandate>NEVER use immutable collections packages for list state, deeply check massive arrays manually, or declare Freezed 2 bare `class Foo with _$Foo` models without `abstract` or `sealed`. In Freezed 3.2+ (`freezed: ^3.2.3`), single-constructor `@freezed` models MUST be declared as `abstract class Foo with _$Foo`, multi-constructor union models MUST be declared as `sealed class Foo with _$Foo`, and models holding `List<T>` state MUST use `@Freezed(equal: false)` to bypass O(N^2) deep equality hits on Master Views.</mandate>
     </rule_block>
 
     <rule_block id="localhost_endpoint_hardcoding_ban">
@@ -159,7 +159,7 @@
     </rule_block>
 
     <rule_block id="design_token_absolute_rule">
-        <mandate>NEVER hardcode magic numbers (`EdgeInsets.all(16)`) or colors (`Colors.blue`). Exclusively use global Design Tokens (`AppSpacing.p16`, `Theme.of(context).textTheme`). Hardcoded numeric doubles for heights, widths, or padding (`SizedBox(height: 15)`) are STRICTLY PROHIBITED.</mandate>
+        <mandate>NEVER hardcode magic numbers (`EdgeInsets.all(16)`), colors (`Colors.blue`), or deprecated Flutter APIs (`Color.withOpacity(...)`, `Color.value`, `MaterialStateProperty`, `WillPopScope`). Exclusively use global Design Tokens (`AppSpacing.p16`, `Theme.of(context).textTheme`), Flutter 3.27+ wide-gamut `.withValues(alpha: ...)` and `.toARGB32()`, `WidgetStateProperty` / `WidgetState`, and `PopScope`. Hardcoded numeric doubles for heights, widths, or padding (`SizedBox(height: 15)`) are STRICTLY PROHIBITED.</mandate>
     </rule_block>
 
     <rule_block id="studio_unified_visual_design_system">

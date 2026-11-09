@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -568,7 +568,7 @@ async def generate_profile_synthesis_and_pdf_task(
             user_role=user_role_val,
             user_role_justification=user_role_just,
             extension_metrics=ext_metrics,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         pid = "default"

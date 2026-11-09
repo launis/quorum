@@ -1,6 +1,6 @@
 """Unit tests for ExecutionOverrideService enforcing human override, synthesis invalidation, and quote rejection."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -81,7 +81,7 @@ def _create_mock_record(
                 row_curated_quotes={},
                 cited_sources=[],
                 xai_highlights=[],
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         },
         context_variables=ContextVariablesDTO(),

@@ -11,7 +11,7 @@ import copy
 import inspect
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, cast
 
 from pydantic import BaseModel, JsonValue, ValidationError
@@ -574,7 +574,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
         data_dict["id"] = u_id
         if "password" in data_dict:
             del data_dict["password"]
-        data_dict["created_at"] = datetime.now(timezone.utc)
+        data_dict["created_at"] = datetime.now(UTC)
         user = User.model_validate(data_dict)
         self._users[u_id] = self._clone(user)
         return u_id
@@ -1157,7 +1157,7 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepos
 
     async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:
         self._check_fault("log_audit_event")
-        ts = event_data.timestamp or datetime.now(timezone.utc)
+        ts = event_data.timestamp or datetime.now(UTC)
         ctx: dict[str, JsonValue] = {
             "actor_id": event_data.actor_id,
             "action": event_data.action,
@@ -1460,7 +1460,7 @@ class InMemoryReportArtifactRepository(BaseInMemoryRepository[ReportArtifact], I
                 "error_message": update_dto.error_message
                 if update_dto.error_message is not None
                 else existing.error_message,
-                "updated_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(UTC),
             }
         )
         self._save_isolated(report_id, updated)

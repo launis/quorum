@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -39,7 +39,7 @@ def test_human_override_request_and_dto() -> None:
         reason="Override verified",
         evidence_quotes=[],
         overridden_by="usr_admin",
-        overridden_at=datetime.now(timezone.utc),
+        overridden_at=datetime.now(UTC),
     )
     assert dto.overridden_by == "usr_admin"
 
@@ -162,7 +162,7 @@ def test_matrix_scorecard_models_forbid_extra() -> None:
                 "reason": "test",
                 "evidence_quotes": [],
                 "overridden_by": "usr_1",
-                "overridden_at": datetime.now(timezone.utc),
+                "overridden_at": datetime.now(UTC),
                 "extra": "bad",
             }
         )

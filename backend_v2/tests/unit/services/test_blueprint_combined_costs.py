@@ -1,6 +1,6 @@
 """Unit tests for Blueprint combined costs, tokens, and ReportDataDTO synchronization."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -77,7 +77,7 @@ def mock_blueprint_repos() -> InMemoryUnifiedWorkflowRepository:
         is_active=True,
         language="fi",
         theme_mode="system",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     repo._workflows._storage[workflow.id] = workflow

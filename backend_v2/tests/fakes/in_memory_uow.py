@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import TracebackType
 from typing import Annotated, Self
 
@@ -224,7 +224,7 @@ def _extract_uuid7_timestamp(prefixed_id: str, prefix: EntityPrefix) -> datetime
     """
     raw_uuid = parse_prefixed_uuid7(prefixed_id, prefix)
     timestamp_ms = (raw_uuid.int >> 80) & ((1 << 48) - 1)
-    return datetime.fromtimestamp(timestamp_ms / 1000.0, tz=timezone.utc)
+    return datetime.fromtimestamp(timestamp_ms / 1000.0, tz=UTC)
 
 
 _EXECUTION_INSERT_COLUMNS: tuple[str, ...] = (
@@ -1457,7 +1457,7 @@ class InMemoryAsyncPgConnection:
             mime_type = str(args[1])
             pdf_bytes = bytes(args[2]) if isinstance(args[2], (bytes, bytearray, memoryview)) else b""
             size_bytes = int(str(args[3]))
-            created_at = args[4] if isinstance(args[4], datetime) else datetime.now(timezone.utc)
+            created_at = args[4] if isinstance(args[4], datetime) else datetime.now(UTC)
             await self._entities.save_report_binary(
                 ReportBinaryPayloadDTO(
                     report_id=report_id,
@@ -1707,9 +1707,9 @@ class InMemoryAsyncPgConnection:
             pk_val = entry[0] if entry else None
             if isinstance(pk_val, uuid.UUID):
                 ts_ms = (pk_val.int >> 80) & ((1 << 48) - 1)
-                mapped["created_at"] = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc)
+                mapped["created_at"] = datetime.fromtimestamp(ts_ms / 1000.0, tz=UTC)
             else:
-                mapped["created_at"] = datetime.now(timezone.utc)
+                mapped["created_at"] = datetime.now(UTC)
             return mapped
         return {col: val for col, val in zip(cols, entry, strict=False)}
 

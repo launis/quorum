@@ -6,7 +6,7 @@ InMemoryUnifiedWorkflowRepository, and RFC 7807 PROGRESS_UPDATE_FAILED error pro
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -230,7 +230,7 @@ async def test_execution_committer_preserves_concurrent_human_overrides_and_incr
         reason="Verified manually by auditor",
         evidence_quotes=[],
         overridden_by="usr_0195f3a0000070108111222233334444",
-        overridden_at=datetime.now(timezone.utc),
+        overridden_at=datetime.now(UTC),
     )
     overridden_atom = base_atom.model_copy(
         update={

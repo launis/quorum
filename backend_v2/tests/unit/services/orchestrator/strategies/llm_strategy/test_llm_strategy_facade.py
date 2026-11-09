@@ -16,7 +16,6 @@ from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
-
 from backend_v2.services.orchestrator.strategies.llm_strategy import LLMNodeStrategy
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -1904,7 +1903,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
         query="test search query",
         response_summary="Verified evidence from search.",
         source_urls=["https://example.com/verified"],
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        timestamp=datetime.datetime.now(datetime.UTC),
         duration_ms=45,
     )
 

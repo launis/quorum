@@ -201,7 +201,7 @@ async def test_source_verification_hook_success(
         reasoning="Fact checking",
         response_summary="Google claimed quantum supremacy in Nature in 2019.",
         source_urls=["https://nature.com/articles/s41586-019-1666-5"],
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        timestamp=datetime.datetime.now(datetime.UTC),
         duration_ms=100,
     )
 

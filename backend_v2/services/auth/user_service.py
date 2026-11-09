@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 import hmac
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from backend_v2.exceptions import (
@@ -152,7 +152,7 @@ class UserService:
             name=user_data.name,
             role=user_data.role,
             organization_id=target_org_id,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             created_by=creator.id,
             is_active=user_data.is_active,
             language=user_data.language,
@@ -495,7 +495,7 @@ class UserService:
         anonymized = target.model_copy(
             update={
                 "is_active": False,
-                "deleted_at": datetime.now(timezone.utc),
+                "deleted_at": datetime.now(UTC),
                 "email": f"deleted_{target.id}@anonymized.quorum.local",
                 "name": "Anonymized User",
                 "firebase_uid": None,
@@ -1050,7 +1050,7 @@ class UserService:
                 Organization(
                     id=SystemOrganizations.ROOT_SYSTEM,
                     name="System Administration",
-                    created_at=datetime.now(timezone.utc),
+                    created_at=datetime.now(UTC),
                     is_active=True,
                     tier="enterprise",
                     subscription_status=SubscriptionStatus.ACTIVE,

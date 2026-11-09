@@ -12,7 +12,7 @@ import json
 import logging
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -283,7 +283,7 @@ def _reconstitute_execution_record(
     cv_storage_path = f"executions/{exe_id}/context_variables.json" if cv_file.exists() else None
     pdf_storage_path = str(pdf_file).replace("\\", "/") if pdf_file.exists() else None
     status = ExecutionStatus.PASSED
-    now_dt = datetime.now(timezone.utc)
+    now_dt = datetime.now(UTC)
 
     if template_record is not None:
         resolved_wf_id = (

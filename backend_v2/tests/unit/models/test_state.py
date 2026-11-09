@@ -1,6 +1,6 @@
 """Unit tests for the Event Sourcing State components and StepOutputDTO."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -101,7 +101,7 @@ def test_reasoning_trace_confidence_score_out_of_bounds_low() -> None:
 
 def test_evidence_override_dto_success_and_strictness() -> None:
     """Test EvidenceOverrideDTO construction and extra='forbid' constraint."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     dto = EvidenceOverrideDTO(
         evq_id="evq_12345",
         user_rejected=True,
@@ -204,13 +204,13 @@ def test_state_projector_fold_trace_max_tokens() -> None:
         step_name="stp_old",
         event_type="output",
         content={"blk_old": "very long text that consumes tokens " * 20},
-        timestamp=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC),
     )
     event_new = TraceEvent(
         step_name="stp_new",
         event_type="output",
         content={"blk_new": "short text"},
-        timestamp=datetime(2026, 1, 2, 0, 0, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 1, 2, 0, 0, 0, tzinfo=UTC),
     )
 
     projector = StateProjector()

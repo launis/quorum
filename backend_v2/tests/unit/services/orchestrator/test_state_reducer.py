@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -270,7 +270,7 @@ def test_reduce_hook_delta_analyst_and_evaluation_and_distillation() -> None:
     eval_delta = HookDeltaDTO(
         delta=EvaluationResult(
             matrix_id="mat_test",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             total_score=4.5,
             final_verdict="PASSED",
             thought_process="Reasoning",

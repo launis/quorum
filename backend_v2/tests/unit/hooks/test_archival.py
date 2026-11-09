@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -63,7 +63,7 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_record = ExecutionRecord.model_construct(
         id="exe_0195f3a00000700384567890abcdef12",
         workflow_id="wor_0195f3a00000700384567890abcdef12",
@@ -98,7 +98,7 @@ async def test_retrieve_precedent_hook_success() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
         workflow_id="wor_0195f3a00000700384567890abcdef12",
@@ -167,7 +167,7 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
         workflow_id="wor_0195f3a00000700384567890abcdef12",
@@ -221,7 +221,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
         workflow_id="wor_0195f3a00000700384567890abcdef12",
@@ -265,7 +265,7 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
         workflow_id="wor_0195f3a00000700384567890abcdef12",
@@ -308,7 +308,7 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
         workflow_id="wor_0195f3a00000700384567890abcdef12",
@@ -388,7 +388,7 @@ async def test_archival_hook_uses_settings_scan_depth_and_unbounded_verdicts(
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     verdict_250 = "V" * 250
 
     exec_repo = InMemoryUnifiedWorkflowRepository()

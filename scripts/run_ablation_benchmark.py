@@ -41,7 +41,7 @@ import io
 import logging
 import sys
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Final
 
@@ -1137,7 +1137,7 @@ class AblationBenchmarkRunner:
         )
 
         return AblationBenchmarkReportDTO(
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             case_filter=self.case_filter,
             config_results=results,
             table_markdown=table_md,
@@ -1375,7 +1375,7 @@ def run_ablation_benchmark(args: argparse.Namespace) -> AblationBenchmarkReportD
         if args.manifest_output:
             m_path = Path(args.manifest_output)
         else:
-            ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            ts_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             ext = "json" if m_fmt == ManifestFormat.JSON else "csv"
             m_path = Path(f"data/files/manifests/manifest_{m_type.value}_{ts_str}.{ext}")
 
@@ -1496,7 +1496,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.manifest_output:
                 m_path = Path(args.manifest_output)
             else:
-                ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                ts_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
                 ext = "json" if m_fmt == ManifestFormat.JSON else "csv"
                 m_path = Path(f"data/files/manifests/manifest_{m_type.value}_{ts_str}.{ext}")
 

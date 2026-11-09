@@ -4,7 +4,7 @@ Tests verify the structural contract, inheritance chain,
 field definitions, and Pydantic V2 strict mode enforcement.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -166,7 +166,7 @@ class TestExecutionCoreFieldsValidation:
 
     def test_accepts_valid_trace_event_union(self) -> None:
         """Execution trace must accept all union members."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         meta = TraceEventMetadataDTO(mcp_audit_traces=[])
         trace_event = TraceEvent(
             event_id=generate_uuid7(),

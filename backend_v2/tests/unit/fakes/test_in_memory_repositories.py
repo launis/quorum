@@ -6,7 +6,7 @@ Verifies snapshot isolation, ingress mutation decoupling, explicit update requir
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -470,7 +470,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             input_tokens=50,
             output_tokens=50,
             cost_usd=0.001,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
     )
     assert len(await aud_repo.get_usage_records("org", "org_1")) == 1
@@ -714,7 +714,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             input_tokens=10,
             output_tokens=20,
             cost_usd=0.01,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
     )
     assert len(await unified.get_usage_records("org")) == 1

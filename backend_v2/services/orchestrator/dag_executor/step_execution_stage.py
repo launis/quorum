@@ -6,7 +6,7 @@ import contextlib
 import logging
 import sys
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -199,7 +199,7 @@ async def prepare_step_strategy_context(
                 if lightweight_matrix.reduced_atoms:
                     reduce_event = TraceEvent(
                         event_id=generate_uuid7(),
-                        timestamp=datetime.now(timezone.utc),
+                        timestamp=datetime.now(UTC),
                         step_name="matrix_reducer",
                         event_type="output",
                         content=lightweight_matrix,
@@ -397,7 +397,7 @@ async def execute_dag_step_wrapper(
                         enriched_fusion = snap_dto.payload.model_copy(update={"falsified_claims": falsified_claims})
                         fusion_evt = TraceEvent(
                             event_id=generate_uuid7(),
-                            timestamp=datetime.now(timezone.utc),
+                            timestamp=datetime.now(UTC),
                             step_name=step_id,
                             event_type="output",
                             content=enriched_fusion,
@@ -421,7 +421,7 @@ async def execute_dag_step_wrapper(
             err_content = {"error_code": err_code, "message": str(e)}
             error_evt = ErrorTraceEvent(
                 event_id=generate_uuid7(),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 step_name=step_id,
                 error_code=err_code,
                 error_message=str(e),

@@ -1,3 +1,4 @@
+from datetime import UTC
 from unittest.mock import MagicMock
 
 import pytest
@@ -390,13 +391,13 @@ def test_prompt_factory_system_rule_and_default_branches(
 
 def test_prompt_factory_execution_time_and_external_evidence(mock_compiler: MagicMock) -> None:
     """Test PromptFactory formats execution_time in document_date and injects external evidence."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
     from backend_v2.models.dtos.prompt import LLMContextDataDTO
 
     context_data = LLMContextDataDTO(
-        execution_time=datetime(2026, 9, 21, 14, 30, 0, tzinfo=timezone.utc),
+        execution_time=datetime(2026, 9, 21, 14, 30, 0, tzinfo=UTC),
     )
     global_vars = GlobalContextVarsDTO(
         external_evidence="Aggregated external research evidence text.",

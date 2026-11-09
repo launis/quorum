@@ -3433,7 +3433,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
     snapshot_dto = DiffReportSnapshotDTO(
         execution_ids=loaded_runs,
-        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        timestamp=datetime.datetime.now(datetime.UTC).isoformat(),
         global_consistency=global_consistency,
         fleiss_kappa=global_kappa,
         cohen_kappa=cohen_kappa_dto,

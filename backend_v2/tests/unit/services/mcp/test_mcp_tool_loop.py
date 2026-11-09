@@ -1,6 +1,6 @@
 """Unit tests for deterministic MCP Tool Loop Conductor."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -260,7 +260,7 @@ async def test_execute_tool_loop_deterministic_search() -> None:
                 response_summary="Found some evidence",
                 source_urls=["http://test.com"],
                 impacted_axis_names=[],
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 duration_ms=100,
             )
 
@@ -308,7 +308,7 @@ async def test_execute_tool_loop_with_wikipedia_search() -> None:
                 response_summary="Wikipedia evidence summary",
                 source_urls=["https://en.wikipedia.org/wiki/Test"],
                 impacted_axis_names=[],
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 duration_ms=50,
             )
 
@@ -377,7 +377,7 @@ async def test_ensemble_vote_consensus() -> None:
                 response_summary="Found",
                 source_urls=[],
                 impacted_axis_names=[],
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 duration_ms=50,
             )
 
@@ -419,7 +419,7 @@ async def test_strictness_override_bypasses_physical_anchoring() -> None:
                 response_summary="Found",
                 source_urls=[],
                 impacted_axis_names=[],
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 duration_ms=50,
             )
 
@@ -485,7 +485,7 @@ async def test_agentic_self_reflection_success() -> None:
                 response_summary="Found",
                 source_urls=[],
                 impacted_axis_names=[],
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 duration_ms=50,
             )
 
@@ -588,7 +588,7 @@ def test_build_tool_evidence_message() -> None:
         response_summary="",
         source_urls=[],
         impacted_axis_names=[],
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         duration_ms=10,
     )
     empty_msg = _build_tool_evidence_message(empty_trace, "call_123")
@@ -606,7 +606,7 @@ def test_build_tool_evidence_message() -> None:
         response_summary="Verified finding summary",
         source_urls=["https://example.com/source1"],
         impacted_axis_names=[],
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         duration_ms=10,
     )
     pop_msg = _build_tool_evidence_message(populated_trace, "call_456")
@@ -639,7 +639,7 @@ async def test_execute_tool_loop_with_synthesis_instructions() -> None:
             response_summary="Evidence summary",
             source_urls=["https://example.com"],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=50,
         )
 
@@ -681,7 +681,7 @@ async def test_execute_tool_loop_invalid_synthesis_instructions_raises_app_excep
             response_summary="Evidence summary",
             source_urls=["https://example.com"],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=50,
         )
 
@@ -730,7 +730,7 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
             response_summary="Evidence summary",
             source_urls=[],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=50,
         )
 
@@ -791,7 +791,7 @@ async def test_max_tool_calls_limit_reached(monkeypatch: pytest.MonkeyPatch) -> 
             response_summary="summary",
             source_urls=[],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=10,
         )
 
@@ -839,7 +839,7 @@ async def test_extraction_dict_model_validation() -> None:
             response_summary="summary",
             source_urls=[],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=10,
         )
 
@@ -890,7 +890,7 @@ async def test_phase2_app_exception_passthrough() -> None:
             response_summary="Evidence",
             source_urls=[],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=50,
         )
 
@@ -931,7 +931,7 @@ async def test_tool_loop_llm_message_dto_and_float_strictness() -> None:
             response_summary="Found evidence online.",
             source_urls=["https://example.com"],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=50,
         )
 
@@ -991,7 +991,7 @@ async def test_execute_mcp_retrieval_success_with_traces() -> None:
             response_summary="Verified fact evidence summary.",
             source_urls=["https://example.com/verified"],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=42,
         )
 
@@ -1208,7 +1208,7 @@ async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert(
             response_summary="Summary text",
             source_urls=["https://example.com"],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=25,
         )
 
@@ -1307,7 +1307,7 @@ async def test_execute_mcp_retrieval_with_mcp_tool_params_and_jit_synthesis() ->
             response_summary="Verified complex evidence.",
             source_urls=["https://example.com/complex"],
             impacted_axis_names=[],
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             duration_ms=55,
         )
 
@@ -1350,7 +1350,7 @@ def test_assemble_evidence_payload_strips_reserved_xml_boundary_tags() -> None:
             "https://example.com/unclosed<source",
         ],
         impacted_axis_names=[],
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         duration_ms=12,
     )
 

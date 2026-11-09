@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
@@ -150,7 +150,7 @@ def create_execution_record(
         if step_states is not None:
             final_step_states = step_states
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         return ExecutionRecord(
             id=execution_id,
             workflow_id=workflow_id,

@@ -7,7 +7,7 @@ does not corrupt StateProjector snapshot with bare AtomResultDTO or trigger
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -494,7 +494,7 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
         profile_name=i18n,
         profile_description=i18n,
         available_profiles={"prf_0195f3a0000070008000000000000001": i18n},
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         local_time_str="2026-10-15 20:35:48",
         custom_preface_md=None,
         org_name="Test Org",

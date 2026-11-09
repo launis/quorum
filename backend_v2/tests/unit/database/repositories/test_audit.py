@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -43,7 +43,7 @@ async def test_audit_logs_filters_and_corruption(repo: AuditRepositoryImpl, mock
     org_id = "org_0195f3a0000070018234567890abcdef"
     usr_id = "usr_0195f3a0000070018234567890abcdef"
     valid_audit = AuditLogEntry(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         level="INFO",
         message="Workflow started",
         context={"org_id": org_id},
@@ -84,7 +84,7 @@ async def test_log_usage_model_and_dict(repo: AuditRepositoryImpl, mock_driver: 
         input_tokens=10,
         output_tokens=5,
         cost_usd=0.001,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     await repo.log_usage(model_usage)
     assert mock_driver.upsert.call_count == 1
@@ -103,7 +103,7 @@ async def test_get_usage_records_scopes_and_corruption(repo: AuditRepositoryImpl
         input_tokens=100,
         output_tokens=50,
         cost_usd=0.005,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     ).model_dump(mode="json")
     mock_driver.query.return_value = [valid_usage]
 

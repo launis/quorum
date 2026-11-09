@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -55,7 +55,7 @@ async def test_auth_service_create_user_hierarchy_and_validations(
         email="creator@test.com",
         role=UserRole.ADMIN,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000099",
@@ -64,7 +64,7 @@ async def test_auth_service_create_user_hierarchy_and_validations(
         id="org_0195f3a0000070008000000000000099",
         name="My Org",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=500.0,
@@ -180,7 +180,7 @@ async def test_auth_service_create_user_firebase_flow(
         email="root@test.com",
         role=UserRole.ROOT,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id=SystemOrganizations.ROOT_SYSTEM,
@@ -191,7 +191,7 @@ async def test_auth_service_create_user_firebase_flow(
             id=SystemOrganizations.ROOT_SYSTEM,
             name="Root Org",
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             tier="enterprise",
             subscription_status=SubscriptionStatus.ACTIVE,
             quota_limit=500.0,
@@ -270,7 +270,7 @@ async def test_auth_service_delete_user_branches(
         email="admin@test.com",
         role=UserRole.ADMIN,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000003",
@@ -280,7 +280,7 @@ async def test_auth_service_delete_user_branches(
         email="member@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000003",
@@ -313,7 +313,7 @@ async def test_auth_service_delete_user_branches(
         email="root@test.com",
         role=UserRole.ROOT,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id=initiator_admin.organization_id,
@@ -323,7 +323,7 @@ async def test_auth_service_delete_user_branches(
         email="legacy_root@test.com",
         role=UserRole.ROOT,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id=initiator_admin.organization_id,
@@ -373,7 +373,7 @@ async def test_auth_service_update_user_branches(
         email="admin@test.com",
         role=UserRole.ADMIN,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000003",
@@ -383,7 +383,7 @@ async def test_auth_service_update_user_branches(
         email="member@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000003",
@@ -476,7 +476,7 @@ async def test_auth_service_update_user_role_branches(
         email="admin@test.com",
         role=UserRole.ADMIN,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000003",
@@ -486,7 +486,7 @@ async def test_auth_service_update_user_role_branches(
         email="manager@test.com",
         role=UserRole.MANAGER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000003",
@@ -496,7 +496,7 @@ async def test_auth_service_update_user_role_branches(
         email="member@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000003",
@@ -572,7 +572,7 @@ async def test_auth_service_ensure_root_user_branches(
         id=SystemOrganizations.ROOT_SYSTEM,
         name="System Administration",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=5000.0,
@@ -585,7 +585,7 @@ async def test_auth_service_ensure_root_user_branches(
         email="root@example.com",
         role=UserRole.ROOT,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id=SystemOrganizations.ROOT_SYSTEM,
@@ -632,7 +632,7 @@ async def test_create_user_root_creator_success(
         id="org_0195f3a0000070008000000000000003",
         name="Test Org",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=500.0,
@@ -648,7 +648,7 @@ async def test_create_user_root_creator_success(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -683,7 +683,7 @@ async def test_create_user_admin_creator_same_org_success(
         id="org_0195f3a0000070008000000000000007",
         name="Test Org 2",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=500.0,
@@ -699,7 +699,7 @@ async def test_create_user_admin_creator_same_org_success(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000007",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -732,7 +732,7 @@ async def test_create_user_admin_creator_foreign_org_raises_permission_denied(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000008",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -765,7 +765,7 @@ async def test_create_user_admin_creating_root_raises_permission_denied(
         role=UserRole.ADMIN,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -811,7 +811,7 @@ async def test_create_user_manager_creating_user_raises_permission_denied(
         role=UserRole.MANAGER,
         organization_id="org_0195f3a0000070008000000000000009",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -857,7 +857,7 @@ async def test_create_user_member_creating_user_raises_permission_denied(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a000007000800000000000000a",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -911,7 +911,7 @@ async def test_create_user_non_existent_target_org_raises_app_exception_404(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -945,7 +945,7 @@ async def test_create_user_root_role_in_non_system_org_raises_permission_denied(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -978,7 +978,7 @@ async def test_get_user_root_initiator_any_user_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a000007000800000000000000d",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1002,7 +1002,7 @@ async def test_get_user_self_fetch_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a000007000800000000000000e",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1030,7 +1030,7 @@ async def test_get_user_admin_same_org_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a000007000800000000000000f",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1058,7 +1058,7 @@ async def test_get_user_foreign_user_raises_permission_denied(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000010",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1102,7 +1102,7 @@ async def test_list_users_root_initiator_returns_all_users(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000012",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1113,7 +1113,7 @@ async def test_list_users_root_initiator_returns_all_users(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000013",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1139,7 +1139,7 @@ async def test_list_users_tenant_initiator_returns_own_org_users_only(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000014",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1150,7 +1150,7 @@ async def test_list_users_tenant_initiator_returns_own_org_users_only(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000015",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1180,7 +1180,7 @@ async def test_get_users_by_organization_returns_matching_users(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000016",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1205,7 +1205,7 @@ async def test_update_user_root_initiator_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000017",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1216,7 +1216,7 @@ async def test_update_user_root_initiator_success(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1245,7 +1245,7 @@ async def test_update_user_self_update_non_role_fields_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000018",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1272,7 +1272,7 @@ async def test_update_user_self_update_role_raises_permission_denied(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000019",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1300,7 +1300,7 @@ async def test_update_user_admin_foreign_org_raises_permission_denied(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a000007000800000000000001a",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1311,7 +1311,7 @@ async def test_update_user_admin_foreign_org_raises_permission_denied(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a000007000800000000000001b",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1338,7 +1338,7 @@ async def test_update_user_non_root_transferring_org_raises_permission_denied(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a000007000800000000000001c",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1349,7 +1349,7 @@ async def test_update_user_non_root_transferring_org_raises_permission_denied(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a000007000800000000000001c",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1378,7 +1378,7 @@ async def test_update_user_demoting_last_admin_raises_conflict_error(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1389,7 +1389,7 @@ async def test_update_user_demoting_last_admin_raises_conflict_error(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a000007000800000000000001e",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1420,7 +1420,7 @@ async def test_update_user_role_root_initiator_success(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1431,7 +1431,7 @@ async def test_update_user_role_root_initiator_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a000007000800000000000001f",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1460,7 +1460,7 @@ async def test_update_user_role_lower_hierarchy_modifying_higher_raises_permissi
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000020",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1471,7 +1471,7 @@ async def test_update_user_role_lower_hierarchy_modifying_higher_raises_permissi
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1498,7 +1498,7 @@ async def test_update_user_role_promoting_above_own_role_raises_permission_denie
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000021",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1509,7 +1509,7 @@ async def test_update_user_role_promoting_above_own_role_raises_permission_denie
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000021",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1536,7 +1536,7 @@ async def test_update_user_role_admin_modifying_foreign_org_raises_permission_de
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000022",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1547,7 +1547,7 @@ async def test_update_user_role_admin_modifying_foreign_org_raises_permission_de
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000023",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1574,7 +1574,7 @@ async def test_update_user_role_demoting_last_admin_raises_conflict_error(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1585,7 +1585,7 @@ async def test_update_user_role_demoting_last_admin_raises_conflict_error(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000024",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1614,7 +1614,7 @@ async def test_delete_user_root_initiator_regular_user_success(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1625,7 +1625,7 @@ async def test_delete_user_root_initiator_regular_user_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000025",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1660,7 +1660,7 @@ async def test_delete_user_admin_same_org_success(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000026",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1671,7 +1671,7 @@ async def test_delete_user_admin_same_org_success(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000026",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1703,7 +1703,7 @@ async def test_delete_user_admin_foreign_org_raises_permission_denied(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000027",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1714,7 +1714,7 @@ async def test_delete_user_admin_foreign_org_raises_permission_denied(
         role=UserRole.MEMBER,
         organization_id="org_0195f3a0000070008000000000000028",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1739,7 +1739,7 @@ async def test_delete_user_root_account_protection_raises_permission_denied(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1763,7 +1763,7 @@ async def test_delete_user_last_admin_protection_raises_conflict_error(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1774,7 +1774,7 @@ async def test_delete_user_last_admin_protection_raises_conflict_error(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000029",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1800,7 +1800,7 @@ async def test_delete_user_not_found_raises_app_exception_404(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1825,7 +1825,7 @@ async def test_ensure_root_user_creates_system_org_if_missing(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1848,7 +1848,7 @@ async def test_ensure_root_user_success_when_root_exists(
         id=SystemOrganizations.ROOT_SYSTEM,
         name="System Administration",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=5000.0,
@@ -1864,7 +1864,7 @@ async def test_ensure_root_user_success_when_root_exists(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1884,7 +1884,7 @@ async def test_ensure_root_user_heals_organization_id_if_drifted(
         id=SystemOrganizations.ROOT_SYSTEM,
         name="System Administration",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=5000.0,
@@ -1900,7 +1900,7 @@ async def test_ensure_root_user_heals_organization_id_if_drifted(
         role=UserRole.ROOT,
         organization_id="org_0195f3a000007000800000000000002a",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1943,7 +1943,7 @@ async def test_direct_user_service_execution(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -1996,7 +1996,7 @@ async def test_user_service_firebase_delete_and_null_repo_returns(
         id="org_0195f3a000007000800000000000002b",
         name="FB Del Org",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         tier="enterprise",
         subscription_status=SubscriptionStatus.ACTIVE,
         quota_limit=500.0,
@@ -2013,7 +2013,7 @@ async def test_user_service_firebase_delete_and_null_repo_returns(
         role=UserRole.ROOT,
         organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -2072,7 +2072,7 @@ async def test_user_service_with_exchanged_quorum_jwt_token_data(
         role=UserRole.ADMIN,
         organization_id="org_0195f3a0000070008000000000000091",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
     )
@@ -2114,7 +2114,7 @@ async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocati
             role=UserRole.ROOT,
             organization_id=SystemOrganizations.ROOT_SYSTEM,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2127,7 +2127,7 @@ async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocati
             role=UserRole.ADMIN,
             organization_id=org_id,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2140,8 +2140,8 @@ async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocati
             role=UserRole.ADMIN,
             organization_id=org_id,
             is_active=True,
-            deleted_at=datetime.now(timezone.utc),
-            created_at=datetime.now(timezone.utc),
+            deleted_at=datetime.now(UTC),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2154,7 +2154,7 @@ async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocati
             role=UserRole.MANAGER,
             organization_id=org_id,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2167,7 +2167,7 @@ async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocati
             role=UserRole.MEMBER,
             organization_id=org_id,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2204,7 +2204,7 @@ async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocati
             role=UserRole.ROOT,
             organization_id=org_id,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2269,7 +2269,7 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
             role=UserRole.ADMIN,
             organization_id=org_id,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2283,7 +2283,7 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
             role=UserRole.MEMBER,
             organization_id=org_id,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2297,7 +2297,7 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
             role=UserRole.MEMBER,
             organization_id=org_id,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2307,7 +2307,7 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
         id="exe_0195f3a00000700080000000000000d1",
         workflow_id="wor_0195f3a0000070008000000000000001",
         status=ExecutionStatus.PENDING,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         created_by=user1_id,
         organization_id=org_id,
         target_locale=SystemLocale.EN,
@@ -2316,7 +2316,7 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
         id="exe_0195f3a00000700080000000000000d2",
         workflow_id="wor_0195f3a0000070008000000000000001",
         status=ExecutionStatus.PENDING,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         created_by=user2_id,
         organization_id=org_id,
         target_locale=SystemLocale.EN,
@@ -2436,7 +2436,7 @@ async def test_gdpr_soft_delete_webhook_negative_and_boundary(
             role=UserRole.ROOT,
             organization_id=SystemOrganizations.ROOT_SYSTEM,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )
@@ -2454,7 +2454,7 @@ async def test_gdpr_soft_delete_webhook_negative_and_boundary(
             role=UserRole.ADMIN,
             organization_id="org_0195f3a00000700080000000000000e9",
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
         )

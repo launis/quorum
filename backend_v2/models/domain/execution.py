@@ -8,7 +8,7 @@ JobAcceptedDTO, EvidenceRejectionRequest, and ExecutionAssignment.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Self
 
 if TYPE_CHECKING:
@@ -360,11 +360,11 @@ class ExecutionRecord(ExecutionCoreFields):
     error: Annotated[str | None, Field(default=None, description="Error message if failed")] = None
     created_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC creation timestamp"),
+        Field(default_factory=lambda: datetime.now(UTC), description="UTC creation timestamp"),
     ]
     updated_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC update timestamp"),
+        Field(default_factory=lambda: datetime.now(UTC), description="UTC update timestamp"),
     ]
     completed_at: Annotated[datetime | None, Field(default=None, description="UTC completion timestamp")] = None
     created_by: Annotated[
@@ -650,7 +650,7 @@ class ExecutionAssignment(V2CoreBase):
     created_by: Annotated[PrefixedUUID7, Field(description="Creator User ID (usr_<hex32>)")]
     created_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation UTC timestamp"),
+        Field(default_factory=lambda: datetime.now(UTC), description="Creation UTC timestamp"),
     ]
 
     @field_validator("hard_deadline_at", "activated_at", "submitted_at", "created_at", mode="before")

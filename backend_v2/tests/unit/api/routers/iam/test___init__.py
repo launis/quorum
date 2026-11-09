@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -55,7 +55,7 @@ async def test_iam_users_and_organizations_routers_coverage_and_error_branches_n
         organization_id=user_tests.ORG_ID,
         language=SystemLocale.EN,
         theme_mode="system",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     sample_org = Organization(
         id=org_tests.ORG_ID,
@@ -66,7 +66,7 @@ async def test_iam_users_and_organizations_routers_coverage_and_error_branches_n
         quota_limit=100.0,
         tpm_limit=50000,
         rpm_limit=100,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         allowed_email_domains=[],
     )
 

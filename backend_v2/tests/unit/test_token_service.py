@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import jwt
@@ -70,7 +70,7 @@ async def test_exchange_firebase_token_mfa_verified_positive(
         email="mfa_user@test.com",
         role=UserRole.MANAGER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000001",
@@ -174,7 +174,7 @@ async def test_exchange_firebase_token_uid_collision_negative(
         email="collision@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000001",
@@ -264,7 +264,7 @@ async def test_verify_token_ram_decode_zero_db_queries_positive(
         email="ramdecode@test.com",
         role=UserRole.ADMIN,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000001",
@@ -361,7 +361,7 @@ async def test_exchange_firebase_token_first_time_email_bind_and_headless_secret
         email="preprovisioned@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000001",
@@ -421,7 +421,7 @@ async def test_exchange_firebase_token_inactive_deleted_or_revoked_user_negative
         email="inactive@test.com",
         role=UserRole.MEMBER,
         is_active=False,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000001",
@@ -431,8 +431,8 @@ async def test_exchange_firebase_token_inactive_deleted_or_revoked_user_negative
         email="deleted@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        deleted_at=datetime.now(timezone.utc),
-        created_at=datetime.now(timezone.utc),
+        deleted_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000001",
@@ -442,7 +442,7 @@ async def test_exchange_firebase_token_inactive_deleted_or_revoked_user_negative
         email="revoked@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         language=SystemLocale.EN,
         theme_mode="system",
         organization_id="org_0195f3a0000070008000000000000001",

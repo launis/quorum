@@ -10,7 +10,7 @@ import json
 import logging
 import sys
 from collections.abc import Callable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -417,7 +417,7 @@ async def bootstrap_workflow_execution_state(
     else:
         tel = default_meta.telemetry if default_meta.telemetry is not None else inject_trace_context()
         res_meta, def_prof = default_meta.model_copy(update={"telemetry": tel}), workflow.default_profile_id
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         rec_base = ExecutionRecord(
             id=execution_id,
             workflow_id=workflow.id,
@@ -475,7 +475,7 @@ async def bootstrap_workflow_execution_state(
     if not exec_record.execution_trace:
         input_event = TraceEvent(
             event_id=generate_uuid7(),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             step_name="raw_inputs",
             event_type="input",
             content=exec_record.raw_inputs,
@@ -502,7 +502,7 @@ async def bootstrap_workflow_execution_state(
                 )
                 proc_event = TraceEvent(
                     event_id=generate_uuid7(),
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=datetime.now(UTC),
                     step_name="inputs",
                     event_type="input",
                     content=delta_content,
@@ -603,7 +603,7 @@ async def execute_rag_preflight_stage(
         prog_dto = ProgressTracePayloadDTO(message=message, progress_pct=pct)
         evt = TraceEvent(
             event_id=generate_uuid7(),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             step_name=vid,
             event_type="progress",
             content=prog_dto,

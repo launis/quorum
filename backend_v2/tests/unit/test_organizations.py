@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -80,7 +80,7 @@ def sample_org() -> Organization:
         quota_limit=100.0,
         tpm_limit=50000,
         rpm_limit=100,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         allowed_email_domains=[],
     )
 
@@ -223,7 +223,7 @@ async def test_organizations_router_invitations_endpoints_positive_and_negative(
             email="root@quorum.org",
             role=UserRole.ROOT,
             is_active=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             language=SystemLocale.EN,
             theme_mode="system",
             organization_id=SystemOrganizations.ROOT_SYSTEM,

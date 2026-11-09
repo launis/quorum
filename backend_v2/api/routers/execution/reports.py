@@ -8,7 +8,7 @@ Tripartite Pipeline Architecture and SRP Decomposition.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Response, status
@@ -104,7 +104,7 @@ async def create_execution_report(
         title=artifact.title,
         status=ReportStatus.GENERATING,
         created_at=artifact.created_at,
-        updated_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(UTC),
     )
 
 
@@ -366,7 +366,7 @@ async def regenerate_report_artifact(
         title=report.title,
         status=ReportStatus.GENERATING,
         created_at=report.created_at,
-        updated_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(UTC),
     )
 
 
