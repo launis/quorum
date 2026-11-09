@@ -1,11 +1,11 @@
 """MCP Tool Loop Conductor.
 
 Isolates the LLM tool-calling cycle from the DAG executor (SRP).
-Implements a 2-phase execution:
-  Phase 1 (Probe): LLM chat with tool declarations — decides if external search is needed.
-  Phase 2 (Completion): Injects evidence as ToolMessage, then forces structured matrix output.
+Implements a two-stage execution pipeline:
+  Probe stage: LLM chat with tool declarations decides if external search is needed.
+  Completion stage: Injects evidence as ToolMessage, then forces structured matrix output.
 
-Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
+Adheres to RFC 7807 Dual-Reporting and Graceful Degradation mandates.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.core_base import PrefixedUUID7
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
@@ -52,6 +53,21 @@ __all__ = [
     "is_source_sufficient",
     "validate_query_relevance",
 ]
+
+
+def _resolve_client_organization_id(llm_client: Any) -> PrefixedUUID7:
+    """Resolve the active tenant organization ID from an LLMClient or default to ROOT_SYSTEM.
+
+    Args:
+        llm_client: Bound LLMClient instance or mock client.
+
+    Returns:
+        Resolved tenant organization ID.
+    """
+    effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
+    if isinstance(llm_client, LLMClient) and llm_client.organization_id is not None:
+        effective_org_id = llm_client.organization_id
+    return effective_org_id
 
 
 async def _resolve_dispatcher(
@@ -224,9 +240,7 @@ async def _resolve_fast_extraction_client(llm_client: Any, repository: Any) -> A
     """
     if repository is None:
         return llm_client
-    org_id: PrefixedUUID7 | None = None
-    if isinstance(llm_client, LLMClient):
-        org_id = llm_client.organization_id
+    org_id = _resolve_client_organization_id(llm_client)
     try:
         return await LLMClient.from_tier(
             CognitiveTier.FAST,
@@ -248,7 +262,7 @@ def _build_extraction_messages(
     target_language: str,
     val_ctx: MCPValidationContextDTO,
 ) -> list[LLMMessageDTO]:
-    """Construct the system and user message sequence for Phase 0 citation extraction.
+    """Construct the system and user message sequence for citation extraction.
 
     Args:
         typed_messages: Validated sequence of input LLMMessageDTO instances.
@@ -522,9 +536,9 @@ async def execute_mcp_retrieval(
     dispatcher: ToolDispatcher | None = None,
     mcp_tool_params: Mapping[str, MCPToolParamOverrides] | None = None,
 ) -> MCPRetrievalResultDTO:
-    """Execute the MCP retrieval phase — citation extraction, anchoring, and tool dispatch.
+    """Execute the MCP retrieval stage — citation extraction, anchoring, and tool dispatch.
 
-    Phase 1 (Probe): Uses an ensemble of extraction prompts to identify claims needing verification,
+    Probe stage: Uses an ensemble of extraction prompts to identify claims needing verification,
     enforces physical anchoring against the source document, and executes resolved tools via ToolDispatcher.
 
     Args:
@@ -546,7 +560,7 @@ async def execute_mcp_retrieval(
         Structured retrieval result containing audit traces, usage, and assembled evidence payload.
 
     Raises:
-        AppException: If Phase 0 ensemble extraction, client initialization, or parameter
+        AppException: If ensemble extraction, client initialization, or parameter
             validation fails (ErrorCodes.FETCH_FAILED or ErrorCodes.CONFIGURATION_ERROR).
         SemanticEvidenceError: If physical anchoring verification or self-correction fails
             to locate an exact quote in source context (ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION).
@@ -560,9 +574,7 @@ async def execute_mcp_retrieval(
         evidence_payload="",
     )
 
-    client_org_id: PrefixedUUID7 | None = None
-    if isinstance(llm_client, LLMClient):
-        client_org_id = llm_client.organization_id
+    client_org_id = _resolve_client_organization_id(llm_client)
     resolved_dispatcher = await _resolve_dispatcher(
         dispatcher=dispatcher,
         repository=repository,
@@ -586,7 +598,7 @@ async def execute_mcp_retrieval(
     val_ctx = (
         MCPValidationContextDTO.model_validate(validation_context, strict=False)
         if validation_context is not None
-        else MCPValidationContextDTO.model_validate({})
+        else MCPValidationContextDTO(mcp_source_texts={}, source_documents=[], alias_registry={})
     )
     strictness_level = int(val_ctx.strictness_level)
     fast_client = await _resolve_fast_extraction_client(llm_client=llm_client, repository=repository)
@@ -685,7 +697,7 @@ def _apply_synthesis_instructions(
     """Validate and prepend OutputProfile synthesis formatting constraints to final_messages.
 
     Args:
-        final_messages: Mutable list of LLMMessageDTO instances for Phase 2 completion.
+        final_messages: Mutable list of LLMMessageDTO instances for completion.
         synthesis_instructions: Optional MCPSynthesisInstructionsDTO or raw payload.
 
     Raises:
@@ -732,7 +744,7 @@ async def _execute_phase2_completion[T: BaseModel](
     validation_context: dict[str, JsonValue] | None,
     retrieval_result: MCPRetrievalResultDTO,
 ) -> MCPToolLoopResult:
-    """Execute Phase 2 structured task completion and wrap unexpected errors in AppException.
+    """Execute structured task completion and wrap unexpected errors in AppException.
 
     Args:
         llm_client: Bound LLMClient instance.
@@ -742,7 +754,7 @@ async def _execute_phase2_completion[T: BaseModel](
         step_name: Current DAG step name.
         mock_identity: Optional mock identity for testing.
         validation_context: Optional validation context dictionary.
-        retrieval_result: Result from Phase 1 MCP retrieval.
+        retrieval_result: Result from MCP retrieval.
 
     Returns:
         MCPToolLoopResult combining structured output, audit traces, and total token usage.
@@ -803,10 +815,10 @@ async def execute_tool_loop[T: BaseModel](
     dispatcher: ToolDispatcher | None = None,
     mcp_tool_params: Mapping[str, MCPToolParamOverrides] | None = None,
 ) -> MCPToolLoopResult:
-    """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
+    """Execute the MCP Tool Loop — two-stage LLM execution with optional tool calling.
 
-    Phase 1 (Probe): Ask LLM with tool declarations if it wants to search.
-    Phase 2 (Completion): Inject evidence, force structured output.
+    Probe stage: Ask LLM with tool declarations if it wants to search.
+    Completion stage: Inject evidence, force structured output.
 
     Args:
         llm_client: Bound LLMClient instance.
@@ -829,8 +841,8 @@ async def execute_tool_loop[T: BaseModel](
         Structured tool loop results and audit traces.
 
     Raises:
-        AppException: If Phase 0 ensemble extraction, client initialization, parameter
-            validation, or Phase 2 completion fails (ErrorCodes.FETCH_FAILED,
+        AppException: If ensemble extraction, client initialization, parameter
+            validation, or completion fails (ErrorCodes.FETCH_FAILED,
             ErrorCodes.VALIDATION_FAILED, ErrorCodes.CONFIGURATION_ERROR, or
             ErrorCodes.WORKFLOW_EXECUTION_FAILED).
         SemanticEvidenceError: If physical anchoring verification or self-correction fails
@@ -840,9 +852,7 @@ async def execute_tool_loop[T: BaseModel](
         m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
     ]
 
-    client_org_id: PrefixedUUID7 | None = None
-    if isinstance(llm_client, LLMClient):
-        client_org_id = llm_client.organization_id
+    client_org_id = _resolve_client_organization_id(llm_client)
     resolved_dispatcher = await _resolve_dispatcher(
         dispatcher=dispatcher,
         repository=repository,
