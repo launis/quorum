@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import NoReturn
 from urllib.parse import urlsplit
 
 import httpx
@@ -24,19 +25,25 @@ __all__ = ["EmailService"]
 
 
 def _redact_action_url(action_url: SecretStr | str) -> str:
-    """Strip sensitive query parameters from an action URL before logging.
+    """Strip sensitive query parameters and path-embedded task tokens before logging.
 
     Args:
-        action_url: SecretStr or string action URL potentially containing a query token.
+        action_url: SecretStr or string action URL containing a query or path token.
 
     Returns:
-        Redacted URL containing only scheme, netloc, and path.
+        Redacted URL preserving scheme, netloc, and non-sensitive route segments.
     """
     raw = action_url.get_secret_value() if isinstance(action_url, SecretStr) else action_url
     parsed = urlsplit(raw)
+    segments = parsed.path.split("/")
+    redacted_segments = [
+        "[REDACTED_TOKEN]" if idx > 0 and segments[idx - 1] == "task" and segment else segment
+        for idx, segment in enumerate(segments)
+    ]
+    safe_path = "/".join(redacted_segments)
     if parsed.scheme and parsed.netloc:
-        return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-    return parsed.path
+        return f"{parsed.scheme}://{parsed.netloc}{safe_path}"
+    return safe_path
 
 
 class EmailService:
@@ -56,9 +63,28 @@ class EmailService:
         """Return a shallow copy of emails dispatched in CONSOLE mode.
 
         Returns:
-            List of TransactionalEmailItemDTO objects recorded during console transport.
+            Copied list of transactional email items recorded during console transport.
         """
         return list(self._console_outbox)
+
+    @staticmethod
+    def _raise_configuration_error(msg: str) -> NoReturn:
+        """Log structured RFC 7807 diagnostics and raise Fail-Fast ConfigurationError.
+
+        Args:
+            msg: Technical reason explaining the invalid email transport configuration.
+
+        Raises:
+            ConfigurationError: Always raised with ErrorCodes.CONFIGURATION_ERROR.
+        """
+        logger.error(
+            "[EmailService] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            exc_info=True,
+        )
+        raise ConfigurationError(msg)
 
     async def send_invitation_emails(
         self,
@@ -67,7 +93,7 @@ class EmailService:
         """Dispatch a batch of B2B organization invitation emails.
 
         Args:
-            items: List of transactional email items to dispatch.
+            items: Transactional email items to dispatch.
 
         Returns:
             Aggregated batch dispatch result with sent count, failed count, and delivery statuses.
@@ -85,7 +111,7 @@ class EmailService:
         """Dispatch a batch of time-bound execution assignment magic-link emails.
 
         Args:
-            items: List of transactional email items to dispatch.
+            items: Transactional email items to dispatch.
 
         Returns:
             Aggregated batch dispatch result with sent count, failed count, and delivery statuses.
@@ -95,6 +121,39 @@ class EmailService:
                 (ErrorCodes.CONFIGURATION_ERROR).
         """
         return await self._dispatch_batch(category="EXECUTION_ASSIGNMENT", items=items)
+
+    def _dispatch_console_batch(
+        self,
+        *,
+        category: str,
+        items: list[TransactionalEmailItemDTO],
+    ) -> TransactionalEmailBatchResultDTO:
+        """Record batch items in the console outbox and emit token-redacted telemetry logs.
+
+        Args:
+            category: Logical email category identifier for structured telemetry.
+            items: Validated transactional email items to record.
+
+        Returns:
+            Batch dispatch summary marking all items as EmailDeliveryStatus.SENT.
+        """
+        statuses: dict[PrefixedUUID7, EmailDeliveryStatus] = {}
+        for item in items:
+            self._console_outbox.append(item)
+            statuses[item.entity_id] = EmailDeliveryStatus.SENT
+            logger.info(
+                "[EmailService] CONSOLE dispatch category=%s entity_id=%s to=%s subject=%s action_path=%s",
+                category,
+                item.entity_id,
+                item.recipient_email,
+                item.subject,
+                _redact_action_url(item.action_url),
+            )
+        return TransactionalEmailBatchResultDTO(
+            sent_count=len(items),
+            failed_count=0,
+            delivery_statuses=statuses,
+        )
 
     async def _dispatch_batch(
         self,
@@ -109,7 +168,7 @@ class EmailService:
             items: Validated transactional email items to send.
 
         Returns:
-            TransactionalEmailBatchResultDTO summarizing batch delivery status.
+            Batch dispatch summary containing sent count, failed count, and delivery statuses.
 
         Raises:
             ConfigurationError: If HTTP_API mode lacks required endpoint or key configuration
@@ -124,48 +183,18 @@ class EmailService:
 
         settings = get_settings()
         if settings.email_transport_mode == EmailTransportMode.CONSOLE:
-            statuses: dict[PrefixedUUID7, EmailDeliveryStatus] = {}
-            for item in items:
-                self._console_outbox.append(item)
-                statuses[item.entity_id] = EmailDeliveryStatus.SENT
-                logger.info(
-                    "[EmailService] CONSOLE dispatch category=%s entity_id=%s to=%s subject=%s action_path=%s",
-                    category,
-                    item.entity_id,
-                    item.recipient_email,
-                    item.subject,
-                    _redact_action_url(item.action_url),
-                )
-            return TransactionalEmailBatchResultDTO(
-                sent_count=len(items),
-                failed_count=0,
-                delivery_statuses=statuses,
-            )
+            return self._dispatch_console_batch(category=category, items=items)
 
         endpoint = settings.email_api_endpoint
         api_key_secret = settings.email_api_key
         if endpoint is None or not endpoint.strip() or api_key_secret is None:
-            msg = "HTTP_API email transport mode requires both EMAIL_API_ENDPOINT and EMAIL_API_KEY."
-            logger.error(
-                "[EmailService] %s: %s",
-                ErrorCodes.CONFIGURATION_ERROR.name,
-                msg,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                exc_info=True,
+            self._raise_configuration_error(
+                "HTTP_API email transport mode requires both EMAIL_API_ENDPOINT and EMAIL_API_KEY."
             )
-            raise ConfigurationError(msg)
 
         raw_api_key = api_key_secret.get_secret_value().strip()
         if not raw_api_key:
-            msg = "HTTP_API email transport mode requires a non-empty EMAIL_API_KEY."
-            logger.error(
-                "[EmailService] %s: %s",
-                ErrorCodes.CONFIGURATION_ERROR.name,
-                msg,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                exc_info=True,
-            )
-            raise ConfigurationError(msg)
+            self._raise_configuration_error("HTTP_API email transport mode requires a non-empty EMAIL_API_KEY.")
 
         return await self._dispatch_http_batch(
             category=category,
@@ -194,10 +223,10 @@ class EmailService:
             api_key: Bearer token for authenticating with the transactional email provider.
             from_address: Sender email address.
             timeout_seconds: Per-request and batch timeout in seconds.
-            items: List of transactional email items to send.
+            items: Transactional email items to send.
 
         Returns:
-            TransactionalEmailBatchResultDTO summarizing successful and failed deliveries.
+            Batch dispatch summary aggregating successful and failed deliveries.
         """
         sent_count = 0
         failed_count = 0
@@ -242,16 +271,16 @@ class EmailService:
         """Send a single transactional email item and return a typed single-item batch result DTO.
 
         Args:
-            client: Active httpx.AsyncClient session.
+            client: Active asynchronous HTTP client session.
             category: Logical email category identifier.
             endpoint: Configured HTTP POST endpoint URL.
             headers: HTTP request headers with Bearer authorization.
             from_address: Sender email address.
             timeout_seconds: Request timeout in seconds.
-            item: TransactionalEmailItemDTO to send.
+            item: Transactional email item to send.
 
         Returns:
-            TransactionalEmailBatchResultDTO for the single item.
+            Single-item batch dispatch result DTO.
         """
         payload = {
             "category": category,
