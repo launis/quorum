@@ -14,11 +14,16 @@ else:
     firebase_auth_module = None
 
 from backend_v2.database.interfaces import EntityPersistencePort, IIdentityRepository
-from backend_v2.exceptions import AuthenticationError, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
-from backend_v2.models.auth import (
-    SYSTEM_ROOT_USER_ID as SYSTEM_ROOT_USER_ID,
+from backend_v2.exceptions import (
+    AppException,
+    AuthenticationError,
+    ErrorCodes,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+    ServiceUnavailableError,
 )
 from backend_v2.models.auth import (
+    SYSTEM_ROOT_USER_ID,
     ImpersonationRequest,
     ImpersonationResponse,
     LogoutRequestDTO,
@@ -35,25 +40,23 @@ from backend_v2.models.auth import (
     UserUpdate,
 )
 from backend_v2.models.core_base import generate_uuid7
-from backend_v2.services.auth.email_service import EmailService as EmailService
+from backend_v2.services.auth.email_service import EmailService
 from backend_v2.services.auth.organization_service import OrganizationService
 from backend_v2.services.auth.protocols import UserCreatorProtocol
 from backend_v2.services.auth.repositories import OrganizationRepository, UserRepository
-from backend_v2.services.auth.token_service import (
-    TokenService,
-    initialize_firebase_admin_from_secrets,
-)
+from backend_v2.services.auth.secret_service import SecretService
+from backend_v2.services.auth.token_service import TokenService, initialize_firebase_admin_from_secrets
 from backend_v2.services.auth.user_service import UserService
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
-_FIREBASE_LOGOUT_TIMEOUT_SECONDS: float = 10.0
 __all__ = [
+    "SYSTEM_ROOT_USER_ID",
     "AuthService",
     "EmailService",
     "OrganizationRepository",
     "OrganizationService",
-    "SYSTEM_ROOT_USER_ID",
+    "SecretService",
     "TokenService",
     "UserCreatorProtocol",
     "UserRepository",
@@ -76,10 +79,8 @@ class AuthService:
         entity_adapter: EntityPersistencePort | None = None,
     ) -> None:
         """Initialize AuthService facade with immutable dependency injection."""
-        self.repo = UserRepository(repo)
-        self.org_repo = OrganizationRepository(repo)
-        self.audit_service = audit_service
-        self.revocation_cache = revocation_cache
+        self.repo, self.org_repo = UserRepository(repo), OrganizationRepository(repo)
+        self.audit_service, self.revocation_cache = audit_service, revocation_cache
         effective_fb = firebase_auth if firebase_auth is not None else firebase_auth_module
         self.token_service = TokenService(
             repo=self.repo,
@@ -91,22 +92,17 @@ class AuthService:
         if firebase_auth is not None:
             self.token_service.firebase_auth = firebase_auth
         self.user_service = UserService(
-            user_repo=self.repo,
-            org_repo=self.org_repo,
-            audit_service=self.audit_service,
-            use_firebase=use_firebase,
-            firebase_auth=self.token_service.firebase_auth,
-            revocation_cache=revocation_cache,
+            self.repo, self.org_repo, audit_service, use_firebase, self.token_service.firebase_auth, revocation_cache
         )
         self.org_service = OrganizationService(
-            org_repo=self.org_repo,
-            user_repo=self.repo,
-            audit_service=self.audit_service,
-            use_firebase=use_firebase,
-            firebase_auth=self.token_service.firebase_auth,
-            user_creator=self.user_service._create_user_internal,
-            email_service=email_service,
-            entity_adapter=entity_adapter,
+            self.org_repo,
+            self.repo,
+            audit_service,
+            use_firebase,
+            self.token_service.firebase_auth,
+            self.user_service._create_user_internal,
+            email_service,
+            entity_adapter,
         )
 
     @property
@@ -128,9 +124,10 @@ class AuthService:
         """Initialize the Firebase Admin SDK."""
         self.token_service._init_firebase()
 
-    def create_impersonation_token(self, target_id: str, duration_seconds: int = 3600) -> str:
+    def create_impersonation_token(self, target_id: str, duration_seconds: int | None = None) -> str:
         """Generate a signed JWT for impersonating a user."""
-        return self.token_service.create_impersonation_token(target_id=target_id, duration_seconds=duration_seconds)
+        ttl = get_settings().jwt_access_token_expire_minutes * 60 if duration_seconds is None else duration_seconds
+        return self.token_service.create_impersonation_token(target_id=target_id, duration_seconds=ttl)
 
     async def exchange_firebase_token(self, payload: TokenExchangeRequestDTO) -> TokenExchangeResponseDTO:
         """Exchange a Firebase ID token or headless target_user_id for a Quorum Local JWT."""
@@ -140,22 +137,36 @@ class AuthService:
         """Verify a Bearer token and return TokenData."""
         return await self.token_service.verify_token(token)
 
+    async def _revoke_firebase_refresh_tokens(self, firebase_uid: str, timeout_seconds: float) -> None:
+        """Revoke upstream Firebase refresh tokens within a bounded timeout."""
+        if (fb_auth := self.token_service.firebase_auth) is None:
+            return
+        try:
+            async with asyncio.timeout(timeout_seconds):
+                await asyncio.to_thread(fb_auth.revoke_refresh_tokens, firebase_uid)
+        except AppException:
+            raise
+        except Exception as exc:
+            err_code = ErrorCodes.SERVICE_UNAVAILABLE
+            logger.error("[AuthService] %s: Firebase refresh revocation failed.", err_code.name, exc_info=True)
+            raise ServiceUnavailableError("Firebase revocation failed", details={"error_code": err_code.value}) from exc
+
     async def logout(self, current_user: TokenData, payload: LogoutRequestDTO) -> LogoutResponseDTO:
-        """Revoke the caller's JWT jti and optionally revoke all active sessions for the user."""
+        """Revoke caller JWT jti and optionally revoke all active sessions (Raises: SERVICE_UNAVAILABLE)."""
+        settings = get_settings()
+        max_ttl = settings.iam_revocation_ttl_seconds
         now_epoch = int(time.time())
-        remaining_ttl = 900 if current_user.exp is None else max(1, min(900, current_user.exp - now_epoch))
+        remaining_ttl = max_ttl if current_user.exp is None else max(1, min(max_ttl, current_user.exp - now_epoch))
         revoked_jti = str(generate_uuid7()) if current_user.jti is None else current_user.jti
         if self.revocation_cache is not None:
             await self.revocation_cache.revoke_token_jti(revoked_jti, ttl_seconds=remaining_ttl)
         if payload.revoke_all_sessions:
             if self.revocation_cache is not None:
-                await self.revocation_cache.revoke_user_sessions(current_user.id, ttl_seconds=900)
+                await self.revocation_cache.revoke_user_sessions(current_user.id, ttl_seconds=max_ttl)
             if self.use_firebase and self.token_service.firebase_auth is not None:
                 user = await self.repo.get_by_id(current_user.id)
                 if user is not None and user.firebase_uid is not None:
-                    fb_auth = self.token_service.firebase_auth
-                    async with asyncio.timeout(_FIREBASE_LOGOUT_TIMEOUT_SECONDS):
-                        await asyncio.to_thread(fb_auth.revoke_refresh_tokens, user.firebase_uid)
+                    await self._revoke_firebase_refresh_tokens(user.firebase_uid, settings.http_client_timeout_seconds)
         if self.audit_service is not None:
             details = {"revoked_jti": revoked_jti, "all_sessions_revoked": payload.revoke_all_sessions}
             await self.audit_service.log_event(
@@ -170,22 +181,19 @@ class AuthService:
         )
 
     async def impersonate_user(self, initiator: TokenData, payload: ImpersonationRequest) -> ImpersonationResponse:
-        """Issue an RFC 8693 break-glass impersonation token for a target user (requires ROOT)."""
+        """Issue an RFC 8693 break-glass impersonation token (Raises: PERMISSION_DENIED, RESOURCE_NOT_FOUND)."""
         if initiator.role != UserRole.ROOT:
             err_code = ErrorCodes.PERMISSION_DENIED
-            logger.error("[AuthService] %s: Non-ROOT impersonation by %s.", err_code.name, initiator.id)
+            logger.error("[AuthService] %s: Non-ROOT impersonation by %s.", err_code.name, initiator.id, exc_info=True)
             raise PermissionDeniedError("Impersonation Denied", details={"error_code": err_code.value})
         target = await self.repo.get_by_id(payload.target_id)
         if target is None:
-            logger.error("[AuthService] %s: Target %s missing.", ErrorCodes.RESOURCE_NOT_FOUND.name, payload.target_id)
+            err_code = ErrorCodes.RESOURCE_NOT_FOUND
+            logger.error("[AuthService] %s: Target %s missing.", err_code.name, payload.target_id, exc_info=True)
             raise ResourceNotFoundError("User", payload.target_id)
+        duration_sec = get_settings().jwt_access_token_expire_minutes * 60
         token = self.token_service.create_impersonation_token(
-            target_id=target.id,
-            duration_seconds=900,
-            organization_id=target.organization_id,
-            role=target.role,
-            email=target.email,
-            actor_id=initiator.id,
+            target.id, duration_sec, target.organization_id, target.role, target.email, initiator.id
         )
         if self.audit_service is not None:
             await self.audit_service.log_event(
@@ -200,11 +208,11 @@ class AuthService:
         )
 
     async def get_my_profile(self, current_user: TokenData) -> User:
-        """Retrieve the authenticated caller's User profile from persistence."""
+        """Retrieve authenticated caller profile (Raises: AUTHENTICATION_FAILED)."""
         user = await self.repo.get_by_id(current_user.id)
         if user is None:
             err_code = ErrorCodes.AUTHENTICATION_FAILED
-            logger.error("[AuthService] %s: Profile for %s not found.", err_code.name, current_user.id)
+            logger.error("[AuthService] %s: Profile for %s not found.", err_code.name, current_user.id, exc_info=True)
             raise AuthenticationError("User not found", details={"error_code": err_code.value})
         return user
 

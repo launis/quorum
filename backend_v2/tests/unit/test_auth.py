@@ -293,10 +293,11 @@ async def test_auth_router_exchange_logout_and_impersonate_flow(
 
 
 @pytest.mark.asyncio
-async def test_auth_router_impersonate_and_profile_negative(
+async def test_auth_router_impersonate_profile_and_logout_timeout_negative(
     mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Negative: Verify non-ROOT impersonation, missing target user, and missing profile raise typed AppExceptions."""
+    """Negative: Verify non-ROOT impersonation, missing target/profile, and Firebase logout timeout fail fast."""
     service = AuthService(mock_repo, use_firebase=False)
 
     non_root = TokenData(id=ADMIN_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID)
@@ -326,6 +327,57 @@ async def test_auth_router_impersonate_and_profile_negative(
             auth_service=service,
         )
     assert exc_me.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # Verify logout translates Firebase refresh-token revocation failure into ServiceUnavailableError
+    # and enforces settings-driven TTLs instead of hardcoded 900s.
+    from backend_v2.settings import Settings
+
+    custom_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=True,
+        iam_revocation_ttl_seconds=600,
+        http_client_timeout_seconds=0.5,
+    )
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: custom_settings)
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: custom_settings)
+
+    mock_fb_fail = MagicMock()
+    mock_fb_fail.revoke_refresh_tokens.side_effect = TimeoutError("Firebase Admin timeout")
+    mock_revocation = MagicMock()
+    mock_revocation.revoke_token_jti = AsyncMock()
+    mock_revocation.revoke_user_sessions = AsyncMock()
+
+    fb_service = AuthService(
+        mock_repo,
+        use_firebase=True,
+        firebase_auth=mock_fb_fail,
+        revocation_cache=mock_revocation,
+    )
+    fb_user = User(
+        id=USER_1_ID,
+        email="fb_timeout@test.com",
+        firebase_uid="fb_uid_timeout_1",
+        role=UserRole.MEMBER,
+        is_active=True,
+        organization_id=ORG_1_ID,
+        language=SystemLocale.EN,
+        theme_mode="system",
+        created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
+    )
+    await mock_repo.create_user(fb_user)
+
+    with pytest.raises(AppException) as exc_fb_logout:
+        await fb_service.logout(
+            current_user=TokenData(id=USER_1_ID, role=UserRole.MEMBER, organization_id=ORG_1_ID),
+            payload=LogoutRequestDTO(revoke_all_sessions=True),
+        )
+    assert exc_fb_logout.value.details["error_code"] == ErrorCodes.SERVICE_UNAVAILABLE.value
+    mock_revocation.revoke_token_jti.assert_awaited_once_with(
+        mock_revocation.revoke_token_jti.await_args.args[0],
+        ttl_seconds=600,
+    )
+    mock_revocation.revoke_user_sessions.assert_awaited_once_with(USER_1_ID, ttl_seconds=600)
 
 
 def test_system_organizations_is_system() -> None:
@@ -499,6 +551,7 @@ async def test_auth_service_facade_delegates_all_operations(
     assert auth_service.token_service.firebase_auth is mock_fb
     assert auth_service.org_service.firebase_auth is mock_fb
     assert auth_service.user_service.firebase_auth is mock_fb
+    assert auth_service._initialized_firebase is True
 
     with pytest.raises(AttributeError):
         del auth_service.use_firebase
@@ -520,6 +573,10 @@ async def test_auth_service_facade_delegates_all_operations(
     token_str = auth_service.create_impersonation_token(USER_1_ID, 1800)
     assert token_str == "mock_jwt_impersonate"
     mock_create_imp.assert_called_once_with(target_id=USER_1_ID, duration_seconds=1800)
+
+    default_token_str = auth_service.create_impersonation_token(USER_1_ID)
+    assert default_token_str == "mock_jwt_impersonate"
+    assert mock_create_imp.call_count == 2
 
     mock_verify_tok = AsyncMock(return_value=TokenData(id=USER_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID))
     monkeypatch.setattr(auth_service.token_service, "verify_token", mock_verify_tok)
