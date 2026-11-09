@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import socket
 import sys
 from collections.abc import Generator
@@ -9,10 +10,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from backend_v2.database.interfaces import register_default_uow_factory
+from backend_v2.models.auth import SystemOrganizations, TenantSecretDTO
 from backend_v2.models.dtos.export import ExportPayloadDTO as _ExportPayloadDTO
-from backend_v2.services.auth.secret_service import reset_secret_service
+from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode
+from backend_v2.services.auth.secret_service import SecretService, reset_secret_service
+from backend_v2.tests.factories.model_factories import TenantSecretDTOFactory
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 _ = _ExportPayloadDTO
@@ -154,11 +159,74 @@ def clear_litellm_provider_caches() -> Generator[None]:
     LiteLLMProvider._httpx_clients.clear()
 
 
+def _build_encrypted_root_secret(
+    *,
+    scope: SecretScope,
+    target_identifier: str,
+    plaintext: str,
+) -> TenantSecretDTO:
+    """Build an AES-256-GCM ENVELOPE_KMS TenantSecretDTO for ROOT_SYSTEM in tests."""
+    root_org_id: str = SystemOrganizations.ROOT_SYSTEM.value
+    kek_version = SecretService._resolve_kek_version(None)
+    kek = SecretService._derive_local_kek(kek_version)
+    dek = secrets.token_bytes(32)
+    kek_nonce = secrets.token_bytes(12)
+    encrypted_dek = kek_nonce + AESGCM(kek).encrypt(kek_nonce, dek, kek_version.encode("utf-8"))
+    nonce = secrets.token_bytes(12)
+    aad = SecretService._build_aead_aad(
+        organization_id=root_org_id,
+        scope=scope,
+        target_identifier=target_identifier,
+    )
+    ciphertext = AESGCM(dek).encrypt(nonce, plaintext.encode("utf-8"), aad)
+    return TenantSecretDTOFactory.build(
+        organization_id=root_org_id,
+        scope=scope,
+        target_identifier=target_identifier,
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        secret_manager_version_uri=None,
+        encrypted_dek=encrypted_dek,
+        ciphertext=ciphertext,
+        nonce=nonce,
+        kek_version=kek_version,
+        masked_hint=SecretService._build_masked_hint(plaintext),
+    )
+
+
 @pytest.fixture(autouse=True)
 def isolate_default_uow_and_secret_service() -> Generator[None]:
-    """Bind an isolated InMemoryUnitOfWork as the default UoW factory and reset SecretService per test."""
-    # Phase 1, Step 1: Hermetic InMemoryUnitOfWork factory and SecretService singleton reset per test
+    """Bind an isolated InMemoryUnitOfWork seeded with ROOT_SYSTEM secrets as the default UoW factory."""
+    # Phase 1, Step 1: Hermetic InMemoryUnitOfWork factory seeded with ROOT_SYSTEM tenant_secrets per test
     uow = InMemoryUnitOfWork()
+    default_secrets = (
+        _build_encrypted_root_secret(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.OPENAI.value,
+            plaintext="mock-openai-key",
+        ),
+        _build_encrypted_root_secret(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.AI_STUDIO.value,
+            plaintext="mock-google-key",
+        ),
+        _build_encrypted_root_secret(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.VERTEX_AI.value,
+            plaintext="mock-vertex-key",
+        ),
+        _build_encrypted_root_secret(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.ANTHROPIC.value,
+            plaintext="mock-anthropic-key",
+        ),
+        _build_encrypted_root_secret(
+            scope=SecretScope.MCP_GATEWAY,
+            target_identifier="sys_0195f3a00000700080008172bda70c86",
+            plaintext="mock-tavily-mcp-key",
+        ),
+    )
+    for sec in default_secrets:
+        uow.store.seed_tables["tenant_secrets"][sec.id] = sec
     register_default_uow_factory(lambda: uow)
     reset_secret_service()
     yield

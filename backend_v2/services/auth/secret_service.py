@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
-import os
 import re
 import secrets
 from datetime import UTC, datetime
@@ -309,9 +308,9 @@ class SecretService:
         organization_id: PrefixedUUID7,
         provider: LLMProvider,
     ) -> ResolvedCredentialDTO:
-        """Resolve an LLM provider credential for an organization with zero fallback on BYOK failure.
+        """Resolve an LLM provider credential for an organization strictly from database tenant_secrets.
 
-        # Phase 3, Step 3.1: Single-Pipeline Non-Nullable LLM BYOK credential resolution
+        # Phase 3, Step 3.1 & Step 1: 100% database-only LLM BYOK credential resolution (zero .env fallback)
 
         Args:
             organization_id: Tenant organization identifier (org_<hex32>).
@@ -321,8 +320,8 @@ class SecretService:
             Non-nullable ResolvedCredentialDTO wrapping the decrypted SecretStr.
 
         Raises:
-            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if tenant BYOK decryption
-                fails or if no tenant key exists and the platform credential is unset.
+            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
+                or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets.
         """
         provider_id = provider.value
         record = await self._find_secret_record(
@@ -332,32 +331,44 @@ class SecretService:
         )
         root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if record is None and organization_id != root_org_id:
-            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM before .env fallback
+            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM in tenant_secrets
             record = await self._find_secret_record(
                 organization_id=root_org_id,
                 scope=SecretScope.LLM_PROVIDER,
                 target_identifier=provider_id,
             )
-        if record is not None:
-            plaintext = await self._decrypt_or_fetch_secret(record)
-            return ResolvedCredentialDTO(
-                organization_id=organization_id,
-                scope=SecretScope.LLM_PROVIDER,
-                target_identifier=provider_id,
-                secret_value=SecretStr(plaintext),
-                is_tenant_byok=True,
+        if record is None:
+            msg = (
+                f"No database secret configured in tenant_secrets for LLM provider "
+                f"'{provider_id}' (organization_id='{organization_id}')."
+            )
+            logger.error(
+                "[SecretService] %s: %s",
+                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={
+                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
+                    "organization_id": organization_id,
+                    "provider": provider_id,
+                },
+            )
+            raise ConfigurationError(
+                message=msg,
+                details={
+                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
+                    "organization_id": organization_id,
+                    "provider": provider_id,
+                },
             )
 
-        platform_secret = self._resolve_platform_llm_secret(
-            organization_id=organization_id,
-            provider=provider,
-        )
+        plaintext = await self._decrypt_or_fetch_secret(record)
         return ResolvedCredentialDTO(
             organization_id=organization_id,
             scope=SecretScope.LLM_PROVIDER,
             target_identifier=provider_id,
-            secret_value=SecretStr(platform_secret),
-            is_tenant_byok=False,
+            secret_value=SecretStr(plaintext),
+            is_tenant_byok=True,
         )
 
     async def resolve_mcp_credential(
@@ -365,9 +376,9 @@ class SecretService:
         organization_id: PrefixedUUID7,
         gateway: SystemConfigMCPGateways,
     ) -> ResolvedCredentialDTO:
-        """Resolve an MCP gateway credential for an organization with zero fallback on BYOK failure.
+        """Resolve an MCP gateway credential for an organization strictly from database tenant_secrets.
 
-        # Phase 3, Step 3.1: Single-Pipeline Non-Nullable MCP BYOK credential resolution
+        # Phase 3, Step 3.1 & Step 1: 100% database-only MCP BYOK credential resolution (zero .env fallback)
 
         Args:
             organization_id: Tenant organization identifier (org_<hex32>).
@@ -377,8 +388,8 @@ class SecretService:
             Non-nullable ResolvedCredentialDTO wrapping the decrypted SecretStr.
 
         Raises:
-            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if tenant BYOK decryption
-                fails or if no tenant key exists and gateway.auth_env_var is unset.
+            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
+                or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets.
         """
         record = await self._find_secret_record(
             organization_id=organization_id,
@@ -387,32 +398,44 @@ class SecretService:
         )
         root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if record is None and organization_id != root_org_id:
-            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM before .env fallback
+            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM in tenant_secrets
             record = await self._find_secret_record(
                 organization_id=root_org_id,
                 scope=SecretScope.MCP_GATEWAY,
                 target_identifier=gateway.id,
             )
-        if record is not None:
-            plaintext = await self._decrypt_or_fetch_secret(record)
-            return ResolvedCredentialDTO(
-                organization_id=organization_id,
-                scope=SecretScope.MCP_GATEWAY,
-                target_identifier=gateway.id,
-                secret_value=SecretStr(plaintext),
-                is_tenant_byok=True,
+        if record is None:
+            msg = (
+                f"No database secret configured in tenant_secrets for MCP gateway "
+                f"'{gateway.id}' (organization_id='{organization_id}')."
+            )
+            logger.error(
+                "[SecretService] %s: %s",
+                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={
+                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
+                    "organization_id": organization_id,
+                    "gateway_id": gateway.id,
+                },
+            )
+            raise ConfigurationError(
+                message=msg,
+                details={
+                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
+                    "organization_id": organization_id,
+                    "gateway_id": gateway.id,
+                },
             )
 
-        platform_secret = self._resolve_platform_mcp_secret(
-            organization_id=organization_id,
-            gateway=gateway,
-        )
+        plaintext = await self._decrypt_or_fetch_secret(record)
         return ResolvedCredentialDTO(
             organization_id=organization_id,
             scope=SecretScope.MCP_GATEWAY,
             target_identifier=gateway.id,
-            secret_value=SecretStr(platform_secret),
-            is_tenant_byok=False,
+            secret_value=SecretStr(plaintext),
+            is_tenant_byok=True,
         )
 
     @staticmethod
@@ -747,129 +770,6 @@ class SecretService:
                     "target_identifier": record.target_identifier,
                 },
             ) from exc
-
-    @staticmethod
-    def _resolve_platform_llm_secret(
-        *,
-        organization_id: str,
-        provider: LLMProvider,
-    ) -> str:
-        """Resolve the platform-level LLM credential when a tenant has no configured BYOK record.
-
-        Args:
-            organization_id: Requesting organization identifier.
-            provider: Target LLMProvider enum member.
-
-        Returns:
-            Non-empty platform credential string.
-
-        Raises:
-            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if the platform key is unset.
-        """
-        settings = get_settings()
-        platform_key: str | None = None
-        match provider:
-            case LLMProvider.VERTEX_AI:
-                platform_key = "vertex-adc-managed"
-            case LLMProvider.AI_STUDIO:
-                platform_key = settings.google_api_key
-            case LLMProvider.OPENAI:
-                platform_key = settings.openai_api_key
-            case LLMProvider.ANTHROPIC:
-                platform_key = settings.anthropic_api_key
-            case LLMProvider.AZURE_OPENAI | LLMProvider.LOCAL:
-                platform_key = None
-
-        if platform_key is None or not platform_key.strip():
-            msg = (
-                f"No tenant BYOK secret or platform credential configured for LLM provider "
-                f"'{provider.value}' (organization_id='{organization_id}')."
-            )
-            logger.error(
-                "[SecretService] %s: %s",
-                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
-                msg,
-                exc_info=True,
-                extra={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "provider": provider.value,
-                },
-            )
-            raise ConfigurationError(
-                message=msg,
-                details={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "provider": provider.value,
-                },
-            )
-        return platform_key.strip()
-
-    @staticmethod
-    def _resolve_platform_mcp_secret(
-        *,
-        organization_id: str,
-        gateway: SystemConfigMCPGateways,
-    ) -> str:
-        """Resolve the platform-level MCP credential from os.environ when a tenant has no BYOK record.
-
-        Args:
-            organization_id: Requesting organization identifier.
-            gateway: Target SystemConfigMCPGateways domain model.
-
-        Returns:
-            Non-empty platform MCP credential string.
-
-        Raises:
-            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if auth_env_var is missing or unset.
-        """
-        env_var_name = gateway.auth_env_var
-        if env_var_name is None or not env_var_name.strip():
-            msg = f"MCP gateway '{gateway.id}' requires auth_env_var for auth_type '{gateway.auth_type}'."
-            logger.error(
-                "[SecretService] %s: %s",
-                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
-                msg,
-                exc_info=True,
-                extra={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "gateway_id": gateway.id,
-                },
-            )
-            raise ConfigurationError(
-                message=msg,
-                details={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "gateway_id": gateway.id,
-                },
-            )
-
-        clean_env_name = env_var_name.strip()
-        if clean_env_name not in os.environ or not os.environ[clean_env_name].strip():
-            msg = f"Environment variable '{clean_env_name}' required by MCP gateway '{gateway.id}' is not set."
-            logger.error(
-                "[SecretService] %s: %s",
-                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
-                msg,
-                exc_info=True,
-                extra={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "gateway_id": gateway.id,
-                },
-            )
-            raise ConfigurationError(
-                message=msg,
-                details={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "gateway_id": gateway.id,
-                },
-            )
-        return os.environ[clean_env_name].strip()
 
     @staticmethod
     def _validate_target_identifier(

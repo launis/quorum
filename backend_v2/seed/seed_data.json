@@ -213,7 +213,7 @@
       "endpoint_url": "https://mcp.tavily.com/mcp",
       "transport_type": "streamable_http",
       "auth_type": "bearer",
-      "auth_env_var": "TAVILY_API_KEY",
+      "auth_env_var": null,
       "timeout_seconds": 30,
       "type": "mcp_gateways",
       "tools": [

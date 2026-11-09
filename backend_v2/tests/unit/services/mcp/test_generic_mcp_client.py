@@ -5,7 +5,7 @@ import socket
 
 import httpx
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from backend_v2.exceptions import (
     AppException,
@@ -13,14 +13,21 @@ from backend_v2.exceptions import (
     ErrorCodes,
     ServiceUnavailableError,
 )
+from backend_v2.models.auth import SystemOrganizations, TenantSecretCreateDTO, TokenData
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.mcp import MCPToolInvocationDTO, MCPToolSchemaPropertyDTO
 from backend_v2.models.enums import (
+    EntityPrefix,
     JSONSchemaPropertyType,
     MCPAuthType,
     MCPTransportType,
+    SecretScope,
+    SecretStorageMode,
     ToolCapability,
+    UserRole,
 )
+from backend_v2.services.auth.secret_service import get_secret_service
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.settings import get_settings
 
@@ -53,6 +60,7 @@ def mock_public_dns(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _make_gateway(
     *,
+    gateway_id: str = "sys_0195f3a00000700080008172bda70c86",
     transport_type: MCPTransportType = MCPTransportType.STREAMABLE_HTTP,
     auth_type: MCPAuthType = MCPAuthType.NONE,
     auth_env_var: str | None = None,
@@ -61,6 +69,7 @@ def _make_gateway(
     """Construct a SystemConfigMCPGateways instance for unit testing.
 
     Args:
+        gateway_id: Canonical Opaque Stripe ID for the gateway.
         transport_type: Transport protocol for the gateway.
         auth_type: Authentication scheme.
         auth_env_var: Optional environment variable name for secret resolution.
@@ -70,7 +79,7 @@ def _make_gateway(
         Configured SystemConfigMCPGateways model.
     """
     return SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id=gateway_id,
         name="Remote Search Gateway",
         slug="remote_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
@@ -83,6 +92,28 @@ def _make_gateway(
     )
 
 
+async def _seed_root_mcp_secret(gateway_id: str, secret_val: str) -> None:
+    """Provision a ROOT_SYSTEM MCP gateway secret in tenant_secrets via get_secret_service()."""
+    root_org = SystemOrganizations.ROOT_SYSTEM.value
+    root_token = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        email="root@qrum.ai",
+        role=UserRole.ROOT,
+        organization_id=root_org,
+        jti=generate_opaque_id(EntityPrefix.EXECUTION),
+    )
+    await get_secret_service().upsert_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.MCP_GATEWAY,
+            target_identifier=gateway_id,
+            plaintext_secret=SecretStr(secret_val),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
+
 @pytest.mark.asyncio
 async def test_generic_mcp_client_initialize_and_list_tools_streamable_http(
     monkeypatch: pytest.MonkeyPatch,
@@ -92,7 +123,7 @@ async def test_generic_mcp_client_initialize_and_list_tools_streamable_http(
     Args:
         monkeypatch: Pytest monkeypatch fixture.
     """
-    monkeypatch.setenv("MCP_BEARER_SECRET", "tok_test_value")
+    _ = monkeypatch
     captured_requests: list[httpx.Request] = []
 
     def _responder(request: httpx.Request) -> httpx.Response:
@@ -148,7 +179,8 @@ async def test_generic_mcp_client_initialize_and_list_tools_streamable_http(
             )
         return httpx.Response(400)
 
-    gateway = _make_gateway(auth_type=MCPAuthType.BEARER, auth_env_var="MCP_BEARER_SECRET")
+    gateway = _make_gateway(auth_type=MCPAuthType.BEARER, auth_env_var=None)
+    await _seed_root_mcp_secret(gateway.id, "tok_test_value")
     client = GenericMCPClient(transport=httpx.MockTransport(_responder))
 
     init_res = await client.initialize(gateway)
@@ -180,7 +212,7 @@ async def test_generic_mcp_client_sse_transport_and_event_stream_framing(
     Args:
         monkeypatch: Pytest monkeypatch fixture.
     """
-    monkeypatch.setenv("CUSTOM_API_KEY", "key_abc")
+    _ = monkeypatch
     seen_urls: list[str] = []
 
     def _responder(request: httpx.Request) -> httpx.Response:
@@ -234,9 +266,10 @@ async def test_generic_mcp_client_sse_transport_and_event_stream_framing(
     gateway = _make_gateway(
         transport_type=MCPTransportType.SSE,
         auth_type=MCPAuthType.API_KEY_HEADER,
-        auth_env_var="CUSTOM_API_KEY",
+        auth_env_var=None,
         auth_header_name="X-Api-Key",
     )
+    await _seed_root_mcp_secret(gateway.id, "key_abc")
     invocation = MCPToolInvocationDTO(
         gateway_id=gateway.id,
         gateway_slug=gateway.slug,
@@ -371,30 +404,39 @@ async def test_generic_mcp_client_retries_transient_503_and_succeeds() -> None:
 
 @pytest.mark.asyncio
 async def test_generic_mcp_client_auth_configuration_errors(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify missing auth_env_var, unset environment variable, and missing auth_header_name raise ConfigurationError.
+    """Verify unseeded database tenant_secrets and missing auth_header_name raise ConfigurationError.
 
     Args:
         monkeypatch: Pytest monkeypatch fixture.
     """
-    monkeypatch.delenv("MISSING_MCP_SECRET", raising=False)
+    monkeypatch.setenv("PRESENT_MCP_SECRET", "sec_123")
     client = GenericMCPClient()
 
-    gw_missing_var = _make_gateway(auth_type=MCPAuthType.BEARER, auth_env_var=None)
+    gw_missing_secret = _make_gateway(
+        gateway_id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        auth_type=MCPAuthType.BEARER,
+        auth_env_var=None,
+    )
     with pytest.raises(ConfigurationError) as exc1:
-        await client.initialize(gw_missing_var)
+        await client.initialize(gw_missing_secret)
     assert exc1.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
-    gw_unset_env = _make_gateway(auth_type=MCPAuthType.BEARER, auth_env_var="MISSING_MCP_SECRET")
+    tenant_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    gw_missing_with_env = _make_gateway(
+        gateway_id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        auth_type=MCPAuthType.BEARER,
+        auth_env_var="PRESENT_MCP_SECRET",
+    )
     with pytest.raises(ConfigurationError) as exc2:
-        await client.initialize(gw_unset_env)
-    assert exc2.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+        await client.initialize(gw_missing_with_env, organization_id=tenant_org_id)
+    assert exc2.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
 
-    monkeypatch.setenv("PRESENT_MCP_SECRET", "sec_123")
     gw_missing_header = _make_gateway(
         auth_type=MCPAuthType.API_KEY_HEADER,
-        auth_env_var="PRESENT_MCP_SECRET",
+        auth_env_var=None,
         auth_header_name="",
     )
+    await _seed_root_mcp_secret(gw_missing_header.id, "sec_123")
     with pytest.raises(ConfigurationError) as exc3:
         await client.initialize(gw_missing_header)
     assert exc3.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value

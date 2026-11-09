@@ -303,8 +303,8 @@ async def test_secret_service_corrupted_ciphertext_no_fallback_negative(
 async def test_secret_service_cloud_secret_manager_and_mcp_resolution_positive(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Positive: Verify CLOUD_SECRET_MANAGER URI resolution, in-place rotation, deletion, and MCP fallback."""
-    monkeypatch.setenv("MCP_PLATFORM_TOKEN", "mcp-platform-token-xyz")
+    """Positive: Verify CLOUD_SECRET_MANAGER URI resolution, in-place rotation, deletion, and ROOT_SYSTEM inheritance."""
+    monkeypatch.setenv("MCP_PLATFORM_TOKEN", "ignored-env-mcp-token-xyz")
     uow = InMemoryUnitOfWork()
     audit_logger = _RecordingAuditLogger()
     uri = "projects/quorum-prod/secrets/org-mcp-token/versions/3"
@@ -318,12 +318,29 @@ async def test_secret_service_cloud_secret_manager_and_mcp_resolution_positive(
     )
 
     org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
-    root_token = _make_token_data(role=UserRole.ROOT, organization_id=SystemOrganizations.ROOT_SYSTEM)
+    root_org_id = SystemOrganizations.ROOT_SYSTEM.value
+    root_token = _make_token_data(role=UserRole.ROOT, organization_id=root_org_id)
     gateway = _make_mcp_gateway(auth_type=MCPAuthType.BEARER, auth_env_var="MCP_PLATFORM_TOKEN")
 
+    # Even with MCP_PLATFORM_TOKEN in os.environ, unseeded tenant_secrets fails fast (zero .env fallback)
+    with pytest.raises(ConfigurationError) as missing_mcp_exc:
+        await service.resolve_mcp_credential(organization_id=org_id, gateway=gateway)
+    assert missing_mcp_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+    await service.upsert_tenant_secret(
+        initiator=root_token,
+        organization_id=root_org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.MCP_GATEWAY,
+            target_identifier=gateway.id,
+            plaintext_secret=SecretStr("mcp-root-db-token-xyz"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
     platform_cred = await service.resolve_mcp_credential(organization_id=org_id, gateway=gateway)
-    assert platform_cred.is_tenant_byok is False
-    assert platform_cred.secret_value.get_secret_value() == "mcp-platform-token-xyz"
+    assert platform_cred.is_tenant_byok is True
+    assert platform_cred.secret_value.get_secret_value() == "mcp-root-db-token-xyz"
 
     created = await service.upsert_tenant_secret(
         initiator=root_token,
@@ -369,9 +386,10 @@ async def test_secret_service_cloud_secret_manager_and_mcp_resolution_positive(
     assert await service.list_tenant_secrets(initiator=root_token, organization_id=org_id) == []
     assert audit_logger.events[-1][1] == "TENANT_SECRET_DELETED"
 
-    vertex_cred = await service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.VERTEX_AI)
-    assert vertex_cred.is_tenant_byok is False
-    assert vertex_cred.secret_value.get_secret_value() == "vertex-adc-managed"
+    # Unseeded LLM provider in tenant_secrets fails fast with ConfigurationError (zero .env/ADC fallback)
+    with pytest.raises(ConfigurationError) as missing_vertex_exc:
+        await service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.VERTEX_AI)
+    assert missing_vertex_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
     assert isinstance(get_secret_service(), SecretService)
 
 

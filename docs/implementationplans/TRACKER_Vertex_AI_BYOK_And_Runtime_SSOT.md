@@ -6,6 +6,7 @@
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
   <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
   <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
@@ -18,7 +19,7 @@
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md]
 
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md] @[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]`
-  - [x] Step 1: Dynamic UI Secret Provisioning, Root System DB Secret Resolution & Studio MCP Discovery Wiring
+  - [x] Step 1: Dynamic UI Secret Provisioning, .env Fallback Eradication, DB Secret Migration & Studio MCP Discovery Wiring
   - [ ] Step 2: Vertex AI & AI Studio Context Caching SSOT, Service Account JSON BYOK & Location Wiring
   - [ ] Step 3: Orchestrator Pre-Caching, RAG Preflight, MCP Tool Loop, Hook Propagation & ISTQB Test Suite
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md] @[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]`
@@ -59,13 +60,13 @@
 
   #### Directives for Tier 7 Agent:
   1. **Target KIs to Synchronize:**
-     - `@[ki_global_config_sovereignty.md]`: Document dynamic UI secret provisioning (`_ByokSecretsCard` multiline Service Account JSON & vendor-agnostic `SystemConfigMCPGateways` name resolution), `SecretService` `ROOT_SYSTEM` DB secret inheritance before `.env` fallback (enabling custom MCP gateways with `auth_env_var=None` to authenticate 100% from `tenant_secrets`), Studio MCP tool discovery `organization_id` forwarding, and Vertex AI 100% BYOK compatibility (`vertex_location` DB SSOT + tenant-scoped Redis context cache isolation in `VertexCacheAdapter` and `GoogleAIStudioCacheAdapter`).
+     - `@[ki_global_config_sovereignty.md]`: Document the 3-tier B2B SaaS secret governance best-practice architecture (Layer 1: Infrastructure Bootstrap Secrets in `.env` / GCP Secret Manager `DATABASE_URL` and `JWT_SECRET_KEY`; Layer 2: `ROOT_SYSTEM` `org_0195f3a0000070008000000000000001` platform baseline secrets in PostgreSQL 19 `tenant_secrets`; Layer 3: Customer Tenant `org_<hex32>` self-service BYOK secrets in PostgreSQL 19 `tenant_secrets` via NIST SP 800-57 `ENVELOPE_KMS` AES-256-GCM DEK/KEK encryption), dynamic UI secret provisioning (`_ByokSecretsCard` multiline Service Account JSON & vendor-agnostic `SystemConfigMCPGateways` name resolution), 100% database-only secret resolution in `SecretService` (`organization_id` -> `ROOT_SYSTEM` -> Fail-Fast `ConfigurationError` with zero `.env` / `os.environ` fallback and `_resolve_platform_llm_secret` / `_resolve_platform_mcp_secret` deleted), `"auth_env_var": null` in `seed_data.json`, Studio MCP tool discovery `organization_id` forwarding, and Vertex AI 100% BYOK compatibility (`vertex_location` DB SSOT + tenant-scoped Redis context cache isolation in `VertexCacheAdapter` and `GoogleAIStudioCacheAdapter`).
      - `@[ki_god_code_prevention.md]`: Document `LLMCachingService` and `BaseLLMAdapter` `config` and `resolved_credential` propagation across orchestrator pre-caching and hooks.
      - `@[ki_zero_permissive_typing.md]`: Document fail-fast `_parse_service_account_json` validation and removal of global `os.environ` location mutations in `VertexCacheAdapter`.
   2. **Directory Reference Sync:**
      - Update `@[.agents/rules/04_directory_reference.md]` if any module descriptions in `backend_v2/llm/`, `backend_v2/services/`, or `client_app_v2/lib/features/settings/` require synchronization.
   3. **Pillar Documentation Sync:**
-     - Update timeless narratives in `docs/architecture/` (`05_PILLAR_1_SECURITY_AND_IDENTITY.md` and `07_PILLAR_3_ORCHESTRATION_AND_WORKFLOWS.md`) describing dynamic UI secret provisioning across any `LLMProvider` and any `SystemConfigMCPGateways` (`MCPTransportType` / `MCPAuthType`), Vertex AI BYOK Service Account JSON / Express Mode credential binding, and context caching SSOT in present tense.
+     - Update timeless narratives in `docs/architecture/` (`05_PILLAR_1_SECURITY_AND_IDENTITY.md` and `07_PILLAR_3_ORCHESTRATION_AND_WORKFLOWS.md`) describing 100% database-driven dynamic UI secret provisioning across any `LLMProvider` and any `SystemConfigMCPGateways` (`MCPTransportType` / `MCPAuthType`) with zero `.env` fallback, Vertex AI BYOK Service Account JSON / Express Mode credential binding, and context caching SSOT in present tense.
 
 ### Final Plan Audit
 
@@ -84,7 +85,7 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-001 | Enable dynamic UI secret provisioning for both single-line API keys/URIs (OpenAI, AI Studio, Anthropic, Vertex Express API Key, any custom `SystemConfigMCPGateways` Bearer token or custom `auth_header_name` API key with or without `auth_env_var`, GCP Secret Manager URIs) and multiline Vertex AI GCP Service Account JSON in `_ByokSecretsCard`, display human-readable MCP gateway names in the configured secrets list, resolve `ROOT_SYSTEM` (`org_0195f3a0000070008000000000000001`) DB secrets in `SecretService` before `.env` fallback, and forward `organization_id` in `StudioSystemConfigService.discover_mcp_gateway_tools`. | Step 1 | [x] Completed |
+| REQ-001 | Enable dynamic UI secret provisioning for both single-line API keys/URIs (OpenAI, AI Studio, Anthropic, Vertex Express API Key, any custom `SystemConfigMCPGateways` Bearer token or custom `auth_header_name` API key with `auth_env_var=None`, GCP Secret Manager URIs) and multiline Vertex AI GCP Service Account JSON in `_ByokSecretsCard`, display human-readable MCP gateway names in the configured secrets list, eradicate all `.env` / `os.environ` secret fallbacks (`_resolve_platform_llm_secret` and `_resolve_platform_mcp_secret` deleted in `SecretService`, `"auth_env_var": null` in `seed_data.json`), migrate all current `.env` and `service-account.json` LLM and MCP secrets into PostgreSQL 19 `tenant_secrets` under `ROOT_SYSTEM` (`org_0195f3a0000070008000000000000001`), and forward `organization_id` in `StudioSystemConfigService.discover_mcp_gateway_tools`. | Step 1 | [x] Completed |
 | REQ-002 | Extend `BaseLLMAdapter.prepare_caching_payload`, `BaseLLMAdapter.prepare_kwargs`, and `LLMCachingService` (`prepare_caching_payload`, `pre_cache_document`) with optional `config` and `resolved_credential` parameters, populate `vertex_location=target_strategy.additional_params.vertex_location` on `LLMProviderConfig` in `LLMClient.from_tier`, and forward `config` + `resolved_credential` from `LLMClient` and `LiteLLMProvider`. | Step 2 | [ ] Pending |
 | REQ-003 | Support Vertex AI BYOK GCP Service Account JSON (`vertex_credentials` + `project_id` extraction + `google.oauth2.service_account.Credentials` + fail-fast validation) and Express Mode API keys in `VertexCacheAdapter`, enforce DB `vertex_location` SSOT, remove global `os.environ` location mutations, and scope tenant Redis cache keys by `organization_id` in both `VertexCacheAdapter` and `GoogleAIStudioCacheAdapter`. | Step 2 | [ ] Pending |
 | REQ-004 | Forward `config` and `resolved_credential` in `EnrichedDagExecutor` and `TwoPassAtomizer` `pre_cache_document` calls, propagate tenant `organization_id` across `RAGPreflightService`, `mcp_tool_loop`, `interaction_hook`, `linguistics`, and `source_verification_hook`, and verify all positive and negative ISTQB boundary cases across backend and frontend test suites. | Step 3 | [ ] Pending |
@@ -92,15 +93,17 @@
 # Session Handover Context
 
 ## Achieved
-- Audited all UI, service, and runtime LLM/MCP configuration and credential touchpoints across `client_app_v2/` and `backend_v2/` against `.env` and database SSOT (`system_configs` + `tenant_secrets`).
-- Updated `@[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md]` and `@[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]` to include dynamic UI secret provisioning (`_ByokSecretsCard`) across all `LLMProvider` values and any Studio-configured `SystemConfigMCPGateways` entity (`sys_<hex32>`, with or without `auth_env_var`), `SecretService` `ROOT_SYSTEM` DB secret inheritance, Studio MCP tool discovery secret binding, and 100% runtime execution/caching wiring.
+- Implemented and verified `_ByokSecretsCard` multiline secret visibility toggle + MCP gateway name/badge display (`organization_iam_settings_view.dart`) and `StudioSystemConfigService.discover_mcp_gateway_tools` `organization_id` forwarding.
+- Completed `/tier0-research-plan` System 2 red-team audit and hardened `@[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md]` and `@[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]`:
+  1. Added `@[backend_v2/tests/conftest.py]` (`isolate_default_uow_and_secret_service` [lines 157-166]) and `@[backend_v2/tests/unit/services/mcp/test_generic_mcp_client.py]` to Step 1 target boundaries so default test `InMemoryUnitOfWork` instances seed `ROOT_SYSTEM` (`org_0195f3a0000070008000000000000001`) `TenantSecretDTO` records and MCP client unit tests provision gateway secrets via `SecretService` in `tenant_secrets` instead of `monkeypatch.setenv`.
+  2. Added Phase 1 technical debt remediation for `@[backend_v2/tests/unit/llm/test_caching_service.py]` (`TD_ISTQB_NEGATIVE`) and `@[backend_v2/tests/unit/services/orchestrator/test_rag_preflight_service.py]` (`TD_MODEL_FACTORY` at line 68 and `TD_ISTQB_NEGATIVE`) into Section 3, the 5-Column Directives Table, and Step 3.
 
 ## Learned
-- `_ByokSecretsCard` in `organization_iam_settings_view.dart` dynamically loads all Studio-configured `SystemConfigMCPGateways` entities via `availableMcpGatewaysProvider` (`GET /api/v2/studio/mcp-gateways`) and needed a visibility toggle (`obscureSecret`) and `maxLines: obscureSecret.value ? 1 : 6` so multiline Vertex AI GCP Service Account JSON payloads can be pasted alongside single-line OpenAI, AI Studio, Anthropic, and custom MCP gateway secrets, plus human-readable MCP gateway name resolution in the saved secrets list.
-- `SecretService.resolve_llm_key` and `SecretService.resolve_mcp_credential` needed to check `ROOT_SYSTEM` (`org_0195f3a0000070008000000000000001`) in `tenant_secrets` when a tenant has no override record, enabling 100% UI-managed global secrets for any LLM provider or custom MCP gateway (`auth_env_var=None`) without `.env` dependencies while preserving strict isolation between non-root tenants.
+- `SecretService._derive_local_kek` derives the local 256-bit AES-GCM Key Encryption Key (KEK) from `settings.jwt_secret_key.get_secret_value()`. Pinning `JWT_SECRET_KEY` in `.env` before encrypting secrets into PostgreSQL 19 `tenant_secrets` guarantees deterministic KEK derivation across FastAPI server, Arq worker, and CLI restarts.
+- Deleting `_resolve_platform_llm_secret` and `_resolve_platform_mcp_secret` in `SecretService` enforces 100% database-only secret resolution (`organization_id` -> `ROOT_SYSTEM` `org_0195f3a0000070008000000000000001` -> Fail-Fast `ConfigurationError`) with zero `.env` or `os.environ` fallback; therefore `conftest.py`'s `isolate_default_uow_and_secret_service` must seed `ROOT_SYSTEM` `TenantSecretDTO` records in its default `InMemoryUnitOfWork` while tests asserting missing secrets pass an isolated unseeded `InMemoryUnitOfWork`.
 
 ## Remaining
-- Execute Steps 1, 2, and 3 via `/tier2-execute`.
+- Execute Steps 1, 2, and 3 via `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md] @[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]`.
 
 ## Resume Command
 ```powershell
