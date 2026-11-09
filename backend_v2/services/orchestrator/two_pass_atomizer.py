@@ -82,6 +82,106 @@ class TwoPassAtomizer:
             )
         return packets
 
+    @staticmethod
+    def _build_chunk_prompt(
+        compiled_prompt: CompiledPrompt,
+        start_b: str,
+        end_b: str,
+    ) -> CompiledPrompt:
+        """Build chunk-scoped CompiledPrompt with dynamic block boundary instructions.
+
+        Args:
+            compiled_prompt: Base compiled prompt containing static system and source messages.
+            start_b: Starting block identifier for the chunk.
+            end_b: Ending block identifier for the chunk.
+
+        Returns:
+            CompiledPrompt scoped to the target block range.
+        """
+        dynamic_instruction = TemplateProcessor.render_prompt(
+            t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
+        )
+        return CompiledPrompt(
+            static_messages=compiled_prompt.static_messages,
+            dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
+        )
+
+    @staticmethod
+    def _parse_local_alias_map(hydrated_text: str) -> dict[str, str]:
+        """Parse block markers from hydrated text into a block ID to content map.
+
+        Args:
+            hydrated_text: Complete hydrated document string containing block markers.
+
+        Returns:
+            Dictionary mapping canonical block IDs to their extracted text content.
+        """
+        local_alias_map: dict[str, str] = {}
+        for line in hydrated_text.split("\n\n"):
+            if line.startswith("[") and "] " in line:
+                b_id = line[1 : line.find("]")]
+                if b_id.startswith("B") and b_id[1:].isdigit():
+                    local_alias_map[b_id] = line[line.find("]") + 2 :]
+        return local_alias_map
+
+    @staticmethod
+    def _resolve_bounded_quote(
+        raw_block_id: str | None,
+        packet_keys: list[str],
+        local_alias_map: dict[str, str],
+        start_b: str,
+        end_b: str,
+    ) -> tuple[str, ...] | None:
+        """Resolve and bound a citation quote from the local alias map.
+
+        Args:
+            raw_block_id: Block identifier reported by the LLM draft atom.
+            packet_keys: Allowed block identifiers for the current chunk packet.
+            local_alias_map: Block identifier to text mapping for the document.
+            start_b: Starting block ID for the chunk packet.
+            end_b: Ending block ID for the chunk packet.
+
+        Returns:
+            Single-element tuple with bounded quote text, or None if invalid or missing.
+        """
+        if not raw_block_id:
+            logger.warning("corrupted_atom_dropped", extra={"reason": "missing_block_id_on_non_deduction"})
+            return None
+
+        clean_id = raw_block_id.replace("[", "").replace("]", "").strip()
+        if clean_id not in packet_keys:
+            logger.warning(
+                "corrupted_atom_dropped",
+                extra={
+                    "reason": "block_id_outside_packet_boundary",
+                    "block_id": clean_id,
+                    "packet": f"{start_b}-{end_b}",
+                },
+            )
+            return None
+
+        if clean_id not in local_alias_map:
+            logger.warning(
+                "corrupted_atom_dropped",
+                extra={"reason": "hallucinated_block_id_not_found", "block_id": clean_id},
+            )
+            return None
+
+        exact_quote = local_alias_map[clean_id]
+        max_span_chars = get_settings().max_citation_span_chars
+        if max_span_chars > 0 and len(exact_quote) > max_span_chars:
+            logger.debug(
+                "Bounding anchor quote exceeding %d chars Gate 2 ceiling: block_id=%s, len=%d",
+                max_span_chars,
+                clean_id,
+                len(exact_quote),
+            )
+            exact_quote = exact_quote[:max_span_chars]
+
+        if not exact_quote:
+            return None
+        return (exact_quote,)
+
     async def execute_phase_0(
         self,
         client: LLMClient,
@@ -168,13 +268,7 @@ class TwoPassAtomizer:
         Returns:
             Tuple of GlobalOntologyMap and TokenUsage for the chunk.
         """
-        dynamic_instruction = TemplateProcessor.render_prompt(
-            t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
-        )
-        chunk_prompt = CompiledPrompt(
-            static_messages=compiled_prompt.static_messages,
-            dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
-        )
+        chunk_prompt = self._build_chunk_prompt(compiled_prompt, start_b, end_b)
         result, usage = await self.executor.execute_structured_task(
             client=client,
             messages=chunk_prompt,
@@ -283,17 +377,8 @@ class TwoPassAtomizer:
 
         Returns:
             Tuple of list of ExtractedAtom and chunk TokenUsage.
-
-        Raises:
-            ValueError: If a non-deductive atom refers to a block ID outside packet bounds.
         """
-        dynamic_instruction = TemplateProcessor.render_prompt(
-            t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
-        )
-        chunk_prompt = CompiledPrompt(
-            static_messages=compiled_prompt.static_messages,
-            dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
-        )
+        chunk_prompt = self._build_chunk_prompt(compiled_prompt, start_b, end_b)
 
         draft_result, usage = await self.executor.execute_structured_task(
             client=client,
@@ -301,57 +386,18 @@ class TwoPassAtomizer:
             response_model=LLMDraftAtomList,
         )
 
-        local_alias_map: dict[str, str] = {}
-        for line in hydrated_text.split("\n\n"):
-            if line.startswith("[") and "] " in line:
-                b_id = line[1 : line.find("]")]
-                if b_id.startswith("B") and b_id[1:].isdigit():
-                    text = line[line.find("]") + 2 :]
-                    local_alias_map[b_id] = text
-
+        local_alias_map = self._parse_local_alias_map(hydrated_text)
         final_atoms: list[ExtractedAtom] = []
         for draft in draft_result.atoms:
             tda_id = generate_opaque_id(EntityPrefix.TDA)
-            exact_quote = None
+            atom_quotes: tuple[str, ...] | None = None
 
             if not draft.is_logical_deduction:
-                if not draft.source_block_id:
-                    logger.warning("corrupted_atom_dropped: missing_source_block_id on %s", tda_id)
+                atom_quotes = self._resolve_bounded_quote(
+                    draft.source_block_id, packet_keys, local_alias_map, start_b, end_b
+                )
+                if atom_quotes is None:
                     continue
-                clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
-                if clean_id not in packet_keys:
-                    logger.warning(
-                        "corrupted_atom_dropped: block_id_outside_packet_boundary",
-                        extra={
-                            "reason": "block_id_outside_packet_boundary",
-                            "block_id": clean_id,
-                            "packet": f"{start_b}-{end_b}",
-                        },
-                    )
-                    continue
-
-                if clean_id not in local_alias_map:
-                    logger.warning(
-                        "Anchor Hydration failed for %s. LLM hallucinated block ID: %s",
-                        tda_id,
-                        draft.source_block_id,
-                    )
-                    continue
-
-                exact_quote = local_alias_map[clean_id]
-                max_span_chars = get_settings().max_citation_span_chars
-                if max_span_chars > 0 and len(exact_quote) > max_span_chars:
-                    logger.debug(
-                        "Bounding anchor quote exceeding %d chars Gate 2 ceiling: block_id=%s, len=%d",
-                        max_span_chars,
-                        clean_id,
-                        len(exact_quote),
-                    )
-                    exact_quote = exact_quote[:max_span_chars]
-
-            atom_quotes: tuple[str, ...] | None = None
-            if exact_quote:
-                atom_quotes = (exact_quote,)
 
             final_atoms.append(
                 ExtractedAtom(
@@ -480,13 +526,7 @@ class TwoPassAtomizer:
         Returns:
             Tuple of DraftAtomList and chunk TokenUsage.
         """
-        dynamic_instruction = TemplateProcessor.render_prompt(
-            t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
-        )
-        chunk_prompt = CompiledPrompt(
-            static_messages=compiled_prompt.static_messages,
-            dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
-        )
+        chunk_prompt = self._build_chunk_prompt(compiled_prompt, start_b, end_b)
 
         draft_result, usage = await self.executor.execute_structured_task(
             client=client,
@@ -494,14 +534,7 @@ class TwoPassAtomizer:
             response_model=LLMDraftAtomList,
         )
 
-        local_alias_map: dict[str, str] = {}
-        for line in hydrated_text.split("\n\n"):
-            if line.startswith("[") and "] " in line:
-                b_id = line[1 : line.find("]")]
-                if b_id.startswith("B") and b_id[1:].isdigit():
-                    text = line[line.find("]") + 2 :]
-                    local_alias_map[b_id] = text
-
+        local_alias_map = self._parse_local_alias_map(hydrated_text)
         final_drafts: list[DraftExtractedAtom] = []
         for draft in draft_result.atoms:
             if draft.is_logical_deduction:
@@ -517,40 +550,11 @@ class TwoPassAtomizer:
                 )
                 continue
 
-            if not draft.source_block_id:
-                logger.warning("corrupted_atom_dropped", extra={"reason": "missing_block_id_on_non_deduction"})
+            draft_quotes = self._resolve_bounded_quote(
+                draft.source_block_id, packet_keys, local_alias_map, start_b, end_b
+            )
+            if draft_quotes is None:
                 continue
-
-            clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
-            if clean_id not in packet_keys:
-                logger.warning(
-                    "corrupted_atom_dropped",
-                    extra={
-                        "reason": "block_id_outside_packet_boundary",
-                        "block_id": clean_id,
-                        "packet": f"{start_b}-{end_b}",
-                    },
-                )
-                continue
-
-            if clean_id not in local_alias_map:
-                logger.warning("corrupted_atom_dropped", extra={"reason": "hallucinated_block_id_not_found"})
-                continue
-
-            exact_quote = local_alias_map[clean_id]
-            max_span_chars = get_settings().max_citation_span_chars
-            if max_span_chars > 0 and len(exact_quote) > max_span_chars:
-                logger.debug(
-                    "Bounding draft anchor quote exceeding %d chars Gate 2 ceiling: block_id=%s, len=%d",
-                    max_span_chars,
-                    clean_id,
-                    len(exact_quote),
-                )
-                exact_quote = exact_quote[:max_span_chars]
-
-            draft_quotes: tuple[str, ...] | None = None
-            if exact_quote:
-                draft_quotes = (exact_quote,)
 
             final_drafts.append(
                 DraftExtractedAtom(

@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import (
     LLMDraftAtom,
     LLMDraftAtomList,
@@ -657,3 +658,117 @@ async def test_extract_atoms_from_chunk_unbounded_default_allows_anchor_quote_ov
     )
     assert len(draft_bounded.atoms) == 1
     assert draft_bounded.atoms[0].source_quotes == ("X" * 1000,)
+
+
+@pytest.mark.asyncio
+async def test_phase_0_and_phase_1_progress_callbacks(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
+    """Verify progress callbacks on execute_phase_0 and execute_phase_1."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    p0_progress: list[tuple[int, int]] = []
+    p1_progress: list[tuple[int, int]] = []
+
+    async def on_p0(completed: int, total: int) -> None:
+        p0_progress.append((completed, total))
+
+    async def on_p1(completed: int, total: int) -> None:
+        p1_progress.append((completed, total))
+
+    mock_ontology = GlobalOntologyMap(
+        entities=[OntologyEntity(name="E1", description="D1")],
+        macro_rules=["R1"],
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_ontology,
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+
+    await atomizer.execute_phase_0(
+        client=mock_client,
+        hydrated_text="[B0] first block",
+        progress_callback=on_p0,
+    )
+    assert p0_progress == [(1, 1)]
+
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="Extracted block",
+                resolved_claim="Extracted claim",
+                source_block_id="B0",
+                draft_id="a1",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+
+    atoms, _ = await atomizer.execute_phase_1(
+        client=mock_client,
+        hydrated_text="[B0] first block",
+        ontology=mock_ontology,
+        progress_callback=on_p1,
+    )
+    assert len(atoms) == 1
+    assert p1_progress == [(1, 1)]
+    assert (
+        TwoPassAtomizer._resolve_bounded_quote(
+            raw_block_id=None,
+            packet_keys=["B0"],
+            local_alias_map={"B0": "first block"},
+            start_b="B0",
+            end_b="B0",
+        )
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_phase_0_failure_propagates_app_exception(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
+    """Negative test: execute_phase_0 propagates AppException when chunk task fails."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_executor.execute_structured_task.side_effect = AppException(
+        message="Simulated Phase 0 LLM failure",
+        details={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED},
+    )
+
+    with pytest.raises(ExceptionGroup) as exc_info:
+        await atomizer.execute_phase_0(
+            client=mock_client,
+            hydrated_text="[B0] first block",
+        )
+    assert any(isinstance(e, AppException) for e in exc_info.value.exceptions)
+
+
+@pytest.mark.asyncio
+async def test_extract_ontology_from_chunk_error_raises_app_exception(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
+    """Negative test: _extract_ontology_from_chunk raises AppException on execution failure."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_executor.execute_structured_task.side_effect = AppException(
+        message="Simulated chunk ontology failure",
+        details={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED},
+    )
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
+
+    with pytest.raises(AppException) as exc_info:
+        await atomizer._extract_ontology_from_chunk(
+            client=mock_client,
+            compiled_prompt=compiled_prompt,
+            start_b="B0",
+            end_b="B0",
+        )
+    assert exc_info.value.error_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
