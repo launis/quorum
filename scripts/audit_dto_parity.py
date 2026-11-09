@@ -8,59 +8,143 @@ from __future__ import annotations
 
 import argparse
 import ast
-import io
 import re
 import sys
 from pathlib import Path
+from typing import Annotated, Final
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-# Force UTF-8 encoding for stdout/stderr to support emojis on Windows
-if isinstance(sys.stdout, io.TextIOWrapper):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
-        pass
-if isinstance(sys.stderr, io.TextIOWrapper):
-    try:
-        sys.stderr.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
-        pass
+_WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
+if str(_WORKSPACE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_WORKSPACE_ROOT))
+
+from scripts._script_base import setup_script_environment
+
+setup_script_environment()
+
+__all__ = [
+    "DtoFieldMismatchDTO",
+    "DtoParityReportDTO",
+    "EXPLICIT_MODEL_ALIASES",
+    "PREFERRED_BACKEND_ALIASES",
+    "audit_parity",
+    "audit_parity_report",
+    "camel_to_snake",
+    "extract_freezed_fields",
+    "extract_pydantic_fields",
+    "main",
+    "snake_to_camel",
+    "split_dart_params",
+]
+
+_INHERITANCE_RESOLUTION_PASSES: Final[int] = 5
 
 
 class DtoFieldMismatchDTO(BaseModel):
-    """Pydantic V2 DTO representing a field mismatch between Python and Dart models."""
+    """Pydantic V2 DTO representing a field mismatch between Python and Dart models.
+
+    Attributes:
+        model_name: Canonical model name where the mismatch occurred.
+        field_name: Serialized wire field name that is missing on one side.
+        python_type: Resolved Python field type label.
+        dart_type: Resolved Dart field type label.
+        mismatch_reason: Detailed explanation of the parity discrepancy.
+        remediation: Actionable fix instruction for the developer or agent.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    model_name: str
-    field_name: str
-    python_type: str = "unknown"
-    dart_type: str = "unknown"
-    mismatch_reason: str
-    remediation: str
+    model_name: Annotated[str, Field(min_length=1, description="Canonical model name where the mismatch occurred")]
+    field_name: Annotated[str, Field(min_length=1, description="Serialized wire field name missing on one side")]
+    python_type: Annotated[str, Field(default="unknown", description="Resolved Python field type label")] = "unknown"
+    dart_type: Annotated[str, Field(default="unknown", description="Resolved Dart field type label")] = "unknown"
+    mismatch_reason: Annotated[str, Field(min_length=1, description="Detailed explanation of the parity discrepancy")]
+    remediation: Annotated[str, Field(min_length=1, description="Actionable fix instruction")]
 
 
 class DtoParityReportDTO(BaseModel):
-    """Pydantic V2 DTO representing the aggregate DTO parity audit report."""
+    """Pydantic V2 DTO representing the aggregate DTO parity audit report.
+
+    Attributes:
+        is_success: True when zero field mismatches exist across all matched models.
+        shared_models_count: Number of matched Python-to-Dart model pairs audited.
+        mismatches: List of individual field parity mismatch records.
+        summary_messages: Formatted summary strings for CLI reporting.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    is_success: bool
-    shared_models_count: int
-    mismatches: list[DtoFieldMismatchDTO]
-    summary_messages: list[str]
+    is_success: Annotated[bool, Field(description="True when zero field mismatches exist across matched models")]
+    shared_models_count: Annotated[int, Field(ge=0, description="Number of matched model pairs audited")]
+    mismatches: Annotated[list[DtoFieldMismatchDTO], Field(description="Individual field parity mismatch records")]
+    summary_messages: Annotated[list[str], Field(description="Formatted summary strings for CLI reporting")]
 
 
 def snake_to_camel(snake_str: str) -> str:
-    """Convert snake_case identifier to camelCase."""
+    """Convert a snake_case identifier to camelCase.
+
+    Args:
+        snake_str: Identifier formatted in snake_case.
+
+    Returns:
+        Converted camelCase identifier string.
+    """
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
 
 
 def camel_to_snake(camel_str: str) -> str:
-    """Convert camelCase identifier to snake_case."""
+    """Convert a camelCase identifier to snake_case.
+
+    Args:
+        camel_str: Identifier formatted in camelCase.
+
+    Returns:
+        Converted snake_case identifier string.
+    """
     return re.sub(r"(?<!^)(?=[A-Z])", "_", camel_str).lower()
+
+
+def _resolve_pydantic_field_name(stmt: ast.AnnAssign) -> str | None:
+    """Resolve the serialized wire field name from an AST annotated assignment node.
+
+    Args:
+        stmt: AST AnnAssign statement inside a Pydantic class body.
+
+    Returns:
+        Serialized field name string, or None when private, model_config, or excluded.
+    """
+    if not isinstance(stmt.target, ast.Name):
+        return None
+    field_name = stmt.target.id
+    if field_name.startswith("_") or field_name == "model_config":
+        return None
+
+    field_alias: str | None = None
+    ser_alias: str | None = None
+    for sub in ast.walk(stmt):
+        match sub:
+            case ast.keyword(arg="exclude", value=ast.Constant(value=True)):
+                return None
+            case ast.keyword(
+                arg="serialization_alias",
+                value=ast.Constant(value=str() as resolved_ser_alias),
+            ):
+                ser_alias = resolved_ser_alias
+            case ast.keyword(
+                arg="alias",
+                value=ast.Constant(value=str() as resolved_alias),
+            ):
+                field_alias = resolved_alias
+            case _:
+                pass
+
+    if ser_alias is not None:
+        return ser_alias
+    if field_alias is not None:
+        return field_alias
+    return field_name
 
 
 def extract_pydantic_fields(file_path: Path) -> tuple[dict[str, set[str]], dict[str, list[str]]]:
@@ -70,7 +154,7 @@ def extract_pydantic_fields(file_path: Path) -> tuple[dict[str, set[str]], dict[
         file_path: Path to the Python module containing Pydantic model definitions.
 
     Returns:
-        2-tuple of model-to-serialized-field-set mapping and model-to-base-class-list mapping.
+        2-tuple mapping model names to serialized field sets and model names to base class lists.
     """
     if not file_path.exists() or file_path.suffix != ".py":
         return {}, {}
@@ -92,38 +176,10 @@ def extract_pydantic_fields(file_path: Path) -> tuple[dict[str, set[str]], dict[
                 class_bases[class_name] = base_names
 
                 for stmt in body:
-                    match stmt:
-                        case ast.AnnAssign(target=ast.Name(id=field_name)):
-                            if not field_name.startswith("_") and field_name != "model_config":
-                                is_excluded = False
-                                field_alias: str | None = None
-                                ser_alias: str | None = None
-                                for sub in ast.walk(stmt):
-                                    match sub:
-                                        case ast.keyword(arg="exclude", value=ast.Constant(value=True)):
-                                            is_excluded = True
-                                            break
-                                        case ast.keyword(
-                                            arg="serialization_alias",
-                                            value=ast.Constant(value=str() as resolved_ser_alias),
-                                        ):
-                                            ser_alias = resolved_ser_alias
-                                        case ast.keyword(
-                                            arg="alias",
-                                            value=ast.Constant(value=str() as resolved_alias),
-                                        ):
-                                            field_alias = resolved_alias
-                                        case _:
-                                            pass
-                                if not is_excluded:
-                                    serialized_name = field_name
-                                    if ser_alias is not None:
-                                        serialized_name = ser_alias
-                                    elif field_alias is not None:
-                                        serialized_name = field_alias
-                                    fields.add(serialized_name)
-                        case _:
-                            pass
+                    if isinstance(stmt, ast.AnnAssign):
+                        resolved_name = _resolve_pydantic_field_name(stmt)
+                        if resolved_name is not None:
+                            fields.add(resolved_name)
                 if fields or base_names:
                     models[class_name] = fields
             case _:
@@ -136,7 +192,7 @@ def split_dart_params(params_block: str) -> list[str]:
     """Split Dart parameter definitions by comma while respecting nested brackets and quotes.
 
     Args:
-        params_block: The raw parameter block string from a Freezed factory constructor.
+        params_block: Raw parameter block string from a Freezed factory constructor.
 
     Returns:
         List of trimmed individual parameter definition strings.
@@ -196,6 +252,35 @@ def split_dart_params(params_block: str) -> list[str]:
     return params
 
 
+def _extract_single_dart_param_field(entry: str) -> str | None:
+    """Extract the serialized wire field name from a single Dart Freezed constructor parameter.
+
+    Args:
+        entry: Trimmed single parameter declaration string.
+
+    Returns:
+        Serialized snake_case field name, or None when excluded via @JsonKey.
+    """
+    if re.search(r"@JsonKey\s*\([^)]*?\b(?:includeFromJson|includeToJson)\s*:\s*false", entry) or re.search(
+        r"@JsonKey\s*\([^)]*?\bignore\s*:\s*true", entry
+    ):
+        return None
+
+    json_key_match = re.search(r"@JsonKey\s*\([^)]*?\bname\s*:\s*['\"]([^'\"]+)['\"]", entry)
+    if json_key_match:
+        return json_key_match.group(1)
+
+    clean_param = entry.split("=")[0].strip()
+    clean_param = re.sub(r"@[A-Za-z0-9_]+(?:\([^)]*\))?", "", clean_param).strip()
+    clean_param = re.sub(r"^\s*required\s+", "", clean_param).strip()
+    tokens = clean_param.split()
+    if tokens:
+        field_identifier = tokens[-1]
+        if re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", field_identifier):
+            return camel_to_snake(field_identifier)
+    return None
+
+
 def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
     """Extract Freezed model class names and serialized field names from a Dart file.
 
@@ -224,32 +309,10 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
         params_block = class_match.group(2)
         fields: set[str] = set()
 
-        # Split parameter definitions by comma respecting nested parenthesis/brackets
-        param_entries = split_dart_params(params_block)
-        for entry in param_entries:
-            # Check for @JsonKey exclusion flags (mirroring Python Field(exclude=True))
-            if re.search(r"@JsonKey\s*\([^)]*?\b(?:includeFromJson|includeToJson)\s*:\s*false", entry) or re.search(
-                r"@JsonKey\s*\([^)]*?\bignore\s*:\s*true", entry
-            ):
-                continue
-
-            # Check for @JsonKey(name: '...')
-            json_key_match = re.search(r"@JsonKey\s*\([^)]*?\bname\s*:\s*['\"]([^'\"]+)['\"]", entry)
-            if json_key_match:
-                fields.add(json_key_match.group(1))
-            else:
-                # Remove default value assignment if any
-                clean_param = entry.split("=")[0].strip()
-                # Remove annotations
-                clean_param = re.sub(r"@[A-Za-z0-9_]+(?:\([^)]*\))?", "", clean_param).strip()
-                # Remove only leading 'required' modifier, preserving parameter identifier if named 'required'
-                clean_param = re.sub(r"^\s*required\s+", "", clean_param).strip()
-                # Field name is the last token
-                tokens = clean_param.split()
-                if tokens:
-                    field_identifier = tokens[-1]
-                    if re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", field_identifier):
-                        fields.add(camel_to_snake(field_identifier))
+        for entry in split_dart_params(params_block):
+            resolved_field = _extract_single_dart_param_field(entry)
+            if resolved_field is not None:
+                fields.add(resolved_field)
 
         if fields:
             models[class_name] = fields
@@ -257,21 +320,28 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
     return models
 
 
-EXPLICIT_MODEL_ALIASES: dict[str, str] = {
+EXPLICIT_MODEL_ALIASES: Final[dict[str, str]] = {
     "mcpaudittrace": "mcpaudittracedto",
     "workflowresponsedto": "workflow",
     "useradminview": "user",
     "systemconfigmcpgateways": "mcpgateway",
 }
 
-PREFERRED_BACKEND_ALIASES: dict[str, str] = {
+PREFERRED_BACKEND_ALIASES: Final[dict[str, str]] = {
     "workflow": "workflowresponsedto",
     "user": "useradminview",
 }
 
 
-def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityReportDTO:
-    """Compare matching DTO models across backend and frontend directories, returning DtoParityReportDTO."""
+def _collect_backend_models(backend_dir: Path) -> dict[str, set[str]]:
+    """Scan Python files under backend_dir and resolve cross-file model inheritance.
+
+    Args:
+        backend_dir: Root directory containing Python Pydantic models.
+
+    Returns:
+        Dictionary mapping backend class names to their inherited serialized field sets.
+    """
     backend_models: dict[str, set[str]] = {}
     backend_bases: dict[str, list[str]] = {}
     if backend_dir.exists():
@@ -285,8 +355,7 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
             for m_name, bases in file_bases.items():
                 backend_bases[m_name] = bases
 
-    # Multi-pass cross-file inheritance resolution for backend models
-    for _ in range(5):
+    for _ in range(_INHERITANCE_RESOLUTION_PASSES):
         for cls_name, bases in backend_bases.items():
             for base in bases:
                 if base in backend_models:
@@ -294,8 +363,29 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
                         backend_models[cls_name] = set()
                     backend_models[cls_name] = backend_models[cls_name] | backend_models[base]
 
-    backend_models = {k: v for k, v in backend_models.items() if v}
+    filtered_models = {k: v for k, v in backend_models.items() if v}
+    backend_by_lower: dict[str, str] = {name.lower(): name for name in filtered_models}
 
+    for base_lower, preferred_lower in PREFERRED_BACKEND_ALIASES.items():
+        if base_lower in backend_by_lower and preferred_lower in backend_by_lower:
+            base_model_name = backend_by_lower[base_lower]
+            preferred_model_name = backend_by_lower[preferred_lower]
+            filtered_models[preferred_model_name] = (
+                filtered_models[preferred_model_name] | filtered_models[base_model_name]
+            )
+
+    return filtered_models
+
+
+def _collect_frontend_models(frontend_dir: Path) -> dict[str, set[str]]:
+    """Scan Dart files under frontend_dir and aggregate Freezed model field sets.
+
+    Args:
+        frontend_dir: Root directory containing Flutter Dart Freezed models.
+
+    Returns:
+        Dictionary mapping Dart Freezed class names to their serialized field sets.
+    """
     frontend_models: dict[str, set[str]] = {}
     if frontend_dir.exists():
         for dart_file in frontend_dir.rglob("*.dart"):
@@ -304,26 +394,30 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
                     frontend_models[m_name] = frontend_models[m_name] | m_fields
                 else:
                     frontend_models[m_name] = m_fields
+    return frontend_models
 
+
+def _match_model_pairs(
+    backend_models: dict[str, set[str]],
+    frontend_models: dict[str, set[str]],
+) -> list[tuple[str, str]]:
+    """Match backend Pydantic model names to corresponding frontend Freezed model names.
+
+    Args:
+        backend_models: Mapping of backend class names to serialized field sets.
+        frontend_models: Mapping of frontend class names to serialized field sets.
+
+    Returns:
+        Sorted list of matched (backend_model_name, frontend_model_name) pairs.
+    """
     backend_by_lower: dict[str, str] = {name.lower(): name for name in backend_models}
     frontend_by_lower: dict[str, str] = {name.lower(): name for name in frontend_models}
 
-    for base_lower, preferred_lower in PREFERRED_BACKEND_ALIASES.items():
-        if base_lower in backend_by_lower and preferred_lower in backend_by_lower:
-            base_model_name = backend_by_lower[base_lower]
-            preferred_model_name = backend_by_lower[preferred_lower]
-            backend_models[preferred_model_name] = (
-                backend_models[preferred_model_name] | backend_models[base_model_name]
-            )
-
-    # Map backend models to corresponding frontend models using normalized and aliased names
     matched_pairs: list[tuple[str, str]] = []
     matched_frontend: set[str] = set()
 
     for b_name in sorted(backend_models.keys()):
         b_lower = b_name.lower()
-
-        # If a more specific response DTO exists for this model (e.g. WorkflowResponseDTO > Workflow), prioritize it
         if b_lower in PREFERRED_BACKEND_ALIASES and PREFERRED_BACKEND_ALIASES[b_lower] in backend_by_lower:
             continue
 
@@ -333,6 +427,23 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
             if f_name not in matched_frontend:
                 matched_pairs.append((b_name, f_name))
                 matched_frontend.add(f_name)
+
+    return matched_pairs
+
+
+def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityReportDTO:
+    """Compare matching DTO models across backend and frontend directories.
+
+    Args:
+        backend_dir: Root directory containing Backend Python Pydantic models.
+        frontend_dir: Root directory containing Frontend Dart Freezed models.
+
+    Returns:
+        Structured DtoParityReportDTO containing parity status and field mismatches.
+    """
+    backend_models = _collect_backend_models(backend_dir)
+    frontend_models = _collect_frontend_models(frontend_dir)
+    matched_pairs = _match_model_pairs(backend_models, frontend_models)
 
     mismatches: list[DtoFieldMismatchDTO] = []
     summary_messages: list[str] = []
@@ -351,8 +462,14 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
                         DtoFieldMismatchDTO(
                             model_name=b_name,
                             field_name=fld,
-                            mismatch_reason=f"Field '{fld}' present in Python Pydantic model '{b_name}' but missing in Dart Freezed model '{f_name}'.",
-                            remediation=f"Add @JsonKey(name: '{fld}') or camelCase field '{snake_to_camel(fld)}' to Dart Freezed class '{f_name}'.",
+                            mismatch_reason=(
+                                f"Field '{fld}' present in Python Pydantic model '{b_name}' "
+                                f"but missing in Dart Freezed model '{f_name}'."
+                            ),
+                            remediation=(
+                                f"Add @JsonKey(name: '{fld}') or camelCase field "
+                                f"'{snake_to_camel(fld)}' to Dart Freezed class '{f_name}'."
+                            ),
                         )
                     )
             if missing_in_back:
@@ -362,15 +479,17 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
                         DtoFieldMismatchDTO(
                             model_name=b_name,
                             field_name=fld,
-                            mismatch_reason=f"Field '{fld}' present in Dart Freezed model '{f_name}' but missing in Python Pydantic model '{b_name}'.",
+                            mismatch_reason=(
+                                f"Field '{fld}' present in Dart Freezed model '{f_name}' "
+                                f"but missing in Python Pydantic model '{b_name}'."
+                            ),
                             remediation=f"Add field '{fld}: <Type>' to Python Pydantic class '{b_name}'.",
                         )
                     )
             summary_messages.append(f"[{b_name} <-> {f_name}] " + "; ".join(diffs))
 
-    is_success = len(mismatches) == 0
     return DtoParityReportDTO(
-        is_success=is_success,
+        is_success=len(mismatches) == 0,
         shared_models_count=len(matched_pairs),
         mismatches=mismatches,
         summary_messages=summary_messages,
@@ -380,15 +499,26 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
 def audit_parity(backend_dir: Path, frontend_dir: Path) -> tuple[bool, list[str]]:
     """Compare matching DTO models across backend and frontend directories.
 
+    Args:
+        backend_dir: Root directory containing Backend Python Pydantic models.
+        frontend_dir: Root directory containing Frontend Dart Freezed models.
+
     Returns:
-        tuple[bool, list[str]] indicating (is_success, mismatch_summary_messages).
+        2-tuple of parity success boolean and formatted mismatch summary messages.
     """
     report = audit_parity_report(backend_dir, frontend_dir)
     return report.is_success, report.summary_messages
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI Entrypoint for DTO parity auditing."""
+    """Execute the CLI entrypoint for cross-domain DTO parity auditing.
+
+    Args:
+        argv: Optional list of CLI argument strings.
+
+    Raises:
+        SystemExit: Exits with 0 when models align or --no-fail-on-mismatch is set, or 1 on mismatch.
+    """
     parser = argparse.ArgumentParser(
         description="""Cross-Domain DTO Model & Field Parity Gate.
 

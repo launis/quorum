@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 # Add scripts directory to sys.path
 scripts_dir = Path("scripts").resolve()
@@ -44,17 +45,59 @@ def test_snake_to_camel_and_camel_to_snake() -> None:
     assert camel_to_snake("simple") == "simple"
 
 
+def test_dto_models_strict_validation_and_immutability_failure() -> None:
+    """Negative test: Verify DtoFieldMismatchDTO and DtoParityReportDTO enforce strict=True, extra='forbid', frozen=True."""
+    with pytest.raises(ValidationError):
+        DtoFieldMismatchDTO.model_validate(
+            {
+                "model_name": "UserDTO",
+                "field_name": "email",
+                "mismatch_reason": "Missing field",
+                "remediation": "Add field",
+                "unexpected_extra": "blocked",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        DtoFieldMismatchDTO(
+            model_name="",
+            field_name="email",
+            mismatch_reason="Missing field",
+            remediation="Add field",
+        )
+
+    with pytest.raises(ValidationError):
+        DtoParityReportDTO(
+            is_success=True,
+            shared_models_count=-1,
+            mismatches=[],
+            summary_messages=[],
+        )
+
+    with pytest.raises(ValidationError):
+        DtoFieldMismatchDTO.model_validate(
+            {
+                "model_name": 123,
+                "field_name": "email",
+                "mismatch_reason": "Missing field",
+                "remediation": "Add field",
+            }
+        )
+
+
 def test_extract_pydantic_fields_success(tmp_path: Path) -> None:
-    """Test extract_pydantic_fields extracting model class names and field names via AST."""
+    """Test extract_pydantic_fields extracting model class names, field names, and Field(exclude=True) via AST."""
     py_file = tmp_path / "models.py"
     py_file.write_text(
-        "from pydantic import BaseModel, ConfigDict\n\n"
+        "from typing import Annotated\n"
+        "from pydantic import BaseModel, ConfigDict, Field\n\n"
         "class ExecutionRecordDTO(BaseModel):\n"
         "    model_config = ConfigDict(strict=True, extra='forbid')\n"
         "    _internal_cache: dict[str, str]\n"
         "    execution_id: str\n"
         "    step_count: int\n"
-        "    is_active: bool = True\n\n"
+        "    is_active: bool = True\n"
+        "    ephemeral_secret: Annotated[str | None, Field(default=None, exclude=True)] = None\n\n"
         "class SecondDTO(BaseModel):\n"
         "    user_id: str\n",
         encoding="utf-8",
@@ -65,6 +108,7 @@ def test_extract_pydantic_fields_success(tmp_path: Path) -> None:
     assert models["ExecutionRecordDTO"] == {"execution_id", "step_count", "is_active"}
     assert "_internal_cache" not in models["ExecutionRecordDTO"]
     assert "model_config" not in models["ExecutionRecordDTO"]
+    assert "ephemeral_secret" not in models["ExecutionRecordDTO"]
 
     assert "SecondDTO" in models
     assert models["SecondDTO"] == {"user_id"}
@@ -332,6 +376,11 @@ def test_audit_parity_report_inheritance_and_aliases(tmp_path: Path) -> None:
         "class ChildDTO(BaseDTO):\n    extra_val: int\n\nclass EmptyChild(BaseDTO):\n    pass\n",
         encoding="utf-8",
     )
+    # Duplicate backend class definition across files to test backend merge branch
+    (backend_dir / "child_part2.py").write_text(
+        "class ChildDTO(BaseDTO):\n    extra_val: int\n",
+        encoding="utf-8",
+    )
 
     # Preferred alias: Workflow vs WorkflowResponseDTO (base fields union-merged into preferred alias)
     (backend_dir / "workflow.py").write_text("class Workflow:\n    base_slug: str\n", encoding="utf-8")
@@ -380,7 +429,7 @@ def test_audit_parity_report_inheritance_and_aliases(tmp_path: Path) -> None:
 
 
 def test_audit_dto_parity_main_cli_execution(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test CLI main() for DTO parity auditing."""
+    """Test CLI main() for DTO parity auditing across success, fail-on-mismatch, and --no-fail-on-mismatch modes."""
     backend_dir = tmp_path / "backend"
     backend_dir.mkdir()
     frontend_dir = tmp_path / "frontend"
@@ -402,12 +451,26 @@ def test_audit_dto_parity_main_cli_execution(tmp_path: Path, monkeypatch: pytest
     except SystemExit as e:
         assert e.code == 0
 
-    # Failure case
+    # Failure case with default --fail-on-mismatch
     (backend_dir / "model.py").write_text("class ModelDTO:\n    id: str\n    extra_key: str\n", encoding="utf-8")
     try:
         audit_dto_parity_main()
     except SystemExit as e:
         assert e.code == 1
+
+    # Advisory mode with --no-fail-on-mismatch
+    try:
+        audit_dto_parity_main(
+            [
+                "--backend-dir",
+                str(backend_dir),
+                "--frontend-dir",
+                str(frontend_dir),
+                "--no-fail-on-mismatch",
+            ]
+        )
+    except SystemExit as e:
+        assert e.code == 0
 
 
 def test_zero_reflection_in_audit_dto_parity() -> None:

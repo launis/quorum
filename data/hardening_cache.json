@@ -1034,11 +1034,11 @@
     },
     "backend_v2/models/dtos/global_context.py": {
       "target_file": "backend_v2/models/dtos/global_context.py",
-      "target_sha256": "c6c06b4c59cd30985b6b6352b4ca708a4d7709b262c545a2b440bc3cbca4b289",
-      "unit_test_sha256": "c198063d9b3c75096f47fc21e71169900028febf0e322b6de5bcf4ecf77851e5",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "4c5a985df0c51cc0d27c5893defc2089ae31e51fdae97b378d6f5e6a85a13b71",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md"
+      "target_sha256": "da5837771aa66700115926a323e92dd8691cf5eb553896b5546796aaf40e0578",
+      "unit_test_sha256": "d64e0f1f02309e8f01b429dd86cb9afd7ecb7d1787cb46d625b64f34604310bd",
+      "rules_sha256": "5db63194dd1793f6702500f5800e5957d9214f5083bea22c1e86fdbab9bb6d4f",
+      "composite_sha256": "83248eacb087eaf31410fdf72f6233b22b2014f015310bdcacbf5b485089a623",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/c37518e7-f95b-4d08-add2-afe0ff59e939/task.md"
     },
     "backend_v2/models/view/sdui.py": {
       "target_file": "backend_v2/models/view/sdui.py",
@@ -2298,11 +2298,11 @@
     },
     "scripts/audit_dto_parity.py": {
       "target_file": "scripts/audit_dto_parity.py",
-      "target_sha256": "54e4c7aefc295a191f8c36a47d0291076a328c6107923159c4d2c8eef01ed01f",
-      "unit_test_sha256": "350a342a390295ccd102b75567e24ff798ab4ffd6aadd42a26eee4e0b2152d98",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "66f741653ac51800c8eb5c93a4d389b9321bc0e9a97f680c904a1c7ba203a603",
-      "source_tracker": "docs/epic/EPIC_157_tracker.md"
+      "target_sha256": "b24486432c49fe22735090cafff4d44bdbc7033c8029ffdf9342e008cb2415d6",
+      "unit_test_sha256": "d75d85ee966be8afe654bab0e0491cf42fe9dad5e4974f54b09e2a55132c4675",
+      "rules_sha256": "5db63194dd1793f6702500f5800e5957d9214f5083bea22c1e86fdbab9bb6d4f",
+      "composite_sha256": "fd5c8cff206f45df79fb3167251f871824666d0c3d165e47bf3ad145001dcde5",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/c37518e7-f95b-4d08-add2-afe0ff59e939/task.md"
     },
     "backend_v2/tests/fakes/in_memory_repositories.py": {
       "target_file": "backend_v2/tests/fakes/in_memory_repositories.py",
