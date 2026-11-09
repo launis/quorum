@@ -24,7 +24,7 @@
 - [x] **[OK] Create Plan:** @[docs/epic/tasks_EPIC_164/01_phase1_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
-  - [ ] Step 1.1: SecretScope.TELEMETRY Cross-Language Enum Parity & Root-Only UI Selector Filtering
+  - [x] Step 1.1: SecretScope.TELEMETRY Cross-Language Enum Parity & Root-Only UI Selector Filtering
   - [ ] Step 1.2: SecretService Root-Only SecretScope.TELEMETRY RBAC Enforcement & resolve_telemetry_secret
   - [ ] Step 1.3: CANONICAL_SEED_TABLES tenant_secrets Registration, .env.secrets.local Hydration & ROOT Firebase User Provisioning in run_seed.py
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -120,7 +120,7 @@
 
 | Requirement | Description | Phase / Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-164-001 | Add `SecretScope.TELEMETRY` (`"telemetry"`) to Python `enums.py` and Dart `enums.dart`, and filter `_ByokSecretsCard` so `SecretScope.telemetry` is selectable only by `UserRole.root` on `"org_0195f3a0000070008000000000000001"` | Phase 1, Step 1.1 | [ ] Pending |
+| REQ-164-001 | Add `SecretScope.TELEMETRY` (`"telemetry"`) to Python `enums.py` and Dart `enums.dart`, and filter `_ByokSecretsCard` so `SecretScope.telemetry` is selectable only by `UserRole.root` on `"org_0195f3a0000070008000000000000001"` | Phase 1, Step 1.1 | [x] Completed |
 | REQ-164-002 | Enforce `initiator.role == UserRole.ROOT` and `organization_id == "org_0195f3a0000070008000000000000001"` for `SecretScope.TELEMETRY` in `SecretService` and add `resolve_telemetry_secret` | Phase 1, Step 1.2 | [ ] Pending |
 | REQ-164-003 | Add `"tenant_secrets"` to `CANONICAL_SEED_TABLES` and `InMemoryEntityAdapter.verify_seed_table_counts`, create `.env.secrets.example` and `.env.secrets.local`, and implement `LocalSeedSecretsSettings`, `_seed_local_secrets`, and `_provision_root_firebase_user` in `run_seed.py` | Phase 1, Step 1.3 | [ ] Pending |
 | REQ-164-004 | Add `resolve_startup_logfire_token` in `telemetry.py` and `initialize_firebase_admin_from_secrets` in `token_service.py`, and wire both into `main.py` and `worker.py` startup | Phase 2, Step 2.1 | [ ] Pending |

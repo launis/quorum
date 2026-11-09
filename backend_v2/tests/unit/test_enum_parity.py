@@ -280,11 +280,21 @@ def test_iam_and_assignment_enums_ssot_in_python_enums() -> None:
     assert extract_python_enum_values_ast(py_code, "SecretScope") == {
         "llm_provider",
         "mcp_gateway",
+        "telemetry",
     }
     assert extract_python_enum_values_ast(py_code, "SecretStorageMode") == {
         "envelope_kms",
         "cloud_secret_manager",
     }
+
+
+def test_secret_scope_telemetry_python_and_dart_parity() -> None:
+    """Verify SecretScope in Python and Dart contains llm_provider, mcp_gateway, and telemetry in 1:1 parity."""
+    py_values = extract_python_enum_values_ast(read_file(PYTHON_ENUMS_PATH), "SecretScope")
+    dart_values = extract_dart_enum_json_values(read_file(DART_ENUM_PATH), "SecretScope")
+    assert py_values == {"llm_provider", "mcp_gateway", "telemetry"}
+    assert dart_values == {"llm_provider", "mcp_gateway", "telemetry"}
+    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "SecretScope")
 
 
 @pytest.mark.parametrize(

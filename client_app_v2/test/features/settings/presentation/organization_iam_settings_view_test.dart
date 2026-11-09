@@ -1031,6 +1031,129 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'Positive & Negative: SecretScope.telemetry is selectable only by UserRole.root on Root System Organization',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1440, 2200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const rootSystemOrgId = 'org_0195f3a0000070008000000000000001';
+        final userRepo = _FakeUserRepository();
+        userRepo.organizations = [
+          const Organization(
+            id: rootSystemOrgId,
+            name: 'Quorum Root System',
+            contactEmail: 'root@quorum.ai',
+            quotaLimit: 10000.0,
+            tpmLimit: 500000,
+            rpmLimit: 240,
+          ),
+          ...userRepo.organizations,
+        ];
+        final execClient = _FakeExecutionClient();
+        final studioClient = _FakeStudioClient();
+
+        // 1. Negative: ADMIN user does NOT see SecretScope.telemetry even on Root System Organization
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: const User(
+              id: 'usr_01960000000070008000000000000001',
+              email: 'admin@quorum.ai',
+              role: UserRole.admin,
+              organizationId: rootSystemOrgId,
+            ),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: studioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final scopeDropdown = find.byKey(
+          const Key('org_secret_scope_dropdown'),
+        );
+        await tester.ensureVisible(scopeDropdown);
+        await tester.tap(scopeDropdown);
+        await tester.pumpAndSettle();
+        expect(find.text(SecretScope.telemetry.name), findsNothing);
+        await tester.tap(find.text(SecretScope.llmProvider.name).last);
+        await tester.pumpAndSettle();
+
+        // 2. Negative: ROOT user on non-Root organization does NOT see SecretScope.telemetry
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: userWithRole(UserRole.root),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: studioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(scopeDropdown);
+        await tester.tap(scopeDropdown);
+        await tester.pumpAndSettle();
+        expect(find.text(SecretScope.telemetry.name), findsNothing);
+        await tester.tap(find.text(SecretScope.llmProvider.name).last);
+        await tester.pumpAndSettle();
+
+        // 3. Positive: ROOT user on Root System Organization sees SecretScope.telemetry and saves logfire_read
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: const User(
+              id: 'usr_0195f3a00000700a83fd6b3d77c748f4',
+              email: 'root@quorum.ai',
+              role: UserRole.root,
+              organizationId: rootSystemOrgId,
+            ),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: studioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(scopeDropdown);
+        await tester.tap(scopeDropdown);
+        await tester.pumpAndSettle();
+        expect(find.text(SecretScope.telemetry.name), findsWidgets);
+        await tester.tap(find.text(SecretScope.telemetry.name).last);
+        await tester.pumpAndSettle();
+
+        final targetDropdown = find.byKey(
+          const ValueKey<String>('org_secret_target_dropdown'),
+        );
+        await tester.ensureVisible(targetDropdown);
+        await tester.tap(targetDropdown);
+        await tester.pumpAndSettle();
+        expect(find.text('logfire'), findsWidgets);
+        expect(find.text('logfire_read'), findsWidgets);
+        await tester.tap(find.text('logfire_read').last);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('org_secret_value_field')),
+          'pylf_v1_eu_read_token',
+        );
+        final saveBtn = find.byKey(const Key('org_save_secret_btn'));
+        await tester.ensureVisible(saveBtn);
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(userRepo.lastSavedSecret, isNotNull);
+        expect(userRepo.lastSavedSecret!.scope, equals(SecretScope.telemetry));
+        expect(
+          userRepo.lastSavedSecret!.targetIdentifier,
+          equals('logfire_read'),
+        );
+        expect(
+          userRepo.lastSavedSecret!.plaintextSecret,
+          equals('pylf_v1_eu_read_token'),
+        );
+      },
+    );
   });
 }
 

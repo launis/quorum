@@ -457,6 +457,7 @@ Map<String, dynamic> _$TenantSecretCreateDtoToJson(
 const _$SecretScopeEnumMap = {
   SecretScope.llmProvider: 'llm_provider',
   SecretScope.mcpGateway: 'mcp_gateway',
+  SecretScope.telemetry: 'telemetry',
 };
 
 const _$SecretStorageModeEnumMap = {

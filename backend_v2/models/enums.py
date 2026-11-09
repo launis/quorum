@@ -1397,6 +1397,7 @@ class SecretScope(StrEnum):
 
     LLM_PROVIDER = "llm_provider"
     MCP_GATEWAY = "mcp_gateway"
+    TELEMETRY = "telemetry"
 
 
 LaxSecretScope = Annotated[SecretScope, Field(strict=False)]

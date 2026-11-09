@@ -1317,6 +1317,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
     AsyncValue<List<McpGateway>> gatewaysAsync,
   ) => switch (secret.scope) {
     SecretScope.llmProvider => secret.targetIdentifier,
+    SecretScope.telemetry => secret.targetIdentifier,
     SecretScope.mcpGateway => switch (gatewaysAsync) {
       AsyncData(:final value) => () {
         for (final gw in value) {
@@ -1332,9 +1333,24 @@ class _ByokSecretsCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const telemetryTargets = <String>['logfire', 'logfire_read'];
+    final currentUser = switch (ref.watch(authControllerProvider)) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+    final canManageTelemetry =
+        currentUser?.role == UserRole.root &&
+        orgId == 'org_0195f3a0000070008000000000000001';
+    final availableScopes = <SecretScope>[
+      for (final scope in SecretScope.values)
+        if (scope != SecretScope.telemetry || canManageTelemetry) scope,
+    ];
     final secretsAsync = ref.watch(organizationSecretsProvider(orgId));
     final gatewaysAsync = ref.watch(availableMcpGatewaysProvider);
     final selectedScope = useState<SecretScope>(SecretScope.llmProvider);
+    final effectiveScope = availableScopes.contains(selectedScope.value)
+        ? selectedScope.value
+        : SecretScope.llmProvider;
     final selectedStorageMode = useState<SecretStorageMode>(
       SecretStorageMode.envelopeKms,
     );
@@ -1345,7 +1361,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
     final secretValueController = useTextEditingController();
     final mutation = useMutation<void>();
 
-    final String? effectiveTarget = switch (selectedScope.value) {
+    final String? effectiveTarget = switch (effectiveScope) {
       SecretScope.llmProvider =>
         LLMProvider.values.any(
               (p) => _llmProviderBackendValue(p) == selectedTarget.value,
@@ -1359,6 +1375,10 @@ class _ByokSecretsCard extends HookConsumerWidget {
               : (value.isNotEmpty ? value.first.id : null),
         _ => null,
       },
+      SecretScope.telemetry =>
+        telemetryTargets.contains(selectedTarget.value)
+            ? selectedTarget.value
+            : telemetryTargets.first,
     };
 
     Future<void> saveSecret() async {
@@ -1374,7 +1394,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
             .upsertSecret(
               orgId,
               TenantSecretCreateDto(
-                scope: selectedScope.value,
+                scope: effectiveScope,
                 targetIdentifier: target,
                 plaintextSecret: plaintext,
                 storageMode: selectedStorageMode.value,
@@ -1412,13 +1432,13 @@ class _ByokSecretsCard extends HookConsumerWidget {
                   child: DropdownButtonFormField<SecretScope>(
                     key: const Key('org_secret_scope_dropdown'),
                     isExpanded: true,
-                    initialValue: selectedScope.value,
+                    initialValue: effectiveScope,
                     decoration: InputDecoration(
                       labelText: l10n.orgSecretScopeLabel,
                       border: const OutlineInputBorder(),
                     ),
                     items: [
-                      for (final scope in SecretScope.values)
+                      for (final scope in availableScopes)
                         DropdownMenuItem(
                           value: scope,
                           child: Text(
@@ -1430,16 +1450,19 @@ class _ByokSecretsCard extends HookConsumerWidget {
                     onChanged: (val) {
                       if (val != null) {
                         selectedScope.value = val;
-                        if (val == SecretScope.llmProvider) {
-                          selectedTarget.value = _llmProviderBackendValue(
-                            LLMProvider.openai,
-                          );
-                        } else {
-                          selectedTarget.value = switch (gatewaysAsync) {
-                            AsyncData(:final value) when value.isNotEmpty =>
-                              value.first.id,
-                            _ => null,
-                          };
+                        switch (val) {
+                          case SecretScope.llmProvider:
+                            selectedTarget.value = _llmProviderBackendValue(
+                              LLMProvider.openai,
+                            );
+                          case SecretScope.mcpGateway:
+                            selectedTarget.value = switch (gatewaysAsync) {
+                              AsyncData(:final value) when value.isNotEmpty =>
+                                value.first.id,
+                              _ => null,
+                            };
+                          case SecretScope.telemetry:
+                            selectedTarget.value = telemetryTargets.first;
                         }
                       }
                     },
@@ -1473,7 +1496,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
               ],
             ),
             AppSpacing.h12,
-            switch (selectedScope.value) {
+            switch (effectiveScope) {
               SecretScope.llmProvider => KeyedSubtree(
                 key: const ValueKey<String>('scope_llm_target_subtree'),
                 child: DropdownButtonFormField<String>(
@@ -1535,6 +1558,29 @@ class _ByokSecretsCard extends HookConsumerWidget {
                     },
                   ),
                 },
+              ),
+              SecretScope.telemetry => KeyedSubtree(
+                key: const ValueKey<String>('scope_telemetry_target_subtree'),
+                child: DropdownButtonFormField<String>(
+                  key: const ValueKey<String>('org_secret_target_dropdown'),
+                  isExpanded: true,
+                  initialValue: effectiveTarget,
+                  decoration: InputDecoration(
+                    labelText: l10n.orgSecretTargetIdentifierLabel,
+                    prefixIcon: const Icon(Icons.hub_outlined),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final target in telemetryTargets)
+                      DropdownMenuItem<String>(
+                        value: target,
+                        child: Text(target, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (val) {
+                    selectedTarget.value = val;
+                  },
+                ),
               ),
             },
             AppSpacing.h12,

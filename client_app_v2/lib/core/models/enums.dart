@@ -715,7 +715,9 @@ enum SecretScope {
   @JsonValue('llm_provider')
   llmProvider('llm_provider'),
   @JsonValue('mcp_gateway')
-  mcpGateway('mcp_gateway');
+  mcpGateway('mcp_gateway'),
+  @JsonValue('telemetry')
+  telemetry('telemetry');
 
   const SecretScope(this.backendValue);
   final String backendValue;

@@ -109,6 +109,7 @@ void main() {
         // Verify canonical lowercase snake_case backendValue across all 8 aligned enums.
         expect(SecretScope.llmProvider.backendValue, 'llm_provider');
         expect(SecretScope.mcpGateway.backendValue, 'mcp_gateway');
+        expect(SecretScope.telemetry.backendValue, 'telemetry');
         expect(
           SecretStorageMode.cloudSecretManager.backendValue,
           'cloud_secret_manager',
