@@ -13,7 +13,7 @@
     </rule_block>
     
     <rule_block id="partial_mocking_srp_ban">
-        <mandate>NEVER use "Partial Mocking" in unit tests by stuffing heavy orchestration or AI logic into private methods (e.g., `_execute_rag_preflight`) inside parent classes like `DAGExecutor`. ALWAYS follow Single Responsibility Principle (SRP): extract heavy sub-processes into isolated service classes (e.g., `RAGPreflightService`), inject via Dependency Injection, and mock the injected service class in tests.</mandate>
+        <mandate>NEVER use "Partial Mocking" (`patch.object(service, "_private_helper")`) in unit tests by stuffing heavy cross-domain orchestration or AI logic into private methods (e.g., `_execute_rag_preflight`) inside parent classes like `DAGExecutor`. ALWAYS follow Single Responsibility Principle (SRP): extract heavy cross-domain sub-processes into isolated service classes (e.g., `RAGPreflightService`), inject via Dependency Injection, and mock the injected service class in tests. NOTE: Within a single cohesive service class, extracting shared intra-class private SSOT helper methods (e.g., `_resolve_scoped_secret`, `_acquire_entity_port`) is MANDATORY under `srp_god_method_mandate` and `ssot_reuse_mandate`—test them through the class's public API methods rather than partial-mocking the private helper.</mandate>
     </rule_block>
 
     <rule_block id="engine_override_ban">
