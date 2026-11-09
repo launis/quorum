@@ -44,7 +44,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_164/03_phase3_plan.md]
 - [x] **[OK] Create Plan:** @[docs/epic/tasks_EPIC_164/03_phase3_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]` (`1012f18b9`)
   - [x] Step 3.1: Eradicate MockLoginPanel, allowMockTokens & mock*UserId from LoginScreen, Env & client_app_v2/.env
   - [x] Step 3.2: Eradicate debugMockLogin & debugSignInWithMockToken and Delegate MFA Enforcement in signInWithEmailAndPassword to Backend
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -53,9 +53,9 @@
 ### Phase 4: Comprehensive Unit, Integration, Seed & E2E Verification Gate
 **Plan:** @[docs/epic/tasks_EPIC_164/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** @[docs/epic/tasks_EPIC_164/04_phase4_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
-  - [ ] Step 4.1: Backend Unit Test Suite Verification & ISTQB Boundary Coverage
+  - [x] Step 4.1: Backend Unit Test Suite Verification & ISTQB Boundary Coverage
   - [ ] Step 4.2: Frontend Unit & Widget Test Suite Verification
   - [ ] Step 4.3: Local Secret Seeding, Full-Stack Audit Loops & Live E2E Verification
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -127,7 +127,7 @@
 | REQ-164-005 | Remove `service-account.json` checks, `allow_mock_tokens`, and `mock_*_user_id` from `settings.py`, `logging_config.py`, `token_service.py`, and `run_e2e_variance_test.py`, sanitize `.env`, and delete `service-account.json` | Phase 2, Step 2.2 | [x] Completed |
 | REQ-164-006 | Delete `MockLoginPanel`, `allowMockTokens`, `_requireMockUserId`, and `mock*UserId` from `login_screen.dart`, `env.dart`, and `client_app_v2/.env` | Phase 3, Step 3.1 | [x] Completed |
 | REQ-164-007 | Delete `_activeDebugUserId`, `debugMockLogin`, and `debugSignInWithMockToken`, and refactor `AuthRepository.signInWithEmailAndPassword` to delegate MFA enforcement to backend `exchangeToken(idToken)` | Phase 3, Step 3.2 | [x] Completed |
-| REQ-164-008 | Verify and expand ISTQB positive, negative, and boundary unit tests across all 8 backend unit test suites | Phase 4, Step 4.1 | [ ] Pending |
+| REQ-164-008 | Verify and expand ISTQB positive, negative, and boundary unit tests across all 8 backend unit test suites | Phase 4, Step 4.1 | [x] Completed |
 | REQ-164-009 | Verify and expand unit and widget tests across all 7 Flutter test suites | Phase 4, Step 4.2 | [ ] Pending |
 | REQ-164-010 | Execute `run_seed.py local --dry-run`, `run_seed.py local`, global backend and Flutter audit loops, and live E2E verification | Phase 4, Step 4.3 | [ ] Pending |
 

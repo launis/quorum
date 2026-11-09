@@ -7,11 +7,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import JsonValue, SecretStr, ValidationError
 
+from backend_v2.core.telemetry import resolve_startup_logfire_token
+from backend_v2.core.test_settings import get_test_settings
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SYSTEM_ROOT_USER_ID, SystemOrganizations
 from backend_v2.models.enums import LLMProvider
 from backend_v2.seed import run_seed
 from backend_v2.services.auth.secret_service import SecretService
+from backend_v2.services.auth.token_service import initialize_firebase_admin_from_secrets
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 VALID_ORGANIZATION: dict[str, JsonValue] = {
@@ -463,3 +466,107 @@ def test_validate_all_seed_collections_unexpected_error_raises_app_exception() -
 
     assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
     assert "Processing error during seed validation" in excinfo.value.message
+
+
+@pytest.mark.asyncio
+async def test_run_seed_dry_run_validates_local_secrets_without_db_mutation() -> None:
+    """Verify dry-run validates seed_data.json and LocalSeedSecretsSettings in-memory without mutating PostgreSQL or Firebase."""
+    payload = _build_full_valid_seed_payload()
+    uow = InMemoryUnitOfWork()
+    secrets_settings = run_seed.LocalSeedSecretsSettings(
+        _env_file=None,
+        secret_ai_studio_api_key=SecretStr("AIzaSyDummyAiStudioKey1234567890"),
+        secret_vertex_ai_sa_json=SecretStr('{"type":"service_account","project_id":"demo-proj"}'),
+        secret_logfire_token=SecretStr("lf_tok_dummy_write_1234567890"),
+        secret_root_user_email=SecretStr("root@example.com"),
+        secret_root_user_password=SecretStr("QuorumRootPassword2026!"),
+    )
+    fake_fb_auth = MagicMock()
+
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        counts = await run_seed._seed_postgres(
+            payload,
+            dry_run=True,
+            uow=uow,
+            secrets_settings=secrets_settings,
+            firebase_auth_client=fake_fb_auth,
+        )
+
+    assert counts["organizations"] == 1
+    assert counts["users"] == 1
+    assert counts["tenant_secrets"] == 3
+    assert counts["workflows"] == 1
+    assert await uow.entities.list_tenant_secrets(SystemOrganizations.ROOT_SYSTEM.value) == []
+    assert await uow.entities.get_user(SYSTEM_ROOT_USER_ID) is None
+    fake_fb_auth.create_user.assert_not_called()
+    fake_fb_auth.update_user.assert_not_called()
+
+    # Negative boundary: invalid LocalSeedSecretsSettings in dry-run raises AppException
+    with (
+        patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"),
+        patch.object(
+            run_seed,
+            "LocalSeedSecretsSettings",
+            side_effect=ValidationError.from_exception_data("LocalSeedSecretsSettings", []),
+        ),
+        pytest.raises(AppException) as exc_invalid_secrets,
+    ):
+        await run_seed._seed_postgres(payload, dry_run=True, uow=None, secrets_settings=None)
+    assert exc_invalid_secrets.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_live_e2e_real_llm_execution_with_seeded_tenant_secrets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify seeded tenant_secrets satisfy startup telemetry, Firebase Admin initialization, and LLM key resolution."""
+    payload = _build_full_valid_seed_payload()
+    uow = InMemoryUnitOfWork()
+    secrets_settings = run_seed.LocalSeedSecretsSettings(
+        _env_file=None,
+        secret_ai_studio_api_key=SecretStr("AIzaSyDummyAiStudioKey1234567890"),
+        secret_vertex_ai_sa_json=SecretStr('{"type":"service_account","project_id":"demo-proj"}'),
+        secret_logfire_token=SecretStr("lf_tok_dummy_write_1234567890"),
+        secret_root_user_email=SecretStr("root@example.com"),
+        secret_root_user_password=SecretStr("QuorumRootPassword2026!"),
+    )
+    fb_user_record = MagicMock()
+    fb_user_record.uid = SYSTEM_ROOT_USER_ID
+    fake_fb_auth = MagicMock()
+    fake_fb_auth.get_user_by_email.side_effect = ValueError("User not found")
+    fake_fb_auth.create_user.return_value = fb_user_record
+
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        counts = await run_seed._seed_postgres(
+            payload,
+            dry_run=False,
+            uow=uow,
+            secrets_settings=secrets_settings,
+            firebase_auth_client=fake_fb_auth,
+        )
+
+    assert counts["tenant_secrets"] == 3
+    secret_service = SecretService(entity_adapter=uow.entities)
+    test_settings = get_test_settings(otel_enabled=True, logfire_token=None, use_firebase_auth=True)
+
+    resolved_token = await resolve_startup_logfire_token(test_settings, secret_service)
+    assert resolved_token == "lf_tok_dummy_write_1234567890"
+
+    fake_fb_admin = MagicMock()
+    fake_fb_admin._apps = {}
+    fake_creds_mod = MagicMock()
+    fake_cert = MagicMock()
+    fake_creds_mod.Certificate.return_value = fake_cert
+
+    monkeypatch.setattr("backend_v2.services.auth.token_service.firebase_admin", fake_fb_admin)
+    monkeypatch.setattr("backend_v2.services.auth.token_service.firebase_credentials_module", fake_creds_mod)
+
+    await initialize_firebase_admin_from_secrets(secret_service, test_settings)
+    fake_creds_mod.Certificate.assert_called_once_with({"type": "service_account", "project_id": "demo-proj"})
+    fake_fb_admin.initialize_app.assert_called_once_with(fake_cert)
+
+    ai_studio_cred = await secret_service.resolve_llm_key(
+        SystemOrganizations.ROOT_SYSTEM.value,
+        LLMProvider.AI_STUDIO,
+    )
+    assert ai_studio_cred.secret_value.get_secret_value() == "AIzaSyDummyAiStudioKey1234567890"

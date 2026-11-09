@@ -1,5 +1,6 @@
 """Unit tests for application settings and environment configuration invariants."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -568,3 +569,22 @@ def test_gcp_production_settings_and_cors_invariants(monkeypatch: pytest.MonkeyP
     ):
         with pytest.raises(ValidationError):
             Settings(use_mock_llm=True, environment="production", cors_origins=invalid_origins)
+
+
+def test_epic_164_deprecated_symbols_and_files_absent_across_codebase() -> None:
+    """Verify service-account.json and deprecated mock token settings fields are absent."""
+    settings = get_settings()
+    backend_dir = Path(settings.base_dir).resolve()
+    workspace_root = backend_dir.parent
+
+    assert not (workspace_root / "service-account.json").exists()
+    assert not (backend_dir / "service-account.json").exists()
+
+    removed_settings_fields = (
+        "allow_mock_tokens",
+        "mock_admin_user_id",
+        "mock_root_user_id",
+        "mock_analyst_user_id",
+    )
+    for field_name in removed_settings_fields:
+        assert field_name not in Settings.model_fields
