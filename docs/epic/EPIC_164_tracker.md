@@ -84,7 +84,7 @@
   - [x] @[client_app_v2/lib/core/environment/env.dart]
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
-  - [ ] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
+  - [x] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
   - [ ] @[client_app_v2/lib/features/auth/presentation/login_screen.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
