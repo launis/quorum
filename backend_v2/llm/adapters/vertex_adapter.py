@@ -129,8 +129,19 @@ class VertexCacheAdapter(BaseLLMAdapter):
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if JSON syntax is invalid
                 or required service_account fields (type, client_email, private_key) are missing.
         """
+        if not raw_secret.strip().startswith("{"):
+            logger.error(
+                "[VertexCacheAdapter] %s: Vertex AI Service Account JSON must start with '{'.",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+            raise ConfigurationError(
+                message="Vertex AI Service Account JSON must start with '{'.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
         try:
-            parsed = json.loads(raw_secret)
+            parsed: dict[str, Any] = json.loads(raw_secret)
         except json.JSONDecodeError as exc:
             logger.error(
                 "[VertexCacheAdapter] %s: Malformed Vertex AI Service Account JSON syntax.",
@@ -143,7 +154,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from exc
 
-        if not isinstance(parsed, dict) or "type" not in parsed or parsed["type"] != "service_account":
+        if "type" not in parsed or parsed["type"] != "service_account":
             logger.error(
                 "[VertexCacheAdapter] %s: Vertex AI Service Account JSON must declare type='service_account'.",
                 ErrorCodes.CONFIGURATION_ERROR.name,
@@ -347,10 +358,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     import vertexai
 
                     if sa_dict is not None:
-                        from google.oauth2 import service_account
-
-                        # google-auth service_account.Credentials.from_service_account_info lacks PEP 484 type annotations
-                        credentials = service_account.Credentials.from_service_account_info(sa_dict)  # type: ignore[no-untyped-call]
+                        service_account_mod = importlib.import_module("google.oauth2.service_account")
+                        credentials = service_account_mod.Credentials.from_service_account_info(sa_dict)
                         vertexai.init(project=project, location=location, credentials=credentials)
                     else:
                         vertexai.init(project=project, location=location)
