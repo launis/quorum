@@ -1030,11 +1030,15 @@ async def test_organization_service_with_exchanged_quorum_jwt_token_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify OrganizationService accepts stateless TokenData decoded from an exchanged Quorum Local JWT."""
+    from pydantic import SecretStr
+
+    cli_secret = SecretStr("test_org_service_cli_secret_2026")
     mock_settings = Settings(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
         require_mfa=True,
+        service_auth_secret=cli_secret,
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
     monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
@@ -1069,7 +1073,7 @@ async def test_organization_service_with_exchanged_quorum_jwt_token_data(
 
     auth_service = AuthService(mock_repo, use_firebase=False)
     exchanged = await auth_service.token_service.exchange_firebase_token(
-        TokenExchangeRequestDTO(target_user_id=root_id)
+        TokenExchangeRequestDTO(target_user_id=root_id, service_auth_secret=cli_secret)
     )
     verified_token_data = await auth_service.verify_token(exchanged.access_token)
     assert verified_token_data.mfa_verified is True
@@ -1465,8 +1469,8 @@ async def test_rbac_four_tier_matrix_boundaries_boundary(
         create_execution_record(
             execution_id=exe_member_id,
             workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
-            raw_inputs=WorkflowInputs(),
-            frozen_context=FrozenContext(),
+            raw_inputs=WorkflowInputs.model_validate({}),
+            frozen_context=FrozenContext.model_validate({}),
             source_identity_manifest={},
             organization_id=org_id,
             created_by=member_id,
@@ -1477,8 +1481,8 @@ async def test_rbac_four_tier_matrix_boundaries_boundary(
         create_execution_record(
             execution_id=exe_peer_id,
             workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
-            raw_inputs=WorkflowInputs(),
-            frozen_context=FrozenContext(),
+            raw_inputs=WorkflowInputs.model_validate({}),
+            frozen_context=FrozenContext.model_validate({}),
             source_identity_manifest={},
             organization_id=org_id,
             created_by=viewer_id,
@@ -1539,6 +1543,11 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
             type=StepType.LOGIC,
             hook="my_hook",
             mcp_tool_params={},
+            criteria_block_ids=[],
+            pre_hooks=[],
+            post_hooks=[],
+            allowed_mcp_tools=[],
+            expected_inputs=[],
         )
     )
     await mock_repo.save_workflow(
@@ -1560,6 +1569,7 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
                     is_chat_history=False,
                     input_modes=["paste"],
                     description=I18nText(translations={"en": "Context", "fi": "Konteksti"}),
+                    questionnaire_definition=[],
                 ),
                 ExpectedInput(
                     input_key="candidate_answer",
@@ -1568,12 +1578,15 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
                     is_chat_history=False,
                     input_modes=["paste"],
                     description=I18nText(translations={"en": "Answer", "fi": "Vastaus"}),
+                    questionnaire_definition=[],
                 ),
             ],
             steps=[
                 StepRule(
                     id=stp_id,
                     task_blueprint=stp_id,
+                    depends_on=[],
+                    input_mappings={},
                 )
             ],
             default_profile_id=prf_id,
@@ -1588,6 +1601,10 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
             target_block_order=[],
             visible_block_extensions=[],
             visible_workflow_extensions=[],
+            visible_metadata=[],
+            matrix_visible_columns=[],
+            matrix_synthesis_groups=[],
+            content_blocks=[],
         )
     )
 

@@ -7,11 +7,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
-from fastapi import status
 from pydantic import AliasChoices, BeforeValidator, Field, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.system import SafetySettingDTO
 from backend_v2.models.enums import (
@@ -1169,47 +1168,6 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    def model_post_init(self, __context: Any) -> None:
-        """Validates settings after initialization.
-
-        Args:
-            __context: Lifecycle contexts from Pydantic.
-
-        Raises:
-            AppException: CONFIGURATION_ERROR if critical credentials are missing when mock mode is inactive.
-        """
-        if not self.use_mock_llm:
-            if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-                root_dir = Path(self.base_dir).parent
-                sa_path = root_dir / "service-account.json"
-                if sa_path.exists():
-                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(sa_path)
-                    logger.info("Settings: Auto-detected service-account.json at %s", str(sa_path))
-
-            has_vertex = any(
-                bool(os.getenv(k))
-                for k in (
-                    "VERTEX_PROJECT_ID",
-                    "GOOGLE_APPLICATION_CREDENTIALS",
-                    "GOOGLE_CLOUD_PROJECT",
-                    "GCP_PROJECT",
-                )
-            )
-
-            if not self.google_api_key and not has_vertex:
-                msg = (
-                    "CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
-                    "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars."
-                )
-                logger.error(
-                    "[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}, exc_info=True
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
     @model_validator(mode="after")
     def _enforce_environment_limits(self) -> Self:
         """Enforce strict binary environment limits.
@@ -1329,10 +1287,7 @@ class Settings(BaseSettings):
         """
         providers = []
         if not self.use_mock_llm and (
-            os.getenv("VERTEX_PROJECT_ID")
-            or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-            or os.getenv("GCP_PROJECT")
-            or Path("service-account.json").exists()
+            os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("GCP_PROJECT")
         ):
             providers.append("vertex_ai")
 
@@ -1366,28 +1321,6 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
-    def allow_mock_tokens(self) -> bool:
-        """Strictly disallow mock tokens in cloud environments or active Firebase Auth production.
-
-        Allow mock tokens ONLY on PostgreSQL storage backend when Firebase Auth is explicitly disabled
-        or when running in development mode.
-
-        Returns:
-            True if mock tokens are permitted, False otherwise.
-
-        Raises:
-            ConfigurationError: If storage backend is unsupported when evaluating active_backend.
-        """
-        if self.is_cloud_storage:
-            return False
-        if self.active_backend != StorageBackend.POSTGRES:
-            return False
-        if not self.use_firebase_auth:
-            return True
-        return self.environment.lower() == "development"
-
-    @computed_field
-    @property
     def schema_max_chunk_records(self) -> int:
         """Maximum number of records (main + context) the LLM is expected to parse in a single chunk.
 
@@ -1405,32 +1338,6 @@ class Settings(BaseSettings):
             Calculated integer limit for source aliases.
         """
         return min(self.schema_max_quotes_target, self.schema_max_chunk_records)
-
-    # Centralized Mock Token IDs for testing
-    mock_admin_user_id: Annotated[
-        str,
-        Field(
-            default="usr_0195f3a00000700188a0d5f6151349a5",
-            validation_alias=AliasChoices("mock_admin_user_id", "MOCK_ADMIN_USER_ID"),
-            description="Mock Admin User ID",
-        ),
-    ] = "usr_0195f3a00000700188a0d5f6151349a5"
-    mock_root_user_id: Annotated[
-        str,
-        Field(
-            default="usr_0195f3a00000700a83fd6b3d77c748f4",
-            validation_alias=AliasChoices("mock_root_user_id", "MOCK_ROOT_USER_ID"),
-            description="Mock Root User ID",
-        ),
-    ] = "usr_0195f3a00000700a83fd6b3d77c748f4"
-    mock_analyst_user_id: Annotated[
-        str,
-        Field(
-            default="usr_0195f3a000007009836983a7a6c643ab",
-            validation_alias=AliasChoices("mock_analyst_user_id", "MOCK_ANALYST_USER_ID"),
-            description="Mock Analyst User ID",
-        ),
-    ] = "usr_0195f3a000007009836983a7a6c643ab"
 
     @field_validator("max_cost_usd_per_run")
     @classmethod

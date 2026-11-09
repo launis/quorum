@@ -137,7 +137,7 @@ class LLMFactory:
         resolved_api_key = api_key
         match provider_type.lower():
             case LLMProviderName.VERTEX_AI.value | "vertex_ai":
-                # Vertex AI authenticates via GCP Application Default Credentials backed by service-account.json
+                # Vertex AI authenticates via GCP Application Default Credentials or encrypted tenant_secrets
                 return None
             case LLMProviderName.AI_STUDIO.value | "ai_studio":
                 if not resolved_api_key:

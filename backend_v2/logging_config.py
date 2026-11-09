@@ -452,14 +452,12 @@ def log_startup_system_parameters(logger: logging.Logger, component_name: str) -
     """
     settings = get_settings()
     sampling_desc = "All 305 atoms (Production)" if settings.matrix_sampling_limit == 0 else "Dev sampling"
-    mock_tokens_desc = "Local only" if settings.allow_mock_tokens else "Cloud Protected"
 
     logger.info("======================================================================")
     logger.info("   [SYSTEM STARTUP CONFIGURATION] - %s", component_name)
     logger.info("======================================================================")
     logger.info("Environment:                %s", settings.environment)
     logger.info("Matrix Sampling Limit:      %s (%s)", settings.matrix_sampling_limit, sampling_desc)
-    logger.info("Mock Tokens Allowed:        %s (%s)", settings.allow_mock_tokens, mock_tokens_desc)
     logger.info("Storage Backend:            %s (Path: %s)", settings.active_backend.value, settings.prod_db_path)
     logger.info("Concurrency:")
     logger.info("  Max Concurrent LLM Steps: %s", settings.max_concurrent_llm_steps)

@@ -418,14 +418,14 @@ class TokenService:
             Resolved User domain model or None if not found.
 
         Raises:
-            AuthenticationError: With ErrorCodes.PERMISSION_DENIED if neither allow_mock_tokens nor secret matches.
+            AuthenticationError: With ErrorCodes.PERMISSION_DENIED if service_auth_secret does not match.
         """
         secret_matches = (
             provided_secret is not None
             and settings.service_auth_secret is not None
             and secrets.compare_digest(provided_secret, settings.service_auth_secret.get_secret_value())
         )
-        if not settings.allow_mock_tokens and not secret_matches:
+        if not secret_matches:
             logger.error(
                 "[TokenService] %s: Unauthorized headless CLI token exchange attempt for user %s.",
                 ErrorCodes.PERMISSION_DENIED.name,

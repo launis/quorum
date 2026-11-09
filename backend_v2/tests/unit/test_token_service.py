@@ -211,7 +211,7 @@ async def test_exchange_headless_user_token_unauthorized_negative(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Contract: TokenExchangeRequestDTO(target_user_id=...) when allow_mock_tokens=False and secret mismatched raises 401."""
+    """Contract: TokenExchangeRequestDTO(target_user_id=...) when service_auth_secret is missing or mismatched raises 401."""
     mock_settings = Settings(
         use_mock_llm=True,
         environment="production",
@@ -246,16 +246,50 @@ async def test_exchange_headless_user_token_unauthorized_negative(
 
 
 @pytest.mark.asyncio
+async def test_headless_cli_exchange_requires_service_auth_secret_even_in_development(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify headless CLI token exchange requires service_auth_secret unconditionally even in development."""
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        service_auth_secret=SecretStr("dev_cli_shared_secret_123456"),
+    )
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+
+    token_service = TokenService(
+        repo=UserRepository(mock_repo),
+        use_firebase=False,
+        get_settings_fn=lambda: mock_settings,
+    )
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        await token_service.exchange_firebase_token(
+            TokenExchangeRequestDTO(
+                target_user_id="usr_0195f3a00000700a83fd6b3d77c748f4",
+                service_auth_secret=None,
+            )
+        )
+    assert exc_info.value.error_code == ErrorCodes.PERMISSION_DENIED
+    assert ErrorCodes.PERMISSION_DENIED.name in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_verify_token_ram_decode_zero_db_queries_positive(
     mock_repo: InMemoryUnifiedWorkflowRepository,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Contract: Valid signed Quorum Local JWT passed to TokenService.verify_token decodes in RAM with 0 DB queries."""
+    shared_secret = SecretStr("test_cli_service_secret_ram_decode")
     mock_settings = Settings(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
         require_mfa=True,
+        service_auth_secret=shared_secret,
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
 
@@ -278,7 +312,9 @@ async def test_verify_token_ram_decode_zero_db_queries_positive(
         get_settings_fn=lambda: mock_settings,
     )
 
-    exchange_res = await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=user.id))
+    exchange_res = await token_service.exchange_firebase_token(
+        TokenExchangeRequestDTO(target_user_id=user.id, service_auth_secret=shared_secret)
+    )
     calls_before_verify = mock_repo.get_call_count("get_user")
     assert calls_before_verify == 1
 
@@ -408,11 +444,13 @@ async def test_exchange_firebase_token_inactive_deleted_or_revoked_user_negative
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify exchange_firebase_token rejects missing, inactive, soft-deleted, or Redis-revoked users."""
+    shared_secret = SecretStr("test_cli_service_secret_negative_users")
     mock_settings = Settings(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
         require_mfa=True,
+        service_auth_secret=shared_secret,
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
 
@@ -469,23 +507,32 @@ async def test_exchange_firebase_token_inactive_deleted_or_revoked_user_negative
     # Missing user
     with pytest.raises(AuthenticationError) as exc_missing:
         await token_service.exchange_firebase_token(
-            TokenExchangeRequestDTO(target_user_id="usr_0195f3a0000070008000000000000799")
+            TokenExchangeRequestDTO(
+                target_user_id="usr_0195f3a0000070008000000000000799",
+                service_auth_secret=shared_secret,
+            )
         )
     assert exc_missing.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
     # Inactive user
     with pytest.raises(AuthenticationError) as exc_inactive:
-        await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=inactive_user.id))
+        await token_service.exchange_firebase_token(
+            TokenExchangeRequestDTO(target_user_id=inactive_user.id, service_auth_secret=shared_secret)
+        )
     assert exc_inactive.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
     # Soft-deleted user
     with pytest.raises(AuthenticationError) as exc_deleted:
-        await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=deleted_user.id))
+        await token_service.exchange_firebase_token(
+            TokenExchangeRequestDTO(target_user_id=deleted_user.id, service_auth_secret=shared_secret)
+        )
     assert exc_deleted.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
     # Revoked user lock in RevocationCache
     with pytest.raises(AuthenticationError) as exc_revoked:
-        await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=revoked_user.id))
+        await token_service.exchange_firebase_token(
+            TokenExchangeRequestDTO(target_user_id=revoked_user.id, service_auth_secret=shared_secret)
+        )
     assert exc_revoked.value.error_code == ErrorCodes.AUTH_TOKEN_EXPIRED
 
 

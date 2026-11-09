@@ -25,7 +25,7 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
-from backend_v2.models.enums import SystemLocale
+from backend_v2.models.enums import ExecutionStatus, SystemLocale
 from backend_v2.services.auth import (
     SYSTEM_ROOT_USER_ID,
     AuthService,
@@ -33,6 +33,7 @@ from backend_v2.services.auth import (
     UserRepository,
     UserService,
 )
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -2053,14 +2054,18 @@ async def test_user_service_with_exchanged_quorum_jwt_token_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify UserService accepts stateless TokenData decoded from an exchanged Quorum Local JWT."""
+    from pydantic import SecretStr
+
     from backend_v2.models.auth import TokenExchangeRequestDTO
     from backend_v2.settings import Settings
 
+    cli_secret = SecretStr("test_user_service_cli_secret_2026")
     mock_settings = Settings(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
         require_mfa=True,
+        service_auth_secret=cli_secret,
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
     monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
@@ -2080,7 +2085,7 @@ async def test_user_service_with_exchanged_quorum_jwt_token_data(
 
     auth_service = AuthService(mock_repo, use_firebase=False)
     exchanged = await auth_service.token_service.exchange_firebase_token(
-        TokenExchangeRequestDTO(target_user_id=admin_user.id)
+        TokenExchangeRequestDTO(target_user_id=admin_user.id, service_auth_secret=cli_secret)
     )
     verified_token_data = await auth_service.verify_token(exchanged.access_token)
     assert verified_token_data.mfa_verified is True
@@ -2234,8 +2239,6 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
 
     from pydantic import SecretStr
 
-    from backend_v2.models.domain.execution import ExecutionRecord
-    from backend_v2.models.enums import ExecutionStatus
     from backend_v2.settings import Settings
 
     webhook_secret = "whsec_gdpr_soft_delete_test_secret_2026"
@@ -2303,7 +2306,7 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
         )
     )
 
-    exec1 = ExecutionRecord(
+    exec1 = ExecutionRecordFactory.build(
         id="exe_0195f3a00000700080000000000000d1",
         workflow_id="wor_0195f3a0000070008000000000000001",
         status=ExecutionStatus.PENDING,
@@ -2312,7 +2315,7 @@ async def test_gdpr_soft_delete_preserves_executions_positive(
         organization_id=org_id,
         target_locale=SystemLocale.EN,
     )
-    exec2 = ExecutionRecord(
+    exec2 = ExecutionRecordFactory.build(
         id="exe_0195f3a00000700080000000000000d2",
         workflow_id="wor_0195f3a0000070008000000000000001",
         status=ExecutionStatus.PENDING,

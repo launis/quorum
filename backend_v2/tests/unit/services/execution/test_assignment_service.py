@@ -111,6 +111,7 @@ def _build_workflow() -> Workflow:
                 is_chat_history=False,
                 input_modes=["paste"],
                 description=I18nText(translations={"en": "Manager Context", "fi": "Konteksti"}),
+                questionnaire_definition=[],
             ),
             ExpectedInput(
                 input_key="candidate_answer",
@@ -119,12 +120,15 @@ def _build_workflow() -> Workflow:
                 is_chat_history=False,
                 input_modes=["paste"],
                 description=I18nText(translations={"en": "Candidate Answer", "fi": "Vastaus"}),
+                questionnaire_definition=[],
             ),
         ],
         steps=[
             StepRule(
                 id=STEP_ID,
                 task_blueprint=STEP_ID,
+                depends_on=[],
+                input_mappings={},
             )
         ],
         default_profile_id=PROFILE_ID,
@@ -161,6 +165,11 @@ async def _setup_assignment_harness(
             type=StepType.LOGIC,
             hook="my_hook",
             mcp_tool_params={},
+            criteria_block_ids=[],
+            pre_hooks=[],
+            post_hooks=[],
+            allowed_mcp_tools=[],
+            expected_inputs=[],
         )
     )
     await wf_repo.save_output_profile(
@@ -172,6 +181,10 @@ async def _setup_assignment_harness(
             target_block_order=[],
             visible_block_extensions=[],
             visible_workflow_extensions=[],
+            visible_metadata=[],
+            matrix_visible_columns=[],
+            matrix_synthesis_groups=[],
+            content_blocks=[],
         )
     )
     system_repo = InMemorySystemRepository()
@@ -324,7 +337,7 @@ async def test_assignment_activate_identity_mismatch_negative(
         payload=ExecutionAssignmentCreateDTO(
             assigned_email="participant@alpha.fi",
             workflow_id=WORKFLOW_ID,
-            locked_inputs=WorkflowInputs(),
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
             assignee_input_keys=[],
             hard_deadline_at=datetime.now(UTC) + timedelta(hours=24),
         ),
@@ -478,7 +491,7 @@ async def test_assignment_batch_creation_and_collision_guards(
                     ExecutionAssignmentRecipientDTO(email="outside@rogue.com"),
                 ],
                 workflow_id=WORKFLOW_ID,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=deadline,
             ),
@@ -508,7 +521,7 @@ async def test_assignment_batch_creation_and_collision_guards(
                     ExecutionAssignmentRecipientDTO(email="taken@alpha.fi"),
                 ],
                 workflow_id=WORKFLOW_ID,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=deadline,
             ),
@@ -531,7 +544,7 @@ async def test_assignment_batch_creation_and_collision_guards(
                 ),
             ],
             workflow_id=WORKFLOW_ID,
-            locked_inputs=WorkflowInputs(),
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
             assignee_input_keys=[],
             hard_deadline_at=deadline,
             relative_duration_seconds=900,
@@ -558,7 +571,7 @@ async def test_assignment_role_scope_and_deadline_validation_negative() -> None:
                 assigned_email="cand@alpha.fi",
                 invited_role=UserRole.ADMIN,
                 workflow_id=WORKFLOW_ID,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=future_deadline,
             ),
@@ -578,7 +591,7 @@ async def test_assignment_role_scope_and_deadline_validation_negative() -> None:
                 assigned_email="cand@alpha.fi",
                 invited_role=UserRole.ROOT,
                 workflow_id=WORKFLOW_ID,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=future_deadline,
             ),
@@ -591,7 +604,7 @@ async def test_assignment_role_scope_and_deadline_validation_negative() -> None:
             payload=ExecutionAssignmentCreateDTO(
                 assigned_email="cand@alpha.fi",
                 workflow_id=WORKFLOW_ID,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=future_deadline,
             ),
@@ -604,7 +617,7 @@ async def test_assignment_role_scope_and_deadline_validation_negative() -> None:
             payload=ExecutionAssignmentCreateDTO(
                 assigned_email="cand@alpha.fi",
                 workflow_id=WORKFLOW_ID,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=datetime.now(UTC) - timedelta(minutes=5),
             ),
@@ -762,8 +775,17 @@ async def test_assignment_jit_onboarding_draft_and_confirmation_only_visibility(
 
 
 @pytest.mark.asyncio
-async def test_assignment_firebase_onboarding_mfa_and_router_endpoints() -> None:
+async def test_assignment_firebase_onboarding_mfa_and_router_endpoints(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify Firebase 2FA enforcement during onboarding and router endpoint delegation."""
+    from backend_v2.settings import get_settings
+
+    mfa_settings = get_settings().model_copy(update={"require_mfa": True})
+    monkeypatch.setattr(
+        "backend_v2.services.execution.assignment_service.get_settings",
+        lambda: mfa_settings,
+    )
     assignment_service, execution_service, _, _, _, _ = await _setup_assignment_harness()
     deadline = datetime.now(UTC) + timedelta(hours=8)
 
@@ -784,7 +806,7 @@ async def test_assignment_firebase_onboarding_mfa_and_router_endpoints() -> None
         payload=ExecutionAssignmentBatchCreateDTO(
             recipients=[ExecutionAssignmentRecipientDTO(email="batch.router@alpha.fi")],
             workflow_id=WORKFLOW_ID,
-            locked_inputs=WorkflowInputs(),
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
             assignee_input_keys=[],
             hard_deadline_at=deadline,
         ),
@@ -936,7 +958,7 @@ async def test_assignment_edge_and_negative_branches() -> None:
             payload=ExecutionAssignmentCreateDTO(
                 assigned_email="participant@alpha.fi",
                 workflow_id=WORKFLOW_ID,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
             ),
@@ -1041,7 +1063,7 @@ async def test_assignment_edge_and_negative_branches() -> None:
         await assignment_service.save_draft_inputs(
             _assignee_token(),
             created.id,
-            ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs()),
+            ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs(dynamic_inputs={})),
         )
 
     # Firebase onboarding missing token and invalid token branches
@@ -1055,7 +1077,7 @@ async def test_assignment_edge_and_negative_branches() -> None:
         payload=ExecutionAssignmentCreateDTO(
             assigned_email="fb.edge@alpha.fi",
             workflow_id=WORKFLOW_ID,
-            locked_inputs=WorkflowInputs(),
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
             assignee_input_keys=[],
             hard_deadline_at=datetime.now(UTC) + timedelta(hours=2),
         ),

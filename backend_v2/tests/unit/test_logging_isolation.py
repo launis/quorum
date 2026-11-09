@@ -104,7 +104,7 @@ def test_log_startup_system_parameters_banner(caplog: pytest.LogCaptureFixture) 
     assert "[SYSTEM STARTUP CONFIGURATION] - FASTAPI TEST SERVER" in full_output
     assert "Environment:" in full_output
     assert "Matrix Sampling Limit:" in full_output
-    assert "Mock Tokens Allowed:" in full_output
+    assert "Mock Tokens Allowed:" not in full_output
     assert "Storage Backend:" in full_output
     assert "Max Concurrent LLM Steps:" in full_output
     assert "Max Concurrent Workflows:" in full_output

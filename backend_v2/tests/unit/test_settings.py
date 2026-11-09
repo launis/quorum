@@ -107,7 +107,6 @@ def test_settings_properties_and_computed_fields() -> None:
     assert settings.active_backend == StorageBackend.POSTGRES
     assert settings.is_cloud_storage is False
     assert settings.log_format == "json"
-    assert settings.allow_mock_tokens is True
     assert settings.schema_max_chunk_records == settings.llm_max_chunk_size + 5
     assert settings.schema_max_source_aliases == min(
         settings.schema_max_quotes_target, settings.schema_max_chunk_records
@@ -131,15 +130,11 @@ def test_settings_properties_and_computed_fields() -> None:
     assert len(settings.default_safety_settings) == 4
 
 
-def test_settings_service_account_auto_detection() -> None:
-    """Test auto-detection of service-account.json in root when credentials are not preset."""
-    with (
-        patch.dict("backend_v2.settings.os.environ", {}, clear=True) as scoped_env,
-        patch("backend_v2.settings.Path.exists", return_value=True),
-    ):
+def test_settings_enabled_providers_vertex_env_detection() -> None:
+    """Test enabled_providers includes vertex_ai when GCP environment variables are configured."""
+    with patch.dict("backend_v2.settings.os.environ", {"VERTEX_PROJECT_ID": "quorum-proj"}, clear=True):
         settings = Settings(use_mock_llm=False)
         assert settings.use_mock_llm is False
-        assert "GOOGLE_APPLICATION_CREDENTIALS" in scoped_env
         assert "vertex_ai" in settings.enabled_providers
 
 
@@ -156,8 +151,6 @@ def test_settings_storage_backend_fallback_and_invalid(monkeypatch: pytest.Monke
     s_invalid = Settings(use_mock_llm=True)
     with pytest.raises(AppException, match="Unsupported STORAGE_BACKEND"):
         _ = s_invalid.active_backend
-    with pytest.raises(AppException, match="Unsupported STORAGE_BACKEND"):
-        _ = s_invalid.allow_mock_tokens
     monkeypatch.delenv("STORAGE_BACKEND", raising=False)
 
     s_dev = Settings(use_mock_llm=True, environment="development", use_json_logging=False)
@@ -165,10 +158,6 @@ def test_settings_storage_backend_fallback_and_invalid(monkeypatch: pytest.Monke
 
     s_prod = Settings(use_mock_llm=True, environment="production", use_json_logging=False)
     assert s_prod.log_format == "json"
-    assert s_prod.allow_mock_tokens is False
-
-    s_prod_local = Settings(use_mock_llm=True, environment="production", use_firebase_auth=False)
-    assert s_prod_local.allow_mock_tokens is True
 
     s_cloud = Settings(
         use_mock_llm=True,
@@ -176,44 +165,14 @@ def test_settings_storage_backend_fallback_and_invalid(monkeypatch: pytest.Monke
         storage_bucket_name="quorum-prod-bucket",
     )
     assert s_cloud.is_cloud_storage is True
-    assert s_cloud.allow_mock_tokens is False
 
 
-def test_settings_allow_mock_tokens_defense_in_depth() -> None:
-    """Test defense-in-depth firewall for allow_mock_tokens under PostgreSQL 19."""
-    # Negative Partition: POSTGRES storage with active Firebase auth bans mock tokens in production
-    s_pg_prod_fb = Settings(
-        use_mock_llm=True,
-        use_firebase_auth=True,
-        environment="production",
-    )
-    assert s_pg_prod_fb.allow_mock_tokens is False
-
-    # Positive Partition 1: POSTGRES storage in development allows mock tokens
-    s_pg_dev = Settings(
-        use_mock_llm=True,
-        use_firebase_auth=True,
-        environment="development",
-    )
-    assert s_pg_dev.allow_mock_tokens is True
-
-    # Positive Partition 2: POSTGRES storage with disabled Firebase auth allows mock tokens
-    s_pg_no_fb = Settings(
-        use_mock_llm=True,
-        use_firebase_auth=False,
-        environment="production",
-    )
-    assert s_pg_no_fb.allow_mock_tokens is True
-
-
-def test_settings_model_post_init_no_credentials_raises() -> None:
-    """Test production mode without credentials raises AppException."""
-    with (
-        patch.dict("backend_v2.settings.os.environ", {}, clear=True),
-        patch("backend_v2.settings.Path.exists", return_value=False),
-    ):
-        with pytest.raises(AppException):
-            Settings(use_mock_llm=False, google_api_key=None)
+def test_settings_production_mode_without_env_credentials_succeeds_for_database_secrets() -> None:
+    """Test production mode initializes cleanly when LLM credentials reside in PostgreSQL 19 tenant_secrets."""
+    with patch.dict("backend_v2.settings.os.environ", {}, clear=True):
+        settings = Settings(use_mock_llm=False, google_api_key=None)
+        assert settings.use_mock_llm is False
+        assert settings.google_api_key is None
 
 
 def test_get_lexical_fuzz_threshold() -> None:

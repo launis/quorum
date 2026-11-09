@@ -104,6 +104,7 @@ import requests
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from backend_v2.models.auth import (
+    SYSTEM_ROOT_USER_ID,
     CliSessionStateDTO,
     TokenExchangeRequestDTO,
     TokenExchangeResponseDTO,
@@ -966,7 +967,7 @@ def trigger_execution(
 
     settings = get_settings()
     base_url = f"{_resolve_api_root()}/api/v2"
-    cli_session = _get_or_refresh_cli_session(base_url, settings.mock_admin_user_id)
+    cli_session = _get_or_refresh_cli_session(base_url, SYSTEM_ROOT_USER_ID)
     headers = {"Authorization": f"Bearer {cli_session.access_token}"}
 
     w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=settings.mcp_default_timeout_seconds)
@@ -1677,7 +1678,7 @@ def poll_database_for_execution(
         try:
             cli_session = _get_or_refresh_cli_session(
                 resolved_base_url,
-                settings.mock_admin_user_id,
+                SYSTEM_ROOT_USER_ID,
                 cli_session,
             )
             headers = {"Authorization": f"Bearer {cli_session.access_token}"}
@@ -1946,7 +1947,7 @@ def run_variance_test(
 
         settings = get_settings()
         base_url = f"{_resolve_api_root()}/api/v2"
-        cli_session = _get_or_refresh_cli_session(base_url, settings.mock_admin_user_id)
+        cli_session = _get_or_refresh_cli_session(base_url, SYSTEM_ROOT_USER_ID)
         headers = {"Authorization": f"Bearer {cli_session.access_token}"}
 
         w_res = requests.get(

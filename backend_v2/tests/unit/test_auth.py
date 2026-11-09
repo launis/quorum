@@ -203,13 +203,17 @@ async def test_auth_router_exchange_logout_and_impersonate_flow(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify exchange_firebase_token, logout_user, and impersonate_user router endpoints and AuthService methods."""
+    from pydantic import SecretStr
+
     from backend_v2.settings import Settings
 
+    cli_secret = SecretStr("test_auth_router_service_secret_2026")
     mock_settings = Settings(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
         require_mfa=True,
+        service_auth_secret=cli_secret,
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
     monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
@@ -248,7 +252,7 @@ async def test_auth_router_exchange_logout_and_impersonate_flow(
     rate_limiter = TenantRateLimitService(redis=FakeRedis(), get_settings_fn=lambda: mock_settings)
     exchange_res = await exchange_firebase_token(
         request=mock_req,
-        payload=TokenExchangeRequestDTO(target_user_id=USER_1_ID),
+        payload=TokenExchangeRequestDTO(target_user_id=USER_1_ID, service_auth_secret=cli_secret),
         auth_service=service,
         rate_limit_service=rate_limiter,
     )
@@ -645,13 +649,17 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     from backend_v2.settings import Settings
 
     secret_val = "whsec_router_test_2026"
+    cli_secret = SecretStr("test_webhook_cli_service_secret_2026")
     mock_settings = Settings(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
         firebase_webhook_secret=SecretStr(secret_val),
+        service_auth_secret=cli_secret,
     )
     monkeypatch.setattr("backend_v2.services.auth.user_service.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
 
     service = AuthService(mock_repo, use_firebase=False)
     now = datetime.now(UTC)
@@ -702,7 +710,7 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     with pytest.raises(AuthenticationError) as exc_ex:
         await exchange_firebase_token(
             request=mock_req,
-            payload=TokenExchangeRequestDTO(target_user_id=USER_2_ID),
+            payload=TokenExchangeRequestDTO(target_user_id=USER_2_ID, service_auth_secret=cli_secret),
             auth_service=service,
             rate_limit_service=rate_limiter,
         )
@@ -712,7 +720,7 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     bva_limiter = TenantRateLimitService(redis=FakeRedis(), get_settings_fn=lambda: bva_settings)
     active_member = member.model_copy(update={"is_active": True, "deleted_at": None})
     await mock_repo.create_user(active_member)
-    valid_payload = TokenExchangeRequestDTO(target_user_id=USER_1_ID)
+    valid_payload = TokenExchangeRequestDTO(target_user_id=USER_1_ID, service_auth_secret=cli_secret)
 
     res_1 = await exchange_firebase_token(
         request=mock_req,

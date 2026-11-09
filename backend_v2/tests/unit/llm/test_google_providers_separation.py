@@ -159,19 +159,18 @@ def test_istqb_equivalence_enabled_providers_independence() -> None:
         assert "vertex_ai" not in enabled
         assert "google" not in enabled
 
-    # Case B: Only service-account.json present -> vertex_ai enabled, ai_studio disabled
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch.dict(
-            "os.environ", {"VERTEX_PROJECT_ID": "test-proj", "GOOGLE_APPLICATION_CREDENTIALS": "service-account.json"}
-        ),
+    # Case B: Only VERTEX_PROJECT_ID present -> vertex_ai enabled, ai_studio disabled
+    with patch.dict(
+        "backend_v2.settings.os.environ",
+        {"VERTEX_PROJECT_ID": "test-proj"},
+        clear=False,
     ):
         settings_vertex_only = Settings(
             use_mock_llm=False,
             google_api_key=None,
             openai_api_key=None,
             anthropic_api_key=None,
-            google_application_credentials="service-account.json",
+            google_application_credentials=None,
             vertex_project_id="test-proj",
         )
         enabled = settings_vertex_only.enabled_providers

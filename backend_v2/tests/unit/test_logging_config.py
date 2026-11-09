@@ -197,8 +197,8 @@ def test_context_filter_execution_and_request_ids(monkeypatch: pytest.MonkeyPatc
 
     record1 = logger.makeRecord("test.filter", logging.INFO, "fn", 1, "msg", (), None)
     c_filter.filter(record1)
-    assert record1.context_id == "EXEC:exec_123"
-    assert record1.execution_id == "exec_1234567890"
+    assert object.__getattribute__(record1, "context_id") == "EXEC:exec_123"
+    assert object.__getattribute__(record1, "execution_id") == "exec_1234567890"
 
     # 2. Request ID when no execution ID
     monkeypatch.setattr("backend_v2.logging_config.get_execution_context", lambda: None)
@@ -206,8 +206,8 @@ def test_context_filter_execution_and_request_ids(monkeypatch: pytest.MonkeyPatc
 
     record2 = logger.makeRecord("test.filter", logging.INFO, "fn", 2, "msg", (), None)
     c_filter.filter(record2)
-    assert record2.context_id == "REQ:req_9876"
-    assert record2.execution_id == "req_9876543210"
+    assert object.__getattribute__(record2, "context_id") == "REQ:req_9876"
+    assert object.__getattribute__(record2, "execution_id") == "req_9876543210"
 
     # 3. Fallback to SYSTEM
     monkeypatch.setattr("backend_v2.logging_config.get_execution_context", lambda: None)
@@ -215,8 +215,8 @@ def test_context_filter_execution_and_request_ids(monkeypatch: pytest.MonkeyPatc
 
     record3 = logger.makeRecord("test.filter", logging.INFO, "fn", 3, "msg", (), None)
     c_filter.filter(record3)
-    assert record3.context_id == "SYSTEM"
-    assert record3.execution_id == "SYSTEM"
+    assert object.__getattribute__(record3, "context_id") == "SYSTEM"
+    assert object.__getattribute__(record3, "execution_id") == "SYSTEM"
 
 
 def test_uvicorn_polling_filter() -> None:
@@ -353,7 +353,7 @@ def test_log_startup_system_parameters_banner(caplog: pytest.LogCaptureFixture) 
     assert "[SYSTEM STARTUP CONFIGURATION] - FASTAPI TEST SERVER" in full_output
     assert "Environment:" in full_output
     assert "Matrix Sampling Limit:" in full_output
-    assert "Mock Tokens Allowed:" in full_output
+    assert "Mock Tokens Allowed:" not in full_output
     assert "Storage Backend:" in full_output
 
 
