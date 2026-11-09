@@ -670,3 +670,158 @@ async def test_token_service_boundary_and_negative_branches(
     verified_no_actor = await service_no_fb.verify_token(imp_no_actor)
     assert verified_no_actor.actor_id is None
     assert verified_no_actor.id == "usr_0195f3a0000070008000000000000101"
+
+
+@pytest.mark.asyncio
+async def test_initialize_firebase_admin_from_secrets_initializes_app_from_vertex_sa(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify initialize_firebase_admin_from_secrets decrypts vertex_ai SA JSON and initializes firebase_admin."""
+    from backend_v2.exceptions import ConfigurationError
+    from backend_v2.models.auth import (
+        SYSTEM_ROOT_USER_ID,
+        SystemOrganizations,
+        TenantSecretCreateDTO,
+    )
+    from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode
+    from backend_v2.services.auth.secret_service import SecretService
+    from backend_v2.services.auth.token_service import initialize_firebase_admin_from_secrets
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+
+    uow = InMemoryUnitOfWork()
+    secret_service = SecretService(entity_adapter=uow.entities)
+    initiator = TokenData(
+        id=SYSTEM_ROOT_USER_ID,
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        email="root@example.com",
+        mfa_verified=True,
+    )
+    sa_json = '{"type": "service_account", "project_id": "quorum-test-proj", "client_email": "sa@test.iam.gserviceaccount.com"}'
+    await secret_service.upsert_tenant_secret(
+        initiator=initiator,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.VERTEX_AI.value,
+            plaintext_secret=SecretStr(sa_json),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
+    mock_fb_admin = MagicMock()
+    mock_fb_admin._apps = {}
+    mock_fb_creds = MagicMock()
+    mock_cert_obj = MagicMock()
+    mock_fb_creds.Certificate.return_value = mock_cert_obj
+
+    monkeypatch.setattr("backend_v2.services.auth.token_service.firebase_admin", mock_fb_admin)
+    monkeypatch.setattr("backend_v2.services.auth.token_service.firebase_credentials_module", mock_fb_creds)
+
+    # No-op when use_firebase_auth is False
+    disabled_settings = Settings(use_mock_llm=True, use_firebase_auth=False)
+    await initialize_firebase_admin_from_secrets(secret_service, disabled_settings)
+    mock_fb_creds.Certificate.assert_not_called()
+
+    # Initializes Certificate and default app when use_firebase_auth is True and _apps is empty
+    enabled_settings = Settings(use_mock_llm=True, use_firebase_auth=True)
+    await initialize_firebase_admin_from_secrets(secret_service, enabled_settings)
+    mock_fb_creds.Certificate.assert_called_once_with(
+        {
+            "type": "service_account",
+            "project_id": "quorum-test-proj",
+            "client_email": "sa@test.iam.gserviceaccount.com",
+        }
+    )
+    mock_fb_admin.initialize_app.assert_called_once_with(mock_cert_obj)
+
+    # Idempotent no-op when _apps is already populated
+    mock_fb_admin._apps = {"[DEFAULT]": MagicMock()}
+    await initialize_firebase_admin_from_secrets(secret_service, enabled_settings)
+    assert mock_fb_admin.initialize_app.call_count == 1
+
+    # Fails fast when firebase_admin is not installed
+    monkeypatch.setattr("backend_v2.services.auth.token_service.firebase_admin", None)
+    with pytest.raises(ConfigurationError) as exc_missing_sdk:
+        await initialize_firebase_admin_from_secrets(secret_service, enabled_settings)
+    assert exc_missing_sdk.value.error_code == ErrorCodes.CONFIGURATION_ERROR
+
+
+@pytest.mark.asyncio
+async def test_initialize_firebase_admin_from_secrets_fails_fast_on_invalid_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify initialize_firebase_admin_from_secrets raises ConfigurationError on non-JSON or malformed SA secret."""
+    from backend_v2.exceptions import ConfigurationError
+    from backend_v2.models.auth import (
+        SYSTEM_ROOT_USER_ID,
+        SystemOrganizations,
+        TenantSecretCreateDTO,
+    )
+    from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode
+    from backend_v2.services.auth.secret_service import SecretService
+    from backend_v2.services.auth.token_service import initialize_firebase_admin_from_secrets
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+
+    uow = InMemoryUnitOfWork()
+    secret_service = SecretService(entity_adapter=uow.entities)
+    initiator = TokenData(
+        id=SYSTEM_ROOT_USER_ID,
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        email="root@example.com",
+        mfa_verified=True,
+    )
+
+    mock_fb_admin = MagicMock()
+    mock_fb_admin._apps = {}
+    mock_fb_creds = MagicMock()
+    monkeypatch.setattr("backend_v2.services.auth.token_service.firebase_admin", mock_fb_admin)
+    monkeypatch.setattr("backend_v2.services.auth.token_service.firebase_credentials_module", mock_fb_creds)
+    enabled_settings = Settings(use_mock_llm=True, use_firebase_auth=True)
+
+    # Case 1: Non-JSON prefix
+    await secret_service.upsert_tenant_secret(
+        initiator=initiator,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.VERTEX_AI.value,
+            plaintext_secret=SecretStr("not-a-json-object"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    with pytest.raises(ConfigurationError) as exc_non_json:
+        await initialize_firebase_admin_from_secrets(secret_service, enabled_settings)
+    assert exc_non_json.value.error_code == ErrorCodes.CONFIGURATION_ERROR
+
+    # Case 2: Starts with '{' but invalid JSON syntax
+    await secret_service.upsert_tenant_secret(
+        initiator=initiator,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.VERTEX_AI.value,
+            plaintext_secret=SecretStr("{malformed_json_payload"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    with pytest.raises(ConfigurationError) as exc_bad_syntax:
+        await initialize_firebase_admin_from_secrets(secret_service, enabled_settings)
+    assert exc_bad_syntax.value.error_code == ErrorCodes.CONFIGURATION_ERROR
+
+    # Case 3: Valid JSON object but Certificate() raises ValueError
+    await secret_service.upsert_tenant_secret(
+        initiator=initiator,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.VERTEX_AI.value,
+            plaintext_secret=SecretStr('{"type": "invalid_cert"}'),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    mock_fb_creds.Certificate.side_effect = ValueError("Invalid certificate fields")
+    with pytest.raises(ConfigurationError) as exc_cert_err:
+        await initialize_firebase_admin_from_secrets(secret_service, enabled_settings)
+    assert exc_cert_err.value.error_code == ErrorCodes.CONFIGURATION_ERROR

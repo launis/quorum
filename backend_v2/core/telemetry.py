@@ -31,6 +31,7 @@ from backend_v2.models.dtos.telemetry import (
 )
 
 if TYPE_CHECKING:
+    from backend_v2.services.auth.secret_service import SecretService
     from backend_v2.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ __all__ = [
     "extract_trace_context",
     "get_tracer",
     "inject_trace_context",
+    "resolve_startup_logfire_token",
     "use_trace_context",
 ]
 
@@ -297,10 +299,35 @@ class LocalTraceSnapshotExporter(SpanExporter):
         return True
 
 
+async def resolve_startup_logfire_token(
+    settings: Settings,
+    secret_service: SecretService,
+) -> str | None:
+    """Resolve the platform Logfire telemetry token from PostgreSQL 19 tenant_secrets at startup.
+
+    Args:
+        settings: Application Settings containing OpenTelemetry activation state.
+        secret_service: SecretService instance bound to the database persistence port.
+
+    Returns:
+        Decrypted Logfire token string when configured in tenant_secrets, or None when
+        OpenTelemetry is disabled or no 'logfire' row exists in tenant_secrets.
+    """
+    if not settings.otel_enabled:
+        return None
+    try:
+        credential = await secret_service.resolve_telemetry_secret("logfire")
+        return credential.secret_value.get_secret_value()
+    except AppException, OSError, RuntimeError:
+        logger.info("No 'logfire' secret configured in tenant_secrets; using local OpenTelemetry TracerProvider.")
+        return None
+
+
 def configure_telemetry(
     settings: Settings,
     service_name_override: str | None = None,
     app: Any | None = None,
+    logfire_token: str | None = None,
 ) -> None:
     """Configures centralized OpenTelemetry and Logfire distributed tracing.
 
@@ -313,6 +340,7 @@ def configure_telemetry(
         settings: Application Settings containing OpenTelemetry configuration.
         service_name_override: Optional logical service name override.
         app: Optional FastAPI application instance for framework instrumentation.
+        logfire_token: Optional decrypted Logfire token resolved from tenant_secrets.
 
     Raises:
         AppException: Triggered with CONFIGURATION_ERROR if service_name_override is empty/whitespace
@@ -332,9 +360,13 @@ def configure_telemetry(
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
+    effective_logfire_token = settings.logfire_token
+    if logfire_token is not None:
+        effective_logfire_token = logfire_token
+
     global _TELEMETRY_CONFIGURED
     if _TELEMETRY_CONFIGURED:
-        if app is not None and id(app) not in _INSTRUMENTED_APPS and settings.logfire_token:
+        if app is not None and id(app) not in _INSTRUMENTED_APPS and effective_logfire_token:
             try:
                 import logfire
 
@@ -368,7 +400,7 @@ def configure_telemetry(
     if service_name_override is not None:
         service_name = service_name_override
 
-    if settings.logfire_token:
+    if effective_logfire_token:
         try:
             import logfire
 
@@ -376,7 +408,7 @@ def configure_telemetry(
             os.environ["LOGFIRE_CONSOLE"] = "false"
 
             logfire.configure(
-                token=settings.logfire_token,
+                token=effective_logfire_token,
                 service_name=service_name,
                 send_to_logfire=True,
             )

@@ -37,17 +37,19 @@ from backend_v2.api.routers.output_profiles import router as output_profiles_rou
 from backend_v2.api.routers.studio import router as studio_router
 from backend_v2.api.routers.system import router as system_router
 from backend_v2.context import set_request_context
-from backend_v2.core.telemetry import configure_telemetry
+from backend_v2.core.telemetry import configure_telemetry, resolve_startup_logfire_token
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.factory import (
     close_shared_pool_manager,
     create_unit_of_work,
     get_shared_pool_manager,
 )
-from backend_v2.database.interfaces import QuorumUnitOfWork
+from backend_v2.database.interfaces import QuorumUnitOfWork, get_registered_uow_factory
 from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
 from backend_v2.logging_config import log_startup_system_parameters, setup_logging
+from backend_v2.services.auth.secret_service import SecretService
+from backend_v2.services.auth.token_service import initialize_firebase_admin_from_secrets
 from backend_v2.services.localization import set_language
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
@@ -190,7 +192,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     setup_logging()
     settings = get_settings()
-    configure_telemetry(settings, app=app)
     logger = logging.getLogger("backend.main")
     log_startup_system_parameters(logger, "FASTAPI API SERVER")
 
@@ -205,6 +206,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
         await _validate_database_preflight(logger)
         app.state.pool_manager = get_shared_pool_manager(settings)
+        secret_service = SecretService(uow_factory=get_registered_uow_factory())
+        startup_logfire_token: str | None = None
+        if app.state.pool_manager.is_initialized:
+            startup_logfire_token = await resolve_startup_logfire_token(settings, secret_service)
+            await initialize_firebase_admin_from_secrets(secret_service, settings)
+        configure_telemetry(settings, app=app, logfire_token=startup_logfire_token)
 
         if "PYTEST_CURRENT_TEST" in os.environ:
             logger.info("Test environment detected. Forcing FakeRedis.")

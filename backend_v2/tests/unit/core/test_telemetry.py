@@ -26,6 +26,7 @@ from backend_v2.core.telemetry import (
     extract_trace_context,
     get_tracer,
     inject_trace_context,
+    resolve_startup_logfire_token,
     use_trace_context,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -267,7 +268,7 @@ def test_create_execution_record_injects_telemetry() -> None:
         execution_id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
-        frozen_context=FrozenContext(),
+        frozen_context=FrozenContext.model_validate({}),
         source_identity_manifest={},
     )
 
@@ -280,7 +281,7 @@ def test_create_execution_record_injects_telemetry() -> None:
         execution_id="exe_0195f3a0000070018123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
-        frozen_context=FrozenContext(),
+        frozen_context=FrozenContext.model_validate({}),
         source_identity_manifest={},
         metadata=ExecutionMetadata(telemetry=custom_carrier),
     )
@@ -420,3 +421,102 @@ def test_get_tracer_empty_name_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         get_tracer("   ")
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_resolve_startup_logfire_token_returns_decrypted_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verifies resolve_startup_logfire_token decrypts 'logfire' from tenant_secrets and configures Logfire."""
+    import sys
+
+    from pydantic import SecretStr
+
+    from backend_v2.models.auth import (
+        SYSTEM_ROOT_USER_ID,
+        SystemOrganizations,
+        TenantSecretCreateDTO,
+        TokenData,
+        UserRole,
+    )
+    from backend_v2.models.enums import SecretScope, SecretStorageMode
+    from backend_v2.services.auth.secret_service import SecretService
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+
+    uow = InMemoryUnitOfWork()
+    secret_service = SecretService(entity_adapter=uow.entities)
+    initiator = TokenData(
+        id=SYSTEM_ROOT_USER_ID,
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        email="root@example.com",
+        mfa_verified=True,
+    )
+    await secret_service.upsert_tenant_secret(
+        initiator=initiator,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.TELEMETRY,
+            target_identifier="logfire",
+            plaintext_secret=SecretStr("pylf_v1_eu_secret_token_999"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+
+    settings = Settings(
+        use_mock_llm=True,
+        otel_enabled=True,
+        logfire_token=None,
+        otel_service_name="quorum-api-test",
+    )
+    resolved_token = await resolve_startup_logfire_token(settings, secret_service)
+    assert resolved_token == "pylf_v1_eu_secret_token_999"
+
+    mock_logfire = MagicMock()
+    monkeypatch.setitem(sys.modules, "logfire", mock_logfire)
+    configure_telemetry(settings, logfire_token=resolved_token)
+    mock_logfire.configure.assert_called_once_with(
+        token="pylf_v1_eu_secret_token_999",
+        service_name="quorum-api-test",
+        send_to_logfire=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_resolve_startup_logfire_token_returns_none_when_secret_missing_in_dev(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verifies resolve_startup_logfire_token returns None when 'logfire' is absent or otel_enabled is False."""
+    from backend_v2.services.auth.secret_service import SecretService
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+
+    uow = InMemoryUnitOfWork()
+    secret_service = SecretService(entity_adapter=uow.entities)
+
+    disabled_settings = Settings(use_mock_llm=True, otel_enabled=False, logfire_token=None)
+    assert await resolve_startup_logfire_token(disabled_settings, secret_service) is None
+
+    dev_settings = Settings(
+        use_mock_llm=True,
+        otel_enabled=True,
+        logfire_token=None,
+        environment="development",
+    )
+    resolved = await resolve_startup_logfire_token(dev_settings, secret_service)
+    assert resolved is None
+
+    captured_providers: list[object] = []
+    monkeypatch.setattr(
+        trace,
+        "set_tracer_provider",
+        lambda provider: captured_providers.append(provider),
+    )
+    monkeypatch.setattr(
+        trace,
+        "get_tracer_provider",
+        lambda: captured_providers[-1] if captured_providers else TracerProvider(),
+    )
+
+    configure_telemetry(dev_settings, logfire_token=resolved)
+    assert len(captured_providers) == 1
+    assert isinstance(captured_providers[0], TracerProvider)

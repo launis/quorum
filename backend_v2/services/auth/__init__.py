@@ -39,7 +39,10 @@ from backend_v2.services.auth.email_service import EmailService as EmailService
 from backend_v2.services.auth.organization_service import OrganizationService
 from backend_v2.services.auth.protocols import UserCreatorProtocol
 from backend_v2.services.auth.repositories import OrganizationRepository, UserRepository
-from backend_v2.services.auth.token_service import TokenService
+from backend_v2.services.auth.token_service import (
+    TokenService,
+    initialize_firebase_admin_from_secrets,
+)
 from backend_v2.services.auth.user_service import UserService
 from backend_v2.settings import get_settings
 
@@ -55,6 +58,7 @@ __all__ = [
     "UserCreatorProtocol",
     "UserRepository",
     "UserService",
+    "initialize_firebase_admin_from_secrets",
 ]
 
 

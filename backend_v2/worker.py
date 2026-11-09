@@ -16,8 +16,9 @@ from fastapi import status
 
 import backend_v2.hooks as _hooks
 from backend_v2.core.hook_registry import hook_registry
-from backend_v2.core.telemetry import configure_telemetry
+from backend_v2.core.telemetry import configure_telemetry, resolve_startup_logfire_token
 from backend_v2.database.factory import get_driver
+from backend_v2.database.interfaces import get_registered_uow_factory
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
@@ -25,6 +26,7 @@ from backend_v2.logging_config import (
     log_startup_system_parameters,
     setup_logging,
 )
+from backend_v2.services.auth.secret_service import SecretService
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
@@ -59,7 +61,14 @@ async def startup(ctx: Any) -> None:
             (ErrorCodes.CONFIGURATION_ERROR).
     """
     setup_logging()
-    configure_telemetry(get_settings(), service_name_override="quorum-worker")
+    settings = get_settings()
+    secret_service = SecretService(uow_factory=get_registered_uow_factory())
+    startup_logfire_token = await resolve_startup_logfire_token(settings, secret_service)
+    configure_telemetry(
+        settings,
+        service_name_override="quorum-worker",
+        logfire_token=startup_logfire_token,
+    )
     log_startup_system_parameters(logger, "ARQ WORKER")
 
     registered_hooks = list(hook_registry.get_all_hooks())

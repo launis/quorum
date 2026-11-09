@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import json
 import logging
 import secrets
 import time
@@ -14,12 +15,18 @@ import jwt
 from pydantic import ValidationError
 
 if importlib.util.find_spec("firebase_admin") is not None:
+    import firebase_admin
     from firebase_admin import auth as firebase_auth_module
+    from firebase_admin import credentials as firebase_credentials_module
 else:
+    firebase_admin = None
     firebase_auth_module = None
+    firebase_credentials_module = None
 
-from backend_v2.exceptions import AuthenticationError, ConflictError, ErrorCodes
+from backend_v2.database.interfaces import get_registered_uow_factory
+from backend_v2.exceptions import AuthenticationError, ConfigurationError, ConflictError, ErrorCodes
 from backend_v2.models.auth import (
+    SystemOrganizations,
     TokenData,
     TokenExchangeRequestDTO,
     TokenExchangeResponseDTO,
@@ -27,15 +34,103 @@ from backend_v2.models.auth import (
     UserRole,
 )
 from backend_v2.models.core_base import generate_uuid7
+from backend_v2.models.enums import LLMProvider
 from backend_v2.services.auth.repositories import UserRepository
+from backend_v2.services.auth.secret_service import SecretService
 from backend_v2.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["TokenService"]
+__all__ = ["TokenService", "initialize_firebase_admin_from_secrets"]
 
 _SENTINEL = object()
 _FIREBASE_VERIFY_TIMEOUT_SECONDS: float = 10.0
+
+
+async def initialize_firebase_admin_from_secrets(
+    secret_service: SecretService,
+    settings: Settings,
+) -> None:
+    """Initialize the Firebase Admin SDK default app using the encrypted Vertex AI Service Account secret.
+
+    Resolves the Root System Organization ('org_0195f3a0000070008000000000000001') 'vertex_ai'
+    credential from PostgreSQL 19 tenant_secrets when use_firebase_auth is True and no default
+    Firebase Admin app is initialized.
+
+    Args:
+        secret_service: SecretService bound to the active persistence port.
+        settings: Active application Settings instance.
+
+    Raises:
+        ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if firebase_admin is unavailable,
+            the decrypted Vertex AI secret is not valid JSON, or Certificate initialization fails,
+            or with ErrorCodes.SECRET_RESOLUTION_FAILED if the secret is missing in tenant_secrets.
+    """
+    if not settings.use_firebase_auth:
+        return
+    if firebase_admin is None or firebase_credentials_module is None:
+        msg = "Firebase Admin SDK is not installed, but use_firebase_auth is enabled."
+        logger.error(
+            "[TokenService] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+        )
+        raise ConfigurationError(
+            message=msg,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+    if firebase_admin._apps:
+        return
+
+    cred_dto = await secret_service.resolve_llm_key(
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        provider=LLMProvider.VERTEX_AI,
+    )
+    raw_sa_json = cred_dto.secret_value.get_secret_value().strip()
+    if not raw_sa_json.startswith("{"):
+        msg = "Vertex AI secret in tenant_secrets must be a valid JSON object for Firebase Admin initialization."
+        logger.error(
+            "[TokenService] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+        )
+        raise ConfigurationError(
+            message=msg,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+    try:
+        sa_payload: object = json.loads(raw_sa_json)
+    except ValueError as exc:
+        msg = "Failed to parse Vertex AI Service Account JSON for Firebase Admin initialization."
+        logger.error(
+            "[TokenService] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+        )
+        raise ConfigurationError(
+            message=msg,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        ) from exc
+
+    try:
+        cert = firebase_credentials_module.Certificate(sa_payload)
+        firebase_admin.initialize_app(cert)
+        logger.info("[TokenService] Firebase Admin SDK default app initialized from encrypted tenant_secrets.")
+    except Exception as exc:
+        msg = "Failed to initialize Firebase Admin SDK from Service Account certificate."
+        logger.error(
+            "[TokenService] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+        )
+        raise ConfigurationError(
+            message=msg,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        ) from exc
 
 
 class TokenService:
@@ -118,6 +213,11 @@ class TokenService:
         # Upgrade interactive Firebase 2FA or headless CLI credentials into a signed Quorum Local JWT.
         settings = self._resolve_settings()
         if payload.firebase_token is not None:
+            if self.firebase_auth is firebase_auth_module and firebase_admin is not None and not firebase_admin._apps:
+                await initialize_firebase_admin_from_secrets(
+                    SecretService(uow_factory=get_registered_uow_factory()),
+                    settings,
+                )
             user = await self._resolve_interactive_firebase_user(payload.firebase_token, settings)
         else:
             if payload.target_user_id is None:
