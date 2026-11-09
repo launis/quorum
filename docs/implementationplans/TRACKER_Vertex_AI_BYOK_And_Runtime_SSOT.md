@@ -43,7 +43,7 @@
   - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [x] @[backend_v2/services/orchestrator/rag_preflight_service.py]
   - [x] @[backend_v2/services/mcp/mcp_tool_loop.py]
-  - [ ] @[backend_v2/hooks/interaction_hook.py]
+  - [x] @[backend_v2/hooks/interaction_hook.py]
   - [ ] @[backend_v2/hooks/linguistics.py]
   - [ ] @[backend_v2/hooks/source_verification_hook.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
