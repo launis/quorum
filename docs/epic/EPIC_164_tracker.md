@@ -75,7 +75,7 @@
   - [x] @[backend_v2/main.py]
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/seed/run_seed.py]
-  - [ ] @[backend_v2/services/auth/secret_service.py]
+  - [x] @[backend_v2/services/auth/secret_service.py]
   - [ ] @[backend_v2/services/auth/token_service.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/worker.py]
