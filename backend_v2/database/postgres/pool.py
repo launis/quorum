@@ -290,7 +290,8 @@ def encode_jsonb_binary(value: object) -> bytes:
         AppException: With STORAGE_ACCESS_FAILED if JSON serialization fails.
     """
     try:
-        json_bytes: bytes = to_json(value)
+        normalized_value: object = from_json(value) if isinstance(value, str) else value
+        json_bytes: bytes = to_json(normalized_value)
     except (TypeError, ValueError) as exc:
         msg = f"Failed to encode payload to binary JSONB: {exc}"
         logger.error(

@@ -8,10 +8,14 @@ size mismatch checks, and driver fault translation.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
+from pydantic_core import from_json
 
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import execute_entity_upsert
 from backend_v2.database.postgres.entity_adapter.execution_and_report_stage import (
     get_execution_row,
     get_report_artifact_row,
@@ -22,10 +26,15 @@ from backend_v2.database.postgres.entity_adapter.execution_and_report_stage impo
     save_report_binary_row,
     upsert_report_artifact_row,
 )
+from backend_v2.database.postgres.pool import (
+    decode_jsonb_binary,
+    encode_jsonb_binary,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionSummarySnapshot
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.factories.model_factories import (
@@ -46,7 +55,11 @@ async def test_execution_report_and_seed_collection_roundtrip_parity() -> None:
         exec_full = ExecutionRecordFactory.build(
             active_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
             output_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
-            execution_summary=ExecutionSummarySnapshot(strictness_level=90, is_ensemble_run=True),
+            execution_summary=ExecutionSummarySnapshot(
+                strictness_level=90,
+                is_ensemble_run=True,
+                system_concurrency_snapshot={"max_concurrent_workflows": 4},
+            ),
             metadata=ExecutionMetadata(
                 matrix_sampling_strategy=5,
                 workflow_version=2,
@@ -294,3 +307,61 @@ def test_execution_record_rejects_state_version_less_than_one() -> None:
     """Verify ExecutionRecord boundary validation rejects state_version=0 (ge=1)."""
     with pytest.raises(ValidationError):
         ExecutionRecordFactory.build(state_version=0)
+
+
+@pytest.mark.asyncio
+async def test_save_execution_row_excludes_none_in_metadata_and_encode_jsonb_binary_unwraps_json_str() -> None:
+    """Verify save_execution_row serializes metadata with exclude_none=True and encode_jsonb_binary unwraps JSON strings."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+        exec_rec = ExecutionRecordFactory.build(
+            active_profile_id=None,
+            output_profile_id=None,
+            execution_summary=ExecutionSummarySnapshot(
+                strictness_level=80,
+                is_ensemble_run=False,
+                system_concurrency_snapshot={"max_concurrent_workflows": 2},
+            ),
+            metadata=ExecutionMetadata(
+                matrix_sampling_strategy=0,
+                workflow_version=1,
+                global_context_vars=GlobalContextVarsDTO(
+                    organization_id=org_id,
+                    language="fi",
+                    target_locale="fi",
+                ),
+            ),
+        )
+        with patch(
+            "backend_v2.database.postgres.entity_adapter.execution_and_report_stage.execute_entity_upsert",
+            wraps=execute_entity_upsert,
+        ) as spy_upsert:
+            await save_execution_row(conn, _TIMEOUT, exec_rec)
+            assert spy_upsert.call_args is not None
+            metadata_sql_arg = spy_upsert.call_args.args[35]
+        assert isinstance(metadata_sql_arg, str)
+        parsed_metadata = from_json(metadata_sql_arg)
+        assert "initiator_id" not in parsed_metadata["global_context_vars"]
+        assert "_sys_initiator_id" not in parsed_metadata["global_context_vars"]
+        assert "null" not in metadata_sql_arg
+
+        wire_bytes = encode_jsonb_binary(metadata_sql_arg)
+        decoded_obj = decode_jsonb_binary(wire_bytes)
+        assert isinstance(decoded_obj, dict)
+        assert decoded_obj["workflow_version"] == 1
+
+        with pytest.raises(AppException) as exc_info:
+            encode_jsonb_binary("{malformed_json")
+        assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as empty_exc_info:
+            encode_jsonb_binary("")
+        assert empty_exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        ddl_sql = Path("backend_v2/database/migrations/001_pg19_uuidv7_schema.sql").read_text(encoding="utf-8")
+        assert "_sys_initiator_id" in ddl_sql
+        assert "jsonb_typeof(metadata) = 'string'" in ddl_sql
+    finally:
+        await pool.release(conn)

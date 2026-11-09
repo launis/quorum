@@ -360,6 +360,15 @@ async def save_execution_row(
             )
         persisted_state_version = actual_state_version + 1
     dumped = record.model_dump(mode="json", exclude_none=True)
+    frozen_context_json: str | None = None
+    if record.frozen_context is not None:
+        frozen_context_json = _encode_optional_jsonb(dumped["frozen_context"])
+    execution_summary_json: str | None = None
+    if record.execution_summary is not None:
+        execution_summary_json = _encode_optional_jsonb(dumped["execution_summary"])
+    metadata_json: str | None = None
+    if record.metadata is not None:
+        metadata_json = _encode_optional_jsonb(dumped["metadata"])
 
     return await execute_entity_upsert(
         conn,
@@ -375,7 +384,7 @@ async def save_execution_row(
         record.progress,
         record.status_message,
         to_json(dumped["raw_inputs"]).decode("utf-8"),
-        _encode_optional_jsonb(record.frozen_context),
+        frozen_context_json,
         record.frozen_context_storage_path,
         record.pdf_report_path,
         to_json(dumped["steps"]).decode("utf-8"),
@@ -396,8 +405,8 @@ async def save_execution_row(
         record.cumulative_synthesis_cost,
         record.cost_estimate,
         to_json(dumped["models_used"]).decode("utf-8"),
-        _encode_optional_jsonb(record.execution_summary),
-        _encode_optional_jsonb(record.metadata),
+        execution_summary_json,
+        metadata_json,
         record.duration_ms,
         record.error,
         record.created_at,

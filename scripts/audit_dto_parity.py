@@ -322,6 +322,8 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
 
 EXPLICIT_MODEL_ALIASES: Final[dict[str, str]] = {
     "mcpaudittrace": "mcpaudittracedto",
+    "renderedsynthesiscache": "profilesynthesisentrydto",
+    "traceevent": "executiontraceitemdto",
     "workflowresponsedto": "workflow",
     "useradminview": "user",
     "systemconfigmcpgateways": "mcpgateway",
@@ -373,6 +375,12 @@ def _collect_backend_models(backend_dir: Path) -> dict[str, set[str]]:
             filtered_models[preferred_model_name] = (
                 filtered_models[preferred_model_name] | filtered_models[base_model_name]
             )
+
+    for sub_event_lower in ("errortraceevent", "tombstoneevent"):
+        if "traceevent" in backend_by_lower and sub_event_lower in backend_by_lower:
+            trace_event_name = backend_by_lower["traceevent"]
+            sub_event_name = backend_by_lower[sub_event_lower]
+            filtered_models[trace_event_name] = filtered_models[trace_event_name] | filtered_models[sub_event_name]
 
     return filtered_models
 

@@ -472,3 +472,48 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_quorum_nodes_run_type ON quorum_nodes (run_id, node_type);
 CREATE INDEX IF NOT EXISTS idx_quorum_edges_run_src_tgt ON quorum_edges (run_id, source_id, target_id);
 CREATE INDEX IF NOT EXISTS idx_quorum_edges_run_target ON quorum_edges (run_id, target_id);
+
+-- Idempotent JSONB Scalar String Unwrapping & GlobalContextVarsDTO Initiator Normalization
+UPDATE executions
+SET
+    raw_inputs = CASE WHEN jsonb_typeof(raw_inputs) = 'string' THEN (raw_inputs #>> '{}')::jsonb ELSE raw_inputs END,
+    frozen_context = CASE WHEN frozen_context IS NOT NULL AND jsonb_typeof(frozen_context) = 'string' THEN (frozen_context #>> '{}')::jsonb ELSE frozen_context END,
+    steps = CASE WHEN jsonb_typeof(steps) = 'string' THEN (steps #>> '{}')::jsonb ELSE steps END,
+    step_states = CASE WHEN jsonb_typeof(step_states) = 'string' THEN (step_states #>> '{}')::jsonb ELSE step_states END,
+    profile_syntheses = CASE WHEN jsonb_typeof(profile_syntheses) = 'string' THEN (profile_syntheses #>> '{}')::jsonb ELSE profile_syntheses END,
+    source_identity_manifest = CASE WHEN jsonb_typeof(source_identity_manifest) = 'string' THEN (source_identity_manifest #>> '{}')::jsonb ELSE source_identity_manifest END,
+    execution_trace = CASE WHEN jsonb_typeof(execution_trace) = 'string' THEN (execution_trace #>> '{}')::jsonb ELSE execution_trace END,
+    context_variables = CASE WHEN jsonb_typeof(context_variables) = 'string' THEN (context_variables #>> '{}')::jsonb ELSE context_variables END,
+    models_used = CASE WHEN jsonb_typeof(models_used) = 'string' THEN (models_used #>> '{}')::jsonb ELSE models_used END,
+    execution_summary = CASE WHEN execution_summary IS NOT NULL AND jsonb_typeof(execution_summary) = 'string' THEN (execution_summary #>> '{}')::jsonb ELSE execution_summary END,
+    metadata = CASE WHEN metadata IS NOT NULL AND jsonb_typeof(metadata) = 'string' THEN (metadata #>> '{}')::jsonb ELSE metadata END
+WHERE
+    jsonb_typeof(raw_inputs) = 'string'
+    OR (frozen_context IS NOT NULL AND jsonb_typeof(frozen_context) = 'string')
+    OR jsonb_typeof(steps) = 'string'
+    OR jsonb_typeof(step_states) = 'string'
+    OR jsonb_typeof(profile_syntheses) = 'string'
+    OR jsonb_typeof(source_identity_manifest) = 'string'
+    OR jsonb_typeof(execution_trace) = 'string'
+    OR jsonb_typeof(context_variables) = 'string'
+    OR jsonb_typeof(models_used) = 'string'
+    OR (execution_summary IS NOT NULL AND jsonb_typeof(execution_summary) = 'string')
+    OR (metadata IS NOT NULL AND jsonb_typeof(metadata) = 'string');
+
+UPDATE executions
+SET metadata = jsonb_set(
+    metadata,
+    '{global_context_vars}',
+    CASE
+        WHEN metadata->'global_context_vars'->>'_sys_initiator_id' IS NOT NULL THEN
+            ((metadata->'global_context_vars') - '_sys_initiator_id')
+            || jsonb_build_object('initiator_id', metadata->'global_context_vars'->'_sys_initiator_id')
+        ELSE
+            (metadata->'global_context_vars') - '_sys_initiator_id'
+    END
+)
+WHERE metadata IS NOT NULL
+  AND jsonb_typeof(metadata) = 'object'
+  AND jsonb_typeof(metadata->'global_context_vars') = 'object'
+  AND (metadata->'global_context_vars') ? '_sys_initiator_id';
+
