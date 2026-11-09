@@ -42,7 +42,8 @@ from backend_v2.models.enums import (
 from backend_v2.services.cache.typed_cache import MCPGatewayCache
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
-from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
+from backend_v2.tests.factories.model_factories import WorkflowFactory
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository, InMemoryWorkflowRepository
 
 
 @pytest.fixture
@@ -546,13 +547,17 @@ async def test_save_mcp_gateways_permission_denied(service: StudioSystemConfigSe
 async def test_create_mcp_gateway_draft(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Create draft MCP gateway and verify stateful roundtrip."""
+    """Create consecutive draft MCP gateways without UUIDv7 timestamp prefix collision and verify roundtrip."""
     res = await service.create_mcp_gateway_draft(root_token)
     assert res.id.startswith("sys_")
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
     assert res.name == "New MCP Gateway Draft"
-    assert res.slug == f"gateway_{res.id.removeprefix('sys_')[:8]}"
+    assert res.slug == f"gateway_{res.id.removeprefix('sys_')}"
     assert res.type == "mcp_gateways"
+
+    res_second = await service.create_mcp_gateway_draft(root_token)
+    assert res_second.id != res.id
+    assert res_second.slug != res.slug
 
     # Stateful Roundtrip:
     persisted = await system_repo.get_mcp_gateways(id=res.id)
@@ -831,3 +836,62 @@ async def test_discover_mcp_gateway_tools_forwards_initiator_organization_id(
     root_no_org = root_token.model_copy(update={"organization_id": None})
     await svc.discover_mcp_gateway_tools(root_no_org, gw.id)
     assert captured_org_ids[-1] == SystemOrganizations.ROOT_SYSTEM.value
+
+
+@pytest.mark.asyncio
+async def test_delete_system_config_blocked_by_workflow_usage(
+    root_token: TokenData,
+    system_repo: InMemorySystemRepository,
+) -> None:
+    """Reject deleting a model registry referenced by Workflow.model_registry_id with 400 DELETE_BLOCKED_BY_USAGE."""
+    workflow_repo = InMemoryWorkflowRepository()
+    svc = StudioSystemConfigService(system_repo=system_repo, workflow_repo=workflow_repo)
+
+    draft = await svc.create_system_config_draft(root_token)
+    other_draft = await svc.create_system_config_draft(root_token)
+    wf = WorkflowFactory.build(steps=[], model_registry_id=draft.id, mcp_gateway_id=None)
+    await workflow_repo.save_workflow(wf)
+
+    with pytest.raises(AppException) as exc_info:
+        await svc.delete_system_config(root_token, draft.id)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+    assert exc_info.value.details["registry_id"] == draft.id
+    assert exc_info.value.details["workflow_id"] == wf.id
+
+    # Unreferenced registry deletes cleanly even when workflows exist
+    await svc.delete_system_config(root_token, other_draft.id)
+    with pytest.raises(ResourceNotFoundError):
+        await svc.get_system_config(root_token, other_draft.id)
+
+
+@pytest.mark.asyncio
+async def test_delete_mcp_gateways_blocked_by_workflow_usage(
+    root_token: TokenData,
+    system_repo: InMemorySystemRepository,
+) -> None:
+    """Reject deleting an MCP gateway referenced by Workflow.mcp_gateway_id with 400 DELETE_BLOCKED_BY_USAGE."""
+    workflow_repo = InMemoryWorkflowRepository()
+    svc = StudioSystemConfigService(system_repo=system_repo, workflow_repo=workflow_repo)
+
+    draft_gw = await svc.create_mcp_gateway_draft(root_token)
+    unused_gw = await svc.create_mcp_gateway_draft(root_token)
+    default_reg = (await system_repo.get_all_model_registries())[0]
+    wf = WorkflowFactory.build(
+        steps=[],
+        model_registry_id=default_reg.id,
+        mcp_gateway_id=draft_gw.id,
+    )
+    await workflow_repo.save_workflow(wf)
+
+    with pytest.raises(AppException) as exc_info:
+        await svc.delete_mcp_gateways(root_token, draft_gw.id)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+    assert exc_info.value.details["gateway_id"] == draft_gw.id
+    assert exc_info.value.details["workflow_id"] == wf.id
+
+    # Unreferenced gateway deletes cleanly even when workflows exist
+    await svc.delete_mcp_gateways(root_token, unused_gw.id)
+    with pytest.raises(ResourceNotFoundError):
+        await svc.get_mcp_gateways(root_token, unused_gw.id)

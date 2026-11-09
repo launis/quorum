@@ -7,7 +7,7 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
-from backend_v2.database.interfaces import ISystemRepository
+from backend_v2.database.interfaces import ISystemRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import PrefixedUUID7, generate_opaque_id
@@ -48,6 +48,7 @@ class StudioSystemConfigService:
         system_repo: Repository interface for system configuration persistence.
         mcp_client: Protocol-agnostic MCP client for tool discovery.
         gateway_cache: Typed cache for MCP gateway manifests.
+        workflow_repo: Optional workflow repository for delete referential-integrity checks.
     """
 
     def __init__(
@@ -55,6 +56,7 @@ class StudioSystemConfigService:
         system_repo: ISystemRepository,
         mcp_client: GenericMCPClient | None = None,
         gateway_cache: MCPGatewayCache | None = None,
+        workflow_repo: IWorkflowRepository | None = None,
     ) -> None:
         """Initialize the service.
 
@@ -62,10 +64,12 @@ class StudioSystemConfigService:
             system_repo: Repository for system configuration persistence.
             mcp_client: Optional protocol-agnostic MCP client for tool discovery.
             gateway_cache: Optional typed cache for MCP gateway manifests.
+            workflow_repo: Optional workflow repository for delete referential-integrity checks.
         """
         self.system_repo = system_repo
         self.mcp_client = mcp_client if mcp_client is not None else GenericMCPClient()
         self.gateway_cache = gateway_cache if gateway_cache is not None else MCPGatewayCache()
+        self.workflow_repo = workflow_repo
 
     def get_available_models(
         self,
@@ -201,6 +205,9 @@ class StudioSystemConfigService:
 
         Returns:
             A list containing all SystemConfigModelRegistry documents if accessible.
+
+        Raises:
+            AppException (ErrorCodes.STORAGE_ACCESS_FAILED): If repository retrieval fails.
         """
         if initiator.role == UserRole.ROOT:
             return await self.system_repo.get_all_model_registries()
@@ -288,28 +295,28 @@ class StudioSystemConfigService:
             default_provider=LLMProvider.AI_STUDIO,
             tier_definitions={
                 CognitiveTier.FAST: ModelProfile(
-                    provider="ai_studio",
+                    provider=LLMProvider.AI_STUDIO,
                     model_name="gemini/gemini-2.5-flash",
                     temperature=0.2,
                     allowed_tools=[],
                     additional_params=ProviderExtraParamsDTO(),
                 ),
                 CognitiveTier.BALANCED: ModelProfile(
-                    provider="ai_studio",
+                    provider=LLMProvider.AI_STUDIO,
                     model_name="gemini/gemini-2.5-flash",
                     temperature=0.4,
                     allowed_tools=[],
                     additional_params=ProviderExtraParamsDTO(),
                 ),
                 CognitiveTier.DEEP: ModelProfile(
-                    provider="ai_studio",
+                    provider=LLMProvider.AI_STUDIO,
                     model_name="gemini/gemini-2.5-pro",
                     temperature=0.7,
                     allowed_tools=[],
                     additional_params=ProviderExtraParamsDTO(),
                 ),
                 CognitiveTier.REASONING: ModelProfile(
-                    provider="ai_studio",
+                    provider=LLMProvider.AI_STUDIO,
                     model_name="gemini/gemini-2.5-pro",
                     temperature=1.0,
                     thinking_budget_tokens=4096,
@@ -370,6 +377,7 @@ class StudioSystemConfigService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If non-ROOT user attempts deletion.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the system config is missing.
             AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete the last model registry.
+            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If the model registry is referenced by a workflow.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
@@ -397,18 +405,45 @@ class StudioSystemConfigService:
                 details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
             )
 
+        if self.workflow_repo is not None:
+            workflows = await self.workflow_repo.get_all_workflows()
+            for wf in workflows:
+                if wf.model_registry_id == id:
+                    logger.error(
+                        "[StudioSystemConfigService] %s: Cannot delete model registry %s because it is referenced by workflow %s.",
+                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                        id,
+                        wf.id,
+                        exc_info=True,
+                        extra={
+                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                            "registry_id": id,
+                            "workflow_id": wf.id,
+                        },
+                    )
+                    raise AppException(
+                        message=f"Cannot delete model registry '{id}' because it is referenced by workflow '{wf.id}'.",
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                            "registry_id": id,
+                            "workflow_id": wf.id,
+                        },
+                    )
+
         await self.system_repo.delete_system_config(id)
 
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
         """List all MCP gateway configurations for ROOT and ADMIN users.
-
-        # Phase 2, Step 2: Allow UserRole.ROOT and UserRole.ADMIN to list MCP gateways for BYOK target selection (REQ-009)
 
         Args:
             initiator: The authenticated user.
 
         Returns:
             A list containing all MCP gateway configurations if accessible.
+
+        Raises:
+            AppException (ErrorCodes.STORAGE_ACCESS_FAILED): If repository retrieval fails.
         """
         if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
             return []
@@ -541,7 +576,7 @@ class StudioSystemConfigService:
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
-        draft_slug = f"gateway_{new_id.removeprefix('sys_')[:8]}"
+        draft_slug = f"gateway_{new_id.removeprefix(f'{EntityPrefix.SYSTEM_CONFIG}_')}"
         draft = SystemConfigMCPGateways(
             id=new_id,
             name="New MCP Gateway Draft",
@@ -588,7 +623,7 @@ class StudioSystemConfigService:
             suffix += 1
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
-        # Phase 2, Step 2: Append " (Copy)" suffix to cloned MCP gateway name (REQ-009)
+        # Append copy suffix to cloned MCP gateway name to distinguish the duplicated gateway.
         cloned_obj = existing.model_copy(
             update={"id": new_id, "name": f"{existing.name} (Copy)", "slug": candidate_slug}
         )
@@ -605,6 +640,7 @@ class StudioSystemConfigService:
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If non-ROOT user attempts deletion.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the MCP gateway is missing.
+            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If the MCP gateway is referenced by a workflow.
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
         all_gateways = await self.system_repo.get_all_mcp_gateways()
@@ -619,6 +655,32 @@ class StudioSystemConfigService:
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "gateway_id": id},
             )
             raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
+
+        if self.workflow_repo is not None:
+            workflows = await self.workflow_repo.get_all_workflows()
+            for wf in workflows:
+                if wf.mcp_gateway_id == id:
+                    logger.error(
+                        "[StudioSystemConfigService] %s: Cannot delete MCP gateway %s because it is referenced by workflow %s.",
+                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                        id,
+                        wf.id,
+                        exc_info=True,
+                        extra={
+                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                            "gateway_id": id,
+                            "workflow_id": wf.id,
+                        },
+                    )
+                    raise AppException(
+                        message=f"Cannot delete MCP gateway '{id}' because it is referenced by workflow '{wf.id}'.",
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                            "gateway_id": id,
+                            "workflow_id": wf.id,
+                        },
+                    )
 
         await self.gateway_cache.invalidate(id)
         await self.system_repo.delete_system_config(id)
@@ -650,7 +712,7 @@ class StudioSystemConfigService:
             gateway.endpoint_url,
             allow_private_networks=settings.mcp_allow_private_networks,
         )
-        # Step 1: Resolve caller organization_id (defaulting to ROOT_SYSTEM) for dynamic UI secret binding
+        # Resolve caller organization_id (defaulting to ROOT_SYSTEM) for dynamic UI secret binding.
         effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if initiator.organization_id is not None:
             effective_org_id = initiator.organization_id
@@ -705,5 +767,8 @@ class StudioSystemConfigService:
 
         Returns:
             A list containing all SystemConfigModelRegistry documents if accessible.
+
+        Raises:
+            AppException (ErrorCodes.STORAGE_ACCESS_FAILED): If repository retrieval fails.
         """
         return await self.get_all_system_configs(initiator)
