@@ -76,7 +76,7 @@
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/seed/run_seed.py]
   - [x] @[backend_v2/services/auth/secret_service.py]
-  - [ ] @[backend_v2/services/auth/token_service.py]
+  - [x] @[backend_v2/services/auth/token_service.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/worker.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
