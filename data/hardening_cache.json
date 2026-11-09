@@ -2298,11 +2298,11 @@
     },
     "scripts/audit_dto_parity.py": {
       "target_file": "scripts/audit_dto_parity.py",
-      "target_sha256": "b24486432c49fe22735090cafff4d44bdbc7033c8029ffdf9342e008cb2415d6",
+      "target_sha256": "6768b6c21a5efeb124ac9f7ba1c23f7fe576f6c167d3553b9ea63d2429edae6c",
       "unit_test_sha256": "d75d85ee966be8afe654bab0e0491cf42fe9dad5e4974f54b09e2a55132c4675",
-      "rules_sha256": "5db63194dd1793f6702500f5800e5957d9214f5083bea22c1e86fdbab9bb6d4f",
-      "composite_sha256": "fd5c8cff206f45df79fb3167251f871824666d0c3d165e47bf3ad145001dcde5",
-      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/c37518e7-f95b-4d08-add2-afe0ff59e939/task.md"
+      "rules_sha256": "9b41fbc76409743d0e98e32bcb8aff4f83a257bc8549c38818b703d48d9c0fbb",
+      "composite_sha256": "159a21e25acab2ebfb7eaab1b073adab720f48ad8f0497f25e3386a8483c45f6",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/68d44ee3-0c39-418a-b625-c70e3253c36b/task.md"
     },
     "backend_v2/tests/fakes/in_memory_repositories.py": {
       "target_file": "backend_v2/tests/fakes/in_memory_repositories.py",
@@ -3202,11 +3202,11 @@
     },
     "client_app_v2/lib/features/execution/models/execution_metadata.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_metadata.dart",
-      "target_sha256": "0fc82c250075f36b80f85325fee5e2e4ceab6df6abec8f8d4099b1bec6ee0144",
-      "unit_test_sha256": "d477f9a84583512a14a926e5e91f5cc41a317030b888de158385d54ea9174739",
-      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
-      "composite_sha256": "e92b08f2a732b66d8149bb8f8d68a780977c2a568eff642c317596acfb0f6609",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "target_sha256": "2e2c577108c2f4deef3573867f801b50f207a734fa5dfd878ccab936545f636f",
+      "unit_test_sha256": "540b4a274bbf7438ce9209b81a02c6e86a3b6b9c4234a69940a243b1530bcb78",
+      "rules_sha256": "9b41fbc76409743d0e98e32bcb8aff4f83a257bc8549c38818b703d48d9c0fbb",
+      "composite_sha256": "e6bc1ca5b6a79c21e30195b63f6b1885541a73973163ba9ea6d4fcdda996459c",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/68d44ee3-0c39-418a-b625-c70e3253c36b/task.md"
     },
     "client_app_v2/lib/features/execution/models/execution_metrics_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_metrics_dto.dart",
@@ -3218,11 +3218,11 @@
     },
     "client_app_v2/lib/features/execution/models/execution_record.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_record.dart",
-      "target_sha256": "566788c5edb85c945430bf3ffd21e51ca9f768e00f34883ce6331c05f873cecf",
-      "unit_test_sha256": "d8e68a57cb1a548ae4bd39adb113cc206b34a1152cd3737cb58db8e822309207",
-      "rules_sha256": "89a1d00270e5d6357cf0bcd7f2045523bb22353e51e9c566108f399f142ed060",
-      "composite_sha256": "1de277e855d24852d6e84e4a046a6c47b6f9c676a5493f7ea0588aa77a6797f3",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "target_sha256": "dc9063f0d3f852e8b803dd0cf6e278a6d0cc2fcdc15e80009c0529b27981d297",
+      "unit_test_sha256": "e8361851e41767d85be5ddb0060b2ddf2b0029d83e7cf7dae35ad4425be52ac0",
+      "rules_sha256": "9b41fbc76409743d0e98e32bcb8aff4f83a257bc8549c38818b703d48d9c0fbb",
+      "composite_sha256": "6650888b0b40686ec10eca42cf300381a1d7c426eeaac706041c8bb991c2f8db",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/68d44ee3-0c39-418a-b625-c70e3253c36b/task.md"
     },
     "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart",
@@ -3882,11 +3882,11 @@
     },
     "backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py",
-      "target_sha256": "b80d6de5d3ae84ae0ff3f1e6f1e763d274d5b3bb4c1f398cca3e4f580f4d46b0",
-      "unit_test_sha256": "3df052bfb63847e07c069668774b92d4a9b881b06ef907dd538624ab46cf12ef",
-      "rules_sha256": "b6572932fdfd931b45607bb8be5664f9419124b404a4d13eb601d82488d0aa2e",
-      "composite_sha256": "4f0a813a0cb450e43ce40b3b3321ed55df141e9f411069d18ff5a117b42c815e",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "target_sha256": "ee67910bd936bd65ec5647e5a2a8612acbf1b531e6380a08ce4d6e2ac93e66cf",
+      "unit_test_sha256": "a2a366fa27d78f175cf89243454c7de36dc4d37da990fad5d9e034d7f7496198",
+      "rules_sha256": "5db63194dd1793f6702500f5800e5957d9214f5083bea22c1e86fdbab9bb6d4f",
+      "composite_sha256": "53dcf6b7190d39bcda35ae800786ca7f00a6fb06e5fd3cccfb16337dd246dbf7",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/68d44ee3-0c39-418a-b625-c70e3253c36b/task.md"
     },
     "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
@@ -4399,6 +4399,14 @@
       "rules_sha256": "b0ea0c3a7fc968efcc2eb3588ef50d927c8a0124d47f09080a71cd79bbdbe3a4",
       "composite_sha256": "dab91dd661df029b24533cf13eec8555614b2088fb5182cddcb63bb86d537e74",
       "source_tracker": "docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md"
+    },
+    "backend_v2/database/postgres/pool.py": {
+      "target_file": "backend_v2/database/postgres/pool.py",
+      "target_sha256": "73d96db9b3b2fdaa27736b9df588489e00d30c4dceb797a0f88c8ac024238956",
+      "unit_test_sha256": "93fbd8760283ae35fcd941024c54b85fdb4c3baa25a974714fcb576767c7d61f",
+      "rules_sha256": "9b41fbc76409743d0e98e32bcb8aff4f83a257bc8549c38818b703d48d9c0fbb",
+      "composite_sha256": "d64fffc68cf602ee01316804b95520906091220f01a2735c09b5b31c638133df",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/68d44ee3-0c39-418a-b625-c70e3253c36b/task.md"
     }
   }
 }
