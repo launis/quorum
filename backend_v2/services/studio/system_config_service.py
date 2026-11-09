@@ -71,6 +71,101 @@ class StudioSystemConfigService:
         self.gateway_cache = gateway_cache if gateway_cache is not None else MCPGatewayCache()
         self.workflow_repo = workflow_repo
 
+    def _require_root_or_admin(self, initiator: TokenData, action_description: str) -> None:
+        """Verify that the initiator holds ROOT or ADMIN privileges.
+
+        Args:
+            initiator: The authenticated user initiating the request.
+            action_description: Human-readable action description for error reporting.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If the user lacks ROOT or ADMIN role.
+        """
+        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
+            logger.error(
+                "[StudioSystemConfigService] %s: User %s (Role: %s) unauthorized to %s.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                initiator.role,
+                action_description,
+                exc_info=True,
+                extra={
+                    "error_code": ErrorCodes.PERMISSION_DENIED.value,
+                    "user_id": initiator.id,
+                    "user_role": initiator.role.value,
+                },
+            )
+            raise PermissionDeniedError(f"Only ROOT or ADMIN can {action_description}.")
+
+    def _require_root(self, initiator: TokenData, action_description: str) -> None:
+        """Verify that the initiator holds ROOT privileges.
+
+        Args:
+            initiator: The authenticated user initiating the request.
+            action_description: Human-readable action description for error reporting.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If the user is not ROOT.
+        """
+        if initiator.role != UserRole.ROOT:
+            logger.error(
+                "[StudioSystemConfigService] %s: Only ROOT can %s (Initiator: %s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                action_description,
+                initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
+            )
+            raise PermissionDeniedError(f"Only ROOT can {action_description}.")
+
+    async def _ensure_not_referenced_by_workflows(
+        self,
+        *,
+        entity_id: str,
+        entity_label: str,
+        id_detail_key: str,
+        is_mcp_gateway: bool,
+    ) -> None:
+        """Ensure no workflow references the target system config entity before deletion.
+
+        Args:
+            entity_id: Canonical Opaque Stripe ID of the entity being deleted.
+            entity_label: Human-readable entity type label for error messages.
+            id_detail_key: Structured detail key for the entity ID in AppException details.
+            is_mcp_gateway: True when checking Workflow.mcp_gateway_id; False for Workflow.model_registry_id.
+
+        Raises:
+            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If any workflow references the entity.
+        """
+        if self.workflow_repo is None:
+            return
+        workflows = await self.workflow_repo.get_all_workflows()
+        for wf in workflows:
+            referenced_id = wf.mcp_gateway_id if is_mcp_gateway else wf.model_registry_id
+            if referenced_id == entity_id:
+                logger.error(
+                    "[StudioSystemConfigService] %s: Cannot delete %s %s because it is referenced by workflow %s.",
+                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                    entity_label,
+                    entity_id,
+                    wf.id,
+                    exc_info=True,
+                    extra={
+                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                        id_detail_key: entity_id,
+                        "workflow_id": wf.id,
+                    },
+                )
+                raise AppException(
+                    message=f"Cannot delete {entity_label} '{entity_id}' because it is referenced by workflow '{wf.id}'.",
+                    status_code=400,
+                    details={
+                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                        id_detail_key: entity_id,
+                        "workflow_id": wf.id,
+                    },
+                )
+
     def get_available_models(
         self,
         initiator: TokenData,
@@ -92,20 +187,7 @@ class StudioSystemConfigService:
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
-            logger.error(
-                "[StudioSystemConfigService] %s: User %s (Role: %s) unauthorized to fetch available models.",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                initiator.role,
-                exc_info=True,
-                extra={
-                    "error_code": ErrorCodes.PERMISSION_DENIED.value,
-                    "user_id": initiator.id,
-                    "user_role": initiator.role.value,
-                },
-            )
-            raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
+        self._require_root_or_admin(initiator, "fetch available models")
 
         platform_val = platform.value if isinstance(platform, LLMPlatformType) else str(platform)
         result = llm_handler.fetch_all_available_models(
@@ -139,15 +221,7 @@ class StudioSystemConfigService:
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If user is not authorized.
         """
-        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
-            logger.error(
-                "[StudioSystemConfigService] %s: User %s attempted to list locations without ROOT/ADMIN permissions.",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT or ADMIN can access supported locations.")
+        self._require_root_or_admin(initiator, "access supported locations")
 
         settings = get_settings()
         return llm_handler.fetch_vertex_locations(settings)
@@ -164,15 +238,7 @@ class StudioSystemConfigService:
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If user is not authorized.
         """
-        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
-            logger.error(
-                "[StudioSystemConfigService] %s: User %s attempted to list platforms without ROOT/ADMIN permissions.",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT or ADMIN can access supported platforms.")
+        self._require_root_or_admin(initiator, "access supported platforms")
 
         return [
             LLMPlatformDTO(
@@ -227,15 +293,7 @@ class StudioSystemConfigService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can view system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT can view system configs.")
+        self._require_root(initiator, "view system configs")
         return await self.system_repo.get_model_registry(registry_id=id)
 
     async def save_system_config(
@@ -255,15 +313,7 @@ class StudioSystemConfigService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
         """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can modify system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT can modify system configs.")
+        self._require_root(initiator, "modify system configs")
 
         if data.id != id:
             data = data.model_copy(update={"id": id})
@@ -341,15 +391,7 @@ class StudioSystemConfigService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can clone system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT can clone system configs.")
+        self._require_root(initiator, "clone system configs")
         data = await self.system_repo.get_model_registry(registry_id=id)
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
@@ -379,15 +421,7 @@ class StudioSystemConfigService:
             AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete the last model registry.
             AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If the model registry is referenced by a workflow.
         """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can delete system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT can delete system configs.")
+        self._require_root(initiator, "delete system configs")
         await self.system_repo.get_model_registry(registry_id=id)
 
         all_registries = await self.system_repo.get_all_model_registries()
@@ -405,31 +439,12 @@ class StudioSystemConfigService:
                 details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
             )
 
-        if self.workflow_repo is not None:
-            workflows = await self.workflow_repo.get_all_workflows()
-            for wf in workflows:
-                if wf.model_registry_id == id:
-                    logger.error(
-                        "[StudioSystemConfigService] %s: Cannot delete model registry %s because it is referenced by workflow %s.",
-                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                        id,
-                        wf.id,
-                        exc_info=True,
-                        extra={
-                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                            "registry_id": id,
-                            "workflow_id": wf.id,
-                        },
-                    )
-                    raise AppException(
-                        message=f"Cannot delete model registry '{id}' because it is referenced by workflow '{wf.id}'.",
-                        status_code=400,
-                        details={
-                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                            "registry_id": id,
-                            "workflow_id": wf.id,
-                        },
-                    )
+        await self._ensure_not_referenced_by_workflows(
+            entity_id=id,
+            entity_label="model registry",
+            id_detail_key="registry_id",
+            is_mcp_gateway=False,
+        )
 
         await self.system_repo.delete_system_config(id)
 
@@ -463,15 +478,7 @@ class StudioSystemConfigService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can view system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT can view system configs.")
+        self._require_root(initiator, "view system configs")
 
         cached = await self.gateway_cache.get_gateway(id)
         if cached is not None:
@@ -511,15 +518,7 @@ class StudioSystemConfigService:
             AppException (ErrorCodes.VALIDATION_FAILED): If slug format is invalid or collides with another gateway.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after persistence.
         """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can modify system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT can modify system configs.")
+        self._require_root(initiator, "modify system configs")
 
         if data.id != id:
             data = data.model_copy(update={"id": id})
@@ -550,7 +549,7 @@ class StudioSystemConfigService:
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "gateway_id": id},
                 )
                 raise AppException(
-                    message=f"MCP gateway slug '{data.slug}' is already in use by gateway '{existing_gw.id}'.",
+                    message=f"MCP gateway '{id}' has a duplicate slug already in use by gateway '{existing_gw.id}'.",
                     status_code=400,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "gateway_id": id},
                 )
@@ -601,15 +600,7 @@ class StudioSystemConfigService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the source gateway is missing.
             AppException (ErrorCodes.VALIDATION_FAILED): If cloned slug validation fails.
         """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can clone system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("Only ROOT can clone system configs.")
+        self._require_root(initiator, "clone system configs")
 
         existing = await self.get_mcp_gateways(initiator, id)
         all_gateways = await self.system_repo.get_all_mcp_gateways()
@@ -656,31 +647,12 @@ class StudioSystemConfigService:
             )
             raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
 
-        if self.workflow_repo is not None:
-            workflows = await self.workflow_repo.get_all_workflows()
-            for wf in workflows:
-                if wf.mcp_gateway_id == id:
-                    logger.error(
-                        "[StudioSystemConfigService] %s: Cannot delete MCP gateway %s because it is referenced by workflow %s.",
-                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                        id,
-                        wf.id,
-                        exc_info=True,
-                        extra={
-                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                            "gateway_id": id,
-                            "workflow_id": wf.id,
-                        },
-                    )
-                    raise AppException(
-                        message=f"Cannot delete MCP gateway '{id}' because it is referenced by workflow '{wf.id}'.",
-                        status_code=400,
-                        details={
-                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                            "gateway_id": id,
-                            "workflow_id": wf.id,
-                        },
-                    )
+        await self._ensure_not_referenced_by_workflows(
+            entity_id=id,
+            entity_label="MCP gateway",
+            id_detail_key="gateway_id",
+            is_mcp_gateway=True,
+        )
 
         await self.gateway_cache.invalidate(id)
         await self.system_repo.delete_system_config(id)
