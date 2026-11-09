@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GlobalContextVarsDto {
 
- String? get language;@JsonKey(name: 'target_locale') String? get targetLocale;@JsonKey(name: 'system_locale') String? get systemLocale;@JsonKey(name: 'profile_id') String? get profileId;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'initiator_id') String? get initiatorId;@JsonKey(name: 'step_coach') Map<String, String>? get stepCoach;@JsonKey(name: 'knowledge_base') Map<String, String>? get knowledgeBase;@JsonKey(name: 'hydration_results') String? get hydrationResults;@JsonKey(name: 'step_linguistics') String? get stepLinguistics;@JsonKey(name: 'external_evidence') String? get externalEvidence;@JsonKey(name: 'evaluative_matrices') Map<String, double>? get evaluativeMatrices;@JsonKey(name: 'passivity_detected') bool? get passivityDetected;@JsonKey(name: 'archivist_precedents') List<String>? get archivistPrecedents;@JsonKey(name: 'shuffled_atoms') List<String>? get shuffledAtoms;@JsonKey(name: 'profiler_metrics') String? get profilerMetrics; String? get distillation; String? get scoring;@JsonKey(name: 'interaction_analysis') String? get interactionAnalysis; String? get bibliography;@JsonKey(name: 'llm_anomaly_retry_requested') bool? get llmAnomalyRetryRequested;@JsonKey(name: 'input_control_ratio') double? get inputControlRatio;@JsonKey(name: 'integrity_verified_output') String? get integrityVerifiedOutput;@JsonKey(name: 'step_metadata') String? get stepMetadata;
+ String? get language;@JsonKey(name: 'target_locale') String? get targetLocale;@JsonKey(name: 'system_locale') String? get systemLocale;@JsonKey(name: 'profile_id') String? get profileId;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'initiator_id') String? get initiatorId;@JsonKey(name: 'step_coach') Object? get stepCoach;@JsonKey(name: 'knowledge_base') Object? get knowledgeBase;@JsonKey(name: 'hydration_results') Object? get hydrationResults;@JsonKey(name: 'step_linguistics') Object? get stepLinguistics;@JsonKey(name: 'external_evidence') String? get externalEvidence;@JsonKey(name: 'evaluative_matrices') Map<String, double>? get evaluativeMatrices;@JsonKey(name: 'passivity_detected') bool? get passivityDetected;@JsonKey(name: 'archivist_precedents') List<Object?>? get archivistPrecedents;@JsonKey(name: 'shuffled_atoms') List<Object?>? get shuffledAtoms;@JsonKey(name: 'profiler_metrics') Object? get profilerMetrics; Object? get distillation; Object? get scoring;@JsonKey(name: 'interaction_analysis') Object? get interactionAnalysis; Object? get bibliography;@JsonKey(name: 'llm_anomaly_retry_requested') bool? get llmAnomalyRetryRequested;@JsonKey(name: 'input_control_ratio') double? get inputControlRatio;@JsonKey(name: 'integrity_verified_output') Object? get integrityVerifiedOutput;@JsonKey(name: 'step_metadata') Object? get stepMetadata;
 /// Create a copy of GlobalContextVarsDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $GlobalContextVarsDtoCopyWith<$Res>  {
   factory $GlobalContextVarsDtoCopyWith(GlobalContextVarsDto value, $Res Function(GlobalContextVarsDto) _then) = _$GlobalContextVarsDtoCopyWithImpl;
 @useResult
 $Res call({
- String? language,@JsonKey(name: 'target_locale') String? targetLocale,@JsonKey(name: 'system_locale') String? systemLocale,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'initiator_id') String? initiatorId,@JsonKey(name: 'step_coach') Map<String, String>? stepCoach,@JsonKey(name: 'knowledge_base') Map<String, String>? knowledgeBase,@JsonKey(name: 'hydration_results') String? hydrationResults,@JsonKey(name: 'step_linguistics') String? stepLinguistics,@JsonKey(name: 'external_evidence') String? externalEvidence,@JsonKey(name: 'evaluative_matrices') Map<String, double>? evaluativeMatrices,@JsonKey(name: 'passivity_detected') bool? passivityDetected,@JsonKey(name: 'archivist_precedents') List<String>? archivistPrecedents,@JsonKey(name: 'shuffled_atoms') List<String>? shuffledAtoms,@JsonKey(name: 'profiler_metrics') String? profilerMetrics, String? distillation, String? scoring,@JsonKey(name: 'interaction_analysis') String? interactionAnalysis, String? bibliography,@JsonKey(name: 'llm_anomaly_retry_requested') bool? llmAnomalyRetryRequested,@JsonKey(name: 'input_control_ratio') double? inputControlRatio,@JsonKey(name: 'integrity_verified_output') String? integrityVerifiedOutput,@JsonKey(name: 'step_metadata') String? stepMetadata
+ String? language,@JsonKey(name: 'target_locale') String? targetLocale,@JsonKey(name: 'system_locale') String? systemLocale,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'initiator_id') String? initiatorId,@JsonKey(name: 'step_coach') Object? stepCoach,@JsonKey(name: 'knowledge_base') Object? knowledgeBase,@JsonKey(name: 'hydration_results') Object? hydrationResults,@JsonKey(name: 'step_linguistics') Object? stepLinguistics,@JsonKey(name: 'external_evidence') String? externalEvidence,@JsonKey(name: 'evaluative_matrices') Map<String, double>? evaluativeMatrices,@JsonKey(name: 'passivity_detected') bool? passivityDetected,@JsonKey(name: 'archivist_precedents') List<Object?>? archivistPrecedents,@JsonKey(name: 'shuffled_atoms') List<Object?>? shuffledAtoms,@JsonKey(name: 'profiler_metrics') Object? profilerMetrics, Object? distillation, Object? scoring,@JsonKey(name: 'interaction_analysis') Object? interactionAnalysis, Object? bibliography,@JsonKey(name: 'llm_anomaly_retry_requested') bool? llmAnomalyRetryRequested,@JsonKey(name: 'input_control_ratio') double? inputControlRatio,@JsonKey(name: 'integrity_verified_output') Object? integrityVerifiedOutput,@JsonKey(name: 'step_metadata') Object? stepMetadata
 });
 
 
@@ -66,25 +66,14 @@ as String?,systemLocale: freezed == systemLocale ? _self.systemLocale : systemLo
 as String?,profileId: freezed == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
 as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,initiatorId: freezed == initiatorId ? _self.initiatorId : initiatorId // ignore: cast_nullable_to_non_nullable
-as String?,stepCoach: freezed == stepCoach ? _self.stepCoach : stepCoach // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,knowledgeBase: freezed == knowledgeBase ? _self.knowledgeBase : knowledgeBase // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,hydrationResults: freezed == hydrationResults ? _self.hydrationResults : hydrationResults // ignore: cast_nullable_to_non_nullable
-as String?,stepLinguistics: freezed == stepLinguistics ? _self.stepLinguistics : stepLinguistics // ignore: cast_nullable_to_non_nullable
-as String?,externalEvidence: freezed == externalEvidence ? _self.externalEvidence : externalEvidence // ignore: cast_nullable_to_non_nullable
+as String?,stepCoach: freezed == stepCoach ? _self.stepCoach : stepCoach ,knowledgeBase: freezed == knowledgeBase ? _self.knowledgeBase : knowledgeBase ,hydrationResults: freezed == hydrationResults ? _self.hydrationResults : hydrationResults ,stepLinguistics: freezed == stepLinguistics ? _self.stepLinguistics : stepLinguistics ,externalEvidence: freezed == externalEvidence ? _self.externalEvidence : externalEvidence // ignore: cast_nullable_to_non_nullable
 as String?,evaluativeMatrices: freezed == evaluativeMatrices ? _self.evaluativeMatrices : evaluativeMatrices // ignore: cast_nullable_to_non_nullable
 as Map<String, double>?,passivityDetected: freezed == passivityDetected ? _self.passivityDetected : passivityDetected // ignore: cast_nullable_to_non_nullable
 as bool?,archivistPrecedents: freezed == archivistPrecedents ? _self.archivistPrecedents : archivistPrecedents // ignore: cast_nullable_to_non_nullable
-as List<String>?,shuffledAtoms: freezed == shuffledAtoms ? _self.shuffledAtoms : shuffledAtoms // ignore: cast_nullable_to_non_nullable
-as List<String>?,profilerMetrics: freezed == profilerMetrics ? _self.profilerMetrics : profilerMetrics // ignore: cast_nullable_to_non_nullable
-as String?,distillation: freezed == distillation ? _self.distillation : distillation // ignore: cast_nullable_to_non_nullable
-as String?,scoring: freezed == scoring ? _self.scoring : scoring // ignore: cast_nullable_to_non_nullable
-as String?,interactionAnalysis: freezed == interactionAnalysis ? _self.interactionAnalysis : interactionAnalysis // ignore: cast_nullable_to_non_nullable
-as String?,bibliography: freezed == bibliography ? _self.bibliography : bibliography // ignore: cast_nullable_to_non_nullable
-as String?,llmAnomalyRetryRequested: freezed == llmAnomalyRetryRequested ? _self.llmAnomalyRetryRequested : llmAnomalyRetryRequested // ignore: cast_nullable_to_non_nullable
+as List<Object?>?,shuffledAtoms: freezed == shuffledAtoms ? _self.shuffledAtoms : shuffledAtoms // ignore: cast_nullable_to_non_nullable
+as List<Object?>?,profilerMetrics: freezed == profilerMetrics ? _self.profilerMetrics : profilerMetrics ,distillation: freezed == distillation ? _self.distillation : distillation ,scoring: freezed == scoring ? _self.scoring : scoring ,interactionAnalysis: freezed == interactionAnalysis ? _self.interactionAnalysis : interactionAnalysis ,bibliography: freezed == bibliography ? _self.bibliography : bibliography ,llmAnomalyRetryRequested: freezed == llmAnomalyRetryRequested ? _self.llmAnomalyRetryRequested : llmAnomalyRetryRequested // ignore: cast_nullable_to_non_nullable
 as bool?,inputControlRatio: freezed == inputControlRatio ? _self.inputControlRatio : inputControlRatio // ignore: cast_nullable_to_non_nullable
-as double?,integrityVerifiedOutput: freezed == integrityVerifiedOutput ? _self.integrityVerifiedOutput : integrityVerifiedOutput // ignore: cast_nullable_to_non_nullable
-as String?,stepMetadata: freezed == stepMetadata ? _self.stepMetadata : stepMetadata // ignore: cast_nullable_to_non_nullable
-as String?,
+as double?,integrityVerifiedOutput: freezed == integrityVerifiedOutput ? _self.integrityVerifiedOutput : integrityVerifiedOutput ,stepMetadata: freezed == stepMetadata ? _self.stepMetadata : stepMetadata ,
   ));
 }
 
@@ -169,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? language, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(name: 'system_locale')  String? systemLocale, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'initiator_id')  String? initiatorId, @JsonKey(name: 'step_coach')  Map<String, String>? stepCoach, @JsonKey(name: 'knowledge_base')  Map<String, String>? knowledgeBase, @JsonKey(name: 'hydration_results')  String? hydrationResults, @JsonKey(name: 'step_linguistics')  String? stepLinguistics, @JsonKey(name: 'external_evidence')  String? externalEvidence, @JsonKey(name: 'evaluative_matrices')  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected')  bool? passivityDetected, @JsonKey(name: 'archivist_precedents')  List<String>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms')  List<String>? shuffledAtoms, @JsonKey(name: 'profiler_metrics')  String? profilerMetrics,  String? distillation,  String? scoring, @JsonKey(name: 'interaction_analysis')  String? interactionAnalysis,  String? bibliography, @JsonKey(name: 'llm_anomaly_retry_requested')  bool? llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio')  double? inputControlRatio, @JsonKey(name: 'integrity_verified_output')  String? integrityVerifiedOutput, @JsonKey(name: 'step_metadata')  String? stepMetadata)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? language, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(name: 'system_locale')  String? systemLocale, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'initiator_id')  String? initiatorId, @JsonKey(name: 'step_coach')  Object? stepCoach, @JsonKey(name: 'knowledge_base')  Object? knowledgeBase, @JsonKey(name: 'hydration_results')  Object? hydrationResults, @JsonKey(name: 'step_linguistics')  Object? stepLinguistics, @JsonKey(name: 'external_evidence')  String? externalEvidence, @JsonKey(name: 'evaluative_matrices')  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected')  bool? passivityDetected, @JsonKey(name: 'archivist_precedents')  List<Object?>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms')  List<Object?>? shuffledAtoms, @JsonKey(name: 'profiler_metrics')  Object? profilerMetrics,  Object? distillation,  Object? scoring, @JsonKey(name: 'interaction_analysis')  Object? interactionAnalysis,  Object? bibliography, @JsonKey(name: 'llm_anomaly_retry_requested')  bool? llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio')  double? inputControlRatio, @JsonKey(name: 'integrity_verified_output')  Object? integrityVerifiedOutput, @JsonKey(name: 'step_metadata')  Object? stepMetadata)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GlobalContextVarsDto() when $default != null:
 return $default(_that.language,_that.targetLocale,_that.systemLocale,_that.profileId,_that.organizationId,_that.initiatorId,_that.stepCoach,_that.knowledgeBase,_that.hydrationResults,_that.stepLinguistics,_that.externalEvidence,_that.evaluativeMatrices,_that.passivityDetected,_that.archivistPrecedents,_that.shuffledAtoms,_that.profilerMetrics,_that.distillation,_that.scoring,_that.interactionAnalysis,_that.bibliography,_that.llmAnomalyRetryRequested,_that.inputControlRatio,_that.integrityVerifiedOutput,_that.stepMetadata);case _:
@@ -190,7 +179,7 @@ return $default(_that.language,_that.targetLocale,_that.systemLocale,_that.profi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? language, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(name: 'system_locale')  String? systemLocale, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'initiator_id')  String? initiatorId, @JsonKey(name: 'step_coach')  Map<String, String>? stepCoach, @JsonKey(name: 'knowledge_base')  Map<String, String>? knowledgeBase, @JsonKey(name: 'hydration_results')  String? hydrationResults, @JsonKey(name: 'step_linguistics')  String? stepLinguistics, @JsonKey(name: 'external_evidence')  String? externalEvidence, @JsonKey(name: 'evaluative_matrices')  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected')  bool? passivityDetected, @JsonKey(name: 'archivist_precedents')  List<String>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms')  List<String>? shuffledAtoms, @JsonKey(name: 'profiler_metrics')  String? profilerMetrics,  String? distillation,  String? scoring, @JsonKey(name: 'interaction_analysis')  String? interactionAnalysis,  String? bibliography, @JsonKey(name: 'llm_anomaly_retry_requested')  bool? llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio')  double? inputControlRatio, @JsonKey(name: 'integrity_verified_output')  String? integrityVerifiedOutput, @JsonKey(name: 'step_metadata')  String? stepMetadata)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? language, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(name: 'system_locale')  String? systemLocale, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'initiator_id')  String? initiatorId, @JsonKey(name: 'step_coach')  Object? stepCoach, @JsonKey(name: 'knowledge_base')  Object? knowledgeBase, @JsonKey(name: 'hydration_results')  Object? hydrationResults, @JsonKey(name: 'step_linguistics')  Object? stepLinguistics, @JsonKey(name: 'external_evidence')  String? externalEvidence, @JsonKey(name: 'evaluative_matrices')  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected')  bool? passivityDetected, @JsonKey(name: 'archivist_precedents')  List<Object?>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms')  List<Object?>? shuffledAtoms, @JsonKey(name: 'profiler_metrics')  Object? profilerMetrics,  Object? distillation,  Object? scoring, @JsonKey(name: 'interaction_analysis')  Object? interactionAnalysis,  Object? bibliography, @JsonKey(name: 'llm_anomaly_retry_requested')  bool? llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio')  double? inputControlRatio, @JsonKey(name: 'integrity_verified_output')  Object? integrityVerifiedOutput, @JsonKey(name: 'step_metadata')  Object? stepMetadata)  $default,) {final _that = this;
 switch (_that) {
 case _GlobalContextVarsDto():
 return $default(_that.language,_that.targetLocale,_that.systemLocale,_that.profileId,_that.organizationId,_that.initiatorId,_that.stepCoach,_that.knowledgeBase,_that.hydrationResults,_that.stepLinguistics,_that.externalEvidence,_that.evaluativeMatrices,_that.passivityDetected,_that.archivistPrecedents,_that.shuffledAtoms,_that.profilerMetrics,_that.distillation,_that.scoring,_that.interactionAnalysis,_that.bibliography,_that.llmAnomalyRetryRequested,_that.inputControlRatio,_that.integrityVerifiedOutput,_that.stepMetadata);case _:
@@ -210,7 +199,7 @@ return $default(_that.language,_that.targetLocale,_that.systemLocale,_that.profi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? language, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(name: 'system_locale')  String? systemLocale, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'initiator_id')  String? initiatorId, @JsonKey(name: 'step_coach')  Map<String, String>? stepCoach, @JsonKey(name: 'knowledge_base')  Map<String, String>? knowledgeBase, @JsonKey(name: 'hydration_results')  String? hydrationResults, @JsonKey(name: 'step_linguistics')  String? stepLinguistics, @JsonKey(name: 'external_evidence')  String? externalEvidence, @JsonKey(name: 'evaluative_matrices')  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected')  bool? passivityDetected, @JsonKey(name: 'archivist_precedents')  List<String>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms')  List<String>? shuffledAtoms, @JsonKey(name: 'profiler_metrics')  String? profilerMetrics,  String? distillation,  String? scoring, @JsonKey(name: 'interaction_analysis')  String? interactionAnalysis,  String? bibliography, @JsonKey(name: 'llm_anomaly_retry_requested')  bool? llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio')  double? inputControlRatio, @JsonKey(name: 'integrity_verified_output')  String? integrityVerifiedOutput, @JsonKey(name: 'step_metadata')  String? stepMetadata)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? language, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(name: 'system_locale')  String? systemLocale, @JsonKey(name: 'profile_id')  String? profileId, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'initiator_id')  String? initiatorId, @JsonKey(name: 'step_coach')  Object? stepCoach, @JsonKey(name: 'knowledge_base')  Object? knowledgeBase, @JsonKey(name: 'hydration_results')  Object? hydrationResults, @JsonKey(name: 'step_linguistics')  Object? stepLinguistics, @JsonKey(name: 'external_evidence')  String? externalEvidence, @JsonKey(name: 'evaluative_matrices')  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected')  bool? passivityDetected, @JsonKey(name: 'archivist_precedents')  List<Object?>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms')  List<Object?>? shuffledAtoms, @JsonKey(name: 'profiler_metrics')  Object? profilerMetrics,  Object? distillation,  Object? scoring, @JsonKey(name: 'interaction_analysis')  Object? interactionAnalysis,  Object? bibliography, @JsonKey(name: 'llm_anomaly_retry_requested')  bool? llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio')  double? inputControlRatio, @JsonKey(name: 'integrity_verified_output')  Object? integrityVerifiedOutput, @JsonKey(name: 'step_metadata')  Object? stepMetadata)?  $default,) {final _that = this;
 switch (_that) {
 case _GlobalContextVarsDto() when $default != null:
 return $default(_that.language,_that.targetLocale,_that.systemLocale,_that.profileId,_that.organizationId,_that.initiatorId,_that.stepCoach,_that.knowledgeBase,_that.hydrationResults,_that.stepLinguistics,_that.externalEvidence,_that.evaluativeMatrices,_that.passivityDetected,_that.archivistPrecedents,_that.shuffledAtoms,_that.profilerMetrics,_that.distillation,_that.scoring,_that.interactionAnalysis,_that.bibliography,_that.llmAnomalyRetryRequested,_that.inputControlRatio,_that.integrityVerifiedOutput,_that.stepMetadata);case _:
@@ -225,7 +214,7 @@ return $default(_that.language,_that.targetLocale,_that.systemLocale,_that.profi
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _GlobalContextVarsDto extends GlobalContextVarsDto {
-  const _GlobalContextVarsDto({this.language, @JsonKey(name: 'target_locale') this.targetLocale, @JsonKey(name: 'system_locale') this.systemLocale, @JsonKey(name: 'profile_id') this.profileId, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'initiator_id') this.initiatorId, @JsonKey(name: 'step_coach') final  Map<String, String>? stepCoach, @JsonKey(name: 'knowledge_base') final  Map<String, String>? knowledgeBase, @JsonKey(name: 'hydration_results') this.hydrationResults, @JsonKey(name: 'step_linguistics') this.stepLinguistics, @JsonKey(name: 'external_evidence') this.externalEvidence, @JsonKey(name: 'evaluative_matrices') final  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected') this.passivityDetected, @JsonKey(name: 'archivist_precedents') final  List<String>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms') final  List<String>? shuffledAtoms, @JsonKey(name: 'profiler_metrics') this.profilerMetrics, this.distillation, this.scoring, @JsonKey(name: 'interaction_analysis') this.interactionAnalysis, this.bibliography, @JsonKey(name: 'llm_anomaly_retry_requested') this.llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio') this.inputControlRatio, @JsonKey(name: 'integrity_verified_output') this.integrityVerifiedOutput, @JsonKey(name: 'step_metadata') this.stepMetadata}): _stepCoach = stepCoach,_knowledgeBase = knowledgeBase,_evaluativeMatrices = evaluativeMatrices,_archivistPrecedents = archivistPrecedents,_shuffledAtoms = shuffledAtoms,super._();
+  const _GlobalContextVarsDto({this.language, @JsonKey(name: 'target_locale') this.targetLocale, @JsonKey(name: 'system_locale') this.systemLocale, @JsonKey(name: 'profile_id') this.profileId, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'initiator_id') this.initiatorId, @JsonKey(name: 'step_coach') this.stepCoach, @JsonKey(name: 'knowledge_base') this.knowledgeBase, @JsonKey(name: 'hydration_results') this.hydrationResults, @JsonKey(name: 'step_linguistics') this.stepLinguistics, @JsonKey(name: 'external_evidence') this.externalEvidence, @JsonKey(name: 'evaluative_matrices') final  Map<String, double>? evaluativeMatrices, @JsonKey(name: 'passivity_detected') this.passivityDetected, @JsonKey(name: 'archivist_precedents') final  List<Object?>? archivistPrecedents, @JsonKey(name: 'shuffled_atoms') final  List<Object?>? shuffledAtoms, @JsonKey(name: 'profiler_metrics') this.profilerMetrics, this.distillation, this.scoring, @JsonKey(name: 'interaction_analysis') this.interactionAnalysis, this.bibliography, @JsonKey(name: 'llm_anomaly_retry_requested') this.llmAnomalyRetryRequested, @JsonKey(name: 'input_control_ratio') this.inputControlRatio, @JsonKey(name: 'integrity_verified_output') this.integrityVerifiedOutput, @JsonKey(name: 'step_metadata') this.stepMetadata}): _evaluativeMatrices = evaluativeMatrices,_archivistPrecedents = archivistPrecedents,_shuffledAtoms = shuffledAtoms,super._();
   factory _GlobalContextVarsDto.fromJson(Map<String, dynamic> json) => _$GlobalContextVarsDtoFromJson(json);
 
 @override final  String? language;
@@ -234,26 +223,10 @@ class _GlobalContextVarsDto extends GlobalContextVarsDto {
 @override@JsonKey(name: 'profile_id') final  String? profileId;
 @override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override@JsonKey(name: 'initiator_id') final  String? initiatorId;
- final  Map<String, String>? _stepCoach;
-@override@JsonKey(name: 'step_coach') Map<String, String>? get stepCoach {
-  final value = _stepCoach;
-  if (value == null) return null;
-  if (_stepCoach is EqualUnmodifiableMapView) return _stepCoach;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
-}
-
- final  Map<String, String>? _knowledgeBase;
-@override@JsonKey(name: 'knowledge_base') Map<String, String>? get knowledgeBase {
-  final value = _knowledgeBase;
-  if (value == null) return null;
-  if (_knowledgeBase is EqualUnmodifiableMapView) return _knowledgeBase;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
-}
-
-@override@JsonKey(name: 'hydration_results') final  String? hydrationResults;
-@override@JsonKey(name: 'step_linguistics') final  String? stepLinguistics;
+@override@JsonKey(name: 'step_coach') final  Object? stepCoach;
+@override@JsonKey(name: 'knowledge_base') final  Object? knowledgeBase;
+@override@JsonKey(name: 'hydration_results') final  Object? hydrationResults;
+@override@JsonKey(name: 'step_linguistics') final  Object? stepLinguistics;
 @override@JsonKey(name: 'external_evidence') final  String? externalEvidence;
  final  Map<String, double>? _evaluativeMatrices;
 @override@JsonKey(name: 'evaluative_matrices') Map<String, double>? get evaluativeMatrices {
@@ -265,8 +238,8 @@ class _GlobalContextVarsDto extends GlobalContextVarsDto {
 }
 
 @override@JsonKey(name: 'passivity_detected') final  bool? passivityDetected;
- final  List<String>? _archivistPrecedents;
-@override@JsonKey(name: 'archivist_precedents') List<String>? get archivistPrecedents {
+ final  List<Object?>? _archivistPrecedents;
+@override@JsonKey(name: 'archivist_precedents') List<Object?>? get archivistPrecedents {
   final value = _archivistPrecedents;
   if (value == null) return null;
   if (_archivistPrecedents is EqualUnmodifiableListView) return _archivistPrecedents;
@@ -274,8 +247,8 @@ class _GlobalContextVarsDto extends GlobalContextVarsDto {
   return EqualUnmodifiableListView(value);
 }
 
- final  List<String>? _shuffledAtoms;
-@override@JsonKey(name: 'shuffled_atoms') List<String>? get shuffledAtoms {
+ final  List<Object?>? _shuffledAtoms;
+@override@JsonKey(name: 'shuffled_atoms') List<Object?>? get shuffledAtoms {
   final value = _shuffledAtoms;
   if (value == null) return null;
   if (_shuffledAtoms is EqualUnmodifiableListView) return _shuffledAtoms;
@@ -283,15 +256,15 @@ class _GlobalContextVarsDto extends GlobalContextVarsDto {
   return EqualUnmodifiableListView(value);
 }
 
-@override@JsonKey(name: 'profiler_metrics') final  String? profilerMetrics;
-@override final  String? distillation;
-@override final  String? scoring;
-@override@JsonKey(name: 'interaction_analysis') final  String? interactionAnalysis;
-@override final  String? bibliography;
+@override@JsonKey(name: 'profiler_metrics') final  Object? profilerMetrics;
+@override final  Object? distillation;
+@override final  Object? scoring;
+@override@JsonKey(name: 'interaction_analysis') final  Object? interactionAnalysis;
+@override final  Object? bibliography;
 @override@JsonKey(name: 'llm_anomaly_retry_requested') final  bool? llmAnomalyRetryRequested;
 @override@JsonKey(name: 'input_control_ratio') final  double? inputControlRatio;
-@override@JsonKey(name: 'integrity_verified_output') final  String? integrityVerifiedOutput;
-@override@JsonKey(name: 'step_metadata') final  String? stepMetadata;
+@override@JsonKey(name: 'integrity_verified_output') final  Object? integrityVerifiedOutput;
+@override@JsonKey(name: 'step_metadata') final  Object? stepMetadata;
 
 /// Create a copy of GlobalContextVarsDto
 /// with the given fields replaced by the non-null parameter values.
@@ -319,7 +292,7 @@ abstract mixin class _$GlobalContextVarsDtoCopyWith<$Res> implements $GlobalCont
   factory _$GlobalContextVarsDtoCopyWith(_GlobalContextVarsDto value, $Res Function(_GlobalContextVarsDto) _then) = __$GlobalContextVarsDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String? language,@JsonKey(name: 'target_locale') String? targetLocale,@JsonKey(name: 'system_locale') String? systemLocale,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'initiator_id') String? initiatorId,@JsonKey(name: 'step_coach') Map<String, String>? stepCoach,@JsonKey(name: 'knowledge_base') Map<String, String>? knowledgeBase,@JsonKey(name: 'hydration_results') String? hydrationResults,@JsonKey(name: 'step_linguistics') String? stepLinguistics,@JsonKey(name: 'external_evidence') String? externalEvidence,@JsonKey(name: 'evaluative_matrices') Map<String, double>? evaluativeMatrices,@JsonKey(name: 'passivity_detected') bool? passivityDetected,@JsonKey(name: 'archivist_precedents') List<String>? archivistPrecedents,@JsonKey(name: 'shuffled_atoms') List<String>? shuffledAtoms,@JsonKey(name: 'profiler_metrics') String? profilerMetrics, String? distillation, String? scoring,@JsonKey(name: 'interaction_analysis') String? interactionAnalysis, String? bibliography,@JsonKey(name: 'llm_anomaly_retry_requested') bool? llmAnomalyRetryRequested,@JsonKey(name: 'input_control_ratio') double? inputControlRatio,@JsonKey(name: 'integrity_verified_output') String? integrityVerifiedOutput,@JsonKey(name: 'step_metadata') String? stepMetadata
+ String? language,@JsonKey(name: 'target_locale') String? targetLocale,@JsonKey(name: 'system_locale') String? systemLocale,@JsonKey(name: 'profile_id') String? profileId,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'initiator_id') String? initiatorId,@JsonKey(name: 'step_coach') Object? stepCoach,@JsonKey(name: 'knowledge_base') Object? knowledgeBase,@JsonKey(name: 'hydration_results') Object? hydrationResults,@JsonKey(name: 'step_linguistics') Object? stepLinguistics,@JsonKey(name: 'external_evidence') String? externalEvidence,@JsonKey(name: 'evaluative_matrices') Map<String, double>? evaluativeMatrices,@JsonKey(name: 'passivity_detected') bool? passivityDetected,@JsonKey(name: 'archivist_precedents') List<Object?>? archivistPrecedents,@JsonKey(name: 'shuffled_atoms') List<Object?>? shuffledAtoms,@JsonKey(name: 'profiler_metrics') Object? profilerMetrics, Object? distillation, Object? scoring,@JsonKey(name: 'interaction_analysis') Object? interactionAnalysis, Object? bibliography,@JsonKey(name: 'llm_anomaly_retry_requested') bool? llmAnomalyRetryRequested,@JsonKey(name: 'input_control_ratio') double? inputControlRatio,@JsonKey(name: 'integrity_verified_output') Object? integrityVerifiedOutput,@JsonKey(name: 'step_metadata') Object? stepMetadata
 });
 
 
@@ -344,25 +317,14 @@ as String?,systemLocale: freezed == systemLocale ? _self.systemLocale : systemLo
 as String?,profileId: freezed == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
 as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,initiatorId: freezed == initiatorId ? _self.initiatorId : initiatorId // ignore: cast_nullable_to_non_nullable
-as String?,stepCoach: freezed == stepCoach ? _self._stepCoach : stepCoach // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,knowledgeBase: freezed == knowledgeBase ? _self._knowledgeBase : knowledgeBase // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,hydrationResults: freezed == hydrationResults ? _self.hydrationResults : hydrationResults // ignore: cast_nullable_to_non_nullable
-as String?,stepLinguistics: freezed == stepLinguistics ? _self.stepLinguistics : stepLinguistics // ignore: cast_nullable_to_non_nullable
-as String?,externalEvidence: freezed == externalEvidence ? _self.externalEvidence : externalEvidence // ignore: cast_nullable_to_non_nullable
+as String?,stepCoach: freezed == stepCoach ? _self.stepCoach : stepCoach ,knowledgeBase: freezed == knowledgeBase ? _self.knowledgeBase : knowledgeBase ,hydrationResults: freezed == hydrationResults ? _self.hydrationResults : hydrationResults ,stepLinguistics: freezed == stepLinguistics ? _self.stepLinguistics : stepLinguistics ,externalEvidence: freezed == externalEvidence ? _self.externalEvidence : externalEvidence // ignore: cast_nullable_to_non_nullable
 as String?,evaluativeMatrices: freezed == evaluativeMatrices ? _self._evaluativeMatrices : evaluativeMatrices // ignore: cast_nullable_to_non_nullable
 as Map<String, double>?,passivityDetected: freezed == passivityDetected ? _self.passivityDetected : passivityDetected // ignore: cast_nullable_to_non_nullable
 as bool?,archivistPrecedents: freezed == archivistPrecedents ? _self._archivistPrecedents : archivistPrecedents // ignore: cast_nullable_to_non_nullable
-as List<String>?,shuffledAtoms: freezed == shuffledAtoms ? _self._shuffledAtoms : shuffledAtoms // ignore: cast_nullable_to_non_nullable
-as List<String>?,profilerMetrics: freezed == profilerMetrics ? _self.profilerMetrics : profilerMetrics // ignore: cast_nullable_to_non_nullable
-as String?,distillation: freezed == distillation ? _self.distillation : distillation // ignore: cast_nullable_to_non_nullable
-as String?,scoring: freezed == scoring ? _self.scoring : scoring // ignore: cast_nullable_to_non_nullable
-as String?,interactionAnalysis: freezed == interactionAnalysis ? _self.interactionAnalysis : interactionAnalysis // ignore: cast_nullable_to_non_nullable
-as String?,bibliography: freezed == bibliography ? _self.bibliography : bibliography // ignore: cast_nullable_to_non_nullable
-as String?,llmAnomalyRetryRequested: freezed == llmAnomalyRetryRequested ? _self.llmAnomalyRetryRequested : llmAnomalyRetryRequested // ignore: cast_nullable_to_non_nullable
+as List<Object?>?,shuffledAtoms: freezed == shuffledAtoms ? _self._shuffledAtoms : shuffledAtoms // ignore: cast_nullable_to_non_nullable
+as List<Object?>?,profilerMetrics: freezed == profilerMetrics ? _self.profilerMetrics : profilerMetrics ,distillation: freezed == distillation ? _self.distillation : distillation ,scoring: freezed == scoring ? _self.scoring : scoring ,interactionAnalysis: freezed == interactionAnalysis ? _self.interactionAnalysis : interactionAnalysis ,bibliography: freezed == bibliography ? _self.bibliography : bibliography ,llmAnomalyRetryRequested: freezed == llmAnomalyRetryRequested ? _self.llmAnomalyRetryRequested : llmAnomalyRetryRequested // ignore: cast_nullable_to_non_nullable
 as bool?,inputControlRatio: freezed == inputControlRatio ? _self.inputControlRatio : inputControlRatio // ignore: cast_nullable_to_non_nullable
-as double?,integrityVerifiedOutput: freezed == integrityVerifiedOutput ? _self.integrityVerifiedOutput : integrityVerifiedOutput // ignore: cast_nullable_to_non_nullable
-as String?,stepMetadata: freezed == stepMetadata ? _self.stepMetadata : stepMetadata // ignore: cast_nullable_to_non_nullable
-as String?,
+as double?,integrityVerifiedOutput: freezed == integrityVerifiedOutput ? _self.integrityVerifiedOutput : integrityVerifiedOutput ,stepMetadata: freezed == stepMetadata ? _self.stepMetadata : stepMetadata ,
   ));
 }
 

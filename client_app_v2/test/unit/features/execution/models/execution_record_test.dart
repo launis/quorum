@@ -121,10 +121,9 @@ void main() {
           'context_variables_storage_path': 'traces/vars.json',
           'execution_trace': <Map<String, Object?>>[
             <String, Object?>{
-              'event': 'STEP_START',
-              'step_id': stepId,
-              'status': 'RUNNING',
-              'duration_ms': 15,
+              'step_name': stepId,
+              'event_type': 'STATE_UPDATE',
+              'content': <String, Object?>{'status': 'RUNNING'},
             },
           ],
           'execution_trace_storage_path': 'traces/trace.json',
@@ -148,7 +147,6 @@ void main() {
           },
           'profile_syntheses': <String, Object?>{
             profileId: <String, Object?>{
-              'cached': true,
               'variance_explanation': 'Consistent across runs.',
               'cited_sources': <String>['src_1'],
             },
@@ -210,8 +208,11 @@ void main() {
           equals('Summary context'),
         );
         expect(record.contextVariables?.variables['score'], equals('4.5'));
-        expect(record.executionTrace?.first.event, equals('STEP_START'));
-        expect(record.profileSyntheses?[profileId]?.cached, isTrue);
+        expect(record.executionTrace?.first.eventType, equals('STATE_UPDATE'));
+        expect(
+          record.profileSyntheses?[profileId]?.varianceExplanation,
+          equals('Consistent across runs.'),
+        );
 
         // Verify DistilledEvaluation and ExecutionCreateRequestDto typed models
         final distilled = DistilledEvaluation.fromJson(<String, Object?>{
@@ -359,6 +360,168 @@ void main() {
         await expectLater(
           ExecutionRecord.parseInBackground('["not", "a", "map"]'),
           throwsA(isA<TypeError>()),
+        );
+      },
+    );
+
+    test(
+      'Positive 3 (Backend Wire Parity): deserializes ExecutionRecord with backend TraceEvent, RenderedSynthesisCache, GlobalContextVarsDTO, and ContextVariablesDTO wire payloads',
+      () {
+        final execId = generateOpaqueUuid7('exe');
+        final wfId = generateOpaqueUuid7('wf');
+        final profileId = generateOpaqueUuid7('op');
+        final stepId = generateOpaqueUuid7('stp');
+        final blockId = generateOpaqueUuid7('blk');
+        final eventId = generateOpaqueUuid7('evt');
+
+        final backendWirePayload = <String, Object?>{
+          'id': execId,
+          'workflow_id': wfId,
+          'target_locale': 'fi',
+          'status': 'completed',
+          'workflow_version': 1,
+          'state_version': 4,
+          'active_profile_id': profileId,
+          'output_profile_id': profileId,
+          'metadata': <String, Object?>{
+            'matrix_sampling_strategy': 0,
+            'workflow_version': 1,
+            'global_context_vars': <String, Object?>{
+              'language': 'fi',
+              'target_locale': 'fi',
+              'organization_id': 'org_0195f3a0000070008000000000000001',
+              'initiator_id': 'usr_0195f3a0000070008000000000000001',
+              'shuffled_atoms': <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': 'sr_0195f3a0000070008000000000000001',
+                  'category': 'Discovery',
+                  'label': <String, Object?>{
+                    'translations': <String, String>{'fi': 'Kysymykset'},
+                  },
+                },
+              ],
+              'hydration_results': <String, Object?>{
+                blockId: <Map<String, Object?>>[
+                  <String, Object?>{
+                    'id': 'sr_0195f3a0000070008000000000000001',
+                    'score': 4,
+                  },
+                ],
+              },
+              'step_linguistics': <String, Object?>{
+                'entries': <String, Object?>{
+                  'deliverable': <String, Object?>{'passive_ratio': 0.12},
+                },
+              },
+              'profiler_metrics': <String, Object?>{
+                'metrics': <String, Object?>{'word_count': 420},
+              },
+              'distillation': <String, Object?>{
+                'matrices': <String, Object?>{},
+              },
+              'scoring': <String, Object?>{
+                'global_score': 82.5,
+                'penalties_applied': <Map<String, Object?>>[],
+              },
+              'interaction_analysis': <String, Object?>{
+                'total_turns': 12,
+                'speaker_turn_counts': <String, int>{'Coach': 6, 'Client': 6},
+              },
+              'bibliography': <String, Object?>{
+                'entries': <Map<String, Object?>>[],
+                'citation_map': <String, String>{'doc0': 'Transcript.pdf'},
+              },
+              'integrity_verified_output': <String, Object?>{
+                'verified_quotes': 5,
+                'rejected_quotes': 0,
+              },
+              'step_metadata': <String, Object?>{
+                stepId: <String, Object?>{'attempt': 1},
+              },
+              'step_coach': <String, Object?>{
+                'summary': 'Strong coaching presence.',
+                'highlights': <String>['Active listening'],
+              },
+            },
+          },
+          'context_variables': <String, Object?>{
+            'global_atom_blackboard': <String, Object?>{
+              'entries': <String, Object?>{},
+            },
+            'matrix_reducer_output': <String, Object?>{
+              'matrices': <String, Object?>{},
+            },
+            'report_context': <String, Object?>{
+              'summary': 'Structured report context',
+            },
+            'evaluated_matrices': <String, Object?>{
+              blockId: <String, Object?>{'average_score': 82.5},
+            },
+            'variables': <String, Object?>{
+              'deliverable': 'Raw text',
+              'pdf_doc': <String, Object?>{
+                'filename': 'doc.pdf',
+                'content_base64': 'YWJj',
+              },
+            },
+          },
+          'execution_trace': <Map<String, Object?>>[
+            <String, Object?>{
+              'event_id': eventId,
+              'v': 1,
+              'timestamp': '2026-10-31T20:00:00Z',
+              'step_name': stepId,
+              'event_type': 'STATE_UPDATE',
+              'content': <String, Object?>{'score': 82.5},
+              'reasoning': 'Evaluated atom criteria.',
+              'metadata': <String, Object?>{
+                'model': 'gemini-2.5-flash',
+                'duration_ms': 450,
+              },
+              'mcp_audit_traces': <Map<String, Object?>>[],
+            },
+          ],
+          'profile_syntheses': <String, Object?>{
+            profileId: <String, Object?>{
+              'section_syntheses': <String, String>{
+                blockId: 'Executive synthesis paragraph.',
+              },
+              'row_explanations': <String, String>{
+                'sr_0195f3a0000070008000000000000001': 'Row rationale.',
+              },
+              'row_curated_quotes': <String, List<String>>{
+                'sr_0195f3a0000070008000000000000001': <String>['Exact quote.'],
+              },
+              'variance_explanation': 'Low variance across ensemble runs.',
+              'authenticity_explanation': 'Organic dialogue flow.',
+              'cited_sources': <String>['Transcript.pdf'],
+              'xai_highlights': <Map<String, Object?>>[],
+              'user_role': 'Executive Coach',
+              'user_role_justification': 'Led reflective questioning.',
+              'extension_metrics': <String, Object?>{
+                'sr_0195f3a0000070008000000000000001': <String, Object?>{
+                  'confidence': 0.92,
+                },
+              },
+              'data_starvation': false,
+              'created_at': '2026-10-31T20:01:00Z',
+            },
+          },
+        };
+
+        final record = ExecutionRecord.fromJson(backendWirePayload);
+        expect(record.id, equals(execId));
+        expect(record.status, equals('COMPLETED'));
+        expect(record.executionTrace, hasLength(1));
+        expect(record.executionTrace!.first.stepName, equals(stepId));
+        expect(record.executionTrace!.first.eventType, equals('STATE_UPDATE'));
+        expect(
+          record.profileSyntheses?[profileId]?.varianceExplanation,
+          equals('Low variance across ensemble runs.'),
+        );
+        expect(
+          record.profileSyntheses?[profileId]?.userRole,
+          equals('Executive Coach'),
         );
       },
     );

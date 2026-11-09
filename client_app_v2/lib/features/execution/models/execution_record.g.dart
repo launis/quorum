@@ -6,56 +6,46 @@ part of 'execution_record.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_ContextVariablesDto _$ContextVariablesDtoFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_ContextVariablesDto',
+_ContextVariablesDto _$ContextVariablesDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_ContextVariablesDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
       json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'global_atom_blackboard',
-            'matrix_reducer_output',
-            'report_context',
-            'step_detector',
-            'evaluated_matrices',
-            'variables',
-          ],
-        );
-        final val = _ContextVariablesDto(
-          globalAtomBlackboard: $checkedConvert(
-            'global_atom_blackboard',
-            (v) => v as String?,
-          ),
-          matrixReducerOutput: $checkedConvert(
-            'matrix_reducer_output',
-            (v) => v as String?,
-          ),
-          reportContext: $checkedConvert('report_context', (v) => v as String?),
-          stepDetector: $checkedConvert('step_detector', (v) => v as String?),
-          evaluatedMatrices: $checkedConvert(
-            'evaluated_matrices',
-            (v) => v as String?,
-          ),
-          variables: $checkedConvert(
-            'variables',
-            (v) =>
-                (v as Map<String, dynamic>?)?.map(
-                  (k, e) => MapEntry(k, e as String),
-                ) ??
-                const <String, String>{},
-          ),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'globalAtomBlackboard': 'global_atom_blackboard',
-        'matrixReducerOutput': 'matrix_reducer_output',
-        'reportContext': 'report_context',
-        'stepDetector': 'step_detector',
-        'evaluatedMatrices': 'evaluated_matrices',
-      },
+      allowedKeys: const [
+        'global_atom_blackboard',
+        'matrix_reducer_output',
+        'report_context',
+        'step_detector',
+        'evaluated_matrices',
+        'variables',
+      ],
     );
+    final val = _ContextVariablesDto(
+      globalAtomBlackboard: $checkedConvert('global_atom_blackboard', (v) => v),
+      matrixReducerOutput: $checkedConvert('matrix_reducer_output', (v) => v),
+      reportContext: $checkedConvert('report_context', (v) => v),
+      stepDetector: $checkedConvert('step_detector', (v) => v),
+      evaluatedMatrices: $checkedConvert('evaluated_matrices', (v) => v),
+      variables: $checkedConvert(
+        'variables',
+        (v) =>
+            v as Map<String, dynamic>? ??
+            const <String, ContextVariableEntry>{},
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'globalAtomBlackboard': 'global_atom_blackboard',
+    'matrixReducerOutput': 'matrix_reducer_output',
+    'reportContext': 'report_context',
+    'stepDetector': 'step_detector',
+    'evaluatedMatrices': 'evaluated_matrices',
+  },
+);
 
 Map<String, dynamic> _$ContextVariablesDtoToJson(
   _ContextVariablesDto instance,
@@ -82,11 +72,10 @@ _ExecutionTraceItemDto _$ExecutionTraceItemDtoFromJson(
         'timestamp',
         'step_name',
         'event_type',
-        'event',
-        'step_id',
-        'status',
-        'duration_ms',
-        'detail',
+        'content',
+        'reasoning',
+        'metadata',
+        'mcp_audit_traces',
         'error_code',
         'error_message',
         'redacted_hash',
@@ -98,11 +87,13 @@ _ExecutionTraceItemDto _$ExecutionTraceItemDtoFromJson(
       timestamp: $checkedConvert('timestamp', (v) => v as String?),
       stepName: $checkedConvert('step_name', (v) => v as String?),
       eventType: $checkedConvert('event_type', (v) => v as String?),
-      event: $checkedConvert('event', (v) => v as String?),
-      stepId: $checkedConvert('step_id', (v) => v as String?),
-      status: $checkedConvert('status', (v) => v as String?),
-      durationMs: $checkedConvert('duration_ms', (v) => (v as num?)?.toInt()),
-      detail: $checkedConvert('detail', (v) => v as String?),
+      content: $checkedConvert('content', (v) => v),
+      reasoning: $checkedConvert('reasoning', (v) => v),
+      metadata: $checkedConvert('metadata', (v) => v),
+      mcpAuditTraces: $checkedConvert(
+        'mcp_audit_traces',
+        (v) => v as List<dynamic>? ?? const <Object?>[],
+      ),
       errorCode: $checkedConvert('error_code', (v) => v as String?),
       errorMessage: $checkedConvert('error_message', (v) => v as String?),
       redactedHash: $checkedConvert('redacted_hash', (v) => v as String?),
@@ -113,8 +104,7 @@ _ExecutionTraceItemDto _$ExecutionTraceItemDtoFromJson(
     'eventId': 'event_id',
     'stepName': 'step_name',
     'eventType': 'event_type',
-    'stepId': 'step_id',
-    'durationMs': 'duration_ms',
+    'mcpAuditTraces': 'mcp_audit_traces',
     'errorCode': 'error_code',
     'errorMessage': 'error_message',
     'redactedHash': 'redacted_hash',
@@ -129,11 +119,10 @@ Map<String, dynamic> _$ExecutionTraceItemDtoToJson(
   'timestamp': instance.timestamp,
   'step_name': instance.stepName,
   'event_type': instance.eventType,
-  'event': instance.event,
-  'step_id': instance.stepId,
-  'status': instance.status,
-  'duration_ms': instance.durationMs,
-  'detail': instance.detail,
+  'content': instance.content,
+  'reasoning': instance.reasoning,
+  'metadata': instance.metadata,
+  'mcp_audit_traces': instance.mcpAuditTraces,
   'error_code': instance.errorCode,
   'error_message': instance.errorMessage,
   'redacted_hash': instance.redactedHash,
@@ -148,17 +137,46 @@ _ProfileSynthesisEntryDto _$ProfileSynthesisEntryDtoFromJson(
     $checkKeys(
       json,
       allowedKeys: const [
-        'cached',
+        'section_syntheses',
+        'row_explanations',
+        'row_curated_quotes',
         'variance_explanation',
         'authenticity_explanation',
         'cited_sources',
+        'xai_highlights',
         'user_role',
         'user_role_justification',
+        'extension_metrics',
+        'data_starvation',
         'created_at',
       ],
     );
     final val = _ProfileSynthesisEntryDto(
-      cached: $checkedConvert('cached', (v) => v as bool? ?? false),
+      sectionSyntheses: $checkedConvert(
+        'section_syntheses',
+        (v) =>
+            v as Map<String, dynamic>? ??
+            const <String, ContextVariableEntry>{},
+      ),
+      rowExplanations: $checkedConvert(
+        'row_explanations',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as String),
+            ) ??
+            const <String, String>{},
+      ),
+      rowCuratedQuotes: $checkedConvert(
+        'row_curated_quotes',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(
+                k,
+                (e as List<dynamic>).map((e) => e as String).toList(),
+              ),
+            ) ??
+            const <String, List<String>>{},
+      ),
       varianceExplanation: $checkedConvert(
         'variance_explanation',
         (v) => v as String?,
@@ -173,21 +191,33 @@ _ProfileSynthesisEntryDto _$ProfileSynthesisEntryDtoFromJson(
             (v as List<dynamic>?)?.map((e) => e as String).toList() ??
             const <String>[],
       ),
+      xaiHighlights: $checkedConvert(
+        'xai_highlights',
+        (v) => v as List<dynamic>? ?? const <Object?>[],
+      ),
       userRole: $checkedConvert('user_role', (v) => v as String?),
       userRoleJustification: $checkedConvert(
         'user_role_justification',
         (v) => v as String?,
       ),
+      extensionMetrics: $checkedConvert('extension_metrics', (v) => v),
+      dataStarvation: $checkedConvert('data_starvation', (v) => v),
       createdAt: $checkedConvert('created_at', (v) => v as String?),
     );
     return val;
   },
   fieldKeyMap: const {
+    'sectionSyntheses': 'section_syntheses',
+    'rowExplanations': 'row_explanations',
+    'rowCuratedQuotes': 'row_curated_quotes',
     'varianceExplanation': 'variance_explanation',
     'authenticityExplanation': 'authenticity_explanation',
     'citedSources': 'cited_sources',
+    'xaiHighlights': 'xai_highlights',
     'userRole': 'user_role',
     'userRoleJustification': 'user_role_justification',
+    'extensionMetrics': 'extension_metrics',
+    'dataStarvation': 'data_starvation',
     'createdAt': 'created_at',
   },
 );
@@ -195,12 +225,17 @@ _ProfileSynthesisEntryDto _$ProfileSynthesisEntryDtoFromJson(
 Map<String, dynamic> _$ProfileSynthesisEntryDtoToJson(
   _ProfileSynthesisEntryDto instance,
 ) => <String, dynamic>{
-  'cached': instance.cached,
+  'section_syntheses': instance.sectionSyntheses,
+  'row_explanations': instance.rowExplanations,
+  'row_curated_quotes': instance.rowCuratedQuotes,
   'variance_explanation': instance.varianceExplanation,
   'authenticity_explanation': instance.authenticityExplanation,
   'cited_sources': instance.citedSources,
+  'xai_highlights': instance.xaiHighlights,
   'user_role': instance.userRole,
   'user_role_justification': instance.userRoleJustification,
+  'extension_metrics': instance.extensionMetrics,
+  'data_starvation': instance.dataStarvation,
   'created_at': instance.createdAt,
 };
 

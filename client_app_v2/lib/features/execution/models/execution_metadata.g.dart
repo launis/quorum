@@ -48,23 +48,10 @@ _GlobalContextVarsDto _$GlobalContextVarsDtoFromJson(
       profileId: $checkedConvert('profile_id', (v) => v as String?),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
       initiatorId: $checkedConvert('initiator_id', (v) => v as String?),
-      stepCoach: $checkedConvert(
-        'step_coach',
-        (v) => (v as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, e as String),
-        ),
-      ),
-      knowledgeBase: $checkedConvert(
-        'knowledge_base',
-        (v) => (v as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, e as String),
-        ),
-      ),
-      hydrationResults: $checkedConvert(
-        'hydration_results',
-        (v) => v as String?,
-      ),
-      stepLinguistics: $checkedConvert('step_linguistics', (v) => v as String?),
+      stepCoach: $checkedConvert('step_coach', (v) => v),
+      knowledgeBase: $checkedConvert('knowledge_base', (v) => v),
+      hydrationResults: $checkedConvert('hydration_results', (v) => v),
+      stepLinguistics: $checkedConvert('step_linguistics', (v) => v),
       externalEvidence: $checkedConvert(
         'external_evidence',
         (v) => v as String?,
@@ -81,20 +68,17 @@ _GlobalContextVarsDto _$GlobalContextVarsDtoFromJson(
       ),
       archivistPrecedents: $checkedConvert(
         'archivist_precedents',
-        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+        (v) => v as List<dynamic>?,
       ),
       shuffledAtoms: $checkedConvert(
         'shuffled_atoms',
-        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+        (v) => v as List<dynamic>?,
       ),
-      profilerMetrics: $checkedConvert('profiler_metrics', (v) => v as String?),
-      distillation: $checkedConvert('distillation', (v) => v as String?),
-      scoring: $checkedConvert('scoring', (v) => v as String?),
-      interactionAnalysis: $checkedConvert(
-        'interaction_analysis',
-        (v) => v as String?,
-      ),
-      bibliography: $checkedConvert('bibliography', (v) => v as String?),
+      profilerMetrics: $checkedConvert('profiler_metrics', (v) => v),
+      distillation: $checkedConvert('distillation', (v) => v),
+      scoring: $checkedConvert('scoring', (v) => v),
+      interactionAnalysis: $checkedConvert('interaction_analysis', (v) => v),
+      bibliography: $checkedConvert('bibliography', (v) => v),
       llmAnomalyRetryRequested: $checkedConvert(
         'llm_anomaly_retry_requested',
         (v) => v as bool?,
@@ -105,9 +89,9 @@ _GlobalContextVarsDto _$GlobalContextVarsDtoFromJson(
       ),
       integrityVerifiedOutput: $checkedConvert(
         'integrity_verified_output',
-        (v) => v as String?,
+        (v) => v,
       ),
-      stepMetadata: $checkedConvert('step_metadata', (v) => v as String?),
+      stepMetadata: $checkedConvert('step_metadata', (v) => v),
     );
     return val;
   },

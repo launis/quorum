@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ContextVariablesDto {
 
-@JsonKey(name: 'global_atom_blackboard') String? get globalAtomBlackboard;@JsonKey(name: 'matrix_reducer_output') String? get matrixReducerOutput;@JsonKey(name: 'report_context') String? get reportContext;@JsonKey(name: 'step_detector') String? get stepDetector;@JsonKey(name: 'evaluated_matrices') String? get evaluatedMatrices; Map<String, String> get variables;
+@JsonKey(name: 'global_atom_blackboard') Object? get globalAtomBlackboard;@JsonKey(name: 'matrix_reducer_output') Object? get matrixReducerOutput;@JsonKey(name: 'report_context') Object? get reportContext;@JsonKey(name: 'step_detector') Object? get stepDetector;@JsonKey(name: 'evaluated_matrices') Object? get evaluatedMatrices; Map<String, ContextVariableEntry> get variables;
 /// Create a copy of ContextVariablesDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -26,14 +26,7 @@ $ContextVariablesDtoCopyWith<ContextVariablesDto> get copyWith => _$ContextVaria
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContextVariablesDto&&(identical(other.globalAtomBlackboard, globalAtomBlackboard) || other.globalAtomBlackboard == globalAtomBlackboard)&&(identical(other.matrixReducerOutput, matrixReducerOutput) || other.matrixReducerOutput == matrixReducerOutput)&&(identical(other.reportContext, reportContext) || other.reportContext == reportContext)&&(identical(other.stepDetector, stepDetector) || other.stepDetector == stepDetector)&&(identical(other.evaluatedMatrices, evaluatedMatrices) || other.evaluatedMatrices == evaluatedMatrices)&&const DeepCollectionEquality().equals(other.variables, variables));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,globalAtomBlackboard,matrixReducerOutput,reportContext,stepDetector,evaluatedMatrices,const DeepCollectionEquality().hash(variables));
 
 @override
 String toString() {
@@ -48,7 +41,7 @@ abstract mixin class $ContextVariablesDtoCopyWith<$Res>  {
   factory $ContextVariablesDtoCopyWith(ContextVariablesDto value, $Res Function(ContextVariablesDto) _then) = _$ContextVariablesDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'global_atom_blackboard') String? globalAtomBlackboard,@JsonKey(name: 'matrix_reducer_output') String? matrixReducerOutput,@JsonKey(name: 'report_context') String? reportContext,@JsonKey(name: 'step_detector') String? stepDetector,@JsonKey(name: 'evaluated_matrices') String? evaluatedMatrices, Map<String, String> variables
+@JsonKey(name: 'global_atom_blackboard') Object? globalAtomBlackboard,@JsonKey(name: 'matrix_reducer_output') Object? matrixReducerOutput,@JsonKey(name: 'report_context') Object? reportContext,@JsonKey(name: 'step_detector') Object? stepDetector,@JsonKey(name: 'evaluated_matrices') Object? evaluatedMatrices, Map<String, ContextVariableEntry> variables
 });
 
 
@@ -67,13 +60,8 @@ class _$ContextVariablesDtoCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? globalAtomBlackboard = freezed,Object? matrixReducerOutput = freezed,Object? reportContext = freezed,Object? stepDetector = freezed,Object? evaluatedMatrices = freezed,Object? variables = null,}) {
   return _then(_self.copyWith(
-globalAtomBlackboard: freezed == globalAtomBlackboard ? _self.globalAtomBlackboard : globalAtomBlackboard // ignore: cast_nullable_to_non_nullable
-as String?,matrixReducerOutput: freezed == matrixReducerOutput ? _self.matrixReducerOutput : matrixReducerOutput // ignore: cast_nullable_to_non_nullable
-as String?,reportContext: freezed == reportContext ? _self.reportContext : reportContext // ignore: cast_nullable_to_non_nullable
-as String?,stepDetector: freezed == stepDetector ? _self.stepDetector : stepDetector // ignore: cast_nullable_to_non_nullable
-as String?,evaluatedMatrices: freezed == evaluatedMatrices ? _self.evaluatedMatrices : evaluatedMatrices // ignore: cast_nullable_to_non_nullable
-as String?,variables: null == variables ? _self.variables : variables // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,
+globalAtomBlackboard: freezed == globalAtomBlackboard ? _self.globalAtomBlackboard : globalAtomBlackboard ,matrixReducerOutput: freezed == matrixReducerOutput ? _self.matrixReducerOutput : matrixReducerOutput ,reportContext: freezed == reportContext ? _self.reportContext : reportContext ,stepDetector: freezed == stepDetector ? _self.stepDetector : stepDetector ,evaluatedMatrices: freezed == evaluatedMatrices ? _self.evaluatedMatrices : evaluatedMatrices ,variables: null == variables ? _self.variables : variables // ignore: cast_nullable_to_non_nullable
+as Map<String, ContextVariableEntry>,
   ));
 }
 
@@ -158,7 +146,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'global_atom_blackboard')  String? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  String? matrixReducerOutput, @JsonKey(name: 'report_context')  String? reportContext, @JsonKey(name: 'step_detector')  String? stepDetector, @JsonKey(name: 'evaluated_matrices')  String? evaluatedMatrices,  Map<String, String> variables)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'global_atom_blackboard')  Object? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  Object? matrixReducerOutput, @JsonKey(name: 'report_context')  Object? reportContext, @JsonKey(name: 'step_detector')  Object? stepDetector, @JsonKey(name: 'evaluated_matrices')  Object? evaluatedMatrices,  Map<String, ContextVariableEntry> variables)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ContextVariablesDto() when $default != null:
 return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.reportContext,_that.stepDetector,_that.evaluatedMatrices,_that.variables);case _:
@@ -179,7 +167,7 @@ return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.repor
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'global_atom_blackboard')  String? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  String? matrixReducerOutput, @JsonKey(name: 'report_context')  String? reportContext, @JsonKey(name: 'step_detector')  String? stepDetector, @JsonKey(name: 'evaluated_matrices')  String? evaluatedMatrices,  Map<String, String> variables)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'global_atom_blackboard')  Object? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  Object? matrixReducerOutput, @JsonKey(name: 'report_context')  Object? reportContext, @JsonKey(name: 'step_detector')  Object? stepDetector, @JsonKey(name: 'evaluated_matrices')  Object? evaluatedMatrices,  Map<String, ContextVariableEntry> variables)  $default,) {final _that = this;
 switch (_that) {
 case _ContextVariablesDto():
 return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.reportContext,_that.stepDetector,_that.evaluatedMatrices,_that.variables);case _:
@@ -199,7 +187,7 @@ return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.repor
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'global_atom_blackboard')  String? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  String? matrixReducerOutput, @JsonKey(name: 'report_context')  String? reportContext, @JsonKey(name: 'step_detector')  String? stepDetector, @JsonKey(name: 'evaluated_matrices')  String? evaluatedMatrices,  Map<String, String> variables)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'global_atom_blackboard')  Object? globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output')  Object? matrixReducerOutput, @JsonKey(name: 'report_context')  Object? reportContext, @JsonKey(name: 'step_detector')  Object? stepDetector, @JsonKey(name: 'evaluated_matrices')  Object? evaluatedMatrices,  Map<String, ContextVariableEntry> variables)?  $default,) {final _that = this;
 switch (_that) {
 case _ContextVariablesDto() when $default != null:
 return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.reportContext,_that.stepDetector,_that.evaluatedMatrices,_that.variables);case _:
@@ -214,16 +202,16 @@ return $default(_that.globalAtomBlackboard,_that.matrixReducerOutput,_that.repor
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ContextVariablesDto extends ContextVariablesDto {
-  const _ContextVariablesDto({@JsonKey(name: 'global_atom_blackboard') this.globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output') this.matrixReducerOutput, @JsonKey(name: 'report_context') this.reportContext, @JsonKey(name: 'step_detector') this.stepDetector, @JsonKey(name: 'evaluated_matrices') this.evaluatedMatrices, final  Map<String, String> variables = const <String, String>{}}): _variables = variables,super._();
+  const _ContextVariablesDto({@JsonKey(name: 'global_atom_blackboard') this.globalAtomBlackboard, @JsonKey(name: 'matrix_reducer_output') this.matrixReducerOutput, @JsonKey(name: 'report_context') this.reportContext, @JsonKey(name: 'step_detector') this.stepDetector, @JsonKey(name: 'evaluated_matrices') this.evaluatedMatrices, final  Map<String, ContextVariableEntry> variables = const <String, ContextVariableEntry>{}}): _variables = variables,super._();
   factory _ContextVariablesDto.fromJson(Map<String, dynamic> json) => _$ContextVariablesDtoFromJson(json);
 
-@override@JsonKey(name: 'global_atom_blackboard') final  String? globalAtomBlackboard;
-@override@JsonKey(name: 'matrix_reducer_output') final  String? matrixReducerOutput;
-@override@JsonKey(name: 'report_context') final  String? reportContext;
-@override@JsonKey(name: 'step_detector') final  String? stepDetector;
-@override@JsonKey(name: 'evaluated_matrices') final  String? evaluatedMatrices;
- final  Map<String, String> _variables;
-@override@JsonKey() Map<String, String> get variables {
+@override@JsonKey(name: 'global_atom_blackboard') final  Object? globalAtomBlackboard;
+@override@JsonKey(name: 'matrix_reducer_output') final  Object? matrixReducerOutput;
+@override@JsonKey(name: 'report_context') final  Object? reportContext;
+@override@JsonKey(name: 'step_detector') final  Object? stepDetector;
+@override@JsonKey(name: 'evaluated_matrices') final  Object? evaluatedMatrices;
+ final  Map<String, ContextVariableEntry> _variables;
+@override@JsonKey() Map<String, ContextVariableEntry> get variables {
   if (_variables is EqualUnmodifiableMapView) return _variables;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_variables);
@@ -241,14 +229,7 @@ Map<String, dynamic> toJson() {
   return _$ContextVariablesDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ContextVariablesDto&&(identical(other.globalAtomBlackboard, globalAtomBlackboard) || other.globalAtomBlackboard == globalAtomBlackboard)&&(identical(other.matrixReducerOutput, matrixReducerOutput) || other.matrixReducerOutput == matrixReducerOutput)&&(identical(other.reportContext, reportContext) || other.reportContext == reportContext)&&(identical(other.stepDetector, stepDetector) || other.stepDetector == stepDetector)&&(identical(other.evaluatedMatrices, evaluatedMatrices) || other.evaluatedMatrices == evaluatedMatrices)&&const DeepCollectionEquality().equals(other._variables, _variables));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,globalAtomBlackboard,matrixReducerOutput,reportContext,stepDetector,evaluatedMatrices,const DeepCollectionEquality().hash(_variables));
 
 @override
 String toString() {
@@ -263,7 +244,7 @@ abstract mixin class _$ContextVariablesDtoCopyWith<$Res> implements $ContextVari
   factory _$ContextVariablesDtoCopyWith(_ContextVariablesDto value, $Res Function(_ContextVariablesDto) _then) = __$ContextVariablesDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'global_atom_blackboard') String? globalAtomBlackboard,@JsonKey(name: 'matrix_reducer_output') String? matrixReducerOutput,@JsonKey(name: 'report_context') String? reportContext,@JsonKey(name: 'step_detector') String? stepDetector,@JsonKey(name: 'evaluated_matrices') String? evaluatedMatrices, Map<String, String> variables
+@JsonKey(name: 'global_atom_blackboard') Object? globalAtomBlackboard,@JsonKey(name: 'matrix_reducer_output') Object? matrixReducerOutput,@JsonKey(name: 'report_context') Object? reportContext,@JsonKey(name: 'step_detector') Object? stepDetector,@JsonKey(name: 'evaluated_matrices') Object? evaluatedMatrices, Map<String, ContextVariableEntry> variables
 });
 
 
@@ -282,13 +263,8 @@ class __$ContextVariablesDtoCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? globalAtomBlackboard = freezed,Object? matrixReducerOutput = freezed,Object? reportContext = freezed,Object? stepDetector = freezed,Object? evaluatedMatrices = freezed,Object? variables = null,}) {
   return _then(_ContextVariablesDto(
-globalAtomBlackboard: freezed == globalAtomBlackboard ? _self.globalAtomBlackboard : globalAtomBlackboard // ignore: cast_nullable_to_non_nullable
-as String?,matrixReducerOutput: freezed == matrixReducerOutput ? _self.matrixReducerOutput : matrixReducerOutput // ignore: cast_nullable_to_non_nullable
-as String?,reportContext: freezed == reportContext ? _self.reportContext : reportContext // ignore: cast_nullable_to_non_nullable
-as String?,stepDetector: freezed == stepDetector ? _self.stepDetector : stepDetector // ignore: cast_nullable_to_non_nullable
-as String?,evaluatedMatrices: freezed == evaluatedMatrices ? _self.evaluatedMatrices : evaluatedMatrices // ignore: cast_nullable_to_non_nullable
-as String?,variables: null == variables ? _self._variables : variables // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,
+globalAtomBlackboard: freezed == globalAtomBlackboard ? _self.globalAtomBlackboard : globalAtomBlackboard ,matrixReducerOutput: freezed == matrixReducerOutput ? _self.matrixReducerOutput : matrixReducerOutput ,reportContext: freezed == reportContext ? _self.reportContext : reportContext ,stepDetector: freezed == stepDetector ? _self.stepDetector : stepDetector ,evaluatedMatrices: freezed == evaluatedMatrices ? _self.evaluatedMatrices : evaluatedMatrices ,variables: null == variables ? _self._variables : variables // ignore: cast_nullable_to_non_nullable
+as Map<String, ContextVariableEntry>,
   ));
 }
 
@@ -299,7 +275,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$ExecutionTraceItemDto {
 
-@JsonKey(name: 'event_id') String? get eventId; int? get v; String? get timestamp;@JsonKey(name: 'step_name') String? get stepName;@JsonKey(name: 'event_type') String? get eventType; String? get event;@JsonKey(name: 'step_id') String? get stepId; String? get status;@JsonKey(name: 'duration_ms') int? get durationMs; String? get detail;@JsonKey(name: 'error_code') String? get errorCode;@JsonKey(name: 'error_message') String? get errorMessage;@JsonKey(name: 'redacted_hash') String? get redactedHash;
+@JsonKey(name: 'event_id') String? get eventId; int? get v; String? get timestamp;@JsonKey(name: 'step_name') String? get stepName;@JsonKey(name: 'event_type') String? get eventType; Object? get content; Object? get reasoning; Object? get metadata;@JsonKey(name: 'mcp_audit_traces') List<Object?> get mcpAuditTraces;@JsonKey(name: 'error_code') String? get errorCode;@JsonKey(name: 'error_message') String? get errorMessage;@JsonKey(name: 'redacted_hash') String? get redactedHash;
 /// Create a copy of ExecutionTraceItemDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -310,18 +286,11 @@ $ExecutionTraceItemDtoCopyWith<ExecutionTraceItemDto> get copyWith => _$Executio
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionTraceItemDto&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.v, v) || other.v == v)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail)&&(identical(other.errorCode, errorCode) || other.errorCode == errorCode)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.redactedHash, redactedHash) || other.redactedHash == redactedHash));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,eventId,v,timestamp,stepName,eventType,event,stepId,status,durationMs,detail,errorCode,errorMessage,redactedHash);
 
 @override
 String toString() {
-  return 'ExecutionTraceItemDto(eventId: $eventId, v: $v, timestamp: $timestamp, stepName: $stepName, eventType: $eventType, event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail, errorCode: $errorCode, errorMessage: $errorMessage, redactedHash: $redactedHash)';
+  return 'ExecutionTraceItemDto(eventId: $eventId, v: $v, timestamp: $timestamp, stepName: $stepName, eventType: $eventType, content: $content, reasoning: $reasoning, metadata: $metadata, mcpAuditTraces: $mcpAuditTraces, errorCode: $errorCode, errorMessage: $errorMessage, redactedHash: $redactedHash)';
 }
 
 
@@ -332,7 +301,7 @@ abstract mixin class $ExecutionTraceItemDtoCopyWith<$Res>  {
   factory $ExecutionTraceItemDtoCopyWith(ExecutionTraceItemDto value, $Res Function(ExecutionTraceItemDto) _then) = _$ExecutionTraceItemDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'event_id') String? eventId, int? v, String? timestamp,@JsonKey(name: 'step_name') String? stepName,@JsonKey(name: 'event_type') String? eventType, String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'redacted_hash') String? redactedHash
+@JsonKey(name: 'event_id') String? eventId, int? v, String? timestamp,@JsonKey(name: 'step_name') String? stepName,@JsonKey(name: 'event_type') String? eventType, Object? content, Object? reasoning, Object? metadata,@JsonKey(name: 'mcp_audit_traces') List<Object?> mcpAuditTraces,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'redacted_hash') String? redactedHash
 });
 
 
@@ -349,19 +318,15 @@ class _$ExecutionTraceItemDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionTraceItemDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? eventId = freezed,Object? v = freezed,Object? timestamp = freezed,Object? stepName = freezed,Object? eventType = freezed,Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,Object? errorCode = freezed,Object? errorMessage = freezed,Object? redactedHash = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? eventId = freezed,Object? v = freezed,Object? timestamp = freezed,Object? stepName = freezed,Object? eventType = freezed,Object? content = freezed,Object? reasoning = freezed,Object? metadata = freezed,Object? mcpAuditTraces = null,Object? errorCode = freezed,Object? errorMessage = freezed,Object? redactedHash = freezed,}) {
   return _then(_self.copyWith(
 eventId: freezed == eventId ? _self.eventId : eventId // ignore: cast_nullable_to_non_nullable
 as String?,v: freezed == v ? _self.v : v // ignore: cast_nullable_to_non_nullable
 as int?,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
 as String?,stepName: freezed == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
 as String?,eventType: freezed == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as String?,event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
-as String?,stepId: freezed == stepId ? _self.stepId : stepId // ignore: cast_nullable_to_non_nullable
-as String?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String?,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
-as int?,detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
-as String?,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
+as String?,content: freezed == content ? _self.content : content ,reasoning: freezed == reasoning ? _self.reasoning : reasoning ,metadata: freezed == metadata ? _self.metadata : metadata ,mcpAuditTraces: null == mcpAuditTraces ? _self.mcpAuditTraces : mcpAuditTraces // ignore: cast_nullable_to_non_nullable
+as List<Object?>,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
 as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,redactedHash: freezed == redactedHash ? _self.redactedHash : redactedHash // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -449,10 +414,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  Object? content,  Object? reasoning,  Object? metadata, @JsonKey(name: 'mcp_audit_traces')  List<Object?> mcpAuditTraces, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionTraceItemDto() when $default != null:
-return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
+return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.content,_that.reasoning,_that.metadata,_that.mcpAuditTraces,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
   return orElse();
 
 }
@@ -470,10 +435,10 @@ return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.event
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  Object? content,  Object? reasoning,  Object? metadata, @JsonKey(name: 'mcp_audit_traces')  List<Object?> mcpAuditTraces, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionTraceItemDto():
-return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
+return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.content,_that.reasoning,_that.metadata,_that.mcpAuditTraces,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -490,10 +455,10 @@ return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.event
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  String? event, @JsonKey(name: 'step_id')  String? stepId,  String? status, @JsonKey(name: 'duration_ms')  int? durationMs,  String? detail, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'event_id')  String? eventId,  int? v,  String? timestamp, @JsonKey(name: 'step_name')  String? stepName, @JsonKey(name: 'event_type')  String? eventType,  Object? content,  Object? reasoning,  Object? metadata, @JsonKey(name: 'mcp_audit_traces')  List<Object?> mcpAuditTraces, @JsonKey(name: 'error_code')  String? errorCode, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'redacted_hash')  String? redactedHash)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionTraceItemDto() when $default != null:
-return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.event,_that.stepId,_that.status,_that.durationMs,_that.detail,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
+return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.eventType,_that.content,_that.reasoning,_that.metadata,_that.mcpAuditTraces,_that.errorCode,_that.errorMessage,_that.redactedHash);case _:
   return null;
 
 }
@@ -505,7 +470,7 @@ return $default(_that.eventId,_that.v,_that.timestamp,_that.stepName,_that.event
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ExecutionTraceItemDto extends ExecutionTraceItemDto {
-  const _ExecutionTraceItemDto({@JsonKey(name: 'event_id') this.eventId, this.v, this.timestamp, @JsonKey(name: 'step_name') this.stepName, @JsonKey(name: 'event_type') this.eventType, this.event, @JsonKey(name: 'step_id') this.stepId, this.status, @JsonKey(name: 'duration_ms') this.durationMs, this.detail, @JsonKey(name: 'error_code') this.errorCode, @JsonKey(name: 'error_message') this.errorMessage, @JsonKey(name: 'redacted_hash') this.redactedHash}): super._();
+  const _ExecutionTraceItemDto({@JsonKey(name: 'event_id') this.eventId, this.v, this.timestamp, @JsonKey(name: 'step_name') this.stepName, @JsonKey(name: 'event_type') this.eventType, this.content, this.reasoning, this.metadata, @JsonKey(name: 'mcp_audit_traces') final  List<Object?> mcpAuditTraces = const <Object?>[], @JsonKey(name: 'error_code') this.errorCode, @JsonKey(name: 'error_message') this.errorMessage, @JsonKey(name: 'redacted_hash') this.redactedHash}): _mcpAuditTraces = mcpAuditTraces,super._();
   factory _ExecutionTraceItemDto.fromJson(Map<String, dynamic> json) => _$ExecutionTraceItemDtoFromJson(json);
 
 @override@JsonKey(name: 'event_id') final  String? eventId;
@@ -513,11 +478,16 @@ class _ExecutionTraceItemDto extends ExecutionTraceItemDto {
 @override final  String? timestamp;
 @override@JsonKey(name: 'step_name') final  String? stepName;
 @override@JsonKey(name: 'event_type') final  String? eventType;
-@override final  String? event;
-@override@JsonKey(name: 'step_id') final  String? stepId;
-@override final  String? status;
-@override@JsonKey(name: 'duration_ms') final  int? durationMs;
-@override final  String? detail;
+@override final  Object? content;
+@override final  Object? reasoning;
+@override final  Object? metadata;
+ final  List<Object?> _mcpAuditTraces;
+@override@JsonKey(name: 'mcp_audit_traces') List<Object?> get mcpAuditTraces {
+  if (_mcpAuditTraces is EqualUnmodifiableListView) return _mcpAuditTraces;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_mcpAuditTraces);
+}
+
 @override@JsonKey(name: 'error_code') final  String? errorCode;
 @override@JsonKey(name: 'error_message') final  String? errorMessage;
 @override@JsonKey(name: 'redacted_hash') final  String? redactedHash;
@@ -533,18 +503,11 @@ Map<String, dynamic> toJson() {
   return _$ExecutionTraceItemDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionTraceItemDto&&(identical(other.eventId, eventId) || other.eventId == eventId)&&(identical(other.v, v) || other.v == v)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.event, event) || other.event == event)&&(identical(other.stepId, stepId) || other.stepId == stepId)&&(identical(other.status, status) || other.status == status)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.detail, detail) || other.detail == detail)&&(identical(other.errorCode, errorCode) || other.errorCode == errorCode)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.redactedHash, redactedHash) || other.redactedHash == redactedHash));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,eventId,v,timestamp,stepName,eventType,event,stepId,status,durationMs,detail,errorCode,errorMessage,redactedHash);
 
 @override
 String toString() {
-  return 'ExecutionTraceItemDto(eventId: $eventId, v: $v, timestamp: $timestamp, stepName: $stepName, eventType: $eventType, event: $event, stepId: $stepId, status: $status, durationMs: $durationMs, detail: $detail, errorCode: $errorCode, errorMessage: $errorMessage, redactedHash: $redactedHash)';
+  return 'ExecutionTraceItemDto(eventId: $eventId, v: $v, timestamp: $timestamp, stepName: $stepName, eventType: $eventType, content: $content, reasoning: $reasoning, metadata: $metadata, mcpAuditTraces: $mcpAuditTraces, errorCode: $errorCode, errorMessage: $errorMessage, redactedHash: $redactedHash)';
 }
 
 
@@ -555,7 +518,7 @@ abstract mixin class _$ExecutionTraceItemDtoCopyWith<$Res> implements $Execution
   factory _$ExecutionTraceItemDtoCopyWith(_ExecutionTraceItemDto value, $Res Function(_ExecutionTraceItemDto) _then) = __$ExecutionTraceItemDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'event_id') String? eventId, int? v, String? timestamp,@JsonKey(name: 'step_name') String? stepName,@JsonKey(name: 'event_type') String? eventType, String? event,@JsonKey(name: 'step_id') String? stepId, String? status,@JsonKey(name: 'duration_ms') int? durationMs, String? detail,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'redacted_hash') String? redactedHash
+@JsonKey(name: 'event_id') String? eventId, int? v, String? timestamp,@JsonKey(name: 'step_name') String? stepName,@JsonKey(name: 'event_type') String? eventType, Object? content, Object? reasoning, Object? metadata,@JsonKey(name: 'mcp_audit_traces') List<Object?> mcpAuditTraces,@JsonKey(name: 'error_code') String? errorCode,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'redacted_hash') String? redactedHash
 });
 
 
@@ -572,19 +535,15 @@ class __$ExecutionTraceItemDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionTraceItemDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? eventId = freezed,Object? v = freezed,Object? timestamp = freezed,Object? stepName = freezed,Object? eventType = freezed,Object? event = freezed,Object? stepId = freezed,Object? status = freezed,Object? durationMs = freezed,Object? detail = freezed,Object? errorCode = freezed,Object? errorMessage = freezed,Object? redactedHash = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? eventId = freezed,Object? v = freezed,Object? timestamp = freezed,Object? stepName = freezed,Object? eventType = freezed,Object? content = freezed,Object? reasoning = freezed,Object? metadata = freezed,Object? mcpAuditTraces = null,Object? errorCode = freezed,Object? errorMessage = freezed,Object? redactedHash = freezed,}) {
   return _then(_ExecutionTraceItemDto(
 eventId: freezed == eventId ? _self.eventId : eventId // ignore: cast_nullable_to_non_nullable
 as String?,v: freezed == v ? _self.v : v // ignore: cast_nullable_to_non_nullable
 as int?,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
 as String?,stepName: freezed == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
 as String?,eventType: freezed == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as String?,event: freezed == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
-as String?,stepId: freezed == stepId ? _self.stepId : stepId // ignore: cast_nullable_to_non_nullable
-as String?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String?,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
-as int?,detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
-as String?,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
+as String?,content: freezed == content ? _self.content : content ,reasoning: freezed == reasoning ? _self.reasoning : reasoning ,metadata: freezed == metadata ? _self.metadata : metadata ,mcpAuditTraces: null == mcpAuditTraces ? _self._mcpAuditTraces : mcpAuditTraces // ignore: cast_nullable_to_non_nullable
+as List<Object?>,errorCode: freezed == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
 as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,redactedHash: freezed == redactedHash ? _self.redactedHash : redactedHash // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -598,7 +557,7 @@ as String?,
 /// @nodoc
 mixin _$ProfileSynthesisEntryDto {
 
- bool get cached;@JsonKey(name: 'variance_explanation') String? get varianceExplanation;@JsonKey(name: 'authenticity_explanation') String? get authenticityExplanation;@JsonKey(name: 'cited_sources') List<String> get citedSources;@JsonKey(name: 'user_role') String? get userRole;@JsonKey(name: 'user_role_justification') String? get userRoleJustification;@JsonKey(name: 'created_at') String? get createdAt;
+@JsonKey(name: 'section_syntheses') Map<String, ContextVariableEntry> get sectionSyntheses;@JsonKey(name: 'row_explanations') Map<String, String> get rowExplanations;@JsonKey(name: 'row_curated_quotes') Map<String, List<String>> get rowCuratedQuotes;@JsonKey(name: 'variance_explanation') String? get varianceExplanation;@JsonKey(name: 'authenticity_explanation') String? get authenticityExplanation;@JsonKey(name: 'cited_sources') List<String> get citedSources;@JsonKey(name: 'xai_highlights') List<Object?> get xaiHighlights;@JsonKey(name: 'user_role') String? get userRole;@JsonKey(name: 'user_role_justification') String? get userRoleJustification;@JsonKey(name: 'extension_metrics') Object? get extensionMetrics;@JsonKey(name: 'data_starvation') Object? get dataStarvation;@JsonKey(name: 'created_at') String? get createdAt;
 /// Create a copy of ProfileSynthesisEntryDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -609,18 +568,11 @@ $ProfileSynthesisEntryDtoCopyWith<ProfileSynthesisEntryDto> get copyWith => _$Pr
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProfileSynthesisEntryDto&&(identical(other.cached, cached) || other.cached == cached)&&(identical(other.varianceExplanation, varianceExplanation) || other.varianceExplanation == varianceExplanation)&&(identical(other.authenticityExplanation, authenticityExplanation) || other.authenticityExplanation == authenticityExplanation)&&const DeepCollectionEquality().equals(other.citedSources, citedSources)&&(identical(other.userRole, userRole) || other.userRole == userRole)&&(identical(other.userRoleJustification, userRoleJustification) || other.userRoleJustification == userRoleJustification)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,cached,varianceExplanation,authenticityExplanation,const DeepCollectionEquality().hash(citedSources),userRole,userRoleJustification,createdAt);
 
 @override
 String toString() {
-  return 'ProfileSynthesisEntryDto(cached: $cached, varianceExplanation: $varianceExplanation, authenticityExplanation: $authenticityExplanation, citedSources: $citedSources, userRole: $userRole, userRoleJustification: $userRoleJustification, createdAt: $createdAt)';
+  return 'ProfileSynthesisEntryDto(sectionSyntheses: $sectionSyntheses, rowExplanations: $rowExplanations, rowCuratedQuotes: $rowCuratedQuotes, varianceExplanation: $varianceExplanation, authenticityExplanation: $authenticityExplanation, citedSources: $citedSources, xaiHighlights: $xaiHighlights, userRole: $userRole, userRoleJustification: $userRoleJustification, extensionMetrics: $extensionMetrics, dataStarvation: $dataStarvation, createdAt: $createdAt)';
 }
 
 
@@ -631,7 +583,7 @@ abstract mixin class $ProfileSynthesisEntryDtoCopyWith<$Res>  {
   factory $ProfileSynthesisEntryDtoCopyWith(ProfileSynthesisEntryDto value, $Res Function(ProfileSynthesisEntryDto) _then) = _$ProfileSynthesisEntryDtoCopyWithImpl;
 @useResult
 $Res call({
- bool cached,@JsonKey(name: 'variance_explanation') String? varianceExplanation,@JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,@JsonKey(name: 'cited_sources') List<String> citedSources,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification,@JsonKey(name: 'created_at') String? createdAt
+@JsonKey(name: 'section_syntheses') Map<String, ContextVariableEntry> sectionSyntheses,@JsonKey(name: 'row_explanations') Map<String, String> rowExplanations,@JsonKey(name: 'row_curated_quotes') Map<String, List<String>> rowCuratedQuotes,@JsonKey(name: 'variance_explanation') String? varianceExplanation,@JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,@JsonKey(name: 'cited_sources') List<String> citedSources,@JsonKey(name: 'xai_highlights') List<Object?> xaiHighlights,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification,@JsonKey(name: 'extension_metrics') Object? extensionMetrics,@JsonKey(name: 'data_starvation') Object? dataStarvation,@JsonKey(name: 'created_at') String? createdAt
 });
 
 
@@ -648,15 +600,18 @@ class _$ProfileSynthesisEntryDtoCopyWithImpl<$Res>
 
 /// Create a copy of ProfileSynthesisEntryDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? cached = null,Object? varianceExplanation = freezed,Object? authenticityExplanation = freezed,Object? citedSources = null,Object? userRole = freezed,Object? userRoleJustification = freezed,Object? createdAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? sectionSyntheses = null,Object? rowExplanations = null,Object? rowCuratedQuotes = null,Object? varianceExplanation = freezed,Object? authenticityExplanation = freezed,Object? citedSources = null,Object? xaiHighlights = null,Object? userRole = freezed,Object? userRoleJustification = freezed,Object? extensionMetrics = freezed,Object? dataStarvation = freezed,Object? createdAt = freezed,}) {
   return _then(_self.copyWith(
-cached: null == cached ? _self.cached : cached // ignore: cast_nullable_to_non_nullable
-as bool,varianceExplanation: freezed == varianceExplanation ? _self.varianceExplanation : varianceExplanation // ignore: cast_nullable_to_non_nullable
+sectionSyntheses: null == sectionSyntheses ? _self.sectionSyntheses : sectionSyntheses // ignore: cast_nullable_to_non_nullable
+as Map<String, ContextVariableEntry>,rowExplanations: null == rowExplanations ? _self.rowExplanations : rowExplanations // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,rowCuratedQuotes: null == rowCuratedQuotes ? _self.rowCuratedQuotes : rowCuratedQuotes // ignore: cast_nullable_to_non_nullable
+as Map<String, List<String>>,varianceExplanation: freezed == varianceExplanation ? _self.varianceExplanation : varianceExplanation // ignore: cast_nullable_to_non_nullable
 as String?,authenticityExplanation: freezed == authenticityExplanation ? _self.authenticityExplanation : authenticityExplanation // ignore: cast_nullable_to_non_nullable
 as String?,citedSources: null == citedSources ? _self.citedSources : citedSources // ignore: cast_nullable_to_non_nullable
-as List<String>,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
+as List<String>,xaiHighlights: null == xaiHighlights ? _self.xaiHighlights : xaiHighlights // ignore: cast_nullable_to_non_nullable
+as List<Object?>,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
 as String?,userRoleJustification: freezed == userRoleJustification ? _self.userRoleJustification : userRoleJustification // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,extensionMetrics: freezed == extensionMetrics ? _self.extensionMetrics : extensionMetrics ,dataStarvation: freezed == dataStarvation ? _self.dataStarvation : dataStarvation ,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -742,10 +697,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool cached, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'created_at')  String? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'section_syntheses')  Map<String, ContextVariableEntry> sectionSyntheses, @JsonKey(name: 'row_explanations')  Map<String, String> rowExplanations, @JsonKey(name: 'row_curated_quotes')  Map<String, List<String>> rowCuratedQuotes, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'xai_highlights')  List<Object?> xaiHighlights, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'extension_metrics')  Object? extensionMetrics, @JsonKey(name: 'data_starvation')  Object? dataStarvation, @JsonKey(name: 'created_at')  String? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProfileSynthesisEntryDto() when $default != null:
-return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.userRole,_that.userRoleJustification,_that.createdAt);case _:
+return $default(_that.sectionSyntheses,_that.rowExplanations,_that.rowCuratedQuotes,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.xaiHighlights,_that.userRole,_that.userRoleJustification,_that.extensionMetrics,_that.dataStarvation,_that.createdAt);case _:
   return orElse();
 
 }
@@ -763,10 +718,10 @@ return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplana
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool cached, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'created_at')  String? createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'section_syntheses')  Map<String, ContextVariableEntry> sectionSyntheses, @JsonKey(name: 'row_explanations')  Map<String, String> rowExplanations, @JsonKey(name: 'row_curated_quotes')  Map<String, List<String>> rowCuratedQuotes, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'xai_highlights')  List<Object?> xaiHighlights, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'extension_metrics')  Object? extensionMetrics, @JsonKey(name: 'data_starvation')  Object? dataStarvation, @JsonKey(name: 'created_at')  String? createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _ProfileSynthesisEntryDto():
-return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.userRole,_that.userRoleJustification,_that.createdAt);case _:
+return $default(_that.sectionSyntheses,_that.rowExplanations,_that.rowCuratedQuotes,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.xaiHighlights,_that.userRole,_that.userRoleJustification,_that.extensionMetrics,_that.dataStarvation,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -783,10 +738,10 @@ return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplana
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool cached, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'created_at')  String? createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'section_syntheses')  Map<String, ContextVariableEntry> sectionSyntheses, @JsonKey(name: 'row_explanations')  Map<String, String> rowExplanations, @JsonKey(name: 'row_curated_quotes')  Map<String, List<String>> rowCuratedQuotes, @JsonKey(name: 'variance_explanation')  String? varianceExplanation, @JsonKey(name: 'authenticity_explanation')  String? authenticityExplanation, @JsonKey(name: 'cited_sources')  List<String> citedSources, @JsonKey(name: 'xai_highlights')  List<Object?> xaiHighlights, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification, @JsonKey(name: 'extension_metrics')  Object? extensionMetrics, @JsonKey(name: 'data_starvation')  Object? dataStarvation, @JsonKey(name: 'created_at')  String? createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ProfileSynthesisEntryDto() when $default != null:
-return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.userRole,_that.userRoleJustification,_that.createdAt);case _:
+return $default(_that.sectionSyntheses,_that.rowExplanations,_that.rowCuratedQuotes,_that.varianceExplanation,_that.authenticityExplanation,_that.citedSources,_that.xaiHighlights,_that.userRole,_that.userRoleJustification,_that.extensionMetrics,_that.dataStarvation,_that.createdAt);case _:
   return null;
 
 }
@@ -798,10 +753,30 @@ return $default(_that.cached,_that.varianceExplanation,_that.authenticityExplana
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ProfileSynthesisEntryDto extends ProfileSynthesisEntryDto {
-  const _ProfileSynthesisEntryDto({this.cached = false, @JsonKey(name: 'variance_explanation') this.varianceExplanation, @JsonKey(name: 'authenticity_explanation') this.authenticityExplanation, @JsonKey(name: 'cited_sources') final  List<String> citedSources = const <String>[], @JsonKey(name: 'user_role') this.userRole, @JsonKey(name: 'user_role_justification') this.userRoleJustification, @JsonKey(name: 'created_at') this.createdAt}): _citedSources = citedSources,super._();
+  const _ProfileSynthesisEntryDto({@JsonKey(name: 'section_syntheses') final  Map<String, ContextVariableEntry> sectionSyntheses = const <String, ContextVariableEntry>{}, @JsonKey(name: 'row_explanations') final  Map<String, String> rowExplanations = const <String, String>{}, @JsonKey(name: 'row_curated_quotes') final  Map<String, List<String>> rowCuratedQuotes = const <String, List<String>>{}, @JsonKey(name: 'variance_explanation') this.varianceExplanation, @JsonKey(name: 'authenticity_explanation') this.authenticityExplanation, @JsonKey(name: 'cited_sources') final  List<String> citedSources = const <String>[], @JsonKey(name: 'xai_highlights') final  List<Object?> xaiHighlights = const <Object?>[], @JsonKey(name: 'user_role') this.userRole, @JsonKey(name: 'user_role_justification') this.userRoleJustification, @JsonKey(name: 'extension_metrics') this.extensionMetrics, @JsonKey(name: 'data_starvation') this.dataStarvation, @JsonKey(name: 'created_at') this.createdAt}): _sectionSyntheses = sectionSyntheses,_rowExplanations = rowExplanations,_rowCuratedQuotes = rowCuratedQuotes,_citedSources = citedSources,_xaiHighlights = xaiHighlights,super._();
   factory _ProfileSynthesisEntryDto.fromJson(Map<String, dynamic> json) => _$ProfileSynthesisEntryDtoFromJson(json);
 
-@override@JsonKey() final  bool cached;
+ final  Map<String, ContextVariableEntry> _sectionSyntheses;
+@override@JsonKey(name: 'section_syntheses') Map<String, ContextVariableEntry> get sectionSyntheses {
+  if (_sectionSyntheses is EqualUnmodifiableMapView) return _sectionSyntheses;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_sectionSyntheses);
+}
+
+ final  Map<String, String> _rowExplanations;
+@override@JsonKey(name: 'row_explanations') Map<String, String> get rowExplanations {
+  if (_rowExplanations is EqualUnmodifiableMapView) return _rowExplanations;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_rowExplanations);
+}
+
+ final  Map<String, List<String>> _rowCuratedQuotes;
+@override@JsonKey(name: 'row_curated_quotes') Map<String, List<String>> get rowCuratedQuotes {
+  if (_rowCuratedQuotes is EqualUnmodifiableMapView) return _rowCuratedQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_rowCuratedQuotes);
+}
+
 @override@JsonKey(name: 'variance_explanation') final  String? varianceExplanation;
 @override@JsonKey(name: 'authenticity_explanation') final  String? authenticityExplanation;
  final  List<String> _citedSources;
@@ -811,8 +786,17 @@ class _ProfileSynthesisEntryDto extends ProfileSynthesisEntryDto {
   return EqualUnmodifiableListView(_citedSources);
 }
 
+ final  List<Object?> _xaiHighlights;
+@override@JsonKey(name: 'xai_highlights') List<Object?> get xaiHighlights {
+  if (_xaiHighlights is EqualUnmodifiableListView) return _xaiHighlights;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_xaiHighlights);
+}
+
 @override@JsonKey(name: 'user_role') final  String? userRole;
 @override@JsonKey(name: 'user_role_justification') final  String? userRoleJustification;
+@override@JsonKey(name: 'extension_metrics') final  Object? extensionMetrics;
+@override@JsonKey(name: 'data_starvation') final  Object? dataStarvation;
 @override@JsonKey(name: 'created_at') final  String? createdAt;
 
 /// Create a copy of ProfileSynthesisEntryDto
@@ -826,18 +810,11 @@ Map<String, dynamic> toJson() {
   return _$ProfileSynthesisEntryDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProfileSynthesisEntryDto&&(identical(other.cached, cached) || other.cached == cached)&&(identical(other.varianceExplanation, varianceExplanation) || other.varianceExplanation == varianceExplanation)&&(identical(other.authenticityExplanation, authenticityExplanation) || other.authenticityExplanation == authenticityExplanation)&&const DeepCollectionEquality().equals(other._citedSources, _citedSources)&&(identical(other.userRole, userRole) || other.userRole == userRole)&&(identical(other.userRoleJustification, userRoleJustification) || other.userRoleJustification == userRoleJustification)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,cached,varianceExplanation,authenticityExplanation,const DeepCollectionEquality().hash(_citedSources),userRole,userRoleJustification,createdAt);
 
 @override
 String toString() {
-  return 'ProfileSynthesisEntryDto(cached: $cached, varianceExplanation: $varianceExplanation, authenticityExplanation: $authenticityExplanation, citedSources: $citedSources, userRole: $userRole, userRoleJustification: $userRoleJustification, createdAt: $createdAt)';
+  return 'ProfileSynthesisEntryDto(sectionSyntheses: $sectionSyntheses, rowExplanations: $rowExplanations, rowCuratedQuotes: $rowCuratedQuotes, varianceExplanation: $varianceExplanation, authenticityExplanation: $authenticityExplanation, citedSources: $citedSources, xaiHighlights: $xaiHighlights, userRole: $userRole, userRoleJustification: $userRoleJustification, extensionMetrics: $extensionMetrics, dataStarvation: $dataStarvation, createdAt: $createdAt)';
 }
 
 
@@ -848,7 +825,7 @@ abstract mixin class _$ProfileSynthesisEntryDtoCopyWith<$Res> implements $Profil
   factory _$ProfileSynthesisEntryDtoCopyWith(_ProfileSynthesisEntryDto value, $Res Function(_ProfileSynthesisEntryDto) _then) = __$ProfileSynthesisEntryDtoCopyWithImpl;
 @override @useResult
 $Res call({
- bool cached,@JsonKey(name: 'variance_explanation') String? varianceExplanation,@JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,@JsonKey(name: 'cited_sources') List<String> citedSources,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification,@JsonKey(name: 'created_at') String? createdAt
+@JsonKey(name: 'section_syntheses') Map<String, ContextVariableEntry> sectionSyntheses,@JsonKey(name: 'row_explanations') Map<String, String> rowExplanations,@JsonKey(name: 'row_curated_quotes') Map<String, List<String>> rowCuratedQuotes,@JsonKey(name: 'variance_explanation') String? varianceExplanation,@JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,@JsonKey(name: 'cited_sources') List<String> citedSources,@JsonKey(name: 'xai_highlights') List<Object?> xaiHighlights,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification,@JsonKey(name: 'extension_metrics') Object? extensionMetrics,@JsonKey(name: 'data_starvation') Object? dataStarvation,@JsonKey(name: 'created_at') String? createdAt
 });
 
 
@@ -865,15 +842,18 @@ class __$ProfileSynthesisEntryDtoCopyWithImpl<$Res>
 
 /// Create a copy of ProfileSynthesisEntryDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? cached = null,Object? varianceExplanation = freezed,Object? authenticityExplanation = freezed,Object? citedSources = null,Object? userRole = freezed,Object? userRoleJustification = freezed,Object? createdAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? sectionSyntheses = null,Object? rowExplanations = null,Object? rowCuratedQuotes = null,Object? varianceExplanation = freezed,Object? authenticityExplanation = freezed,Object? citedSources = null,Object? xaiHighlights = null,Object? userRole = freezed,Object? userRoleJustification = freezed,Object? extensionMetrics = freezed,Object? dataStarvation = freezed,Object? createdAt = freezed,}) {
   return _then(_ProfileSynthesisEntryDto(
-cached: null == cached ? _self.cached : cached // ignore: cast_nullable_to_non_nullable
-as bool,varianceExplanation: freezed == varianceExplanation ? _self.varianceExplanation : varianceExplanation // ignore: cast_nullable_to_non_nullable
+sectionSyntheses: null == sectionSyntheses ? _self._sectionSyntheses : sectionSyntheses // ignore: cast_nullable_to_non_nullable
+as Map<String, ContextVariableEntry>,rowExplanations: null == rowExplanations ? _self._rowExplanations : rowExplanations // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,rowCuratedQuotes: null == rowCuratedQuotes ? _self._rowCuratedQuotes : rowCuratedQuotes // ignore: cast_nullable_to_non_nullable
+as Map<String, List<String>>,varianceExplanation: freezed == varianceExplanation ? _self.varianceExplanation : varianceExplanation // ignore: cast_nullable_to_non_nullable
 as String?,authenticityExplanation: freezed == authenticityExplanation ? _self.authenticityExplanation : authenticityExplanation // ignore: cast_nullable_to_non_nullable
 as String?,citedSources: null == citedSources ? _self._citedSources : citedSources // ignore: cast_nullable_to_non_nullable
-as List<String>,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
+as List<String>,xaiHighlights: null == xaiHighlights ? _self._xaiHighlights : xaiHighlights // ignore: cast_nullable_to_non_nullable
+as List<Object?>,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
 as String?,userRoleJustification: freezed == userRoleJustification ? _self.userRoleJustification : userRoleJustification // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,extensionMetrics: freezed == extensionMetrics ? _self.extensionMetrics : extensionMetrics ,dataStarvation: freezed == dataStarvation ? _self.dataStarvation : dataStarvation ,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

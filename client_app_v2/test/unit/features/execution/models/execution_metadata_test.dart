@@ -144,6 +144,43 @@ void main() {
           }),
           throwsA(anyOf(isA<CheckedFromJsonException>(), isA<TypeError>())),
         );
+
+        expect(
+          () => GlobalContextVarsDto.fromJson({'shuffled_atoms': 'not_a_list'}),
+          throwsA(anyOf(isA<CheckedFromJsonException>(), isA<TypeError>())),
+        );
+      },
+    );
+
+    test(
+      'Positive 3: GlobalContextVarsDto deserializes structured JSON maps and lists from backend wire format',
+      () {
+        final vars = GlobalContextVarsDto.fromJson(<String, Object?>{
+          'language': 'fi',
+          'target_locale': 'fi',
+          'shuffled_atoms': <Map<String, Object?>>[
+            <String, Object?>{'id': 'sr_0195f3a0000070008000000000000001'},
+          ],
+          'archivist_precedents': <Map<String, Object?>>[
+            <String, Object?>{'case_id': 'prec_1'},
+          ],
+          'hydration_results': <String, Object?>{'count': 3},
+          'step_linguistics': <String, Object?>{'passive_ratio': 0.1},
+          'profiler_metrics': <String, Object?>{'word_count': 500},
+          'distillation': <String, Object?>{'matrices': <String, Object?>{}},
+          'scoring': <String, Object?>{'global_score': 85.0},
+          'interaction_analysis': <String, Object?>{'total_turns': 8},
+          'bibliography': <String, Object?>{'entries': <Object?>[]},
+          'integrity_verified_output': <String, Object?>{'verified': true},
+          'step_metadata': <String, Object?>{'attempt': 1},
+          'step_coach': <String, Object?>{'summary': 'Coaching feedback'},
+          'knowledge_base': <String, Object?>{'topic': 'Leadership'},
+        });
+
+        expect(vars.shuffledAtoms, hasLength(1));
+        expect(vars.archivistPrecedents, hasLength(1));
+        expect(vars.scoring, isA<Map<String, Object?>>());
+        expect(vars.stepCoach, isA<Map<String, Object?>>());
       },
     );
   });

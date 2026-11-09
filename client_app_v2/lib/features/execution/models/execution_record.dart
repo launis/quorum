@@ -13,20 +13,23 @@ part 'execution_record.g.dart';
 
 String _statusFromJson(String status) => status.toUpperCase();
 
+/// Polymorphic JSON value entry inside execution context variables and synthesis caches.
+typedef ContextVariableEntry = Object?;
+
 /// Typed execution-level context variables matching backend `ContextVariablesDTO`.
-/// Replace `Map<String, Object?>` contextVariables with closed Freezed DTO.
-@freezed
+@Freezed(equal: false)
 abstract class ContextVariablesDto with _$ContextVariablesDto {
   const ContextVariablesDto._();
 
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory ContextVariablesDto({
-    @JsonKey(name: 'global_atom_blackboard') String? globalAtomBlackboard,
-    @JsonKey(name: 'matrix_reducer_output') String? matrixReducerOutput,
-    @JsonKey(name: 'report_context') String? reportContext,
-    @JsonKey(name: 'step_detector') String? stepDetector,
-    @JsonKey(name: 'evaluated_matrices') String? evaluatedMatrices,
-    @Default(<String, String>{}) Map<String, String> variables,
+    @JsonKey(name: 'global_atom_blackboard') Object? globalAtomBlackboard,
+    @JsonKey(name: 'matrix_reducer_output') Object? matrixReducerOutput,
+    @JsonKey(name: 'report_context') Object? reportContext,
+    @JsonKey(name: 'step_detector') Object? stepDetector,
+    @JsonKey(name: 'evaluated_matrices') Object? evaluatedMatrices,
+    @Default(<String, ContextVariableEntry>{})
+    Map<String, ContextVariableEntry> variables,
   }) = _ContextVariablesDto;
 
   /// Instantiates a strictly typed [ContextVariablesDto] from raw JSON.
@@ -34,8 +37,8 @@ abstract class ContextVariablesDto with _$ContextVariablesDto {
       _$ContextVariablesDtoFromJson(json);
 }
 
-/// Typed execution trace entry on `ExecutionRecord.executionTrace`.
-@freezed
+/// Typed execution trace entry on `ExecutionRecord.executionTrace` matching backend `TraceEvent | ErrorTraceEvent | TombstoneEvent`.
+@Freezed(equal: false)
 abstract class ExecutionTraceItemDto with _$ExecutionTraceItemDto {
   const ExecutionTraceItemDto._();
 
@@ -46,11 +49,12 @@ abstract class ExecutionTraceItemDto with _$ExecutionTraceItemDto {
     String? timestamp,
     @JsonKey(name: 'step_name') String? stepName,
     @JsonKey(name: 'event_type') String? eventType,
-    String? event,
-    @JsonKey(name: 'step_id') String? stepId,
-    String? status,
-    @JsonKey(name: 'duration_ms') int? durationMs,
-    String? detail,
+    Object? content,
+    Object? reasoning,
+    Object? metadata,
+    @JsonKey(name: 'mcp_audit_traces')
+    @Default(<Object?>[])
+    List<Object?> mcpAuditTraces,
     @JsonKey(name: 'error_code') String? errorCode,
     @JsonKey(name: 'error_message') String? errorMessage,
     @JsonKey(name: 'redacted_hash') String? redactedHash,
@@ -61,21 +65,34 @@ abstract class ExecutionTraceItemDto with _$ExecutionTraceItemDto {
       _$ExecutionTraceItemDtoFromJson(json);
 }
 
-/// Typed cached profile synthesis summary entry on `ExecutionRecord.profileSyntheses`.
-@freezed
+/// Typed cached profile synthesis summary entry on `ExecutionRecord.profileSyntheses` matching backend `RenderedSynthesisCache`.
+@Freezed(equal: false)
 abstract class ProfileSynthesisEntryDto with _$ProfileSynthesisEntryDto {
   const ProfileSynthesisEntryDto._();
 
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory ProfileSynthesisEntryDto({
-    @Default(false) bool cached,
+    @JsonKey(name: 'section_syntheses')
+    @Default(<String, ContextVariableEntry>{})
+    Map<String, ContextVariableEntry> sectionSyntheses,
+    @JsonKey(name: 'row_explanations')
+    @Default(<String, String>{})
+    Map<String, String> rowExplanations,
+    @JsonKey(name: 'row_curated_quotes')
+    @Default(<String, List<String>>{})
+    Map<String, List<String>> rowCuratedQuotes,
     @JsonKey(name: 'variance_explanation') String? varianceExplanation,
     @JsonKey(name: 'authenticity_explanation') String? authenticityExplanation,
     @JsonKey(name: 'cited_sources')
     @Default(<String>[])
     List<String> citedSources,
+    @JsonKey(name: 'xai_highlights')
+    @Default(<Object?>[])
+    List<Object?> xaiHighlights,
     @JsonKey(name: 'user_role') String? userRole,
     @JsonKey(name: 'user_role_justification') String? userRoleJustification,
+    @JsonKey(name: 'extension_metrics') Object? extensionMetrics,
+    @JsonKey(name: 'data_starvation') Object? dataStarvation,
     @JsonKey(name: 'created_at') String? createdAt,
   }) = _ProfileSynthesisEntryDto;
 
