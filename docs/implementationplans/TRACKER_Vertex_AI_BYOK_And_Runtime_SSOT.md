@@ -31,7 +31,7 @@
   - [x] @[backend_v2/services/auth/secret_service.py]
   - [x] @[backend_v2/services/studio/system_config_service.py]
   - [x] @[backend_v2/llm/adapters/base_adapter.py]
-  - [ ] @[backend_v2/llm/caching_service.py]
+  - [x] @[backend_v2/llm/caching_service.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/llm/provider/litellm_provider.py]
   - [ ] @[backend_v2/llm/adapters/vertex_adapter.py]
