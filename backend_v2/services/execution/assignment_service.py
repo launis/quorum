@@ -111,7 +111,6 @@ def redact_execution_for_confirmation_only(record: ExecutionRecord) -> Execution
     Returns:
         Redacted ExecutionRecord containing only submission confirmation and status metadata.
     """
-    # Phase 5, Step 5.4: Enforce AssignmentResultVisibility.CONFIRMATION_ONLY for MEMBER assignees
     redacted_steps = [step.model_copy(update={"scorecard_atoms": {}}) for step in record.steps]
     redacted_step_states = {
         step_id: state.model_copy(update={"scorecard_atoms": {}}) for step_id, state in record.step_states.items()
@@ -198,7 +197,6 @@ class ExecutionAssignmentService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR.
         """
-        # Phase 1, Step 1.3: Enforce single-pipeline assignment persistence with zero local dict fallback
         logger.error(
             "[ExecutionAssignmentService] %s: ExecutionAssignmentService requires an entity_adapter or uow_factory.",
             ErrorCodes.CONFIGURATION_ERROR.name,
@@ -241,7 +239,6 @@ class ExecutionAssignmentService:
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on cross-tenant identity collision.
             AppException: With ErrorCodes.VALIDATION_FAILED if hard_deadline_at is in the past.
         """
-        # Phase 5, Step 5.4: Create Single Task Assignment with Role & Domain Guards
         org = await self._authorize_and_load_assignment_org(
             initiator=initiator,
             invited_role=payload.invited_role,
@@ -306,7 +303,6 @@ class ExecutionAssignmentService:
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on cross-tenant identity collision.
             AppException: With ErrorCodes.VALIDATION_FAILED if hard_deadline_at is in the past.
         """
-        # Phase 5, Step 5.4: Atomic Cohort Batch Pre-Flight Validation & Dispatch
         org = await self._authorize_and_load_assignment_org(
             initiator=initiator,
             invited_role=payload.invited_role,
@@ -425,7 +421,6 @@ class ExecutionAssignmentService:
         Raises:
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if token digest is unknown.
         """
-        # Phase 5, Step 5.4: SafeLinks-Immune Idempotent Preview (100% Read-Only)
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
         assignment = await self._find_assignment_by_token_hash(token_hash)
         if assignment is None:
@@ -469,7 +464,6 @@ class ExecutionAssignmentService:
             PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if Firebase email mismatches assignment.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if user belongs to another organization.
         """
-        # Phase 5, Step 5.4: Combined Just-In-Time (JIT) User Onboarding + 2FA
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
         assignment = await self._find_assignment_by_token_hash(token_hash)
         if assignment is None:
@@ -516,7 +510,6 @@ class ExecutionAssignmentService:
                 ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED if already submitted.
             AppException: With ErrorCodes.ASSIGNMENT_EXPIRED if hard_deadline_at has passed.
         """
-        # Phase 5, Step 5.4: Explicit Human Task Activation (POST .../activate)
         assignment = await self._get_assignment_or_raise(assignment_id)
         await self._verify_assignee_identity(initiator=initiator, assignment=assignment)
         if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
@@ -568,7 +561,6 @@ class ExecutionAssignmentService:
             AppException: With ErrorCodes.ASSIGNMENT_EXPIRED if deadline has passed or
                 ErrorCodes.VALIDATION_FAILED if assignment is not yet activated.
         """
-        # Phase 5, Step 5.4: Draft Checkpointing (PUT .../draft)
         assignment = await self._get_assignment_or_raise(assignment_id)
         await self._verify_assignee_identity(initiator=initiator, assignment=assignment)
         if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
@@ -626,7 +618,6 @@ class ExecutionAssignmentService:
             ConflictError: With ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED on replay submission.
             AppException: With ErrorCodes.ASSIGNMENT_EXPIRED if Dual-Clock deadline + grace has passed.
         """
-        # Phase 5, Step 5.4: Single-Shot Atomic Submission & Dual-Clock Expiration
         assignment = await self._get_assignment_or_raise(assignment_id)
         await self._verify_assignee_identity(initiator=initiator, assignment=assignment)
         if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
@@ -1550,7 +1541,6 @@ class ExecutionAssignmentService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        # Phase 1, Step 1.3: Route assignment persistence exclusively through entity_adapter or uow_factory
         if self._entity_adapter is not None:
             await self._entity_adapter.upsert_execution_assignment(assignment)
             return

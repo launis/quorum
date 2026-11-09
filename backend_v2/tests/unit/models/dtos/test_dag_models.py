@@ -312,7 +312,6 @@ def test_extracted_atom_more_than_3_segments_raises_error() -> None:
 
 def test_extracted_atom_segment_over_1000_chars_allowed_and_empty_rejected() -> None:
     """Test ExtractedAtom accepts verbatim segments over 1,000 chars and rejects empty or sub-floor segments."""
-    # Step 1: Verify unbounded verbatim segment > 1,000 chars ("A" * 1250) is accepted
     long_segment = "A" * 1250
     atom = ExtractedAtom(
         reasoning="Valid reasoning text.",

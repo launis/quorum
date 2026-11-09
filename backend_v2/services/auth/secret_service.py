@@ -7,6 +7,8 @@ import hashlib
 import logging
 import re
 import secrets
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import NoReturn, Protocol
 
@@ -131,7 +133,7 @@ class SecretService:
             secret_manager_fetcher: Optional GCP Secret Manager version accessor.
             uow_factory: Optional UnitOfWorkFactory for transactional persistence when entity_adapter is None.
         """
-        # Phase 2, Step 2: Single-pipeline persistence via entity_adapter or uow_factory with zero RAM fallback (REQ-008)
+        # Bind persistence strictly via entity_adapter or uow_factory with zero in-memory fallback
         self._entity_adapter = entity_adapter
         self.audit_service = audit_service
         self._kms_wrapper = kms_wrapper
@@ -144,8 +146,6 @@ class SecretService:
         organization_id: PrefixedUUID7,
     ) -> list[TenantSecretResponseDTO]:
         """List all redacted BYOK secret metadata records for an organization.
-
-        # Phase 3, Step 3.3: Tenant-isolated BYOK secret metadata listing
 
         Args:
             initiator: Authenticated caller token data.
@@ -172,8 +172,6 @@ class SecretService:
         kek_version: str | None = None,
     ) -> TenantSecretResponseDTO:
         """Provision or rotate a tenant-scoped BYOK secret and emit a TENANT_SECRET_UPSERTED audit event.
-
-        # Phase 2, Step 2: Single-pipeline BYOK upsert reading payload.storage_mode and validating target_identifier
 
         Args:
             initiator: Authenticated caller token data.
@@ -258,8 +256,6 @@ class SecretService:
     ) -> bool:
         """Delete a tenant-scoped BYOK secret and emit a TENANT_SECRET_DELETED audit event.
 
-        # Phase 2, Step 2: Physical deletion via EntityPersistencePort.delete_collection_document
-
         Args:
             initiator: Authenticated caller token data.
             organization_id: Owning organization identifier (org_<hex32>).
@@ -310,8 +306,6 @@ class SecretService:
     ) -> ResolvedCredentialDTO:
         """Resolve an LLM provider credential for an organization strictly from database tenant_secrets.
 
-        # Phase 3, Step 3.1 & Step 1: 100% database-only LLM BYOK credential resolution (zero .env fallback)
-
         Args:
             organization_id: Tenant organization identifier (org_<hex32>).
             provider: Target LLMProvider enum member.
@@ -323,52 +317,12 @@ class SecretService:
             ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
                 or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets.
         """
-        provider_id = provider.value
-        record = await self._find_secret_record(
+        return await self._resolve_scoped_secret(
             organization_id=organization_id,
             scope=SecretScope.LLM_PROVIDER,
-            target_identifier=provider_id,
-        )
-        root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
-        if record is None and organization_id != root_org_id:
-            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM in tenant_secrets
-            record = await self._find_secret_record(
-                organization_id=root_org_id,
-                scope=SecretScope.LLM_PROVIDER,
-                target_identifier=provider_id,
-            )
-        if record is None:
-            msg = (
-                f"No database secret configured in tenant_secrets for LLM provider "
-                f"'{provider_id}' (organization_id='{organization_id}')."
-            )
-            logger.error(
-                "[SecretService] %s: %s",
-                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
-                msg,
-                exc_info=True,
-                extra={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "provider": provider_id,
-                },
-            )
-            raise ConfigurationError(
-                message=msg,
-                details={
-                    "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
-                    "organization_id": organization_id,
-                    "provider": provider_id,
-                },
-            )
-
-        plaintext = await self._decrypt_or_fetch_secret(record)
-        return ResolvedCredentialDTO(
-            organization_id=organization_id,
-            scope=SecretScope.LLM_PROVIDER,
-            target_identifier=provider_id,
-            secret_value=SecretStr(plaintext),
-            is_tenant_byok=True,
+            target_identifier=provider.value,
+            target_kind_label="LLM provider",
+            detail_key="provider",
         )
 
     async def resolve_mcp_credential(
@@ -377,8 +331,6 @@ class SecretService:
         gateway: SystemConfigMCPGateways,
     ) -> ResolvedCredentialDTO:
         """Resolve an MCP gateway credential for an organization strictly from database tenant_secrets.
-
-        # Phase 3, Step 3.1 & Step 1: 100% database-only MCP BYOK credential resolution (zero .env fallback)
 
         Args:
             organization_id: Tenant organization identifier (org_<hex32>).
@@ -391,23 +343,56 @@ class SecretService:
             ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
                 or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets.
         """
-        record = await self._find_secret_record(
+        return await self._resolve_scoped_secret(
             organization_id=organization_id,
             scope=SecretScope.MCP_GATEWAY,
             target_identifier=gateway.id,
+            target_kind_label="MCP gateway",
+            detail_key="gateway_id",
+        )
+
+    async def _resolve_scoped_secret(
+        self,
+        *,
+        organization_id: PrefixedUUID7,
+        scope: SecretScope,
+        target_identifier: str,
+        target_kind_label: str,
+        detail_key: str,
+    ) -> ResolvedCredentialDTO:
+        """Resolve a scoped BYOK secret for an organization with ROOT_SYSTEM inheritance.
+
+        Args:
+            organization_id: Tenant organization identifier (org_<hex32>).
+            scope: Secret capability scope (LLM_PROVIDER or MCP_GATEWAY).
+            target_identifier: Provider enum value or canonical MCP gateway ID.
+            target_kind_label: Human-readable target label for structured error diagnostics.
+            detail_key: Structured RFC 7807 details key ('provider' or 'gateway_id').
+
+        Returns:
+            Non-nullable ResolvedCredentialDTO containing the decrypted SecretStr.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if no secret record exists
+                or if decryption/Secret Manager lookup fails.
+        """
+        record = await self._find_secret_record(
+            organization_id=organization_id,
+            scope=scope,
+            target_identifier=target_identifier,
         )
         root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if record is None and organization_id != root_org_id:
-            # Step 1: Inherit platform-wide UI secret stored under ROOT_SYSTEM in tenant_secrets
+            # Inherit platform-wide credential stored under ROOT_SYSTEM when the tenant has no override
             record = await self._find_secret_record(
                 organization_id=root_org_id,
-                scope=SecretScope.MCP_GATEWAY,
-                target_identifier=gateway.id,
+                scope=scope,
+                target_identifier=target_identifier,
             )
         if record is None:
             msg = (
-                f"No database secret configured in tenant_secrets for MCP gateway "
-                f"'{gateway.id}' (organization_id='{organization_id}')."
+                f"No database secret configured in tenant_secrets for {target_kind_label} "
+                f"'{target_identifier}' (organization_id='{organization_id}')."
             )
             logger.error(
                 "[SecretService] %s: %s",
@@ -417,7 +402,7 @@ class SecretService:
                 extra={
                     "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
                     "organization_id": organization_id,
-                    "gateway_id": gateway.id,
+                    detail_key: target_identifier,
                 },
             )
             raise ConfigurationError(
@@ -425,15 +410,15 @@ class SecretService:
                 details={
                     "error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value,
                     "organization_id": organization_id,
-                    "gateway_id": gateway.id,
+                    detail_key: target_identifier,
                 },
             )
 
         plaintext = await self._decrypt_or_fetch_secret(record)
         return ResolvedCredentialDTO(
             organization_id=organization_id,
-            scope=SecretScope.MCP_GATEWAY,
-            target_identifier=gateway.id,
+            scope=scope,
+            target_identifier=target_identifier,
             secret_value=SecretStr(plaintext),
             is_tenant_byok=True,
         )
@@ -478,7 +463,7 @@ class SecretService:
         Returns:
             Redacted hint formatted as '****<last4>' or '****' for short secrets.
         """
-        # Step 1: Sanitize multiline JSON secrets (such as Vertex AI Service Account JSON) to a clean 4-char suffix
+        # Sanitize multiline JSON secrets (such as Vertex AI Service Account JSON) to a clean 4-char suffix
         if raw_secret.startswith("{"):
             alnum_tail = "".join(ch for ch in raw_secret if ch.isalnum())[-4:]
             if len(alnum_tail) == 4:
@@ -780,8 +765,6 @@ class SecretService:
     ) -> None:
         """Validate that target_identifier matches the canonical contract for the selected SecretScope.
 
-        # Phase 2, Step 2: Enforce LLMProvider values or canonical sys_<hex32> Opaque Stripe IDs (slug_data_relation_ban)
-
         Args:
             organization_id: Target organization identifier (org_<hex32>).
             scope: Capability scope (LLM_PROVIDER or MCP_GATEWAY).
@@ -855,6 +838,34 @@ class SecretService:
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
+    @asynccontextmanager
+    async def _acquire_entity_port(
+        self,
+        *,
+        commit: bool = False,
+    ) -> AsyncIterator[EntityPersistencePort]:
+        """Yield the active EntityPersistencePort from entity_adapter or a uow_factory transaction.
+
+        Args:
+            commit: Whether to commit the UnitOfWork transaction upon successful exit.
+
+        Yields:
+            Configured EntityPersistencePort instance.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
+        """
+        if self._entity_adapter is not None:
+            yield self._entity_adapter
+            return
+        if self._uow_factory is not None:
+            async with self._uow_factory() as uow:
+                yield uow.entities
+                if commit:
+                    await uow.commit()
+            return
+        self._raise_unconfigured_persistence_error()
+
     async def _persist_secret_record(self, record: TenantSecretDTO) -> None:
         """Persist a TenantSecretDTO record via entity_adapter or uow_factory transaction.
 
@@ -864,15 +875,8 @@ class SecretService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
-        if self._entity_adapter is not None:
-            await self._entity_adapter.upsert_tenant_secret(record)
-            return
-        if self._uow_factory is not None:
-            async with self._uow_factory() as uow:
-                await uow.entities.upsert_tenant_secret(record)
-                await uow.commit()
-            return
-        self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port(commit=True) as entities:
+            await entities.upsert_tenant_secret(record)
 
     async def _delete_secret_record(self, secret_id: str) -> None:
         """Physically delete a tenant secret row via entity_adapter or uow_factory transaction.
@@ -883,15 +887,8 @@ class SecretService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
-        if self._entity_adapter is not None:
-            await self._entity_adapter.delete_collection_document("tenant_secrets", secret_id)
-            return
-        if self._uow_factory is not None:
-            async with self._uow_factory() as uow:
-                await uow.entities.delete_collection_document("tenant_secrets", secret_id)
-                await uow.commit()
-            return
-        self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port(commit=True) as entities:
+            await entities.delete_collection_document("tenant_secrets", secret_id)
 
     async def _list_org_secret_records(self, organization_id: str) -> list[TenantSecretDTO]:
         """List active TenantSecretDTO records for an organization from persistent storage.
@@ -905,13 +902,8 @@ class SecretService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
-        if self._entity_adapter is not None:
-            persisted = await self._entity_adapter.list_tenant_secrets(organization_id=organization_id)
-        elif self._uow_factory is not None:
-            async with self._uow_factory() as uow:
-                persisted = await uow.entities.list_tenant_secrets(organization_id=organization_id)
-        else:
-            self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port() as entities:
+            persisted = await entities.list_tenant_secrets(organization_id=organization_id)
         return [item for item in persisted if item.organization_id == organization_id]
 
     async def _find_secret_record(
@@ -952,12 +944,8 @@ class SecretService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
-        if self._entity_adapter is not None:
-            return await self._entity_adapter.get_tenant_secret(secret_id)
-        if self._uow_factory is not None:
-            async with self._uow_factory() as uow:
-                return await uow.entities.get_tenant_secret(secret_id)
-        self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port() as entities:
+            return await entities.get_tenant_secret(secret_id)
 
     @staticmethod
     def _to_response_dto(record: TenantSecretDTO) -> TenantSecretResponseDTO:

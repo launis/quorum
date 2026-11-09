@@ -31,7 +31,6 @@ from backend_v2.services.report.lifecycle_service import (
 )
 from backend_v2.services.storage import get_storage_driver
 
-# Phase 4, Step 2: Expose ReportService package aggregator facade with explicit __all__
 __all__ = [
     "ReportCompilationService",
     "ReportFormatReaderService",
@@ -67,7 +66,6 @@ class ReportService:
         )
         self.pdf_service: PdfReportService = pdf_service if pdf_service is not None else PdfReportService()
         self.synthesis_runner = synthesis_runner
-        # Phase 4, Step 2: Route lifecycle, compilation, and format reader sub-services
         self._lifecycle = ReportLifecycleService(repo=self.repo, storage_driver=self.storage)
         self._compilation = ReportCompilationService(
             repo=self.repo,

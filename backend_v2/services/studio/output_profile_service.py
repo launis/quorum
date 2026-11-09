@@ -113,7 +113,6 @@ class StudioOutputProfileService:
         enforce_modification_rights(initiator, profile.organization_id)
 
         workflow = await self.workflow_service.get_workflow(initiator, profile.workflow_id)
-        # Step 1: Resolve all workflow step scopes including system-core steps for layout target validation
         all_steps = await self.workflow_service.list_steps(initiator, scope=StepFilterScope.ALL)
 
         # Delegate permission calculation to the Domain Model
@@ -271,7 +270,6 @@ class StudioOutputProfileService:
             raise ResourceNotFoundError(resource_type="workflow", resource_id="primary_default")
         target_wf = workflows[0]
         target_wf_id = target_wf.id
-        # Step 1: Resolve all workflow step scopes including system-core steps for draft target initialization
         all_steps = await self.workflow_service.list_steps(initiator, scope=StepFilterScope.ALL)
         prompt_blocks = target_wf.get_allowed_prompt_block_targets(all_steps)
         matrix_block = next(iter(prompt_blocks), None)

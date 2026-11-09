@@ -510,7 +510,6 @@ class TestWorkflowMatrixTelemetry:
         steps = {s.step_rule_id: s for s in telemetry.steps}
         assert len(steps) == 14
 
-        # Step 2: Analyst (Kahneman)
         analyst = steps["sr_0195f3a0000070058a8ae009eee44fe2"]
         assert analyst.cognitive_tier == "deep"
         assert analyst.model_strategy == "deep"
@@ -523,7 +522,6 @@ class TestWorkflowMatrixTelemetry:
         assert kahneman.total_atoms == 15
         assert kahneman.high_entropy_atoms == 15
 
-        # Step 13: Scoring Engine (Logic hook)
         scoring = steps["sr_0195f3a0000070028fa56dc36614469a"]
         assert scoring.type == "logic"
         assert len(scoring.matrices) == 0

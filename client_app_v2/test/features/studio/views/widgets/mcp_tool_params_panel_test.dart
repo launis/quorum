@@ -729,7 +729,7 @@ void main() {
       },
     );
 
-    // Phase 5, Step 5.2 Test Contract: test_mcp_tool_params_panel_handles_missing_optional_schema_properties
+    // test_mcp_tool_params_panel_handles_missing_optional_schema_properties
     testWidgets(
       'test_mcp_tool_params_panel_handles_missing_optional_schema_properties (Negative)',
       (WidgetTester tester) async {

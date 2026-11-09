@@ -62,8 +62,6 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
     ) -> CachingPayloadResultDTO:
         """Prepare the Anthropic-specific prompt payload with block-level cache tags.
 
-        # Step 2: Align signature with BaseLLMAdapter optional config and resolved_credential
-
         Args:
             compiled_prompt: The structured CompiledPrompt instance.
             model_name: The target model name.
@@ -263,8 +261,6 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Prepare Anthropic specific kwargs, handling thinking budgets and parameter constraints.
-
-        # Step 2: Align signature with BaseLLMAdapter optional resolved_credential
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.

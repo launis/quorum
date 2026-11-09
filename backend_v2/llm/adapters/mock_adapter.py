@@ -39,8 +39,6 @@ class MockCacheAdapter(BaseLLMAdapter):
     ) -> CachingPayloadResultDTO:
         """Return the flat compiled prompt messages as-is and set mock active flag.
 
-        # Step 2: Align signature with BaseLLMAdapter optional config and resolved_credential
-
         Args:
             compiled_prompt: The structured CompiledPrompt instance.
             model_name: The target model name.

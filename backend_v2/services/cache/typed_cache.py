@@ -216,7 +216,6 @@ class MCPGatewayCache:
         Args:
             cache_service: Optional TypedCacheService instance wrapping RedisClientProtocol.
         """
-        # Phase 1, Step 1.3: Route all gateway caching exclusively through TypedCacheService
         self.cache_service: TypedCacheService = (
             cache_service if cache_service is not None else TypedCacheService(redis=InMemoryRedisClient())
         )

@@ -193,7 +193,7 @@ class OutputProfileForm extends _$OutputProfileForm {
   @override
   FutureOr<OutputProfile> build(String configId) async {
     final profile = await ref.watch(outputProfileByIdProvider(configId).future);
-    // Phase 5, Step 5.2: Operate directly on immutable Freezed OutputProfile via copyWith.
+    // Operate directly on immutable Freezed OutputProfile via copyWith.
     return profile.copyWith();
   }
 

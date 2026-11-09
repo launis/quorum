@@ -75,7 +75,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
-        # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
         step_model: Step | None = await repository.get_step_by_id(blueprint_id)
         if not step_model:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in registry."
@@ -271,7 +270,6 @@ async def recalculate(
     if profile_id is None:
         return payload
 
-    # Phase 3, Step 3.2: Consume typed OutputProfile and Workflow domain models directly
     profile_model: OutputProfile | None = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
     if not profile_model:
         msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."

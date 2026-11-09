@@ -167,7 +167,6 @@ class BlueprintTransformer:
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        # Phase 3, Step 3.2: Index both namespaced and short tool IDs in mcp_tools_map
         mcp_tools_map: dict[str, AllowedMCPTool] = {}
         mcp_gw_id = workflow_obj.mcp_gateway_id
         try:
@@ -578,7 +577,6 @@ class BlueprintTransformer:
             if mcp_audit_data:
                 adapter_mcp_audit_map = {t.id: t for t in mcp_audit_data if t.id}
 
-            # Phase 1, Step 1.1: Hydrate causal_result via strict StepOutputDTO and TypeAdapter validation
             causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
             causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
                 CausalTdaFusionResultDTO | CausalGraphPayloadDTO
@@ -664,7 +662,6 @@ class BlueprintTransformer:
             if not inner_sdui_blocks and not adapter_context.is_data_starved:
                 inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
 
-            # Phase 3, Step 3.1: Populate topological short-circuit and Toulmin falsification lineage
             report_short_circuited_claims = list(
                 dict.fromkeys(
                     [

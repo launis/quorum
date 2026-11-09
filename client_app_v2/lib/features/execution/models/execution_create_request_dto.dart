@@ -11,7 +11,7 @@ part 'execution_create_request_dto.g.dart';
 abstract class ExecutionCreateRequestDto with _$ExecutionCreateRequestDto {
   const ExecutionCreateRequestDto._();
 
-  // Phase 5, Step 5.1: Replace Map<String, Object?> rawInputs with typed WorkflowInputs DTO
+  // Replace Map<String, Object?> rawInputs with typed WorkflowInputs DTO
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory ExecutionCreateRequestDto({
     @JsonKey(name: 'workflow_id')

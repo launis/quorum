@@ -906,7 +906,6 @@ class AblationBenchmarkRunner:
         config = CONFIGURATIONS[config_id]
         logger.info("Executing benchmark for Configuration %d: %s", config_id, config.name)
 
-        # Step 2: Configuration 1 physical empirical baseline from disk traces in REPLAY mode
         if config_id == 1 and self.mode == AblationMode.REPLAY:
             files_pair_a = (
                 Path("data/files/executions/exe_379b69df134f477a/execution_trace.json"),

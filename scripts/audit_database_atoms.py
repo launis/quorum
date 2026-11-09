@@ -73,7 +73,7 @@ __all__ = [
     "run_full_database_audit",
 ]
 
-# Phase 3, Step 3 (REQ-008): 7-collection canonical Opaque Stripe ID prefix and display field contracts
+# 7-collection canonical Opaque Stripe ID prefix and display field contracts
 SEED_COLLECTION_ALLOWED_PREFIXES: dict[str, frozenset[str]] = {
     "organizations": frozenset({EntityPrefix.ORGANIZATION}),
     "users": frozenset({EntityPrefix.USER}),
@@ -127,7 +127,6 @@ class AuditIssue(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 1, Step 1: Migrate AuditIssue fields to PEP 593 Annotated[T, Field(...)]
     collection: Annotated[str, Field(description="The database collection name.")]
     entity_id: Annotated[str, Field(description="Unique ID of the entity.")]
     field_path: Annotated[str, Field(description="Path to the affected field.")]
@@ -151,7 +150,6 @@ class FullDatabaseAuditReport(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 1, Step 1: Migrate FullDatabaseAuditReport fields to PEP 593 Annotated[T, Field(...)]
     total_matrices: Annotated[int, Field(description="Total matrices checked.")]
     total_atoms: Annotated[int, Field(description="Total TDA assertion atoms checked.")]
     total_steps: Annotated[int, Field(description="Total step blueprints checked.")]
@@ -1125,7 +1123,7 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
     Returns:
         List of AuditIssue violations discovered across the 7 collections.
     """
-    # Phase 3, Step 3 (REQ-008): Enforce 7-collection canonical id, display name, and FK referential integrity
+    # Enforce 7-collection canonical id, display name, and FK referential integrity
     issues: list[AuditIssue] = []
     seen_ids: set[str] = set()
     collection_ids: dict[str, set[str]] = {col: set() for col in SEED_COLLECTION_ALLOWED_PREFIXES}

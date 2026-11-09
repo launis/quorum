@@ -89,7 +89,7 @@
     </rule_block>
 
     <rule_block id="internal_language_and_epic_ban">
-        <mandate>NEVER use the term "Epic" (or "EPIC") in any `description`, docstring, or comment, and NEVER use Finnish or non-English in comments, variable names, or internal descriptions. ALL internal codebase documentation, comments, and Pydantic descriptions MUST be written exclusively in English.</mandate>
+        <mandate>NEVER use implementation plan, phase, step, or epic tracking markers ("Epic", "EPIC", "Phase 1", "Phase 2, Step 2", "Step 1:", "REQ-001") in any `description`, docstring, or code comment, and NEVER use Finnish or non-English in comments, variable names, or internal descriptions. ALL internal codebase documentation, docstrings, comments, and Pydantic descriptions MUST be written exclusively in timeless present-tense English explaining current functionality and WHY non-obvious business logic exists (`QGR033`).</mandate>
     </rule_block>
 
     <rule_block id="anti_surface_level_remodeling">
@@ -359,7 +359,7 @@
     </rule_block>
 
     <rule_block id="system_concurrency_ssot">
-        <mandate>All execution concurrency MUST strictly reference `settings.py` SSOT across decoupled boundaries: macro-level workflow jobs are governed in the Arq worker daemon by `settings.max_concurrent_workflows`, micro-level LLM request concurrency is governed dynamically within `LiteLLMProvider` (`semaphore_low_rpm_threshold`, `semaphore_low_rpm_limit`, `semaphore_max_concurrency`, `semaphore_rpm_divisor`), Phase 2 parallel synthesis fan-out is governed by `settings.max_concurrent_llm_steps`, and `ExecutionEngine` implementations operate as 100% pure computational pipelines with zero semaphore or event dependencies.</mandate>
+        <mandate>All execution concurrency MUST strictly reference `settings.py` SSOT across decoupled boundaries: macro-level workflow jobs are governed in the Arq worker daemon by `settings.max_concurrent_workflows`, micro-level LLM request concurrency is governed dynamically within `LiteLLMProvider` (`semaphore_low_rpm_threshold`, `semaphore_low_rpm_limit`, `semaphore_max_concurrency`, `semaphore_rpm_divisor`), Stage 2 parallel synthesis fan-out is governed by `settings.max_concurrent_llm_steps`, and `ExecutionEngine` implementations operate as 100% pure computational pipelines with zero semaphore or event dependencies.</mandate>
     </rule_block>
 
     <rule_block id="strict_physical_anchoring_mandate">
@@ -447,7 +447,7 @@
     </rule_block>
 
     <rule_block id="srp_god_method_mandate">
-        <mandate>NEVER write monolithic controller or service methods exceeding 50 lines of core logic. ALWAYS break down methods >50 lines into isolated private helper methods to uphold Single Responsibility Principle.</mandate>
+        <mandate>NEVER write monolithic controller or service methods exceeding 50 lines of core logic, and NEVER duplicate algorithmic sequences or persistence dispatch boilerplate across sibling methods within a class. ALWAYS break down methods >50 lines into isolated private helper methods and extract parameterized intra-class SSOT helpers when two or more methods share the same resolution, validation, or persistence workflow.</mandate>
     </rule_block>
 
     <rule_block id="fail_fast_payload_length_mandate">

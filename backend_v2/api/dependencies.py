@@ -463,7 +463,6 @@ async def get_current_user_from_header(
             message=msg,
             details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
         )
-    # Phase 4, Step 4.1: Verify token and immediately enforce Fail-Closed Dual-Key Redis MGET kill-switch
     token_data = await auth_service.verify_token(raw_token)
     if revocation_cache is not None:
         await revocation_cache.assert_not_revoked(token_data)

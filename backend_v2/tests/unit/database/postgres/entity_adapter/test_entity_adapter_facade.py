@@ -181,7 +181,6 @@ def _build_step(block_id: str, org_id: str) -> Step:
     )
 
 
-# Phase 4, Step 1: Test Contract 1 — Verify package facade re-exports all symbols
 def test_entity_adapter_package_facade_reexports_all_symbols() -> None:
     """Verifies that importing symbols from backend_v2.database.postgres.entity_adapter works identically."""
     reexported_symbols = (

@@ -71,7 +71,6 @@ def test_worker_entrypoint_registers_mandatory_hooks_in_registry() -> None:
     assert "backend_v2.hooks" in sys.modules
 
 
-# Phase 1, Step 1.1: ISTQB negative partition tests for worker HookRegistry contracts
 def test_worker_hook_registry_missing_hook_failure() -> None:
     """ISTQB negative partition: requesting an unregistered hook raises RESOURCE_NOT_FOUND."""
     with pytest.raises(AppException) as exc_info:

@@ -4,7 +4,7 @@ import 'package:client_app/utils/json_converters.dart';
 part 'model_config.freezed.dart';
 part 'model_config.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed provider extra parameters DTO matching backend `ProviderExtraParamsDTO`.
+/// Strongly typed provider extra parameters DTO matching backend `ProviderExtraParamsDTO`.
 @freezed
 abstract class ProviderExtraParamsDto with _$ProviderExtraParamsDto {
   const ProviderExtraParamsDto._();

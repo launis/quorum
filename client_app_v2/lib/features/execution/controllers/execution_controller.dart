@@ -66,7 +66,7 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
 /// - Uses strictly typed `ExecutionRecord` models.
 @riverpod
 class ExecutionController extends _$ExecutionController {
-  // Phase 5, Step 5.2: Remove Map<String, Object?> type annotations and parameters.
+  // Remove Map<String, Object?> type annotations and parameters.
   StreamSubscription<Object?>? _sseSubscription;
   int _retryCount = 0;
 

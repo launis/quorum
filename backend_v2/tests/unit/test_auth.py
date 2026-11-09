@@ -708,7 +708,6 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
         )
     assert exc_ex.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
-    # Phase 2, Step 2: ISTQB BVA boundary and Fail-Closed tests for exchange_firebase_token rate limiting
     bva_settings = mock_settings.model_copy(update={"auth_edge_rpm_limit": 2})
     bva_limiter = TenantRateLimitService(redis=FakeRedis(), get_settings_fn=lambda: bva_settings)
     active_member = member.model_copy(update={"is_active": True, "deleted_at": None})

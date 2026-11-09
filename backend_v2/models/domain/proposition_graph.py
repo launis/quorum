@@ -68,7 +68,6 @@ def _validate_causal_weight_bounds(value: float) -> float:
     return value
 
 
-# Step 2: Immutable Pydantic V2 Draft and Persisted Proposition Graph Models
 class PropositionPayloadDTO(V2CoreBase):
     """Structured JSONB payload for a Toulmin or SCM proposition node.
 
@@ -340,7 +339,6 @@ class DependencyEdge(V2CoreBase):
         return self
 
 
-# Phase 1, Step 1.1: Toulmin 3-way falsification match contract for CausalTdaFusionResultDTO
 class FalsifiedClaimMatch(V2CoreBase):
     """Result DTO representing a claim falsified by a high-confidence rebuttal of its warrant.
 

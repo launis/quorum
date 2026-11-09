@@ -1,6 +1,6 @@
 ---
 name: tier2-hardening-frontend
-description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutter frontend directories against Phase 9 standards, Two-Profile inspection (Models vs. Views), and subsystem Knowledge Item (KI) invariants.
+description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutter frontend directories against Quorum V2 standards, Two-Profile inspection (Models vs. Views), and subsystem Knowledge Item (KI) invariants.
 ---
 
 ### 🟢 TIER 2: FLUTTER FRONTEND HARDENING LOOP

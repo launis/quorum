@@ -47,7 +47,6 @@ class PromptBlockBase(V2CoreBase):
             description="Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID.",
         ),
     ]
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     slug: Annotated[StrictStr, Field(description="URL routing helper field. Strictly no data relation role.")]
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID.")] = None
     label: Annotated[I18nText, Field(description="Localizable label for the UI.")]

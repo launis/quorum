@@ -260,7 +260,6 @@ async def extract_litellm_content_and_usage(
                 fn_name = "unknown" if not (fn and "name" in dir(fn)) else fn.name
                 fn_args = "{}" if not (fn and "arguments" in dir(fn)) else fn.arguments
                 fn_dto = OpenAIFunctionCallDTO(name=fn_name, arguments=fn_args)
-                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 tool call ID
                 tc_id = str(tc.id) if "id" in dir(tc) else f"call_{generate_uuid7().hex}"
                 extracted_tool_calls.append(OpenAIToolCallDTO(id=tc_id, function=fn_dto))
 

@@ -70,7 +70,6 @@ class FrozenContext(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     compiled_prompts: Annotated[dict[str, str], Field(default_factory=dict, description="Prompts sent to LLM.")]
     injected_theory: Annotated[
         InjectedTheoryManifestDTO,

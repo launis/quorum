@@ -314,7 +314,6 @@ def test_build_mcp_tool_declaration_positive_and_negative() -> None:
 
 def test_create_mcp_tool_argument_model_with_const_and_array_bounds_positive_and_negative() -> None:
     """Positive & Negative: Verify SchemaFactory compiles const into Literal and enforces strict validation."""
-    # Step 1: Verify const compilation and array bounds in SchemaFactory
     input_schema = MCPToolInputSchemaDTO(
         properties={
             "encoding": MCPToolSchemaPropertyDTO(

@@ -7,7 +7,6 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.llm import LLMMessageDTO
 
-# Phase 4, Step 4.1: Typed prompt compilation metadata value replacing JsonValue
 type PromptContextMetadataValue = str | int | float | bool | list[str] | None
 
 __all__ = ["PromptContextDTO", "PromptContextMetadataValue"]

@@ -88,7 +88,6 @@ def test_litellm_provider_init_validates_limits_and_caches_router_and_semaphores
     LiteLLMProvider._router_cache.clear()
     LiteLLMProvider._semaphores.clear()
 
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     test_settings = Settings(
         semaphore_low_rpm_threshold=60,
         semaphore_low_rpm_limit=2,
@@ -275,7 +274,6 @@ async def test_litellm_provider_generate_retries_httpx_shield_and_fail_fast_guar
     LiteLLMProvider._semaphores.clear()
     LiteLLMProvider._httpx_clients.clear()
 
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     fast_settings = Settings(
         llm_max_transient_retries=1,
         llm_retry_jitter_initial_seconds=0,

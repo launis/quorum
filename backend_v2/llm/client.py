@@ -66,8 +66,6 @@ class LLMClient:
     ) -> None:
         """Initialize the LLMClient instance.
 
-        # Phase 1, Step 1: Wire organization_id and ResolvedCredentialDTO into LLMClient
-
         Args:
             config: Optional configuration dictionary or typed provider configuration.
             organization_id: Optional tenant organization identifier (org_<hex32>).
@@ -174,8 +172,6 @@ class LLMClient:
         secret_service: SecretService | None = None,
     ) -> Self:
         """Factory: Create an LLMClient strictly bound to a database-defined CognitiveTier and Provider.
-
-        # Phase 1, Step 1: Single-Pipeline BYOK credential resolution via SecretService.resolve_llm_key
 
         Args:
             tier: Canonical CognitiveTier (FAST, BALANCED, DEEP, REASONING).
@@ -341,7 +337,6 @@ class LLMClient:
                     tier,
                 )
 
-        # Phase 1, Step 1: Resolve tenant or platform credential via SecretService.resolve_llm_key
         effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if organization_id is not None:
             effective_org_id = organization_id
@@ -504,7 +499,6 @@ class LLMClient:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
-            # Step 2: Forward config and resolved_credential into LLMCachingService
             caching_payload = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
@@ -547,7 +541,6 @@ class LLMClient:
                     )
 
         # 3. Create Provider via Factory
-        # Phase 1, Step 1: Forward organization_id and resolved_credential to LLMFactory.create_provider
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
             model_name=str(target_model_name),
@@ -847,7 +840,6 @@ class LLMClient:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
-            # Step 2: Forward config and resolved_credential into LLMCachingService
             caching_payload = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
@@ -859,7 +851,6 @@ class LLMClient:
             extra_kwargs.update(caching_payload.kwargs)
 
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
-        # Phase 1, Step 1: Forward organization_id and resolved_credential to LLMFactory.create_provider
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
             model_name=str(target_model_name),

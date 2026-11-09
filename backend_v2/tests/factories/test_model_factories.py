@@ -84,7 +84,6 @@ def discover_all_model_factories() -> tuple[type[object], ...]:
     Returns:
         Tuple of concrete ModelFactory subclasses from backend_v2.tests.factories.model_factories.
     """
-    # Phase 1, Step 3: Dynamically discover all ModelFactory subclasses via __subclasses__()
     discovered: list[type[object]] = []
     stack: list[type[object]] = list(ModelFactory.__subclasses__())
     while stack:
@@ -97,7 +96,6 @@ def discover_all_model_factories() -> tuple[type[object], ...]:
 
 def test_dynamic_discovery_matches_registered_factories() -> None:
     """Verify dynamic ModelFactory.__subclasses__() discovery matches ALL_FACTORIES."""
-    # Phase 1, Step 3: Prevent unregistered ModelFactory subclasses from bypassing meta-tests
     discovered = discover_all_model_factories()
     assert set(discovered) == set(ALL_FACTORIES)
 
@@ -116,7 +114,6 @@ def test_polyfactory_build_succeeds(factory_cls: RegisteredFactoryType) -> None:
     validated = model_cls.model_validate(instance)
     dumped = validated.model_dump()
     assert dumped is not None
-    # Phase 1, Step 3: Verify all primary and relational entity IDs match 32-hex OPAQUE_STRIPE_ID_REGEX
     for id_key in ("id", "organization_id", "node_id", "execution_id", "workflow_id", "profile_id"):
         if id_key in dumped and isinstance(dumped[id_key], str):
             assert re.match(OPAQUE_STRIPE_ID_REGEX, dumped[id_key]) is not None, (

@@ -71,16 +71,12 @@ def _validate_non_empty_payload(
     total_user_text = "".join(user_texts)
     settings = get_settings()
 
-    # Step 1: Extract CDATA blocks to preserve genuine payload text
     cdata_contents = re.findall(r"<!\[CDATA\[([\s\S]*?)(?:\]\]>|$)", total_user_text)
 
-    # Step 2: Remove CDATA blocks to isolate non-CDATA markup
     non_cdata_text = re.sub(r"<!\[CDATA\[[\s\S]*?(?:\]\]>|$)", "", total_user_text)
 
-    # Step 3: Strip XML markup tags from non-CDATA remainder
     stripped_non_cdata = re.sub(r"<[^>]+>", "", non_cdata_text)
 
-    # Step 4: Re-combine preserved CDATA text with non-CDATA text content
     clean_payload_text = ("".join(cdata_contents) + stripped_non_cdata).strip()
 
     if len(clean_payload_text) < settings.llm_min_payload_length:

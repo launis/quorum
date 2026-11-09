@@ -194,7 +194,6 @@ class TraceEventMetadataEnvelope(BaseDTO):
             ValidationError: If model validation fails.
         """
         if type(obj) is dict:
-            # Phase 4, Step 4.1: Avoid untyped JsonValue dict accumulator during envelope hydration
             extracted: dict[str, JsonSchemaNode | StepTraceMetadataDTO] = {}
             if "step_metadata" in obj:
                 extracted["step_metadata"] = obj["step_metadata"]

@@ -7,7 +7,7 @@ export 'package:client_app/core/models/enums.dart' show UserRole;
 part 'user.freezed.dart';
 part 'user.g.dart';
 
-// Phase 6, Step 6.1: Synchronize User and IAM Session Upgrade / Logout Freezed DTOs.
+// Synchronize User and IAM Session Upgrade / Logout Freezed DTOs.
 
 /// **User Domain Model**
 ///
@@ -21,7 +21,7 @@ abstract class User with _$User {
   const factory User({
     @StrictOpaqueIdConverter() @JsonKey(name: 'id') required String id,
     @JsonKey(name: 'slug') String? slug,
-    // Phase 2, Step 2: Synchronize firebase_uid and deleted_at with backend User SSOT
+    // Synchronize firebase_uid and deleted_at with backend User SSOT
     @JsonKey(name: 'firebase_uid') String? firebaseUid,
     @JsonKey(name: 'email') required String email,
     @JsonKey(name: 'role') required UserRole role,
@@ -107,7 +107,7 @@ abstract class LogoutResponseDto with _$LogoutResponseDto {
 
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory LogoutResponseDto({
-    // Phase 2, Step 2: Synchronize default logout status with backend LogoutResponseDTO
+    // Synchronize default logout status with backend LogoutResponseDTO
     @JsonKey(name: 'status') @Default('logged_out') String status,
     @JsonKey(name: 'revoked_jti') required String revokedJti,
     @JsonKey(name: 'all_sessions_revoked') required bool allSessionsRevoked,
@@ -131,7 +131,7 @@ abstract class UserCreate with _$UserCreate {
     @JsonKey(name: 'organization_id')
     required String organizationId,
     @JsonKey(name: 'is_active') @Default(true) bool isActive,
-    // Phase 1, Step 1: Align UserCreate language and themeMode defaults with backend UserBase SSOT
+    // Align UserCreate language and themeMode defaults with backend UserBase SSOT
     @JsonKey(name: 'language') @Default('fi') String language,
     @JsonKey(name: 'theme_mode') @Default('system') String themeMode,
     @JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,

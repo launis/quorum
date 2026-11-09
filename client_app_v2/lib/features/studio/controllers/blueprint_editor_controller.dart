@@ -18,7 +18,7 @@ class BlueprintEditorController extends _$BlueprintEditorController {
     return const BlueprintConfig(presetView: PresetView.metrics1d);
   }
 
-  /// Phase 5, Step 5.2: Hydrates [BlueprintConfig] from typed [initialConfig] or resets to default when null.
+  /// Hydrates [BlueprintConfig] from typed [initialConfig] or resets to default when null.
   void initialize(BlueprintConfig? initialConfig) {
     if (initialConfig != null) {
       try {

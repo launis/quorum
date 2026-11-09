@@ -17,7 +17,7 @@ void main() {
   );
 
   group('WorkflowCloner Unit & ISTQB Boundary Tests', () {
-    // Phase 5, Step 5.2 Test Contract: test_workflow_cloner_preserves_typed_freezed_structure
+    // test_workflow_cloner_preserves_typed_freezed_structure
     test(
       'test_workflow_cloner_preserves_typed_freezed_structure (Positive)',
       () {

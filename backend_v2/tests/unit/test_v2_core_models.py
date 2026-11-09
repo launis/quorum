@@ -41,7 +41,6 @@ def test_execution_record_fail_fast_on_corrupt_status() -> None:
     }
     with pytest.raises(ValidationError) as exc_info:
         ExecutionRecord.model_validate(data)
-    # Phase 1: status is now LaxExecutionStatus (enum) inherited from ExecutionCoreFields
     assert "INVALID_STATUS" in str(exc_info.value)
 
 

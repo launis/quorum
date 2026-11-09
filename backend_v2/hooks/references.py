@@ -52,7 +52,6 @@ def generate_bibliography(
         # Stubbed implementation of ReferenceManager (Not ported to V2)
         refs: list[ReferenceDTO] = [
             ReferenceDTO(
-                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 reference source ID
                 source_id=f"ref_{generate_uuid7().hex}",
                 title="[MOCK REFERENCE] Bibliography Generator (ReferenceManager) - Not Connected",
                 snippet=(

@@ -96,8 +96,6 @@ class LiteLLMProvider(LLMProvider):
     ) -> None:
         """Initialize the LiteLLM provider.
 
-        # Phase 3, Step 3.2: Bind tenant-resolved API keys strictly to request scope or tenant-isolated provider key
-
         Args:
             model_name: The model identifier.
             api_key: API Key or SecretStr.
@@ -349,7 +347,6 @@ class LiteLLMProvider(LLMProvider):
                 del call_kwargs[key]
 
             if adapter:
-                # Step 2: Forward resolved_credential into adapter.prepare_kwargs for BYOK credential binding
                 call_kwargs = adapter.prepare_kwargs(
                     call_kwargs,
                     self._config,

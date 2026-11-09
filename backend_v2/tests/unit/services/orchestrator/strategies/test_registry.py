@@ -52,7 +52,6 @@ def test_node_strategy_registry_resolves_llm_strategy(mock_deps: StrategyDepende
 
 def test_registry_creates_llm_strategy_with_engine(mock_deps: StrategyDependencies) -> None:
     """Contract test: verify NodeStrategyFactory resolves LLMNodeStrategy from strategies.llm_strategy."""
-    # Phase 4, Step 2: Contract test for llm_strategy package resolution
     mock_engine = MagicMock(spec=ExecutionEngine)
     strategy = NodeStrategyFactory.create_strategy(StepType.LLM, deps=mock_deps, engine=mock_engine)
     assert isinstance(strategy, LLMNodeStrategy)

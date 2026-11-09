@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'workflow_inputs.freezed.dart';
 part 'workflow_inputs.g.dart';
 
-/// Phase 5, Step 5.1: Strongly typed file upload payload for workflow execution inputs.
+/// Strongly typed file upload payload for workflow execution inputs.
 @freezed
 abstract class RawFileInputDto with _$RawFileInputDto {
   const RawFileInputDto._();
@@ -22,7 +22,7 @@ abstract class RawFileInputDto with _$RawFileInputDto {
       _$RawFileInputDtoFromJson(json);
 }
 
-/// Phase 5, Step 5.1: Strongly typed value container for a workflow dynamic input entry.
+/// Strongly typed value container for a workflow dynamic input entry.
 @freezed
 abstract class WorkflowInputValue with _$WorkflowInputValue {
   const WorkflowInputValue._();

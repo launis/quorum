@@ -345,7 +345,7 @@ void main() {
     testWidgets(
       'negative ISTQB partition: empty endpointUrl displays validation MaterialBanner without calling discoverTools',
       (tester) async {
-        // Step 2: Verify Fail-Fast empty endpointUrl guard on Connect and Discover Tools
+        // Verify Fail-Fast empty endpointUrl guard on Connect and Discover Tools
         tester.view.physicalSize = const Size(1920, 1200);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(() {

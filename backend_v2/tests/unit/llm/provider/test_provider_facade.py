@@ -96,7 +96,6 @@ class _MockLiteLLMResponse:
         return {}
 
 
-# Phase 4, Step 1: Test Contract 1 — Verify package facade re-exports all public and internal symbols
 def test_provider_package_facade_reexports_all_symbols() -> None:
     """Verifies that importing symbols from backend_v2.llm.provider works identically via the package facade."""
     expected_symbols = (

@@ -307,7 +307,6 @@ LaxDependencyRelationType = Annotated[DependencyRelationType, Field(strict=False
 class SystemConfigID(StrEnum):
     """Hardcoded Opaque Stripe IDs for global System Configurations."""
 
-    # Phase 1, Step 1: Canonical 32-hex RFC 9562 UUIDv7 for MCP Gateways
     MCP_GATEWAYS = "sys_0195f3a00000700080008172bda70c86"
 
 
@@ -1080,7 +1079,6 @@ class PipelineConfig:
     """
 
     profile: ExecutionProfile
-    # Phase 1, Step 1.2: Enforce CognitiveTier Enum SSOT on PipelineConfig.default_strategy
     default_strategy: Annotated[
         CognitiveTier | None,
         Field(default=None, description="Default cognitive tier if not overridden"),

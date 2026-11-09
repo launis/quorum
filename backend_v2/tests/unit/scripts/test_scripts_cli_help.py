@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-# Step 3: Canonical list of all 31 operational scripts in scripts/
 ALL_SCRIPTS: list[str] = sorted(
     [
         "ablation_live_executor.py",

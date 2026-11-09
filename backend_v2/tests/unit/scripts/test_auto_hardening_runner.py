@@ -1783,7 +1783,6 @@ def test_resolve_target_rule_files_and_subagent_prompt_injection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Positive: Verify resolve_target_rule_files and execute_subagent_pass inject domain-scoped .agents/rules/."""
-    # Phase 7, Step 7.4: Test contract 1 for resolve_target_rule_files and subagent prompt rule injection
     assert resolve_target_rule_files("backend_v2/services/auth/organization_service.py") == (
         ".agents/rules/00-antigravity-core.md",
         ".agents/rules/01-python-backend.md",
@@ -1836,7 +1835,6 @@ def test_resolve_target_rule_files_and_subagent_prompt_injection(
 
 def test_compute_rules_sha256_invalidates_cache_on_skill_or_agents_md_mutation(tmp_path: Path) -> None:
     """Negative: Verify compute_rules_sha256 changes digest when AGENTS.md or Tier 2 SKILL.md files mutate."""
-    # Phase 7, Step 7.4: Test contract 2 for SHA-256 invalidation on AGENTS.md and Tier 2 SKILL.md mutations
     rules_dir = tmp_path / ".agents" / "rules"
     rules_dir.mkdir(parents=True, exist_ok=True)
     (rules_dir / "00-antigravity-core.md").write_text("# Core\n", encoding="utf-8")
@@ -1873,7 +1871,6 @@ def test_compute_rules_sha256_invalidates_cache_on_skill_or_agents_md_mutation(t
 
 def test_audit_skills_architecture_passes_with_updated_tier2_skills() -> None:
     """Boundary: Verify SkillsArchitectureAuditor passes with 0 findings across updated Tier 2 skills."""
-    # Phase 7, Step 7.4: Test contract 3 verifying 0 SKL001-SKL005 violations
     repo_root = Path(__file__).resolve().parents[4]
     auditor = SkillsArchitectureAuditor(repo_root=repo_root)
     summary = auditor.run_audit()

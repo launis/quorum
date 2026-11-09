@@ -53,7 +53,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
     }).toList();
 
     final targetBlocks = List<String>.from(group.targetBlocks);
-    // Phase 2, Step 2.2: Identify stale targetBlock IDs no longer present in allowedBlockIds
+    // Identify stale targetBlock IDs no longer present in allowedBlockIds
     final staleBlockIds = allowedBlockIds.isEmpty
         ? const <String>[]
         : targetBlocks.where((id) => !allowedBlockIds.contains(id)).toList();

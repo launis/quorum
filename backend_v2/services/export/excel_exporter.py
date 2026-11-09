@@ -83,7 +83,6 @@ class ExcelExporter:
                 (VALIDATION_FAILED, 400), or Excel generation fails
                 (INTERNAL_SERVER_ERROR, 500).
         """
-        # Phase 3, Step 1: Enforce PASSED state validation
         if execution.status != ExecutionStatus.PASSED:
             msg = "Strict Fail-Fast: Execution must be in PASSED state to export Excel."
             logger.error(
@@ -94,7 +93,6 @@ class ExcelExporter:
             )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        # Phase 3, Step 1: Enforce scoreable atoms validation
         if report_dto is None or not report_dto.results:
             msg = "Strict Fail-Fast: Execution has no scoreable atoms."
             logger.error(
@@ -105,7 +103,6 @@ class ExcelExporter:
             )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        # Phase 3, Step 1: Enforce non-empty matrices validation
         if not matrices:
             msg = "Strict Fail-Fast: Execution has no evaluative matrices for Excel export."
             logger.error(

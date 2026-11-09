@@ -91,7 +91,6 @@ class ReasoningTrace(V2CoreBase):
     ]
     confidence_score: Annotated[float, Field(description="Confidence in the conclusion.")]
     model_name: Annotated[str | None, Field(default=None, description="The model used for reasoning.")] = None
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     token_usage: Annotated[
         TokenUsage,
         Field(
@@ -162,7 +161,6 @@ class TraceEvent(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     event_id: Annotated[
         uuid.UUID,
         Field(default_factory=generate_uuid7, description="Unique event identifier."),
@@ -203,7 +201,6 @@ class TraceEvent(V2CoreBase):
         Field(default=None, description="Typed event payload"),
     ] = None
     reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Associated reasoning trace.")] = None
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     metadata: Annotated[
         TraceEventMetadataDTO,
         Field(

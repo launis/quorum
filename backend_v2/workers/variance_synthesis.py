@@ -387,7 +387,6 @@ async def build_variance_metrics_and_task(
         )
         return ext_metrics, None
 
-    # Phase 1, Step 3: Resolve tenant organization_id for Phase 2 variance synthesis
     effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
     if execution.organization_id is not None:
         effective_org_id = execution.organization_id

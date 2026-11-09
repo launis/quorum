@@ -43,7 +43,6 @@ class TheoryGrounding(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     source_url: Annotated[str, Field(description="URL or reference to the source material.")]
     citation_reference: Annotated[
         str | None,

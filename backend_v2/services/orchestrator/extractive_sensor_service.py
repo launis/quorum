@@ -115,7 +115,6 @@ class BooleanEvaluationResult(BaseModel):
             return None
         if len(v) > 3:
             raise ValueError("source_quotes cannot contain more than 3 segments.")
-        # Step 2: Enforce Gate 2 SSOT contiguous safety ceiling only when Settings.max_citation_span_chars > 0
         max_span_chars = get_settings().max_citation_span_chars
         for seg in v:
             if max_span_chars > 0 and len(seg) > max_span_chars:

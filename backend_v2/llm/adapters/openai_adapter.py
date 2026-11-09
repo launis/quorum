@@ -38,8 +38,6 @@ class OpenAICacheAdapter(BaseLLMAdapter):
     ) -> CachingPayloadResultDTO:
         """Prepare the OpenAI-specific prompt payload.
 
-        # Step 2: Align signature with BaseLLMAdapter optional config and resolved_credential
-
         OpenAI recognizes caching automatically by prefix matching. We simply flatten
         the messages and return empty extra keyword arguments.
 
@@ -180,8 +178,6 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Prepare OpenAI specific kwargs, translating reasoning effort and stripping unsupported sampling params.
-
-        # Step 2: Align signature with BaseLLMAdapter optional resolved_credential
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.

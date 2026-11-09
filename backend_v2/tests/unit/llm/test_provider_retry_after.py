@@ -20,7 +20,6 @@ from tenacity import BaseRetrying
 from backend_v2.exceptions import ServiceUnavailableError
 from backend_v2.llm.client import LLMClient
 
-# Phase 4, Step 1: Import provider and retry symbols from modular provider submodules
 from backend_v2.llm.provider.litellm_provider import LiteLLMProvider
 from backend_v2.llm.provider.transient_retry_policy import (
     _AdaptiveWaitWithRetryAfter,

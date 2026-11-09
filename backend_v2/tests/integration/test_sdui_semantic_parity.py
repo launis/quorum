@@ -280,12 +280,10 @@ def _verify_semantic_token_parity(token: SduiSemanticTokenDTO, target_md: str, t
 @pytest.mark.asyncio
 async def test_sdui_semantic_parity() -> None:
     """Phase 3: Automated Pytest E2E Orchestrator for SDUI Parity."""
-    # Step 1: Verify flutter binary
     flutter_path = shutil.which("flutter")
     if not flutter_path:
         pytest.skip("Flutter SDK not found")
 
-    # Step 2: Generate temp paths using RFC 9562 UUIDv7 SSOT
     temp_dir = Path(tempfile.gettempdir())
     run_id = generate_uuid7()
     golden_path = temp_dir / f"sdui_golden_{run_id}.json"
@@ -395,7 +393,6 @@ async def test_sdui_semantic_parity() -> None:
 
         golden_path.write_text(dto.model_dump_json(exclude_none=True), encoding="utf-8")
 
-        # Step 3: Run Flutter tests
         cmd = [
             flutter_path,
             "test",
@@ -414,7 +411,6 @@ async def test_sdui_semantic_parity() -> None:
         pdf_path = temp_dir / f"sdui_pdf_{run_id}.pdf"
         pdf_path.write_bytes(pdf_bytes)
 
-        # Step 5: Extract PDF text
         import pymupdf4llm
 
         pymupdf4llm.use_layout(True)
@@ -423,7 +419,6 @@ async def test_sdui_semantic_parity() -> None:
         finally:
             pymupdf4llm.use_layout(False)
 
-        # Step 6: Compare
         flutter_tokens = TypeAdapter(list[SduiSemanticTokenDTO]).validate_json(dump_path.read_text(encoding="utf-8"))
         assert len(flutter_tokens) > 0, "No semantic tokens extracted from Flutter!"
 
@@ -514,7 +509,6 @@ async def test_sdui_semantic_parity() -> None:
 @pytest.mark.asyncio
 async def test_sdui_semantic_parity_short_circuit_and_toulmin_fields_match_across_python_jinja_dart() -> None:
     """Positive: Verify 100% parity for short_circuited_by_claims and falsified_warrant_claims across Python, Jinja2 PDF, and Dart Freezed."""
-    # Phase 4, Step 4.1: Cross-domain semantic parity for short_circuited_by_claims and falsified_warrant_claims
     flutter_path = shutil.which("flutter")
     if not flutter_path:
         pytest.skip("Flutter SDK not found")
@@ -759,7 +753,6 @@ async def test_sdui_semantic_parity_short_circuit_and_toulmin_fields_match_acros
 
 def test_sdui_semantic_parity_missing_template_binding_fails_fast() -> None:
     """Negative: Verify simulated unrendered SDUI field on SduiMatrixSummaryTableBlock raises AssertionError."""
-    # Phase 4, Step 4.1: Negative test contract for missing template binding on SduiMatrixSummaryTableBlock
     matrix_block = SduiMatrixSummaryTableBlock(
         title=I18nText(translations={"en": "Matrix Block"}),
         matrix_visible_columns=["label", "raw_score"],
@@ -824,7 +817,6 @@ def test_sdui_semantic_parity_invalid_token_dto_rejected_negative() -> None:
 
 def test_sdui_heterogeneous_payload_equivalence_partitions() -> None:
     """Verify all 4 ISTQB Equivalence Partitions across SynthesisPayloadCompressor and SduiMapperService."""
-    # Phase 4, Step 4.1: Heterogeneous payload equivalence partitioning (JSON/DTO, List, String/Markdown, Scalars/Falsy)
     atom_id_1 = generate_opaque_id(EntityPrefix.TDA)
     atom_id_2 = generate_opaque_id(EntityPrefix.TDA)
     blocker_id = generate_opaque_id(EntityPrefix.TDA)

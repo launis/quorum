@@ -74,7 +74,6 @@ class CausalDiscoveryEngine(ExecutionEngine):
             span.set_attribute("execution.id", request.context.execution_id)
             span.set_attribute("step.id", request.step.id)
 
-            # Step 3.1: Pre-flight Ingress Check
             document_text = request.global_source_text
             if not document_text or not document_text.strip():
                 msg = f"Causal discovery cannot execute on an empty text document for Step '{request.step.id}'."
@@ -161,7 +160,6 @@ class CausalDiscoveryEngine(ExecutionEngine):
             )
             atomizer = TwoPassAtomizer(llm_executor)
 
-            # Step 3.3: Two-Pass Atomization with Progress Reporting
             async def p0_cb(c: int, t: int) -> None:
                 if request.progress_callback and t > 0:
                     await request.progress_callback(int((c / t) * 30), 100)
@@ -234,7 +232,6 @@ class CausalDiscoveryEngine(ExecutionEngine):
                     },
                 )
 
-            # Step 3.4: Sliding Window Argument Graph Construction
             settings = get_settings()
             linker = SlidingWindowLinker(
                 window_size=settings.causal_discovery_window_size,
@@ -270,7 +267,6 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 deliverable_input_keys=target_deliverable_keys,
             )
 
-            # Step 3.5: Topological Wave Execution and Cycle Defense
             evaluator = TopologicalEvaluator()
 
             async def noop_eval(

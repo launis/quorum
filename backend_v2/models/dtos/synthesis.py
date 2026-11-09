@@ -162,7 +162,6 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         float | None,
         Field(default=None, description="Overall structural cohesion score in [0.0, 1.0]."),
     ] = None
-    # Phase 1, Step 1: Topological cohesion and deliverable graph projection fields
     largest_component_ratio: Annotated[
         float | None,
         Field(
@@ -270,7 +269,6 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         Returns:
             Two-element tuple of (isolated_deliverable_claims, established_causal_chains).
         """
-        # Phase 1, Step 1: Project isolated degree-zero claims and directed premise-to-conclusion edges
         connected_node_ids = {e.source_id for e in graph.edges if e.source_id != e.target_id} | {
             e.target_id for e in graph.edges if e.source_id != e.target_id
         }

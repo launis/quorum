@@ -195,7 +195,6 @@ def _get_or_refresh_cli_session(
     if current_session is not None and now_monotonic < current_session.expires_at_monotonic:
         return current_session
 
-    # Phase 2, Step 2.3: Exchange target_user_id for 15-minute Quorum Local JWT with 13-minute refresh horizon
     settings = get_settings()
     exchange_req = TokenExchangeRequestDTO(
         target_user_id=target_user_id,
@@ -592,7 +591,6 @@ class WorkflowTelemetryDTO(BaseModel):
     steps: Annotated[list[StepTelemetryDTO], Field(default_factory=list, description="List of step telemetries")]
 
 
-# Phase 1, Step 1.6: Guarantee user-turn marker injection for conversational inputs
 def _ensure_user_turn_marker(text: str, char_to_inject: str) -> str:
     """Guarantee that conversational text carries the Unicode marker in human user turns.
 
@@ -774,7 +772,6 @@ def inject_unique_run_marker(
                 reconstructed_parts_fb.append(tokens_fb[-1])
                 new_text = "".join(reconstructed_parts_fb)
 
-            # Phase 1, Step 1.6: Explicitly guarantee user dialogue turns carry the marker for chat inputs
             if k.lower() in ("chat_log", "input_chat_log", "keskusteluhistoria") or "chat" in k.lower():
                 new_text = _ensure_user_turn_marker(new_text, char_to_inject)
 
@@ -782,7 +779,6 @@ def inject_unique_run_marker(
             injected_keys.append(k)
 
     char_hex = f"U+{ord(char_to_inject):04X}"
-    # Phase 1, Step 1.5: Direct dictionary key lookup to eradicate QGR002
     char_name = UNICODE_SPACE_REGISTRY[char_to_inject]
 
     metadata = RunMarkerMetadataDTO(
@@ -813,7 +809,6 @@ def make_noise_injector(run_index: int) -> Callable[[str], str]:
             return text
         dummy_inputs = {"text": text}
         marked_payload = inject_unique_run_marker(dummy_inputs, run_index=run_index)
-        # Phase 1, Step 1.5: Direct key access to eradicate QGR002
         return str(marked_payload.marked_inputs["text"])
 
     return injector
@@ -1680,7 +1675,6 @@ def poll_database_for_execution(
         poll_interval: float = 5.0
         time.sleep(poll_interval)
         try:
-            # Phase 2, Step 2.3: Auto-refresh CLI session before minute 13 during long-running E2E polling
             cli_session = _get_or_refresh_cli_session(
                 resolved_base_url,
                 settings.mock_admin_user_id,

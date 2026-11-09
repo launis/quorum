@@ -13,7 +13,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_client.g.dart';
 
-// Phase 6, Step 6.2: Execution & Time-Bound Task Assignment API Client.
+// Execution & Time-Bound Task Assignment API Client.
 
 /// Execution API Client Provider
 @Riverpod(keepAlive: true)

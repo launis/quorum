@@ -516,7 +516,6 @@ async def test_handle_synthesis_failure_state() -> None:
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_record = _make_execution()
     await mock_repo.save_execution(mock_record)
-    # Phase 6, Step 6.2: Use stateful InMemoryUnifiedWorkflowRepository without string-based patch
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
         with patch.object(synthesis_reducers_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await handle_synthesis_failure_state(

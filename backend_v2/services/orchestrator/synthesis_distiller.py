@@ -253,7 +253,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         )
 
     # Phase 2, Milestone 1.6: Fetch workflow and execution for context resolution
-    # Phase 3, Step 3.2: Consume typed Workflow, ExecutionRecord, OutputProfile, and Step domain models directly
     workflow_data: Workflow | None = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
     if not workflow_data:
         msg = f"Workflow '{state.workflow_id}' not found."
@@ -310,7 +309,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     alias_engine = AliasEngine()
 
-    # Phase 3, Step 2: Map step rules by ID to evaluate is_synthesis_source
     step_rules_map: dict[str, StepRule] = {}
     if workflow_data.steps:
         for rule in workflow_data.steps:

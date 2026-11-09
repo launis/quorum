@@ -116,7 +116,6 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
     """Contract: Verify unfiltered DTOs are passed to <source> blocks and assemble_matrices_to_explain."""
     deps = _build_mock_deps()
 
-    # Step 1: Cognitive sensor finding step
     step1 = StepOutputDTO(
         step_id="stp_sensor_1",
         block_id="blk_sensor_1",
@@ -128,7 +127,6 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
             }
         ),
     )
-    # Step 2: Cognitive sensor finding step
     step2 = StepOutputDTO(
         step_id="stp_sensor_2",
         block_id="blk_sensor_2",
@@ -140,7 +138,6 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
             }
         ),
     )
-    # Step 3: Matrix step
     matrix_output = LightweightMatrixOutput(
         evaluated_atoms={
             "tda_0195f3a00000700283456789abcdef01": ExecutionStatus.PASSED,

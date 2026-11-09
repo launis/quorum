@@ -139,7 +139,6 @@ def _build_py_file_test_candidates(parts: list[str], filename: str) -> list[str]
     if len(parts) >= 2 and filename == "__init__.py":
         pkg_name = parts[-2]
         clean_base = filename.removesuffix(".py").lstrip("_")
-        # Phase 1C, Step 3: Include test_{pkg_name}_init.py candidate for package __init__.py targets
         return [
             f"test_{pkg_name}.py",
             f"test_{pkg_name}_facade.py",

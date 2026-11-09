@@ -88,7 +88,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   String? _selectedProfileId;
   bool _autoGenerateReport = true;
 
-  // Phase 5, Step 5.2: Store typed WorkflowInputValue entries instead of Map<String, Object?>.
+  // Store typed WorkflowInputValue entries instead of Map<String, Object?>.
   final Map<String, WorkflowInputValue> _compiledInputs = {};
   final Map<String, String> _selectedFileNames = {};
   final Map<String, TextEditingController> _textControllers = {};

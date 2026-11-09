@@ -31,7 +31,6 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-# Phase 3, Step 1: Relocate axis resolution, context target resolution, and row builder stages
 def resolve_unique_axis_name(
     pb_meta: MatrixPromptBlock,
     block_id: str,

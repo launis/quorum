@@ -9,7 +9,6 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
-# Phase 4, Step 4.1: Recursive typed JSON Schema node replacing JsonValue
 type JsonSchemaNode = str | int | float | bool | None | list[JsonSchemaNode] | dict[str, JsonSchemaNode]
 
 __all__ = ["GeneratedSchemaManifestDTO", "JsonSchemaNode"]
@@ -24,7 +23,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 2, Step 2.3 & Phase 4, Step 4.1: Enforce PEP 593 Annotated[T, Field(...)] and typed JsonSchemaNode
+    # Enforce PEP 593 Annotated[T, Field(...)] and typed JsonSchemaNode
     schemas: Annotated[
         dict[str, JsonSchemaNode],
         Field(default_factory=dict, description="Mapping of step IDs to schema definitions"),

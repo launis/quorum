@@ -241,12 +241,10 @@ class ReportView(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     view_id: Annotated[StrictStr, Field(..., description="The Execution ID")]
-    # Phase 2, Step 2.1: Require explicit ReportView title without silent default (QGR020 Check 20C)
     title: Annotated[StrictStr, Field(description="Page title")]
     status_theme: Annotated[
         VisualIntent, Field(default=VisualIntent.SUCCESS, description="Visual theme: 'success' | 'warning' | 'danger'")
     ] = VisualIntent.SUCCESS
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     inner_sdui_blocks: Annotated[
         list[AnySduiBlock],
         Field(default_factory=list, description="Ordered list of SDUI components"),
@@ -729,7 +727,6 @@ class SduiMetadataBlock(SduiBlockBase):
     model_config = ConfigDict(title="metadata", strict=True, extra="forbid")
     block_type: Literal["metadata"] = "metadata"
     title: Annotated[str, Field(..., description="Main title of the report")]
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     badges: Annotated[list[str], Field(default_factory=list, description="Highlighted badges")]
     metadata_lines: Annotated[list[str], Field(default_factory=list, description="Metadata strings")]
     costs: Annotated[str | None, Field(default=None, description="Formatted cost string")] = None
@@ -792,7 +789,6 @@ class SduiMatrixTableBlock(SduiBlockBase):
     matrix_column_labels: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
     matrix_visible_columns: Annotated[list[str], Field(default_factory=list)]
-    # Phase 3, Step 3.1: Inline topological short-circuit and Toulmin falsification lineage
     short_circuited_by_claims: Annotated[
         list[str],
         Field(
@@ -835,7 +831,6 @@ class SduiCausalGraphBlock(SduiBlockBase):
     intact_claims_count: int
     total_claims_count: int
     summary: I18nText
-    # Phase 3, Step 3.1: Inline topological short-circuit and Toulmin falsification lineage
     short_circuited_by_claims: Annotated[
         list[str],
         Field(

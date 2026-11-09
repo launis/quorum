@@ -217,7 +217,6 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         set_language(target_locale)
 
     try:
-        # Step 3: Propagate tenant organization_id from state.global_context_vars
         effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if state.global_context_vars is not None and state.global_context_vars.organization_id is not None:
             effective_org_id = state.global_context_vars.organization_id

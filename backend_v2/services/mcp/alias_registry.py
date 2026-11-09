@@ -22,8 +22,6 @@ class AliasRegistry:
     def build_namespaced_tool_alias(gateway_slug: str, tool_id: str) -> str:
         """Construct a collision-free namespaced MCP tool alias ('{gateway_slug}__{tool_id}').
 
-        # Phase 3, Step 3.2: Deterministic namespace prefixing for MCP tools
-
         Args:
             gateway_slug: Single-underscore lowercase alphanumeric slug of the parent MCP gateway.
             tool_id: Canonical technical identifier of the tool on the remote MCP server.
@@ -71,8 +69,6 @@ class AliasRegistry:
     @staticmethod
     def parse_namespaced_tool_alias(namespaced_alias: str) -> ParsedMCPToolAliasDTO:
         """Parse a namespaced MCP tool alias ('{gateway_slug}__{tool_id}') into its bijective components.
-
-        # Phase 3, Step 3.2: Deterministic namespace parsing on first '__' delimiter
 
         Args:
             namespaced_alias: Full namespaced tool alias string.

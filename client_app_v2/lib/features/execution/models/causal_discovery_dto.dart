@@ -20,7 +20,7 @@ abstract class CausalNodeDto with _$CausalNodeDto {
     @JsonKey(name: 'tda_score') double? tdaScore,
     @JsonKey(name: 'tda_level_key') String? tdaLevelKey,
     @JsonKey(name: 'source_input_key') @Default(null) String? sourceInputKey,
-    // Phase 3, Step 3.3: Node-level topological short-circuit and Toulmin falsification lineage
+    // Node-level topological short-circuit and Toulmin falsification lineage
     @JsonKey(name: 'short_circuited_by_claims')
     @Default(<String>[])
     List<String> shortCircuitedByClaims,

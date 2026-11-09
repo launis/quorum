@@ -23,7 +23,6 @@ from backend_v2.services.ingress.pdf_extractor.bubble_geometry import (
 _DOCS_DIR = Path("docs/jwdatat")
 
 
-# Phase 4, Step 1: Migrate conversation detection and bubble geometry unit tests
 def test_pdf_chat_extractor_non_chat_prose_returns_false() -> None:
     """Test that standard prose reports (lopputuote.pdf) return is_conversation_pdf == False."""
     pdf_path = _DOCS_DIR / "lopputuote.pdf"

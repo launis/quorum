@@ -73,7 +73,6 @@ async def exchange_firebase_token(
             ErrorCodes.PERMISSION_DENIED, or ErrorCodes.AUTH_TOKEN_EXPIRED when exchange fails.
         ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on Firebase UID collision.
     """
-    # Phase 2, Step 2: Enforce sliding-window auth-edge IP rate limit via TenantRateLimitService
     client_ip = ""
     if request.client is not None:
         client_ip = request.client.host

@@ -26,7 +26,6 @@ from .scale_and_atom_stage import compute_scale_and_score_projection as compute_
 from .scale_and_atom_stage import hydrate_step_scorecard_atoms as hydrate_step_scorecard_atoms
 from .scale_and_atom_stage import unpack_matrix_payload as unpack_matrix_payload
 
-# Phase 4, Step 2: Declare explicit __all__ and redundant import aliases for package facade
 __all__ = [
     "MatrixDomainParser",
     "build_matrix_scorecard_row",

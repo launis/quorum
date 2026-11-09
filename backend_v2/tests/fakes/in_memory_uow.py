@@ -283,7 +283,6 @@ def _hydrate_in_memory_execution_record(args: Sequence[object]) -> ExecutionReco
     Returns:
         Hydrated ExecutionRecord domain instance.
     """
-    # Phase 1, Step 1.1: Delegate to canonical hydrate_execution_row SSOT without raw dict literals
     row_columns = dict(
         zip(
             _EXECUTION_INSERT_COLUMNS,
@@ -303,7 +302,6 @@ def _hydrate_in_memory_proposition_node(row: Sequence[object]) -> _StoredNodeEnt
     Returns:
         Hydrated _StoredNodeEntry instance.
     """
-    # Phase 1, Step 1.1: Construct typed PropositionPayloadDTO and PropositionNode directly
     node_uuid = row[0] if isinstance(row[0], (uuid.UUID, str)) else str(row[0])
     run_uuid = row[1] if isinstance(row[1], (uuid.UUID, str)) else str(row[1])
     node_id = format_prefixed_uuid7(node_uuid, EntityPrefix.NODE)
@@ -1006,7 +1004,6 @@ class InMemoryEntityAdapter:
             AppException: With VALIDATION_FAILED on invalid ID or CONFLICT on state_version mismatch.
         """
         _ = parse_prefixed_uuid7(record.id, EntityPrefix.EXECUTION)
-        # Phase 4, Step 4.2: Enforce conditional expected_state_version OCC check and atomic increment
         target_record = record
         if expected_state_version is not None:
             actual_version = 1
@@ -1170,7 +1167,6 @@ class InMemoryEntityAdapter:
         Returns:
             True if a matching document existed and was removed, else False.
         """
-        # Phase 1, Step 1: Stateful in-memory deletion matching PostgresEntityAdapter.delete_collection_document
         collection_map: dict[str, str] = {
             "organizations": "organizations",
             "users": "users",

@@ -415,7 +415,7 @@ class ModelRegistryView extends HookConsumerWidget {
     ModelConfig data,
   ) {
     final firstTier = data.tierDefinitions.values.firstOrNull;
-    // Phase 5, Step 5.2: Read typed ProviderExtraParamsDto.vertexLocation directly.
+    // Read typed ProviderExtraParamsDto.vertexLocation directly.
     final currentLocation =
         (firstTier?.additionalParams.vertexLocation?.isNotEmpty == true)
         ? firstTier!.additionalParams.vertexLocation!

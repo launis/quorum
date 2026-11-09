@@ -17,7 +17,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_controller.g.dart';
 
-// Phase 6, Step 6.1: Mandatory 2FA Challenge/Enrollment, 13-Minute Silent Refresh, and 5-Step Logout Pipeline.
+// Mandatory 2FA Challenge/Enrollment, 13-Minute Silent Refresh, and 5-Step Logout Pipeline.
 
 /// Coordinates tenant-scoped master data caches for invalidation on tenant switch or sign-out.
 @riverpod

@@ -150,7 +150,6 @@ class ReportDataDTO(V2CoreBase):
         ),
     ]
 
-    # Phase 3, Step 3.1: Inline topological short-circuit and Toulmin falsification lineage
     short_circuited_by_claims: Annotated[
         list[str],
         Field(

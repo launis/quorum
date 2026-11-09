@@ -92,7 +92,6 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
         step_obj: V2Step | None = await self.workflow_repo.get_step_by_id(blueprint_id)
         if not step_obj:
             logger.error(
@@ -212,7 +211,6 @@ class LogicNodeStrategy(NodeStrategy):
             hook_state=hook_state,
             hook_deps=hook_deps,
         )
-        # Phase 4, Step 4.3: Replace dict[str, JsonValue] with typed StepOutputContentValue map
         final_outputs: dict[str, StepOutputContentValue] = {}
         if main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta

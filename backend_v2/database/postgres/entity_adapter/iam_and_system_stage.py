@@ -924,10 +924,8 @@ def hydrate_system_config_row(
         AppException: With VALIDATION_FAILED if the system_config UUID cannot be formatted or row validation fails.
     """
     cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
-    # Phase 1, Step 1: Catch ValidationError and raise AppException with RFC 7807 logger.error
     try:
         if row["type"] == "mcp_gateways":
-            # Phase 1, Step 1: Hydrate canonical human-readable name for SystemConfigMCPGateways
             return SystemConfigMCPGateways.model_validate(
                 {
                     "id": cfg_id,
@@ -990,7 +988,6 @@ async def upsert_system_config_row(
     """
     cfg_uuid = parse_prefixed_uuid7(cfg.id, EntityPrefix.SYSTEM_CONFIG)
     dumped = cfg.model_dump(mode="json")
-    # Phase 1, Step 1: Persist canonical name for both SystemConfigModelRegistry and SystemConfigMCPGateways
     name = cfg.name
     slug = provider = tiers_json = endpoint_url = transport = auth_type = auth_hdr = auth_env = tools_json = None
     timeout_sec: int | None = None

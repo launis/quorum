@@ -44,7 +44,6 @@ __all__ = [
     "TenantRateLimitStatusDTO",
 ]
 
-# Phase 1, Step 1: Bounded Redis timeout divisor (3.0s at 900s TTL) and MGET retry ceiling
 _REDIS_TIMEOUT_TTL_DIVISOR: Final[float] = 300.0
 _REVOCATION_MGET_MAX_ATTEMPTS: Final[int] = 2
 
@@ -168,7 +167,6 @@ class RevocationCache:
             AppException: With ErrorCodes.VALIDATION_FAILED if jti is empty.
             ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE if Redis fails or times out.
         """
-        # Phase 4, Step 4.1: Set revoked:jti:{jti} = "1" with bounded EX ttl_seconds
         if not jti or not jti.strip():
             msg = "Token jti cannot be empty for revocation."
             logger.error(
@@ -220,7 +218,6 @@ class RevocationCache:
             AppException: With ErrorCodes.VALIDATION_FAILED if user_id is empty.
             ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE if Redis fails or times out.
         """
-        # Phase 4, Step 4.1: Set revoked:usr:{user_id} = "1" with EX ttl_seconds
         if not user_id or not user_id.strip():
             msg = "User ID cannot be empty for session revocation."
             logger.error(
@@ -270,7 +267,6 @@ class RevocationCache:
             AuthenticationError: With ErrorCodes.AUTH_TOKEN_EXPIRED (401) if either key exists in Redis.
             ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE (503) if Redis is unreachable or times out.
         """
-        # Phase 4, Step 4.1: Atomic O(1) Dual-Key MGET revoked:usr:{id} revoked:jti:{jti}
         redis_client = self._require_redis()
         user_key = f"revoked:usr:{token_data.id}"
         if token_data.jti is not None and token_data.jti.strip():
@@ -278,7 +274,6 @@ class RevocationCache:
         else:
             jti_key = "revoked:jti:none"
 
-        # Phase 1, Step 1: Bounded 2-attempt MGET TimeoutError retry with Fail-Closed 503
         timeout_sec = self._resolve_timeout_seconds()
         results: Any = None
         for attempt in range(1, _REVOCATION_MGET_MAX_ATTEMPTS + 1):
@@ -494,7 +489,6 @@ class TenantRateLimitService:
             TokenLimitExceededError: With ErrorCodes.RATE_LIMIT_EXCEEDED (429) if RPM or TPM exceeds limit.
             ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE (503) if Redis is unreachable.
         """
-        # Phase 4, Step 4.2: Per-organization atomic Redis sliding-window RPM & TPM enforcement
         if rpm_limit < 1 or tpm_limit < 1 or requested_tokens < 0 or increment_requests < 0:
             msg = "Invalid tenant rate-limit parameters."
             logger.error(
@@ -615,7 +609,6 @@ class TenantRateLimitService:
             TokenLimitExceededError: With ErrorCodes.RATE_LIMIT_EXCEEDED (429) when count exceeds auth_edge_rpm_limit.
             ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE (503) if Redis is unreachable.
         """
-        # Phase 4, Step 4.2: Public auth/assignment edge IP brute-force protection
         if not client_ip or not client_ip.strip() or not endpoint_scope or not endpoint_scope.strip():
             msg = "Client IP and endpoint scope are required for edge rate limiting."
             logger.error(

@@ -113,7 +113,7 @@ void main() {
         expect(logoutResp.revokedJti, equals('jti_12345'));
         expect(logoutResp.allSessionsRevoked, isFalse);
 
-        // Phase 1, Step 1: UserCreate & UserUpdate roundtrip with required language and theme_mode defaults
+        // UserCreate & UserUpdate roundtrip with required language and theme_mode defaults
         final userCreate = UserCreate(
           email: 'new@quorum.ai',
           organizationId: orgId,

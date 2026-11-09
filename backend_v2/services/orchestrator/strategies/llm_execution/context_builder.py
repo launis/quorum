@@ -426,7 +426,6 @@ class ContextBuilder:
                     ) from e
 
                 if clean_path == "steps" or clean_path.startswith("steps."):
-                    # Phase 1, Step 1: Retain canonical $steps. domain prefix for step dependencies
                     extracted_inputs[_logical_name] = copy.deepcopy(resolved_value)
                     extracted_inputs[f"steps.{_logical_name}"] = copy.deepcopy(resolved_value)
                     new_input_mappings[_logical_name] = f"$steps.{_logical_name}"

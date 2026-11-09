@@ -11,7 +11,6 @@ from pydantic import ConfigDict, Field, TypeAdapter
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 
-# Phase 4, Step 4.1: Typed client context data value replacing JsonValue
 type ClientContextValue = str | int | float | bool | list[str] | None
 
 __all__ = [

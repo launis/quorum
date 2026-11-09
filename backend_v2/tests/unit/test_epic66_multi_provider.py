@@ -22,7 +22,6 @@ def handler(mock_repo: InMemoryUnifiedWorkflowRepository) -> LLMHandler:
 
 def test_settings_enabled_providers_with_anthropic() -> None:
     """Test that settings.enabled_providers dynamically includes 'anthropic'."""
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     settings = Settings(
         use_mock_llm=False,
         google_api_key="fake-google-key",
@@ -39,7 +38,6 @@ def test_settings_enabled_providers_with_anthropic() -> None:
 
 def test_settings_enabled_providers_without_anthropic() -> None:
     """Test that settings.enabled_providers excludes 'anthropic' when key is missing."""
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     settings = Settings(
         use_mock_llm=False,
         google_api_key="fake-google-key",

@@ -138,7 +138,6 @@ class EngineExecutionResult(BaseModel):
             description="Typed structured synthesis DTO (specifically RenderedSynthesisCache).",
         ),
     ] = None
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     trace_events: Annotated[
         list[TraceEvent],
         Field(default_factory=list, description="Trace events recorded during engine execution."),

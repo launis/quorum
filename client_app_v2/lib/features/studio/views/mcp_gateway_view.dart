@@ -23,7 +23,7 @@ class McpGatewayView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final formKey = useMemoized(() => GlobalKey<FormState>());
-    // Step 5: Harden Flutter MCP Gateway View Hook Registration and Pattern Matching
+    // Harden Flutter MCP Gateway View Hook Registration and Pattern Matching
     final bannerMessage = useState<String?>(null);
     final isBannerError = useState<bool>(false);
 
@@ -156,7 +156,7 @@ class McpGatewayView extends HookConsumerWidget {
         formKey.currentState!.save();
         try {
           final current = ref.read(mcpGatewayFormProvider(id)).value ?? payload;
-          // Step 2: Fail-Fast on empty endpointUrl before dispatching network discovery requests
+          // Fail-Fast on empty endpointUrl before dispatching network discovery requests
           if (current.endpointUrl.trim().isEmpty) {
             bannerMessage.value =
                 '${l10n.errorValidation}\n\n${l10n.actionHintCheckUrl}';
@@ -216,7 +216,7 @@ class McpGatewayView extends HookConsumerWidget {
       ),
       body: Form(
         key: formKey,
-        // Phase 4, Step 4.2: Wrap form ListView in 1200px ConstrainedBox
+        // Wrap form ListView in 1200px ConstrainedBox
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
@@ -293,7 +293,7 @@ class McpGatewayView extends HookConsumerWidget {
               readOnly: true,
             ),
             AppSpacing.h8,
-            // Phase 3, Step 3: Bind gateway_name_field to McpGateway.name (REQ-011)
+            // Bind gateway_name_field to McpGateway.name
             TextFormField(
               key: const ValueKey('gateway_name_field'),
               initialValue: data.name,
@@ -356,7 +356,7 @@ class McpGatewayView extends HookConsumerWidget {
     bool isLoading,
     Future<void> Function() onDiscoverTools,
   ) {
-    // Phase 4, Step 4.2: Connection & Authentication Card with live discovery trigger
+    // Connection & Authentication Card with live discovery trigger
     return Card(
       child: Padding(
         padding: AppSpacing.p16,
@@ -752,7 +752,7 @@ class McpGatewayView extends HookConsumerWidget {
     AllowedMcpTool tool,
     AppLocalizations l10n,
   ) {
-    // Phase 4, Step 4.2: Structured read-only parameter preview DataTable
+    // Structured read-only parameter preview DataTable
     final properties = tool.inputSchema.properties;
     final requiredSet = tool.inputSchema.requiredFields.toSet();
 

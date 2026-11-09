@@ -496,7 +496,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     ).showSnackBar(SnackBar(content: Text(l10n.processingStatus)));
 
     try {
-      // Phase 5, Step 5.2: Delegate execution cloning to typed ExecutionClient boundary.
+      // Delegate execution cloning to typed ExecutionClient boundary.
       final client = ref.read(executionClientProvider);
       final oldExec = await client.getExecutionStatus(id);
 

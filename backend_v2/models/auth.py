@@ -807,7 +807,6 @@ class ImpersonationResponse(BaseResponseDTO):
 
     access_token: Annotated[str, Field(description="Impersonation access token")]
     token_type: Annotated[str, Field(default="bearer", description="Token type scheme")] = "bearer"
-    # Phase 2, Step 2.1: Require explicit target_id without silent default (QGR020 Check 20C)
     target_id: Annotated[
         PrefixedUUID7,
         Field(
@@ -1388,7 +1387,6 @@ class TenantSecretDTO(V2CoreBase):
     organization_id: Annotated[PrefixedUUID7, Field(description="Owning Organization ID (org_<hex32>)")]
     scope: Annotated[LaxSecretScope, Field(description="Capability scope ('llm_provider' or 'mcp_gateway')")]
     target_identifier: Annotated[str, Field(min_length=1, max_length=128, description="Target provider or gateway ID")]
-    # Phase 2, Step 2.1: Require explicit storage_mode and updated_by without silent defaults (QGR020 Check 20C)
     storage_mode: Annotated[
         LaxSecretStorageMode,
         Field(description="Cryptographic storage backend mode"),

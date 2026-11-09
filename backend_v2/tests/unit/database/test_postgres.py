@@ -1995,7 +1995,6 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
     assert "alter table organizations add column if not exists allowed_email_domains" in normalized_sql
     assert "alter table users add column if not exists firebase_uid" in normalized_sql
     assert "alter table users add column if not exists deleted_at" in normalized_sql
-    # Phase 1, Step 1: Verify idempotent NULL-name purge, DROP DEFAULT, and SET NOT NULL evolution on system_configs.name
     assert "delete from system_configs where name is null;" in normalized_sql
     assert "alter table system_configs alter column name drop default;" in normalized_sql
     assert "alter table system_configs alter column name set not null;" in normalized_sql

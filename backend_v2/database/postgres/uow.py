@@ -223,7 +223,6 @@ class PostgresUnitOfWork:
         Returns:
             Active PostgresPoolManager instance.
         """
-        # Phase 1, Step 1: Expose typed pool_manager property for pre-flight migration execution
         return self._pool_manager
 
     def _bind_unbound_adapters(self) -> None:

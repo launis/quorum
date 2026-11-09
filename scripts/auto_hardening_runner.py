@@ -86,14 +86,12 @@ RETRY_ERROR_FEEDBACK_MAX_CHARS: Final[int] = 1500
 ES_CONTINUOUS: Final[int] = 0x80000000
 ES_SYSTEM_REQUIRED: Final[int] = 0x00000001
 ES_AWAYMODE_REQUIRED: Final[int] = 0x00000040
-# Step 2: Parameterize default subagent templates with {model}
 DEFAULT_BACKEND_AGENT_TEMPLATE: Final[str] = (
     'agy --model {model} --dangerously-skip-permissions --print "/tier2-hardening-backend @[{target}]"'
 )
 DEFAULT_FRONTEND_AGENT_TEMPLATE: Final[str] = (
     'agy --model {model} --dangerously-skip-permissions --print "/tier2-hardening-frontend @[{target}]"'
 )
-# Phase 2, Step 4: Content-addressed SHA-256 hardening cache path and historical completed trackers
 DEFAULT_HARDENING_CACHE_PATH: Final[Path] = Path("data/hardening_cache.json")
 
 __all__ = [
@@ -229,7 +227,6 @@ class HardeningRunnerArgsDTO(BaseModel):
         bool, Field(default=False, description="Print planned execution steps without mutating disk or git.")
     ] = False
     verbose: Annotated[bool, Field(default=False, description="Enable verbose log output.")] = False
-    # Step 2: Add model selection and micro_audit configuration to HardeningRunnerArgsDTO
     model: Annotated[
         str,
         Field(default="gemini-4-argon-medium", description="AI model identifier for subagent hardening iterations."),
@@ -241,7 +238,6 @@ class HardeningRunnerArgsDTO(BaseModel):
             description="Use fast micro-audit during per-target iterations and run macro-audit at completion.",
         ),
     ] = True
-    # Phase 2, Step 4: Add SHA-256 hardening cache configuration fields
     no_cache: Annotated[
         bool,
         Field(default=False, description="Bypass SHA-256 hardening cache and force execution."),
@@ -250,7 +246,6 @@ class HardeningRunnerArgsDTO(BaseModel):
         Path,
         Field(default=DEFAULT_HARDENING_CACHE_PATH, description="Path to SHA-256 hardening cache JSON."),
     ] = DEFAULT_HARDENING_CACHE_PATH
-    # Phase 1C, Step 3: Add dynamic unhardened target discovery flag
     discover: Annotated[
         bool,
         Field(
@@ -455,7 +450,6 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
 
     lines = tracker_content[match.end() :].splitlines()
     unhardened: list[str] = []
-    # Step 3: Make Tracker Target Parsing Resilient to Backticks and Quoting
     item_pattern = re.compile(
         r"^\s+-\s*\[ \]\s*(?:`?\[(?:NEW|MODIFY|DELETE)\]\s*`?)?"
         r"`?(?:@\[?([a-zA-Z0-9_/\\.-]+?)(?:#[^`\]\n]+)?\]|"
@@ -492,7 +486,6 @@ def parse_tracker_hardened_targets(tracker_content: str, gate: HardeningGate) ->
     Returns:
         List of checked target relative paths.
     """
-    # Phase 2, Step 4: Parse checked - [x] targets under Tier 2 Hardening (Backend / Frontend)
     if gate == HardeningGate.ALL:
         backend_targets = parse_tracker_hardened_targets(tracker_content, HardeningGate.BACKEND)
         frontend_targets = parse_tracker_hardened_targets(tracker_content, HardeningGate.FRONTEND)
@@ -543,7 +536,6 @@ def discover_tracker_files(repo_root: Path | None = None) -> tuple[str, ...]:
     Returns:
         Sorted tuple of workspace-relative POSIX tracker file paths.
     """
-    # Phase 1C, Step 3: Dynamically discover tracker markdown files across implementationplans and epic directories
     root = repo_root or get_repo_root()
     discovered: set[str] = set()
     for rel_dir in ("docs/implementationplans", "docs/epic"):
@@ -566,7 +558,6 @@ def discover_completed_trackers(repo_root: Path | None = None) -> tuple[str, ...
     Returns:
         Sorted tuple of workspace-relative POSIX paths for trackers with checked hardening items.
     """
-    # Phase 1C, Step 3: Dynamically resolve completed trackers containing checked Tier 2 Hardening items
     root = repo_root or get_repo_root()
     completed: list[str] = []
     for rel_tracker in discover_tracker_files(root):
@@ -593,7 +584,6 @@ def compute_file_sha256(file_path: Path) -> str:
     Returns:
         Lowercase 64-character hexadecimal SHA-256 digest string.
     """
-    # Phase 2, Step 4: Compute deterministic SHA-256 hex digest of file bytes
     return hashlib.sha256(file_path.read_bytes()).hexdigest()
 
 
@@ -607,7 +597,6 @@ def resolve_target_unit_test_files(target_file: str, repo_root: Path) -> list[Pa
     Returns:
         Sorted list of existing unit test Paths corresponding to target_file.
     """
-    # Phase 1C, Step 3: Delegate companion unit test discovery to backend_audit_loop and flutter_audit_loop SSOTs
     norm_target = target_file.replace("\\", "/").strip()
     candidates: set[Path] = set()
 
@@ -643,7 +632,6 @@ def resolve_target_rule_files(target_file: str) -> tuple[str, ...]:
     Returns:
         Ordered tuple of workspace-relative `.agents/rules/*.md` paths for the target domain.
     """
-    # Phase 7, Step 7.4: Deterministically map target path to domain-scoped .agents/rules/ files
     norm_target = target_file.replace("\\", "/").strip().lstrip("/")
     if norm_target.endswith(".dart") or norm_target.startswith("client_app_v2/"):
         return (
@@ -674,7 +662,7 @@ def compute_rules_sha256(repo_root: Path) -> str:
     Returns:
         Lowercase 64-character hexadecimal SHA-256 digest of all rule and hardening skill files.
     """
-    # Phase 2, Step 4 & Phase 7, Step 7.4: Include .agents/rules/*.md, AGENTS.md, and Tier 2 hardening SKILL.md files
+    # Include .agents/rules/*.md, AGENTS.md, and Tier 2 hardening SKILL.md files
     hasher = hashlib.sha256()
     rules_dir = repo_root / ".agents" / "rules"
     if rules_dir.is_dir():
@@ -714,7 +702,6 @@ def compute_target_cache_entry(
     Returns:
         Populated HardeningCacheEntryDTO if target_file exists on disk, or None if missing.
     """
-    # Phase 2, Step 4: Build composite SHA-256 cache entry over (target + unit_tests + rules)
     norm_target = target_file.replace("\\", "/").strip()
     target_path = repo_root / norm_target
     if not target_path.is_file():
@@ -758,7 +745,6 @@ def save_hardening_cache(
         manifest: Validated HardeningCacheManifestDTO to write.
         repo_root: Workspace root directory.
     """
-    # Phase 2, Step 4: Persist strongly typed SHA-256 hardening cache manifest
     resolved_path = cache_path if cache_path.is_absolute() else (repo_root / cache_path)
     resolved_path.parent.mkdir(parents=True, exist_ok=True)
     resolved_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
@@ -777,7 +763,6 @@ def load_or_seed_hardening_cache(
     Returns:
         Validated HardeningCacheManifestDTO containing existing and newly seeded entries.
     """
-    # Phase 2, Step 4: Load hardening_cache.json and automatically seed completed Wave 1-4 and UUIDv7 trackers
     resolved_path = cache_path if cache_path.is_absolute() else (repo_root / cache_path)
     entries: dict[str, HardeningCacheEntryDTO] = {}
     if resolved_path.is_file():
@@ -788,7 +773,6 @@ def load_or_seed_hardening_cache(
             entries = {}
 
     rules_digest = compute_rules_sha256(repo_root)
-    # Phase 1C, Step 3: Dynamically discover all tracker files under repo_root
     tracker_rel_paths: list[str] = list(discover_tracker_files(repo_root))
 
     # Collect any target currently marked unchecked `- [ ]` in any tracker so in-progress files are not auto-seeded
@@ -883,7 +867,6 @@ def mark_tracker_target_done(tracker_path: Path, target_file: str) -> bool:
     norm_target = target_file.replace("\\", "/").strip()
     escaped_target = re.escape(norm_target)
 
-    # Step 3: Make mark_tracker_target_done Resilient to Backticks and Quoting
     pattern = re.compile(
         rf"^(\s+-\s*)\[ \](\s*(?:`?\[(?:NEW|MODIFY|DELETE)\]\s*`?)?`?@?\[?{escaped_target}(?:#[^`\]\n]+)?\]?`?.*)$",
         re.MULTILINE,
@@ -961,7 +944,6 @@ def expand_dynamic_target_paths(
     Returns:
         Deduplicated list of workspace-relative POSIX file paths matching gate.
     """
-    # Phase 1C, Step 3: Dynamically expand directories and glob patterns into target file paths
     root = repo_root or get_repo_root()
     expanded: list[str] = []
 
@@ -1027,7 +1009,6 @@ def discover_unhardened_targets(
     Returns:
         Deduplicated list of unhardened workspace-relative POSIX file paths.
     """
-    # Phase 1C, Step 3: Dynamically discover unhardened targets across trackers and workspace with SHA-256 cache filtering
     root = repo_root or get_repo_root()
     raw_candidates: list[str] = []
 
@@ -1185,7 +1166,6 @@ def execute_subprocess_with_tree_kill(
     try:
         stdout, stderr = proc.communicate(timeout=timeout_seconds)
         if sys.platform == "win32":
-            # Phase 2, Step 2: Reap lingering child MCP server processes (dart.exe, node.exe) on Windows
             try:
                 subprocess.run(
                     ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
@@ -1285,7 +1265,6 @@ def _inject_subagent_context_rules(
     Returns:
         Parsed command argument list with context rules and retry feedback injected into the final argument.
     """
-    # Phase 7, Step 7.4: Inject domain-scoped .agents/rules/ directives and retry feedback
     resolved_template = subagent_template
     if not resolved_template:
         resolved_template = (
@@ -1318,7 +1297,6 @@ def _run_subagent_auto_fix_prepass(target_file: str, root: Path) -> None:
         target_file: Target file path to format.
         root: Workspace root directory.
     """
-    # Phase 7, Step 7.4: Extracted pre-gate auto-fix helper to keep execute_subagent_pass C901 <= 10
     if target_file.endswith(".py"):
         subprocess.run(
             ["uv", "run", "ruff", "check", "--fix", target_file],
@@ -1422,7 +1400,6 @@ def run_quality_gate(
     """
     root = repo_root or get_repo_root()
 
-    # Step 2: Dispatch --micro --no-logfire on backend and --micro on frontend when micro_audit is True
     if gate == HardeningGate.BACKEND or (gate == HardeningGate.ALL and not target_file.endswith(".dart")):
         cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py", target_file, "--test", "--ast-strict"]
         if micro_audit:
@@ -1490,8 +1467,6 @@ def run_frontend_macro_quality_gate(
     repo_root: Path | None = None,
 ) -> QualityGateResultDTO:
     """Execute the full Flutter macro quality gate across `client_app_v2/` at wave completion.
-
-    # Phase 2, Step 2: Symmetric frontend macro completion gate.
 
     Args:
         timeout_seconds: Audit timeout duration in seconds.
@@ -1597,7 +1572,6 @@ def execute_circuit_breaker_rollback(
     root = repo_root or get_repo_root()
     current = capture_workspace_snapshot(root)
     if snapshot.head_sha and current.head_sha and current.head_sha != snapshot.head_sha:
-        # Phase 2, Step 2: Reset intermediate subagent commits if HEAD diverged before quality gate failed
         subprocess.run(
             ["git", "reset", "--hard", snapshot.head_sha],
             cwd=root,
@@ -1685,7 +1659,6 @@ def mark_tracker_and_checkpoint(
             state_file_updated = True
 
     files_to_stage = [target_file]
-    # Phase 2, Step 2: Atomically stage resolved unit test files and sibling .g.dart/.freezed.dart artifacts
     for unit_test_path in resolve_target_unit_test_files(target_file, root):
         rel_test = unit_test_path.relative_to(root).as_posix()
         if rel_test not in files_to_stage:
@@ -1747,7 +1720,6 @@ def process_target_with_retries(
     root = repo_root or get_repo_root()
     norm_target = target_file.replace("\\", "/").strip()
 
-    # Phase 2, Step 4: Check SHA-256 content-addressed hardening cache for 0s short-circuit
     if not args.no_cache:
         manifest = load_or_seed_hardening_cache(args.cache_file, root)
         current_entry = compute_target_cache_entry(norm_target, root)
@@ -1833,8 +1805,6 @@ def process_target_with_retries(
 def acquire_windows_wake_lock() -> int | None:
     """Assert a Win32 thread execution state wake-lock to prevent S0 Modern Standby during unattended runs.
 
-    # Phase 2, Step 2: Prevent Windows S0 Modern Standby suspension during unattended queues.
-
     Returns:
         Previous execution state integer if acquired on Windows, or None on non-Windows/failure.
     """
@@ -1850,8 +1820,6 @@ def acquire_windows_wake_lock() -> int | None:
 
 def release_windows_wake_lock(previous_state: int | None) -> None:
     """Release the Win32 thread execution state wake-lock and restore normal idle timers.
-
-    # Phase 2, Step 2: Restore default Windows thread execution state on pipeline exit.
 
     Args:
         previous_state: Previous execution state returned by acquire_windows_wake_lock.
@@ -1989,7 +1957,6 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
                     )
                     break
 
-        # Step 2: Execute universal macro-audit once across all hardened backend targets at queue completion
         successful_backend_targets = [
             it.target_file for it in iterations if it.success and not it.cache_hit and it.target_file.endswith(".py")
         ]
@@ -2008,7 +1975,6 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
                 if macro_res.output:
                     print(macro_res.output, flush=True)
 
-        # Phase 2, Step 2: Execute universal frontend macro-audit once across hardened frontend targets
         successful_frontend_targets = [
             it.target_file for it in iterations if it.success and not it.cache_hit and it.target_file.endswith(".dart")
         ]
@@ -2127,7 +2093,6 @@ Key Behavioral Invariants for Autonomous AI Agents:
     )
     parser.add_argument("--dry-run", action="store_true", help="Print planned target queue without mutations.")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose diagnostics.")
-    # Step 2: Expose --model and --no-micro CLI arguments in main
     parser.add_argument(
         "--model",
         type=str,
@@ -2142,7 +2107,6 @@ Key Behavioral Invariants for Autonomous AI Agents:
         default=True,
         help="Disable fast micro-audit mode during per-target iterations and run full 10-stage audit per file.",
     )
-    # Phase 2, Step 4: Expose --no-cache / --force-agent and --cache-file CLI flags
     parser.add_argument(
         "--no-cache",
         "--force-agent",

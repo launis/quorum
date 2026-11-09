@@ -127,7 +127,6 @@ class Settings(BaseSettings):
     """
 
     # --- Feature Flags & Cloud Run / Domain Sovereignty ---
-    # Step 1: Centralize application version, Cloud Run $PORT, worker health port, GCP project/region, and qrum.ai claims
     app_version: Annotated[
         str,
         BeforeValidator(strip_whitespace),
@@ -1277,7 +1276,6 @@ class Settings(BaseSettings):
             if "dev_max_thinking_budget" not in self.model_fields_set:
                 self.dev_max_thinking_budget = 0
         elif self.environment == "production":
-            # Step 1: Consolidate production CORS default assignment and strict per-origin validation
             if "cors_origins" not in self.model_fields_set:
                 self.cors_origins = [
                     f"https://{self.primary_domain}",

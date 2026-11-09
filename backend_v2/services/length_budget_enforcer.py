@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["enforce_sentence_boundary_budget"]
 
 _TERMINAL_PUNCTUATION = {".", "!", "?"}
-# Phase 2, Step 2: Minimum ratio for primary backward sentence-boundary scan window (50-100%)
 _SENTENCE_WINDOW_MIN_RATIO: Final[float] = 0.5
 
 

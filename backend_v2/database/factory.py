@@ -19,7 +19,6 @@ from backend_v2.settings import Settings, StorageBackend, get_settings
 
 logger = logging.getLogger(__name__)
 
-# Step 1: Module-level shared pool manager singleton and lock
 _SHARED_POOL_MANAGER: PostgresPoolManager | None = None
 _POOL_MANAGER_LOCK: asyncio.Lock = asyncio.Lock()
 
@@ -58,7 +57,6 @@ def get_shared_pool_manager(settings: Settings | None = None) -> PostgresPoolMan
         )
         raise ConfigurationError(msg)
 
-    # Step 1: Initialize shared singleton pool manager if None
     if _SHARED_POOL_MANAGER is None:
         _SHARED_POOL_MANAGER = PostgresPoolManager(settings=resolved_settings)
     return _SHARED_POOL_MANAGER
@@ -71,7 +69,6 @@ async def close_shared_pool_manager() -> None:
         AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if closing the underlying pool fails.
     """
     global _SHARED_POOL_MANAGER
-    # Step 1: Detach singleton reference under lock before awaiting async I/O close
     async with _POOL_MANAGER_LOCK:
         manager = _SHARED_POOL_MANAGER
         _SHARED_POOL_MANAGER = None
@@ -128,7 +125,6 @@ async def get_driver(
             raise ConfigurationError(msg)
         return PostgresStorageDriver(pool_manager=pool_manager, settings=resolved_settings)
 
-    # Step 1: Reuse shared singleton pool manager when pool_manager is None
     shared_pool_manager = get_shared_pool_manager(resolved_settings)
     return PostgresStorageDriver(pool_manager=shared_pool_manager, settings=resolved_settings)
 
@@ -163,7 +159,6 @@ def create_unit_of_work(
         )
         raise ConfigurationError(msg)
 
-    # Step 1: Reuse shared singleton pool manager when pool_manager is None
     resolved_pool_manager: PostgresPoolManager
     if pool_manager is not None:
         resolved_pool_manager = pool_manager
@@ -172,5 +167,4 @@ def create_unit_of_work(
     return PostgresUnitOfWork(pool_manager=resolved_pool_manager)
 
 
-# Phase 1, Step 1: Register create_unit_of_work as the default UnitOfWorkFactory in interfaces
 register_default_uow_factory(create_unit_of_work)

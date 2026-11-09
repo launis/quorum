@@ -94,7 +94,6 @@ class ExecutionCoreFields(V2CoreBase):
         str,
         Field(description="Target locale code for execution outputs, e.g. 'fi'."),
     ]
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     execution_trace: Annotated[
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
         Field(default_factory=list, description="Immutable log of all events."),

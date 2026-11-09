@@ -1190,3 +1190,37 @@ Widget build(BuildContext context, WidgetRef ref) {
     violations = _scan_snippet(code, filepath="client_app_v2/test/unit/widget_test.dart")
     flagged = [v for v in violations if v.rule_code in {"DGR013", "DGR014"}]
     assert len(flagged) == 0
+
+
+def test_dgr004_flags_plan_breadcrumbs_in_comments() -> None:
+    """Verify DGR004 flags implementation plan/phase/step/REQ breadcrumbs in Dart comments."""
+    code = """
+/// Phase 4, Step 4.1: Build studio layout.
+class StudioLayout {
+  void render() {
+    // Step 2: Validate layout state (REQ-005).
+    final valid = true;
+  }
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/studio_layout.dart")
+    dgr004 = [v for v in violations if v.rule_code == "DGR004"]
+    assert len(dgr004) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in dgr004)
+    assert all("breadcrumb" in v.message for v in dgr004)
+
+
+def test_dgr004_allows_timeless_functional_comments() -> None:
+    """Verify DGR004 allows timeless present-tense functional explanations in Dart comments."""
+    code = """
+/// Build the studio layout using three-pane responsive desktop breakpoints.
+class StudioLayout {
+  void render() {
+    // Guard against unmounted widget mutations after asynchronous API resolution.
+    final valid = true;
+  }
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/studio_layout.dart")
+    dgr004 = [v for v in violations if v.rule_code == "DGR004"]
+    assert len(dgr004) == 0

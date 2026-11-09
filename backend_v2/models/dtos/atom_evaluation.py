@@ -9,7 +9,6 @@ from pydantic import BeforeValidator, ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 from backend_v2.models.enums import LaxExecutionStatus
 
-# Phase 4, Step 4.1: Replace JsonValue containers with closed scalar/extension union types
 type ExtractedAtomScalar = str | int | float | bool | None
 type ScalarExtensionValue = str | int | float | bool | list[str] | None
 type GlobalMetricValue = str | int | float | bool | None

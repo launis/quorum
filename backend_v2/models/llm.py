@@ -46,7 +46,6 @@ class CachingPayloadResultDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     messages: list[LLMMessageDTO]
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     kwargs: Annotated[dict[str, JsonValue], Field(default_factory=dict)]
 
 

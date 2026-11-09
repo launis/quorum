@@ -31,7 +31,6 @@ class MetadataHookPayloadDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid", populate_by_name=True)
 
-    # Phase 2, Step 2.1: Require explicit sys_initiator_id without silent default (QGR020 Check 20C)
     sys_initiator_id: Annotated[str, Field(min_length=1, alias="_sys_initiator_id")]
     organization_id: Annotated[str | None, Field(default=None)] = None
     user_id: Annotated[str | None, Field(default=None)] = None

@@ -27,7 +27,6 @@ class Workflow(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Workflow ID")]
     slug: str
     name: I18nText | str
@@ -40,7 +39,6 @@ class Workflow(V2CoreBase):
         str | None,
         Field(default=None, description="The ID of the default output profile to use."),
     ] = None
-    # Phase 4, Step 4: Enforce 32-hex sys_ pattern and remove hardcoded default gateway ID
     mcp_gateway_id: Annotated[
         str | None,
         Field(
@@ -226,7 +224,6 @@ class Workflow(V2CoreBase):
         Returns:
             A set of allowed block IDs and system TargetBlockTypes.
         """
-        # Phase 4, Step 4: Causal cohesion matrix is resolved directly from step.criteria_block_ids
         allowed_blocks = self.get_allowed_prompt_block_targets(hydrated_steps)
 
         # Add system blocks natively supported by the architecture

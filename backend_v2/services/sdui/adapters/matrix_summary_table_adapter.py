@@ -98,7 +98,6 @@ class MatrixSummaryTableAdapter:
                 }
             )
 
-        # Phase 3, Step 3.1: Populate topological short-circuit and Toulmin falsification lineage
         short_circuited_by_claims: list[str] = []
         falsified_warrant_claims: list[str] = []
 

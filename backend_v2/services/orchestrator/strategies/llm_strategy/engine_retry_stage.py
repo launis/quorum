@@ -175,7 +175,6 @@ async def _run_optional_mcp_retrieval(
     active_gateways: list[SystemConfigMCPGateways] = []
     if isinstance(raw_gateways, list):
         active_gateways = [g for g in raw_gateways if isinstance(g, SystemConfigMCPGateways)]
-    # Phase 1, Step 2: Resolve tenant organization_id for MCP ToolDispatcher BYOK binding
     effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
     if context.global_context_vars.organization_id is not None:
         effective_org_id = context.global_context_vars.organization_id
@@ -482,7 +481,6 @@ async def execute_engine_retry_stage(
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
-    # Phase 1, Step 2: Resolve tenant organization_id for LLMClient.from_tier BYOK binding
     effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
     if context.global_context_vars.organization_id is not None:
         effective_org_id = context.global_context_vars.organization_id
@@ -563,7 +561,6 @@ async def execute_engine_retry_stage(
 
         latency_ms = int((time.time() - telemetry_start_time) * 1000)
         engine_usage = engine_result.usage if engine_result.usage is not None else _ZERO_USAGE
-        # Phase 3, Step 3.1: Accumulate usage_agg across all anomaly retry attempts
         usage_agg = usage_agg + engine_usage
 
         post_outcome = await _run_step_post_hooks(
@@ -579,7 +576,6 @@ async def execute_engine_retry_stage(
         final_dict = post_outcome.final_dict
 
         if "llm_anomaly_retry_requested" in final_dict and final_dict["llm_anomaly_retry_requested"]:
-            # Phase 3, Step 3.1: Canonical SHA-256 semantic oscillation short-circuit
             current_digest = _compute_retry_output_digest(final_dict)
             if current_digest in seen_anomaly_digests:
                 step_logger.warning(

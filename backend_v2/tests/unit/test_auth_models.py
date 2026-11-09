@@ -157,7 +157,6 @@ def test_user_default_id_and_validate_non_empty() -> None:
 
 def test_user_admin_view_inherits_all_user_fields() -> None:
     """Verify UserAdminView is a strict superset of User including firebase_uid and deleted_at."""
-    # Phase 1, Step 1: Verify UserAdminView inherits all 13 User fields and enforces strict validation
     user_fields = set(User.model_fields.keys())
     admin_view_fields = set(UserAdminView.model_fields.keys())
     assert user_fields.issubset(admin_view_fields)

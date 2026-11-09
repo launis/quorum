@@ -106,7 +106,7 @@ void main() {
     test(
       'IAM, Assignment, Email, and Secret enums expose exact lowercase snake_case backend string tokens',
       () {
-        // Step 2: Verify canonical lowercase snake_case backendValue across all 8 aligned enums.
+        // Verify canonical lowercase snake_case backendValue across all 8 aligned enums.
         expect(SecretScope.llmProvider.backendValue, 'llm_provider');
         expect(SecretScope.mcpGateway.backendValue, 'mcp_gateway');
         expect(

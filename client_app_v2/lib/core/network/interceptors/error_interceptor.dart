@@ -32,7 +32,7 @@ class ErrorInterceptor extends Interceptor {
       logger.error('HTTP', 'Response Body: ${err.response?.data}');
     }
 
-    // Step 2: Parse structured RFC 7807 Problem Details or FastAPI 422 validation payloads first
+    // Parse structured RFC 7807 Problem Details or FastAPI 422 validation payloads first
     // so HTTP 403 SECURITY_VIOLATION / PERMISSION_DENIED payloads are preserved before the bare 401/403 fallback.
     if (err.response?.data != null &&
         err.response!.data is Map<String, Object?>) {

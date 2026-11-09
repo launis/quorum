@@ -34,12 +34,12 @@ class LinguisticShieldDetector {
   static bool hasLinguisticAnomaly(String text) {
     if (text.trim().isEmpty) return false;
 
-    // Phase 1: Unicode check outside Basic Latin [^\x00-\x7F], ignoring typographical whitelist
+    // Unicode check outside Basic Latin [^\x00-\x7F], ignoring typographical whitelist
     final cleanedText = text.replaceAll(_typographicalWhitelist, '');
     final hasNonAscii = RegExp(r'[^\x00-\x7F]').hasMatch(cleanedText);
     if (hasNonAscii) return true;
 
-    // Phase 2: Target-language structural stopword gate (>= 2 matches)
+    // Target-language structural stopword gate (>= 2 matches)
     final tokens = text.toLowerCase().split(RegExp(r'[\s,.;:!?()\[\]"\\/]+'));
     var stopwordCount = 0;
     for (final token in tokens) {

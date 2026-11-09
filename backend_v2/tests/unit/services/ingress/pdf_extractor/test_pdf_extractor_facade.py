@@ -19,7 +19,6 @@ from backend_v2.services.ingress.pdf_extractor import (
 )
 
 
-# Phase 4, Step 1: Add facade delegation and contract parity tests
 def test_pdf_extractor_facade_delegation_happy_path() -> None:
     """Verify PdfChatExtractorService delegates all stage methods accurately."""
     doc = fitz.open()

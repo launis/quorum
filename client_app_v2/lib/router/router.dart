@@ -26,7 +26,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'router.g.dart';
 
-// Phase 6, Step 6.2: GoRouter RBAC Role Guards, /organization Branch, and Unauthenticated /task/:token Portal.
+// GoRouter RBAC Role Guards, /organization Branch, and Unauthenticated /task/:token Portal.
 
 // Private keys for navigator state
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -40,7 +40,7 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 /// The central nervous system of the application's navigation.
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
-  // Phase 2, Step 2: Drive GoRouter refreshListenable via ValueNotifier + ref.listen to prevent GoRouter disposal on auth transitions
+  // Drive GoRouter refreshListenable via ValueNotifier + ref.listen to prevent GoRouter disposal on auth transitions
   final authStateNotifier = ValueNotifier<AsyncValue<User?>>(
     ref.read(authControllerProvider),
   );
@@ -78,7 +78,7 @@ String? resolveAuthRedirect({
   }
 
   return switch (authState) {
-    // Phase 2, Step 2: Preserve /login and /splash routes during AsyncLoading() transitions
+    // Preserve /login and /splash routes during AsyncLoading() transitions
     AsyncLoading() => (isSplash || isLoggingIn) ? null : '/splash',
     AsyncError() => isLoggingIn ? null : '/login',
     AsyncData(:final value) => () {

@@ -237,8 +237,6 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
     ) -> CachingPayloadResultDTO:
         """Execute Google AI Studio context cache creation while holding the distributed Redis lock.
 
-        # Step 2: Resolve Gemini context caching API key from resolved_credential / config SSOT
-
         Args:
             redis_client: Active Redis client instance.
             compiled_prompt: The structured prompt payload.
@@ -377,8 +375,6 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the Google AI Studio specific prompt payload by setting up cached content.
-
-        # Step 2: Scope Redis cache keys by tenant organization_id and forward resolved_credential
 
         Args:
             compiled_prompt: The structured prompt payload.
@@ -624,7 +620,6 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         cache_id = call_kwargs["cached_content"]
         if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
             call_kwargs["extra_body"] = {}
-        # Step 1: Preserving ONLY canonical camelCase cachedContent to avoid Google proto3 oneof collision
         call_kwargs["extra_body"]["cachedContent"] = cache_id
 
         if "messages" in call_kwargs:
@@ -647,8 +642,6 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Prepare AI Studio specific kwargs, handling caching mappings and parameters.
-
-        # Step 2: Align signature with BaseLLMAdapter optional resolved_credential
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.

@@ -248,7 +248,6 @@ class UsageService:
                     message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
                 )
 
-            # Phase 4, Step 4.2: Verify active SubscriptionStatus (ACTIVE or TRIAL) and is_active flag
             if not org.is_active or org.subscription_status not in (
                 SubscriptionStatus.ACTIVE,
                 SubscriptionStatus.TRIAL,

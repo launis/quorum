@@ -163,7 +163,6 @@ def setup_logging(log_level: int = logging.INFO) -> None:
         try:
             log_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
-            # Phase 1, Step 1.1: Log structured error before raising AppException per RFC 7807 Dual-Reporting
             logging.getLogger(__name__).error(
                 "[LoggingConfig] %s: Failed to create log directory %s: %s",
                 ErrorCodes.CONFIGURATION_ERROR.name,
@@ -265,7 +264,6 @@ def setup_logging(log_level: int = logging.INFO) -> None:
             _litellm.set_verbose = False
             _litellm.suppress_debug_info = True  # Suppress print statements
         except (RuntimeError, TypeError, ValueError, AttributeError) as e:
-            # Phase 1, Step 1.1: Log structured error with error_code extra before raising AppException
             logging.getLogger(__name__).error(
                 "Unexpected error configuring LiteLLM.",
                 exc_info=True,

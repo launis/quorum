@@ -90,7 +90,6 @@ class HookState(V2CoreBase):
     workflow_id: str
     step_id: str | None = None
     task_blueprint: str | None = None
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     metadata: Annotated[ExecutionMetadata, Field(description="Execution metadata")]
     global_context_vars: Annotated[GlobalContextVarsDTO, Field(default_factory=GlobalContextVarsDTO)]
     inputs: Annotated[ExecutionInputsDTO, Field(default_factory=ExecutionInputsDTO)]

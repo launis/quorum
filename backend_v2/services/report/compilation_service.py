@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["ReportCompilationService"]
 
 
-# Phase 2, Step 1: Extract compilation and synthesis orchestration into ReportCompilationService
 class ReportCompilationService:
     """Domain service orchestrating multi-format report artifact compilation, synthesis, and DLQ handling."""
 

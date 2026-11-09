@@ -213,7 +213,6 @@ class EnrichedDagExecutor:
             provider_name = str(client_config.provider)
             model_name = str(client_config.model_name)
 
-            # Step 3: Forward config and resolved_credential into LLMCachingService.pre_cache_document
             await LLMCachingService.pre_cache_document(
                 provider_name=provider_name,
                 compiled_prompt=compiled_prompt,

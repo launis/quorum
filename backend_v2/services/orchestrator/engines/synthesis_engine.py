@@ -68,7 +68,6 @@ def _serialize_reduced_atoms(
     if not reduced_atoms:
         return ""
 
-    # Phase 2, Step 2.2: Translate all TDA identifiers via AliasEngine (zero raw tda_ UUIDs)
     aliased_dtos: list[ReducedAtomDTO] = []
     for atom in reduced_atoms:
         atom_alias = _register_safe_atom_alias(alias_engine, atom.tda_id)
@@ -299,7 +298,6 @@ class SynthesisEngine(ExecutionEngine):
 
             local_messages = list(request.hydrated_messages)
 
-            # Phase 2, Step 2.2: Initialize request-scoped AliasEngine before serializing reduced_atoms
             alias_engine = AliasEngine()
             for atom_id in all_atom_ids:
                 alias_engine.alias_map[atom_id] = atom_id

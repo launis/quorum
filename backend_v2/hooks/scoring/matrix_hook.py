@@ -127,7 +127,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
-        # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
         step_model: Step | None = await repository.get_step_by_id(blueprint_id)
         if not step_model:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in database."
@@ -181,7 +180,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             )
         enable_contextual_overrides = workflow.enable_contextual_overrides
 
-        # Dynamic Orchestration & Scoring Resolution (Phase 1, Step 1: Anti-Duct-Tape)
+        # Dynamic Orchestration & Scoring Resolution (Anti-Duct-Tape)
         strictness_level = workflow.default_strictness_level
         visible_block_extensions = []
 
@@ -622,7 +621,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                             message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                         ) from e
 
-            # Phase 4, Step 4.2: Typed XAI extension map without JsonValue
             final_exts: dict[XaiExtensionType, XaiExtensionValue] = {
                 XaiExtensionType(k): "\n\n".join(v)
                 for k, v in block_state.extensions.items()

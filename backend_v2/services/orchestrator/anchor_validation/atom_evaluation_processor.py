@@ -8,13 +8,11 @@ from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer impor
     strict_match,
 )
 
-# Phase 3, Step 1: Promote AliasEngine to top-level import to satisfy inline_imports_ban (QGR009)
 from backend_v2.utils.alias_engine import AliasEngine
 
 __all__ = ["process_atom_evaluation"]
 
 
-# Phase 3, Step 1: Relocate process_atom_evaluation post-processor
 def process_atom_evaluation(
     atom: AtomResultDTO,
     alias_map: dict[str, str],
@@ -48,7 +46,6 @@ def process_atom_evaluation(
     if atom.evaluation_reasoning:
         hydrated_reasoning = engine.hydrate_reasoning_text(atom.evaluation_reasoning)
 
-    # Phase 1, Step 1.1: Shallow C-level update via model_copy(update={...})
     if atom.contextual_override:
         return atom.model_copy(update={"source_quotes": None, "evaluation_reasoning": hydrated_reasoning})
 
@@ -121,5 +118,4 @@ def process_atom_evaluation(
                             matched = True
                             break
 
-    # Phase 1, Step 1.1: Shallow C-level update via model_copy(update={...})
     return atom.model_copy(update={"source_quotes": validated_quotes, "evaluation_reasoning": hydrated_reasoning})

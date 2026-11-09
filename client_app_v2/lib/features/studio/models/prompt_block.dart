@@ -445,7 +445,7 @@ sealed class PromptBlock with _$PromptBlock {
   /// Parses raw JSON string to PromptBlock in a background isolate
   static Future<PromptBlock> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      // Phase 5, Step 5.1: Eliminate Map<String, Object?> cast in background isolate
+      // Eliminate Map<String, Object?> cast in background isolate
       final Object? decoded = jsonDecode(rawJson);
       if (decoded is! Map) {
         throw AppException.validation(

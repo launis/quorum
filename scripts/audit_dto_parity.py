@@ -284,7 +284,6 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
     backend_by_lower: dict[str, str] = {name.lower(): name for name in backend_models}
     frontend_by_lower: dict[str, str] = {name.lower(): name for name in frontend_models}
 
-    # Phase 1, Step 1: Enforce that preferred backend alias models include all fields of their aliased base models
     for base_lower, preferred_lower in PREFERRED_BACKEND_ALIASES.items():
         if base_lower in backend_by_lower and preferred_lower in backend_by_lower:
             base_model_name = backend_by_lower[base_lower]

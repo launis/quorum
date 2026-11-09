@@ -136,7 +136,6 @@ def _build_precedent_dto(res: ExecutionRecord, judge_outputs: dict[str, JudgeOut
         verdict_str = score_card.verdict
 
         score_parts.append(f"{label}: {avg:.2f}")
-        # Phase 1, Step 1.3: Slice verdict part only when archival_verdict_part_max_chars > 0
         if part_max_chars > 0:
             verdict_parts.append(f"{label}: {verdict_str[:part_max_chars]}...")
         else:

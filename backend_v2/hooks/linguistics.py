@@ -153,8 +153,6 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
 
     if settings.enable_dynamic_performative_extraction and text_to_scan.strip():
         try:
-            # Phase 1, Step 1.2: Route internal utility LLM execution through CognitiveTier.FAST
-            # Step 3: Propagate tenant organization_id from state.global_context_vars
             effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
             if gvars is not None and gvars.organization_id is not None:
                 effective_org_id = gvars.organization_id

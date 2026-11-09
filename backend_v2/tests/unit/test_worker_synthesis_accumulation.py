@@ -157,7 +157,6 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
 
     await _setup_mock_repo(fake_repo, mock_record_initial)
 
-    # Phase 6, Step 6.1: Use stateful InMemoryUnifiedWorkflowRepository without string-based patch
     with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=fake_repo):
         # --- Run 1: First Synthesis Execution ---
         await generate_profile_synthesis_and_pdf_task(

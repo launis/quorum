@@ -326,7 +326,6 @@ class CausalGraphAdapter:
         Returns:
             I18nText containing English and Finnish summary strings.
         """
-        # Phase 3, Step 3: Surface topological cohesion, link count, and isolated claims when diagnoses_count == 0
         if diagnoses_count == 0 and anti_fluff_audit is not None:
             cohesion_pct = round(anti_fluff_audit.logical_cohesion_score * 100)
             isolated_count = anti_fluff_audit.isolated_concept_count

@@ -30,7 +30,6 @@ __all__ = ["compute_scale_and_score_projection", "hydrate_step_scorecard_atoms",
 logger = logging.getLogger(__name__)
 
 
-# Phase 2, Step 1: Relocate matrix payload unpacking, scale projection, and atom hydration stages
 def unpack_matrix_payload(block_data: StepPayloadValue, block_id: str) -> TraceMatrixPayloadDTO:
     """Hydrates a TraceMatrixPayloadDTO from raw or lightweight matrix step output.
 

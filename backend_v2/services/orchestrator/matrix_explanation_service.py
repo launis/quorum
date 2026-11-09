@@ -195,7 +195,6 @@ class MatrixExplanationService:
         matrices_to_explain_map: dict[str, MatrixExplanationContextDTO] = {}
         alias_engine = AliasEngine()
 
-        # Phase 2, Step 2.1: Hoist limits via Tripartite Configuration Resolution SSOT
         settings_obj = get_settings()
         min_quote_len = settings_obj.min_synthesis_quote_length
         max_quote_len = settings_obj.max_synthesis_quote_length
@@ -344,7 +343,6 @@ class MatrixExplanationService:
             quote_candidates: list[QuoteCandidateDTO] = []
             raw_deficits: list[MatrixFailureDeficitDTO] = []
 
-            # Phase 2, Step 2.1: Derive scale boundaries dynamically via computed_max
             is_max_score_achieved = (
                 isinstance(pb, MatrixPromptBlock)
                 and pb.computed_max is not None

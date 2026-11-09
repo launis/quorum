@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["ReportFormatReaderService"]
 
 
-# Phase 3, Step 1: Extract artifact storage retrieval, byte streaming, and tabular rows parsing into ReportFormatReaderService
 class ReportFormatReaderService:
     """Domain service managing report artifact storage retrieval, byte streaming, and tabular row parsing."""
 

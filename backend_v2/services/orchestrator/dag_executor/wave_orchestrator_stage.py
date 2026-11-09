@@ -106,7 +106,6 @@ def _append_causal_fusion_and_cohesion_events(
     )
     if src_step_id not in state.evaluated_causal_sources:
         state.evaluated_causal_sources.add(src_step_id)
-        # Phase 4, Step 4: Resolve cohesion_matrix_id and BARS TDAAssertion rows from step blueprint
         src_bp = state.steps_by_id[src_step_id].task_blueprint
         cohesion_matrix_id = state.step_definitions[src_bp].criteria_block_ids[0]
         mat_blk = None if cohesion_matrix_id not in state.blocks_by_id else state.blocks_by_id[cohesion_matrix_id]
@@ -177,7 +176,6 @@ async def _apply_step_events(
     _update_lock = state.update_lock
     async with _update_lock:
         step_mcp_traces: list[MCPAuditTrace] = []
-        # Phase 4, Step 4.3: Replace dict[str, JsonValue] accumulator with typed JsonSchemaNode map
         step_generated_schemas: dict[str, JsonSchemaNode] = {}
         new_cv = state.exec_record.context_variables
         has_cv_updates, has_gvar_updates = False, False
@@ -325,7 +323,6 @@ def _enforce_execution_budget(state: WorkflowExecutionState) -> None:
     Raises:
         AppException: Triggered with QUOTA_EXCEEDED (HTTP 429) when a configured budget ceiling is breached.
     """
-    # Phase 3, Step 3.2: Resolve per-run ExecutionBudget ceilings from Settings
     if get_settings is not _default_get_settings:
         settings = get_settings()
     elif _DAG_EXECUTOR_MODULE in sys.modules:

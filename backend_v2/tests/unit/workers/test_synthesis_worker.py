@@ -144,7 +144,6 @@ async def test_synthesis_worker_missing_execution_returns() -> None:
     """Test generate_profile_synthesis_and_pdf_task returns early if execution does not exist."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
-    # Phase 6, Step 6.2: Use stateful InMemoryUnifiedWorkflowRepository without string-based patch
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
             await generate_profile_synthesis_and_pdf_task(

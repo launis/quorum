@@ -14,7 +14,6 @@ from arq.typing import StartupShutdown, WorkerCoroutine
 from arq.worker import Function
 from fastapi import status
 
-# Phase 1, Step 1.1: Register all mandatory workflow hooks in the Arq worker entrypoint
 import backend_v2.hooks as _hooks
 from backend_v2.core.hook_registry import hook_registry
 from backend_v2.core.telemetry import configure_telemetry
@@ -63,7 +62,6 @@ async def startup(ctx: Any) -> None:
     configure_telemetry(get_settings(), service_name_override="quorum-worker")
     log_startup_system_parameters(logger, "ARQ WORKER")
 
-    # Phase 1, Step 1.1: Enforce Fail-Fast HookRegistry verification at worker startup
     registered_hooks = list(hook_registry.get_all_hooks())
     if "input_processing" not in registered_hooks:
         logger.error(

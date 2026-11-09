@@ -102,7 +102,6 @@ class LLMNodeStrategy(NodeStrategy):
         Args:
             exc: Exception encountered during debug prompt logging.
         """
-        # Phase 4, Step 2: Delegate debug log error handler to blueprint_and_metadata_stage
         dlq_handle_debug_log_error(exc, step_logger=logger)
 
     def _extract_step_context_metadata(
@@ -119,7 +118,6 @@ class LLMNodeStrategy(NodeStrategy):
         Returns:
             StepContextMetadataDTO containing gvars, doc_aliases, and dag_results.
         """
-        # Phase 4, Step 2: Delegate step context metadata extraction to blueprint_and_metadata_stage
         return extract_step_context_metadata(hook_state, context)
 
     @override
@@ -150,7 +148,6 @@ class LLMNodeStrategy(NodeStrategy):
                 or ErrorCodes.RESOURCE_NOT_FOUND upon missing configuration, invalid models, or missing records.
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR upon missing mandatory step/profile blocks.
         """
-        # Phase 4, Step 2: Stage 1 blueprint resolution and pre-hooks
         stage1 = await execute_blueprint_and_pre_hooks_stage(
             step=step,
             projector=projector,
@@ -160,7 +157,6 @@ class LLMNodeStrategy(NodeStrategy):
             step_logger=logger,
         )
 
-        # Phase 4, Step 2: Stage 2 context building, prompt compilation, and dynamic schema resolution
         stage2 = await execute_prompt_and_schema_stage(
             stage1=stage1,
             step=step,
@@ -172,7 +168,6 @@ class LLMNodeStrategy(NodeStrategy):
             step_logger=logger,
         )
 
-        # Phase 4, Step 2: Stage 3 LLMClient binding, MCP tool loop, and engine retry loop
         stage3 = await execute_engine_retry_stage(
             stage1=stage1,
             stage2=stage2,
@@ -189,7 +184,6 @@ class LLMNodeStrategy(NodeStrategy):
             step_logger=logger,
         )
 
-        # Phase 4, Step 2: Stage 4 telemetry merging and TraceEvent assembly
         return build_llm_step_trace_events(
             stage1=stage1,
             stage2=stage2,

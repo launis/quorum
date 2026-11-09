@@ -35,7 +35,6 @@ class Chunk[T](V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declaration to PEP 593 Annotated (QGR020 Check 20B)
     id: Annotated[
         str,
         Field(

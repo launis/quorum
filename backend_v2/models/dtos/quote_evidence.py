@@ -158,7 +158,6 @@ class QuoteEvidenceDTO(V2CoreBase):
         BeforeValidator(coerce_source_quotes_tuple),
         Field(default=None, description="The exact text segments of the quote."),
     ] = None
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     verified_source_ids: Annotated[
         list[str],
         Field(default_factory=list, description="Resolved Opaque IDs."),

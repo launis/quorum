@@ -291,7 +291,6 @@ async def test_logfire_shielded_client() -> None:
 @pytest.mark.asyncio
 async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Verify MockProvider parameter checks, prompt dump, and usage tracking."""
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     mock_settings = Settings(
         pacing_delay_mock_seconds=0,
     )

@@ -33,7 +33,6 @@ _patch_arq_logging()
 
 logger = logging.getLogger(__name__)
 
-# Step 3: Canonical HTTP 200 OK payload for Cloud Run startup and liveness probes
 _HEALTH_RESPONSE_BYTES: bytes = (
     b"HTTP/1.1 200 OK\r\n"
     b"Content-Type: application/json\r\n"
@@ -54,7 +53,6 @@ async def _handle_health_probe(
         writer: Outgoing asyncio stream writer for the probe socket.
     """
     try:
-        # Step 3: Enforce bounded socket read timeout from Settings.http_client_timeout_seconds
         with contextlib.suppress(TimeoutError, OSError):
             await asyncio.wait_for(
                 reader.read(1024),
@@ -85,7 +83,6 @@ async def main() -> None:
         worker_settings: WorkerSettingsType = WorkerSettings
         worker = create_worker(worker_settings)
 
-        # Step 3: Bind single-loop asyncio health probe listener on worker_health_port
         health_server = await asyncio.start_server(
             _handle_health_probe,
             host="0.0.0.0",

@@ -113,7 +113,6 @@ class DocumentExtractionService:
 
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         try:
-            # Phase 4, Step 2: Use top-level PdfChatExtractorService from canonical pdf_extractor package
             if PdfChatExtractorService.is_conversation_pdf(doc):
                 chat_dto = PdfChatExtractorService.extract_conversation(doc)
                 md_text = chat_dto.model_dump_json()
@@ -210,7 +209,6 @@ class DocumentExtractionService:
             # Sort chronologically to prefer the most recent date
             valid_dates = sorted(extracted_dates, reverse=True)
 
-            # Phase 1, Step 4: Inject only if not already explicitly populated by the user
             if "document_date" not in new_dynamic_inputs or not new_dynamic_inputs["document_date"]:
                 new_dynamic_inputs["document_date"] = valid_dates[0]
                 logger.info(

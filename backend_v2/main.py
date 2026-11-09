@@ -148,7 +148,6 @@ async def _validate_database_preflight(
     settings = get_settings()
     resolved_uow = uow if uow is not None else create_unit_of_work(settings)
     try:
-        # Phase 1, Step 1: Apply idempotent PostgreSQL 19 DDL migrations before pre-flight verification
         if isinstance(resolved_uow, PostgresUnitOfWork):
             await resolved_uow.pool_manager.apply_migrations()
         async with resolved_uow as active_uow:
@@ -205,7 +204,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir.as_posix()}.")
 
         await _validate_database_preflight(logger)
-        # Step 2: Bind shared singleton PostgresPoolManager to app.state on startup
         app.state.pool_manager = get_shared_pool_manager(settings)
 
         if "PYTEST_CURRENT_TEST" in os.environ:
@@ -235,13 +233,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         pool = app.state.arq_pool
         if pool is not None and isinstance(pool, (ArqRedis, FakeRedis)):
             await pool.aclose()
-        # Step 2: Drain and close shared PostgresPoolManager on shutdown
         try:
             await close_shared_pool_manager()
         except (AppException, OSError, RuntimeError, AttributeError) as pool_err:
             logger.warning("[Lifespan] Error draining pool on shutdown: %s", pool_err)
         finally:
-            # Step 1: Reset in-memory readiness state on shutdown
             app.state.arq_pool = None
             app.state.pool_manager = None
 
@@ -255,7 +251,6 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
-# Step 1: Pre-initialize in-memory readiness state at module scope
 app.state.arq_pool = None
 app.state.pool_manager = None
 
@@ -404,7 +399,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content=jsonable_encoder(
             {
-                # Step 1: Resolve RFC 7807 validation error type URI dynamically from Settings.jwt_issuer
                 "type": f"{get_settings().jwt_issuer}/errors/validation-failed",
                 "title": "Validation Failed",
                 "status": 422,

@@ -668,7 +668,7 @@ class WorkflowStepCard extends StatelessWidget {
               ],
               if ((currentBlueprint?.allowedMcpTools ?? const <String>[])
                   .isNotEmpty) ...[
-                // Phase 4, Step 4.2: Read-only summary badges for bound MCP tools
+                // Read-only summary badges for bound MCP tools
                 AppSpacing.h16,
                 Text(
                   l10n.studioWorkflowMcpToolsBoundBadgeTitle,

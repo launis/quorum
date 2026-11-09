@@ -146,7 +146,6 @@ class ExtractedAtom(BaseModel):
         if not self.is_logical_deduction and not self.is_inverse and not self.source_quotes:
             raise ValueError("source_quotes is mandatory unless is_logical_deduction or is_inverse is True.")
         if self.source_quotes is not None:
-            # Step 1: Retain 3-segment maximum and 30-character multi-segment floor while allowing unbounded verbatim segments
             if len(self.source_quotes) > 3:
                 raise ValueError("source_quotes cannot contain more than 3 segments.")
             if len(self.source_quotes) > 1:

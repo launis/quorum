@@ -72,7 +72,6 @@ class CsvExporter:
         Raises:
             AppException: If execution is not in PASSED state or has no scoreable atoms (VALIDATION_FAILED).
         """
-        # Phase 3, Step 2: Enforce PASSED state validation
         if execution.status != ExecutionStatus.PASSED:
             msg = "Strict Fail-Fast: Execution must be in PASSED state to export CSV."
             logger.error(
@@ -83,7 +82,6 @@ class CsvExporter:
             )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        # Phase 3, Step 2: Enforce scoreable atoms validation
         if report_dto is None or not report_dto.results:
             msg = "Strict Fail-Fast: Execution has no scoreable atoms."
             logger.error(
@@ -118,7 +116,6 @@ class CsvExporter:
 
         causal_result = extract_causal_result(execution)
 
-        # Phase 3, Step 2: Stream rectangular flat rows via atom_row_builder
         flat_dtos = build_denormalized_rows(
             report_dto=report_dto,
             matrices=effective_matrices,

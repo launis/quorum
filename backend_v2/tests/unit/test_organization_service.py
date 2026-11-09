@@ -1497,7 +1497,6 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Positive: Verify OrganizationService and ExecutionAssignmentService persist and retrieve via InMemoryUnitOfWork with zero _local_* attributes."""
-    # Phase 1, Step 1.3: Verify UoW persistence roundtrip with zero process-local shadow dicts
     uow = InMemoryUnitOfWork()
     org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     admin_id = generate_opaque_id(EntityPrefix.USER)
@@ -1673,7 +1672,6 @@ async def test_organization_and_assignment_services_fail_fast_when_uow_unconfigu
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Negative: Verify OrganizationService and ExecutionAssignmentService log CONFIGURATION_ERROR and raise ConfigurationError when persistence is unconfigured."""
-    # Phase 1, Step 1.3: Verify Fail-Fast ConfigurationError when entity_adapter and uow_factory are None
     org_repo = OrganizationRepository(mock_repo)
     user_repo = UserRepository(mock_repo)
     org_service = OrganizationService(

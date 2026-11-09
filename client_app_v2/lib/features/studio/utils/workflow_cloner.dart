@@ -134,7 +134,7 @@ class WorkflowCloner {
     );
   }
 
-  // Phase 5, Step 5.2: Operate exclusively on typed Freezed SduiBlockDTO variants via Dart 3 switch.
+  // Operate exclusively on typed Freezed SduiBlockDTO variants via Dart 3 switch.
   static SduiBlockDTO _remapSduiBlock(
     SduiBlockDTO block,
     Map<String, String> idMap,

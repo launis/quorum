@@ -105,8 +105,6 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         )
 
     try:
-        # Phase 1, Step 1.2: Internal Utility LLM Execution pattern via CognitiveTier.FAST
-        # Step 3: Propagate tenant organization_id from state.global_context_vars
         effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if state.global_context_vars is not None and state.global_context_vars.organization_id is not None:
             effective_org_id = state.global_context_vars.organization_id

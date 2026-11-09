@@ -233,7 +233,6 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
                 ):
                     continue
                 dumped[k] = v
-        # Phase 4, Step 4.2: Enforce expected_state_version OCC conflict detection and increment state_version.
         if updates.expected_state_version is not None and existing.state_version != updates.expected_state_version:
             raise AppException(
                 message=(
@@ -906,7 +905,6 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
         self._check_fault("add_banned_phrase")
-        # Phase 3, Step 3: Use RFC 9562 UUIDv7 hex in repository fakes
         bp_id = f"bp_{generate_uuid7().hex}"
         self._banned_phrases[phrase] = BannedPhrase(id=bp_id, phrase=phrase, language=language)
 

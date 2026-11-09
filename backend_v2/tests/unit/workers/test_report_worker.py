@@ -73,7 +73,6 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
-    # Phase 6, Step 6.2: Use stateful InMemoryUnifiedWorkflowRepository without string-based patch
     with (
         patch("backend_v2.services.report.ReportService", return_value=mock_service),
         patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),

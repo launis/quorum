@@ -223,7 +223,6 @@ def _has_pytest_raises_item(items: list[ast.withitem]) -> bool:
     Returns:
         True if any context expression is a call to `pytest.raises(...)` or `raises(...)`.
     """
-    # Phase 1A, Step 1: Detect pytest.raises negative validation blocks
     for item in items:
         if isinstance(item.context_expr, ast.Call):
             match item.context_expr.func:
@@ -260,7 +259,6 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self.normalized_path = normalized
         path_parts = set(normalized.strip("/").split("/"))
         self.is_test = "backend_v2/tests/" in normalized or "tests" in path_parts
-        # Phase 1A, Step 1: Scope TD_DICT_GET strictly to backend_v2 domain code
         self.is_domain_code = (
             ("backend_v2/" in normalized or normalized.startswith("backend_v2/"))
             and not self.is_test
@@ -450,7 +448,6 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         Args:
             node: AST With statement node.
         """
-        # Phase 1A, Step 1: Exempt negative validation blocks inside pytest.raises from TD_MODEL_FACTORY
         prev_raises = self._in_pytest_raises
         if _has_pytest_raises_item(node.items):
             self._in_pytest_raises = True
@@ -463,7 +460,6 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         Args:
             node: AST AsyncWith statement node.
         """
-        # Phase 1A, Step 1: Exempt negative validation blocks inside pytest.raises from TD_MODEL_FACTORY
         prev_raises = self._in_pytest_raises
         if _has_pytest_raises_item(node.items):
             self._in_pytest_raises = True
@@ -496,7 +492,6 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                     pass
 
         # Item 2: Dict fallbacks (.get() lookups)
-        # Phase 1A, Step 1: Gate TD_DICT_GET to domain code and use canonical is_exempt_dict_get_call
         if self.is_domain_code and not self.is_exempt:
             if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
                 if not is_exempt_dict_get_call(node):
@@ -514,7 +509,6 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                     )
 
         # Item 7: Model Factory Parity (in touched test files)
-        # Phase 1A, Step 1: Exempt negative schema validation tests inside pytest.raises
         if (
             self.is_test
             and not self._in_pytest_raises

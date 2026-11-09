@@ -256,7 +256,6 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
             details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
         ) from e
 
-    # Phase 2: Unified normalized text space (BP-3/BP-4 Harmonization)
     raw_text = "\n".join(source_texts) + "\n" + rag_text
     norm_corpus, _ = AnchorValidationService.normalize_text_with_mapping(raw_text)
 

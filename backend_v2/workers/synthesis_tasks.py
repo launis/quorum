@@ -102,7 +102,6 @@ async def create_executive_summary_task(
         return None
 
     exec_dynamic_parts = list(base_dynamic_parts)
-    # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
     if (
         active_profile_dto
         and active_profile_dto.synthesis_length_constraint is not None
@@ -211,7 +210,6 @@ async def create_matrix_sections_tasks(
             target_str = f' targets="{", ".join(target_titles)}"'
 
         grp_dynamic_parts = list(base_dynamic_parts)
-        # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
         if (
             active_profile_dto.matrix_graph_length_constraint is not None
             and active_profile_dto.matrix_graph_length_constraint > 0
@@ -321,7 +319,6 @@ async def create_xai_highlights_task(
     xai_cur = f"{xai_directive_str}\n\n{curation_prompt}"
 
     xai_dynamic_parts = list(base_dynamic_parts)
-    # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
     if active_profile_dto.xai_length_constraint is not None and active_profile_dto.xai_length_constraint > 0:
         xai_dynamic_parts.append(f"<section_budget>{active_profile_dto.xai_length_constraint}</section_budget>")
     xai_dynamic_parts.append(xai_cur)
@@ -372,7 +369,6 @@ async def create_row_explanations_task(
     if not matrices_to_explain or (active_profile_dto is not None and not active_profile_dto.requires_row_explanations):
         return None
 
-    # Phase 2, Step 2.3: Use shared CognitiveTier.BALANCED client and static reasoning mandates
     row_sys_prompt = (
         f"{ROW_EXPLANATION_SYSTEM_PROMPT}\n\n"
         f"{CAUSAL_TDA_DIAGNOSIS_MANDATE}\n\n"
@@ -402,7 +398,6 @@ async def create_row_explanations_task(
         if tone:
             row_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
     row_dynamic_parts.append(row_directive_str)
-    # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
     if (
         active_profile_dto
         and active_profile_dto.row_explanation_length_constraint is not None

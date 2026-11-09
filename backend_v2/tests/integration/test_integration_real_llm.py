@@ -595,7 +595,6 @@ def test_real_llm_mcp_invalid_alias_rejected_negative() -> None:
 @pytest.mark.asyncio
 async def test_integration_real_llm_preserves_topological_deficits_and_causal_brief() -> None:
     """Positive: Verify end-to-end topological synthesis cohesion, MatrixFailureDeficitDTO, and CausalSynthesisBriefDTO within 300,000-char ceiling."""
-    # Phase 4, Step 4.3: Verify MatrixFailureDeficitDTO, CausalSynthesisBriefDTO, Micro-CoT/quote retention, and inline SDUI short-circuit lineage
     settings = get_settings()
     assert settings.max_synthesis_evaluations == 0
     assert settings.max_synthesis_reasoning_length == 0
@@ -1039,7 +1038,6 @@ async def test_integration_real_llm_preserves_topological_deficits_and_causal_br
 
 def test_integration_real_llm_topological_deficit_and_brief_validation_negative() -> None:
     """Negative & Boundary: Verify MatrixFailureDeficitDTO, CausalSynthesisBriefDTO, and compressor reject invalid inputs."""
-    # Phase 4, Step 4.3: Negative & boundary validation for topological synthesis contracts
     with pytest.raises(ValidationError):
         MatrixFailureDeficitDTO.model_validate(
             {
@@ -1160,7 +1158,6 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         _terminate_subprocesses(backend_process, worker_process, backend_log_fp, redis_server, mcp_server)
         pytest.fail("Failed to start FastAPI backend or Arq worker for E2E testing.")
 
-    # Phase 2, Step 2.3: Exchange headless CLI target_user_id for 15-minute Quorum Local JWT with 13-minute auto-refresh
     base_api_url = "http://127.0.0.1:8000/api/v2"
     admin_user_id = "usr_0195f3a00000700188a0d5f6151349a5"
     cli_session = _get_or_refresh_cli_session(base_api_url, admin_user_id)

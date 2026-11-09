@@ -195,7 +195,6 @@ class CausalCohesionEvaluator:
         else:
             isolated_ratio = 1.0
 
-        # Phase 5, Step 5: Enforce Equation (13) Cumulative Guttman Invariant (L1 subset L2 subset L3 subset L4 subset L5)
         l1_passed = total_nodes >= 1
         l2_passed = (
             l1_passed
@@ -340,7 +339,6 @@ class CausalCohesionEvaluator:
         Raises:
             AppException: If retracted_node_id does not exist in graph.nodes (VALIDATION_FAILED).
         """
-        # Phase 5, Step 5: Implement Algorithm 1 discrete ATMS counterfactual retraction simulation
         node_map = {n.node_id: n for n in graph.nodes}
         if retracted_node_id not in node_map:
             logger.error(

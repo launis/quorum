@@ -65,7 +65,6 @@ class ExecutionSnapshotDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     executions: Annotated[
         dict[str, ExecutionRecord],
         Field(default_factory=dict, description="Indexed mapping of execution records."),
@@ -124,7 +123,6 @@ class ReconciliationReport(BaseModel):
 
     db_path: Annotated[str, Field(description="Path to the execution snapshot file.")]
     storage_dir: Annotated[str, Field(description="Path to the physical storage directory.")]
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     orphaned_db_ids: Annotated[
         list[str],
         Field(default_factory=list, description="Execution IDs present in snapshot but missing from disk."),

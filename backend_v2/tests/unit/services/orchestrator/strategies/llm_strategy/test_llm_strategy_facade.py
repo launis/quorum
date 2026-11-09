@@ -17,7 +17,6 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
 
-# Phase 4, Step 1: Migrate unit tests to llm_strategy package facade
 from backend_v2.services.orchestrator.strategies.llm_strategy import LLMNodeStrategy
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -3267,7 +3266,6 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
 
 def test_dlq_handle_debug_log_error() -> None:
     """Verify _dlq_handle_debug_log_error logs warning without raising."""
-    # Phase 4, Step 1: Migrate unit tests to llm_strategy package facade
     LLMNodeStrategy._dlq_handle_debug_log_error(RuntimeError("Sample debug prompt error"))
 
 

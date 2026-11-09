@@ -201,7 +201,6 @@ def build_llm_step_trace_events(
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    # Phase 3, Step 1: Merge state_data keys, hydrate StepTraceMetadataDTO, and emit TraceEvents
     state_data = stage1.state_data
     meta_dto = _build_step_trace_metadata(
         stage1=stage1,

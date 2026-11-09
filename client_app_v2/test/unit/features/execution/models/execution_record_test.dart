@@ -14,7 +14,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 void main() {
   group('ExecutionRecord & Group 2 Execution DTO Unit & ISTQB Boundary Tests', () {
-    // Phase 5, Step 5.1 Test Contract: test_execution_record_and_report_dto_deserialize_typed_models
+    // test_execution_record_and_report_dto_deserialize_typed_models
     test(
       'test_execution_record_and_report_dto_deserialize_typed_models (Positive 1)',
       () async {
@@ -292,7 +292,7 @@ void main() {
       },
     );
 
-    // Phase 5, Step 5.1 Test Contract: test_freezed_models_reject_unrecognized_json_keys
+    // test_freezed_models_reject_unrecognized_json_keys
     test('test_freezed_models_reject_unrecognized_json_keys (Negative 1)', () {
       final execId = generateOpaqueUuid7('exe');
       final wfId = generateOpaqueUuid7('wf');

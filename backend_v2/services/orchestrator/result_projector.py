@@ -241,7 +241,6 @@ class ResultProjector:
                         evaluated_atoms[aid] = ExecutionStatus.PENDING
                         missing_atoms.append(tda.concept_description)
 
-        # Phase 4, Step 4.3: Project matrix extensions with typed XaiExtensionValue instead of JsonValue
         final_extensions: dict[XaiExtensionType, XaiExtensionValue] = {
             XaiExtensionType(k): "\n\n".join(v)
             for k, v in extensions_by_type.items()

@@ -46,7 +46,6 @@ class Step(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique UUID for storage optionally")]
     slug: Annotated[str, Field(description="Human-readable identifier (e.g., 'step_guard')")]
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID.")] = None

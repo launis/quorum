@@ -35,7 +35,7 @@ class _ResolvedMcpToolEntry {
 /// for strings).
 class McpToolParamsPanel extends StatelessWidget {
   final List<String> allowedMcpTools;
-  // Phase 5, Step 5.2: Replace Map<String, Map<String, Object?>> with typed McpToolParamValue.
+  // Replace Map<String, Map<String, Object?>> with typed McpToolParamValue.
   final Map<String, Map<String, McpToolParamValue>> mcpToolParams;
   final List<McpGateway> mcpGateways;
   final ValueChanged<Map<String, Map<String, McpToolParamValue>>> onChanged;

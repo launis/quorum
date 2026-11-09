@@ -41,8 +41,6 @@ class MCPUrlValidator:
     ) -> str:
         """Validate an MCP endpoint URL and all resolved DNS A/AAAA records.
 
-        # Phase 2, Step 2.1: SSRF URL & Network Egress Validator
-
         Args:
             url: Target MCP server URL to validate.
             allow_private_networks: Whether loopback and RFC-1918 private networks are permitted.

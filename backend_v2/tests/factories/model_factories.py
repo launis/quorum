@@ -164,7 +164,6 @@ class WorkflowFactory(ModelFactory[Workflow]):
         Returns:
             Unique workflow slug identifier string.
         """
-        # Phase 3, Step 3: Use RFC 9562 UUIDv7 hex for unique test slug
         return f"wf_slug_{generate_uuid7().hex[:8]}"
 
     @classmethod
@@ -946,7 +945,6 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
         return []
 
 
-# Phase 2, Step 2.1: Synchronize Polyfactory model factories for required TenantSecretDTO and ReportView fields
 class TenantSecretDTOFactory(ModelFactory[TenantSecretDTO]):
     """Polyfactory model factory for TenantSecretDTO with explicit storage_mode and updated_by."""
 

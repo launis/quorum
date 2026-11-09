@@ -507,7 +507,7 @@ void main() {
         'mcp_0123456789abcdef',
       );
 
-      // Step 4: Verify submit retains previous form value across error transition
+      // Verify submit retains previous form value across error transition
       final dioSaveErr = DioException(
         requestOptions: RequestOptions(path: '/api/studio/mcp-gateways'),
         error: AppException.network('Save failed'),

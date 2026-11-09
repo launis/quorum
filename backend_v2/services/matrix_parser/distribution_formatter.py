@@ -23,7 +23,6 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-# Phase 1, Step 2: Relocate leaf distribution and explanation formatting functions
 def format_level_distribution(lvl_data: LevelStatsDTO, locale: str) -> str:
     """Formats the empirical scale distribution according to Model B architecture.
 

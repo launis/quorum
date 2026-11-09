@@ -615,7 +615,7 @@ enum UserRole {
 /// Organization subscription lifecycle status.
 @JsonEnum()
 enum SubscriptionStatus {
-  // Step 1: Align SubscriptionStatus 1:1 with backend_v2/models/enums.py SSOT.
+  // Align SubscriptionStatus 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('active')
   active('active'),
   @JsonValue('trial')
@@ -632,7 +632,7 @@ enum SubscriptionStatus {
 /// Cryptographic B2B organization invitation lifecycle status.
 @JsonEnum()
 enum InvitationStatus {
-  // Step 1: Align InvitationStatus 1:1 with backend_v2/models/enums.py SSOT.
+  // Align InvitationStatus 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('pending')
   pending('pending'),
   @JsonValue('accepted')
@@ -649,7 +649,7 @@ enum InvitationStatus {
 /// Time-bound execution task assignment lifecycle status.
 @JsonEnum()
 enum AssignmentStatus {
-  // Step 1: Align AssignmentStatus 1:1 with backend_v2/models/enums.py SSOT.
+  // Align AssignmentStatus 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('pending')
   pending('pending'),
   @JsonValue('activated')
@@ -670,7 +670,7 @@ enum AssignmentStatus {
 /// Post-submission report visibility level for external task assignees.
 @JsonEnum()
 enum AssignmentResultVisibility {
-  // Step 1: Align AssignmentResultVisibility 1:1 with backend_v2/models/enums.py SSOT.
+  // Align AssignmentResultVisibility 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('confirmation_only')
   confirmationOnly('confirmation_only'),
   @JsonValue('full_report_access')
@@ -683,7 +683,7 @@ enum AssignmentResultVisibility {
 /// Outbound transactional email transport mode.
 @JsonEnum()
 enum EmailTransportMode {
-  // Step 1: Align EmailTransportMode 1:1 with backend_v2/models/enums.py SSOT.
+  // Align EmailTransportMode 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('console')
   console('console'),
   @JsonValue('http_api')
@@ -696,7 +696,7 @@ enum EmailTransportMode {
 /// Outbound transactional email delivery status.
 @JsonEnum()
 enum EmailDeliveryStatus {
-  // Step 1: Align EmailDeliveryStatus 1:1 with backend_v2/models/enums.py SSOT.
+  // Align EmailDeliveryStatus 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('pending')
   pending('pending'),
   @JsonValue('sent')
@@ -711,7 +711,7 @@ enum EmailDeliveryStatus {
 /// Target domain scope for organization BYOK credentials.
 @JsonEnum()
 enum SecretScope {
-  // Step 1: Align SecretScope 1:1 with backend_v2/models/enums.py SSOT.
+  // Align SecretScope 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('llm_provider')
   llmProvider('llm_provider'),
   @JsonValue('mcp_gateway')
@@ -724,7 +724,7 @@ enum SecretScope {
 /// Cryptographic storage mode for organization BYOK credentials.
 @JsonEnum()
 enum SecretStorageMode {
-  // Step 1: Align SecretStorageMode 1:1 with backend_v2/models/enums.py SSOT.
+  // Align SecretStorageMode 1:1 with backend_v2/models/enums.py SSOT.
   @JsonValue('cloud_secret_manager')
   cloudSecretManager('cloud_secret_manager'),
   @JsonValue('envelope_kms')

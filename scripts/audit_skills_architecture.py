@@ -39,7 +39,6 @@ if isinstance(sys.stderr, io.TextIOWrapper):
     except AttributeError, ValueError, io.UnsupportedOperation:
         pass
 
-# Phase 1, Step 1: Rule budget constants and canonical skill/plugin inventory
 MAX_SINGLE_RULE_FILE_BYTES: Final[int] = 24_000
 MAX_ALWAYS_ON_BYTES: Final[int] = 72_000
 
@@ -104,7 +103,6 @@ _MANDATE_CLAUSE_CONSTRUCT_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:ALWAYS|MUST)\s+(?:exclusively\s+)?(?:use|call|invoke|import|enforce)\s+`([^`\n]{3,80})`"
 )
 
-# Phase 1, Step 3: Planning, execution, and red-teaming skills enforcing factory & orthogonality mandates
 PLANNING_AND_EXECUTION_FACTORY_SKILLS: Final[tuple[str, ...]] = (
     "tier0-create-epic",
     "tier0-create-plan",
@@ -136,7 +134,6 @@ CANONICAL_RULE_SYNTAX_WITNESSES: Final[dict[str, str]] = {
     ),
 }
 
-# Phase 1B, Step 2: Canonical Knowledge Item artifacts and dynamic discovery
 DEFAULT_CANONICAL_KI_ARTIFACTS: Final[frozenset[str]] = frozenset(
     {
         "ki_api_router_ssot_governance.md",
@@ -302,7 +299,6 @@ class SkillsAuditSummaryDTO(BaseModel):
     findings: Annotated[list[SkillsAuditFindingDTO], Field(description="Accumulated audit findings")]
 
 
-# Phase 1, Step 3: Pairwise Rule Conflict & Static Checker Orthogonality DTO and Verifiers
 class RuleBlockSpecDTO(BaseModel):
     """Immutable DTO representing a parsed <rule_block> specification for pairwise conflict auditing.
 
@@ -809,7 +805,6 @@ class SkillsArchitectureAuditor:
                     )
                 )
 
-        # Phase 1B, Step 2: Validate ki_*.md and scripts/*.py references in skill playbooks
         seen_bad_kis: set[str] = set()
         for match in _KI_FILENAME_RE.finditer(content):
             ki_name = match.group(1)
@@ -1083,7 +1078,6 @@ class SkillsArchitectureAuditor:
         total_bytes = 0
         findings: list[SkillsAuditFindingDTO] = []
 
-        # Phase 1B, Step 2: Validate ki_*.md references across all rule markdown files
         for rule_doc in all_rule_files:
             rel_rule_path = rule_doc.relative_to(self.repo_root).as_posix()
             rule_content = rule_doc.read_text(encoding="utf-8", errors="replace")

@@ -250,7 +250,6 @@ def _build_mcp_gateway() -> SystemConfigMCPGateways:
     Returns:
         Validated SystemConfigMCPGateways instance.
     """
-    # Phase 1, Step 1: Include required canonical name on SystemConfigMCPGateways test fixture
     return SystemConfigMCPGateways(
         id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
         name="Exa Search MCP Gateway",
@@ -609,7 +608,6 @@ async def test_hydrate_system_config_null_name_and_preflight_verification_raises
     assert hydrate_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert hydrate_exc.value.details["entity_id"] == cfg_id
 
-    # Phase 1, Step 1: Verify negative hydration boundary on model_registry row with name=None
     reg_id = "sys_0195f3a0000070008000000000000001"
     reg_uuid = parse_prefixed_uuid7(reg_id, EntityPrefix.SYSTEM_CONFIG)
     null_name_registry_row = InMemoryAsyncPgRecord(

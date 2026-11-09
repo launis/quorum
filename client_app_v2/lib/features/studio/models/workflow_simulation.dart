@@ -9,7 +9,7 @@ part 'workflow_simulation.g.dart';
 /// Matches backend SSOT `WorkflowSimulationResponse` in `backend_v2/models/dtos/studio.py`.
 @Freezed(equal: false)
 abstract class WorkflowSimulationResponse with _$WorkflowSimulationResponse {
-  // Phase 5, Step 5.1: Replace Map<String, Object?> trace with typed StepSimulationTraceDto
+  // Replace Map<String, Object?> trace with typed StepSimulationTraceDto
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory WorkflowSimulationResponse({
     @Default(true) bool valid,

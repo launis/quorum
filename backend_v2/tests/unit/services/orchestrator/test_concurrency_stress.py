@@ -99,7 +99,6 @@ async def test_concurrency_stress_100_atoms_high_frequency_lock() -> None:
     async def _multi_phase_atom_task(step_id: str, index: int) -> None:
         nonlocal exec_record, transition_counter
 
-        # Phase 1: Transition PENDING -> RUNNING
         async with update_lock:
             running_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.RUNNING})
             new_states = {**exec_record.step_states, step_id: running_state}
@@ -109,7 +108,6 @@ async def test_concurrency_stress_100_atoms_high_frequency_lock() -> None:
         # Simulate micro-work
         await asyncio.sleep(0.002 * (index % 4))
 
-        # Phase 2: Transition RUNNING -> PASSED with token telemetry
         async with update_lock:
             passed_state = exec_record.step_states[step_id].model_copy(
                 update={"status": ExecutionStatus.PASSED, "prompt_tokens": 100, "completion_tokens": 50}

@@ -399,7 +399,6 @@ def test_source_verification_hook_registered_and_safe() -> None:
 
 def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
     """Verify dag_executor package contains zero procedural string comparisons for step types."""
-    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/dag_executor/
     dag_dir = Path("backend_v2/services/orchestrator/dag_executor")
     assert dag_dir.is_dir(), f"Missing target package directory: {dag_dir}"
     dag_files = sorted(dag_dir.glob("*.py"))
@@ -419,7 +418,6 @@ def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
 
 def test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation() -> None:
     """Verify LLMNodeStrategy package contains zero in-place mutations of frozen_ctx.generated_schemas."""
-    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/strategies/llm_strategy/
     strategy_dir = Path("backend_v2/services/orchestrator/strategies/llm_strategy")
     assert strategy_dir.is_dir(), f"Missing strategy package directory: {strategy_dir}"
     py_files = sorted(strategy_dir.glob("*.py"))
@@ -448,7 +446,6 @@ def test_prompt_block_repo_ast_strict_missing_parity() -> None:
 
 def test_hook_state_immutability_and_no_inplace_metadata_mutation() -> None:
     """Verify strategies/llm_strategy/ and hooks/ contain zero in-place mutations of hook_state.metadata/inputs."""
-    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/strategies/llm_strategy/
     strategy_dir = Path("backend_v2/services/orchestrator/strategies/llm_strategy")
     assert strategy_dir.is_dir(), f"Missing strategy package directory: {strategy_dir}"
     for strategy_file in sorted(strategy_dir.glob("*.py")):

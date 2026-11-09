@@ -71,7 +71,6 @@ class CausalNodeDTO(V2CoreBase):
     source_input_key: Annotated[
         str | None, Field(default=None, description="Dynamic input key indicating source document provenance.")
     ] = None
-    # Phase 3, Step 3.1: Node-level topological short-circuit and Toulmin falsification lineage
     short_circuited_by_claims: Annotated[
         list[str],
         Field(

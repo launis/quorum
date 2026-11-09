@@ -54,7 +54,6 @@ def test_llm_factory_create_provider_config_authority_and_capabilities(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify LLMFactory.create_provider enforces config authority, grounding checks, and mock overrides."""
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     configured_settings = Settings(
         use_mock_llm=False,
         google_api_key="g-key",
@@ -185,7 +184,6 @@ def test_llm_factory_create_provider_config_authority_and_capabilities(
 
 def test_llm_factory_create_provider_edge_cases(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test LLMFactory.create_provider branches and validations via facade patch targets."""
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     settings = Settings(
         use_mock_llm=False,
         google_api_key="fake-google-key",
@@ -230,7 +228,6 @@ def test_llm_factory_create_provider_edge_cases(monkeypatch: pytest.MonkeyPatch)
     assert isinstance(prov_key, LiteLLMProvider)
     assert prov_key.api_key == "explicit_key"
 
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     mock_settings = Settings(
         use_mock_llm=True,
         vertex_location="europe-north1",

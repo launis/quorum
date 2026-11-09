@@ -210,7 +210,6 @@ class RAGPreflightService:
             provider = exec_record.metadata.provider_override
             registry_id = exec_record.metadata.model_registry_id
 
-        # Step 3: Resolve tenant organization_id from exec_record (defaulting to ROOT_SYSTEM)
         effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if exec_record.organization_id is not None:
             effective_org_id = exec_record.organization_id

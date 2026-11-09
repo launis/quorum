@@ -122,7 +122,6 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             )
 
         llm_config = LLMProviderConfig(
-            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 LLM config ID
             id=f"llm_{generate_uuid7().hex}",
             provider=target_strategy.provider,
             model_name=target_strategy.model_name,

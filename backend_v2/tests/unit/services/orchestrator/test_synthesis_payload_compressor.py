@@ -634,7 +634,6 @@ def test_distilled_evaluation_extra_field_raises_validation_error() -> None:
 
 def test_synthesis_payload_compressor_typed_dto_across_four_partitions() -> None:
     """Positive & boundary contract: Verify SynthesisPayloadCompressor across all 4 ISTQB Equivalence Partitions."""
-    # Phase 4, Step 4.3: Cover 1) Structured DTO, 2) List of DTOs, 3) Markdown string, 4) Scalars and falsy inputs
     # Partition 1: Structured DTO (DistilledMatrixPayloadDTO)
     structured_dto = DistilledMatrixPayloadDTO(
         results=[

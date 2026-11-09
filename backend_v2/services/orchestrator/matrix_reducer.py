@@ -42,7 +42,6 @@ def _parse_raw_extension(raw: Any) -> RawXAIExtensionDTO:
     if isinstance(raw, RawXAIExtensionDTO):
         return raw
     if type(raw) is dict:
-        # Phase 4, Step 4.3: Hydrate RawXAIExtensionDTO with typed ScalarExtensionValue map
         known_keys = set(RawXAIExtensionDTO.model_fields.keys())
         extra_data: dict[str, ScalarExtensionValue] = {k: v for k, v in raw.items() if k not in known_keys}
         payload = {k: v for k, v in raw.items() if k in known_keys}
@@ -202,7 +201,6 @@ class MatrixReducer:
                     if atom.extensions:
                         raw_extensions.append(_parse_raw_extension(atom.extensions))
 
-                    # Phase 1, Step 1.2: Drop only unstarted/pending atoms; retain all PASSED, FAILED, N_A, and DLQ
                     # atoms with full topological lineage.
                     if atom.status in (ExecutionStatus.PENDING, ExecutionStatus.QUEUED, ExecutionStatus.RUNNING):
                         continue

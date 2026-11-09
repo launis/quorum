@@ -38,7 +38,6 @@ from backend_v2.models.enums import LLMProvider
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.state import StepOutputDTO
 
-# Phase 4, Step 4.1: Typed global context variable entry value replacing JsonValue
 type StepContextGvarValue = JsonSchemaNode | FlattenedAtom | list[FlattenedAtom] | LinguisticsResultDTO
 
 __all__ = [

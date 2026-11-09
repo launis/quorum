@@ -117,8 +117,6 @@ class VertexCacheAdapter(BaseLLMAdapter):
     def _parse_service_account_json(raw_secret: str) -> dict[str, Any]:
         """Parse and validate a Vertex AI GCP Service Account JSON payload Fail-Fast.
 
-        # Step 2: Validate Vertex AI BYOK Service Account JSON schema Fail-Fast
-
         Args:
             raw_secret: Raw secret string starting with '{'.
 
@@ -217,8 +215,6 @@ class VertexCacheAdapter(BaseLLMAdapter):
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the Vertex AI specific prompt payload by setting up cached content.
-
-        # Step 2: Support Vertex AI BYOK Service Account JSON, DB vertex_location SSOT, and tenant Redis key isolation
 
         Args:
             compiled_prompt: The structured prompt payload.
@@ -623,8 +619,6 @@ class VertexCacheAdapter(BaseLLMAdapter):
     ) -> dict[str, Any]:
         """Prepare Vertex specific kwargs, handling BYOK credentials, caching mappings, and location resolution.
 
-        # Step 2: Bind Vertex AI BYOK Service Account JSON or Express API key and enforce DB vertex_location SSOT
-
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.
             config: Optional config object for the provider.
@@ -756,7 +750,6 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
                 if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
                     call_kwargs["extra_body"] = {}
-                # Step 1: Preserving ONLY canonical camelCase cachedContent to avoid Google proto3 oneof collision
                 call_kwargs["extra_body"]["cachedContent"] = cache_id
 
                 # V3 Cache Fix: Diagnostic guard replacing blind system scrubber

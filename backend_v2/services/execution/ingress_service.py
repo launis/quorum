@@ -257,7 +257,6 @@ async def _load_and_validate_step_blueprint(workflow_repo: IWorkflowRepository, 
         ConfigurationError: If the step blueprint is missing from the repository.
         AppException: With ErrorCodes.VALIDATION_FAILED if step validation fails.
     """
-    # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
     try:
         step_obj = await workflow_repo.get_step_by_id(task_blueprint_id)
     except Exception as e:
@@ -725,7 +724,6 @@ class ExecutionIngressService:
             Initial ExecutionRecord in PENDING status.
         """
         injected_carrier = inject_trace_context()
-        # Phase 1, Step 2: Populate GlobalContextVarsDTO with tenant organization_id and initiator_id at ingress
         exec_metadata = ExecutionMetadata(
             matrix_sampling_strategy=payload.matrix_sampling_strategy,
             workflow_version=workflow.version,

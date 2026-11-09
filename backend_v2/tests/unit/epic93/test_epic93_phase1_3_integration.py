@@ -313,7 +313,6 @@ class TestCrossPhaseIntegration:
         # Phase 1 output: resolved aliases
         assert dto.verified_source_ids == ["opaque_abc123", "opaque_def456"]
 
-        # Phase 3: map to SDUI
         block = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(block, SduiQuoteCard)
         assert block.quote == "This is verified evidence."
@@ -330,7 +329,6 @@ class TestCrossPhaseIntegration:
         assert dto.verified_source_ids == ["opaque_abc123"]
         assert dto.unverified_aliases == ["DOC-99"]
 
-        # Phase 3: map to SDUI → warning card
         block = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(block, SduiWarningCard)
 

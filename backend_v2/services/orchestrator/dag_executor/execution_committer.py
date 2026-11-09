@@ -86,7 +86,6 @@ class ExecutionCommitter:
         try:
             if not self.execution_id.strip():
                 raise ValueError("Execution ID cannot be empty when committing trace.")
-            # Phase 4, Step 4.2: Preserve concurrent human overrides and advance state_version via OCC.
             existing = await self.exec_repo.get_execution(self.execution_id, hydrate=False)
             merged_step_states = dict(step_states)
             merged_trace = list(trace)

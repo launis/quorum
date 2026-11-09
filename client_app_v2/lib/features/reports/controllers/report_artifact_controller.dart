@@ -10,7 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'report_artifact_controller.g.dart';
 
-// Phase 3, Step 3: Polling interval and transient network/503 classifier for compiling reports
+// Polling interval and transient network/503 classifier for compiling reports
 const _kReportPollInterval = Duration(seconds: 3);
 
 bool _isTransientPollingError(Object error) {

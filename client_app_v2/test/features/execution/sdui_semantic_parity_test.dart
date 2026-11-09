@@ -8,7 +8,7 @@ import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
-// Phase 2: Granular Typographical Token Extractor for SDUI Semantic Parity
+// Granular Typographical Token Extractor for SDUI Semantic Parity
 void main() {
   testWidgets('SDUI Semantic Parity Extractor', (WidgetTester tester) async {
     const goldenPath = String.fromEnvironment('GOLDEN_PATH');

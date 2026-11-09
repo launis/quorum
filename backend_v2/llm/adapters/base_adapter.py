@@ -4,14 +4,16 @@ All implementations must enforce high-fidelity adapters supporting performance m
 strict pricing policies, and distributed rate pacing control patterns.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Final
 
 import opentelemetry.trace as otel_trace
-from arq.connections import RedisSettings, create_pool
+from arq.connections import ArqRedis, RedisSettings, create_pool
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -21,7 +23,7 @@ from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -31,14 +33,43 @@ __all__ = [
     "get_redis_client_for_pacing",
 ]
 
-_redis_pool: Any | None = None
+_DEFAULT_PACING_POLL_INTERVAL_SECONDS: Final[float] = 0.5
 
 
-async def get_redis_client_for_pacing() -> Any:
+class _InMemoryPacingClient:
+    """Network-free in-memory pacing client used during isolated pytest executions."""
+
+    async def set(
+        self,
+        key: str,
+        value: str,
+        *,
+        nx: bool = False,
+        px: int | None = None,
+    ) -> bool:
+        """Immediately grant pacing lock in hermetic test environments.
+
+        Args:
+            key: Distributed lock key.
+            value: Lock value string.
+            nx: Set only if key does not exist.
+            px: Expiration time in milliseconds.
+
+        Returns:
+            Always True to avoid artificial network/timer blocking in unit tests.
+        """
+        _ = (key, value, nx, px)
+        return True
+
+
+_redis_pool: ArqRedis | _InMemoryPacingClient | None = None
+
+
+async def get_redis_client_for_pacing() -> ArqRedis | _InMemoryPacingClient:
     """Resolve or initialize the Redis client pool used for distributed rate pacing.
 
     Returns:
-        The active Redis pool instance.
+        The active Redis pool or in-memory pacing client instance.
 
     Raises:
         AppException: STORAGE_ACCESS_FAILED if Redis connection pool creation fails.
@@ -47,24 +78,21 @@ async def get_redis_client_for_pacing() -> Any:
 
     try:
         if "PYTEST_CURRENT_TEST" in os.environ:
-            from unittest.mock import AsyncMock
+            return _InMemoryPacingClient()
 
-            mock_redis = AsyncMock()
-            mock_redis.set.return_value = True
-            return mock_redis
-        else:
-            if _redis_pool is not None:
-                return _redis_pool
-
-            settings = get_settings()
-            _redis_pool = await create_pool(
-                RedisSettings(
-                    host=settings.redis_host,
-                    port=settings.redis_port,
-                    conn_timeout=int(settings.redis_connection_timeout_seconds),
-                )
-            )
+        if _redis_pool is not None:
             return _redis_pool
+
+        settings = get_settings()
+        pool = await create_pool(
+            RedisSettings(
+                host=settings.redis_host,
+                port=settings.redis_port,
+                conn_timeout=int(settings.redis_connection_timeout_seconds),
+            )
+        )
+        _redis_pool = pool
+        return pool
     except (TimeoutError, ConnectionError, OSError, RuntimeError) as e:
         logger.error(
             "Failed to initialize Redis pool for pacing.",
@@ -76,8 +104,6 @@ async def get_redis_client_for_pacing() -> Any:
             status_code=500,
             details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
         ) from e
-
-    return _redis_pool
 
 
 async def apply_provider_pacing(
@@ -93,23 +119,49 @@ async def apply_provider_pacing(
         rpm_limit: Optional database-driven RPM limit. If > 0, dynamic pacing is used.
 
     Raises:
-        AppException: NETWORK_UNAVAILABLE if Redis execution fails during pacing operations.
+        AppException: VALIDATION_FAILED if provider_name is empty or rpm_limit is negative, or
+            NETWORK_UNAVAILABLE if Redis execution fails during pacing operations.
     """
+    if not provider_name or not provider_name.strip():
+        logger.error(
+            "Provider name cannot be empty for rate pacing.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            exc_info=True,
+        )
+        raise AppException(
+            message="Provider name cannot be empty for rate pacing.",
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    if rpm_limit is not None and rpm_limit < 0:
+        logger.error(
+            "RPM limit (%d) cannot be negative for rate pacing.",
+            rpm_limit,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"RPM limit ({rpm_limit}) cannot be negative for rate pacing.",
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    settings = get_settings()
     if rpm_limit is not None and rpm_limit > 0:
         delay = 60.0 / float(rpm_limit)
     else:
-        settings = get_settings()
         match provider_name:
             case LLMProviderName.VERTEX_AI.value:
-                delay = settings.pacing_delay_vertex_seconds
+                delay = float(settings.pacing_delay_vertex_seconds)
             case LLMProviderName.AI_STUDIO.value:
-                delay = settings.pacing_delay_ai_studio_seconds
+                delay = float(settings.pacing_delay_ai_studio_seconds)
             case LLMProviderName.OPENAI.value:
-                delay = settings.pacing_delay_openai_seconds
+                delay = float(settings.pacing_delay_openai_seconds)
             case LLMProviderName.MOCK.value:
-                delay = settings.pacing_delay_mock_seconds
+                delay = float(settings.pacing_delay_mock_seconds)
             case _:
-                delay = 0
+                delay = 0.0
 
     if delay <= 0:
         return
@@ -117,11 +169,17 @@ async def apply_provider_pacing(
     lock_target = f"{provider_name}:{strategy_id}" if strategy_id else provider_name
     logger.info("Applying provider pacing of %s seconds for '%s'.", delay, lock_target)
 
+    raw_poll_ms = settings.context_cache_lock_poll_interval_ms
+    poll_interval_s = (
+        float(raw_poll_ms) / 1000.0
+        if isinstance(raw_poll_ms, int | float) and raw_poll_ms > 0
+        else _DEFAULT_PACING_POLL_INTERVAL_SECONDS
+    )
+
     try:
         redis_client = await get_redis_client_for_pacing()
         lock_key = f"lock:pacer:{lock_target}"
         lock_ttl_ms = int(delay * 1000)
-        poll_interval_s = 0.5
 
         while True:
             # SETNX with expiration enforces the provider rate spacing
@@ -158,8 +216,6 @@ class BaseLLMAdapter(ABC):
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the payload for the API request by configuring caching structures.
-
-        # Step 2: Propagate config and resolved_credential into caching adapters
 
         Args:
             compiled_prompt: The prompt after execution compilation stages.
@@ -261,13 +317,11 @@ class BaseLLMAdapter(ABC):
     def prepare_kwargs(
         self,
         call_kwargs: dict[str, Any],
-        config: Any | None = None,
-        settings: Any | None = None,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        settings: Settings | None = None,
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Optional: Modifies parameters passed to LiteLLM (e.g. provider specific mappings).
-
-        # Step 2: Accept optional resolved_credential for provider-specific BYOK credential binding
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.
@@ -278,7 +332,7 @@ class BaseLLMAdapter(ABC):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        _ = resolved_credential
+        _ = (settings, resolved_credential)
         current_span = otel_trace.get_current_span()
         if current_span.is_recording():
             if "model" in call_kwargs and call_kwargs["model"] is not None:
@@ -295,7 +349,22 @@ class BaseLLMAdapter(ABC):
 
         Returns:
             A custom HTTP client or None to use default.
+
+        Raises:
+            AppException: VALIDATION_FAILED if timeout is less than or equal to zero.
         """
+        if timeout <= 0:
+            logger.error(
+                "HTTP client timeout (%s) must be greater than zero.",
+                timeout,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"HTTP client timeout ({timeout}) must be greater than zero.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return None
 
     @abstractmethod

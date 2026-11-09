@@ -184,7 +184,6 @@ class ModelProfile(V2CoreBase):
     max_tokens: Annotated[int | None, Field(default=None, description="Max generated tokens")] = None
     frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty")] = None
     presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty")] = None
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     allowed_tools: Annotated[list[str], Field(default_factory=list, description="Enabled tools")]
     supports_grounding: Annotated[bool, Field(default=False, description="Supports Google Search Grounding")] = False
     api_key: Annotated[str | None, Field(default=None, description="Optional override API key")] = None
@@ -224,7 +223,6 @@ class SystemConfigModelRegistry(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="model_registry")
 
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")]
-    # Phase 2, Step 2.1: Require explicit name on SystemConfigModelRegistry (QGR020 Check 20C)
     name: Annotated[str, Field(min_length=1, description="Human-readable title")]
     type: Annotated[Literal["model_registry"], Field(default="model_registry", description="Type of config")] = (
         "model_registry"
@@ -407,7 +405,6 @@ class SystemConfigMCPGateways(V2CoreBase):
         Literal["mcp_gateways"],
         Field(default="mcp_gateways", description="Config type discriminator."),
     ] = "mcp_gateways"
-    # Phase 2, Step 2.1: Require explicit slug on SystemConfigMCPGateways (QGR020 Check 20C)
     slug: Annotated[
         str,
         Field(

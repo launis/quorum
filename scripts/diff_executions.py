@@ -94,7 +94,6 @@ __all__ = [
     "verify_quote_in_corpus",
 ]
 
-# Phase 1, Step 1.5: Canonical SSOT for typographic Unicode space markers
 UNICODE_SPACE_REGISTRY: dict[str, str] = {
     "\u00a0": "No-Break Space (U+00A0)",
     "\u2002": "En Space (U+2002)",
@@ -171,7 +170,6 @@ class FileInspectionsByRunDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    # Phase 2, Step 2.3: Enforce PEP 593 Annotated[T, Field(...)] syntax
     by_run: Annotated[dict[str, InputFileInspectionDTO], Field(default_factory=dict)]
 
     def __contains__(self, key: str) -> bool:
@@ -323,7 +321,6 @@ class UserDocumentationVolumeDTO(BaseModel):
     user_file_count: int
 
 
-# Phase 1, Step 1.4: Strongly typed, immutable input file inspection DTO
 class InputFileInspectionDTO(BaseModel):
     """Immutable input file forensic inspection DTO."""
 
@@ -2939,7 +2936,6 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write("\n")
 
         # Input Corpus Profiling & Structural Volume Table
-        # Phase 3, Step 3.3: Strongly typed InputFileInspectionDTO storage
         all_input_files: dict[str, FileInspectionsByRunDTO] = {}
         for r_name, p in zip(loaded_runs, loaded_paths, strict=False):
             r_in_dir = p.parent / "inputs"

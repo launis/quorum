@@ -71,7 +71,6 @@ class ValidationHookPayloadDTO(V2CoreBase):
         Returns:
             Validated hook payload container instance.
         """
-        # Phase 7, Step 7.1: Preserve runtime validation logic while enforcing PEP 257 docstring
         if type(obj) is dict:
             return cls(root=obj)
         return super().model_validate(

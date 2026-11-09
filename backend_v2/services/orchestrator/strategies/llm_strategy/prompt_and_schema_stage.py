@@ -163,7 +163,6 @@ def _resolve_matrix_shuffled_atoms(
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED when a matrix step has missing or empty shuffled_atoms.
     """
-    # Step 1: Bypass pre-flattened shuffled_atoms validation for autonomous causal discovery steps
     if step_obj.engine_type == EngineType.CAUSAL_DISCOVERY or step_obj.type == StepType.CAUSAL_DISCOVERY:
         return None
 

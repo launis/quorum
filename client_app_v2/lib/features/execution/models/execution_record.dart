@@ -14,7 +14,7 @@ part 'execution_record.g.dart';
 String _statusFromJson(String status) => status.toUpperCase();
 
 /// Typed execution-level context variables matching backend `ContextVariablesDTO`.
-/// Phase 5, Step 5.1: Replace `Map<String, Object?>` contextVariables with closed Freezed DTO.
+/// Replace `Map<String, Object?>` contextVariables with closed Freezed DTO.
 @freezed
 abstract class ContextVariablesDto with _$ContextVariablesDto {
   const ContextVariablesDto._();
@@ -89,7 +89,7 @@ abstract class ProfileSynthesisEntryDto with _$ProfileSynthesisEntryDto {
 abstract class ExecutionRecord with _$ExecutionRecord {
   const ExecutionRecord._();
 
-  // Phase 5, Step 5.1: Replace Map<String, Object?> fields with typed Freezed step state and synthesis models.
+  // Replace Map<String, Object?> fields with typed Freezed step state and synthesis models.
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory ExecutionRecord({
     required String id,

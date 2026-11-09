@@ -89,7 +89,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <constraint>You are NOT allowed to skip minor details, write "MVP" simplified logic, or abstract away complex requirements.</constraint>
       <constraint name="ALREADY_IMPLEMENTED CARVE-OUT">The COMPLETENESS MANDATE applies ONLY to tasks that the Pre-Flight Codebase Scan in Step 1 confirmed as NOT yet implemented. Tasks marked `[x] (VERIFIED_EXISTING)` are exempt from this mandate.</constraint>
       <gate name="PRE-FLIGHT CHECKLIST">Before writing ANY code, you MUST output a literal checklist of all `<constraint>` tags extracted from the XML block.</gate>
-      <action>When writing the code, add comments that trace back to the plan (specifically: `# Phase 3, Step 4: Enforce Exponential Backoff`).</action>
+      <constraint name="ZERO_PLAN_BREADCRUMB_COMMENTS">NEVER write implementation plan, phase, step, or requirement breadcrumb comments (specifically: `# Phase 3, Step 4: ...`, `# Step 1: ...`, or `REQ-001`) in source code or docstrings. Code comments and docstrings MUST be timeless and describe current functionality or explain WHY non-obvious business logic exists in present tense.</constraint>
       <gate name="DOUBLE CHECK MANDATE">Before proceeding to tests, you MUST cross-verify your written code against the `<action>` and `<constraint>` tags to guarantee 100% of the listed requirements have been mapped into the code. Do not proceed until confirmed.</gate>
     </step>
 

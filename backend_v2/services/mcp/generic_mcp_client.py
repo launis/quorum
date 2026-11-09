@@ -264,7 +264,6 @@ class GenericMCPClient:
                     arguments=invocation.arguments,
                 ),
             )
-            # Step 1: Harden GenericMCPClient with Tenacity retry for embedded JSON-RPC transient errors
             tool_retryer = AsyncRetrying(
                 retry=retry_if_exception(_is_transient_llm_error),
                 stop=stop_after_attempt(max(1, settings.llm_max_transient_retries)),
@@ -901,7 +900,6 @@ class GenericMCPClient:
         text_parts = [block.text for block in rpc_response.result.content if block.text]
         return "\n".join(text_parts)
 
-    # Step 1: Inspect structuredContent and meta for upstream rate limits and tool errors
     def _check_structured_tool_error(
         self,
         *,

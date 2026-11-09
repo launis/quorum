@@ -192,7 +192,6 @@ class AblationLiveExecutionConfigDTO(BaseModel):
             description="Optional pair of provider names for cross-model inter-rater reliability benchmarks.",
         ),
     ] = None
-    # Phase 1, Step 1.1: Enforce LaxCognitiveTier pair typing on compare_strategies
     compare_strategies: Annotated[
         tuple[LaxCognitiveTier, LaxCognitiveTier] | None,
         Field(default=None, description="Optional pair of strategies for cross-strategy benchmarks."),
@@ -346,7 +345,6 @@ class SeedRegistryEntryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    # Phase 2, Step 2.1: Require explicit id and name on SeedRegistryEntryDTO (QGR020 Check 20C)
     id: Annotated[str, Field(description="Opaque model registry identifier.")]
     name: Annotated[str, Field(description="Human-readable model registry name.")]
     type: Annotated[str, Field(default="model_registry", description="System configuration document type.")] = (
@@ -393,7 +391,6 @@ def resolve_model_telemetry(
     if type(data) is not dict:
         return {}
 
-    # Phase 1, Step 1.1: Replace permissive .get() with explicit membership resolution
     sys_configs = data["system_config"] if "system_config" in data else []
     raw_configs: Sequence[JsonValue] = []
     if type(sys_configs) is dict:
@@ -563,7 +560,6 @@ def print_model_telemetry(
             ordered_keys.append(k)
 
     for strat in ordered_keys:
-        # Phase 1, Step 1.1: Replace permissive .get() with explicit membership resolution
         t = telemetry[strat] if strat in telemetry else None
         if not t:
             continue
@@ -733,7 +729,6 @@ class AblationLiveExecutor:
                 strat_1,
                 strat_2,
             )
-            # Phase 1, Step 1.1: Route cross-strategy client initialization via LLMClient.from_tier
             client_1 = await LLMClient.from_tier(CognitiveTier(strat_1), repository=repo)
             client_2 = await LLMClient.from_tier(CognitiveTier(strat_2), repository=repo)
         else:

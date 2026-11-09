@@ -136,7 +136,6 @@ class SduiMapperService:
         else:
             status_theme = VisualIntent.SUCCESS
 
-        # Phase 3, Step 3.1: Anchor N_A short-circuit and Toulmin falsification lineage contextually
         # within parent SduiMatrixTableBlock and SduiCausalGraphBlock blocks instead of bottom-of-report orphans.
         na_default_msg = I18nText(translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}).resolve(lang)
         na_rule_prefix = I18nText(

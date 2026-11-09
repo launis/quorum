@@ -324,7 +324,6 @@ class StrippedBaseTDAExtraction(BaseModel):
             return []
         return v
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     exact_quotes: Annotated[
         list[LLMExtractedQuote],
         Field(

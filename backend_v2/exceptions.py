@@ -338,7 +338,6 @@ class ProblemDetailDTO(BaseModel):
     status: int
     detail: str
     instance: str | None = None
-    # Phase 2, Step 2.2: Convert bare Field(...) declaration to PEP 593 Annotated (QGR020 Check 20B)
     extensions: Annotated[dict[str, JsonValue], Field(default_factory=dict)]
 
 

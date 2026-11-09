@@ -7,7 +7,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-// Phase 6, Step 6.2: Adaptive Navigation Shell with Profiili / Profile, Role-Gated Organization & IAM, and Trailing Sign-Out Button.
+// Adaptive Navigation Shell with Profiili / Profile, Role-Gated Organization & IAM, and Trailing Sign-Out Button.
 
 /// **Adaptive Navigation Scaffold**
 ///

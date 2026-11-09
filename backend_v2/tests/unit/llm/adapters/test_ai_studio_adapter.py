@@ -27,7 +27,6 @@ from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 
-# Phase 3, Step 3: Pre-import and snapshot canonical google.genai modules once without collection-time sys.modules mutation
 _mock_genai_client: MagicMock = MagicMock()
 mock_genai_client: MagicMock = _mock_genai_client
 
@@ -120,7 +119,6 @@ def cleanup_genai_mock() -> Iterator[None]:
     try:
         yield
     finally:
-        # Phase 3, Step 3: Restore exact pre-captured module references without del or importlib re-import
         if _real_google_pkg is not None and _real_google_genai is not None:
             _real_google_pkg.genai = _real_google_genai
         if _real_google_genai is not None:

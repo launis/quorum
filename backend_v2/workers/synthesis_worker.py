@@ -223,7 +223,6 @@ async def generate_profile_synthesis_and_pdf_task(
             msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{execution.workflow_id}'."
             logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        # Phase 1, Step 3: Resolve tenant organization_id for Phase 2 report synthesis
         effective_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         if execution.organization_id is not None:
             effective_org_id = execution.organization_id
@@ -318,7 +317,6 @@ async def generate_profile_synthesis_and_pdf_task(
         if not synthesis_reg_id:
             synthesis_reg_id = workflow_def.model_registry_id
 
-        # Phase 1, Step 3: Wire tenant organization_id into Phase 2 synthesis LLMClient.from_tier
         client = await LLMClient.from_tier(
             CognitiveTier.BALANCED,
             repository=repo,

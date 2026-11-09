@@ -73,7 +73,6 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         logger.warning("[AtomFlatteningHook] Step blueprint '%s' not found.", state.task_blueprint)
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    # Phase 3, Step 3.2: Consume typed Step domain model directly without redundant .model_validate()
     prompt_block_ids = step_def.criteria_block_ids
 
     if not prompt_block_ids:

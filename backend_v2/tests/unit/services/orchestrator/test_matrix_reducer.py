@@ -120,7 +120,6 @@ def test_reduce_matrix() -> None:
 
     reduced = MatrixReducer.reduce_matrix(record)
 
-    # Phase 1, Step 1.2: Boolean PASSED, inverse PASSED, FAILED, and PASSED-with-data atoms are all retained
     assert len(reduced.reduced_atoms) == 4
 
     tda_ids = {atom.tda_id for atom in reduced.reduced_atoms}

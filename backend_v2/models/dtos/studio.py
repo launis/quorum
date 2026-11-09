@@ -132,7 +132,6 @@ class WorkflowCreateDTO(V2CoreBase):
     status: Annotated[str, Field(default="draft", description="Workflow lifecycle status")] = "draft"
     version: Annotated[int, Field(default=1, description="Workflow schema version")] = 1
     is_public: Annotated[bool, Field(default=False, description="Public visibility flag")] = False
-    # Phase 2, Step 2.1: Use explicit nullable default=None on mcp_gateway_id (QGR020 Check 20C)
     mcp_gateway_id: Annotated[
         str | None,
         Field(default=None, description="MCP gateway ID"),

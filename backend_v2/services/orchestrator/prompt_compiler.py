@@ -224,7 +224,6 @@ class PromptCompiler:
         """
         xml_blocks = []
 
-        # Phase 1, Step 1.1: Refactor raw dictionary lookups into strongly typed _InputMetaDTO
         input_meta_map: dict[str, _InputMetaDTO] = {}
         if expected_inputs:
             for ei in expected_inputs:

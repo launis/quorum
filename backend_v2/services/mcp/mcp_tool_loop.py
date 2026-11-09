@@ -61,8 +61,6 @@ async def _resolve_dispatcher(
 ) -> ToolDispatcher:
     """Resolve an active ToolDispatcher from explicit injection or system repository.
 
-    # Step 3: Propagate tenant organization_id into ToolDispatcher
-
     Args:
         dispatcher: Optional pre-instantiated ToolDispatcher.
         repository: Optional system config repository exposing get_all_mcp_gateways().
@@ -151,7 +149,6 @@ def _sanitize_mcp_xml_control_tags(raw_text: str) -> str:
     Returns:
         Sanitized string with reserved structural XML boundary tags removed.
     """
-    # Phase 3, Step 3.3: Enforce role_segregation_and_fencing on external MCP evidence
     cleaned = raw_text
     for tag in _RESERVED_MCP_XML_TAGS:
         tag_lower = tag.lower()
@@ -227,7 +224,6 @@ async def _resolve_fast_extraction_client(llm_client: Any, repository: Any) -> A
     """
     if repository is None:
         return llm_client
-    # Step 3: Propagate tenant organization_id from bound llm_client into FAST extraction client
     org_id: PrefixedUUID7 | None = None
     if isinstance(llm_client, LLMClient):
         org_id = llm_client.organization_id
@@ -564,7 +560,6 @@ async def execute_mcp_retrieval(
         evidence_payload="",
     )
 
-    # Step 3: Extract tenant organization_id from bound llm_client for ToolDispatcher
     client_org_id: PrefixedUUID7 | None = None
     if isinstance(llm_client, LLMClient):
         client_org_id = llm_client.organization_id
@@ -845,7 +840,6 @@ async def execute_tool_loop[T: BaseModel](
         m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
     ]
 
-    # Step 3: Extract tenant organization_id from bound llm_client for ToolDispatcher
     client_org_id: PrefixedUUID7 | None = None
     if isinstance(llm_client, LLMClient):
         client_org_id = llm_client.organization_id

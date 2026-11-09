@@ -196,7 +196,6 @@ def _build_encrypted_root_secret(
 @pytest.fixture(autouse=True)
 def isolate_default_uow_and_secret_service() -> Generator[None]:
     """Bind an isolated InMemoryUnitOfWork seeded with ROOT_SYSTEM secrets as the default UoW factory."""
-    # Phase 1, Step 1: Hermetic InMemoryUnitOfWork factory seeded with ROOT_SYSTEM tenant_secrets per test
     uow = InMemoryUnitOfWork()
     default_secrets = (
         _build_encrypted_root_secret(

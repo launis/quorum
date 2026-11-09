@@ -61,7 +61,7 @@
     </rule_block>
 
     <rule_block id="internal_language_and_epic_ban">
-        <mandate>NEVER use the term "Epic" (or "EPIC") in any description, docstring, or comment, and NEVER use Finnish or non-English in comments, variable names, or internal descriptions. ALL internal codebase documentation, inline comments, and description fields MUST be written exclusively in English.</mandate>
+        <mandate>NEVER use implementation plan, phase, step, or epic tracking markers ("Epic", "EPIC", "Phase 1", "Phase 2, Step 2", "Step 1:", "REQ-001") in any description, docstring, or comment, and NEVER use Finnish or non-English in comments, variable names, or internal descriptions. ALL internal codebase documentation, inline comments, and description fields MUST be written exclusively in timeless present-tense English.</mandate>
     </rule_block>
 
     <rule_block id="dio_duration_zero_ban">
@@ -147,7 +147,7 @@
     </rule_block>
     
     <rule_block id="documentation_and_hygiene">
-        <mandate>NEVER draft comments depicting mechanical WHAT code does, and NEVER use Finnish in variable names or comments. Internal logic execution operates purely in English; external chat/explanations operate in Finnish. Only describe WHY a specific business exception was built inline.</mandate>
+        <mandate>NEVER draft comments depicting mechanical WHAT code does, NEVER leave implementation plan or phase/step breadcrumb comments (`// Phase X`, `// Step Y`, `REQ-XXX`), and NEVER use Finnish in variable names or comments. Internal logic execution operates purely in English; external chat/explanations operate in Finnish. Write timeless present-tense comments explaining WHY a specific business rule, edge-case guard, or architectural constraint exists inline.</mandate>
     </rule_block>
 
     <rule_block id="graceful_network_degradation">

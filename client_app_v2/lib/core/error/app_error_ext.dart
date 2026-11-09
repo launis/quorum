@@ -135,7 +135,7 @@ extension AppExceptionX on AppException {
         '${l10n.errAgentExecutionCritical}\n\n${l10n.actionHintContactSupport}',
       'TOOL_EXECUTION_FAILED' =>
         '${l10n.toolExecutionFailed}\n\n${l10n.actionHintToolFailed}',
-      // Step 2: Map MCP discovery and URL validation error codes to localized hints
+      // Map MCP discovery and URL validation error codes to localized hints
       'AGENT_RESPONSE_MALFORMED' =>
         '${l10n.toolExecutionFailed}\n\n${l10n.actionHintToolFailed}',
       'SECURITY_VIOLATION' =>

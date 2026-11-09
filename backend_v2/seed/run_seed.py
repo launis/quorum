@@ -281,8 +281,8 @@ async def _seed_postgres(
     """Seed the PostgreSQL 19 database with validated V2 domain models.
 
     Enforces Two-Phase Pre-Flight In-Memory Validation:
-    Phase 1: Validates 100% of seed items in-memory via validate_all_seed_collections.
-    Phase 2: Executes transactional idempotent UPSERT across all collections in topological order
+    Stage 1: Validates 100% of seed items in-memory via validate_all_seed_collections.
+    Stage 2: Executes transactional idempotent UPSERT across all collections in topological order
         and verifies row counts across all 10 tables via SELECT count(*).
 
     Args:
@@ -318,7 +318,6 @@ async def _seed_postgres(
 
     resolved_uow: QuorumUnitOfWork = uow if uow is not None else create_unit_of_work(get_settings())
     try:
-        # Phase 1, Step 1: Apply idempotent PostgreSQL 19 DDL migrations before transactional seeding
         if isinstance(resolved_uow, PostgresUnitOfWork):
             await resolved_uow.pool_manager.apply_migrations()
         async with resolved_uow as active_uow:
@@ -328,7 +327,6 @@ async def _seed_postgres(
                 print(f"[Seeder V2] Upserted {upserted_count} items to '{col_key}'.")
 
             actual_counts = await verify_seed_table_counts(active_uow, expected_counts)
-        # Phase 1, Step 1: Re-apply migrations after seeding to lock SET NOT NULL on system_configs.name
         if isinstance(resolved_uow, PostgresUnitOfWork):
             await resolved_uow.pool_manager.apply_migrations()
     except AppException:

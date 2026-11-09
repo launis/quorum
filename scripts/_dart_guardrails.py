@@ -80,7 +80,6 @@ class DartViolation(BaseModel):
     is_suppressed: Annotated[bool, Field(description="Whether violation is suppressed")]
 
 
-# Phase 5, Step 5.3: Locked HTTP/SSE/Dio transport boundary ledger for Map<String, Object?>.
 # Any file outside these 9 pure transport boundary files using Map<String, Object?> triggers a FATAL DGR005 violation.
 DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES: frozenset[str] = frozenset(
     {
@@ -130,8 +129,11 @@ DGR003_RAW_ERROR_PATTERN = re.compile(
     re.DOTALL,
 )
 
-# DGR004: Dart lint suppressions (// ignore: or // ignore_for_file:)
+# DGR004: Dart lint suppressions (// ignore: or // ignore_for_file:) and plan/phase/step breadcrumb comments
 DGR004_PATTERN = re.compile(r"//\s*(?:ignore_for_file|ignore):")
+DGR004_PLAN_BREADCRUMB_PATTERN = re.compile(
+    r"///*\s*(?:Phase\s+\d+[A-Z]?\s*(?:,\s*Step\s+\d+(?:\.\d+)?(?:\s*&\s*Step\s+\d+(?:\.\d+)?)?|:)|Step\s+\d+(?:\.\d+)?\s*:)|//[^\n]*\(\s*REQ-\d{3}\s*\)"
+)
 
 # DGR005: Non-codec Map<String, dynamic>, Map<String, Object?>, Map<Object?, Object?>, or Map<dynamic, dynamic>
 DGR005_DYNAMIC_MAP_PATTERN = re.compile(
@@ -169,13 +171,11 @@ _CUSTOM_HOOK_HEADER_PATTERN = re.compile(
 _GOROUTER_PROVIDER_HEADER_PATTERN = re.compile(r"\bGoRouter\s+router\s*\(\s*[A-Za-z0-9_]*Ref\s+\w+\s*\)\s*\{")
 DGR012_REF_WATCH_PATTERN = re.compile(r"\bref\s*\.\s*watch\s*\(")
 
-# Phase 7, Step 7.2: DGR013 Freezed .when() / .maybeWhen() / .maybeMap() / .map(data: ...) ban
 DGR013_FREEZED_WHEN_PATTERN = re.compile(
     r"\.\s*(?:when|maybeWhen|maybeMap|whenOrNull|mapOrNull)\s*\("
     r"|\.\s*map\s*\(\s*[a-zA-Z_][a-zA-Z0-9_]*\s*:"
 )
 
-# Phase 7, Step 7.2: DGR014 Riverpod 3.1 manual provider ban & ref.read / ref.watch discipline
 DGR014_LEGACY_PROVIDER_PATTERN = re.compile(
     r"\b(?:StateProvider|ChangeNotifierProvider|StateNotifierProvider|ChangeNotifier)\b"
 )
@@ -784,7 +784,6 @@ def _check_freezed_and_riverpod_rules(
 
     violations: list[DartViolation] = []
 
-    # Phase 7, Step 7.2: Enforce DGR013 freezed_when_ban
     for when_match in DGR013_FREEZED_WHEN_PATTERN.finditer(uncommented_text):
         lineno, col_offset = _offset_to_line_col(source_text, when_match.start())
         violations.append(
@@ -806,7 +805,6 @@ def _check_freezed_and_riverpod_rules(
             )
         )
 
-    # Phase 7, Step 7.2: Enforce DGR014 Check 14A manual_riverpod_providers
     for legacy_match in DGR014_LEGACY_PROVIDER_PATTERN.finditer(uncommented_text):
         lineno, col_offset = _offset_to_line_col(source_text, legacy_match.start())
         violations.append(
@@ -828,7 +826,6 @@ def _check_freezed_and_riverpod_rules(
             )
         )
 
-    # Phase 7, Step 7.2: Enforce DGR014 Check 14B riverpod_read_vs_watch_ban
     for build_match in _WIDGET_BUILD_HEADER_PATTERN.finditer(uncommented_text):
         body_start = build_match.end() - 1
         build_body = _extract_brace_block(uncommented_text, body_start)
@@ -956,7 +953,7 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
     is_feature_widget_scope = is_ui_scope
     default_severity = GuardrailSeverity.FATAL if strict else GuardrailSeverity.WARNING
 
-    # DGR004 scans raw lines specifically to catch // ignore: and // ignore_for_file: comments
+    # DGR004 scans raw lines specifically to catch // ignore: and // ignore_for_file: comments and plan breadcrumbs
     for lineno, line in enumerate(source_text.splitlines(), start=1):
         dgr004_match = DGR004_PATTERN.search(line)
         if dgr004_match:
@@ -972,6 +969,27 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                     is_suppressed=False,
                 )
             )
+        if not is_test_scope:
+            breadcrumb_match = DGR004_PLAN_BREADCRUMB_PATTERN.search(line)
+            if breadcrumb_match:
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=breadcrumb_match.start(),
+                        rule_code="DGR004",
+                        message=(
+                            f"Banned implementation plan/phase/step breadcrumb `{breadcrumb_match.group(0).strip()}` "
+                            "detected in comment (`documentation_and_hygiene`)."
+                        ),
+                        remediation=(
+                            "Remove plan/phase/step/REQ tracking markers from comments. "
+                            "Describe current functionality and WHY business logic exists in timeless present-tense English."
+                        ),
+                        severity=GuardrailSeverity.FATAL,
+                        is_suppressed=False,
+                    )
+                )
 
     uncommented_text = _strip_dart_comments(source_text)
 

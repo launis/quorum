@@ -131,7 +131,6 @@ class SynthesisPayloadCompressor:
         deficits: list[DistilledEvaluation] = []
         strengths: list[DistilledEvaluation] = []
 
-        # Phase 1, Step 1.3: Include N_A in deficits and sort deficits by topological priority
         for item in evals:
             status = item.status
             if status in ("FAILED", "UNMET", "NON_COMPLIANT", "N_A", ExecutionStatus.FAILED, ExecutionStatus.N_A):
@@ -238,7 +237,6 @@ class SynthesisPayloadCompressor:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
-        # Phase 4, Step 4.3: Replace dict[str, JsonValue] with typed JsonSchemaNode map
         filtered: dict[str, JsonSchemaNode] = {k: v for k, v in val_items if k not in _HEAVY_KEYS_TO_EXCLUDE}
 
         if "results" in filtered:
@@ -292,7 +290,6 @@ class SynthesisPayloadCompressor:
                         and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
                         and not (q.strip().startswith("[") and q.strip().endswith("]"))
                     ]
-                    # Phase 1, Step 1.3: Bypass empty-quote dropout for FAILED, N_A, and inverse evidence
                     is_exempt_status = (
                         ev.status in ("FAILED", "N_A", ExecutionStatus.FAILED, ExecutionStatus.N_A)
                         or ev.is_inverse_evidence
@@ -453,7 +450,6 @@ class SynthesisPayloadCompressor:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-            # Phase 1, Step 1.3: Compute topological_out_degree across downstream evaluations
             out_degree_counts: Counter[str] = Counter()
             for item in distilled_evals:
                 parent_ids = set(item.depends_on_tda_ids) | set(item.short_circuit_reason_tda_ids)

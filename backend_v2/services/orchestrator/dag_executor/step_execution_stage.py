@@ -196,7 +196,6 @@ async def prepare_step_strategy_context(
             try:
                 reducer_cls = _resolve_matrix_reducer()
                 lightweight_matrix = reducer_cls.reduce_matrix(state.exec_record)
-                # Phase 2, Step 2: Only emit matrix_reducer trace event when evaluated atoms exist
                 if lightweight_matrix.reduced_atoms:
                     reduce_event = TraceEvent(
                         event_id=generate_uuid7(),
@@ -302,7 +301,6 @@ async def execute_dag_step_wrapper(
                 return
 
         upstream_graph, node_step_def = await prepare_step_strategy_context(state=state, step_id=step_id)
-        # Phase 3, Step 3.3: Compute deterministic node-level SHA-256 input_merkle_hash
         upstream_merkle_hashes: dict[str, str | None] = {}
         for dep_id in step_obj.depends_on:
             dep_merkle_hash: str | None = None

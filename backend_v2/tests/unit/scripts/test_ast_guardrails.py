@@ -3575,3 +3575,59 @@ def process_data() -> int:
     assert all(v.severity == GuardrailSeverity.FATAL for v in qgr033)
     assert any("before `from __future__ import annotations`" in v.message for v in qgr033)
     assert any("Missing PEP 257 docstring on public domain function `process_data()`" in v.message for v in qgr033)
+
+
+def test_qgr033_flags_plan_breadcrumbs_in_docstrings_and_comments() -> None:
+    """Negative: Verify QGR033 Check 33D flags plan/phase/step/REQ breadcrumbs in docstrings and code comments."""
+    code = '''"""Module docstring.
+
+# Phase 1, Step 1: Module plan breadcrumb.
+"""
+
+
+class BreadcrumbService:
+    """Service class.
+
+    # Phase 2, Step 2: Class plan breadcrumb.
+    """
+
+    def execute(self) -> int:
+        """Execute operation.
+
+        # Step 1: Function plan breadcrumb.
+
+        Returns:
+            Result integer.
+        """
+        # Phase 3, Step 4: Enforce exponential backoff (REQ-008)
+        return 1
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/breadcrumb_service.py", include_qgr033=True)
+    qgr033 = [v for v in violations if v.rule_code == "QGR033"]
+    assert len(qgr033) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr033)
+    assert any("detected in module docstring" in v.message for v in qgr033)
+    assert any("detected in docstring of class `BreadcrumbService`" in v.message for v in qgr033)
+    assert any("detected in docstring of `execute()`" in v.message for v in qgr033)
+    assert any("Banned implementation plan breadcrumb comment" in v.message for v in qgr033)
+
+
+def test_qgr033_allows_timeless_functional_comments() -> None:
+    """Positive: Verify QGR033 Check 33D allows timeless present-tense functional explanation comments."""
+    code = '''"""Service module with timeless documentation."""
+
+
+class CleanService:
+    """Service class explaining current behavior."""
+
+    def execute(self) -> int:
+        """Execute operation with functional comments.
+
+        Returns:
+            Result integer.
+        """
+        # Inherit platform-wide credential stored under ROOT_SYSTEM when the tenant has no override
+        return 1
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/clean_service.py", include_qgr033=True)
+    assert [v for v in violations if v.rule_code == "QGR033"] == []

@@ -102,7 +102,6 @@ class ParsedMatricesResultDTO(V2CoreBase):
     ]
 
 
-# Phase 1, Step 1: Define immutable stage DTOs for MatrixDomainParser decomposition
 class MatrixScaleProjectionDTO(V2CoreBase):
     """Immutable stage DTO encapsulating scale boundaries and display score projections.
 

@@ -115,8 +115,6 @@ class LLMFactory:
     ) -> str | None:
         """Resolve and validate the provider API key from ResolvedCredentialDTO, explicit overrides, or settings.
 
-        # Phase 3, Step 3.2: Receive non-nullable ResolvedCredentialDTO from SecretService
-
         Args:
             provider_type: Provider identifier string.
             model_name: Target model identifier string.
@@ -201,8 +199,6 @@ class LLMFactory:
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> LLMProvider:
         """Create a configured LLMProvider instance from explicit parameters or LLMProviderConfig.
-
-        # Phase 3, Step 3.2: Bind tenant-resolved ResolvedCredentialDTO into LiteLLMProvider
 
         Args:
             provider_type: Provider type key (specifically 'vertex_ai', 'ai_studio', 'openai', 'anthropic', 'litellm', 'mock').

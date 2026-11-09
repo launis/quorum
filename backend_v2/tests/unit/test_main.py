@@ -188,7 +188,6 @@ async def test_validation_exception_handler() -> None:
     class SampleModel(BaseModel):
         name: str
 
-    # Phase 1, Step 1: Use pytest.raises(ValidationError) to avoid TD_MODEL_FACTORY manual try/except
     with pytest.raises(ValidationError) as exc_info:
         SampleModel.model_validate({"name": 123}, strict=True)
     validation_exc = RequestValidationError(errors=exc_info.value.errors())

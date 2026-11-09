@@ -53,8 +53,6 @@ class LLMCachingService:
     ) -> CachingPayloadResultDTO:
         """Prepare the cache payload by delegating to the appropriate adapter.
 
-        # Step 2: Propagate config and resolved_credential into concrete cache adapters
-
         Args:
             provider_name: The target LLM provider (e.g., 'vertex_ai', 'anthropic').
             compiled_prompt: The structured CompiledPrompt containing static and dynamic message segments.
@@ -90,8 +88,6 @@ class LLMCachingService:
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> None:
         """Pre-cache a document upfront (Cache Pre-Warming).
-
-        # Step 2: Propagate config and resolved_credential into pre_cache_document
 
         Explicitly triggers the adapter to create and lock the provider-specific context cache,
         preventing thundering herds during parallel TaskGroup execution.

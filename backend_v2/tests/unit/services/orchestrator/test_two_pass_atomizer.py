@@ -633,7 +633,6 @@ async def test_extract_atoms_from_chunk_unbounded_default_allows_anchor_quote_ov
     assert len(result) == 1
     assert result[0].source_quotes == (oversized_block_text,)
 
-    # Step 2: Verify 1:1 parity for _extract_drafts_from_chunk under unbounded (0) and bounded (1000) settings
     draft_unbounded, _ = await atomizer._extract_drafts_from_chunk(
         client=mock_client,
         compiled_prompt=compiled_prompt,

@@ -291,7 +291,7 @@ void main() {
     test(
       'Positive 3: preserves structured RFC 7807 HTTP 403 SECURITY_VIOLATION payload instead of overwriting with AUTHENTICATION_FAILED',
       () {
-        // Step 2: Verify HTTP 403 RFC 7807 Problem Details is parsed into AppException(status: 403, errorCode: SECURITY_VIOLATION)
+        // Verify HTTP 403 RFC 7807 Problem Details is parsed into AppException(status: 403, errorCode: SECURITY_VIOLATION)
         final interceptor = resolveInterceptor();
         final requestOptions = RequestOptions(
           path:

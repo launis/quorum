@@ -116,7 +116,6 @@ def test_ast_execution_subservices_zero_reporting_coupling() -> None:
 
 def test_ast_dag_executor_zero_sys_render_injection() -> None:
     """Verify dag_executor package contains zero sys_render steps or references."""
-    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/dag_executor/
     dag_dir = Path("backend_v2/services/orchestrator/dag_executor")
     assert dag_dir.is_dir(), f"Missing target package directory: {dag_dir}"
     dag_files = sorted(dag_dir.glob("*.py"))

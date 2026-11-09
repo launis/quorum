@@ -19,7 +19,6 @@ from backend_v2.exceptions import (
     ServiceUnavailableError,
 )
 
-# Phase 4, Step 2: Import LLMProvider and LLMFactory from modular provider submodules
 from backend_v2.llm.provider.base_and_mock_provider import LLMProvider
 from backend_v2.llm.provider.provider_factory import LLMFactory
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry

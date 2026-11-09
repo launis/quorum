@@ -117,7 +117,6 @@ class TwoPassAtomizer:
             dynamic_messages=[],
         )
 
-        # Step 3: Forward config and resolved_credential into LLMCachingService.pre_cache_document
         await LLMCachingService.pre_cache_document(
             provider_name=client.provider_name,
             compiled_prompt=compiled_prompt,
@@ -220,7 +219,6 @@ class TwoPassAtomizer:
             dynamic_messages=[],
         )
 
-        # Step 3: Forward config and resolved_credential into LLMCachingService.pre_cache_document
         await LLMCachingService.pre_cache_document(
             provider_name=client.provider_name,
             compiled_prompt=compiled_prompt,
@@ -313,7 +311,6 @@ class TwoPassAtomizer:
 
         final_atoms: list[ExtractedAtom] = []
         for draft in draft_result.atoms:
-            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 TDA assertion ID
             tda_id = generate_opaque_id(EntityPrefix.TDA)
             exact_quote = None
 
@@ -342,7 +339,6 @@ class TwoPassAtomizer:
                     continue
 
                 exact_quote = local_alias_map[clean_id]
-                # Phase 1, Step 1.3: Bound hydrated anchor text only when max_citation_span_chars > 0
                 max_span_chars = get_settings().max_citation_span_chars
                 if max_span_chars > 0 and len(exact_quote) > max_span_chars:
                     logger.debug(
@@ -407,7 +403,6 @@ class TwoPassAtomizer:
             dynamic_messages=[],
         )
 
-        # Step 3: Forward config and resolved_credential into LLMCachingService.pre_cache_document
         await LLMCachingService.pre_cache_document(
             provider_name=client.provider_name,
             compiled_prompt=compiled_prompt,
@@ -543,7 +538,6 @@ class TwoPassAtomizer:
                 continue
 
             exact_quote = local_alias_map[clean_id]
-            # Step 2: Synchronize draft anchor quote bounding with Settings.max_citation_span_chars (0 = unbounded)
             max_span_chars = get_settings().max_citation_span_chars
             if max_span_chars > 0 and len(exact_quote) > max_span_chars:
                 logger.debug(

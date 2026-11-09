@@ -169,7 +169,6 @@ class WorkflowInputsIngress(WorkflowInputsBase):
         dynamic_inputs: Structured dictionary for dynamic workflow inputs.
     """
 
-    # Phase 2, Step 2.2: Convert bare Field(...) declarations to PEP 593 Annotated (QGR020 Check 20B)
     dynamic_inputs: Annotated[
         dict[str, IngressInputValue],
         Field(default_factory=dict, description="Structured dictionary for dynamic workflow inputs."),

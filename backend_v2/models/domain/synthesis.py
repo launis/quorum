@@ -143,7 +143,6 @@ class DistilledEvaluation(V2CoreBase):
         topological_out_degree: Number of downstream evaluations depending on or short-circuited by this atom.
     """
 
-    # Phase 1, Step 1.2: Enrich DistilledEvaluation with topological lineage fields under strict frozen ConfigDict
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     atom_id: Annotated[str | None, Field(default=None, description="Opaque atom identifier")] = None

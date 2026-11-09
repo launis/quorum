@@ -44,7 +44,6 @@ async def get_system_health(request: Request) -> HealthCheckResponseDTO:
             failure occurs during health evaluation, or re-raises any upstream `AppException`.
     """
     try:
-        # Step 2: Evaluate O(1) in-memory readiness and resolve Settings SSOT metadata
         cfg = get_settings()
         is_ready = (
             isinstance(request.app.state, State)

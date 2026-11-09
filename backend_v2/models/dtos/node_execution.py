@@ -142,7 +142,6 @@ class LogicEvaluationContextDTO(V2CoreBase):
     user_role: Annotated[str | None, Field(default=None, description="User role")] = None
 
 
-# Phase 4, Step 4.1: Replace JsonValue with typed JsonSchemaNode in StepOutputContentValue
 type StepOutputContentValue = StepPayloadValue | DomainInputValue | JsonSchemaNode
 
 

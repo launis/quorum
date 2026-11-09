@@ -188,7 +188,6 @@ class ExecutionResumptionService:
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
                 )
 
-        # Phase 3, Step 3.3: Verify node-level input_merkle_hash and invalidate drifted PASSED steps on resume
         wf_res = self.workflow_repo.get_workflow_by_id(record.workflow_id)
         workflow = await wf_res if inspect.isawaitable(wf_res) else wf_res
         if isinstance(workflow, Workflow):

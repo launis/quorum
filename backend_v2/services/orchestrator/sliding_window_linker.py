@@ -396,7 +396,6 @@ class SlidingWindowLinker:
 
             current_window_ids = {atom.tda_id for atom in window_atoms}
 
-            # Phase 5: Select deliverable structural anchors for window index i > 0
             selected_structural_anchors: list[ExtractedAtom] = []
             if i > 0:
                 selected_structural_anchors = self._select_structural_anchors(
@@ -451,7 +450,6 @@ class SlidingWindowLinker:
             )
 
             try:
-                # Phase 3, Step 3.3: Direct task execution delegating rate limiting to LiteLLMProvider
                 response, usage = await executor.execute_structured_task(
                     client=client,
                     messages=compiled_prompt,

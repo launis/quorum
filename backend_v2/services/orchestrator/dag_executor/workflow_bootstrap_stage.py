@@ -179,7 +179,6 @@ def compute_step_input_merkle_hash(
     Returns:
         Hexadecimal SHA-256 Merkle digest string for the step.
     """
-    # Phase 3, Step 3.3: Compute deterministic node-level SHA-256 input_merkle_hash
     referenced_block_ids: set[str] = set()
     if isinstance(step_def, Step):
         referenced_block_ids.update(step_def.criteria_block_ids)
@@ -269,7 +268,6 @@ def invalidate_drifted_passed_steps(
     Returns:
         Updated ExecutionRecord with drifted and downstream dependent steps reset to PENDING.
     """
-    # Phase 3, Step 3.3: Verify node-level input_merkle_hash and cascade invalidation to downstream steps
     expected_hashes: dict[str, str] = {}
     for step_rule in workflow.steps:
         bp_id = step_rule.task_blueprint

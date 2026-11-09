@@ -52,7 +52,6 @@ __all__ = [
     "PostgresGraphAdapter",
 ]
 
-# Step 4: Single-Round Multi-CTE Wave Ingestion with PostgreSQL 19 ON CONFLICT DO SELECT RETURNING
 _MATERIALIZE_WAVE_SQL: str = """
 WITH input_nodes AS (
     SELECT
@@ -344,7 +343,6 @@ class CteReasoningStrategy:
         self._conn: AsyncPgConnectionProtocol = connection
         self.command_timeout_seconds: float = resolved_timeout
 
-    # Phase 1, Step 1.1: Execute PostgreSQL 19 3-way Toulmin falsification join for causal fusion
     async def find_falsified_claims(
         self,
         run_id: str,
@@ -736,7 +734,6 @@ class PostgresGraphAdapter:
 
         return tuple(_hydrate_proposition_node(row) for row in rows)
 
-    # Phase 1, Step 1.1: Execute PostgreSQL 19 3-way Toulmin falsification join for causal fusion
     async def find_falsified_claims(
         self,
         run_id: str,

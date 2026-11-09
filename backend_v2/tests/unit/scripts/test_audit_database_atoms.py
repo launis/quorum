@@ -723,7 +723,7 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
         audit_canonical_entity_ids,
     )
 
-    # Phase 3, Step 3 (REQ-009): Positive path across all 7 collections
+    # Phase 3, Step 3: Positive path across all 7 collections
     assert "wf" in SEED_COLLECTION_ALLOWED_PREFIXES["workflows"]
     assert SEED_COLLECTION_REQUIRED_DISPLAY_FIELD["prompt_blocks"] == "label"
     assert "node_id" in BANNED_ALTERNATIVE_PK_KEYS

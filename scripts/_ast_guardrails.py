@@ -165,6 +165,9 @@ _QGR031_VALID_OPERATOR_LITERALS: frozenset[str] = frozenset(
 )
 _QGR031_VALID_ENUM_ATTRS: frozenset[str] = frozenset({"EQ", "NE", "GT", "GTE", "LT", "LTE", "IN", "CONTAINS"})
 _RAISES_NONE_REGEX: re.Pattern[str] = re.compile(r"Raises:\s*(?:\n\s*)?None\b")
+_PLAN_BREADCRUMB_REGEX: re.Pattern[str] = re.compile(
+    r"(?:^|\n)\s*#?\s*(?:Phase\s+\d+[A-Z]?\s*(?:,\s*Step\s+\d+(?:\.\d+)?(?:\s*&\s*Step\s+\d+(?:\.\d+)?)?|:)|Step\s+\d+(?:\.\d+)?\s*:)|\(\s*REQ-\d{3}\s*\)"
+)
 
 
 def _is_repository_identifier(name: str) -> bool:
@@ -505,7 +508,6 @@ def _has_non_none_field_default(node: ast.AST | None) -> bool:
     Returns:
         True if any Field() call inside node specifies a non-None/non-Ellipsis default, False otherwise.
     """
-    # Phase 1, Step 1: Detect Field(default=...) with non-None default values for QGR020
     if node is None:
         return False
     for sub in ast.walk(node):
@@ -530,7 +532,6 @@ def _is_literal_discriminator_annotation(annotation: ast.AST | None) -> bool:
     Returns:
         True if the base type annotation is Literal[...], False otherwise.
     """
-    # Phase 1, Step 1: Exempt Literal[...] discriminated union tags from QGR020 default value ban
     if not isinstance(annotation, ast.Subscript):
         return False
     match annotation.value:
@@ -553,7 +554,6 @@ def _is_fallback_default_expr(node: ast.AST | None) -> bool:
     Returns:
         True if the expression is a non-None constant, Enum attribute, or uppercase constant.
     """
-    # Phase 1, Step 1: Identify literal/Enum fallback assignments in `if x is None: x = <default>`
     if node is None:
         return False
     match node:
@@ -599,7 +599,6 @@ def _is_annotated_subscript(annotation: ast.AST | None) -> bool:
     Returns:
         True if the annotation is an Annotated[...] subscript, False otherwise.
     """
-    # Phase 1, Step 1: Detect PEP 593 Annotated[...] subscript for QGR020 Check 20B
     if isinstance(annotation, ast.Subscript):
         match annotation.value:
             case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
@@ -653,7 +652,6 @@ def is_exempt_dict_get_call(node: ast.Call) -> bool:
     Returns:
         True if the `.get()` call targets an exempt receiver or signature, False otherwise.
     """
-    # Phase 1A, Step 1: Canonical .get() receiver and signature exemption SSOT
     if not (isinstance(node.func, ast.Attribute) and node.func.attr == "get"):
         return True
 
@@ -700,7 +698,6 @@ def _function_has_error_log(fn_node: ast.FunctionDef | ast.AsyncFunctionDef) -> 
     Returns:
         True if the function scope invokes an error logger or error-logging helper, False otherwise.
     """
-    # Phase 1, Step 1: Verify RFC 7807 error logging before raising AppException in QGR033
     stack: list[ast.AST] = list(fn_node.body)
     while stack:
         curr = stack.pop()
@@ -742,7 +739,6 @@ def _find_direct_app_exception_raises(fn_node: ast.FunctionDef | ast.AsyncFuncti
     Returns:
         List of ast.Raise nodes directly raising AppException.
     """
-    # Phase 1, Step 1: Collect direct AppException raises within function scope for QGR033
     raises: list[ast.Raise] = []
     stack: list[ast.AST] = list(fn_node.body)
     while stack:
@@ -781,7 +777,6 @@ def _is_type_alias_annotation(node: ast.AST) -> bool:
     Returns:
         True if the annotation references `TypeAlias` or `typing.TypeAlias`.
     """
-    # Phase 7, Step 7.3: Detect legacy PEP 613 TypeAlias annotations for QGR013
     match node:
         case ast.Name(id="TypeAlias") | ast.Attribute(attr="TypeAlias"):
             return True
@@ -798,7 +793,6 @@ def _is_ellipsis_stub_body(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool
     Returns:
         True if the body consists solely of an Ellipsis constant expression.
     """
-    # Phase 7, Step 7.3: Exempt Protocol and overload ellipsis stubs from QGR033 Check 33B
     if len(node.body) != 1:
         return False
     first_stmt = node.body[0]
@@ -818,7 +812,6 @@ def _has_misplaced_docstring_after_future_import(node: ast.Module) -> bool:
     Returns:
         True if statement 0 is a `__future__` import and statement 1 is a string literal expression.
     """
-    # Phase 7, Step 7.3: Diagnose misplaced module docstrings placed after from __future__ import annotations
     if len(node.body) < 2:
         return False
     first_stmt = node.body[0]
@@ -1074,7 +1067,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         elif norm_path == "backend_v2/services/orchestrator/dag_executor.py" or norm_path.endswith(
             "/backend_v2/services/orchestrator/dag_executor.py"
         ):
-            # Phase 4, Step 2: Lock retired path backend_v2/services/orchestrator/dag_executor.py under QGR017
             self._add_violation(
                 node,
                 "QGR017",
@@ -1085,7 +1077,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         elif norm_path == "backend_v2/database/postgres/entity_adapter.py" or norm_path.endswith(
             "/backend_v2/database/postgres/entity_adapter.py"
         ):
-            # Phase 4, Step 3: Lock retired path backend_v2/database/postgres/entity_adapter.py under QGR017
             self._add_violation(
                 node,
                 "QGR017",
@@ -1130,7 +1121,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         severity=GuardrailSeverity.FATAL,
                     )
 
-        # Phase 1, Step 1: QGR033 Check 33A (Raises: None ban) & Check 33B (Module PEP 257 docstring guard)
         if not self.is_guardrail_self:
             mod_doc = ast.get_docstring(node, clean=False)
             if mod_doc and _RAISES_NONE_REGEX.search(mod_doc):
@@ -1139,6 +1129,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR033",
                     "Banned `Raises: None` detected in module docstring.",
                     "Remove `Raises: None` from docstrings; only document actual raised exceptions per `docstring_fail_fast_ban`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            if not self._is_test_file and mod_doc and _PLAN_BREADCRUMB_REGEX.search(mod_doc):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    "Banned implementation plan breadcrumb (`Phase X` / `Step Y` / `REQ-XXX`) detected in module docstring.",
+                    "Remove plan/phase/step tracking markers and write timeless present-tense functional documentation per `documentation_present_tense_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
             if (
@@ -1203,7 +1201,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 severity=GuardrailSeverity.FATAL,
             )
 
-        # Phase 4, Step 4: QGR030 Ban legacy uuid.uuid4 in domain code
         if (
             self._is_domain_code
             and not self._is_test_file
@@ -1226,7 +1223,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         Args:
             node: Function or method Call AST node to inspect.
         """
-        # Phase 1, Step 1: Enforce static query filter discipline on Filter(...) and QueryCondition(...) calls
         if self.is_guardrail_self or self._normalized_path.endswith("backend_v2/tests/unit/database/test_postgres.py"):
             return
         call_target_name: str | None = None
@@ -1262,7 +1258,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
             elif stripped_field.lower() == "slug" or stripped_field.lower().endswith(".slug"):
-                # Phase 1, Step 1: Ban Filter("slug", ...) and QueryCondition("slug", ...) under QGR031
                 self._add_violation(
                     field_node,
                     "QGR031",
@@ -1329,7 +1324,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
-            # Phase 1, Step 1.3: Ban legacy .from_strategy(...) calls and string-literal LLMClient.from_tier("...") calls
             if isinstance(node.func, ast.Attribute):
                 if node.func.attr == "from_strategy":
                     self._add_violation(
@@ -1411,7 +1405,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 pass
 
         # QGR002: 1-argument and 2-argument .get(key) / .get(key, default) fallback in domain code
-        # Phase 1A, Step 1: Delegate .get() exemption checks to canonical is_exempt_dict_get_call SSOT
         if self._is_domain_code and isinstance(node.func, ast.Attribute) and node.func.attr == "get":
             if not is_exempt_dict_get_call(node):
                 qgr002_sev = GuardrailSeverity.FATAL
@@ -1510,7 +1503,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 pass
 
         # QGR012: isinstance(..., dict | Mapping) or composite duck-typing check
-        # Phase 2, Step 2: Scope QGR012 to domain code and non-boundary-exempt files
         if (
             self._is_domain_code
             and not self._is_boundary_exempt
@@ -1828,7 +1820,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                 severity=GuardrailSeverity.FATAL,
                             )
 
-        # Phase 3, Step 3.3: DLP AST guardrail verifying TenantSecretDTO and ResolvedCredentialDTO
         # never serialize SecretStr via get_secret_value() inside logger calls or MCPAuditTrace instantiations.
         if not self.is_guardrail_self:
             is_logger_or_audit_sink = False
@@ -1866,7 +1857,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                 severity=GuardrailSeverity.FATAL,
                             )
 
-            # Phase 1, Step 1: QGR031 Ban .slug inside logger.* and AppException arguments in domain code
             if self._is_domain_code:
                 is_logger_or_app_exc = False
                 match node.func:
@@ -2037,7 +2027,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         """
         self._check_qgr026_decorators(node)
 
-        # Phase 1, Step 1: QGR033 Check 33A (Raises: None ban) & Check 33B (Public class PEP 257 docstring guard)
         if not self.is_guardrail_self:
             cls_doc = ast.get_docstring(node, clean=False)
             if cls_doc and _RAISES_NONE_REGEX.search(cls_doc):
@@ -2046,6 +2035,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR033",
                     f"Banned `Raises: None` detected in docstring of class `{node.name}`.",
                     "Remove `Raises: None` from docstrings; class docstrings must only describe the class and public Attributes per PEP 257.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            if not self._is_test_file and cls_doc and _PLAN_BREADCRUMB_REGEX.search(cls_doc):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    f"Banned implementation plan breadcrumb (`Phase X` / `Step Y` / `REQ-XXX`) detected in docstring of class `{node.name}`.",
+                    "Remove plan/phase/step tracking markers and write timeless present-tense functional documentation per `documentation_present_tense_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
             if (
@@ -2064,7 +2061,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
 
-        # Phase 1, Step 1: QGR032 Polyfactory ModelFactory 32-Hex UUIDv7 Invariant
         is_model_factory = False
         for base in node.bases:
             match base:
@@ -2305,7 +2301,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "Use strict Enum members (e.g. PromptBlockCategory.MATRIX) instead of raw string literals for category routing.",
                         )
 
-            # Phase 1, Step 1: QGR031 .slug identifier & string literal comparison ban in domain code
             if not self.is_guardrail_self and self._is_domain_code:
                 left_is_slug = isinstance(left_operand, ast.Attribute) and left_operand.attr == "slug"
                 right_is_slug = isinstance(comparator, ast.Attribute) and comparator.attr == "slug"
@@ -2339,7 +2334,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         Args:
             node: The `ast.DictComp` AST node.
         """
-        # Phase 1, Step 1: QGR031 {x.slug: ...} dictionary comprehension key ban
         if not self.is_guardrail_self and self._is_domain_code:
             if isinstance(node.key, ast.Attribute) and node.key.attr == "slug":
                 self._add_violation(
@@ -2357,7 +2351,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         Args:
             node: The `ast.Dict` AST node.
         """
-        # Phase 1, Step 1: QGR031 {x.slug: ...} dictionary literal key ban
         if not self.is_guardrail_self and self._is_domain_code:
             for key_node in node.keys:
                 if isinstance(key_node, ast.Attribute) and key_node.attr == "slug":
@@ -2392,7 +2385,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         for sub_node in ast.walk(node.test):
             self._bool_condition_nodes.add(sub_node)
         if self._is_type_checking_guard(node.test):
-            # Phase 1, Step 1: Track _in_type_checking scope so runtime layer firewall ignores static type hints
             was_in_type_checking = self._in_type_checking
             self._in_type_checking = True
             for stmt in node.body:
@@ -2402,7 +2394,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 self.visit(stmt)
             return
 
-        # Phase 1, Step 1: QGR016 Ban `if x is None: x = <default>` fallback assignments in services/API
         if (
             not self.is_guardrail_self
             and not self._is_test_file
@@ -2719,7 +2710,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         Args:
             node: Function or async function AST node to inspect.
         """
-        # Phase 1, Step 1 & Phase 7, Step 7.3: QGR033 Check 33A, Check 33B & Check 33C
+        # QGR033 Check 33A, Check 33B & Check 33C
         if not self.is_guardrail_self:
             fn_doc = ast.get_docstring(node, clean=False)
             if fn_doc and _RAISES_NONE_REGEX.search(fn_doc):
@@ -2728,6 +2719,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR033",
                     f"Banned `Raises: None` detected in docstring of `{node.name}()`.",
                     "Remove `Raises: None` from function docstrings; explicitly list actual AppException error codes or omit the Raises section if none.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            if not self._is_test_file and fn_doc and _PLAN_BREADCRUMB_REGEX.search(fn_doc):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    f"Banned implementation plan breadcrumb (`Phase X` / `Step Y` / `REQ-XXX`) detected in docstring of `{node.name}()`.",
+                    "Remove plan/phase/step tracking markers and write timeless present-tense functional documentation per `documentation_present_tense_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
             if (
@@ -2799,7 +2798,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         Args:
             node: AnnAssign AST node to inspect.
         """
-        # Phase 7, Step 7.3: Ban legacy PEP 613 `: TypeAlias = ...` declarations
         if not self.is_guardrail_self and _is_type_alias_annotation(node.annotation):
             self._add_violation(
                 node,
@@ -2851,7 +2849,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Enforce explicit required Pydantic V2 DTO fields and Fail-Fast validation (raising AppException on missing values) with zero default values or fallback expressions.",
                     severity=GuardrailSeverity.FATAL,
                 )
-            # Phase 2, Step 2.3: QGR020 Check 20B - Bare Field(...) assignment without Annotated[T, Field(...)] on Pydantic classes
             elif (
                 self._current_class_name in self._pydantic_base_classes_in_file
                 and self._function_depth == 0
@@ -2866,7 +2863,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Wrap the field annotation in PEP 593 `Annotated[T, Field(...)]` per `pydantic_annotated_fields_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
-            # Phase 2, Step 2.3: QGR020 Ban non-None default values on identity, relational, slug, name, label, title, and storage_mode fields
             if (
                 not self.is_guardrail_self
                 and self._current_class_name in self._pydantic_base_classes_in_file
@@ -2909,7 +2905,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         severity=GuardrailSeverity.FATAL,
                     )
 
-        # Phase 1, Step 1.3: QGR030 In-memory shadow state fallback attribute ban on AnnAssign in services
         if (
             not self.is_guardrail_self
             and (
@@ -3005,7 +3000,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         severity=GuardrailSeverity.FATAL,
                     )
 
-        # Phase 1, Step 1.3: QGR030 In-memory shadow state fallback attribute ban on Assign in services
         if not self.is_guardrail_self and (
             self._normalized_path.startswith("backend_v2/services/") or "/backend_v2/services/" in self._normalized_path
         ):
@@ -3039,8 +3033,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
     def _check_tripartite_layer_import(self, node: ast.Import | ast.ImportFrom, imported_target: str) -> bool:
         """Enforce QGR017 Tripartite Layer & Protocol Firewall across PostgreSQL, Pydantic, and Python layers.
-
-        # Phase 1, Step 1: Enforce Tripartite Layer & Protocol Firewall in QGR017.
 
         Args:
             node: The `ast.Import` or `ast.ImportFrom` AST node.
@@ -3270,7 +3262,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         Args:
             node: ImportFrom AST node to inspect.
         """
-        # Phase 7, Step 7.3: Ban legacy PEP 613 TypeAlias imports in favor of PEP 695 `type Alias = ...`
         if self.is_guardrail_self:
             return
         if node.module in ("typing", "typing_extensions"):
@@ -3625,7 +3616,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                 severity=GuardrailSeverity.FATAL,
             )
-        # Phase 4, Step 4: QGR030 Ban bare uuid4 identifier in domain code
         if self._is_domain_code and not self._is_test_file and node.id == "uuid4":
             self._add_violation(
                 node,
@@ -3653,7 +3643,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
 
-        # Phase 1, Step 1: QGR030 Ban PYTEST_CURRENT_TEST environment branching in service/API layers
         if (
             isinstance(node.value, str)
             and node.value == "PYTEST_CURRENT_TEST"
@@ -3948,7 +3937,7 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
 
     # 2. Check for tokenization errors and parse comments
     try:
-        list(tokenize.tokenize(io.BytesIO(source_bytes).readline))
+        tokens = list(tokenize.tokenize(io.BytesIO(source_bytes).readline))
     except (tokenize.TokenError, IndentationError, SyntaxError) as exc:
         return [
             GuardrailViolation(
@@ -3964,6 +3953,20 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
 
     # 3. Traverse AST with RecursionError isolation
     visitor = QuorumGuardrailVisitor(filepath)
+    if not visitor.is_guardrail_self and not visitor._is_test_file:
+        for tok in tokens:
+            if tok.type == tokenize.COMMENT and _PLAN_BREADCRUMB_REGEX.search(tok.string):
+                visitor.violations.append(
+                    GuardrailViolation(
+                        filepath=filepath,
+                        lineno=tok.start[0],
+                        col_offset=tok.start[1],
+                        rule_code="QGR033",
+                        message="Banned implementation plan breadcrumb comment (`# Phase X` / `# Step Y` / `REQ-XXX`) detected.",
+                        remediation="Remove plan/phase/step tracking prefixes and retain only timeless present-tense functional explanations per `documentation_present_tense_mandate`.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+                )
     try:
         visitor.visit(tree)
     except RecursionError as exc:

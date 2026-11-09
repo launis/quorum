@@ -81,7 +81,6 @@ def _normalize_lineage_claims(claims: list[str] | None) -> list[str]:
     Returns:
         Ordered list of non-empty stripped claim strings.
     """
-    # Phase 3, Step 3.2: Deterministic lineage normalization for PDF parity
     if not claims:
         return []
     seen: list[str] = []
