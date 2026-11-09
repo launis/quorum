@@ -53,7 +53,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md] @[ki_god_code_prevention.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md]
   ```
@@ -98,15 +98,16 @@
   - **Step 2 (`32c26e589`, `6653e2c15`)**: Extended `@[backend_v2/llm/adapters/base_adapter.py]` and `@[backend_v2/llm/caching_service.py]` with `config` and `resolved_credential`, bound `vertex_location=target_strategy.additional_params.vertex_location` in `@[backend_v2/llm/client.py]`, forwarded `resolved_credential` in `@[backend_v2/llm/provider/litellm_provider.py]`, implemented Vertex AI BYOK Service Account JSON (`_parse_service_account_json`, `vertex_credentials`, `vertex_project`, `google.oauth2.service_account.Credentials`, fail-fast validation) and Express Mode API keys in `@[backend_v2/llm/adapters/vertex_adapter.py]`, removed global `os.environ` location mutations, and scoped tenant Redis cache keys by `organization_id` in `@[backend_v2/llm/adapters/vertex_adapter.py]` and `@[backend_v2/llm/adapters/ai_studio_adapter.py]`.
   - **Step 3 (`fee40bb19`)**: Propagated `config` and `resolved_credential` in `@[backend_v2/services/orchestrator/enriched_dag_executor.py]` and `@[backend_v2/services/orchestrator/two_pass_atomizer.py]` `pre_cache_document` calls, and forwarded tenant `organization_id` across `@[backend_v2/services/orchestrator/rag_preflight_service.py]`, `@[backend_v2/services/mcp/mcp_tool_loop.py]`, `@[backend_v2/hooks/interaction_hook.py]`, `@[backend_v2/hooks/linguistics.py]`, and `@[backend_v2/hooks/source_verification_hook.py]`.
 - Passed Global Backend Audit Loop (`backend_audit_loop.py backend_v2/ --test`: 7,007 passed, 0 failed, 97.46% total coverage), Global Flutter Audit Loop (`flutter_audit_loop.py client_app_v2/ --build`: 0 issues), and Mandatory Final Live E2E Test (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`: 7 passed in 377.07s).
+- Executed `/tier8-audit-plan` (`6943593b9`) and `/tier7-describe-architecture` synchronizing `@[ki_global_config_sovereignty.md]`, `@[ki_god_code_prevention.md]`, `@[ki_zero_permissive_typing.md]`, `@[.agents/rules/04_directory_reference.md]`, and `docs/architecture/`.
 
 ## Learned
 - Loading `google.oauth2.service_account` via `importlib.import_module("google.oauth2.service_account")` inside `VertexCacheAdapter.prepare_caching_payload` avoids `# type: ignore[no-untyped-call]` while preserving `patch("google.oauth2.service_account.Credentials.from_service_account_info")` test hooks and keeping `audit_warning_baseline.py` Census `T` at `0`.
 - Validating `if not raw_secret.strip().startswith("{"):` with explicit `parsed: dict[str, Any] = json.loads(raw_secret)` in `VertexCacheAdapter._parse_service_account_json` satisfies `test_admission_ratchet_asserts_clean_baseline_for_new_members` (which scans `vertex_adapter.py` with `BOUNDARY_EXEMPTION_FILES` patched to `frozenset()` under `QGR012`).
 
 ## Remaining
-- Execute `/tier8-audit-plan`, Tier 2 Hardening (`auto_hardening_runner.py`), and `/tier7-describe-architecture`.
+- Execute Tier 2 Hardening (`auto_hardening_runner.py --gate all`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Vertex_AI_BYOK_And_Runtime_SSOT.md] @[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Vertex_AI_BYOK_And_Runtime_SSOT.md]" --gate all --model gemini-4-argon-medium --continue-on-failure
 ```

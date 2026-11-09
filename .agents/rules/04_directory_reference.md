@@ -45,7 +45,7 @@
           - Pillar 4 (SDUI & Presentation): report/ (lifecycle_service.py, compilation_service.py, format_reader_service.py, __init__.py facade), export/ (metadata_resolver.py, excel_styler.py, summary_builder.py, atom_row_builder.py, excel_exporter.py, csv_exporter.py, __init__.py facade), blueprint.py, pdf_generator.py, localization.py, sdui/ (sdui_mapper_service.py), sdui/sanitizers/ (mcp_presentation_sanitizer.py), sdui/adapters/ (base_adapter.py, causal_graph_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience & Observability): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
           - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_extractor/ [bubble_geometry.py, table_and_card_stage.py, turn_assembly_stage.py, __init__.py facade], multi_channel_ingress_service.py, smart_ingress_resolver.py), source_verification_service.py, matrix_parser/ (distribution_formatter.py, scale_and_atom_stage.py, row_builder_stage.py, __init__.py facade), orchestrator/ (anchor_validation/ [lexical_normalizer.py, lexical_matcher.py, evidence_validator.py, atom_evaluation_processor.py, __init__.py facade], two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py, ast_evaluator.py, atomizer.py, extraction_schema_factory.py)
-          - Pillar 1 (Security & Identity): auth/ (repositories.py, token_service.py, organization_service.py, user_service.py, secret_service.py, email_service.py, __init__.py facade)
+          - Pillar 1 (Security & Identity): auth/ (repositories.py, token_service.py, organization_service.py, user_service.py, secret_service.py [100% database-only tenant_secrets BYOK & ROOT_SYSTEM resolution], email_service.py, __init__.py facade)
         </key_domains>
     </module>
     
@@ -87,12 +87,12 @@
 
     <module path="backend_v2/hooks/">
         <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1/3)</responsibility>
-        <key_domains>scoring/ (falsifier_hook.py, matrix_hook.py, normalization_hook.py, passivity_hook.py), archival.py, interaction_hook.py, validation.py, pre/post processing hooks</key_domains>
+        <key_domains>scoring/ (falsifier_hook.py, matrix_hook.py, normalization_hook.py, passivity_hook.py), archival.py, interaction_hook.py, linguistics.py, source_verification_hook.py, validation.py, pre/post processing hooks</key_domains>
     </module>
 
     <module path="backend_v2/llm/">
         <responsibility>FOUNDATIONAL MODEL ORCHESTRATION & ADAPTERS</responsibility>
-        <key_domains>adapters/, mock.py, provider/ (env_and_schema_utils.py, transient_retry_policy.py, base_and_mock_provider.py, provider_factory.py, litellm_response_stage.py, litellm_provider.py, __init__.py facade), prompt_builder.py, caching_service.py, client.py (LLMClient.from_tier Dual-Tier BYOK SecretService.resolve_llm_key binding & SecretStr ResolvedCredentialDTO forwarding), handler.py, schema_builder.py</key_domains>
+        <key_domains>adapters/ (base_adapter.py, vertex_adapter.py [Service Account JSON & Express Mode BYOK, DB vertex_location SSOT & tenant-scoped Redis cache], ai_studio_adapter.py [tenant-scoped Redis cache], anthropic_adapter.py, openai_adapter.py, mock_adapter.py), mock.py, provider/ (env_and_schema_utils.py, transient_retry_policy.py, base_and_mock_provider.py, provider_factory.py, litellm_response_stage.py, litellm_provider.py, __init__.py facade), prompt_builder.py, caching_service.py (config & resolved_credential forwarding), client.py (LLMClient.from_tier Dual-Tier BYOK SecretService.resolve_llm_key, DB vertex_location & SecretStr ResolvedCredentialDTO forwarding), handler.py, schema_builder.py</key_domains>
     </module>
 
     <module path="backend_v2/utils/">
@@ -126,7 +126,7 @@
           - studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; master views: studio_dashboard_view.dart, mcp_gateways_master_view.dart, matrices_master_view.dart, workflows_master_view.dart, output_profile_list_view.dart; controllers: studio_controller.dart; widgets: studio_master_header.dart, tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart, step_simulation_dialog.dart, mcp_tool_params_panel.dart; models: mcp_gateway.dart, llm_platform.dart, workflow_ui_schema.dart, prompt_block_simulation.dart, workflow_simulation.dart)
           - execution/ (Pillar 4 SDUI Dashboards, Controllers & Sub-DTOs: execution_record.dart, execution_step.dart, execution_summary_snapshot.dart, workflow_inputs.dart, frozen_context_snapshot.dart, trace_context_carrier.dart, human_override_request_dto.dart, causal_discovery_dto.dart; views & widgets: new_execution_view.dart, task_assignment_portal_view.dart, dynamic_start_screen.dart, human_override_dialog.dart, sdui_matrix_table_widget.dart, sdui_blocks_renderer.dart, atom_matrix_table_widget.dart, xai_axis_telemetry_grid.dart, sdui_causal_graph_widget.dart; presentation/: causal_inspector_modal.dart)
           - reports/ (Pillar 4 Presentation & Materialized Reports: execution_reports_view.dart, create_report_dialog.dart, report_artifact.dart)
-          - shell/ (Pillar 4 Presentation), auth/ (domain/models/user.dart, data/auth_repository.dart, data/repositories/user_repository.dart, presentation/auth_controller.dart, presentation/login_screen.dart), settings/ (domain/models/tenant_secret_dto.dart, presentation/user_profile_settings_view.dart, presentation/organization_iam_settings_view.dart, presentation/settings_controller.dart)
+          - shell/ (Pillar 4 Presentation), auth/ (domain/models/user.dart, data/auth_repository.dart, data/repositories/user_repository.dart, presentation/auth_controller.dart, presentation/login_screen.dart), settings/ (domain/models/tenant_secret_dto.dart, presentation/user_profile_settings_view.dart, presentation/organization_iam_settings_view.dart [_ByokSecretsCard multiline Service Account JSON toggle & dynamic MCP gateway display name], presentation/settings_controller.dart)
         </key_domains>
     </module>
 
