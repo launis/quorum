@@ -152,10 +152,8 @@ void main() {
         expect(initialUser!.id, equals(validUserId));
         expect(initialUser.organizationId, equals(orgIdAlpha));
 
-        // 2. Full signIn with enrolled factor -> exchanges token, syncs settings, starts timer
+        // 2. Full signIn -> exchanges token, syncs settings, starts timer
         final mockCredential = _MockUserCredential();
-        final mockMultiFactor = _MockMultiFactor();
-        final mockFactorInfo = _MockMultiFactorInfo();
 
         when(
           () => mockFirebaseAuth.signInWithEmailAndPassword(
@@ -164,10 +162,6 @@ void main() {
           ),
         ).thenAnswer((_) async => mockCredential);
         when(() => mockCredential.user).thenReturn(mockFbUser);
-        when(() => mockFbUser.multiFactor).thenReturn(mockMultiFactor);
-        when(
-          () => mockMultiFactor.getEnrolledFactors(),
-        ).thenAnswer((_) async => <firebase.MultiFactorInfo>[mockFactorInfo]);
         when(
           () => mockFbUser.getIdToken(any()),
         ).thenAnswer((_) async => 'firebase_id_token_xyz');
@@ -220,6 +214,20 @@ void main() {
         await container.read(masterDataProvider.future);
         expect(masterDataBuildCount, equals(1));
 
+        final mockFbUser = _MockFirebaseUser();
+        final mockCredential = _MockUserCredential();
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'coach@quorum.ai',
+            password: 'ValidPassword123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(() => mockCredential.user).thenReturn(mockFbUser);
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockFbUser);
+        when(
+          () => mockFbUser.getIdToken(any()),
+        ).thenAnswer((_) async => 'firebase_id_token_refresh');
+
         when(
           () => mockDio.post<Map<String, Object?>>(
             '/iam/auth/exchange',
@@ -237,7 +245,7 @@ void main() {
         );
 
         final notifier = container.read(authControllerProvider.notifier);
-        await notifier.debugMockLogin(validUserId);
+        await notifier.signIn('coach@quorum.ai', 'ValidPassword123!');
         expect(
           container.read(authControllerProvider).value?.organizationId,
           equals(orgIdAlpha),
@@ -359,11 +367,58 @@ void main() {
         );
         expect(container.read(authRepositoryProvider).pendingMfaState, isNull);
         expect(container.read(authControllerProvider).value, isNull);
+
+        // Backend MFA_REQUIRED interception populates MfaSessionController with enrollment state
+        final mockFbUser = _MockFirebaseUser();
+        final mockCredential = _MockUserCredential();
+        final mockMultiFactor = _MockMultiFactor();
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'enroll@quorum.ai',
+            password: 'Password123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(() => mockCredential.user).thenReturn(mockFbUser);
+        when(() => mockFbUser.email).thenReturn('enroll@quorum.ai');
+        when(() => mockFbUser.multiFactor).thenReturn(mockMultiFactor);
+        when(
+          () => mockFbUser.getIdToken(any()),
+        ).thenAnswer((_) async => 'single_factor_jwt');
+        when(
+          () => mockMultiFactor.getSession(),
+        ).thenThrow(Exception('Platform TOTP session fallback'));
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            '/iam/auth/exchange',
+            data: any(named: 'data'),
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+            response: Response<Map<String, Object?>>(
+              requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+              statusCode: 403,
+              data: const <String, Object?>{
+                'error_code': 'MFA_REQUIRED',
+                'title': 'MFA Enrollment Required',
+                'detail': 'Mandatory TOTP 2FA enrollment is required.',
+              },
+            ),
+          ),
+        );
+
+        await notifier.signIn('enroll@quorum.ai', 'Password123!');
+        expect(container.read(authControllerProvider).value, isNull);
+        expect(container.read(authControllerProvider).hasError, isFalse);
+
+        final enrollmentMfa = container.read(mfaSessionControllerProvider);
+        expect(enrollmentMfa.isEnrollment, isTrue);
+        expect(enrollmentMfa.email, equals('enroll@quorum.ai'));
       },
     );
 
     test(
-      'Negative 2 (ISTQB BVA & Error Propagation): rejects invalid TOTP lengths (5 digits min-1, 7 digits max+1), surfaces non-MFA signIn / debugMockLogin errors, and degrades gracefully on signOut / performSilentRefresh failures',
+      'Negative 2 (ISTQB BVA & Error Propagation): rejects invalid TOTP lengths (5 digits min-1, 7 digits max+1), surfaces non-MFA signIn errors, and degrades gracefully on signOut / performSilentRefresh failures',
       () async {
         final container = createContainer();
         await container.read(settingsControllerProvider.future);
@@ -413,14 +468,46 @@ void main() {
           );
         }
 
-        // 3. ISTQB BVA on debugMockLogin with empty/whitespace ID -> sets AsyncError and throws VALIDATION_FAILED
+        // 3. Backend exchange failure (non-MFA 403 TENANT_SUSPENDED) sets AsyncError and rethrows AppException
+        final mockFbUser = _MockFirebaseUser();
+        final mockCredential = _MockUserCredential();
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'suspended@quorum.ai',
+            password: 'ValidPassword123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(() => mockCredential.user).thenReturn(mockFbUser);
+        when(
+          () => mockFbUser.getIdToken(any()),
+        ).thenAnswer((_) async => 'valid_fb_token');
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            '/iam/auth/exchange',
+            data: any(named: 'data'),
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+            response: Response<Map<String, Object?>>(
+              requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+              statusCode: 403,
+              data: const <String, Object?>{
+                'error_code': 'TENANT_SUSPENDED',
+                'title': 'Tenant Suspended',
+                'detail': 'Organization subscription is suspended.',
+              },
+            ),
+          ),
+        );
+
         await expectLater(
-          notifier.debugMockLogin('   '),
+          notifier.signIn('suspended@quorum.ai', 'ValidPassword123!'),
           throwsA(
             isA<AppException>().having(
               (e) => e.errorCode,
               'errorCode',
-              equals('VALIDATION_FAILED'),
+              equals('TENANT_SUSPENDED'),
             ),
           ),
         );

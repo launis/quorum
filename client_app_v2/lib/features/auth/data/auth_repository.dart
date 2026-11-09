@@ -125,27 +125,18 @@ class AuthRepository {
         return Left(AppException.unknown());
       }
 
-      // Mandatory First-Time 2FA Enrollment check when user has zero enrolled second factors.
-      final enrolledFactors = await firebaseUser.multiFactor
-          .getEnrolledFactors();
-      if (enrolledFactors.isEmpty) {
-        await _prepareEnrollmentForUser(firebaseUser, fallbackEmail: email);
-        return const Left(
-          AppException(
-            status: 403,
-            title: 'MFA Enrollment Required',
-            detail: 'Mandatory TOTP 2FA enrollment is required.',
-            extensions: {'error_code': 'MFA_REQUIRED'},
-          ),
-        );
-      }
-
       final idToken = await firebaseUser.getIdToken();
       if (idToken == null || idToken.trim().isEmpty) {
         return Left(AppException.unauthorized());
       }
 
-      return await exchangeToken(idToken);
+      final exchangeResult = await exchangeToken(idToken);
+      return await exchangeResult.fold((error) async {
+        if (error.errorCode == 'MFA_REQUIRED') {
+          await _prepareEnrollmentForUser(firebaseUser, fallbackEmail: email);
+        }
+        return Left(error);
+      }, (dto) async => Right(dto));
     } on firebase.FirebaseAuthMultiFactorException catch (e) {
       // Enrolled 2FA Challenge: capture MultiFactorResolver for 6-digit TOTP verification.
       final hints = e.resolver.hints;
@@ -276,27 +267,9 @@ class AuthRepository {
     }
   }
 
-  /// Exchanges a developer `target_user_id` at `POST /api/v2/iam/auth/exchange` for a signed Quorum Local JWT.
+  /// Performs a silent background token exchange using the current Firebase session.
   Future<Either<AppException, TokenExchangeResponseDto>>
-  debugSignInWithMockToken(String targetUserId) async {
-    final trimmedId = targetUserId.trim();
-    if (trimmedId.isEmpty) {
-      return Left(
-        AppException.validation('Target User ID is required for debug login.'),
-      );
-    }
-    return exchangeWithPayload(
-      TokenExchangeRequestDto(targetUserId: trimmedId),
-    );
-  }
-
-  /// Performs a silent background token exchange using the current Firebase session or debug `targetUserId`.
-  Future<Either<AppException, TokenExchangeResponseDto>> refreshSession({
-    String? debugTargetUserId,
-  }) async {
-    if (debugTargetUserId != null && debugTargetUserId.trim().isNotEmpty) {
-      return debugSignInWithMockToken(debugTargetUserId.trim());
-    }
+  refreshSession() async {
     final firebaseUser = _firebaseAuth?.currentUser;
     if (firebaseUser == null) {
       return Left(AppException.unauthorized());

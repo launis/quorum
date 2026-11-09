@@ -65,7 +65,7 @@ void main() {
 
   group('LoginScreen Widget & ISTQB Boundary Tests', () {
     testWidgets(
-      'Positive 1: renders primary Email + Password login form without MockLoginPanel and submits trimmed credentials',
+      'Positive 1: renders primary Email + Password login form and submits trimmed credentials',
       (WidgetTester tester) async {
         final fakeAuth = _FakeAuthController();
         await tester.pumpWidget(buildTestApp(authController: fakeAuth));

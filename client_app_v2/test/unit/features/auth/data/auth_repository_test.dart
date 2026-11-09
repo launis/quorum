@@ -59,7 +59,7 @@ void main() {
 
   group('AuthRepository Unit & ISTQB Boundary Tests', () {
     test(
-      'Positive 1: exchangeToken, debugSignInWithMockToken, and revokeServerSession execute strict DTO roundtrips',
+      'Positive 1: exchangeToken and revokeServerSession execute strict DTO roundtrips',
       () async {
         when(
           () => mockDio.post<Map<String, Object?>>(
@@ -85,17 +85,6 @@ void main() {
           () => mockDio.post<Map<String, Object?>>(
             '/iam/auth/exchange',
             data: <String, Object?>{'firebase_token': 'fb_id_token'},
-          ),
-        ).called(1);
-
-        final debugResult = await repository.debugSignInWithMockToken(
-          '  $validUserId  ',
-        );
-        expect(debugResult.isRight(), isTrue);
-        verify(
-          () => mockDio.post<Map<String, Object?>>(
-            '/iam/auth/exchange',
-            data: <String, Object?>{'target_user_id': validUserId},
           ),
         ).called(1);
 
@@ -131,12 +120,11 @@ void main() {
     );
 
     test(
-      'Positive 2: signInWithEmailAndPassword with enrolled 2FA factor exchanges token, and refreshSession / signOut manage session lifecycle',
+      'test_sign_in_with_email_and_password_succeeds_when_backend_require_mfa_false',
       () async {
         final mockCredential = MockUserCredential();
         final mockUser = MockFirebaseUser();
         final mockMultiFactor = MockMultiFactor();
-        final mockFactorInfo = MockMultiFactorInfo();
 
         when(
           () => mockFirebaseAuth.signInWithEmailAndPassword(
@@ -146,9 +134,6 @@ void main() {
         ).thenAnswer((_) async => mockCredential);
         when(() => mockCredential.user).thenReturn(mockUser);
         when(() => mockUser.multiFactor).thenReturn(mockMultiFactor);
-        when(
-          () => mockMultiFactor.getEnrolledFactors(),
-        ).thenAnswer((_) async => <firebase.MultiFactorInfo>[mockFactorInfo]);
         when(
           () => mockUser.getIdToken(any()),
         ).thenAnswer((_) async => 'fresh_firebase_jwt');
@@ -172,17 +157,13 @@ void main() {
         );
         expect(signInResult.isRight(), isTrue);
         expect(repository.pendingMfaState, isNull);
+        verifyNever(() => mockMultiFactor.getEnrolledFactors());
+        verifyNever(() => mockMultiFactor.getSession());
 
         // Refresh session via active Firebase user
         when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
         final refreshResult = await repository.refreshSession();
         expect(refreshResult.isRight(), isTrue);
-
-        // Refresh session via debugTargetUserId override
-        final debugRefresh = await repository.refreshSession(
-          debugTargetUserId: validUserId,
-        );
-        expect(debugRefresh.isRight(), isTrue);
 
         // Auth state stream & signOut clear pending MFA state
         when(
@@ -207,7 +188,7 @@ void main() {
     );
 
     test(
-      'Positive 3: signInWithEmailAndPassword enforces mandatory 2FA enrollment when enrolledFactors is empty and captures MultiFactorResolver on challenge',
+      'test_sign_in_with_email_and_password_prepares_totp_enrollment_on_backend_mfa_required',
       () async {
         final mockCredential = MockUserCredential();
         final mockUser = MockFirebaseUser();
@@ -223,11 +204,31 @@ void main() {
         when(() => mockUser.email).thenReturn('newuser@quorum.ai');
         when(() => mockUser.multiFactor).thenReturn(mockMultiFactor);
         when(
-          () => mockMultiFactor.getEnrolledFactors(),
-        ).thenAnswer((_) async => <firebase.MultiFactorInfo>[]);
+          () => mockUser.getIdToken(any()),
+        ).thenAnswer((_) async => 'single_factor_firebase_jwt');
         when(
           () => mockMultiFactor.getSession(),
         ).thenThrow(Exception('Platform TOTP session fallback'));
+
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            '/iam/auth/exchange',
+            data: any(named: 'data'),
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+            response: Response<Map<String, Object?>>(
+              requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+              statusCode: 403,
+              data: const <String, Object?>{
+                'error_code': 'MFA_REQUIRED',
+                'title': 'MFA Enrollment Required',
+                'detail': 'Mandatory TOTP 2FA enrollment is required.',
+              },
+            ),
+          ),
+        );
 
         final enrollResult = await repository.signInWithEmailAndPassword(
           'newuser@quorum.ai',
@@ -283,7 +284,7 @@ void main() {
     );
 
     test(
-      'Negative 1 (ISTQB BVA): rejects empty tokens, empty debug user IDs, and non-6-digit TOTP codes (5 digits min-1, 7 digits max+1)',
+      'Negative 1 (ISTQB BVA): rejects empty tokens and non-6-digit TOTP codes (5 digits min-1, 7 digits max+1)',
       () async {
         // Empty and whitespace firebaseIdToken
         for (final invalidToken in ['', '   ']) {
@@ -292,16 +293,6 @@ void main() {
           expect(
             res.getLeft().toNullable()!.errorCode,
             equals('AUTHENTICATION_FAILED'),
-          );
-        }
-
-        // Empty and whitespace targetUserId
-        for (final invalidTarget in ['', '   ']) {
-          final res = await repository.debugSignInWithMockToken(invalidTarget);
-          expect(res.isLeft(), isTrue);
-          expect(
-            res.getLeft().toNullable()!.errorCode,
-            equals('VALIDATION_FAILED'),
           );
         }
 

@@ -20,6 +20,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _MockFirebaseAuth extends Mock implements firebase.FirebaseAuth {}
 
+class _MockFirebaseUser extends Mock implements firebase.User {}
+
+class _MockUserCredential extends Mock implements firebase.UserCredential {}
+
 class _MockDio extends Mock implements Dio {}
 
 class _MockLoggerService extends Mock implements LoggerService {}
@@ -143,18 +147,31 @@ void main() {
           ),
         );
 
+        final mockFbUser = _MockFirebaseUser();
+        final mockCredential = _MockUserCredential();
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'admin@quorum.ai',
+            password: 'SecretPassword123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(() => mockCredential.user).thenReturn(mockFbUser);
+        when(
+          () => mockFbUser.getIdToken(any()),
+        ).thenAnswer((_) async => 'firebase_id_token_01');
+
         final container = createContainer();
         await container.read(settingsControllerProvider.future);
         final authNotifier = container.read(authControllerProvider.notifier);
 
-        // 1. Exchange target_user_id via POST /iam/auth/exchange
-        await authNotifier.debugMockLogin(testUserId);
+        // 1. Exchange Firebase ID token via POST /iam/auth/exchange
+        await authNotifier.signIn('admin@quorum.ai', 'SecretPassword123!');
 
         verify(
           () => mockDio.post<Map<String, Object?>>(
             '/iam/auth/exchange',
             data: const TokenExchangeRequestDto(
-              targetUserId: testUserId,
+              firebaseToken: 'firebase_id_token_01',
             ).toJson(),
           ),
         ).called(1);
@@ -242,10 +259,23 @@ void main() {
           ),
         );
 
+        final mockFbUser = _MockFirebaseUser();
+        final mockCredential = _MockUserCredential();
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'admin@quorum.ai',
+            password: 'SecretPassword123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(() => mockCredential.user).thenReturn(mockFbUser);
+        when(
+          () => mockFbUser.getIdToken(any()),
+        ).thenAnswer((_) async => 'firebase_id_token_02');
+
         final container = createContainer();
         final authNotifier = container.read(authControllerProvider.notifier);
 
-        await authNotifier.debugMockLogin(testUserId);
+        await authNotifier.signIn('admin@quorum.ai', 'SecretPassword123!');
         expect(container.read(mockTokenProvider), isNotNull);
         expect(authNotifier.hasActiveRefreshTimer, isTrue);
 
@@ -274,16 +304,16 @@ void main() {
     );
 
     test(
-      'Negative & Boundary (ISTQB BVA): rejects empty debug targetUserId and validates 6-digit TOTP code boundaries (5, 6, 7 chars)',
+      'Negative & Boundary (ISTQB BVA): rejects empty Firebase ID token and validates 6-digit TOTP code boundaries (5, 6, 7 chars)',
       () async {
         final container = createContainer();
         final repo = container.read(authRepositoryProvider);
 
-        final emptyResult = await repo.debugSignInWithMockToken('   ');
+        final emptyResult = await repo.exchangeToken('   ');
         expect(emptyResult.isLeft(), isTrue);
         emptyResult.fold(
-          (err) => expect(err.errorCode, equals('VALIDATION_FAILED')),
-          (_) => fail('Expected Left(AppException.validation)'),
+          (err) => expect(err.errorCode, equals('AUTHENTICATION_FAILED')),
+          (_) => fail('Expected Left(AppException.unauthorized)'),
         );
 
         // Boundary 5 chars (min - 1) and 7 chars (max + 1) on TOTP verification

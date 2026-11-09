@@ -45,7 +45,6 @@ class MfaSessionController extends _$MfaSessionController {
 @Riverpod(keepAlive: true)
 class AuthController extends _$AuthController {
   Timer? _refreshTimer;
-  String? _activeDebugUserId;
   String? _lastOrganizationId;
 
   /// Interval for silent background JWT refresh (minute 13, 2 minutes before 15-minute expiry).
@@ -150,38 +149,16 @@ class AuthController extends _$AuthController {
     state = const AsyncData(null);
   }
 
-  /// **Debug Only**: Exchanges `target_user_id` at `POST /api/v2/iam/auth/exchange` for a signed Quorum Local JWT.
-  Future<void> debugMockLogin(String id) async {
-    state = const AsyncLoading();
-
-    final result = await ref
-        .read(authRepositoryProvider)
-        .debugSignInWithMockToken(id);
-
-    await result.fold(
-      (error) async {
-        state = AsyncError(error, StackTrace.current);
-        throw error;
-      },
-      (exchangeDto) async {
-        await _applyAuthenticatedSession(exchangeDto, debugUserId: id);
-      },
-    );
-  }
-
   /// Applies a [TokenExchangeResponseDto] (from login or JIT task onboarding) to active session state.
   Future<void> applyTokenExchangeResponse(
-    TokenExchangeResponseDto exchangeDto, {
-    String? debugUserId,
-  }) async {
-    await _applyAuthenticatedSession(exchangeDto, debugUserId: debugUserId);
+    TokenExchangeResponseDto exchangeDto,
+  ) async {
+    await _applyAuthenticatedSession(exchangeDto);
   }
 
   /// Executes a silent background token refresh at `/api/v2/iam/auth/exchange`.
   Future<void> performSilentRefresh() async {
-    final result = await ref
-        .read(authRepositoryProvider)
-        .refreshSession(debugTargetUserId: _activeDebugUserId);
+    final result = await ref.read(authRepositoryProvider).refreshSession();
 
     await result.fold(
       (error) async {
@@ -221,7 +198,6 @@ class AuthController extends _$AuthController {
     // 1. Cancel Background Refresh Timer First
     _refreshTimer?.cancel();
     _refreshTimer = null;
-    _activeDebugUserId = null;
 
     final currentJwt = ref.read(mockTokenProvider);
 
@@ -272,9 +248,8 @@ class AuthController extends _$AuthController {
   }
 
   Future<void> _applyAuthenticatedSession(
-    TokenExchangeResponseDto exchangeDto, {
-    String? debugUserId,
-  }) async {
+    TokenExchangeResponseDto exchangeDto,
+  ) async {
     if (_lastOrganizationId != null &&
         _lastOrganizationId != exchangeDto.user.organizationId) {
       _invalidateTenantProviders();
@@ -292,13 +267,12 @@ class AuthController extends _$AuthController {
           themeMode: exchangeDto.user.themeMode,
         );
 
-    _scheduleSilentRefresh(debugUserId: debugUserId);
+    _scheduleSilentRefresh();
     state = AsyncData(exchangeDto.user);
   }
 
-  void _scheduleSilentRefresh({String? debugUserId}) {
+  void _scheduleSilentRefresh() {
     _refreshTimer?.cancel();
-    _activeDebugUserId = debugUserId;
     _refreshTimer = Timer.periodic(silentRefreshInterval, (_) {
       unawaited(performSilentRefresh());
     });

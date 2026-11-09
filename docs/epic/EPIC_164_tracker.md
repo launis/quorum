@@ -44,10 +44,10 @@
 **Plan:** @[docs/epic/tasks_EPIC_164/03_phase3_plan.md]
 - [x] **[OK] Create Plan:** @[docs/epic/tasks_EPIC_164/03_phase3_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
   - [x] Step 3.1: Eradicate MockLoginPanel, allowMockTokens & mock*UserId from LoginScreen, Env & client_app_v2/.env
-  - [ ] Step 3.2: Eradicate debugMockLogin & debugSignInWithMockToken and Delegate MFA Enforcement in signInWithEmailAndPassword to Backend
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 3.2: Eradicate debugMockLogin & debugSignInWithMockToken and Delegate MFA Enforcement in signInWithEmailAndPassword to Backend
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 
 ### Phase 4: Comprehensive Unit, Integration, Seed & E2E Verification Gate
@@ -126,7 +126,7 @@
 | REQ-164-004 | Add `resolve_startup_logfire_token` in `telemetry.py` and `initialize_firebase_admin_from_secrets` in `token_service.py`, and wire both into `main.py` and `worker.py` startup | Phase 2, Step 2.1 | [x] Completed |
 | REQ-164-005 | Remove `service-account.json` checks, `allow_mock_tokens`, and `mock_*_user_id` from `settings.py`, `logging_config.py`, `token_service.py`, and `run_e2e_variance_test.py`, sanitize `.env`, and delete `service-account.json` | Phase 2, Step 2.2 | [x] Completed |
 | REQ-164-006 | Delete `MockLoginPanel`, `allowMockTokens`, `_requireMockUserId`, and `mock*UserId` from `login_screen.dart`, `env.dart`, and `client_app_v2/.env` | Phase 3, Step 3.1 | [x] Completed |
-| REQ-164-007 | Delete `_activeDebugUserId`, `debugMockLogin`, and `debugSignInWithMockToken`, and refactor `AuthRepository.signInWithEmailAndPassword` to delegate MFA enforcement to backend `exchangeToken(idToken)` | Phase 3, Step 3.2 | [ ] Pending |
+| REQ-164-007 | Delete `_activeDebugUserId`, `debugMockLogin`, and `debugSignInWithMockToken`, and refactor `AuthRepository.signInWithEmailAndPassword` to delegate MFA enforcement to backend `exchangeToken(idToken)` | Phase 3, Step 3.2 | [x] Completed |
 | REQ-164-008 | Verify and expand ISTQB positive, negative, and boundary unit tests across all 8 backend unit test suites | Phase 4, Step 4.1 | [ ] Pending |
 | REQ-164-009 | Verify and expand unit and widget tests across all 7 Flutter test suites | Phase 4, Step 4.2 | [ ] Pending |
 | REQ-164-010 | Execute `run_seed.py local --dry-run`, `run_seed.py local`, global backend and Flutter audit loops, and live E2E verification | Phase 4, Step 4.3 | [ ] Pending |
@@ -134,19 +134,18 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Phase 1 (`/tier2-execute --full-auto` of `@[docs/epic/tasks_EPIC_164/01_phase1_plan.md]`, `e31d46648`) and Phase 2 (`/tier2-execute --full-auto` of `@[docs/epic/tasks_EPIC_164/02_phase2_plan.md]`):
-  - **Step 2.1 (`0c15254ed`)**: Added `resolve_startup_logfire_token` and `logfire_token: str | None = None` override to `configure_telemetry` in `@[backend_v2/core/telemetry.py#L300-L445]`, added `initialize_firebase_admin_from_secrets` in `@[backend_v2/services/auth/token_service.py]` (initializing `firebase_admin` from the Root System Organization `LLMProvider.VERTEX_AI` Service Account JSON in `tenant_secrets`), wired both into FastAPI `lifespan` (`@[backend_v2/main.py#L178-L242]`) and Arq `startup` (`@[backend_v2/worker.py#L49-L108]`), and verified unit tests in `@[backend_v2/tests/unit/core/test_telemetry.py]` and `@[backend_v2/tests/unit/test_token_service.py]`.
-  - **Step 2.2**: Removed `model_post_init`, `Path("service-account.json").exists()`, `allow_mock_tokens`, `mock_admin_user_id`, `mock_root_user_id`, and `mock_analyst_user_id` from `@[backend_v2/settings.py]`, removed `Mock Tokens Allowed:` from `@[backend_v2/logging_config.py]`, enforced unconditional `SERVICE_AUTH_SECRET` (`secrets.compare_digest`) in `TokenService._resolve_headless_cli_user` (`@[backend_v2/services/auth/token_service.py]`), updated `@[scripts/run_e2e_variance_test.py]` to authenticate using `SYSTEM_ROOT_USER_ID` (`"usr_0195f3a00000700a83fd6b3d77c748f4"`) + `settings.service_auth_secret`, sanitized `@[.env]` (`USE_FIREBASE_AUTH=true`, `REQUIRE_MFA=false`, zero `LOGFIRE_*` or `MOCK_*_USER_ID` variables), deleted `@[service-account.json]`, updated all affected unit tests, and verified 100% pass across both the Phase 2 localized audit loop and the Global Backend Completion Gate (`7,038 passed`, `97.48%` coverage).
+- Completed Phase 1 (`e31d46648`), Phase 2 (`d2f9a87fb`), and Phase 3 (`/tier2-execute --full-auto` of `@[docs/epic/tasks_EPIC_164/03_phase3_plan.md]`):
+  - **Step 3.1 (`90db85f1c`)**: Deleted `MockLoginPanel` from `@[client_app_v2/lib/features/auth/presentation/login_screen.dart]`, deleted `_idValidator`, `_requireMockUserId`, `allowMockTokens`, `mockAdminUserId`, `mockRootUserId`, `mockAnalystUserId`, `mockMemberUserId`, and `mockViewerUserId` from `@[client_app_v2/lib/core/environment/env.dart]`, removed `MOCK_*_USER_ID` variables from `@[client_app_v2/.env]`, and updated `@[client_app_v2/test/features/auth/presentation/login_screen_test.dart]` and `@[client_app_v2/test/unit/core/environment/env_test.dart]`.
+  - **Step 3.2**: Deleted `_activeDebugUserId`, `debugMockLogin`, and `debugUserId` from `@[client_app_v2/lib/features/auth/presentation/auth_controller.dart]` (and regenerated `@[client_app_v2/lib/features/auth/presentation/auth_controller.g.dart]`), deleted `debugSignInWithMockToken` and `debugTargetUserId` from `@[client_app_v2/lib/features/auth/data/auth_repository.dart]`, refactored `AuthRepository.signInWithEmailAndPassword` to delegate MFA policy evaluation to `exchangeToken(idToken)` and invoke `_prepareEnrollmentForUser(firebaseUser, fallbackEmail: email)` when `exchangeToken` returns `Left(error)` with `error.errorCode == 'MFA_REQUIRED'`, and updated `@[client_app_v2/test/unit/features/auth/data/auth_repository_test.dart]`, `@[client_app_v2/test/unit/features/auth/presentation/auth_controller_test.dart]`, and `@[client_app_v2/test/unit/core/network/auth_interceptor_test.dart]`.
 
 ## Learned
-- Guarding `resolve_startup_logfire_token` and `initialize_firebase_admin_from_secrets` behind `if app.state.pool_manager.is_initialized:` in `@[backend_v2/main.py]` ensures production startup resolves encrypted secrets from PostgreSQL 19 `tenant_secrets` while unit tests bypassing `_validate_database_preflight` remain 100% hermetic.
-- Setting `REQUIRE_MFA=false` in `@[.env]` requires unit tests that explicitly verify 2FA enforcement (`test_assignment_firebase_onboarding_mfa_and_router_endpoints` in `@[backend_v2/tests/unit/services/execution/test_assignment_service.py]`) to inject hermetic `require_mfa=True` settings via `monkeypatch` rather than relying on ambient `.env` defaults.
+- Delegating MFA enforcement in `AuthRepository.signInWithEmailAndPassword` (`@[client_app_v2/lib/features/auth/data/auth_repository.dart]`) directly to the backend `exchangeToken(idToken)` response (`error.errorCode == 'MFA_REQUIRED'`) and passing `userCredential.user` (`firebaseUser`) into `_prepareEnrollmentForUser(firebaseUser, fallbackEmail: email)` guarantees that Windows Desktop Email + Password sign-in succeeds when backend `REQUIRE_MFA=false` while preserving TOTP enrollment state when `REQUIRE_MFA=true`.
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/02_phase2_plan.md] @[docs/epic/EPIC_164_tracker.md]` to audit Phase 2 before proceeding to Phase 3 (`@[docs/epic/tasks_EPIC_164/03_phase3_plan.md]`).
+- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]` to audit Phase 3 before proceeding to Phase 4 (`@[docs/epic/tasks_EPIC_164/04_phase4_plan.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_164/02_phase2_plan.md] @[docs/epic/EPIC_164_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]
 ```
 
