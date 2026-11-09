@@ -81,7 +81,7 @@
   - [x] @[backend_v2/worker.py]
   - [x] @[scripts/run_e2e_variance_test.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_164_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
-  - [ ] @[client_app_v2/lib/core/environment/env.dart]
+  - [x] @[client_app_v2/lib/core/environment/env.dart]
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
   - [ ] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
