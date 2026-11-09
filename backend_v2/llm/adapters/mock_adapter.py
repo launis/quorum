@@ -12,8 +12,10 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
+from backend_v2.models.auth import ResolvedCredentialDTO
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import CachingPayloadResultDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
@@ -29,13 +31,21 @@ class MockCacheAdapter(BaseLLMAdapter):
 
     @override
     async def prepare_caching_payload(
-        self, compiled_prompt: CompiledPrompt, model_name: str
+        self,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Return the flat compiled prompt messages as-is and set mock active flag.
+
+        # Step 2: Align signature with BaseLLMAdapter optional config and resolved_credential
 
         Args:
             compiled_prompt: The structured CompiledPrompt instance.
             model_name: The target model name.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             A CachingPayloadResultDTO with flat messages and 'mock_cache_active' enabled.
@@ -43,6 +53,7 @@ class MockCacheAdapter(BaseLLMAdapter):
         Raises:
             AppException: VALIDATION_FAILED if model_name is empty or whitespace.
         """
+        _ = (config, resolved_credential)
         if not model_name or not model_name.strip():
             logger.error(
                 "[MockCacheAdapter] %s: Target model_name cannot be empty.",

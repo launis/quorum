@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import os
 import sys
 import types
 from collections.abc import Mapping
@@ -17,16 +18,13 @@ from backend_v2.llm.adapters.vertex_adapter import (
     get_redis_client,
 )
 from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
-from backend_v2.models.domain.system_config import ModelProfile
+from backend_v2.models.domain.system_config import ModelProfile, ProviderExtraParamsDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 
 # Setup mock modules for heavy GCP / Vertex AI SDK libraries BEFORE importing adapter
-if "_mock_cached_contents" not in dir(sys):
-    sys._mock_cached_contents = MagicMock()
-
-mock_cached_contents = sys._mock_cached_contents
+mock_cached_contents: MagicMock = MagicMock()
 
 
 class MockGenerativeModels(types.ModuleType):
@@ -93,11 +91,11 @@ async def test_vertex_adapter_preparer_bypass() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Small static content."},
+            LLMMessageDTO(role="system", content="You are a helpful assistant."),
+            LLMMessageDTO(role="user", content="Small static content."),
         ],
         dynamic_messages=[
-            {"role": "assistant", "content": "Response."},
+            LLMMessageDTO(role="assistant", content="Response."),
         ],
     )
 
@@ -155,11 +153,11 @@ async def test_vertex_thundering_herd_protection() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Query"},
+            LLMMessageDTO(role="user", content="Query"),
         ],
     )
 
@@ -198,11 +196,11 @@ async def test_vertex_instant_exit_on_failed() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Query"},
+            LLMMessageDTO(role="user", content="Query"),
         ],
     )
 
@@ -237,11 +235,11 @@ async def test_vertex_fail_soft_gcp_error(caplog: pytest.LogCaptureFixture) -> N
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Query"},
+            LLMMessageDTO(role="user", content="Query"),
         ],
     )
 
@@ -285,11 +283,11 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a system evaluator."},
-            {"role": "user", "content": f"<source_data>Base document content: {large_static}</source_data>"},
+            LLMMessageDTO(role="system", content="You are a system evaluator."),
+            LLMMessageDTO(role="user", content=f"<source_data>Base document content: {large_static}</source_data>"),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "<evaluation_criteria>Rubrics</evaluation_criteria>"},
+            LLMMessageDTO(role="user", content="<evaluation_criteria>Rubrics</evaluation_criteria>"),
         ],
     )
 
@@ -410,6 +408,7 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
         vertex_location="europe-west1",
         tpm_limit=100,
         rpm_limit=10,
+        additional_params=ProviderExtraParamsDTO(),
     )
 
     call_kwargs: dict[str, JsonValue] = {}
@@ -420,6 +419,8 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
         provider="google",
         model_name="vertex_ai/gemini-3.7-flash",
         thinking_budget_tokens=1024,
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
     )
     call_kwargs_profile: dict[str, JsonValue] = {"vertex_location": "europe-west1"}
     result_profile = adapter.prepare_kwargs(call_kwargs_profile, config=profile_config)
@@ -438,6 +439,8 @@ def test_vertex_adapter_dev_environment_clamping() -> None:
         provider="google",
         model_name="vertex_ai/gemini-3.7-flash",
         thinking_budget_tokens=4096,
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
     )
 
     # In development: clamped to 0
@@ -574,10 +577,10 @@ async def test_vertex_cache_immediate_hit_in_shared_ledger() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are an analytical evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are an analytical evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
-        dynamic_messages=[{"role": "user", "content": "Query"}],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Query")],
     )
 
     redis_client = await get_redis_client()
@@ -608,8 +611,8 @@ async def test_vertex_cache_assistant_role_and_unqualified_name() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "assistant", "content": f"Previous assistant response in cache: {large_static}"},
+            LLMMessageDTO(role="system", content="You are a helpful assistant."),
+            LLMMessageDTO(role="assistant", content=f"Previous assistant response in cache: {large_static}"),
         ],
         dynamic_messages=[],
     )
@@ -647,7 +650,7 @@ async def test_vertex_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyPatc
 
     large_static = "A" * 150000
     prompt = CompiledPrompt(
-        static_messages=[{"role": "system", "content": large_static}],
+        static_messages=[LLMMessageDTO(role="system", content=large_static)],
         dynamic_messages=[],
     )
 
@@ -686,10 +689,10 @@ async def test_vertex_adapter_bypasses_cache_when_contents_empty_or_system_only(
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": large_system_instruction},
+            LLMMessageDTO(role="system", content=large_system_instruction),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Per-chunk task payload"},
+            LLMMessageDTO(role="user", content="Per-chunk task payload"),
         ],
     )
 
@@ -716,11 +719,11 @@ async def test_vertex_adapter_dynamic_location_caching(monkeypatch: pytest.Monke
     large_static = "B" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a US evaluator."},
-            {"role": "user", "content": large_static},
+            LLMMessageDTO(role="system", content="You are a US evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "US Query"},
+            LLMMessageDTO(role="user", content="US Query"),
         ],
     )
 
@@ -757,11 +760,11 @@ async def test_vertex_adapter_caching_consecutive_system_messages_empty_contents
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "Static instructions part 1 " * 300},
-            {"role": "system", "content": "Static instructions part 2 " * 300},
+            LLMMessageDTO(role="system", content="Static instructions part 1 " * 300),
+            LLMMessageDTO(role="system", content="Static instructions part 2 " * 300),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "User payload text"},
+            LLMMessageDTO(role="user", content="User payload text"),
         ],
     )
 
@@ -788,10 +791,10 @@ async def test_vertex_adapter_missing_location_raises_configuration_error(monkey
     adapter = VertexCacheAdapter()
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "user", "content": "Static text instructions " * 300},
+            LLMMessageDTO(role="user", content="Static text instructions " * 300),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Dynamic question"},
+            LLMMessageDTO(role="user", content="Dynamic question"),
         ],
     )
 
@@ -827,3 +830,222 @@ def test_vertex_adapter_is_system_turn_and_dict_message_handling() -> None:
     prepared = adapter.prepare_kwargs(call_kwargs)
     assert len(prepared["messages"]) == 1
     assert prepared["messages"][0]["role"] == "user"
+
+
+def test_vertex_adapter_byok_service_account_json_and_express_key_kwargs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify VertexCacheAdapter.prepare_kwargs binds Service Account JSON, Express API key, and DB vertex_location."""
+    from pydantic import SecretStr
+
+    from backend_v2.models.auth import ResolvedCredentialDTO
+    from backend_v2.models.enums import SecretScope
+
+    monkeypatch.setenv("VERTEX_LOCATION", "unchanged-env-loc")
+    adapter = VertexCacheAdapter()
+
+    valid_sa_json = json.dumps(
+        {
+            "type": "service_account",
+            "project_id": "tenant-gcp-proj",
+            "client_email": "vertex-byok@tenant-gcp-proj.iam.gserviceaccount.com",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC\n-----END PRIVATE KEY-----\n",
+        }
+    )
+    sa_cred = ResolvedCredentialDTO(
+        organization_id="org_0195f3a0000070008000000000000555",
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="vertex_ai",
+        secret_value=SecretStr(valid_sa_json),
+        is_tenant_byok=True,
+    )
+    provider_config = LLMProviderConfig(
+        id="prv_0195f3a0000070008000000000000555",
+        provider="vertex_ai",
+        model_name="vertex_ai/gemini-2.5-pro",
+        vertex_location="europe-west1",
+        tpm_limit=1000,
+        rpm_limit=60,
+        additional_params=ProviderExtraParamsDTO(),
+    )
+
+    kwargs_sa: dict[str, JsonValue] = {"model": "vertex_ai/gemini-2.5-pro", "api_key": valid_sa_json}
+    prepared_sa = adapter.prepare_kwargs(kwargs_sa, config=provider_config, resolved_credential=sa_cred)
+    assert prepared_sa["vertex_credentials"] == valid_sa_json
+    assert prepared_sa["vertex_project"] == "tenant-gcp-proj"
+    assert prepared_sa["vertex_location"] == "europe-west1"
+    assert "api_key" not in prepared_sa
+    assert os.environ["VERTEX_LOCATION"] == "unchanged-env-loc"
+
+    # Also verify fallback when resolved_credential is None but call_kwargs["api_key"] is SA JSON
+    kwargs_api_sa: dict[str, JsonValue] = {"model": "vertex_ai/gemini-2.5-pro", "api_key": valid_sa_json}
+    prepared_api_sa = adapter.prepare_kwargs(kwargs_api_sa, config=provider_config)
+    assert prepared_api_sa["vertex_credentials"] == valid_sa_json
+    assert prepared_api_sa["vertex_project"] == "tenant-gcp-proj"
+    assert "api_key" not in prepared_api_sa
+
+    # Express Mode API key
+    express_cred = ResolvedCredentialDTO(
+        organization_id="org_0195f3a0000070008000000000000555",
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="vertex_ai",
+        secret_value=SecretStr("AIzaSyTenantExpressKey999"),
+        is_tenant_byok=True,
+    )
+    profile_with_loc = ModelProfile(
+        provider="vertex_ai",
+        model_name="vertex_ai/gemini-2.5-flash",
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(vertex_location="europe-west4"),
+    )
+    kwargs_express: dict[str, JsonValue] = {"model": "vertex_ai/gemini-2.5-flash"}
+    prepared_express = adapter.prepare_kwargs(
+        kwargs_express,
+        config=profile_with_loc,
+        resolved_credential=express_cred,
+    )
+    assert prepared_express["api_key"] == "AIzaSyTenantExpressKey999"
+    assert prepared_express["vertex_location"] == "europe-west4"
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_byok_caching_payload_tenant_redis_isolation_and_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify prepare_caching_payload initializes vertexai with service_account.Credentials and tenant Redis key."""
+    from unittest.mock import patch
+
+    from pydantic import SecretStr
+
+    from backend_v2.models.auth import ResolvedCredentialDTO
+    from backend_v2.models.enums import SecretScope
+
+    mock_cached_contents.CachedContent.create.reset_mock()
+    mock_cached_contents.CachedContent.create.side_effect = None
+
+    class DummyTenantCacheObj:
+        name = "projects/tenant-gcp-proj/locations/europe-west1/cachedContents/tenant-cache-555"
+
+    mock_cached_contents.CachedContent.create.return_value = DummyTenantCacheObj()
+
+    valid_sa_json = json.dumps(
+        {
+            "type": "service_account",
+            "project_id": "tenant-gcp-proj",
+            "client_email": "vertex-byok@tenant-gcp-proj.iam.gserviceaccount.com",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC\n-----END PRIVATE KEY-----\n",
+        }
+    )
+    tenant_org_id = "org_0195f3a0000070008000000000000555"
+    sa_cred = ResolvedCredentialDTO(
+        organization_id=tenant_org_id,
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="vertex_ai",
+        secret_value=SecretStr(valid_sa_json),
+        is_tenant_byok=True,
+    )
+    provider_config = LLMProviderConfig(
+        id="prv_0195f3a0000070008000000000000555",
+        provider="vertex_ai",
+        model_name="gemini-1.5-pro",
+        vertex_location="europe-west1",
+        tpm_limit=1000,
+        rpm_limit=60,
+        additional_params=ProviderExtraParamsDTO(),
+    )
+
+    large_static = "T" * 150000
+    prompt = CompiledPrompt(
+        static_messages=[
+            LLMMessageDTO(role="system", content="You are a tenant evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
+        ],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Tenant Query")],
+    )
+
+    adapter = VertexCacheAdapter()
+    redis_client = await get_redis_client()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
+    expected_redis_key = f"vertex_cache:{tenant_org_id}:europe-west1:gemini-1.5-pro:{static_hash}"
+    expected_lock_key = f"lock:vertex_cache:{tenant_org_id}:europe-west1:gemini-1.5-pro:{static_hash}"
+    await redis_client.delete(expected_redis_key, expected_lock_key)
+
+    mock_init = MagicMock()
+    monkeypatch.setattr(mod_vertex_ai, "init", mock_init)
+    fake_creds_obj = MagicMock(name="FakeGCPCredentials")
+
+    with patch(
+        "google.oauth2.service_account.Credentials.from_service_account_info",
+        return_value=fake_creds_obj,
+    ) as mock_from_sa:
+        res = await adapter.prepare_caching_payload(
+            prompt,
+            "gemini-1.5-pro",
+            config=provider_config,
+            resolved_credential=sa_cred,
+        )
+
+    assert res.kwargs == {
+        "cached_content": "projects/tenant-gcp-proj/locations/europe-west1/cachedContents/tenant-cache-555"
+    }
+    mock_from_sa.assert_called_once()
+    mock_init.assert_called_once_with(
+        project="tenant-gcp-proj",
+        location="europe-west1",
+        credentials=fake_creds_obj,
+    )
+
+    stored_cache = await redis_client.get(expected_redis_key)
+    if isinstance(stored_cache, bytes):
+        stored_cache = stored_cache.decode("utf-8")
+    assert stored_cache == "projects/tenant-gcp-proj/locations/europe-west1/cachedContents/tenant-cache-555"
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_invalid_service_account_json_negative_boundary_error() -> None:
+    """ISTQB Negative Boundary Test: malformed JSON, wrong type, or missing keys raise ConfigurationError."""
+    from pydantic import SecretStr
+
+    from backend_v2.exceptions import ConfigurationError, ErrorCodes
+    from backend_v2.models.auth import ResolvedCredentialDTO
+    from backend_v2.models.enums import SecretScope
+
+    adapter = VertexCacheAdapter()
+    prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="user", content="Short prompt")],
+        dynamic_messages=[],
+    )
+
+    invalid_payloads = [
+        "{invalid-json-syntax",
+        json.dumps({"type": "authorized_user", "client_email": "a@b.c", "private_key": "k"}),
+        json.dumps({"type": "service_account", "client_email": "", "private_key": "k"}),
+        json.dumps({"type": "service_account", "client_email": "a@b.c", "private_key": "   "}),
+    ]
+
+    for bad_secret in invalid_payloads:
+        cred = ResolvedCredentialDTO(
+            organization_id="org_0195f3a0000070008000000000000999",
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier="vertex_ai",
+            secret_value=SecretStr(bad_secret),
+            is_tenant_byok=True,
+        )
+        with pytest.raises(ConfigurationError) as exc_kw:
+            adapter.prepare_kwargs(
+                {"model": "vertex_ai/gemini-2.5-flash", "vertex_location": "europe-west1"},
+                resolved_credential=cred,
+            )
+        assert exc_kw.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+        with pytest.raises(ConfigurationError) as exc_cache:
+            await adapter.prepare_caching_payload(
+                prompt,
+                "vertex_ai/gemini-2.5-flash",
+                resolved_credential=cred,
+            )
+        assert exc_cache.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value

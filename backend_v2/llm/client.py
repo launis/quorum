@@ -364,6 +364,7 @@ class LLMClient:
             provider=target_provider_type,
             model_name=target_model_name,
             api_key=target_strategy.api_key,
+            vertex_location=target_strategy.additional_params.vertex_location,
             temperature=target_strategy.temperature,
             top_p=target_strategy.top_p,
             top_k=target_strategy.top_k,
@@ -503,10 +504,13 @@ class LLMClient:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
+            # Step 2: Forward config and resolved_credential into LLMCachingService
             caching_payload = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
                 model_name=str(target_model_name),
+                config=self._config,
+                resolved_credential=self._resolved_credential,
             )
             final_messages = caching_payload.messages
             extra_kwargs.update(caching_payload.kwargs)
@@ -843,10 +847,13 @@ class LLMClient:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
+            # Step 2: Forward config and resolved_credential into LLMCachingService
             caching_payload = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
                 model_name=str(target_model_name),
+                config=self._config,
+                resolved_credential=self._resolved_credential,
             )
             final_messages = caching_payload.messages
             extra_kwargs.update(caching_payload.kwargs)

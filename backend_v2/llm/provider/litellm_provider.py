@@ -349,7 +349,13 @@ class LiteLLMProvider(LLMProvider):
                 del call_kwargs[key]
 
             if adapter:
-                call_kwargs = adapter.prepare_kwargs(call_kwargs, self._config, self.settings)
+                # Step 2: Forward resolved_credential into adapter.prepare_kwargs for BYOK credential binding
+                call_kwargs = adapter.prepare_kwargs(
+                    call_kwargs,
+                    self._config,
+                    self.settings,
+                    resolved_credential=self._resolved_credential,
+                )
 
             if self._config and self._config.additional_params:
                 extra_dump = self._config.additional_params.model_dump(exclude_none=True)

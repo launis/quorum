@@ -836,7 +836,7 @@ async def test_from_tier_resolves_tenant_byok_and_forwards_to_provider_factory(
 async def test_from_tier_resolves_platform_credential_with_root_system_default(
     fake_repository: InMemorySystemRepository,
 ) -> None:
-    """Verify LLMClient.from_tier without tenant BYOK resolves platform credential under ROOT_SYSTEM default."""
+    """Verify LLMClient.from_tier without tenant BYOK resolves ROOT_SYSTEM database credential."""
     client = await LLMClient.from_tier(
         tier=CognitiveTier.FAST,
         repository=fake_repository,
@@ -845,7 +845,7 @@ async def test_from_tier_resolves_platform_credential_with_root_system_default(
 
     assert client.organization_id == SystemOrganizations.ROOT_SYSTEM.value
     assert client.resolved_credential is not None
-    assert client.resolved_credential.is_tenant_byok is False
+    assert client.resolved_credential.is_tenant_byok is True
     assert client.resolved_credential.organization_id == SystemOrganizations.ROOT_SYSTEM.value
 
 
@@ -898,14 +898,14 @@ async def test_from_tier_missing_platform_api_key_without_byok_fails_fast(
     fake_repository: InMemorySystemRepository,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """ISTQB Negative Test: missing platform API key when no tenant BYOK exists raises ConfigurationError."""
+    """ISTQB Negative Test: unseeded database tenant_secrets raises ConfigurationError even if env key exists."""
     tenant_org_id = "org_0195f3a0000070008000000000000888"
     mock_settings = MagicMock()
     mock_settings.use_mock_llm = False
-    mock_settings.openai_api_key = None
+    mock_settings.openai_api_key = "ignored-env-openai-key"
 
     monkeypatch.setattr("backend_v2.llm.client.get_settings", lambda: mock_settings)
-    monkeypatch.setattr("backend_v2.services.auth.secret_service.get_settings", lambda: mock_settings)
+    unseeded_secret_service = SecretService(entity_adapter=InMemoryUnitOfWork().entities)
 
     with pytest.raises(ConfigurationError) as exc_info:
         await LLMClient.from_tier(
@@ -914,6 +914,63 @@ async def test_from_tier_missing_platform_api_key_without_byok_fails_fast(
             provider=LLMProvider.OPENAI,
             registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
             organization_id=tenant_org_id,
+            secret_service=unseeded_secret_service,
         )
 
     assert exc_info.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+@patch("backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload", new_callable=AsyncMock)
+async def test_from_tier_populates_vertex_location_and_forwards_caching_context(
+    mock_prepare_caching: AsyncMock,
+    mock_create_provider: MagicMock,
+    fake_repository: InMemorySystemRepository,
+) -> None:
+    """Verify LLMClient.from_tier populates vertex_location and forwards config and resolved_credential to caching."""
+    mock_provider = AsyncMock()
+    mock_structured_response = MagicMock()
+    mock_structured_response.content = '{"step_4_final_score": 4}'
+    mock_structured_response.token_usage = {
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "total_tokens": 15,
+        "cost_usd": 0.001,
+    }
+    mock_structured_response.provider_metadata = None
+
+    mock_chat_response = MagicMock()
+    mock_chat_response.content = "Vertex cached chat reply"
+    mock_chat_response.tool_calls = None
+
+    mock_provider.generate = AsyncMock(side_effect=[mock_structured_response, mock_chat_response])
+    mock_create_provider.return_value = mock_provider
+
+    mock_prepare_caching.return_value = CachingPayloadResultDTO(
+        messages=[LLMMessageDTO(role="user", content="Dynamic prompt")],
+        kwargs={"cached_content": "projects/p/locations/global/cachedContents/123"},
+    )
+
+    client = await LLMClient.from_tier(
+        tier=CognitiveTier.FAST,
+        repository=fake_repository,
+        provider=LLMProvider.VERTEX_AI,
+        registry_id="sys_0195f3a00000700b81c2d3e4f5a60718",
+    )
+
+    assert client.config is not None
+    assert client.config.vertex_location == "europe-north1"
+    assert client.resolved_credential is not None
+
+    prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="Static prefix")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Dynamic prompt")],
+    )
+    await client.run_structured_task(messages=prompt, response_model=DummyStrictModel)
+    await client.run_chat(messages=prompt)
+
+    assert mock_prepare_caching.call_count == 2
+    for call in mock_prepare_caching.call_args_list:
+        assert call.kwargs["config"] == client.config
+        assert call.kwargs["resolved_credential"] == client.resolved_credential

@@ -15,6 +15,7 @@ from arq.connections import RedisSettings, create_pool
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import ResolvedCredentialDTO
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
@@ -150,13 +151,21 @@ class BaseLLMAdapter(ABC):
 
     @abstractmethod
     async def prepare_caching_payload(
-        self, compiled_prompt: CompiledPrompt, model_name: str
+        self,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the payload for the API request by configuring caching structures.
+
+        # Step 2: Propagate config and resolved_credential into caching adapters
 
         Args:
             compiled_prompt: The prompt after execution compilation stages.
             model_name: The physical target deployment model.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             A CachingPayloadResultDTO containing structured messages and extra kwargs.
@@ -250,18 +259,26 @@ class BaseLLMAdapter(ABC):
         return messages
 
     def prepare_kwargs(
-        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+        self,
+        call_kwargs: dict[str, Any],
+        config: Any | None = None,
+        settings: Any | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Optional: Modifies parameters passed to LiteLLM (e.g. provider specific mappings).
+
+        # Step 2: Accept optional resolved_credential for provider-specific BYOK credential binding
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.
             config: Optional config object for the provider.
             settings: Optional app settings.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             The potentially modified call_kwargs dictionary.
         """
+        _ = resolved_credential
         current_span = otel_trace.get_current_span()
         if current_span.is_recording():
             if "model" in call_kwargs and call_kwargs["model"] is not None:

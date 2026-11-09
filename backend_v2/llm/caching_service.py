@@ -8,7 +8,9 @@ import opentelemetry.trace as trace
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
-from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
+from backend_v2.models.auth import ResolvedCredentialDTO
+from backend_v2.models.domain.system_config import ModelProfile
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 
 __all__ = ["LLMCachingService"]
@@ -46,13 +48,19 @@ class LLMCachingService:
         provider_name: str,
         compiled_prompt: CompiledPrompt,
         model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the cache payload by delegating to the appropriate adapter.
+
+        # Step 2: Propagate config and resolved_credential into concrete cache adapters
 
         Args:
             provider_name: The target LLM provider (e.g., 'vertex_ai', 'anthropic').
             compiled_prompt: The structured CompiledPrompt containing static and dynamic message segments.
             model_name: The actual target model identifier.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             Prepared messages and extra provider-specific caching keyword arguments.
@@ -65,7 +73,12 @@ class LLMCachingService:
         await cls._run_purity_scanner(compiled_prompt.to_flat_messages())
 
         adapter = LLMCacheAdapterFactory.get_adapter(provider_name, model_name=model_name)
-        return await adapter.prepare_caching_payload(compiled_prompt, model_name)
+        return await adapter.prepare_caching_payload(
+            compiled_prompt,
+            model_name,
+            config=config,
+            resolved_credential=resolved_credential,
+        )
 
     @classmethod
     async def pre_cache_document(
@@ -73,8 +86,12 @@ class LLMCachingService:
         provider_name: str,
         compiled_prompt: CompiledPrompt,
         model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> None:
         """Pre-cache a document upfront (Cache Pre-Warming).
+
+        # Step 2: Propagate config and resolved_credential into pre_cache_document
 
         Explicitly triggers the adapter to create and lock the provider-specific context cache,
         preventing thundering herds during parallel TaskGroup execution.
@@ -83,13 +100,21 @@ class LLMCachingService:
             provider_name: The target LLM provider (e.g., 'vertex_ai').
             compiled_prompt: The structured CompiledPrompt containing static content.
             model_name: The target model identifier.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Raises:
             AppException: Triggered with ErrorCodes.VALIDATION_FAILED if dynamic traces
                 pollute the static system prompt or if the provider is unrecognized, or
                 ErrorCodes.CAPABILITY_NOT_SUPPORTED if adapter initialization fails.
         """
-        await cls.prepare_caching_payload(provider_name, compiled_prompt, model_name)
+        await cls.prepare_caching_payload(
+            provider_name,
+            compiled_prompt,
+            model_name,
+            config=config,
+            resolved_credential=resolved_credential,
+        )
 
     @classmethod
     async def _run_purity_scanner(cls, messages: list[LLMMessageDTO]) -> None:

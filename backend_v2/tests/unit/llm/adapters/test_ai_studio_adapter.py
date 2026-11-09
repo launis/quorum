@@ -24,7 +24,7 @@ from backend_v2.llm.adapters.ai_studio_adapter import (
 )
 from backend_v2.models.domain.system_config import ModelProfile, ProviderExtraParamsDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 
 # Phase 3, Step 3: Pre-import and snapshot canonical google.genai modules once without collection-time sys.modules mutation
@@ -86,6 +86,7 @@ class MockGenAIModule(ModuleType):
         Returns:
             Shared MagicMock client instance.
         """
+        mock_genai_client.last_init_kwargs = kwargs
         return mock_genai_client
 
 
@@ -682,3 +683,71 @@ def test_ai_studio_adapter_negative_boundary_schema_validation() -> None:
 
     with pytest.raises(ValidationError):
         TokenUsage(prompt_tokens=-1, completion_tokens=10, total_tokens=9)
+
+
+@pytest.mark.asyncio
+async def test_ai_studio_adapter_byok_resolved_credential_and_tenant_redis_isolation() -> None:
+    """Verify GoogleAIStudioCacheAdapter uses BYOK resolved_credential API key and tenant-scoped Redis key."""
+    from pydantic import SecretStr
+
+    from backend_v2.models.auth import ResolvedCredentialDTO
+    from backend_v2.models.enums import SecretScope
+
+    mock_genai_client.caches.create.reset_mock()
+    mock_genai_client.caches.create.side_effect = None
+
+    class DummyTenantCache:
+        name = "cachedContents/ai-studio-tenant-cache-666"
+
+    mock_genai_client.caches.create.return_value = DummyTenantCache()
+
+    tenant_org_id = "org_0195f3a0000070008000000000000666"
+    byok_cred = ResolvedCredentialDTO(
+        organization_id=tenant_org_id,
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="ai_studio",
+        secret_value=SecretStr("ai-studio-byok-key-666"),
+        is_tenant_byok=True,
+    )
+    provider_config = LLMProviderConfig(
+        id="prv_0195f3a0000070008000000000000666",
+        provider="ai_studio",
+        model_name="gemini/gemini-2.5-flash",
+        tpm_limit=1000,
+        rpm_limit=60,
+        additional_params=ProviderExtraParamsDTO(),
+    )
+
+    large_static = "G" * 150000
+    prompt = CompiledPrompt(
+        static_messages=[
+            LLMMessageDTO(role="system", content="You are an AI Studio tenant evaluator."),
+            LLMMessageDTO(role="user", content=large_static),
+        ],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Tenant query")],
+    )
+
+    adapter = GoogleAIStudioCacheAdapter()
+    redis_client = await get_redis_client()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
+    expected_redis_key = f"ai_studio_cache:{tenant_org_id}:gemini-2.5-flash:{static_hash}"
+    expected_lock_key = f"lock:ai_studio_cache:{tenant_org_id}:gemini-2.5-flash:{static_hash}"
+    await redis_client.delete(expected_redis_key, expected_lock_key)
+
+    res = await adapter.prepare_caching_payload(
+        prompt,
+        "gemini/gemini-2.5-flash",
+        config=provider_config,
+        resolved_credential=byok_cred,
+    )
+    assert res.kwargs == {"cached_content": "cachedContents/ai-studio-tenant-cache-666"}
+    assert mock_genai_client.last_init_kwargs == {"api_key": "ai-studio-byok-key-666"}
+
+    stored_cache = await redis_client.get(expected_redis_key)
+    if isinstance(stored_cache, bytes):
+        stored_cache = stored_cache.decode("utf-8")
+    assert stored_cache == "cachedContents/ai-studio-tenant-cache-666"

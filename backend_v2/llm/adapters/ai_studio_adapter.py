@@ -14,10 +14,11 @@ import re
 from typing import TYPE_CHECKING, Any, Final, override
 
 from arq.connections import ArqRedis, RedisSettings, create_pool
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
+from backend_v2.models.auth import ResolvedCredentialDTO
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
@@ -231,8 +232,12 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         clean_model_name: str,
         redis_key: str,
         lock_key: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Execute Google AI Studio context cache creation while holding the distributed Redis lock.
+
+        # Step 2: Resolve Gemini context caching API key from resolved_credential / config SSOT
 
         Args:
             redis_client: Active Redis client instance.
@@ -240,6 +245,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             clean_model_name: Normalized model identifier without provider prefix.
             redis_key: Redis key storing the cache resource name or status.
             lock_key: Distributed Redis lock key protecting creation.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             A CachingPayloadResultDTO containing dynamic or flat messages and cache kwargs.
@@ -261,7 +268,23 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                 ex=settings.context_cache_lock_ttl_seconds,
             )
 
-            api_key = os.getenv("GEMINI_API_KEY")
+            api_key: str | None = None
+            if resolved_credential is not None:
+                candidate_key = resolved_credential.secret_value.get_secret_value().strip()
+                if candidate_key:
+                    api_key = candidate_key
+            if not api_key and isinstance(config, LLMProviderConfig) and config.api_key is not None:
+                cfg_key = (
+                    config.api_key.get_secret_value().strip()
+                    if isinstance(config.api_key, SecretStr)
+                    else config.api_key.strip()
+                )
+                if cfg_key:
+                    api_key = cfg_key
+            if not api_key and settings.google_api_key:
+                api_key = settings.google_api_key
+            if not api_key:
+                api_key = os.getenv("GEMINI_API_KEY")
             if not api_key:
                 api_key = os.getenv("GOOGLE_API_KEY")
             static_flat = compiled_prompt.to_static_flat()
@@ -274,8 +297,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                 logger.info("Creating Google AI Studio Context Cache for model: %s", clean_model_name)
 
                 ttl_seconds = int(settings.context_cache_passive_ttl_seconds)
-                config = self._build_ai_studio_cache_config(static_flat, ttl_seconds, types)
-                cache = client.caches.create(model=clean_model_name, config=config)
+                cache_config = self._build_ai_studio_cache_config(static_flat, ttl_seconds, types)
+                cache = client.caches.create(model=clean_model_name, config=cache_config)
                 cache_name = str(cache.name)
 
                 await redis_client.set(redis_key, cache_name, ex=ttl_seconds)
@@ -347,13 +370,21 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
 
     @override
     async def prepare_caching_payload(
-        self, compiled_prompt: CompiledPrompt, model_name: str
+        self,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the Google AI Studio specific prompt payload by setting up cached content.
+
+        # Step 2: Scope Redis cache keys by tenant organization_id and forward resolved_credential
 
         Args:
             compiled_prompt: The structured prompt payload.
             model_name: The target model name.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             A CachingPayloadResultDTO containing messages and extra kwargs.
@@ -397,8 +428,11 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                 sort_keys=True,
             ).encode()
         ).hexdigest()
-        redis_key = f"ai_studio_cache:{clean_model_name}:{static_hash}"
-        lock_key = f"lock:ai_studio_cache:{clean_model_name}:{static_hash}"
+        org_scope = ""
+        if resolved_credential is not None and resolved_credential.is_tenant_byok:
+            org_scope = f"{resolved_credential.organization_id}:"
+        redis_key = f"ai_studio_cache:{org_scope}{clean_model_name}:{static_hash}"
+        lock_key = f"lock:ai_studio_cache:{org_scope}{clean_model_name}:{static_hash}"
 
         redis_client = await get_redis_client()
         existing = self._resolve_existing_cache_entry(
@@ -418,6 +452,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                 clean_model_name=clean_model_name,
                 redis_key=redis_key,
                 lock_key=lock_key,
+                config=config,
+                resolved_credential=resolved_credential,
             )
         return await self._poll_for_active_cache_creation(
             redis_client=redis_client,
@@ -608,18 +644,27 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         call_kwargs: dict[str, Any],
         config: LLMProviderConfig | ModelProfile | None = None,
         settings: Settings | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Prepare AI Studio specific kwargs, handling caching mappings and parameters.
+
+        # Step 2: Align signature with BaseLLMAdapter optional resolved_credential
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.
             config: Optional config object for the provider.
             settings: Optional app settings.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        super().prepare_kwargs(call_kwargs, config=config, settings=settings)
+        super().prepare_kwargs(
+            call_kwargs,
+            config=config,
+            settings=settings,
+            resolved_credential=resolved_credential,
+        )
 
         model_key = ""
         if "model" in call_kwargs and call_kwargs["model"]:

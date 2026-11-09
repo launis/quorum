@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
+from backend_v2.models.auth import ResolvedCredentialDTO
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMProviderConfig
@@ -29,9 +30,15 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
     @override
     async def prepare_caching_payload(
-        self, compiled_prompt: CompiledPrompt, model_name: str
+        self,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the OpenAI-specific prompt payload.
+
+        # Step 2: Align signature with BaseLLMAdapter optional config and resolved_credential
 
         OpenAI recognizes caching automatically by prefix matching. We simply flatten
         the messages and return empty extra keyword arguments.
@@ -39,6 +46,8 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         Args:
             compiled_prompt: The structured CompiledPrompt instance.
             model_name: The target model name.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             A CachingPayloadResultDTO containing flat messages and empty kwargs.
@@ -46,6 +55,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         Raises:
             AppException: VALIDATION_FAILED if model_name is empty or whitespace.
         """
+        _ = (config, resolved_credential)
         if not model_name or not model_name.strip():
             logger.error(
                 "[OpenAICacheAdapter] %s: Target model_name cannot be empty.",
@@ -167,18 +177,27 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         call_kwargs: dict[str, Any],
         config: LLMProviderConfig | ModelProfile | None = None,
         settings: Settings | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Prepare OpenAI specific kwargs, translating reasoning effort and stripping unsupported sampling params.
+
+        # Step 2: Align signature with BaseLLMAdapter optional resolved_credential
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.
             config: Optional config object for the provider.
             settings: Optional app settings.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        super().prepare_kwargs(call_kwargs, config=config, settings=settings)
+        super().prepare_kwargs(
+            call_kwargs,
+            config=config,
+            settings=settings,
+            resolved_credential=resolved_credential,
+        )
 
         resolved_model: str = ""
         if "model" in call_kwargs and call_kwargs["model"]:

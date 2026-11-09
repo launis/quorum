@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
+from backend_v2.models.auth import ResolvedCredentialDTO
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO, LLMProviderConfig
@@ -53,13 +54,21 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
     @override
     async def prepare_caching_payload(
-        self, compiled_prompt: CompiledPrompt, model_name: str
+        self,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the Anthropic-specific prompt payload with block-level cache tags.
+
+        # Step 2: Align signature with BaseLLMAdapter optional config and resolved_credential
 
         Args:
             compiled_prompt: The structured CompiledPrompt instance.
             model_name: The target model name.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             A CachingPayloadResultDTO containing formatted messages and empty kwargs.
@@ -67,6 +76,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         Raises:
             AppException: VALIDATION_FAILED if model_name is empty or whitespace.
         """
+        _ = (config, resolved_credential)
         if not model_name or not model_name.strip():
             logger.error(
                 "[AnthropicCacheAdapter] %s: Target model_name cannot be empty.",
@@ -250,17 +260,22 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         call_kwargs: dict[str, Any],
         config: LLMProviderConfig | ModelProfile | None = None,
         settings: Settings | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
         """Prepare Anthropic specific kwargs, handling thinking budgets and parameter constraints.
+
+        # Step 2: Align signature with BaseLLMAdapter optional resolved_credential
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.
             config: Optional config object for the provider.
             settings: Optional app settings.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             The potentially modified call_kwargs dictionary.
         """
+        _ = resolved_credential
         resolved_model = ""
         if "model" in call_kwargs and call_kwargs["model"]:
             resolved_model = str(call_kwargs["model"])

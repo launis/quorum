@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -312,7 +313,7 @@ async def test_litellm_provider_generate_retries_httpx_shield_and_fail_fast_guar
     real_http_client = httpx.AsyncClient(timeout=30.0)
     fake_adapter = MagicMock()
     fake_adapter.sanitize_messages.side_effect = lambda msgs: msgs
-    fake_adapter.prepare_kwargs.side_effect = lambda kw, *_: kw
+    fake_adapter.prepare_kwargs.side_effect = lambda kw, *_, **__: kw
     fake_adapter.build_http_client.return_value = real_http_client
     monkeypatch.setattr(LLMCacheAdapterFactory, "get_adapter", lambda *_, **__: fake_adapter)
 
@@ -371,7 +372,7 @@ async def test_litellm_provider_negative_boundaries_and_rfc7807_logging(
     LiteLLMProvider._router_cache.clear()
     LiteLLMProvider._semaphores.clear()
 
-    monkeypatch.delitem(litellm_provider_mod.sys.modules, "backend_v2.llm.provider", raising=False)
+    monkeypatch.delitem(sys.modules, "backend_v2.llm.provider", raising=False)
     assert _resolve_get_settings() is get_settings
     assert _resolve_apply_provider_pacing() is apply_provider_pacing
 

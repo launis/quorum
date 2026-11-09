@@ -5,10 +5,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import opentelemetry.trace as otel_trace
 import pytest
+from pydantic import SecretStr
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.caching_service import LLMCachingService
-from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
+from backend_v2.models.auth import ResolvedCredentialDTO
+from backend_v2.models.domain.system_config import ProviderExtraParamsDTO
+from backend_v2.models.enums import SecretScope
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 
 
@@ -33,7 +37,12 @@ async def test_prepare_caching_payload() -> None:
         )
 
         mock_get.assert_called_once_with("vertex_ai", model_name="gemini-1.5-pro")
-        mock_adapter.prepare_caching_payload.assert_called_once_with(compiled_prompt, "gemini-1.5-pro")
+        mock_adapter.prepare_caching_payload.assert_called_once_with(
+            compiled_prompt,
+            "gemini-1.5-pro",
+            config=None,
+            resolved_credential=None,
+        )
         assert result.messages == [LLMMessageDTO(role="user", content="mock_messages")]
         assert result.kwargs == {"mock": "kwargs"}
 
@@ -84,7 +93,12 @@ async def test_pre_cache_document() -> None:
             compiled_prompt=compiled_prompt,
             model_name="gemini-1.5-pro",
         )
-        mock_adapter.prepare_caching_payload.assert_called_once_with(compiled_prompt, "gemini-1.5-pro")
+        mock_adapter.prepare_caching_payload.assert_called_once_with(
+            compiled_prompt,
+            "gemini-1.5-pro",
+            config=None,
+            resolved_credential=None,
+        )
 
 
 @pytest.mark.asyncio
@@ -159,3 +173,82 @@ def test_caching_payload_result_dto_validation() -> None:
     )
     assert len(dto.messages) == 1
     assert dto.kwargs["cached_content"] == "cache_123"
+
+
+@pytest.mark.asyncio
+async def test_prepare_caching_payload_and_pre_cache_forward_config_and_credential() -> None:
+    """Verify prepare_caching_payload and pre_cache_document forward config and resolved_credential."""
+    mock_adapter = AsyncMock()
+    mock_adapter.prepare_caching_payload.return_value = CachingPayloadResultDTO(messages=[], kwargs={})
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
+    provider_config = LLMProviderConfig(
+        id="prv_0195f3a0000070008000000000000111",
+        provider="vertex_ai",
+        model_name="vertex_ai/gemini-2.5-flash",
+        vertex_location="europe-west1",
+        tpm_limit=1000,
+        rpm_limit=60,
+        additional_params=ProviderExtraParamsDTO(),
+    )
+    resolved_cred = ResolvedCredentialDTO(
+        organization_id="org_0195f3a0000070008000000000000111",
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="vertex_ai",
+        secret_value=SecretStr("AIzaSyTestExpressKey"),
+        is_tenant_byok=True,
+    )
+
+    with patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter):
+        await LLMCachingService.prepare_caching_payload(
+            provider_name="vertex_ai",
+            compiled_prompt=compiled_prompt,
+            model_name="vertex_ai/gemini-2.5-flash",
+            config=provider_config,
+            resolved_credential=resolved_cred,
+        )
+        mock_adapter.prepare_caching_payload.assert_called_once_with(
+            compiled_prompt,
+            "vertex_ai/gemini-2.5-flash",
+            config=provider_config,
+            resolved_credential=resolved_cred,
+        )
+
+        mock_adapter.prepare_caching_payload.reset_mock()
+        await LLMCachingService.pre_cache_document(
+            provider_name="vertex_ai",
+            compiled_prompt=compiled_prompt,
+            model_name="vertex_ai/gemini-2.5-flash",
+            config=provider_config,
+            resolved_credential=resolved_cred,
+        )
+        mock_adapter.prepare_caching_payload.assert_called_once_with(
+            compiled_prompt,
+            "vertex_ai/gemini-2.5-flash",
+            config=provider_config,
+            resolved_credential=resolved_cred,
+        )
+
+
+@pytest.mark.asyncio
+async def test_prepare_caching_payload_invalid_service_account_json_error() -> None:
+    """ISTQB Negative Test: Malformed Vertex Service Account JSON raises ConfigurationError Fail-Fast."""
+    compiled_prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="user", content="Static text")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Dynamic text")],
+    )
+    malformed_cred = ResolvedCredentialDTO(
+        organization_id="org_0195f3a0000070008000000000000222",
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="vertex_ai",
+        secret_value=SecretStr("{malformed-json"),
+        is_tenant_byok=True,
+    )
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        await LLMCachingService.prepare_caching_payload(
+            provider_name="vertex_ai",
+            compiled_prompt=compiled_prompt,
+            model_name="vertex_ai/gemini-2.5-flash",
+            resolved_credential=malformed_cred,
+        )
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value

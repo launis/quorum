@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
+from backend_v2.models.auth import ResolvedCredentialDTO
 from backend_v2.models.domain.mcp import OpenAIToolCallDTO
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
@@ -112,21 +113,121 @@ def is_gemini_v3_or_higher(model_name: str) -> bool:
 class VertexCacheAdapter(BaseLLMAdapter):
     """Caching and pricing adapter for Google Vertex AI Gemini models."""
 
+    @staticmethod
+    def _parse_service_account_json(raw_secret: str) -> dict[str, Any]:
+        """Parse and validate a Vertex AI GCP Service Account JSON payload Fail-Fast.
+
+        # Step 2: Validate Vertex AI BYOK Service Account JSON schema Fail-Fast
+
+        Args:
+            raw_secret: Raw secret string starting with '{'.
+
+        Returns:
+            Parsed dictionary containing validated GCP service account fields.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if JSON syntax is invalid
+                or required service_account fields (type, client_email, private_key) are missing.
+        """
+        try:
+            parsed = json.loads(raw_secret)
+        except json.JSONDecodeError as exc:
+            logger.error(
+                "[VertexCacheAdapter] %s: Malformed Vertex AI Service Account JSON syntax.",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+            raise ConfigurationError(
+                message="Malformed Vertex AI Service Account JSON syntax.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            ) from exc
+
+        if not isinstance(parsed, dict) or "type" not in parsed or parsed["type"] != "service_account":
+            logger.error(
+                "[VertexCacheAdapter] %s: Vertex AI Service Account JSON must declare type='service_account'.",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+            raise ConfigurationError(
+                message="Vertex AI Service Account JSON must declare type='service_account'.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        if (
+            "client_email" not in parsed
+            or not isinstance(parsed["client_email"], str)
+            or not parsed["client_email"].strip()
+            or "private_key" not in parsed
+            or not isinstance(parsed["private_key"], str)
+            or not parsed["private_key"].strip()
+        ):
+            logger.error(
+                "[VertexCacheAdapter] %s: Vertex AI Service Account JSON missing required client_email or private_key.",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+            raise ConfigurationError(
+                message="Vertex AI Service Account JSON missing required client_email or private_key.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        return parsed
+
+    @staticmethod
+    def _resolve_config_location(config: LLMProviderConfig | ModelProfile | None) -> str | None:
+        """Extract configured Vertex AI location from LLMProviderConfig or ModelProfile SSOT.
+
+        Args:
+            config: Optional provider or model profile configuration.
+
+        Returns:
+            Configured location string if present, else None.
+        """
+        if isinstance(config, LLMProviderConfig):
+            if config.vertex_location and config.vertex_location.strip():
+                return config.vertex_location.strip()
+            if (
+                config.additional_params is not None
+                and config.additional_params.vertex_location
+                and config.additional_params.vertex_location.strip()
+            ):
+                return config.additional_params.vertex_location.strip()
+        elif isinstance(config, ModelProfile):
+            if config.additional_params.vertex_location and config.additional_params.vertex_location.strip():
+                return config.additional_params.vertex_location.strip()
+        return None
+
     async def prepare_caching_payload(
-        self, compiled_prompt: CompiledPrompt, model_name: str
+        self,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
+        config: LLMProviderConfig | ModelProfile | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> CachingPayloadResultDTO:
         """Prepare the Vertex AI specific prompt payload by setting up cached content.
+
+        # Step 2: Support Vertex AI BYOK Service Account JSON, DB vertex_location SSOT, and tenant Redis key isolation
 
         Args:
             compiled_prompt: The structured prompt payload.
             model_name: The target model name.
+            config: Optional provider or model profile configuration.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             A CachingPayloadResultDTO containing messages and extra kwargs.
 
         Raises:
-            ConfigurationError: If Vertex AI requires a configured location that is missing.
+            ConfigurationError: If Vertex AI requires a configured location that is missing
+                or if a tenant BYOK Service Account JSON payload is invalid.
         """
+        sa_dict: dict[str, Any] | None = None
+        if resolved_credential is not None:
+            raw_secret = resolved_credential.secret_value.get_secret_value().strip()
+            if raw_secret.startswith("{"):
+                sa_dict = self._parse_service_account_json(raw_secret)
+
         # Vertex AI context caching requires caching conversational turns in `contents`.
         # System instructions alone cannot form an explicit cached resource in GCP without conversational content.
         # Calculate token estimate strictly from static non-system messages to prevent GCP 1-token InvalidArgument.
@@ -150,11 +251,13 @@ class VertexCacheAdapter(BaseLLMAdapter):
             return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
         settings = get_settings()
-        location = os.getenv("VERTEX_LOCATION")
-        if not location:
-            location = os.getenv("VERTEXAI_LOCATION")
+        location = self._resolve_config_location(config)
         if not location and settings.vertex_location:
             location = settings.vertex_location
+        if not location:
+            location = os.getenv("VERTEX_LOCATION")
+        if not location:
+            location = os.getenv("VERTEXAI_LOCATION")
         if not location:
             logger.error(
                 "Vertex AI requires a configured location in the active Model Registry.",
@@ -170,8 +273,11 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 sort_keys=True,
             ).encode()
         ).hexdigest()
-        redis_key = f"vertex_cache:{location}:{model_name}:{static_hash}"
-        lock_key = f"lock:vertex_cache:{location}:{model_name}:{static_hash}"
+        org_scope = ""
+        if resolved_credential is not None and resolved_credential.is_tenant_byok:
+            org_scope = f"{resolved_credential.organization_id}:"
+        redis_key = f"vertex_cache:{org_scope}{location}:{model_name}:{static_hash}"
+        lock_key = f"lock:vertex_cache:{org_scope}{location}:{model_name}:{static_hash}"
 
         client = await get_redis_client()
 
@@ -219,7 +325,18 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     ex=get_settings().context_cache_lock_ttl_seconds,
                 )
 
-                project = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
+                project: str | None = None
+                if (
+                    sa_dict is not None
+                    and "project_id" in sa_dict
+                    and isinstance(sa_dict["project_id"], str)
+                    and sa_dict["project_id"].strip()
+                ):
+                    project = sa_dict["project_id"].strip()
+                else:
+                    project = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
+                    if not project and settings.gcp_project_id:
+                        project = settings.gcp_project_id
                 clean_model_name = model_name.split("/")[-1]
                 # V3 Cache Fix: Upload ONLY static content to cache
                 static_flat = compiled_prompt.to_static_flat()
@@ -229,7 +346,14 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
                     import vertexai
 
-                    vertexai.init(project=project, location=location)
+                    if sa_dict is not None:
+                        from google.oauth2 import service_account
+
+                        # google-auth service_account.Credentials.from_service_account_info lacks PEP 484 type annotations
+                        credentials = service_account.Credentials.from_service_account_info(sa_dict)  # type: ignore[no-untyped-call]
+                        vertexai.init(project=project, location=location, credentials=credentials)
+                    else:
+                        vertexai.init(project=project, location=location)
 
                     try:
                         caching = importlib.import_module("vertexai.preview.caching")
@@ -486,26 +610,49 @@ class VertexCacheAdapter(BaseLLMAdapter):
         call_kwargs: dict[str, Any],
         config: LLMProviderConfig | ModelProfile | None = None,
         settings: Settings | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, Any]:
-        """Prepare Vertex specific kwargs, handling caching mappings and location resolution.
+        """Prepare Vertex specific kwargs, handling BYOK credentials, caching mappings, and location resolution.
+
+        # Step 2: Bind Vertex AI BYOK Service Account JSON or Express API key and enforce DB vertex_location SSOT
 
         Args:
             call_kwargs: The dictionary of arguments to pass to litellm.
             config: Optional config object for the provider.
             settings: Optional app settings.
+            resolved_credential: Optional resolved tenant or platform credential DTO.
 
         Returns:
             The potentially modified call_kwargs dictionary.
 
         Raises:
-            ConfigurationError: If Vertex AI requires a configured location that cannot be resolved.
+            ConfigurationError: If Vertex AI requires a configured location that cannot be resolved
+                or if a BYOK Service Account JSON payload is malformed.
         """
-        # 1. Resolve Vertex Location
-        config_location = None
-        if isinstance(config, LLMProviderConfig) and config.vertex_location:
-            config_location = config.vertex_location
-        elif isinstance(config, ModelProfile) and config.additional_params.vertex_location:
-            config_location = config.additional_params.vertex_location
+        # 1. Resolve Vertex Location from DB config SSOT
+        config_location = self._resolve_config_location(config)
+
+        # 1.25 Bind Vertex AI BYOK Service Account JSON or Express API Key
+        raw_secret_candidate: str | None = None
+        if resolved_credential is not None:
+            raw_secret_candidate = resolved_credential.secret_value.get_secret_value().strip()
+        elif "api_key" in call_kwargs and isinstance(call_kwargs["api_key"], str):
+            candidate = call_kwargs["api_key"].strip()
+            if candidate.startswith("{"):
+                raw_secret_candidate = candidate
+
+        if raw_secret_candidate is not None:
+            if raw_secret_candidate.startswith("{"):
+                sa_dict = self._parse_service_account_json(raw_secret_candidate)
+                call_kwargs["vertex_credentials"] = raw_secret_candidate
+                if "project_id" in sa_dict and isinstance(sa_dict["project_id"], str) and sa_dict["project_id"].strip():
+                    call_kwargs["vertex_project"] = sa_dict["project_id"].strip()
+                if "api_key" in call_kwargs:
+                    del call_kwargs["api_key"]
+            elif raw_secret_candidate and raw_secret_candidate != "vertex-adc-managed":
+                call_kwargs["api_key"] = raw_secret_candidate
+            elif "api_key" in call_kwargs and call_kwargs["api_key"] == "vertex-adc-managed":
+                del call_kwargs["api_key"]
 
         # 1.5 Reasoning & Thinking Parameter Extraction / Sanitization
         model_name_raw = ""
@@ -576,9 +723,6 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 message="Vertex AI requires a configured location in the active Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
-        os.environ["VERTEX_LOCATION"] = active_location
-
-        os.environ["VERTEXAI_LOCATION"] = active_location
         call_kwargs["vertex_location"] = active_location
 
         # 2. Caching parameter mapping
