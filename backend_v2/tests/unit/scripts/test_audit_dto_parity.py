@@ -71,6 +71,65 @@ def test_extract_pydantic_fields_success(tmp_path: Path) -> None:
     assert bases["ExecutionRecordDTO"] == ["BaseModel"]
 
 
+def test_extract_pydantic_fields_resolves_serialization_and_field_aliases(tmp_path: Path) -> None:
+    """Verify extract_pydantic_fields extracts Field(serialization_alias=...) and Field(alias=...) over attribute names."""
+    py_file = tmp_path / "aliased_models.py"
+    py_file.write_text(
+        "from typing import Annotated\n"
+        "from pydantic import AliasChoices, BaseModel, Field\n\n"
+        "class AliasedContextDTO(BaseModel):\n"
+        "    canonical_field: Annotated[str | None, Field(default=None)] = None\n"
+        "    initiator_id: Annotated[str | None, Field(default=None, alias='_sys_initiator_id')] = None\n"
+        "    override_key: Annotated[\n"
+        "        str | None,\n"
+        "        Field(default=None, alias='legacy_alias', serialization_alias='wire_override_key'),\n"
+        "    ] = None\n"
+        "    validation_only_alias: Annotated[\n"
+        "        str | None,\n"
+        "        Field(default=None, validation_alias=AliasChoices('$ref', 'validation_only_alias')),\n"
+        "    ] = None\n",
+        encoding="utf-8",
+    )
+    models, _ = extract_pydantic_fields(py_file)
+    assert "AliasedContextDTO" in models
+    assert models["AliasedContextDTO"] == {
+        "canonical_field",
+        "_sys_initiator_id",
+        "wire_override_key",
+        "validation_only_alias",
+    }
+
+
+def test_audit_parity_report_field_alias_mismatch_failure(tmp_path: Path) -> None:
+    """Negative test: Verify audit_parity_report flags Field(alias=...) mismatches against Freezed @JsonKey."""
+    backend_dir = tmp_path / "backend"
+    backend_dir.mkdir()
+    frontend_dir = tmp_path / "frontend"
+    frontend_dir.mkdir()
+
+    (backend_dir / "context.py").write_text(
+        "from typing import Annotated\n"
+        "from pydantic import BaseModel, Field\n\n"
+        "class GlobalContextVarsDTO(BaseModel):\n"
+        "    initiator_id: Annotated[str | None, Field(default=None, alias='_sys_initiator_id')] = None\n",
+        encoding="utf-8",
+    )
+    (frontend_dir / "context.dart").write_text(
+        "@freezed\n"
+        "abstract class GlobalContextVarsDto with _$GlobalContextVarsDto {\n"
+        "  const factory GlobalContextVarsDto({\n"
+        "    @JsonKey(name: 'initiator_id') String? initiatorId,\n"
+        "  }) = _GlobalContextVarsDto;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    report = audit_parity_report(backend_dir, frontend_dir)
+    assert report.is_success is False
+    mismatch_fields = {m.field_name for m in report.mismatches}
+    assert "_sys_initiator_id" in mismatch_fields
+    assert "initiator_id" in mismatch_fields
+
+
 def test_extract_pydantic_fields_fault_resilience(tmp_path: Path) -> None:
     """Test extract_pydantic_fields fault domain resilience on syntax errors and binary streams."""
     # Syntax error file

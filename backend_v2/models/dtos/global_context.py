@@ -70,7 +70,7 @@ class GlobalContextVarsDTO(V2CoreBase):
     )
     initiator_id: Annotated[
         str | None,
-        Field(default=None, alias="_sys_initiator_id", description="Execution initiator user identifier."),
+        Field(default=None, description="Execution initiator user identifier."),
     ] = None
     step_coach: Annotated[
         dict[str, str | int | float | bool | list[str]] | None,

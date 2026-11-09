@@ -64,7 +64,14 @@ def camel_to_snake(camel_str: str) -> str:
 
 
 def extract_pydantic_fields(file_path: Path) -> tuple[dict[str, set[str]], dict[str, list[str]]]:
-    """Extract Pydantic model class names, field names, and base class names via zero-reflection Python AST."""
+    """Extract Pydantic model class names, serialized field names, and base class names via AST.
+
+    Args:
+        file_path: Path to the Python module containing Pydantic model definitions.
+
+    Returns:
+        2-tuple of model-to-serialized-field-set mapping and model-to-base-class-list mapping.
+    """
     if not file_path.exists() or file_path.suffix != ".py":
         return {}, {}
 
@@ -89,15 +96,32 @@ def extract_pydantic_fields(file_path: Path) -> tuple[dict[str, set[str]], dict[
                         case ast.AnnAssign(target=ast.Name(id=field_name)):
                             if not field_name.startswith("_") and field_name != "model_config":
                                 is_excluded = False
+                                field_alias: str | None = None
+                                ser_alias: str | None = None
                                 for sub in ast.walk(stmt):
                                     match sub:
                                         case ast.keyword(arg="exclude", value=ast.Constant(value=True)):
                                             is_excluded = True
                                             break
+                                        case ast.keyword(
+                                            arg="serialization_alias",
+                                            value=ast.Constant(value=str() as resolved_ser_alias),
+                                        ):
+                                            ser_alias = resolved_ser_alias
+                                        case ast.keyword(
+                                            arg="alias",
+                                            value=ast.Constant(value=str() as resolved_alias),
+                                        ):
+                                            field_alias = resolved_alias
                                         case _:
                                             pass
                                 if not is_excluded:
-                                    fields.add(field_name)
+                                    serialized_name = field_name
+                                    if ser_alias is not None:
+                                        serialized_name = ser_alias
+                                    elif field_alias is not None:
+                                        serialized_name = field_alias
+                                    fields.add(serialized_name)
                         case _:
                             pass
                 if fields or base_names:
