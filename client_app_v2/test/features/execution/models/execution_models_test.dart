@@ -489,9 +489,9 @@ void main() {
         'status': 'PASSED',
         'execution_trace': <Map<String, dynamic>>[
           {
-            'event_type': 'tombstone',
-            'step_id': 'stp_1',
-            'status': 'PASSED',
+            'event_type': 'TOMBSTONE',
+            'step_name': 'stp_1',
+            'redacted_hash': 'sha256_redacted',
             'timestamp': '2026-08-30T12:00:00Z',
           },
         ],
@@ -500,6 +500,8 @@ void main() {
 
       final record = ExecutionRecord.fromJson(json);
       expect(record.id, 'exe_1234567890abcdef');
+      expect(record.executionTrace?.first.stepName, 'stp_1');
+      expect(record.executionTrace?.first.redactedHash, 'sha256_redacted');
     });
 
     test('throws when mandatory target_locale is missing', () {
