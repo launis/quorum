@@ -6,7 +6,10 @@ Evaluate all proposed and inspected code against these mandatory Quorum 2026 rep
 
 | Banned Legacy Anti-Pattern | Mandated Quorum 2026 Replacement |
 | :--- | :--- |
-| `asyncio.gather(...)` | `async with asyncio.TaskGroup() as tg:` (Python 3.14+ Fail-Fast cancellation) |
+| `asyncio.gather(...)` or `await asyncio.wait_for(coro, timeout)` | `async with asyncio.TaskGroup() as tg:` and `async with asyncio.timeout(delay):` (Python 3.14+ Fail-Fast cancellation) |
+| `from typing import Sequence, Mapping, Callable, Iterable, AsyncIterator, Awaitable` or `timezone.utc` | `from collections.abc import ...` (PEP 585 / `UP035`) and `from datetime import UTC` (`UP017`) |
+| `json.dumps(model.model_dump(...))` | Direct Pydantic V2 Rust `.model_dump_json()` or `TypeAdapter(...).dump_json()` |
+| SQL `DEFAULT gen_random_uuid()`, physical `created_at DEFAULT NOW()`, or N+1 `for x in items: await conn.execute(...)` | PostgreSQL 19 `DEFAULT uuidv7()`, `GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL`, and bulk `executemany` / `UNNEST` |
 | `ConfigDict()` without `strict=True, extra="forbid"` | `ConfigDict(strict=True, extra="forbid", frozen=True)` |
 | Raw `dict` state passing (`dict[str, Any]`, `list[dict]`, `TypedDict`, `cast(Any, ...)`, `match/case dict`, `isinstance(..., dict)`) | 100% Strict Pydantic V2 DTOs (`Model.model_validate()`) |
 | `# noqa: QGR` inline suppressions | Structural architecture fixes (Zero Suppressions) |
@@ -18,6 +21,7 @@ Evaluate all proposed and inspected code against these mandatory Quorum 2026 rep
 | Regex or fuzzy matching (`RapidFuzz`, `Levenshtein`) for forensic evidence | Exact normalized `str.find()` lexical anchoring |
 | Hardcoded thresholds, timeouts, or magic numbers in business logic | Centralized `settings.py` (`Settings`) SSOT |
 | Frontend-side business logic or raw `Map<String, dynamic>` casting | Backend SDUI polymorphic blocks (`SduiBlockDTO`) with `AppErrorBoundary` and ICU `.arb` parity |
+| Freezed 2 bare `class Foo with _$Foo`, Riverpod 2 `*Ref` types, `Color.withOpacity(...)`, `MediaQuery.of(context).size`, or `colorScheme.surfaceVariant`/`background` | Freezed 3.2 `abstract class` / `sealed class`, Riverpod 3.0 unified `Ref ref`, `.withValues(alpha: ...)`, `MediaQuery.sizeOf(context)`, and Material 3 `surfaceContainerHighest`/`surface` |
 | `if/else` routing chains on string literals | Strategy + Registry Pattern or Pydantic V2 Discriminated Unions |
 | Terminal commands (`cat`, `tail`, `grep`, `sed`) for reading files/logs | Native IDE tools (`read_file` / `view_file` with `StartLine`/`EndLine` bounds, `grep_search`) |
 | `uuid.uuid4()`, `Uuid().v4()`, or 8/16-hex ID truncations (`.hex[:8]`, `.hex[:16]`, `.substring(0, 16)`, `.take(16)`) | 32-hex RFC 9562 UUIDv7 via `generate_opaque_id(EntityPrefix.<TYPE>)`, `generate_uuid7()`, and `generateOpaqueUuid7(prefix)` (`QGR030`, `DGR008`) |

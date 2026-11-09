@@ -9,7 +9,7 @@
 
 <catastrophic_system_bans>
     <rule_block id="live_database_mutation">
-        <mandate>NEVER modify the live development database (`db_v2.json` or `.db`) directly on the fly or bypass safety nets. All structural data modifications MUST occur purely in the master source file `backend_v2/seed/seed_data.json` first before sync.</mandate>
+        <mandate>NEVER modify the live development database (PostgreSQL 19 `quorum_v2` / `001_pg19_uuidv7_schema.sql` or `db_v2.json`) directly on the fly or bypass safety nets. All structural data modifications MUST occur purely in the master source file `backend_v2/seed/seed_data.json` first before sync.</mandate>
     </rule_block>
 
     <rule_block id="inline_terminal_scripting">
@@ -29,7 +29,7 @@
     </rule_block>
 
     <rule_block id="root_cause_first_over_reseed_mandate">
-         <mandate>NEVER wipe `db_v2.json` or re-seed the local database as a substitute for investigating and fixing corrupting write code paths. When corrupted states, orphan records, or schema validation failures arise in `db_v2.json`, you MUST first forensically inspect the malformed record, identify the exact service or repository mutation that produced it, and write a reproducing test. Re-seeding via `run_seed.py local` is permitted ONLY after the root cause bug in code is permanently resolved and verified.</mandate>
+         <mandate>NEVER wipe the PostgreSQL 19 `quorum_v2` database / `db_v2.json` or re-seed the local database as a substitute for investigating and fixing corrupting write code paths. When corrupted states, orphan records, or schema validation failures arise in PostgreSQL 19 or `db_v2.json`, you MUST first forensically inspect the malformed record, identify the exact service or repository mutation that produced it, and write a reproducing test. Re-seeding via `run_seed.py local` is permitted ONLY after the root cause bug in code is permanently resolved and verified.</mandate>
     </rule_block>
 
     <rule_block id="unregistered_collection_ban">

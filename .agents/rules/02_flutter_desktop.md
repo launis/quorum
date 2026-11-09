@@ -83,7 +83,7 @@
 
 <architectural_invariants>
     <rule_block id="rigid_macro_breakpoint_standard">
-        <mandate>NEVER use root `MediaQuery.of(context).size.width < 600` or global screen checks for component responsiveness. Enforce the Macro-Breakpoint standard locally using `LayoutBuilder(builder: (context, constraints))`: 1) Large/Desktop (`maxWidth >= 1200`): Three-Pane parallel Row `[ P1 | P2 | P3 ]`, 2) Medium/Tablet (`maxWidth >= 800`): Two-Pane Split-Screen Row `[ Column(P1, P2) | P3 ]`, 3) Small/Mobile (`maxWidth < 800`): Single-column linear layout (`ListView`/`Column`).</mandate>
+        <mandate>NEVER use `MediaQuery.of(context).size` or `MediaQuery.of(context).padding` (which subscribes the widget to rebuild on all `MediaQuery` changes such as keyboard animation frames) or global screen checks for component responsiveness. Enforce the Macro-Breakpoint standard locally using `LayoutBuilder(builder: (context, constraints))`: 1) Large/Desktop (`maxWidth >= 1200`): Three-Pane parallel Row `[ P1 | P2 | P3 ]`, 2) Medium/Tablet (`maxWidth >= 800`): Two-Pane Split-Screen Row `[ Column(P1, P2) | P3 ]`, 3) Small/Mobile (`maxWidth < 800`): Single-column linear layout (`ListView`/`Column`). When reading viewport metrics outside `LayoutBuilder`, ALWAYS use $O(1)$ aspect-scoped methods (`MediaQuery.sizeOf(context)`, `MediaQuery.paddingOf(context)`).</mandate>
     </rule_block>
 
     <rule_block id="sdui_native_schizophrenia_prevention">
@@ -159,7 +159,7 @@
     </rule_block>
 
     <rule_block id="design_token_absolute_rule">
-        <mandate>NEVER hardcode magic numbers (`EdgeInsets.all(16)`), colors (`Colors.blue`), or deprecated Flutter APIs (`Color.withOpacity(...)`, `Color.value`, `MaterialStateProperty`, `WillPopScope`). Exclusively use global Design Tokens (`AppSpacing.p16`, `Theme.of(context).textTheme`), Flutter 3.27+ wide-gamut `.withValues(alpha: ...)` and `.toARGB32()`, `WidgetStateProperty` / `WidgetState`, and `PopScope`. Hardcoded numeric doubles for heights, widths, or padding (`SizedBox(height: 15)`) are STRICTLY PROHIBITED.</mandate>
+        <mandate>NEVER hardcode magic numbers (`EdgeInsets.all(16)`), colors (`Colors.blue`), imperative route pushes (`Navigator.of(context).push(...)`), or deprecated Flutter/Material 2 APIs (`Color.withOpacity(...)`, `Color.value`, `MaterialStateProperty`, `WillPopScope`, `colorScheme.background`, `colorScheme.onBackground`, `colorScheme.surfaceVariant`). Exclusively use global Design Tokens (`AppSpacing.p16`, `Theme.of(context).textTheme`), Material 3 `colorScheme.surface` / `onSurface` / `surfaceContainerHighest` / `surfaceContainerLow`, Flutter 3.27+ wide-gamut `.withValues(alpha: ...)` and `.toARGB32()`, `WidgetStateProperty` / `WidgetState`, `PopScope`, and declarative `GoRouter` navigation (`context.go(...)` / `context.push(...)`). Hardcoded numeric doubles for heights, widths, or padding (`SizedBox(height: 15)`) are STRICTLY PROHIBITED.</mandate>
     </rule_block>
 
     <rule_block id="studio_unified_visual_design_system">
