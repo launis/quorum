@@ -36,7 +36,7 @@
   - [x] @[backend_v2/llm/provider/litellm_provider.py]
   - [x] @[backend_v2/llm/adapters/vertex_adapter.py]
   - [x] @[backend_v2/llm/adapters/ai_studio_adapter.py]
-  - [ ] @[backend_v2/llm/adapters/anthropic_adapter.py]
+  - [x] @[backend_v2/llm/adapters/anthropic_adapter.py]
   - [ ] @[backend_v2/llm/adapters/openai_adapter.py]
   - [ ] @[backend_v2/llm/adapters/mock_adapter.py]
   - [ ] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
