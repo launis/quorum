@@ -204,7 +204,14 @@ def _get_or_refresh_cli_session(
     exchange_url = f"{base_url.rstrip('/')}/iam/auth/exchange"
     resp = requests.post(
         exchange_url,
-        json=exchange_req.model_dump(mode="json", exclude_none=True),
+        json={
+            **exchange_req.model_dump(mode="json", exclude_none=True),
+            **(
+                {"service_auth_secret": exchange_req.service_auth_secret.get_secret_value()}
+                if exchange_req.service_auth_secret is not None
+                else {}
+            ),
+        },
         timeout=settings.mcp_default_timeout_seconds,
     )
     resp.raise_for_status()

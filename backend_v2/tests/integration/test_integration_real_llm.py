@@ -10,6 +10,7 @@ import io
 import json
 import logging
 import os
+import secrets
 import socket
 import subprocess
 import threading
@@ -354,9 +355,15 @@ def _prepare_clean_subprocess_env() -> dict[str, str]:
         ("ANTHROPIC_API_KEY", "mock-anthropic-key"),
         ("GOOGLE_API_KEY", "mock-google-key"),
         ("GEMINI_API_KEY", "mock-gemini-key"),
+        ("LOGFIRE_TOKEN", ""),
     ):
         if mock_env_key in env and env[mock_env_key] == mock_env_val:
             del env[mock_env_key]
+    if "SERVICE_AUTH_SECRET" not in env or not env["SERVICE_AUTH_SECRET"].strip():
+        ephemeral_service_secret = secrets.token_urlsafe(32)
+        os.environ["SERVICE_AUTH_SECRET"] = ephemeral_service_secret
+        env["SERVICE_AUTH_SECRET"] = ephemeral_service_secret
+        get_settings.cache_clear()
     env["ENVIRONMENT"] = "development"
     env["LOG_FILE_NAME"] = "backend_debug.log"
     env["USE_FIREBASE_AUTH"] = "false"

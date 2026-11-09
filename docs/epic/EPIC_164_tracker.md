@@ -54,15 +54,15 @@
 **Plan:** @[docs/epic/tasks_EPIC_164/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** @[docs/epic/tasks_EPIC_164/04_phase4_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
   - [x] Step 4.1: Backend Unit Test Suite Verification & ISTQB Boundary Coverage
-  - [ ] Step 4.2: Frontend Unit & Widget Test Suite Verification
-  - [ ] Step 4.3: Local Secret Seeding, Full-Stack Audit Loops & Live E2E Verification
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 4.2: Frontend Unit & Widget Test Suite Verification
+  - [x] Step 4.3: Local Secret Seeding, Full-Stack Audit Loops & Live E2E Verification
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK] Backend & Frontend Full-Stack Integration Gate**
+- [x] **[OK] Backend & Frontend Full-Stack Integration Gate**
 
 ### Post-Implementation Gates
 
@@ -128,24 +128,25 @@
 | REQ-164-006 | Delete `MockLoginPanel`, `allowMockTokens`, `_requireMockUserId`, and `mock*UserId` from `login_screen.dart`, `env.dart`, and `client_app_v2/.env` | Phase 3, Step 3.1 | [x] Completed |
 | REQ-164-007 | Delete `_activeDebugUserId`, `debugMockLogin`, and `debugSignInWithMockToken`, and refactor `AuthRepository.signInWithEmailAndPassword` to delegate MFA enforcement to backend `exchangeToken(idToken)` | Phase 3, Step 3.2 | [x] Completed |
 | REQ-164-008 | Verify and expand ISTQB positive, negative, and boundary unit tests across all 8 backend unit test suites | Phase 4, Step 4.1 | [x] Completed |
-| REQ-164-009 | Verify and expand unit and widget tests across all 7 Flutter test suites | Phase 4, Step 4.2 | [ ] Pending |
-| REQ-164-010 | Execute `run_seed.py local --dry-run`, `run_seed.py local`, global backend and Flutter audit loops, and live E2E verification | Phase 4, Step 4.3 | [ ] Pending |
+| REQ-164-009 | Verify and expand unit and widget tests across all 7 Flutter test suites | Phase 4, Step 4.2 | [x] Completed |
+| REQ-164-010 | Execute `run_seed.py local --dry-run`, `run_seed.py local`, global backend and Flutter audit loops, and live E2E verification | Phase 4, Step 4.3 | [x] Completed |
 
 # Session Handover Context
 
 ## Achieved
-- Completed Phase 1 (`e31d46648`), Phase 2 (`d2f9a87fb`), and Phase 3 (`/tier2-execute --full-auto` of `@[docs/epic/tasks_EPIC_164/03_phase3_plan.md]`):
-  - **Step 3.1 (`90db85f1c`)**: Deleted `MockLoginPanel` from `@[client_app_v2/lib/features/auth/presentation/login_screen.dart]`, deleted `_idValidator`, `_requireMockUserId`, `allowMockTokens`, `mockAdminUserId`, `mockRootUserId`, `mockAnalystUserId`, `mockMemberUserId`, and `mockViewerUserId` from `@[client_app_v2/lib/core/environment/env.dart]`, removed `MOCK_*_USER_ID` variables from `@[client_app_v2/.env]`, and updated `@[client_app_v2/test/features/auth/presentation/login_screen_test.dart]` and `@[client_app_v2/test/unit/core/environment/env_test.dart]`.
-  - **Step 3.2**: Deleted `_activeDebugUserId`, `debugMockLogin`, and `debugUserId` from `@[client_app_v2/lib/features/auth/presentation/auth_controller.dart]` (and regenerated `@[client_app_v2/lib/features/auth/presentation/auth_controller.g.dart]`), deleted `debugSignInWithMockToken` and `debugTargetUserId` from `@[client_app_v2/lib/features/auth/data/auth_repository.dart]`, refactored `AuthRepository.signInWithEmailAndPassword` to delegate MFA policy evaluation to `exchangeToken(idToken)` and invoke `_prepareEnrollmentForUser(firebaseUser, fallbackEmail: email)` when `exchangeToken` returns `Left(error)` with `error.errorCode == 'MFA_REQUIRED'`, and updated `@[client_app_v2/test/unit/features/auth/data/auth_repository_test.dart]`, `@[client_app_v2/test/unit/features/auth/presentation/auth_controller_test.dart]`, and `@[client_app_v2/test/unit/core/network/auth_interceptor_test.dart]`.
+- Completed Phase 1 (`e31d46648`), Phase 2 (`d2f9a87fb`), Phase 3 (`1012f18b9`), and Phase 4 (`/tier2-execute --full-auto` of `@[docs/epic/tasks_EPIC_164/04_phase4_plan.md]`):
+  - **Step 4.1 (`4dce6abac`)**: Added `test_run_seed_dry_run_validates_local_secrets_without_db_mutation` and `test_live_e2e_real_llm_execution_with_seeded_tenant_secrets` to `@[backend_v2/tests/unit/seed/test_run_seed.py]`, added `test_epic_164_deprecated_symbols_and_files_absent_across_codebase` to `@[backend_v2/tests/unit/test_settings.py]`, and verified all 8 backend unit test suites (`test_secret_service.py`, `test_enum_parity.py`, `test_coercion_and_constants.py`, `test_run_seed.py`, `test_telemetry.py`, `test_settings.py`, `test_google_providers_separation.py`, `test_token_service.py`) pass with >90% coverage and 0 AST guardrail violations.
+  - **Step 4.2**: Verified all 7 Flutter unit and widget test suites (`enums_test.dart`, `organization_iam_settings_view_test.dart`, `login_screen_test.dart`, `env_test.dart`, `auth_repository_test.dart`, `auth_controller_test.dart`, `auth_interceptor_test.dart`) and the full Flutter test suite (`1,383` passed, `0` failures) via `scripts/flutter_audit_loop.py client_app_v2/ --build`.
+  - **Step 4.3**: Executed `run_seed.py local --dry-run` and `run_seed.py local` (upserting 6 encrypted secrets into `tenant_secrets`, provisioning the `ROOT` user in Firebase Authentication `cognitive-quorum`, and verifying all 11 PostgreSQL 19 tables), verified global `backend_audit_loop.py backend_v2/ --test --ast-strict` (`7,041` passed, `97.48%` coverage), verified `audit_epic_coverage.py --epic docs/epic/EPIC_164_unified_secret_seeding_and_authentic_iam_parity.md` (`100% PASS` across 37 files and 7 deprecated symbols), and verified live E2E execution (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, `7 passed`).
 
 ## Learned
-- Delegating MFA enforcement in `AuthRepository.signInWithEmailAndPassword` (`@[client_app_v2/lib/features/auth/data/auth_repository.dart]`) directly to the backend `exchangeToken(idToken)` response (`error.errorCode == 'MFA_REQUIRED'`) and passing `userCredential.user` (`firebaseUser`) into `_prepareEnrollmentForUser(firebaseUser, fallbackEmail: email)` guarantees that Windows Desktop Email + Password sign-in succeeds when backend `REQUIRE_MFA=false` while preserving TOTP enrollment state when `REQUIRE_MFA=true`.
+- Because `TokenExchangeRequestDTO.service_auth_secret` is typed as `SecretStr | None`, calling `exchange_req.model_dump(mode="json", exclude_none=True)` redacts the secret to `'**********'`. Unwrapping `exchange_req.service_auth_secret.get_secret_value()` at the outbound HTTP JSON request boundary in `_get_or_refresh_cli_session` (`@[scripts/run_e2e_variance_test.py#L199-L216]`) and synchronizing an ephemeral `SERVICE_AUTH_SECRET` via `secrets.token_urlsafe(32)` in `_prepare_clean_subprocess_env` (`@[backend_v2/tests/integration/test_integration_real_llm.py#L340-L374]`) ensures headless M2M CLI token exchange succeeds deterministically without hardcoding static credentials.
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]` to audit Phase 3 before proceeding to Phase 4 (`@[docs/epic/tasks_EPIC_164/04_phase4_plan.md]`).
+- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]` to audit Phase 4 before executing Post-Implementation Gates, `/tier7-describe-architecture`, and `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]
 ```
 
