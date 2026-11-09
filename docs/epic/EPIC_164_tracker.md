@@ -28,7 +28,7 @@
   - [x] Step 1.2: SecretService Root-Only SecretScope.TELEMETRY RBAC Enforcement & resolve_telemetry_secret
   - [x] Step 1.3: CANONICAL_SEED_TABLES tenant_secrets Registration, .env.secrets.local Hydration & ROOT Firebase User Provisioning in run_seed.py
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/01_phase1_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 
 ### Phase 2: Database-Driven Telemetry & Firebase Admin Startup Initialization, `.env` Sanitation & `service-account.json` Deletion
 **Plan:** @[docs/epic/tasks_EPIC_164/02_phase2_plan.md]
@@ -38,7 +38,7 @@
   - [x] Step 2.1: Startup Logfire Token Resolution & firebase_admin Initialization from tenant_secrets
   - [x] Step 2.2: Eradicate service-account.json Checks, allow_mock_tokens & mock_*_user_id Across Backend & .env
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/02_phase2_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/02_phase2_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 
 ### Phase 3: Frontend `MockLoginPanel` & `MOCK_*_USER_ID` Eradication and Authentic Email/Password Login Parity
 **Plan:** @[docs/epic/tasks_EPIC_164/03_phase3_plan.md]
@@ -48,7 +48,7 @@
   - [x] Step 3.1: Eradicate MockLoginPanel, allowMockTokens & mock*UserId from LoginScreen, Env & client_app_v2/.env
   - [x] Step 3.2: Eradicate debugMockLogin & debugSignInWithMockToken and Delegate MFA Enforcement in signInWithEmailAndPassword to Backend
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/03_phase3_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 
 ### Phase 4: Comprehensive Unit, Integration, Seed & E2E Verification Gate
 **Plan:** @[docs/epic/tasks_EPIC_164/04_phase4_plan.md]
@@ -59,15 +59,15 @@
   - [x] Step 4.2: Frontend Unit & Widget Test Suite Verification
   - [x] Step 4.3: Local Secret Seeding, Full-Stack Audit Loops & Live E2E Verification
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - [x] **[OK] Backend & Frontend Full-Stack Integration Gate**
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide verification that `@[service-account.json]`, `allow_mock_tokens`, `mock_*_user_id`, `MockLoginPanel`, `debugMockLogin`, and `debugSignInWithMockToken` are completely removed.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide verification that `service-account.json`, `allow_mock_tokens`, `mock_*_user_id`, `MockLoginPanel`, `debugMockLogin`, and `debugSignInWithMockToken` are completely removed.
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_164_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/core/telemetry.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
@@ -87,12 +87,12 @@
   - [x] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
   - [x] @[client_app_v2/lib/features/auth/presentation/login_screen.dart]
   - [x] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/epic/EPIC_164_tracker.md] @[docs/epic/EPIC_164_unified_secret_seeding_and_authentic_iam_parity.md] @[ki_frontend_iam_role_segregation.md] @[ki_global_config_sovereignty.md] @[ki_zero_permissive_typing.md] @[ki_god_code_prevention.md]
   ```
@@ -108,7 +108,7 @@
 
 ### Final Epic Audit
 
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_164_unified_secret_seeding_and_authentic_iam_parity.md] @[docs/epic/EPIC_164_tracker.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [x] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_164_unified_secret_seeding_and_authentic_iam_parity.md] @[docs/epic/EPIC_164_tracker.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 
 ## Instructions for the Execution Agent
 
@@ -133,20 +133,20 @@
 
 # Session Handover Context
 
+## Status
+COMPLETED — 100% Implemented, Hardened, Documented, and Audited (`e31d46648`, `d2f9a87fb`, `1012f18b9`, `7df1c8daf`, `abc0328e1`)
+
 ## Achieved
 - Completed Phase 1 (`e31d46648`), Phase 2 (`d2f9a87fb`), Phase 3 (`1012f18b9`), and Phase 4 (`/tier2-execute --full-auto` of `@[docs/epic/tasks_EPIC_164/04_phase4_plan.md]`):
   - **Step 4.1 (`4dce6abac`)**: Added `test_run_seed_dry_run_validates_local_secrets_without_db_mutation` and `test_live_e2e_real_llm_execution_with_seeded_tenant_secrets` to `@[backend_v2/tests/unit/seed/test_run_seed.py]`, added `test_epic_164_deprecated_symbols_and_files_absent_across_codebase` to `@[backend_v2/tests/unit/test_settings.py]`, and verified all 8 backend unit test suites (`test_secret_service.py`, `test_enum_parity.py`, `test_coercion_and_constants.py`, `test_run_seed.py`, `test_telemetry.py`, `test_settings.py`, `test_google_providers_separation.py`, `test_token_service.py`) pass with >90% coverage and 0 AST guardrail violations.
   - **Step 4.2**: Verified all 7 Flutter unit and widget test suites (`enums_test.dart`, `organization_iam_settings_view_test.dart`, `login_screen_test.dart`, `env_test.dart`, `auth_repository_test.dart`, `auth_controller_test.dart`, `auth_interceptor_test.dart`) and the full Flutter test suite (`1,383` passed, `0` failures) via `scripts/flutter_audit_loop.py client_app_v2/ --build`.
   - **Step 4.3**: Executed `run_seed.py local --dry-run` and `run_seed.py local` (upserting 6 encrypted secrets into `tenant_secrets`, provisioning the `ROOT` user in Firebase Authentication `cognitive-quorum`, and verifying all 11 PostgreSQL 19 tables), verified global `backend_audit_loop.py backend_v2/ --test --ast-strict` (`7,041` passed, `97.48%` coverage), verified `audit_epic_coverage.py --epic docs/epic/EPIC_164_unified_secret_seeding_and_authentic_iam_parity.md` (`100% PASS` across 37 files and 7 deprecated symbols), and verified live E2E execution (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, `7 passed`).
+- Completed **Post-Implementation Gates** (`011e39713` through `abc0328e1`): Executed Tier 2 Backend Hardening (11 Python files) and Tier 2 Frontend Hardening (6 Dart files) via `scripts/auto_hardening_runner.py`, verified `scripts/audit_technical_debt.py --include-one-hop` (`0` findings across 10 targets and 196 1-hop callers), and verified `scripts/audit_epic_coverage.py` (`[PASSED] AUDIT PASSED`).
+- Completed **Tier 7 (`/tier7-describe-architecture`)** and **Tier 8 (`/tier8-audit-epic`)**: Synchronized `@[ki_frontend_iam_role_segregation.md]`, `@[ki_global_config_sovereignty.md]`, `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/00_README_META_ARCHITECTURE.md]`, `@[docs/architecture/01_SYSTEM_CONTEXT_AND_INVARIANTS.md]`, `@[docs/architecture/02_DATA_SEEDING_AND_ONTOLOGY.md]`, `@[docs/architecture/05_RESILIENCE_AND_OBSERVABILITY.md]`, and `@[docs/epic/EPIC_164_audit_report.md]`.
 
 ## Learned
-- Because `TokenExchangeRequestDTO.service_auth_secret` is typed as `SecretStr | None`, calling `exchange_req.model_dump(mode="json", exclude_none=True)` redacts the secret to `'**********'`. Unwrapping `exchange_req.service_auth_secret.get_secret_value()` at the outbound HTTP JSON request boundary in `_get_or_refresh_cli_session` (`@[scripts/run_e2e_variance_test.py#L199-L216]`) and synchronizing an ephemeral `SERVICE_AUTH_SECRET` via `secrets.token_urlsafe(32)` in `_prepare_clean_subprocess_env` (`@[backend_v2/tests/integration/test_integration_real_llm.py#L340-L374]`) ensures headless M2M CLI token exchange succeeds deterministically without hardcoding static credentials.
+- Because `TokenExchangeRequestDTO.service_auth_secret` is typed as `SecretStr | None`, calling `exchange_req.model_dump(mode="json", exclude_none=True)` redacts the secret to `'**********'`. Unwrapping `exchange_req.service_auth_secret.get_secret_value()` at the outbound HTTP JSON request boundary in `_get_or_refresh_cli_session` (`@[scripts/run_e2e_variance_test.py#L172-L223]`) and synchronizing an ephemeral `SERVICE_AUTH_SECRET` via `secrets.token_urlsafe(32)` in `_prepare_clean_subprocess_env` (`@[backend_v2/tests/integration/test_integration_real_llm.py#L341-L375]`) ensures headless M2M CLI token exchange succeeds deterministically without hardcoding static credentials.
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]` to audit Phase 4 before executing Post-Implementation Gates, `/tier7-describe-architecture`, and `/tier8-audit-epic`.
-
-## Resume Command
-```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_164/04_phase4_plan.md] @[docs/epic/EPIC_164_tracker.md]
-```
+- None. EPIC 164 is 100% complete.
 

@@ -45,7 +45,7 @@
           - Pillar 4 (SDUI & Presentation): report/ (lifecycle_service.py, compilation_service.py, format_reader_service.py, __init__.py facade), export/ (metadata_resolver.py, excel_styler.py, summary_builder.py, atom_row_builder.py, excel_exporter.py, csv_exporter.py, __init__.py facade), blueprint.py, pdf_generator.py, localization.py, sdui/ (sdui_mapper_service.py), sdui/sanitizers/ (mcp_presentation_sanitizer.py), sdui/adapters/ (base_adapter.py, causal_graph_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience & Observability): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
           - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_extractor/ [bubble_geometry.py, table_and_card_stage.py, turn_assembly_stage.py, __init__.py facade], multi_channel_ingress_service.py, smart_ingress_resolver.py), source_verification_service.py, matrix_parser/ (distribution_formatter.py, scale_and_atom_stage.py, row_builder_stage.py, __init__.py facade), orchestrator/ (anchor_validation/ [lexical_normalizer.py, lexical_matcher.py, evidence_validator.py, atom_evaluation_processor.py, __init__.py facade], two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py, ast_evaluator.py, atomizer.py, extraction_schema_factory.py)
-          - Pillar 1 (Security & Identity): auth/ (repositories.py, token_service.py, organization_service.py, user_service.py, secret_service.py [100% database-only tenant_secrets BYOK & ROOT_SYSTEM resolution], email_service.py, __init__.py facade)
+          - Pillar 1 (Security & Identity): auth/ (repositories.py, token_service.py [in-memory initialize_firebase_admin_from_secrets, Hybrid Session Upgrade & SERVICE_AUTH_SECRET headless CLI auth], organization_service.py, user_service.py, secret_service.py [100% database-only tenant_secrets BYOK, ROOT_SYSTEM & SecretScope.TELEMETRY resolution], email_service.py, __init__.py facade)
         </key_domains>
     </module>
     
@@ -72,7 +72,7 @@
 
     <module path="backend_v2/core/">
         <responsibility>CORE ARCHITECTURE & REGISTRIES</responsibility>
-        <key_domains>registry.py (SSOT for TaskRegistry and SchemaBuilderRegistry), redis_security.py (RevocationCache Dual-Key Redis MGET Kill-Switch, TenantRateLimitService, TenantRateLimitStatusDTO), template_processor.py, telemetry.py (OpenTelemetry & Logfire Core, W3C Carrier Injection/Extraction, LocalTraceSnapshotExporter)</key_domains>
+        <key_domains>registry.py (SSOT for TaskRegistry and SchemaBuilderRegistry), redis_security.py (RevocationCache Dual-Key Redis MGET Kill-Switch, TenantRateLimitService, TenantRateLimitStatusDTO), template_processor.py, telemetry.py (OpenTelemetry & Logfire Core, resolve_startup_logfire_token from SecretScope.TELEMETRY, W3C Carrier Injection/Extraction, LocalTraceSnapshotExporter)</key_domains>
     </module>
     
     <module path="backend_v2/database/">
@@ -81,8 +81,8 @@
     </module>
     
     <module path="backend_v2/seed/">
-        <responsibility>ZERO-DEPLOY STATIC DATA VAULT</responsibility>
-        <key_domains>seed_data.json, seed_registry.py, run_seed.py</key_domains>
+        <responsibility>ZERO-DEPLOY STATIC DATA VAULT & LOCAL SECRET HYDRATION</responsibility>
+        <key_domains>seed_data.json, seed_registry.py, run_seed.py (11-table CANONICAL_SEED_TABLES reset, LocalSeedSecretsSettings .env.secrets.local hydration & ROOT Firebase user provisioning)</key_domains>
     </module>
 
     <module path="backend_v2/hooks/">
