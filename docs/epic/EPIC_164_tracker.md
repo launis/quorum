@@ -73,7 +73,7 @@
   - [x] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
   - [x] @[backend_v2/logging_config.py]
   - [x] @[backend_v2/main.py]
-  - [ ] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/seed/run_seed.py]
   - [ ] @[backend_v2/services/auth/secret_service.py]
   - [ ] @[backend_v2/services/auth/token_service.py]
