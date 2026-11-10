@@ -400,22 +400,6 @@
       "composite_sha256": "ae6230475a3f7b04c551151e757e12dd871cd2b2623157488664bd90bfe25dd5",
       "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md"
     },
-    "backend_v2/services/execution/resumption_service.py": {
-      "target_file": "backend_v2/services/execution/resumption_service.py",
-      "target_sha256": "d34793d1648dcc5686d8ac8d688d6854537f10788005ab4da79a613851215523",
-      "unit_test_sha256": "b8fb77fdb1764c6830a1a9b9cdf5087e09e501166764ea3d093413f9230ddb56",
-      "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
-      "composite_sha256": "95232d6de0dcffd79c5f7e3261b6df5edb839aba50f28ed9a6daf185dfd6b474",
-      "source_tracker": null
-    },
-    "backend_v2/services/execution/override_service.py": {
-      "target_file": "backend_v2/services/execution/override_service.py",
-      "target_sha256": "5d1b2933722b0c76543fd16da67167fbbfcd0f71bc2c8e83ea2a019cb3da9684",
-      "unit_test_sha256": "79e478552963783aaa8f2788bf9dcdbb75dce8a6fe17d3de5a746fad960f658d",
-      "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
-      "composite_sha256": "8effa078b5536a3d236cf1751d8f90fb8b6ddabb5e8aca8b37397ed08cf5e62e",
-      "source_tracker": null
-    },
     "backend_v2/database/repository.py": {
       "target_file": "backend_v2/database/repository.py",
       "target_sha256": "16f5bf951b6f18a3217e12ae383837fa0bc3d86ca1a6e00cd6d4fea1de821d53",
@@ -2480,22 +2464,6 @@
       "composite_sha256": "ac3cb4763f9be6d135de784dbb1feabdc463fbdfe5f7cdc41bc9bbc43a0525f0",
       "source_tracker": "docs/epic/export_service_decomposition_tracker.md"
     },
-    "backend_v2/services/export/excel_exporter.py": {
-      "target_file": "backend_v2/services/export/excel_exporter.py",
-      "target_sha256": "72827232d8d989d5bb20e21a1be4819d3c32c393403a0d5984af7b27efc18dfe",
-      "unit_test_sha256": "db2c235fb54701d2eaa679bc0c8312644ff5d92e3018eaecc97542b59d5d1fdc",
-      "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
-      "composite_sha256": "507a910158adaa0bb4a610bb8179e3945582ada8b8800bde1fca3ddc9a589633",
-      "source_tracker": null
-    },
-    "backend_v2/services/export/csv_exporter.py": {
-      "target_file": "backend_v2/services/export/csv_exporter.py",
-      "target_sha256": "828047746a6af25b9644a10453d15a8a329aa243dd77daf1676ab1bef8427678",
-      "unit_test_sha256": "11b3cd5be4f0ef92f425eb80eed08609af57409cb36dd86d63fe443ce37df833",
-      "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
-      "composite_sha256": "43f70f43ed76694c40bc981d3214e0ec52f2a0c8c46bc520e1174951a3003eeb",
-      "source_tracker": null
-    },
     "backend_v2/services/export/__init__.py": {
       "target_file": "backend_v2/services/export/__init__.py",
       "target_sha256": "306f8bd5e1517924183f3df9a9f533c7db826fe64911a7c5d153fab18f342c16",
@@ -2831,14 +2799,6 @@
       "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
       "composite_sha256": "d0b08e2a6665629aa041e1e1c1eeffb0ea7b7276ee9d541c2f3b8800e8fefde5",
       "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
-    },
-    "backend_v2/services/blueprint.py": {
-      "target_file": "backend_v2/services/blueprint.py",
-      "target_sha256": "2b16b26710759c5d1ce73cb206b82402037af30df6d44e130d69cfeae6ccb709",
-      "unit_test_sha256": "b8a4115a2e093f9b89c4135ce3f72c5830301bf298c24b955ca572ce010eb42a",
-      "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
-      "composite_sha256": "a69f279261dad13b763caa1b4c72a06faf0a6ceb339faa16a72d95ac0b836b6f",
-      "source_tracker": null
     },
     "backend_v2/services/orchestrator/engines/synthesis_engine.py": {
       "target_file": "backend_v2/services/orchestrator/engines/synthesis_engine.py",
@@ -4039,22 +3999,6 @@
       "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
       "composite_sha256": "6966d3dae83cec3d6d91d656823729a707f3f33f0508413d24b23fc113cf440a",
       "source_tracker": "docs/epic/EPIC_160_tracker.md"
-    },
-    "backend_v2/services/execution/lifecycle_service.py": {
-      "target_file": "backend_v2/services/execution/lifecycle_service.py",
-      "target_sha256": "fbfc94c9f18d65fbfa4f98fcb90bc2983fd573b069643b51eda881d91894b162",
-      "unit_test_sha256": "7744b98323d1345567c3ad97ed11369be7c236775842e243920b5b588801c57c",
-      "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
-      "composite_sha256": "3b9415d96e2a4dd7c1b73e9deda94f9cdd0f1fbf18831745e27664627dfd7859",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
-    },
-    "backend_v2/services/execution/ingress_service.py": {
-      "target_file": "backend_v2/services/execution/ingress_service.py",
-      "target_sha256": "873427a1b4c68ae6e7022bd1882a02a3638842ce6f71889728b225007190f368",
-      "unit_test_sha256": "993a23228efe7caca4c8b4a3d75cf950464ba472d3da696c8e5ff8287dac70d1",
-      "rules_sha256": "5e1b7a22ddb3eca9ad7512b897c692495db2319f66c52087d38f64ecd85842e8",
-      "composite_sha256": "de15d3fb34d2f56e9846adbe4cb42c0370f38ddbbf735ea873dd85ec60c1ac27",
-      "source_tracker": null
     },
     "backend_v2/core/redis_security.py": {
       "target_file": "backend_v2/core/redis_security.py",
