@@ -1,9 +1,12 @@
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/features/auth/data/auth_repository.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
+import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:mocktail/mocktail.dart';
@@ -728,6 +731,285 @@ void main() {
           challengeResolved.getRight().toNullable(),
           equals('mfa_challenged_id_token'),
         );
+
+        // 8. Positive: resolveMfaChallenge and completeTotpEnrollment exchange upgraded tokens
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            '/iam/auth/exchange',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+            data: buildExchangePayload(),
+            statusCode: 200,
+          ),
+        );
+
+        customRepo.setPendingMfaState(
+          MfaPendingState(
+            type: MfaRequirementType.challenge,
+            email: 'mfa.user@alpha.fi',
+            resolver: mockResolver,
+            enrollmentId: 'factor_uid_99',
+          ),
+        );
+        final resolvedDto = await customRepo.resolveMfaChallenge('123456');
+        expect(resolvedDto.isRight(), isTrue);
+
+        customRepo.setPendingMfaState(
+          MfaPendingState(
+            type: MfaRequirementType.enrollment,
+            email: 'mfa.user@alpha.fi',
+            totpSecret: mockSecret,
+            secretKey: 'BASE32SECRET',
+          ),
+        );
+        final completedDto = await customRepo.completeTotpEnrollment('654321');
+        expect(completedDto.isRight(), isTrue);
+
+        // 9. Negative: _mapDioException branches (404, 401, embedded AppException, null exchange payload)
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            '/iam/auth/exchange',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+            data: null,
+            statusCode: 200,
+          ),
+        );
+        final nullPayloadRes = await customRepo.exchangeToken('tok');
+        expect(
+          nullPayloadRes.getLeft().toNullable()!.errorCode,
+          equals('AUTHENTICATION_FAILED'),
+        );
+
+        for (final status in <int>[404, 401, 500]) {
+          when(
+            () => mockDio.post<Map<String, Object?>>(
+              '/iam/auth/exchange',
+              data: any(named: 'data'),
+            ),
+          ).thenThrow(
+            DioException(
+              requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+              response: Response<Map<String, Object?>>(
+                requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+                statusCode: status,
+              ),
+            ),
+          );
+          final statusRes = await customRepo.exchangeToken('tok');
+          expect(statusRes.isLeft(), isTrue);
+        }
+
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            '/iam/auth/exchange',
+            data: any(named: 'data'),
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/iam/auth/exchange'),
+            error: const AppException(
+              status: 403,
+              title: 'Forbidden',
+              detail: 'Custom forbidden',
+            ),
+          ),
+        );
+        final embeddedRes = await customRepo.exchangeToken('tok');
+        expect(embeddedRes.getLeft().toNullable()!.status, equals(403));
+
+        // 10. Negative: authenticateForTaskOnboarding wrong-password & generic FirebaseAuthException
+        for (final code in <String>['wrong-password', 'too-many-requests']) {
+          when(
+            () => mockFirebaseAuth.signInWithEmailAndPassword(
+              email: 'err@alpha.fi',
+              password: 'Password123!',
+            ),
+          ).thenThrow(firebase.FirebaseAuthException(code: code));
+          final errRes = await customRepo.authenticateForTaskOnboarding(
+            email: 'err@alpha.fi',
+            password: 'Password123!',
+          );
+          expect(errRes.isLeft(), isTrue);
+        }
+
+        // 11. Provider instantiation and defensive guard branches across MFA/Session methods
+        final container = ProviderContainer(
+          overrides: [
+            firebaseAuthInstanceProvider.overrideWithValue(mockFirebaseAuth),
+            apiClientProvider.overrideWithValue(mockDio),
+          ],
+        );
+        addTearDown(container.dispose);
+        expect(container.read(authRepositoryProvider), isA<AuthRepository>());
+
+        // signInWithEmailAndPassword: null user, null token, non-auth FirebaseAuthException, generic Exception
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'guard@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(() => mockCredential.user).thenReturn(null);
+        expect(
+          (await customRepo.signInWithEmailAndPassword(
+            'guard@alpha.fi',
+            'Password123!',
+          )).isLeft(),
+          isTrue,
+        );
+
+        when(() => mockCredential.user).thenReturn(mockUser);
+        when(() => mockUser.getIdToken(any())).thenAnswer((_) async => '');
+        expect(
+          (await customRepo.signInWithEmailAndPassword(
+            'guard@alpha.fi',
+            'Password123!',
+          )).isLeft(),
+          isTrue,
+        );
+
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'guard@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenThrow(firebase.FirebaseAuthException(code: 'too-many-requests'));
+        expect(
+          (await customRepo.signInWithEmailAndPassword(
+            'guard@alpha.fi',
+            'Password123!',
+          )).isLeft(),
+          isTrue,
+        );
+
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'guard@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenThrow(StateError('unexpected'));
+        expect(
+          (await customRepo.signInWithEmailAndPassword(
+            'guard@alpha.fi',
+            'Password123!',
+          )).isLeft(),
+          isTrue,
+        );
+
+        // resolveChallengeAndGetIdToken: null enrollmentId fallback, null user, empty token, exceptions
+        customRepo.setPendingMfaState(
+          MfaPendingState(
+            type: MfaRequirementType.challenge,
+            email: 'mfa.user@alpha.fi',
+            resolver: mockResolver,
+          ),
+        );
+        when(() => mockCredential.user).thenReturn(null);
+        expect(
+          (await customRepo.resolveChallengeAndGetIdToken('123456')).isLeft(),
+          isTrue,
+        );
+
+        when(() => mockCredential.user).thenReturn(mockUser);
+        when(() => mockUser.getIdToken(true)).thenAnswer((_) async => '');
+        expect(
+          (await customRepo.resolveChallengeAndGetIdToken('123456')).isLeft(),
+          isTrue,
+        );
+
+        when(
+          () => mockResolver.resolveSignIn(mockAssertion),
+        ).thenThrow(firebase.FirebaseAuthException(code: 'invalid-verification-code'));
+        expect(
+          (await customRepo.resolveChallengeAndGetIdToken('123456')).isLeft(),
+          isTrue,
+        );
+
+        when(
+          () => mockResolver.resolveSignIn(mockAssertion),
+        ).thenThrow(StateError('resolver failure'));
+        expect(
+          (await customRepo.resolveChallengeAndGetIdToken('123456')).isLeft(),
+          isTrue,
+        );
+
+        // enrollTotpAndGetIdToken: empty token, null currentUser, FirebaseAuthException, generic Exception
+        customRepo.setPendingMfaState(
+          MfaPendingState(
+            type: MfaRequirementType.enrollment,
+            email: 'newbie@alpha.fi',
+            totpSecret: mockSecret,
+          ),
+        );
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(() => mockUser.getIdToken(true)).thenAnswer((_) async => '');
+        expect(
+          (await customRepo.enrollTotpAndGetIdToken('654321')).isLeft(),
+          isTrue,
+        );
+
+        when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+        expect(
+          (await customRepo.enrollTotpAndGetIdToken('654321')).isLeft(),
+          isTrue,
+        );
+
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(
+          () => mockMultiFactor.enroll(
+            mockAssertion,
+            displayName: any(named: 'displayName'),
+          ),
+        ).thenThrow(firebase.FirebaseAuthException(code: 'invalid-verification-code'));
+        expect(
+          (await customRepo.enrollTotpAndGetIdToken('654321')).isLeft(),
+          isTrue,
+        );
+
+        when(
+          () => mockMultiFactor.enroll(
+            mockAssertion,
+            displayName: any(named: 'displayName'),
+          ),
+        ).thenThrow(StateError('enroll crash'));
+        expect(
+          (await customRepo.enrollTotpAndGetIdToken('654321')).isLeft(),
+          isTrue,
+        );
+
+        // authenticateForTaskOnboarding: immediate challenge resolution & refreshSession error branches
+        customRepo.clearPendingMfaState();
+        when(
+          () => mockResolver.resolveSignIn(mockAssertion),
+        ).thenAnswer((_) async => mockCredential);
+        when(
+          () => mockUser.getIdToken(true),
+        ).thenAnswer((_) async => 'immediate_mfa_token');
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'mfa.user@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenThrow(mockMfaException);
+
+        final immediateRes = await customRepo.authenticateForTaskOnboarding(
+          email: 'mfa.user@alpha.fi',
+          password: 'Password123!',
+          totpCode: '123456',
+        );
+        expect(immediateRes.getRight().toNullable(), equals('immediate_mfa_token'));
+
+        when(() => mockUser.getIdToken(true)).thenAnswer((_) async => '');
+        expect((await customRepo.refreshSession()).isLeft(), isTrue);
+        when(() => mockUser.getIdToken(true)).thenThrow(StateError('token err'));
+        expect((await customRepo.refreshSession()).isLeft(), isTrue);
       },
     );
   });

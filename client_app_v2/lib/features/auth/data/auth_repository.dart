@@ -162,23 +162,7 @@ class AuthRepository {
         return Left(error);
       }, (dto) async => Right(dto));
     } on firebase.FirebaseAuthMultiFactorException catch (e) {
-      // Enrolled 2FA Challenge: capture MultiFactorResolver for 6-digit TOTP verification.
-      final hints = e.resolver.hints;
-      final firstFactorUid = hints.isNotEmpty ? hints.first.uid : null;
-      _pendingMfaState = MfaPendingState(
-        type: MfaRequirementType.challenge,
-        email: email,
-        resolver: e.resolver,
-        enrollmentId: firstFactorUid,
-      );
-      return const Left(
-        AppException(
-          status: 403,
-          title: 'MFA Challenge Required',
-          detail: 'Enter your 6-digit TOTP authentication code.',
-          extensions: {'error_code': 'MFA_CHALLENGE_REQUIRED'},
-        ),
-      );
+      return Left(_captureMfaChallenge(e, email));
     } on firebase.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' ||
           e.code == 'wrong-password' ||
@@ -344,6 +328,8 @@ class AuthRepository {
           email: normalizedEmail,
           password: password,
         );
+      } on firebase.FirebaseAuthMultiFactorException {
+        rethrow;
       } on firebase.FirebaseAuthException catch (e) {
         if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
           try {
@@ -375,25 +361,11 @@ class AuthRepository {
       }
       return Right(idToken);
     } on firebase.FirebaseAuthMultiFactorException catch (e) {
-      final hints = e.resolver.hints;
-      final firstFactorUid = hints.isNotEmpty ? hints.first.uid : null;
-      _pendingMfaState = MfaPendingState(
-        type: MfaRequirementType.challenge,
-        email: normalizedEmail,
-        resolver: e.resolver,
-        enrollmentId: firstFactorUid,
-      );
+      final challengeException = _captureMfaChallenge(e, normalizedEmail);
       if (trimmedTotp != null && trimmedTotp.length == 6) {
         return resolveChallengeAndGetIdToken(trimmedTotp);
       }
-      return const Left(
-        AppException(
-          status: 403,
-          title: 'MFA Challenge Required',
-          detail: 'Enter your 6-digit TOTP authentication code.',
-          extensions: {'error_code': 'MFA_CHALLENGE_REQUIRED'},
-        ),
-      );
+      return Left(challengeException);
     } catch (e) {
       return Left(AppException.unknown(e));
     }
@@ -458,15 +430,39 @@ class AuthRepository {
         fallbackEmail: fallbackEmail,
       );
     } else {
-      _pendingMfaState = MfaPendingState(
-        type: MfaRequirementType.enrollment,
-        email: fallbackEmail,
-        secretKey: 'QUORUM-TOTP-SETUP',
-        provisioningUri:
-            'otpauth://totp/Quorum:$fallbackEmail?issuer=Quorum&secret=QUORUMTOTPSETUP',
-      );
+      _pendingMfaState = _buildFallbackEnrollmentState(fallbackEmail);
     }
     return Right(_pendingMfaState!);
+  }
+
+  AppException _captureMfaChallenge(
+    firebase.FirebaseAuthMultiFactorException e,
+    String email,
+  ) {
+    final hints = e.resolver.hints;
+    final firstFactorUid = hints.isNotEmpty ? hints.first.uid : null;
+    _pendingMfaState = MfaPendingState(
+      type: MfaRequirementType.challenge,
+      email: email,
+      resolver: e.resolver,
+      enrollmentId: firstFactorUid,
+    );
+    return const AppException(
+      status: 403,
+      title: 'MFA Challenge Required',
+      detail: 'Enter your 6-digit TOTP authentication code.',
+      extensions: {'error_code': 'MFA_CHALLENGE_REQUIRED'},
+    );
+  }
+
+  MfaPendingState _buildFallbackEnrollmentState(String email) {
+    return MfaPendingState(
+      type: MfaRequirementType.enrollment,
+      email: email,
+      secretKey: 'QUORUM-TOTP-SETUP',
+      provisioningUri:
+          'otpauth://totp/Quorum:$email?issuer=Quorum&secret=QUORUMTOTPSETUP',
+    );
   }
 
   Future<void> _prepareEnrollmentForUser(
@@ -491,13 +487,7 @@ class AuthRepository {
         provisioningUri: provisioningUri,
       );
     } catch (_) {
-      _pendingMfaState = MfaPendingState(
-        type: MfaRequirementType.enrollment,
-        email: resolvedEmail,
-        secretKey: 'QUORUM-TOTP-SETUP',
-        provisioningUri:
-            'otpauth://totp/Quorum:$resolvedEmail?issuer=Quorum&secret=QUORUMTOTPSETUP',
-      );
+      _pendingMfaState = _buildFallbackEnrollmentState(resolvedEmail);
     }
   }
 
