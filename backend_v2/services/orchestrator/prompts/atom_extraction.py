@@ -1,6 +1,13 @@
-"""Prompt definitions for Atom Extraction (Phase 0 and Phase 1)."""
+"""Prompt definitions for two-pass atom extraction and global ontology mapping."""
 
+from __future__ import annotations
+
+import logging
 from string.templatelib import Template
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "PHASE_0_SYSTEM_PROMPT",
@@ -42,14 +49,29 @@ GLOBAL ONTOLOGY MAP:
 
 
 def build_phase_1_system_prompt(ontology_map_json: str) -> Template:
-    """Build the system prompt template for Phase 1 atom extraction.
+    """Build the system prompt template for atom extraction with ontology parameters.
 
     Args:
         ontology_map_json: Serialized JSON representation of the Global Ontology Map.
 
     Returns:
         Template instance populated with the ontology map execution parameters.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if ontology_map_json is empty
+            or contains only whitespace.
     """
+    if not ontology_map_json.strip():
+        logger.error(
+            "Empty ontology_map_json provided to build_phase_1_system_prompt.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            exc_info=True,
+        )
+        raise AppException(
+            ErrorCodes.VALIDATION_FAILED,
+            status_code=400,
+        )
+
     return t"""
 ROLE: ATOM EXTRACTION SPECIALIST
 
