@@ -6,6 +6,8 @@ import asyncio
 import hashlib
 import logging
 import secrets
+from collections.abc import AsyncIterator, Mapping
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any, NoReturn
 
@@ -138,6 +140,35 @@ class OrganizationService:
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
+    @asynccontextmanager
+    async def _acquire_entity_port(
+        self,
+        *,
+        commit: bool = False,
+    ) -> AsyncIterator[EntityPersistencePort]:
+        """Yield the active EntityPersistencePort from entity_adapter or a UnitOfWork transaction.
+
+        Args:
+            commit: Whether to commit the UnitOfWork transaction upon successful exit.
+
+        Yields:
+            Configured EntityPersistencePort instance.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
+        """
+        if self._entity_adapter is not None:
+            yield self._entity_adapter
+            return
+        uow_factory = self._resolve_uow_factory()
+        if uow_factory is not None:
+            async with uow_factory() as uow:
+                yield uow.entities
+                if commit:
+                    await uow.commit()
+            return
+        self._raise_unconfigured_persistence_error()
+
     def get_last_generated_token(self, invitation_id: str) -> str | None:
         """Return the raw token generated for an invitation ID in test/local workflows.
 
@@ -237,6 +268,7 @@ class OrganizationService:
 
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator is not ROOT or targets system org.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if target_org_id does not exist.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if the organization is not empty and force is False.
             AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase cascade user deletion fails.
         """
@@ -260,6 +292,8 @@ class OrganizationService:
             )
             raise PermissionDeniedError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
 
+        await self._fetch_org_or_raise(target_org_id)
+
         all_users = await self.user_repo.list_all()
         org_users = [u for u in all_users if u.organization_id == target_org_id]
         user_count = len(org_users)
@@ -277,10 +311,12 @@ class OrganizationService:
             )
 
         if user_count > 0:
+            timeout_seconds = get_settings().http_client_timeout_seconds
             for user in org_users:
                 if self.use_firebase and self.firebase_auth is not None:
                     try:
-                        await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
+                        async with asyncio.timeout(timeout_seconds):
+                            await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
                     except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
                         logger.error(
                             "[OrganizationService] %s: Failed to cascade delete user %s in Firebase: %s",
@@ -497,6 +533,7 @@ class OrganizationService:
                 attempts to invite ROOT as non-ROOT, or email domain violates allowed_email_domains.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if org_id does not exist.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if a pending invitation already exists.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence or email transport is misconfigured.
         """
         self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
         org = await self._fetch_org_or_raise(org_id)
@@ -510,30 +547,13 @@ class OrganizationService:
             existing_pending_emails=existing_pending,
         )
 
-        raw_token = secrets.token_urlsafe(32)
-        invitation = self._build_invitation(
+        persisted_list = await self._dispatch_and_persist_invitations(
             initiator=initiator,
             org=org,
-            normalized_email=normalized_email,
-            role=payload.role,
-            expires_in_hours=payload.expires_in_hours,
-            raw_token=raw_token,
+            recipients={normalized_email: payload},
             now=now,
         )
-        email_item = self._build_invitation_email(
-            org=org,
-            invitation=invitation,
-            raw_token=raw_token,
-        )
-        email_result = await self.email_service.send_invitation_emails([email_item])
-        delivery_status = (
-            email_result.delivery_statuses[invitation.id]
-            if invitation.id in email_result.delivery_statuses
-            else EmailDeliveryStatus.FAILED
-        )
-        persisted = invitation.model_copy(update={"email_delivery_status": delivery_status})
-        await self._save_invitation(persisted)
-        self._last_generated_tokens[persisted.id] = raw_token
+        persisted = persisted_list[0]
 
         if self.audit_service is not None:
             await self.audit_service.log_event(
@@ -570,14 +590,14 @@ class OrganizationService:
                 attempts to invite ROOT as non-ROOT, or any recipient violates allowed_email_domains.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if org_id does not exist.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if any recipient already has a pending invitation.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence or email transport is misconfigured.
         """
         self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
         org = await self._fetch_org_or_raise(org_id)
         now = datetime.now(UTC)
         existing_pending = await self._get_active_pending_emails(org_id=org_id, now=now)
 
-        deduplicated: list[tuple[str, InvitationCreateDTO]] = []
-        seen_batch_emails: set[str] = set()
+        deduplicated_by_email: dict[str, InvitationCreateDTO] = {}
         for recipient_dto in payload.recipients:
             normalized_email = self._validate_invitation_recipient(
                 initiator=initiator,
@@ -585,47 +605,17 @@ class OrganizationService:
                 payload=recipient_dto,
                 existing_pending_emails=existing_pending,
             )
-            if normalized_email in seen_batch_emails:
-                continue
-            seen_batch_emails.add(normalized_email)
-            deduplicated.append((normalized_email, recipient_dto))
+            if normalized_email not in deduplicated_by_email:
+                deduplicated_by_email[normalized_email] = recipient_dto
 
-        draft_invitations: list[Invitation] = []
-        email_items: list[TransactionalEmailItemDTO] = []
-        raw_tokens_by_id: dict[str, str] = {}
-        for normalized_email, recipient_dto in deduplicated:
-            raw_token = secrets.token_urlsafe(32)
-            inv = self._build_invitation(
-                initiator=initiator,
-                org=org,
-                normalized_email=normalized_email,
-                role=recipient_dto.role,
-                expires_in_hours=recipient_dto.expires_in_hours,
-                raw_token=raw_token,
-                now=now,
-            )
-            email_item = self._build_invitation_email(
-                org=org,
-                invitation=inv,
-                raw_token=raw_token,
-            )
-            draft_invitations.append(inv)
-            email_items.append(email_item)
-            raw_tokens_by_id[inv.id] = raw_token
-
-        batch_result = await self.email_service.send_invitation_emails(email_items)
-
-        persisted_dtos: list[InvitationResponseDTO] = []
-        for inv in draft_invitations:
-            status_val = (
-                batch_result.delivery_statuses[inv.id]
-                if inv.id in batch_result.delivery_statuses
-                else EmailDeliveryStatus.FAILED
-            )
-            final_inv = inv.model_copy(update={"email_delivery_status": status_val})
-            await self._save_invitation(final_inv)
-            self._last_generated_tokens[final_inv.id] = raw_tokens_by_id[final_inv.id]
-            persisted_dtos.append(self._to_invitation_response(final_inv))
+        persisted_invitations = await self._dispatch_and_persist_invitations(
+            initiator=initiator,
+            org=org,
+            recipients=deduplicated_by_email,
+            now=now,
+        )
+        persisted_dtos = [self._to_invitation_response(inv) for inv in persisted_invitations]
+        sent_count = sum(1 for inv in persisted_invitations if inv.email_delivery_status == EmailDeliveryStatus.SENT)
 
         if self.audit_service is not None:
             await self.audit_service.log_event(
@@ -635,7 +625,7 @@ class OrganizationService:
                 target_id=org_id,
                 details={
                     "batch_size": len(persisted_dtos),
-                    "sent_count": batch_result.sent_count,
+                    "sent_count": sent_count,
                 },
             )
         return InvitationBatchResponseDTO(
@@ -660,6 +650,7 @@ class OrganizationService:
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if org_id does not exist.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
         await self._fetch_org_or_raise(org_id)
@@ -685,6 +676,7 @@ class OrganizationService:
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if invitation does not exist in org_id.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
         await self._fetch_org_or_raise(org_id)
@@ -732,6 +724,7 @@ class OrganizationService:
             PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email does not match invitation.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if user already belongs to another organization,
                 or ErrorCodes.CONFLICT_ERROR if invitation was already accepted.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         initiator, accept_dto = self._unpack_accept_arguments(initiator_or_payload, payload)
         token_hash = hashlib.sha256(accept_dto.raw_token.encode("utf-8")).hexdigest()
@@ -963,6 +956,66 @@ class OrganizationService:
             action_url=SecretStr(action_url),
         )
 
+    async def _dispatch_and_persist_invitations(
+        self,
+        *,
+        initiator: TokenData,
+        org: Organization,
+        recipients: Mapping[str, InvitationCreateDTO],
+        now: datetime,
+    ) -> list[Invitation]:
+        """Materialize, email-dispatch, and persist validated B2B invitations.
+
+        Args:
+            initiator: Caller TokenData.
+            org: Target Organization model.
+            recipients: Ordered mapping of normalized lowercase email to InvitationCreateDTO.
+            now: Current UTC timestamp.
+
+        Returns:
+            List of persisted Invitation domain models updated with email_delivery_status.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence or email transport is misconfigured.
+        """
+        draft_invitations: list[Invitation] = []
+        email_items: list[TransactionalEmailItemDTO] = []
+        raw_tokens_by_id: dict[str, str] = {}
+        for normalized_email, recipient_dto in recipients.items():
+            raw_token = secrets.token_urlsafe(32)
+            inv = self._build_invitation(
+                initiator=initiator,
+                org=org,
+                normalized_email=normalized_email,
+                role=recipient_dto.role,
+                expires_in_hours=recipient_dto.expires_in_hours,
+                raw_token=raw_token,
+                now=now,
+            )
+            email_item = self._build_invitation_email(
+                org=org,
+                invitation=inv,
+                raw_token=raw_token,
+            )
+            draft_invitations.append(inv)
+            email_items.append(email_item)
+            raw_tokens_by_id[inv.id] = raw_token
+
+        batch_result = await self.email_service.send_invitation_emails(email_items)
+
+        persisted_invitations: list[Invitation] = []
+        for inv in draft_invitations:
+            status_val = (
+                batch_result.delivery_statuses[inv.id]
+                if inv.id in batch_result.delivery_statuses
+                else EmailDeliveryStatus.FAILED
+            )
+            final_inv = inv.model_copy(update={"email_delivery_status": status_val})
+            await self._save_invitation(final_inv)
+            self._last_generated_tokens[final_inv.id] = raw_tokens_by_id[final_inv.id]
+            persisted_invitations.append(final_inv)
+        return persisted_invitations
+
     @staticmethod
     def _unpack_accept_arguments(
         initiator_or_payload: TokenData | InvitationAcceptRequestDTO,
@@ -1041,6 +1094,36 @@ class OrganizationService:
                 details={"error_code": ErrorCodes.INVITATION_EXPIRED.value, "invitation_id": invitation.id},
             )
 
+    @staticmethod
+    def _verify_email_matches_invitation(
+        *,
+        candidate_email: str,
+        subject_id: str,
+        invitation: Invitation,
+    ) -> None:
+        """Verify case-insensitive identity parity between authenticated email and invitation email.
+
+        Args:
+            candidate_email: Email address from caller TokenData or persisted User record.
+            subject_id: Canonical user identifier for structured error logging.
+            invitation: Target Invitation model.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if candidate_email mismatches invitation.email.
+        """
+        if candidate_email.lower() != invitation.email.lower():
+            logger.error(
+                "[OrganizationService] %s: Caller '%s' email mismatch for invitation '%s'.",
+                ErrorCodes.IDENTITY_MISMATCH.name,
+                subject_id,
+                invitation.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError(
+                message="Authenticated user email does not match invitation recipient.",
+                details={"error_code": ErrorCodes.IDENTITY_MISMATCH.value, "invitation_id": invitation.id},
+            )
+
     async def _resolve_accepting_user(
         self,
         *,
@@ -1060,32 +1143,19 @@ class OrganizationService:
             PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email mismatches invitation.
         """
         if initiator is not None:
-            if initiator.email is not None and initiator.email.lower() != invitation.email.lower():
-                logger.error(
-                    "[OrganizationService] %s: Caller '%s' email mismatch for invitation '%s'.",
-                    ErrorCodes.IDENTITY_MISMATCH.name,
-                    initiator.id,
-                    invitation.id,
-                    exc_info=True,
-                )
-                raise PermissionDeniedError(
-                    message="Authenticated user email does not match invitation recipient.",
-                    details={"error_code": ErrorCodes.IDENTITY_MISMATCH.value, "invitation_id": invitation.id},
+            if initiator.email is not None:
+                self._verify_email_matches_invitation(
+                    candidate_email=initiator.email,
+                    subject_id=initiator.id,
+                    invitation=invitation,
                 )
             by_id = await self.user_repo.get_by_id(initiator.id)
             if by_id is not None:
-                if by_id.email.lower() != invitation.email.lower():
-                    logger.error(
-                        "[OrganizationService] %s: User '%s' email mismatch for invitation '%s'.",
-                        ErrorCodes.IDENTITY_MISMATCH.name,
-                        by_id.id,
-                        invitation.id,
-                        exc_info=True,
-                    )
-                    raise PermissionDeniedError(
-                        message="Authenticated user email does not match invitation recipient.",
-                        details={"error_code": ErrorCodes.IDENTITY_MISMATCH.value, "invitation_id": invitation.id},
-                    )
+                self._verify_email_matches_invitation(
+                    candidate_email=by_id.email,
+                    subject_id=by_id.id,
+                    invitation=invitation,
+                )
                 return by_id
 
         return await self.user_repo.get_by_email(invitation.email)
@@ -1210,16 +1280,9 @@ class OrganizationService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        # Route invitation persistence exclusively through entity_adapter or uow_factory
-        if self._entity_adapter is not None:
-            await self._entity_adapter.upsert_invitation(invitation)
-            return
-        uow_factory = self._resolve_uow_factory()
-        if uow_factory is not None:
-            async with uow_factory() as uow:
-                await uow.entities.upsert_invitation(invitation)
-            return
-        self._raise_unconfigured_persistence_error()
+        # Route invitation persistence exclusively through _acquire_entity_port
+        async with self._acquire_entity_port(commit=True) as entities:
+            await entities.upsert_invitation(invitation)
 
     async def _get_invitation_by_id(self, invitation_id: str) -> Invitation | None:
         """Fetch an Invitation by its canonical ID.
@@ -1233,13 +1296,8 @@ class OrganizationService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        if self._entity_adapter is not None:
-            return await self._entity_adapter.get_invitation(invitation_id)
-        uow_factory = self._resolve_uow_factory()
-        if uow_factory is not None:
-            async with uow_factory() as uow:
-                return await uow.entities.get_invitation(invitation_id)
-        self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port() as entities:
+            return await entities.get_invitation(invitation_id)
 
     async def _list_org_invitations(self, org_id: str) -> list[Invitation]:
         """List all invitations belonging to a specific organization.
@@ -1253,15 +1311,9 @@ class OrganizationService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        if self._entity_adapter is not None:
-            persisted = await self._entity_adapter.list_invitations(organization_id=org_id)
-            return [item for item in persisted if item.organization_id == org_id]
-        uow_factory = self._resolve_uow_factory()
-        if uow_factory is not None:
-            async with uow_factory() as uow:
-                persisted = await uow.entities.list_invitations(organization_id=org_id)
-                return [item for item in persisted if item.organization_id == org_id]
-        self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port() as entities:
+            persisted = await entities.list_invitations(organization_id=org_id)
+        return [item for item in persisted if item.organization_id == org_id]
 
     async def _get_active_pending_emails(self, *, org_id: str, now: datetime) -> set[str]:
         """Return lowercase email addresses that currently have an unexpired PENDING invitation in org_id.
@@ -1272,6 +1324,9 @@ class OrganizationService:
 
         Returns:
             Set of lowercase email strings.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
         invitations = await self._list_org_invitations(org_id)
         return {
@@ -1290,14 +1345,8 @@ class OrganizationService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        if self._entity_adapter is not None:
-            persisted = await self._entity_adapter.list_invitations()
-        else:
-            uow_factory = self._resolve_uow_factory()
-            if uow_factory is None:
-                self._raise_unconfigured_persistence_error()
-            async with uow_factory() as uow:
-                persisted = await uow.entities.list_invitations()
+        async with self._acquire_entity_port() as entities:
+            persisted = await entities.list_invitations()
         for item in persisted:
             if secrets.compare_digest(item.token_hash, token_hash):
                 return item

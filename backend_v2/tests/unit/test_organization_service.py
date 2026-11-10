@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import secrets
+import time
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
@@ -22,6 +25,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.models.auth import (
     ExecutionAssignmentCreateDTO,
+    Invitation,
     InvitationAcceptRequestDTO,
     InvitationBatchCreateDTO,
     InvitationCreateDTO,
@@ -37,7 +41,6 @@ from backend_v2.models.auth import (
     UserUpdate,
 )
 from backend_v2.models.core_base import I18nText, generate_opaque_id
-from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
@@ -61,9 +64,9 @@ from backend_v2.services.execution import (
     ExecutionAssignmentService,
     ExecutionIngressService,
 )
-from backend_v2.services.execution.ingress_service import create_execution_record
 from backend_v2.services.execution.lifecycle_service import ExecutionLifecycleService
 from backend_v2.settings import Settings
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
     InMemoryUnifiedWorkflowRepository,
@@ -1466,24 +1469,16 @@ async def test_rbac_four_tier_matrix_boundaries_boundary(
     exe_member_id = generate_opaque_id(EntityPrefix.EXECUTION)
     exe_peer_id = generate_opaque_id(EntityPrefix.EXECUTION)
     await exec_repo.save_execution(
-        create_execution_record(
-            execution_id=exe_member_id,
-            workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
-            raw_inputs=WorkflowInputs.model_validate({}),
-            frozen_context=FrozenContext.model_validate({}),
-            source_identity_manifest={},
+        ExecutionRecordFactory.build(
+            id=exe_member_id,
             organization_id=org_id,
             created_by=member_id,
             status=ExecutionStatus.PENDING,
         )
     )
     await exec_repo.save_execution(
-        create_execution_record(
-            execution_id=exe_peer_id,
-            workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
-            raw_inputs=WorkflowInputs.model_validate({}),
-            frozen_context=FrozenContext.model_validate({}),
-            source_identity_manifest={},
+        ExecutionRecordFactory.build(
+            id=exe_peer_id,
             organization_id=org_id,
             created_by=viewer_id,
             status=ExecutionStatus.PENDING,
@@ -1743,3 +1738,148 @@ async def test_organization_and_assignment_services_fail_fast_when_uow_unconfigu
             await assignment_service._list_all_assignments()
     finally:
         register_default_uow_factory(previous_factory)
+
+
+@pytest.mark.asyncio
+async def test_delete_organization_non_existent_org_raises_resource_not_found_negative(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Negative: Deleting a non-existent organization as ROOT raises ResourceNotFoundError without audit side-effects."""
+    mock_audit = AsyncMock()
+    auth_service = AuthService(mock_repo, audit_service=mock_audit)
+    root_initiator = TokenData(id=generate_opaque_id(EntityPrefix.USER), role=UserRole.ROOT)
+    missing_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await auth_service.delete_organization(root_initiator, missing_org_id)
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value
+    mock_audit.log_event.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_invitation_accept_missing_payload_expired_and_timeout_negative(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negative & Boundary: Verify missing accept payload, expired pending auto-transition, persisted email mismatch, and Firebase delete timeout."""
+    uow = InMemoryUnitOfWork()
+    auth = AuthService(mock_repo, use_firebase=False, entity_adapter=uow.entities)
+
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    root_id = generate_opaque_id(EntityPrefix.USER)
+    await mock_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="Boundary Invitation Org",
+            is_active=True,
+            created_at=datetime.now(UTC),
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+            allowed_email_domains=[],
+        )
+    )
+    root_token = TokenData(id=root_id, role=UserRole.ROOT, organization_id=SystemOrganizations.ROOT_SYSTEM)
+
+    # 1. Unknown invitation_id returns None; ROOT can manage tenant invitations
+    assert auth.org_service.get_last_generated_token(generate_opaque_id(EntityPrefix.INVITATION)) is None
+    root_created_inv = await auth.org_service.create_invitation(
+        root_token,
+        org_id,
+        InvitationCreateDTO(email="target@boundary.org", role=UserRole.MEMBER),
+    )
+    assert root_created_inv.organization_id == org_id
+
+    # 2. Missing payload when first argument is TokenData raises VALIDATION_FAILED
+    with pytest.raises(AppException) as missing_payload_exc:
+        await auth.org_service.accept_invitation(root_token, None)
+    assert missing_payload_exc.value.status_code == 400
+    assert missing_payload_exc.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 3. TokenData with email=None resolves persisted User by ID and rejects mismatched email
+    mismatched_user_id = generate_opaque_id(EntityPrefix.USER)
+    await mock_repo.create_user(
+        User(
+            id=mismatched_user_id,
+            email="different@boundary.org",
+            name="Different User",
+            role=UserRole.MEMBER,
+            organization_id=None,
+            is_active=True,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    raw_valid_token = auth.org_service.get_last_generated_token(root_created_inv.id)
+    assert raw_valid_token is not None
+    token_without_email = TokenData(id=mismatched_user_id, role=UserRole.MEMBER, organization_id=None, email=None)
+    with pytest.raises(PermissionDeniedError) as mismatch_by_id_exc:
+        await auth.org_service.accept_invitation(
+            token_without_email,
+            InvitationAcceptRequestDTO(raw_token=raw_valid_token),
+        )
+    assert mismatch_by_id_exc.value.error_code == ErrorCodes.IDENTITY_MISMATCH.value
+
+    # 4. Expired PENDING invitation (expires_at <= now) auto-transitions to EXPIRED and raises INVITATION_EXPIRED
+    expired_raw_token = secrets.token_urlsafe(32)
+    expired_inv_id = generate_opaque_id(EntityPrefix.INVITATION)
+    now = datetime.now(UTC)
+    expired_inv = Invitation(
+        id=expired_inv_id,
+        organization_id=org_id,
+        email="expired@boundary.org",
+        role=UserRole.MEMBER,
+        token_hash=hashlib.sha256(expired_raw_token.encode("utf-8")).hexdigest(),
+        status=InvitationStatus.PENDING,
+        email_delivery_status=EmailDeliveryStatus.SENT,
+        invited_by=root_id,
+        expires_at=now - timedelta(seconds=1),
+        created_at=now - timedelta(hours=2),
+    )
+    await uow.entities.upsert_invitation(expired_inv)
+    with pytest.raises(AppException) as expired_exc:
+        await auth.org_service.accept_invitation(InvitationAcceptRequestDTO(raw_token=expired_raw_token))
+    assert expired_exc.value.status_code == 410
+    assert expired_exc.value.error_code == ErrorCodes.INVITATION_EXPIRED.value
+    persisted_expired = await uow.entities.get_invitation(expired_inv_id)
+    assert persisted_expired is not None
+    assert persisted_expired.status == InvitationStatus.EXPIRED
+
+    # 5. Firebase cascade delete exceeding http_client_timeout_seconds raises INTERNAL_SERVER_ERROR
+    slow_fb = MagicMock()
+
+    def _slow_delete(_uid: str) -> None:
+        time.sleep(0.2)
+
+    slow_fb.delete_user.side_effect = _slow_delete
+    fast_timeout_settings = MagicMock(http_client_timeout_seconds=0.01)
+    monkeypatch.setattr("backend_v2.services.auth.organization_service.get_settings", lambda: fast_timeout_settings)
+    fb_org_service = OrganizationService(
+        org_repo=OrganizationRepository(mock_repo),
+        user_repo=UserRepository(mock_repo),
+        use_firebase=True,
+        firebase_auth=slow_fb,
+        entity_adapter=uow.entities,
+    )
+    await mock_repo.create_user(
+        User(
+            id=generate_opaque_id(EntityPrefix.USER),
+            email="cascade@boundary.org",
+            name="Cascade Member",
+            role=UserRole.MEMBER,
+            organization_id=org_id,
+            is_active=True,
+            created_at=now,
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    with pytest.raises(AppException) as timeout_exc:
+        await fb_org_service.delete_organization(root_token, org_id, force=True)
+    assert timeout_exc.value.status_code == 500
+    assert timeout_exc.value.error_code == ErrorCodes.INTERNAL_SERVER_ERROR.value
