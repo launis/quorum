@@ -18,7 +18,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.hooks import scoring
-from backend_v2.models.auth import TokenData
+from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.execution import EvaluatedMatrixContextDTO, ExecutionRecord
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO, ContextVariableValue
@@ -78,6 +78,42 @@ class ExecutionOverrideService:
         self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
         self._get_execution = get_execution_fn if get_execution_fn is not None else self._default_get_execution
 
+    def _enforce_execution_permission(
+        self,
+        initiator: TokenData,
+        record: ExecutionRecord,
+        *,
+        action_label: str,
+        error_message: str,
+    ) -> None:
+        """Verify that the initiator holds tenant, ownership, or ROOT authorization on the execution.
+
+        Args:
+            initiator: Authenticated user token data.
+            record: Target execution record being accessed or mutated.
+            action_label: Structured audit description of the attempted operation.
+            error_message: Client-facing RFC 7807 permission error message.
+
+        Raises:
+            PermissionDeniedError: If the initiator lacks tenant, owner, or ROOT access
+                (ErrorCodes.PERMISSION_DENIED).
+        """
+        if (
+            initiator.role != UserRole.ROOT
+            and record.organization_id != initiator.organization_id
+            and record.created_by != initiator.id
+        ):
+            logger.error(
+                "[ExecutionOverrideService] %s: User '%s' denied %s execution '%s'",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                action_label,
+                record.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
+            )
+            raise PermissionDeniedError(error_message)
+
     async def _default_get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
         """Fetch an execution record by ID and enforce tenant access permissions.
 
@@ -103,21 +139,90 @@ class ExecutionOverrideService:
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
-        if (
-            initiator.role != "ROOT"
-            and record.organization_id != initiator.organization_id
-            and record.created_by != initiator.id
-        ):
-            logger.error(
-                "[ExecutionOverrideService] %s: User '%s' denied access to execution '%s'",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                execution_id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("You do not have permission to access this execution.")
+        self._enforce_execution_permission(
+            initiator,
+            record,
+            action_label="access to",
+            error_message="You do not have permission to access this execution.",
+        )
         return record
+
+    async def _delete_stale_pdf_report(self, pdf_report_path: str) -> None:
+        """Delete an invalidated PDF report blob while tolerating missing artifacts.
+
+        Args:
+            pdf_report_path: Storage path of the stale PDF report artifact.
+
+        Raises:
+            AppException: If blob deletion fails with a lock conflict (ErrorCodes.CONFLICT)
+                or storage error (ErrorCodes.INTERNAL_SERVER_ERROR).
+        """
+        try:
+            await self.storage.delete(pdf_report_path)
+        except AppException as e:
+            if e.status_code == 404:
+                logger.warning("[ExecutionOverrideService] Old PDF blob %s not found, ignoring.", pdf_report_path)
+            elif e.status_code == 409:
+                logger.error(
+                    "[ExecutionOverrideService] %s: Conflict deleting PDF blob %s",
+                    ErrorCodes.CONFLICT.name,
+                    pdf_report_path,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.CONFLICT.value},
+                )
+                raise
+            else:
+                logger.error(
+                    "[ExecutionOverrideService] %s: Failed to delete old PDF blob %s",
+                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                    pdf_report_path,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                )
+                raise AppException(
+                    message="Failed to delete old PDF blob",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                ) from e
+        except Exception as e:
+            logger.error(
+                "[ExecutionOverrideService] %s: Unexpected error deleting old PDF blob %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                pdf_report_path,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
+            raise AppException(
+                message="Failed to delete old PDF blob",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            ) from e
+
+    async def _append_override_trace_event(
+        self,
+        execution_id: str,
+        override_payload: HumanOverrideDTO | EvidenceOverrideDTO,
+        *,
+        atom_id: str | None = None,
+    ) -> None:
+        """Append a typed human override or quote rejection event to the execution trace.
+
+        Args:
+            execution_id: Canonical Opaque Stripe ID of the target execution.
+            override_payload: Validated override or quote rejection DTO to serialize.
+            atom_id: Optional scorecard atom identifier when recording an atom override.
+        """
+        serialized_payload = override_payload.model_dump(mode="json", exclude_none=True)
+        event = TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=datetime.now(UTC),
+            step_name="manual_override",
+            event_type="evidence_override",
+            content={"atom_id": atom_id, "override": serialized_payload} if atom_id is not None else serialized_payload,
+            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=[],
+        )
+        await self.exec_repo.append_trace_event(execution_id, event)
 
     async def clear_profile_synthesis(self, initiator: TokenData, execution_id: str, profile_id: str) -> None:
         """Remove synthesized data for a specific profile to force re-render via LLM Hook.
@@ -129,11 +234,18 @@ class ExecutionOverrideService:
 
         Raises:
             ResourceNotFoundError: If the execution or workflow does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
-            PermissionDeniedError: If the initiator lacks access to the execution (ErrorCodes.PERMISSION_DENIED).
-            AppException: If deleting the old PDF report blob fails with a conflict or storage error
-                (ErrorCodes.INTERNAL_SERVER_ERROR).
+            PermissionDeniedError: If the initiator lacks access to modify the execution
+                (ErrorCodes.PERMISSION_DENIED).
+            AppException: If deleting the old PDF report blob or persisting the update fails
+                (ErrorCodes.CONFLICT, ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         execution_rec = await self._get_execution(initiator=initiator, execution_id=execution_id)
+        self._enforce_execution_permission(
+            initiator,
+            execution_rec,
+            action_label="synthesis invalidation on",
+            error_message="You do not have permission to modify this execution.",
+        )
 
         if execution_rec.profile_syntheses and profile_id in execution_rec.profile_syntheses:
             new_syntheses = {k: v for k, v in execution_rec.profile_syntheses.items() if k != profile_id}
@@ -150,53 +262,9 @@ class ExecutionOverrideService:
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=execution_rec.workflow_id)
 
-        default_pid = workflow_obj.default_profile_id
         target_pdf_path = execution_rec.pdf_report_path
-
-        if profile_id == default_pid and execution_rec.pdf_report_path:
-            try:
-                await self.storage.delete(execution_rec.pdf_report_path)
-            except AppException as e:
-                if e.status_code == 404:
-                    logger.warning(
-                        "[ExecutionOverrideService] Old PDF blob %s not found, ignoring.", execution_rec.pdf_report_path
-                    )
-                elif e.status_code == 409:
-                    logger.error(
-                        "[ExecutionOverrideService] %s: Conflict deleting PDF blob %s",
-                        ErrorCodes.CONFLICT.name,
-                        execution_rec.pdf_report_path,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.CONFLICT.value},
-                    )
-                    raise e
-                else:
-                    logger.error(
-                        "[ExecutionOverrideService] %s: Failed to delete old PDF blob %s",
-                        ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                        execution_rec.pdf_report_path,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                    )
-                    raise AppException(
-                        message="Failed to delete old PDF blob",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                    ) from e
-            except Exception as e:
-                logger.error(
-                    "[ExecutionOverrideService] %s: Unexpected error deleting old PDF blob %s",
-                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                    execution_rec.pdf_report_path,
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                )
-                raise AppException(
-                    message="Failed to delete old PDF blob",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                ) from e
-
+        if profile_id == workflow_obj.default_profile_id and execution_rec.pdf_report_path:
+            await self._delete_stale_pdf_report(execution_rec.pdf_report_path)
             target_pdf_path = None
 
         # Pass expected_state_version for optimistic concurrency control.
@@ -328,24 +396,17 @@ class ExecutionOverrideService:
             ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
             PermissionDeniedError: If the initiator lacks permission to modify the execution
                 (ErrorCodes.PERMISSION_DENIED).
-            AppException: If the target atom is not found in any step state (ErrorCodes.RESOURCE_NOT_FOUND)
-                or required hook repositories are missing (ErrorCodes.CONFIGURATION_ERROR).
+            AppException: If the target atom is not found in any step state (ErrorCodes.RESOURCE_NOT_FOUND),
+                required hook repositories are missing (ErrorCodes.CONFIGURATION_ERROR), or an optimistic
+                concurrency conflict occurs (ErrorCodes.CONFLICT).
         """
         record = await self._get_execution(initiator, execution_id)
-        if (
-            initiator.role != "ROOT"
-            and record.organization_id != initiator.organization_id
-            and record.created_by != initiator.id
-        ):
-            logger.error(
-                "[ExecutionOverrideService] %s: User '%s' denied modification of execution '%s'",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                execution_id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("You do not have permission to modify this execution.")
+        self._enforce_execution_permission(
+            initiator,
+            record,
+            action_label="modification of",
+            error_message="You do not have permission to modify this execution.",
+        )
 
         found_step_id = next(
             (step_id for step_id, state in record.step_states.items() if atom_id in state.scorecard_atoms),
@@ -384,16 +445,7 @@ class ExecutionOverrideService:
                 expected_state_version=record.state_version,
             ),
         )
-        event = TraceEvent(
-            event_id=generate_uuid7(),
-            timestamp=datetime.now(UTC),
-            step_name="manual_override",
-            event_type="evidence_override",
-            content={"atom_id": atom_id, "override": override_dto.model_dump(mode="json", exclude_none=True)},
-            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
-            mcp_audit_traces=[],
-        )
-        await self.exec_repo.append_trace_event(execution_id, event)
+        await self._append_override_trace_event(execution_id, override_dto, atom_id=atom_id)
 
     async def reject_evidence_quote(self, initiator: TokenData, execution_id: str, evq_id: str, reason: str) -> None:
         """Reject an evidence quote and append the event to the execution trace.
@@ -411,20 +463,12 @@ class ExecutionOverrideService:
             AppException: If optimistic concurrency conflict occurs (ErrorCodes.CONFLICT).
         """
         record = await self._get_execution(initiator, execution_id)
-        if (
-            initiator.role != "ROOT"
-            and record.organization_id != initiator.organization_id
-            and record.created_by != initiator.id
-        ):
-            logger.error(
-                "[ExecutionOverrideService] %s: User '%s' denied quote rejection on execution '%s'",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-                execution_id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-            raise PermissionDeniedError("You do not have permission to modify this execution.")
+        self._enforce_execution_permission(
+            initiator,
+            record,
+            action_label="quote rejection on",
+            error_message="You do not have permission to modify this execution.",
+        )
 
         dto = EvidenceOverrideDTO(
             evq_id=evq_id,
@@ -441,13 +485,4 @@ class ExecutionOverrideService:
                 expected_state_version=record.state_version,
             ),
         )
-        event = TraceEvent(
-            event_id=generate_uuid7(),
-            timestamp=datetime.now(UTC),
-            step_name="manual_override",
-            event_type="evidence_override",
-            content=dto.model_dump(mode="json", exclude_none=True),
-            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
-            mcp_audit_traces=[],
-        )
-        await self.exec_repo.append_trace_event(execution_id, event)
+        await self._append_override_trace_event(execution_id, dto)
