@@ -2299,7 +2299,7 @@
   "taskBuilderBatchEmailsLabel": "Kohortin vastaanottajat (sähköpostilista tai CSV email,name,language)",
   "taskBuilderUploadCsvBtn": "Tuo vastaanottajat (.csv)",
   "taskBuilderLockedInputsTitle": "Lukitut taustasyötteet (Lähettäjän täyttämät)",
-  "taskBuilderAssigneeInputsTitle": "Vastaanottajan syötekentät (FilterChip-valinta)",
+  "taskBuilderAssigneeInputsTitle": "Työnkulun syötekentät",
   "taskBuilderHardDeadlineLabel": "Ehdoton määräaika (tuntia tästä hetkestä)",
   "taskBuilderRelativeDurationLabel": "Aktiivisen ajastimen kesto (minuuttia, valinnainen)",
   "taskBuilderResultVisibilityLabel": "Tulosten näkyvyys palautuksen jälkeen",

@@ -558,7 +558,13 @@ void main() {
         await tester.tap(find.byKey(const Key('assign_as_task_btn')));
         await tester.pumpAndSettle();
 
-        // FilterChip displays localized label ('Candidate Response') instead of raw inputKey
+        // Read-only Chip displays localized label ('Candidate Response') instead of interactive FilterChip
+        final inputChipFinder = find.byKey(
+          const Key('task_builder_assignee_chip_candidate_response'),
+        );
+        expect(inputChipFinder, findsOneWidget);
+        expect(find.byType(FilterChip), findsNothing);
+        expect(tester.widget<Chip>(inputChipFinder).onDeleted, isNull);
         expect(find.text('Candidate Response'), findsWidgets);
 
         // Select Reusable Task Brief
@@ -580,6 +586,10 @@ void main() {
 
         expect(capturedCreateDto, isNotNull);
         expect(capturedCreateDto!.taskBriefId, equals(briefId));
+        expect(
+          capturedCreateDto!.assigneeInputKeys,
+          equals(const ['candidate_response']),
+        );
         expect(capturedCreateDto!.lockedInputs.dynamicInputs, isEmpty);
 
         expect(

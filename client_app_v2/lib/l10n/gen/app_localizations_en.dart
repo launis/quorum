@@ -5976,8 +5976,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Locked Background Inputs (Sender Provided)';
 
   @override
-  String get taskBuilderAssigneeInputsTitle =>
-      'Assignee Input Slots (Interactive FilterChips)';
+  String get taskBuilderAssigneeInputsTitle => 'Workflow Expected Inputs';
 
   @override
   String get taskBuilderHardDeadlineLabel => 'Hard Deadline (Hours from now)';

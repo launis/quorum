@@ -10790,7 +10790,7 @@ abstract class AppLocalizations {
   /// No description provided for @taskBuilderAssigneeInputsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Assignee Input Slots (Interactive FilterChips)'**
+  /// **'Workflow Expected Inputs'**
   String get taskBuilderAssigneeInputsTitle;
 
   /// No description provided for @taskBuilderHardDeadlineLabel.

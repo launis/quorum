@@ -3049,7 +3049,7 @@
   "taskBuilderBatchEmailsLabel": "Cohort Recipients (multi-email paste or CSV email,name,language)",
   "taskBuilderUploadCsvBtn": "Import Recipients (.csv)",
   "taskBuilderLockedInputsTitle": "Locked Background Inputs (Sender Provided)",
-  "taskBuilderAssigneeInputsTitle": "Assignee Input Slots (Interactive FilterChips)",
+  "taskBuilderAssigneeInputsTitle": "Workflow Expected Inputs",
   "taskBuilderHardDeadlineLabel": "Hard Deadline (Hours from now)",
   "taskBuilderRelativeDurationLabel": "Active Timer Duration (Minutes, optional)",
   "taskBuilderResultVisibilityLabel": "Post-Submission Visibility",

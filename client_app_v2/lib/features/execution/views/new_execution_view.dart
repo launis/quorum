@@ -835,9 +835,7 @@ class _TaskAssignmentConfigDialogState
   Workflow? _selectedWorkflow;
   String? _selectedProfileId;
   String? _selectedTaskBriefId;
-  bool _hasCustomAssigneeSelection = false;
   bool _isBatchMode = false;
-  late Set<String> _assigneeInputKeys;
   AssignmentResultVisibility _resultVisibility =
       AssignmentResultVisibility.confirmationOnly;
   final List<ExecutionAssignmentRecipientDto> _parsedBatchRecipients = [];
@@ -856,12 +854,6 @@ class _TaskAssignmentConfigDialogState
         (widget.workflow != null && widget.workflow!.defaultProfileId.isNotEmpty
             ? widget.workflow!.defaultProfileId
             : null);
-    _assigneeInputKeys = <String>{
-      if (widget.workflow != null)
-        for (final item in widget.workflow!.expectedInputs)
-          if (!widget.initialCompiledInputs.containsKey(item.inputKey))
-            item.inputKey,
-    };
   }
 
   @override
@@ -873,10 +865,8 @@ class _TaskAssignmentConfigDialogState
     super.dispose();
   }
 
+  // Resolve workflow expected inputs deterministically from Studio definition without manual selection overrides.
   Set<String> _resolveAssigneeKeys(Workflow? activeWorkflow) {
-    if (_hasCustomAssigneeSelection || widget.workflow != null) {
-      return _assigneeInputKeys;
-    }
     if (activeWorkflow == null) {
       return const <String>{};
     }
@@ -1077,7 +1067,6 @@ class _TaskAssignmentConfigDialogState
         widget.workflow ??
         (workflowOptions.isNotEmpty ? workflowOptions.first : null);
 
-    final effectiveAssigneeKeys = _resolveAssigneeKeys(activeWorkflow);
     final effectiveProfileId = _resolveProfileId(activeWorkflow);
 
     final List<TaskDefinitionPromptBlock> taskBriefs =
@@ -1133,14 +1122,6 @@ class _TaskAssignmentConfigDialogState
                       _selectedProfileId = nextWf.defaultProfileId.isNotEmpty
                           ? nextWf.defaultProfileId
                           : null;
-                      _hasCustomAssigneeSelection = true;
-                      _assigneeInputKeys = <String>{
-                        for (final item in nextWf.expectedInputs)
-                          if (!widget.initialCompiledInputs.containsKey(
-                            item.inputKey,
-                          ))
-                            item.inputKey,
-                      };
                     });
                   },
                 ),
@@ -1290,29 +1271,13 @@ class _TaskAssignmentConfigDialogState
                     (activeWorkflow?.expectedInputs ?? const <ExpectedInput>[])
                         .map((item) {
                           final key = item.inputKey;
-                          final selected = effectiveAssigneeKeys.contains(key);
                           final chipLabel = _resolveLocalizedLabel(
                             item.label,
                             localeCode,
                           );
-                          return FilterChip(
+                          return Chip(
                             key: Key('task_builder_assignee_chip_$key'),
                             label: Text(chipLabel),
-                            selected: selected,
-                            onSelected: (val) {
-                              setState(() {
-                                _selectedWorkflow = activeWorkflow;
-                                _hasCustomAssigneeSelection = true;
-                                _assigneeInputKeys = Set<String>.from(
-                                  effectiveAssigneeKeys,
-                                );
-                                if (val) {
-                                  _assigneeInputKeys.add(key);
-                                } else {
-                                  _assigneeInputKeys.remove(key);
-                                }
-                              });
-                            },
                           );
                         })
                         .toList(),

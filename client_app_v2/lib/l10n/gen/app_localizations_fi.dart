@@ -6018,8 +6018,7 @@ class AppLocalizationsFi extends AppLocalizations {
       'Lukitut taustasyötteet (Lähettäjän täyttämät)';
 
   @override
-  String get taskBuilderAssigneeInputsTitle =>
-      'Vastaanottajan syötekentät (FilterChip-valinta)';
+  String get taskBuilderAssigneeInputsTitle => 'Työnkulun syötekentät';
 
   @override
   String get taskBuilderHardDeadlineLabel =>
