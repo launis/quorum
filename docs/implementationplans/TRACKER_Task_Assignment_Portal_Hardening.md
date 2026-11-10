@@ -39,7 +39,7 @@
   - [x] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
   - [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [x] @[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]
-  - [ ] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
+  - [x] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
