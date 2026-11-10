@@ -1,1 +1,5 @@
-"""LLM Integration Module."""
+"""LLM orchestration, provider abstraction, and prompt compilation package."""
+
+from __future__ import annotations
+
+__all__: list[str] = []
