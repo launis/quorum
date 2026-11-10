@@ -1,8 +1,10 @@
-"""Two-Tier SSOT Length Budgeting Engine (Tier 2 Guardrail).
+"""Two-Tier SSOT Length Budgeting Engine.
 
 Enforces sentence-boundary aware character budgeting, preventing mid-sentence
 and mid-word truncation of executive reports while maintaining semantic integrity.
 """
+
+from __future__ import annotations
 
 import logging
 import re
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["enforce_sentence_boundary_budget"]
 
-_TERMINAL_PUNCTUATION = {".", "!", "?"}
+_TERMINAL_PUNCTUATION: Final[frozenset[str]] = frozenset({".", "!", "?"})
 _SENTENCE_WINDOW_MIN_RATIO: Final[float] = 0.5
 
 
@@ -30,11 +32,17 @@ def enforce_sentence_boundary_budget(text: str, max_chars: int) -> str:
         or complete word boundary.
 
     Raises:
-        AppException: If text is empty/whitespace-only, or max_chars is <= 0.
+        AppException: With `ErrorCodes.VALIDATION_FAILED` if text is empty or
+            whitespace-only, or if `max_chars <= 0`.
     """
     if max_chars <= 0:
         msg = f"max_chars must be a positive integer, but received {max_chars}."
-        logger.error("[LengthBudgetEnforcer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error(
+            "[LengthBudgetEnforcer] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+        )
         raise AppException(
             message=msg,
             status_code=400,
@@ -44,7 +52,12 @@ def enforce_sentence_boundary_budget(text: str, max_chars: int) -> str:
     stripped_text = text.strip()
     if not stripped_text:
         msg = "Input text cannot be empty or whitespace-only."
-        logger.error("[LengthBudgetEnforcer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error(
+            "[LengthBudgetEnforcer] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+        )
         raise AppException(
             message=msg,
             status_code=400,

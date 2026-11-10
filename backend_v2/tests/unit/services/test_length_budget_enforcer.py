@@ -80,6 +80,20 @@ def test_enforce_budget_single_unbroken_sentence_word_boundary_trim() -> None:
     assert not result.endswith("  .")
 
 
+def test_enforce_budget_retains_closing_quote_after_sentence_punctuation() -> None:
+    """Closing quote immediately following terminal punctuation is retained in the trimmed output."""
+    text = 'The board concluded: "Execution velocity is paramount." Further commentary continues past the limit.'
+    result = enforce_sentence_boundary_budget(text, max_chars=65)
+    assert result == 'The board concluded: "Execution velocity is paramount."'
+
+
+def test_enforce_budget_unbroken_single_token_terminates_at_limit() -> None:
+    """An unbroken single token exceeding budget is sliced at max_chars with terminal period."""
+    single_token = "A" * 50
+    result = enforce_sentence_boundary_budget(single_token, max_chars=20)
+    assert result == ("A" * 20) + "."
+
+
 def test_enforce_budget_empty_or_whitespace_raises() -> None:
     """Empty or whitespace-only inputs must raise AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
