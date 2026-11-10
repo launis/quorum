@@ -1875,3 +1875,74 @@ def test_audit_skills_architecture_passes_with_updated_tier2_skills() -> None:
     auditor = SkillsArchitectureAuditor(repo_root=repo_root)
     summary = auditor.run_audit()
     assert summary.findings == []
+
+
+def test_compute_rules_sha256_excludes_directory_reference_and_refreshes_tracker_cache(tmp_path: Path) -> None:
+    """Verify 04_directory_reference.md edits do not invalidate rules_sha256 and tracker entries refresh cleanly."""
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    core_rule = rules_dir / "00-antigravity-core.md"
+    core_rule.write_text("# Core v1\n", encoding="utf-8")
+    dir_ref = rules_dir / "04_directory_reference.md"
+    dir_ref.write_text("# Directory Map v1\n", encoding="utf-8")
+
+    digest_before = compute_rules_sha256(tmp_path)
+    dir_ref.write_text("# Directory Map v2 (added new service file)\n", encoding="utf-8")
+    digest_after_dir_ref = compute_rules_sha256(tmp_path)
+    assert digest_after_dir_ref == digest_before
+
+    svc_rel = "backend_v2/services/cached_svc.py"
+    svc_file = tmp_path / svc_rel
+    svc_file.parent.mkdir(parents=True, exist_ok=True)
+    svc_file.write_text('"""Cached service."""\n', encoding="utf-8")
+
+    tracker_file = tmp_path / "docs" / "implementationplans" / "TRACKER_Cached.md"
+    tracker_file.parent.mkdir(parents=True, exist_ok=True)
+    tracker_file.write_text(
+        f"# Tracker\n- [x] **[OK] Tier 2 Hardening (Backend)**:\n  - [x] @[{svc_rel}]\n",
+        encoding="utf-8",
+    )
+
+    cache_path = tmp_path / DEFAULT_HARDENING_CACHE_PATH
+    manifest_v1 = load_or_seed_hardening_cache(cache_path, tmp_path)
+    assert manifest_v1.entries[svc_rel].rules_sha256 == digest_before
+
+    # When a core rule changes, load_or_seed_hardening_cache refreshes tracker-verified entries whose file/test SHA match
+    core_rule.write_text("# Core v2\n", encoding="utf-8")
+    digest_v2 = compute_rules_sha256(tmp_path)
+    assert digest_v2 != digest_before
+    manifest_v2 = load_or_seed_hardening_cache(cache_path, tmp_path)
+    assert manifest_v2.entries[svc_rel].rules_sha256 == digest_v2
+
+
+def test_keyboard_interrupt_triggers_circuit_breaker_rollback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Negative: Verify KeyboardInterrupt during subagent pass executes rollback before re-raising."""
+    target_rel = "backend_v2/services/interrupted.py"
+    target_path = tmp_path / target_rel
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text('"""Clean."""\n', encoding="utf-8")
+
+    rolled_back: list[str] = []
+
+    def _raise_kb_interrupt(*_a: object, **_k: object) -> bool:
+        raise KeyboardInterrupt
+
+    def _record_rollback(_snapshot: WorkspaceSnapshotDTO, target_file: str, repo_root: Path | None = None) -> None:
+        rolled_back.append(target_file)
+
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.capture_workspace_snapshot",
+        lambda *_a, **_k: WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="abc1234"),
+    )
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subagent_pass", _raise_kb_interrupt)
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_circuit_breaker_rollback", _record_rollback)
+
+    args = HardeningRunnerArgsDTO(
+        targets=[target_rel],
+        gate=HardeningGate.BACKEND,
+        no_cache=True,
+    )
+    with pytest.raises(KeyboardInterrupt):
+        process_target_with_retries(target_rel, args, repo_root=tmp_path)
+
+    assert rolled_back == [target_rel]

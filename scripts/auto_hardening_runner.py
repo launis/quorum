@@ -656,18 +656,21 @@ def resolve_target_rule_files(target_file: str) -> tuple[str, ...]:
 def compute_rules_sha256(repo_root: Path) -> str:
     """Compute a composite SHA-256 hexadecimal digest across `.agents/rules/*.md`, `AGENTS.md`, and Tier 2 hardening `SKILL.md` files.
 
+    Excludes `.agents/rules/04_directory_reference.md` so directory tree documentation updates
+    do not invalidate the SHA-256 hardening cache across verified targets.
+
     Args:
         repo_root: Workspace root directory.
 
     Returns:
         Lowercase 64-character hexadecimal SHA-256 digest of all rule and hardening skill files.
     """
-    # Include .agents/rules/*.md, AGENTS.md, and Tier 2 hardening SKILL.md files
+    # Include .agents/rules/*.md (excluding 04_directory_reference.md), AGENTS.md, and Tier 2 SKILL.md files
     hasher = hashlib.sha256()
     rules_dir = repo_root / ".agents" / "rules"
     if rules_dir.is_dir():
         for rule_file in sorted(rules_dir.glob("*.md"), key=lambda p: p.name):
-            if rule_file.is_file():
+            if rule_file.is_file() and rule_file.name != "04_directory_reference.md":
                 file_digest = compute_file_sha256(rule_file)
                 hasher.update(f"{rule_file.name}:{file_digest}\n".encode())
 
@@ -797,7 +800,10 @@ def load_or_seed_hardening_cache(
         except OSError:
             continue
         for hardened_target in parse_tracker_hardened_targets(t_content, HardeningGate.ALL):
-            if hardened_target in entries or hardened_target in unchecked_targets:
+            if hardened_target in unchecked_targets:
+                continue
+            existing_entry = entries[hardened_target] if hardened_target in entries else None
+            if existing_entry is not None and existing_entry.rules_sha256 == rules_digest:
                 continue
             entry = compute_target_cache_entry(
                 hardened_target,
@@ -805,7 +811,13 @@ def load_or_seed_hardening_cache(
                 rules_sha256=rules_digest,
                 source_tracker=rel_tracker,
             )
-            if entry is not None:
+            if entry is not None and (
+                existing_entry is None
+                or (
+                    existing_entry.target_sha256 == entry.target_sha256
+                    and existing_entry.unit_test_sha256 == entry.unit_test_sha256
+                )
+            ):
                 entries[hardened_target] = entry
                 seeded_new = True
 
@@ -1152,6 +1164,7 @@ def execute_subprocess_with_tree_kill(
     Raises:
         subprocess.TimeoutExpired: When execution exceeds timeout_seconds.
     """
+    creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
     proc = subprocess.Popen(
         cmd,
         stdin=subprocess.DEVNULL,
@@ -1162,6 +1175,7 @@ def execute_subprocess_with_tree_kill(
         errors="replace",
         cwd=cwd,
         shell=False,
+        creationflags=creation_flags,
     )
     try:
         stdout, stderr = proc.communicate(timeout=timeout_seconds)
@@ -1279,7 +1293,15 @@ def _inject_subagent_context_rules(
         return cmd_args
 
     rule_refs = ", ".join(f"@[{rule_path}]" for rule_path in resolve_target_rule_files(target_file))
-    suffix = f" [REQUIRED CONTEXT RULES: @[AGENTS.md], {rule_refs}]"
+    suffix = (
+        f" [REQUIRED CONTEXT RULES: @[AGENTS.md], {rule_refs}]"
+        " [SINGLE-FILE EXECUTION SCOPE: Audit and modify ONLY the target file and its corresponding unit test file."
+        " Do NOT run repository-wide macro scripts (audit_clean_imports.py, audit_warning_baseline.py)"
+        " or scan ~/.gemini with PowerShell; if checking a Knowledge Item, read directly from"
+        " ~/.gemini/antigravity/knowledge/ or rely on the rules above. Once audit_technical_debt.py"
+        " and backend_audit_loop.py --micro pass with 0 violations and >=90% coverage and all 7 invariants"
+        " are satisfied, exit immediately.]"
+    )
     if previous_error and previous_error.strip():
         sanitized_error = " ".join(previous_error.strip()[-RETRY_ERROR_FEEDBACK_MAX_CHARS:].split())
         suffix += f" [PREVIOUS ATTEMPT FAILED QUALITY GATE - FIX THESE ERRORS: {sanitized_error}]"
@@ -1756,10 +1778,14 @@ def process_target_with_retries(
         attempts = attempt
         snapshot = capture_workspace_snapshot(root)
 
-        execute_subagent_pass(target_file, args, repo_root=root, previous_error=last_error)
-        gate_res = run_quality_gate(
-            target_file, args.gate, args.timeout_seconds, repo_root=root, micro_audit=args.micro_audit
-        )
+        try:
+            execute_subagent_pass(target_file, args, repo_root=root, previous_error=last_error)
+            gate_res = run_quality_gate(
+                target_file, args.gate, args.timeout_seconds, repo_root=root, micro_audit=args.micro_audit
+            )
+        except KeyboardInterrupt:
+            execute_circuit_breaker_rollback(snapshot, target_file, repo_root=root)
+            raise
 
         if gate_res.success:
             if not args.no_cache:
