@@ -1,4 +1,4 @@
-"""Execution Service Facade (Strangler Fig Pattern) composing decomposed domain services."""
+"""Execution Service Facade composing decomposed execution domain services."""
 
 from __future__ import annotations
 
@@ -22,7 +22,10 @@ from backend_v2.database.interfaces import (
     ISystemRepository,
     IWorkflowRepository,
 )
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import (
+    AppException,
+    ErrorCodes,
+)
 from backend_v2.models.auth import (
     ExecutionAssignmentBatchCreateDTO,
     ExecutionAssignmentBatchResponseDTO,
@@ -113,56 +116,45 @@ class ExecutionService:
             assignment_service: Optional ExecutionAssignmentService instance.
             email_service: Optional EmailService instance.
             entity_adapter: Optional hexagonal EntityPersistencePort for assignments.
+
+        Raises:
+            AppException: If resolving the default FileDriver fails due to an unsupported
+                storage backend (ErrorCodes.CONFIGURATION_ERROR).
         """
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
         self.usage_service = usage_service
         self.executor = executor
-
-        if storage_driver is not None:
-            self.storage: FileDriver = storage_driver
-        else:
-            self.storage = get_storage_driver()
+        self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
 
         self._ingress = ExecutionIngressService(
             exec_repo, workflow_repo, prompt_block_repo, output_profile_repo, system_repo, self.usage_service
         )
-        if assignment_service is not None:
-            self._assignment: ExecutionAssignmentService | None = assignment_service
-        elif identity_repo is not None:
-            user_repo = UserRepository(identity_repo)
-            org_repo = OrganizationRepository(identity_repo)
-            self._assignment = ExecutionAssignmentService(
-                ingress_service=self._ingress,
-                org_repo=org_repo,
-                user_repo=user_repo,
-                workflow_repo=workflow_repo,
-                token_service=TokenService(repo=user_repo),
-                email_service=email_service,
-                entity_adapter=entity_adapter,
-            )
-        else:
-            self._assignment = None
-
+        self._assignment: ExecutionAssignmentService | None = self._build_assignment_service(
+            assignment_service=assignment_service,
+            identity_repo=identity_repo,
+            workflow_repo=workflow_repo,
+            email_service=email_service,
+            entity_adapter=entity_adapter,
+        )
         self._resumption = ExecutionResumptionService(
             exec_repo,
             workflow_repo,
             self.usage_service,
-            get_execution_fn=lambda *a, **k: self.get_execution(*a, **k),
-            check_resumability_fn=lambda *a, **k: self.check_resumability(*a, **k),
+            get_execution_fn=self._delegate_get_execution,
+            check_resumability_fn=self._delegate_check_resumability,
+            prompt_block_repo=prompt_block_repo,
         )
+        assignment_lookup_fn = None
         if self._assignment is not None:
             assignment_lookup_fn = self._assignment.get_assignment_by_execution_id
-        else:
-            assignment_lookup_fn = None
-
         self._lifecycle = ExecutionLifecycleService(
             exec_repo,
             self._resumption,
             self.storage,
             report_repo,
-            check_resumability_fn=lambda *a, **k: self.check_resumability(*a, **k),
+            check_resumability_fn=self._delegate_check_resumability,
             assignment_lookup_fn=assignment_lookup_fn,
         )
         self._override = ExecutionOverrideService(
@@ -174,12 +166,87 @@ class ExecutionService:
             identity_repo,
             system_repo,
             self.storage,
-            get_execution_fn=lambda *a, **k: self.get_execution(*a, **k),
+            get_execution_fn=self._delegate_get_execution,
         )
-        self._stream = ExecutionStreamService(exec_repo, get_execution_fn=lambda *a, **k: self.get_execution(*a, **k))
-        self._context = ExecutionContextService(
-            exec_repo, self.storage, get_execution_fn=lambda *a, **k: self.get_execution(*a, **k)
+        self._stream = ExecutionStreamService(exec_repo, get_execution_fn=self._delegate_get_execution)
+        self._context = ExecutionContextService(exec_repo, self.storage, get_execution_fn=self._delegate_get_execution)
+
+    def _build_assignment_service(
+        self,
+        *,
+        assignment_service: ExecutionAssignmentService | None,
+        identity_repo: IIdentityRepository | None,
+        workflow_repo: IWorkflowRepository,
+        email_service: EmailService | None,
+        entity_adapter: EntityPersistencePort | None,
+    ) -> ExecutionAssignmentService | None:
+        """Resolve or instantiate the optional ExecutionAssignmentService sub-service.
+
+        Args:
+            assignment_service: Explicit ExecutionAssignmentService override if injected.
+            identity_repo: Optional identity repository backing user and organization lookups.
+            workflow_repo: Workflow repository passed to assignment orchestration.
+            email_service: Optional transactional email dispatch service.
+            entity_adapter: Optional hexagonal EntityPersistencePort for assignments.
+
+        Returns:
+            Configured ExecutionAssignmentService instance or None if identity dependencies are absent.
+        """
+        if assignment_service is not None:
+            return assignment_service
+        if identity_repo is not None:
+            user_repo = UserRepository(identity_repo)
+            org_repo = OrganizationRepository(identity_repo)
+            return ExecutionAssignmentService(
+                ingress_service=self._ingress,
+                org_repo=org_repo,
+                user_repo=user_repo,
+                workflow_repo=workflow_repo,
+                token_service=TokenService(repo=user_repo),
+                email_service=email_service,
+                entity_adapter=entity_adapter,
+            )
+        return None
+
+    async def _delegate_get_execution(
+        self,
+        initiator: TokenData,
+        execution_id: str,
+        hydrate: bool = True,
+        skip_resumability: bool = False,
+    ) -> ExecutionRecord:
+        """Forward execution lookup dynamically through the facade's get_execution entrypoint.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            hydrate: Whether to hydrate related workflow and step metadata.
+            skip_resumability: Whether to bypass checking resumable state.
+
+        Returns:
+            Retrieved execution record.
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks access to the execution (ErrorCodes.PERMISSION_DENIED).
+        """
+        return await self.get_execution(
+            initiator,
+            execution_id,
+            hydrate=hydrate,
+            skip_resumability=skip_resumability,
         )
+
+    async def _delegate_check_resumability(self, record: ExecutionRecord) -> bool:
+        """Forward resumability evaluation dynamically through the facade's check_resumability entrypoint.
+
+        Args:
+            record: Target execution record to evaluate.
+
+        Returns:
+            True if execution state permits resumption, False otherwise.
+        """
+        return await self.check_resumability(record)
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
         """List all execution records accessible to the initiator.
@@ -281,7 +348,7 @@ class ExecutionService:
             record: Target execution record to evaluate.
 
         Returns:
-            True if execution state permits resumption.
+            True if execution state permits resumption, False otherwise.
         """
         return await self._resumption.check_resumability(record)
 
@@ -318,8 +385,9 @@ class ExecutionService:
         Raises:
             ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
             PermissionDeniedError: If the initiator lacks permission to modify the execution (ErrorCodes.PERMISSION_DENIED).
-            AppException: If the target atom is not found (ErrorCodes.RESOURCE_NOT_FOUND) or required repositories are
-                missing (ErrorCodes.CONFIGURATION_ERROR).
+            AppException: If the target atom is not found (ErrorCodes.RESOURCE_NOT_FOUND), required repositories are
+                missing (ErrorCodes.CONFIGURATION_ERROR), or an optimistic concurrency conflict occurs
+                (ErrorCodes.CONFLICT).
         """
         await self._override.override_atom(initiator, execution_id, atom_id, payload)
 
@@ -335,6 +403,7 @@ class ExecutionService:
         Raises:
             ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
             PermissionDeniedError: If the initiator lacks permission to modify the execution (ErrorCodes.PERMISSION_DENIED).
+            AppException: If an optimistic concurrency conflict occurs (ErrorCodes.CONFLICT).
         """
         await self._override.reject_evidence_quote(initiator, execution_id, evq_id, reason)
 
@@ -349,7 +418,8 @@ class ExecutionService:
         Raises:
             ResourceNotFoundError: If the execution or workflow record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
             PermissionDeniedError: If the initiator lacks access to the execution (ErrorCodes.PERMISSION_DENIED).
-            AppException: If deleting the cached PDF report blob fails (ErrorCodes.INTERNAL_SERVER_ERROR).
+            AppException: If deleting the cached PDF report blob fails (ErrorCodes.INTERNAL_SERVER_ERROR) or an
+                optimistic concurrency conflict occurs (ErrorCodes.CONFLICT).
         """
         await self._override.clear_profile_synthesis(initiator, execution_id, profile_id)
 
@@ -401,6 +471,8 @@ class ExecutionService:
             logger.error(
                 "[ExecutionService] %s: ExecutionAssignmentService is not configured.",
                 ErrorCodes.SERVICE_DEPENDENCY_MISSING.name,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
             )
             raise AppException(
                 message="ExecutionAssignmentService is not configured.",
@@ -422,6 +494,14 @@ class ExecutionService:
 
         Returns:
             Redacted ExecutionAssignmentResponseDTO.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            PermissionDeniedError: If caller role or email domain violates policy (ErrorCodes.PERMISSION_DENIED).
+            ResourceNotFoundError: If the caller's organization does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            ConflictError: If recipient belongs to a different organization (ErrorCodes.USER_ALREADY_ASSIGNED).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING) or
+                hard_deadline_at is in the past (ErrorCodes.VALIDATION_FAILED).
         """
         return await self._require_assignment_service().create_assignment(initiator, payload)
 
@@ -438,6 +518,14 @@ class ExecutionService:
 
         Returns:
             ExecutionAssignmentBatchResponseDTO with batch_id and created assignments.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            PermissionDeniedError: If caller role or email domain violates policy (ErrorCodes.PERMISSION_DENIED).
+            ResourceNotFoundError: If the caller's organization does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            ConflictError: If any recipient belongs to a different organization (ErrorCodes.USER_ALREADY_ASSIGNED).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING) or
+                hard_deadline_at is in the past (ErrorCodes.VALIDATION_FAILED).
         """
         return await self._require_assignment_service().create_assignment_batch(initiator, payload)
 
@@ -449,6 +537,10 @@ class ExecutionService:
 
         Returns:
             List of ExecutionAssignmentResponseDTO records.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING).
         """
         return await self._require_assignment_service().list_assignments(initiator)
 
@@ -465,6 +557,13 @@ class ExecutionService:
 
         Returns:
             Updated ExecutionAssignmentResponseDTO.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            PermissionDeniedError: If the caller lacks organization privileges (ErrorCodes.PERMISSION_DENIED).
+            ResourceNotFoundError: If the assignment or organization does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            ConflictError: If the assignment was already submitted (ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING).
         """
         return await self._require_assignment_service().resend_assignment_email(initiator, assignment_id)
 
@@ -476,6 +575,11 @@ class ExecutionService:
 
         Returns:
             ExecutionAssignmentPreviewDTO.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            ResourceNotFoundError: If the token digest or organization does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING).
         """
         return await self._require_assignment_service().preview_assignment(raw_token)
 
@@ -484,7 +588,7 @@ class ExecutionService:
         raw_token: str,
         payload: ExecutionAssignmentOnboardingRequestDTO,
     ) -> TokenExchangeResponseDTO:
-        """Execute combined JIT user onboarding + 2FA for a task assignee.
+        """Execute combined JIT user onboarding and 2FA verification for a task assignee.
 
         Args:
             raw_token: Raw single-use assignment token.
@@ -492,6 +596,16 @@ class ExecutionService:
 
         Returns:
             TokenExchangeResponseDTO with signed 15-minute Quorum Local JWT.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            ResourceNotFoundError: If the token digest does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            AuthenticationError: If Firebase token or MFA verification fails
+                (ErrorCodes.MFA_REQUIRED, ErrorCodes.AUTHENTICATION_FAILED).
+            PermissionDeniedError: If Firebase email mismatches assigned_email (ErrorCodes.IDENTITY_MISMATCH).
+            ConflictError: If the user belongs to another organization (ErrorCodes.USER_ALREADY_ASSIGNED).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING) or
+                hard_deadline_at has passed (ErrorCodes.ASSIGNMENT_EXPIRED).
         """
         return await self._require_assignment_service().onboard_assignee(raw_token, payload)
 
@@ -508,6 +622,15 @@ class ExecutionService:
 
         Returns:
             Activated ExecutionAssignmentResponseDTO.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            ResourceNotFoundError: If the assignment does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If caller identity mismatches assigned_email (ErrorCodes.IDENTITY_MISMATCH).
+            ConflictError: If a cross-organization collision occurs (ErrorCodes.USER_ALREADY_ASSIGNED) or the
+                assignment was already submitted (ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING) or
+                deadline has passed (ErrorCodes.ASSIGNMENT_EXPIRED).
         """
         return await self._require_assignment_service().activate_assignment(initiator, assignment_id)
 
@@ -526,6 +649,15 @@ class ExecutionService:
 
         Returns:
             Updated ExecutionAssignmentResponseDTO.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            ResourceNotFoundError: If the assignment does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If caller identity mismatches assigned_email (ErrorCodes.IDENTITY_MISMATCH).
+            ConflictError: If the assignment was already submitted (ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING),
+                deadline has passed (ErrorCodes.ASSIGNMENT_EXPIRED), or assignment is not yet activated
+                (ErrorCodes.VALIDATION_FAILED).
         """
         return await self._require_assignment_service().save_draft_inputs(initiator, assignment_id, payload)
 
@@ -548,6 +680,15 @@ class ExecutionService:
 
         Returns:
             Initialized ExecutionRecord.
+
+        Raises:
+            ConfigurationError: If no assignment persistence backend is configured (ErrorCodes.CONFIGURATION_ERROR).
+            ResourceNotFoundError: If the assignment or workflow does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If caller identity mismatches assigned_email (ErrorCodes.IDENTITY_MISMATCH) or
+                workflow access is denied (ErrorCodes.PERMISSION_DENIED).
+            ConflictError: If the assignment was already submitted (ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED).
+            AppException: If ExecutionAssignmentService is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING) or
+                Dual-Clock deadline plus grace window has passed (ErrorCodes.ASSIGNMENT_EXPIRED).
         """
         return await self._require_assignment_service().submit_assignment(
             initiator=initiator,

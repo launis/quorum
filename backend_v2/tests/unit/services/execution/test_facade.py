@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
@@ -26,19 +27,25 @@ from backend_v2.models.auth import (
     TokenData,
     UserRole,
 )
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
-from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.step import Step, StepRule
-from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
-from backend_v2.models.enums import AssignmentStatus, ExecutionStatus, HistoricalContextMode, StepType
+from backend_v2.models.enums import AssignmentStatus, EntityPrefix, ExecutionStatus, HistoricalContextMode, StepType
+from backend_v2.services.execution.assignment_service import ExecutionAssignmentService
 from backend_v2.services.execution.facade import ExecutionService, create_execution_record
+from backend_v2.tests.factories.model_factories import (
+    ExecutionStepFactory,
+    OutputProfileFactory,
+    SystemRulePromptBlockFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
     InMemoryIdentityRepository,
+    InMemoryPromptBlockRepository,
     InMemorySystemRepository,
     InMemoryUnifiedWorkflowRepository,
     InMemoryWorkflowRepository,
@@ -47,13 +54,25 @@ from backend_v2.tests.fakes.in_memory_repositories import (
 
 @pytest.fixture
 def initiator() -> TokenData:
-    """Fixture providing standard user token data."""
-    return TokenData(id="usr_123", role=UserRole.MEMBER, organization_id="org_123")
+    """Provide standard authenticated user token data with canonical Opaque Stripe IDs.
+
+    Returns:
+        Validated TokenData fixture for MEMBER caller.
+    """
+    return TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        role=UserRole.MEMBER,
+        organization_id=generate_opaque_id(EntityPrefix.ORGANIZATION),
+    )
 
 
 @pytest.fixture
 def mock_execution_service() -> tuple[ExecutionService, dict[str, MagicMock]]:
-    """Fixture providing ExecutionService facade with mocked sub-services."""
+    """Provide ExecutionService facade with isolated mocked sub-services for delegation verification.
+
+    Returns:
+        Tuple of (ExecutionService instance, dictionary of sub-service mocks).
+    """
     exec_repo = InMemoryExecutionRepository()
     workflow_repo = InMemoryWorkflowRepository()
 
@@ -82,7 +101,7 @@ def mock_execution_service() -> tuple[ExecutionService, dict[str, MagicMock]]:
 
 
 def test_execution_service_init_with_defaults() -> None:
-    """Verify ExecutionService initializes correctly with default optional dependencies."""
+    """Verify ExecutionService initializes cleanly with default optional dependencies."""
     exec_repo = InMemoryExecutionRepository()
     workflow_repo = InMemoryWorkflowRepository()
     service = ExecutionService(exec_repo=exec_repo, workflow_repo=workflow_repo)
@@ -90,16 +109,18 @@ def test_execution_service_init_with_defaults() -> None:
     assert service.workflow_repo is workflow_repo
     assert service.comp_repo is None
     assert service.storage is not None
+    assert service._assignment is None
     assert callable(create_execution_record)
 
 
 def test_execution_service_init_with_custom_deps() -> None:
-    """Verify ExecutionService initializes correctly with custom injected dependencies."""
+    """Verify ExecutionService binds custom storage, usage, executor, and assignment dependencies."""
     exec_repo = InMemoryExecutionRepository()
     workflow_repo = InMemoryWorkflowRepository()
     custom_storage = MagicMock()
     custom_usage = MagicMock()
     custom_executor = MagicMock()
+    custom_assignment = MagicMock(spec=ExecutionAssignmentService)
 
     service = ExecutionService(
         exec_repo=exec_repo,
@@ -107,10 +128,12 @@ def test_execution_service_init_with_custom_deps() -> None:
         usage_service=custom_usage,
         executor=custom_executor,
         storage_driver=custom_storage,
+        assignment_service=custom_assignment,
     )
     assert service.storage is custom_storage
     assert service.usage_service is custom_usage
     assert service.executor is custom_executor
+    assert service._assignment is custom_assignment
 
 
 @pytest.mark.asyncio
@@ -135,10 +158,11 @@ async def test_get_execution(
     service, subs = mock_execution_service
     expected = MagicMock(spec=ExecutionRecord)
     subs["lifecycle"].get_execution = AsyncMock(return_value=expected)
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
 
-    result = await service.get_execution(initiator, "exe_123", hydrate=True, skip_resumability=False)
+    result = await service.get_execution(initiator, execution_id, hydrate=True, skip_resumability=False)
     assert result == expected
-    subs["lifecycle"].get_execution.assert_awaited_once_with(initiator, "exe_123", True, False)
+    subs["lifecycle"].get_execution.assert_awaited_once_with(initiator, execution_id, True, False)
 
 
 @pytest.mark.asyncio
@@ -148,10 +172,11 @@ async def test_delete_execution(
     """Verify delete_execution delegates to _lifecycle.delete_execution."""
     service, subs = mock_execution_service
     subs["lifecycle"].delete_execution = AsyncMock(return_value=True)
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
 
-    result = await service.delete_execution(initiator, "exe_123")
+    result = await service.delete_execution(initiator, execution_id)
     assert result is True
-    subs["lifecycle"].delete_execution.assert_awaited_once_with(initiator, "exe_123")
+    subs["lifecycle"].delete_execution.assert_awaited_once_with(initiator, execution_id)
 
 
 @pytest.mark.asyncio
@@ -164,7 +189,7 @@ async def test_start_execution(
     subs["ingress"].start_execution = AsyncMock(return_value=expected)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
         target_locale="fi",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"key": "val"}),
         matrix_sampling_strategy=10,
@@ -182,10 +207,11 @@ async def test_get_workflow_ui_schema(mock_execution_service: tuple[ExecutionSer
     service, subs = mock_execution_service
     expected = MagicMock(spec=WorkflowSchemaResponseDTO)
     subs["ingress"].get_workflow_ui_schema = AsyncMock(return_value=expected)
+    workflow_id = generate_opaque_id(EntityPrefix.WORKFLOW)
 
-    result = await service.get_workflow_ui_schema("wf_123")
+    result = await service.get_workflow_ui_schema(workflow_id)
     assert result == expected
-    subs["ingress"].get_workflow_ui_schema.assert_awaited_once_with("wf_123")
+    subs["ingress"].get_workflow_ui_schema.assert_awaited_once_with(workflow_id)
 
 
 @pytest.mark.asyncio
@@ -208,11 +234,12 @@ async def test_resume_execution(
     service, subs = mock_execution_service
     expected = MagicMock(spec=ExecutionRecord)
     subs["resumption"].resume_execution = AsyncMock(return_value=expected)
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
 
     arq_pool = AsyncMock()
-    result = await service.resume_execution(initiator, "exe_123", arq_pool)
+    result = await service.resume_execution(initiator, execution_id, arq_pool)
     assert result == expected
-    subs["resumption"].resume_execution.assert_awaited_once_with(initiator, "exe_123", arq_pool)
+    subs["resumption"].resume_execution.assert_awaited_once_with(initiator, execution_id, arq_pool)
 
 
 @pytest.mark.asyncio
@@ -222,10 +249,12 @@ async def test_override_atom(
     """Verify override_atom delegates to _override.override_atom."""
     service, subs = mock_execution_service
     subs["override"].override_atom = AsyncMock()
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    atom_id = generate_opaque_id(EntityPrefix.TDA)
 
     payload = HumanOverrideRequest(new_status=ExecutionStatus.PASSED, reason="Human override test", evidence_quotes=[])
-    await service.override_atom(initiator, "exe_123", "atm_123", payload)
-    subs["override"].override_atom.assert_awaited_once_with(initiator, "exe_123", "atm_123", payload)
+    await service.override_atom(initiator, execution_id, atom_id, payload)
+    subs["override"].override_atom.assert_awaited_once_with(initiator, execution_id, atom_id, payload)
 
 
 @pytest.mark.asyncio
@@ -235,9 +264,11 @@ async def test_reject_evidence_quote(
     """Verify reject_evidence_quote delegates to _override.reject_evidence_quote."""
     service, subs = mock_execution_service
     subs["override"].reject_evidence_quote = AsyncMock()
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    evq_id = generate_opaque_id(EntityPrefix.NODE)
 
-    await service.reject_evidence_quote(initiator, "exe_123", "evq_123", "Hallucination")
-    subs["override"].reject_evidence_quote.assert_awaited_once_with(initiator, "exe_123", "evq_123", "Hallucination")
+    await service.reject_evidence_quote(initiator, execution_id, evq_id, "Hallucination")
+    subs["override"].reject_evidence_quote.assert_awaited_once_with(initiator, execution_id, evq_id, "Hallucination")
 
 
 @pytest.mark.asyncio
@@ -247,9 +278,11 @@ async def test_clear_profile_synthesis(
     """Verify clear_profile_synthesis delegates to _override.clear_profile_synthesis."""
     service, subs = mock_execution_service
     subs["override"].clear_profile_synthesis = AsyncMock()
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    profile_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
 
-    await service.clear_profile_synthesis(initiator, "exe_123", "prf_123")
-    subs["override"].clear_profile_synthesis.assert_awaited_once_with(initiator, "exe_123", "prf_123")
+    await service.clear_profile_synthesis(initiator, execution_id, profile_id)
+    subs["override"].clear_profile_synthesis.assert_awaited_once_with(initiator, execution_id, profile_id)
 
 
 @pytest.mark.asyncio
@@ -258,6 +291,7 @@ async def test_stream_status(
 ) -> None:
     """Verify stream_status delegates to _stream.stream_status."""
     service, subs = mock_execution_service
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
 
     async def sample_stream(init: TokenData, eid: str) -> AsyncGenerator[str]:
         yield "event: progress\ndata: {}\n\n"
@@ -265,7 +299,7 @@ async def test_stream_status(
 
     subs["stream"].stream_status = sample_stream
 
-    chunks = [chunk async for chunk in service.stream_status(initiator, "exe_123")]
+    chunks = [chunk async for chunk in service.stream_status(initiator, execution_id)]
     assert len(chunks) == 2
     assert "progress" in chunks[0]
     assert "done" in chunks[1]
@@ -279,29 +313,32 @@ async def test_get_frozen_context_bytes(
     service, subs = mock_execution_service
     expected = (b'{"test": 1}', "frozen_context.json")
     subs["context"].get_frozen_context_bytes = AsyncMock(return_value=expected)
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
 
-    result = await service.get_frozen_context_bytes(initiator, "exe_123")
+    result = await service.get_frozen_context_bytes(initiator, execution_id)
     assert result == expected
-    subs["context"].get_frozen_context_bytes.assert_awaited_once_with(initiator, "exe_123")
+    subs["context"].get_frozen_context_bytes.assert_awaited_once_with(initiator, execution_id)
 
 
 @pytest.mark.asyncio
 async def test_facade_negative_missing_resources_raise_app_exception(initiator: TokenData) -> None:
-    """ISTQB Negative: Verify facade raises ResourceNotFoundError (AppException) on missing execution or workflow."""
+    """ISTQB Negative: Verify facade raises ResourceNotFoundError on missing execution or workflow."""
     repo = InMemoryUnifiedWorkflowRepository()
     service = ExecutionService(exec_repo=repo, workflow_repo=repo)
+    missing_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    missing_wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
 
     with pytest.raises(ResourceNotFoundError) as exc_get:
-        await service.get_execution(initiator, "exe_0195f3a0000070008000000000000000")
+        await service.get_execution(initiator, missing_exe_id)
     assert exc_get.value.status_code == 404
     assert exc_get.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
     with pytest.raises(ResourceNotFoundError) as exc_del:
-        await service.delete_execution(initiator, "exe_0195f3a0000070008000000000000000")
+        await service.delete_execution(initiator, missing_exe_id)
     assert exc_del.value.status_code == 404
 
     with pytest.raises(ResourceNotFoundError) as exc_schema:
-        await service.get_workflow_ui_schema("wor_0195f3a0000070008000000000000000")
+        await service.get_workflow_ui_schema(missing_wf_id)
     assert exc_schema.value.status_code == 404
 
 
@@ -311,27 +348,34 @@ async def test_facade_negative_permission_denied_and_unresumable_state() -> None
     repo = InMemoryUnifiedWorkflowRepository()
     service = ExecutionService(exec_repo=repo, workflow_repo=repo)
 
+    owner_id = generate_opaque_id(EntityPrefix.USER)
+    owner_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    outsider_id = generate_opaque_id(EntityPrefix.USER)
+    outsider_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    workflow_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+
     record = create_execution_record(
-        execution_id="exe_0195f3a0000070008123456789abcdef",
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id=execution_id,
+        workflow_id=workflow_id,
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        created_by="usr_owner0000000000",
-        organization_id="org_owner0000000000",
+        created_by=owner_id,
+        organization_id=owner_org_id,
         status=ExecutionStatus.PENDING,
     )
     repo.set_execution(record)
 
-    outsider = TokenData(id="usr_outsider0000000", role=UserRole.MEMBER, organization_id="org_outsider0000000")
+    outsider = TokenData(id=outsider_id, role=UserRole.MEMBER, organization_id=outsider_org_id)
     with pytest.raises(PermissionDeniedError) as exc_perm:
-        await service.get_execution(outsider, "exe_0195f3a0000070008123456789abcdef")
+        await service.get_execution(outsider, execution_id)
     assert exc_perm.value.status_code == 403
     assert exc_perm.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
 
-    owner = TokenData(id="usr_owner0000000000", role=UserRole.MEMBER, organization_id="org_owner0000000000")
+    owner = TokenData(id=owner_id, role=UserRole.MEMBER, organization_id=owner_org_id)
     with pytest.raises(AppException) as exc_resume:
-        await service.resume_execution(owner, "exe_0195f3a0000070008123456789abcdef", AsyncMock())
+        await service.resume_execution(owner, execution_id, AsyncMock())
     assert exc_resume.value.status_code == 400
     assert exc_resume.value.details["error_code"] == ErrorCodes.UNRESUMABLE_STATE_ERROR.value
 
@@ -339,9 +383,7 @@ async def test_facade_negative_permission_denied_and_unresumable_state() -> None
         new_status=ExecutionStatus.PASSED, reason="Missing target atom test", evidence_quotes=[]
     )
     with pytest.raises(AppException) as exc_override:
-        await service.override_atom(
-            owner, "exe_0195f3a0000070008123456789abcdef", "atm_missing00000000", override_payload
-        )
+        await service.override_atom(owner, execution_id, generate_opaque_id(EntityPrefix.TDA), override_payload)
     assert exc_override.value.status_code == 404
     assert exc_override.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
@@ -351,7 +393,7 @@ def test_create_execution_record_negative_invalid_id_raises_app_exception() -> N
     with pytest.raises(AppException) as exc_info:
         create_execution_record(
             execution_id="invalid id with spaces",
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
+            workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
             raw_inputs=WorkflowInputs(),
             frozen_context=FrozenContext(),
             source_identity_manifest={},
@@ -361,56 +403,177 @@ def test_create_execution_record_negative_invalid_id_raises_app_exception() -> N
 
 
 @pytest.mark.asyncio
-async def test_facade_assignment_lifecycle_and_missing_dependency_negative() -> None:
-    """Verify ExecutionService assignment lifecycle methods and SERVICE_DEPENDENCY_MISSING negative guard."""
+async def test_resume_execution_forwards_prompt_block_repo_for_merkle_invalidation() -> None:
+    """Verify ExecutionService wires prompt_block_repo into ExecutionResumptionService for Merkle drift checks."""
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryWorkflowRepository()
+    prompt_block_repo = InMemoryPromptBlockRepository()
+    usage_service = AsyncMock()
+    usage_service.check_quota = AsyncMock(return_value=True)
+
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    user_id = generate_opaque_id(EntityPrefix.USER)
+    block = SystemRulePromptBlockFactory.build(organization_id=org_id)
+    await prompt_block_repo.create_prompt_block(block)
+
+    step_blueprint_id = generate_opaque_id(EntityPrefix.STEP)
+    step_rule_id = generate_opaque_id(EntityPrefix.STEP_REFERENCE)
+    step = Step(
+        id=step_blueprint_id,
+        slug="merkle-step",
+        name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
+        type=StepType.LOGIC,
+        hook="my_hook",
+        criteria_block_ids=[block.id],
+        mcp_tool_params={},
+    )
+    await workflow_repo.save_step(step)
+
+    workflow = WorkflowFactory.build(
+        organization_id=org_id,
+        version=1,
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        steps=[StepRule(id=step_rule_id, task_blueprint=step_blueprint_id)],
+    )
+    await workflow_repo.save_workflow(workflow)
+
+    drifted_step_state = ExecutionStepFactory.build(
+        id=step_rule_id,
+        status=ExecutionStatus.PASSED,
+        input_merkle_hash="stale_hash_value",
+    )
+    execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    record = create_execution_record(
+        execution_id=execution_id,
+        workflow_id=workflow.id,
+        raw_inputs=WorkflowInputs(),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        created_by=user_id,
+        organization_id=org_id,
+        status=ExecutionStatus.FAILED,
+        steps=[drifted_step_state],
+        step_states={step_rule_id: drifted_step_state},
+    )
+    await exec_repo.save_execution(record)
+
+    service = ExecutionService(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        prompt_block_repo=prompt_block_repo,
+        usage_service=usage_service,
+    )
+    owner = TokenData(id=user_id, role=UserRole.MEMBER, organization_id=org_id)
+    arq_pool = AsyncMock()
+
+    resumed = await service.resume_execution(owner, execution_id, arq_pool)
+    assert resumed.status == ExecutionStatus.RUNNING
+    assert resumed.step_states[step_rule_id].status == ExecutionStatus.PENDING
+    arq_pool.enqueue_job.assert_awaited_once()
+
+    persisted = await exec_repo.get_execution(execution_id)
+    assert persisted is not None
+    assert persisted.status == ExecutionStatus.RUNNING
+    assert persisted.step_states[step_rule_id].status == ExecutionStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_facade_all_assignment_methods_negative_missing_dependency(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """ISTQB Negative: Verify all 9 assignment methods fail fast and dual-log SERVICE_DEPENDENCY_MISSING."""
     repo = InMemoryUnifiedWorkflowRepository()
-    unconfigured_service = ExecutionService(exec_repo=repo, workflow_repo=repo)
-    manager = TokenData(
-        id="usr_0195f3a0000070008000000000000101",
+    unconfigured = ExecutionService(exec_repo=repo, workflow_repo=repo)
+    caller = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
         role=UserRole.MANAGER,
-        organization_id="org_0195f3a0000070008000000000000010",
+        organization_id=generate_opaque_id(EntityPrefix.ORGANIZATION),
         email="mgr@alpha.fi",
     )
     deadline = datetime.now(UTC) + timedelta(hours=6)
-    create_dto = ExecutionAssignmentCreateDTO(
-        assigned_email="cand@alpha.fi",
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
-        output_profile_id="prf_0195f3a0000070008123456789abcdef",
-        locked_inputs=WorkflowInputs(),
-        assignee_input_keys=[],
-        hard_deadline_at=deadline,
-    )
+    assignment_id = generate_opaque_id(EntityPrefix.ASSIGNMENT)
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
 
-    with pytest.raises(AppException) as missing_exc:
-        await unconfigured_service.create_assignment(manager, create_dto)
-    assert missing_exc.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+    calls = [
+        lambda: unconfigured.create_assignment(
+            caller,
+            ExecutionAssignmentCreateDTO(
+                assigned_email="cand@alpha.fi",
+                workflow_id=wf_id,
+                locked_inputs=WorkflowInputs(),
+                assignee_input_keys=[],
+                hard_deadline_at=deadline,
+            ),
+        ),
+        lambda: unconfigured.create_assignment_batch(
+            caller,
+            ExecutionAssignmentBatchCreateDTO(
+                recipients=[ExecutionAssignmentRecipientDTO(email="batch@alpha.fi")],
+                workflow_id=wf_id,
+                locked_inputs=WorkflowInputs(),
+                assignee_input_keys=[],
+                hard_deadline_at=deadline,
+            ),
+        ),
+        lambda: unconfigured.list_assignments(caller),
+        lambda: unconfigured.resend_assignment_email(caller, assignment_id),
+        lambda: unconfigured.preview_assignment("raw-token"),
+        lambda: unconfigured.onboard_assignee("raw-token", ExecutionAssignmentOnboardingRequestDTO(name="Cand")),
+        lambda: unconfigured.activate_assignment(caller, assignment_id),
+        lambda: unconfigured.save_draft_inputs(
+            caller, assignment_id, ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs())
+        ),
+        lambda: unconfigured.submit_assignment(
+            caller, assignment_id, ExecutionAssignmentSubmitDTO(submitted_inputs=WorkflowInputs()), AsyncMock()
+        ),
+    ]
+
+    with caplog.at_level(logging.ERROR):
+        for call in calls:
+            with pytest.raises(AppException) as exc_info:
+                await call()
+            assert exc_info.value.status_code == 500
+            assert exc_info.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+
+    assert ErrorCodes.SERVICE_DEPENDENCY_MISSING.name in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_facade_assignment_lifecycle_end_to_end() -> None:
+    """Verify ExecutionService end-to-end assignment lifecycle with hermetic repositories and factories."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    prf_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
+    stp_id = generate_opaque_id(EntityPrefix.STEP)
+    sr_id = generate_opaque_id(EntityPrefix.STEP_REFERENCE)
+
+    manager = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        role=UserRole.MANAGER,
+        organization_id=org_id,
+        email="mgr@alpha.fi",
+    )
+    deadline = datetime.now(UTC) + timedelta(hours=6)
 
     await repo.save_workflow(
-        Workflow(
-            id="wor_0195f3a0000070008123456789abcdef",
-            slug="wf-slug",
-            name="WF",
-            description="Desc",
+        WorkflowFactory.build(
+            id=wf_id,
             status="active",
             version=1,
             default_strictness_level=50,
             model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
             historical_context_mode=HistoricalContextMode.DISABLED,
             expected_inputs=[],
-            steps=[
-                StepRule(
-                    id="stp_0195f3a0000070008123456789abcdef",
-                    task_blueprint="stp_0195f3a0000070008123456789abcdef",
-                )
-            ],
-            default_profile_id="prf_0195f3a0000070008123456789abcdef",
-            organization_id="org_0195f3a0000070008000000000000010",
+            steps=[StepRule(id=sr_id, task_blueprint=stp_id)],
+            default_profile_id=prf_id,
+            organization_id=org_id,
             is_public=False,
         )
     )
     await repo.save_step(
         Step(
-            id="stp_0195f3a0000070008123456789abcdef",
+            id=stp_id,
             slug="stp-slug",
             name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
             type=StepType.LOGIC,
@@ -419,11 +582,10 @@ async def test_facade_assignment_lifecycle_and_missing_dependency_negative() -> 
         )
     )
     await repo.save_output_profile(
-        OutputProfile(
-            id="prf_0195f3a0000070008123456789abcdef",
-            slug="prf-slug",
-            name=I18nText(translations={"en": "Profile", "fi": "Profiili"}),
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
+        OutputProfileFactory.build(
+            id=prf_id,
+            workflow_id=wf_id,
+            organization_id=org_id,
             target_block_order=[],
             visible_block_extensions=[],
             visible_workflow_extensions=[],
@@ -432,7 +594,7 @@ async def test_facade_assignment_lifecycle_and_missing_dependency_negative() -> 
     identity_repo = InMemoryIdentityRepository()
     await identity_repo.create_organization(
         Organization(
-            id="org_0195f3a0000070008000000000000010",
+            id=org_id,
             name="Alpha",
             created_at=datetime.now(UTC),
             is_active=True,
@@ -456,12 +618,20 @@ async def test_facade_assignment_lifecycle_and_missing_dependency_negative() -> 
         usage_service=usage_service,
     )
 
+    create_dto = ExecutionAssignmentCreateDTO(
+        assigned_email="cand@alpha.fi",
+        workflow_id=wf_id,
+        output_profile_id=prf_id,
+        locked_inputs=WorkflowInputs(),
+        assignee_input_keys=[],
+        hard_deadline_at=deadline,
+    )
     created = await configured.create_assignment(manager, create_dto)
     batch = await configured.create_assignment_batch(
         manager,
         ExecutionAssignmentBatchCreateDTO(
             recipients=[ExecutionAssignmentRecipientDTO(email="batch@alpha.fi")],
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
+            workflow_id=wf_id,
             locked_inputs=WorkflowInputs(),
             assignee_input_keys=[],
             hard_deadline_at=deadline,
@@ -486,7 +656,7 @@ async def test_facade_assignment_lifecycle_and_missing_dependency_negative() -> 
     cand_token = TokenData(
         id=onboarded.user.id,
         role=UserRole.MEMBER,
-        organization_id="org_0195f3a0000070008000000000000010",
+        organization_id=org_id,
         email="cand@alpha.fi",
     )
     activated = await configured.activate_assignment(cand_token, created.id)
