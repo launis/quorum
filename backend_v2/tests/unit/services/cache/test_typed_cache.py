@@ -1,200 +1,323 @@
 """Unit tests for TypedCacheService, MCPGatewayCache, and auto-eviction firewall."""
 
-from unittest.mock import AsyncMock
+from __future__ import annotations
+
+import asyncio
 
 import pytest
-from pydantic import BaseModel, ConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
-from backend_v2.services.cache.typed_cache import MCPGatewayCache, TypedCacheService
+from backend_v2.models.enums import EntityPrefix
+from backend_v2.services.cache.typed_cache import (
+    InMemoryRedisClient,
+    MCPGatewayCache,
+    RedisClientProtocol,
+    TypedCacheService,
+)
+from backend_v2.settings import get_settings
+from backend_v2.tests.factories.model_factories import I18nTextFactory, WorkflowFactory
 
 
-class SampleModel(BaseModel):
-    """Sample Pydantic model for cache testing."""
+class FaultyRedisClient:
+    """Stateful RedisClientProtocol test double delegating to InMemoryRedisClient with fault injection.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        backing: Underlying stateful InMemoryRedisClient store.
+        fail_on_get: Whether get operations raise ConnectionError.
+        fail_on_set: Whether set operations raise OSError.
+        fail_on_delete: Whether delete operations raise ConnectionError.
+        delay_seconds: Artificial async delay in seconds before completing operations.
+        last_ex: Last expiration TTL passed to set, or None.
+        bytes_mode: Whether get returns UTF-8 bytes instead of str on cache hit.
+    """
 
-    id: str
-    name: str
-    count: int
+    def __init__(self) -> None:
+        """Initialize the stateful Redis client double with all faults cleared."""
+        self.backing: InMemoryRedisClient = InMemoryRedisClient()
+        self.fail_on_get: bool = False
+        self.fail_on_set: bool = False
+        self.fail_on_delete: bool = False
+        self.delay_seconds: float = 0.0
+        self.last_ex: int | None = None
+        self.bytes_mode: bool = False
 
+    def clear_faults(self) -> None:
+        """Reset all fault and latency injection flags to clean defaults."""
+        self.fail_on_get = False
+        self.fail_on_set = False
+        self.fail_on_delete = False
+        self.delay_seconds = 0.0
+        self.bytes_mode = False
 
-@pytest.mark.asyncio
-async def test_typed_cache_get_cached_none_when_no_redis() -> None:
-    """Verify get_cached returns None when Redis is unconfigured."""
-    cache_service = TypedCacheService(redis=None)
-    result = await cache_service.get_cached("some_key", SampleModel)
-    assert result is None
+    async def get(self, key: str) -> str | bytes | None:
+        """Retrieve a value or simulate latency/transport failure when configured.
 
+        Args:
+            key: Cache storage key.
 
-@pytest.mark.asyncio
-async def test_typed_cache_get_cached_miss() -> None:
-    """Verify get_cached returns None on cache miss."""
-    mock_redis = AsyncMock()
-    mock_redis.get.return_value = None
+        Returns:
+            Serialized JSON str or UTF-8 bytes on hit, or None on miss.
 
-    cache_service = TypedCacheService(redis=mock_redis)
-    result = await cache_service.get_cached("missing_key", SampleModel)
+        Raises:
+            ConnectionError: If fail_on_get fault injection is active.
+        """
+        if self.delay_seconds > 0.0:
+            await asyncio.sleep(self.delay_seconds)
+        if self.fail_on_get:
+            raise ConnectionError("Simulated Redis disconnect on get")
+        val = await self.backing.get(key)
+        if val is not None and self.bytes_mode:
+            return val.encode("utf-8")
+        return val
 
-    assert result is None
-    mock_redis.get.assert_called_once_with("missing_key")
+    async def set(self, key: str, value: str, *, ex: int | None = None) -> None:
+        """Store a value with optional TTL tracking or simulate transport failure.
 
+        Args:
+            key: Cache storage key.
+            value: Serialized JSON string.
+            ex: Optional expiration TTL in seconds.
 
-@pytest.mark.asyncio
-async def test_typed_cache_get_cached_hit() -> None:
-    """Verify get_cached successfully deserializes valid JSON."""
-    mock_redis = AsyncMock()
-    mock_redis.get.return_value = '{"id": "s1", "name": "Test", "count": 42}'
+        Raises:
+            OSError: If fail_on_set fault injection is active.
+        """
+        if self.delay_seconds > 0.0:
+            await asyncio.sleep(self.delay_seconds)
+        if self.fail_on_set:
+            raise OSError("Simulated Redis socket error on set")
+        self.last_ex = ex
+        await self.backing.set(key, value, ex=ex)
 
-    cache_service = TypedCacheService(redis=mock_redis)
-    result = await cache_service.get_cached("sample_key", SampleModel)
+    async def delete(self, key: str) -> None:
+        """Delete a key or simulate transport failure when configured.
 
-    assert result is not None
-    assert isinstance(result, SampleModel)
-    assert result.id == "s1"
-    assert result.name == "Test"
-    assert result.count == 42
+        Args:
+            key: Cache storage key to delete.
 
-
-@pytest.mark.asyncio
-async def test_typed_cache_get_cached_auto_eviction_on_validation_error() -> None:
-    """Verify get_cached auto-evicts corrupted payload on ValidationError and raises AppException."""
-    mock_redis = AsyncMock()
-    # Malformed payload missing required field 'count' and having unexpected field 'extra'
-    mock_redis.get.return_value = '{"id": "s1", "name": "Test", "extra": "invalid"}'
-
-    cache_service = TypedCacheService(redis=mock_redis)
-    with pytest.raises(AppException) as exc_info:
-        await cache_service.get_cached("corrupted_key", SampleModel)
-
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    mock_redis.delete.assert_called_once_with("corrupted_key")
-
-
-@pytest.mark.asyncio
-async def test_typed_cache_set_cached_with_ttl() -> None:
-    """Verify set_cached stores serialized JSON with expiration."""
-    mock_redis = AsyncMock()
-    model = SampleModel(id="s1", name="Test", count=10)
-
-    cache_service = TypedCacheService(redis=mock_redis)
-    await cache_service.set_cached("sample_key", model, expire_seconds=3600)
-
-    mock_redis.set.assert_called_once_with(
-        "sample_key",
-        '{"id":"s1","name":"Test","count":10}',
-        ex=3600,
-    )
-
-
-@pytest.mark.asyncio
-async def test_typed_cache_set_cached_without_ttl() -> None:
-    """Verify set_cached stores serialized JSON without expiration."""
-    mock_redis = AsyncMock()
-    model = SampleModel(id="s1", name="Test", count=10)
-
-    cache_service = TypedCacheService(redis=mock_redis)
-    await cache_service.set_cached("sample_key", model)
-
-    mock_redis.set.assert_called_once_with(
-        "sample_key",
-        '{"id":"s1","name":"Test","count":10}',
-    )
+        Raises:
+            ConnectionError: If fail_on_delete fault injection is active.
+        """
+        if self.delay_seconds > 0.0:
+            await asyncio.sleep(self.delay_seconds)
+        if self.fail_on_delete:
+            raise ConnectionError("Simulated Redis disconnect on delete")
+        await self.backing.delete(key)
 
 
-@pytest.mark.asyncio
-async def test_typed_cache_set_cached_no_redis() -> None:
-    """Verify set_cached does not fail when Redis is None."""
-    model = SampleModel(id="s1", name="Test", count=10)
-    cache_service = TypedCacheService(redis=None)
-    await cache_service.set_cached("sample_key", model)
-
-
-@pytest.mark.asyncio
-async def test_typed_cache_delete() -> None:
-    """Verify delete calls redis.delete."""
-    mock_redis = AsyncMock()
-    cache_service = TypedCacheService(redis=mock_redis)
-    await cache_service.delete("sample_key")
-
-    mock_redis.delete.assert_called_once_with("sample_key")
-
-
-@pytest.mark.asyncio
-async def test_typed_cache_delete_no_redis() -> None:
-    """Verify delete does not fail when Redis is None."""
-    cache_service = TypedCacheService(redis=None)
-    await cache_service.delete("sample_key")
-
-
-@pytest.mark.asyncio
-async def test_typed_cache_get_cached_auto_eviction_delete_fails() -> None:
-    """Verify get_cached raises AppException when auto-eviction delete fails."""
-    mock_redis = AsyncMock()
-    mock_redis.get.return_value = '{"id": "s1", "name": "Test", "extra": "invalid"}'
-    mock_redis.delete.side_effect = ConnectionError("Redis unreachable")
-
-    cache_service = TypedCacheService(redis=mock_redis)
-    with pytest.raises(AppException) as exc_info:
-        await cache_service.get_cached("corrupted_key", SampleModel)
-
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    mock_redis.delete.assert_called_once_with("corrupted_key")
-
-
-@pytest.mark.asyncio
-async def test_mcp_gateway_cache_memory_and_redis_roundtrip() -> None:
-    """Verify MCPGatewayCache stores, retrieves, and invalidates gateway records."""
-    gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+def _build_gateway(gateway_id: str | None = None) -> SystemConfigMCPGateways:
+    """Construct a canonical SystemConfigMCPGateways instance with typed tool schemas."""
+    resolved_id = gateway_id if gateway_id is not None else generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    return SystemConfigMCPGateways(
+        id=resolved_id,
         name="Tavily MCP Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[
             AllowedMCPTool(
                 tool_id="tavily_search",
-                name=I18nText(translations={"en": "Tavily Search"}),
+                name=I18nTextFactory.build(),
                 description="Search web",
-                input_schema=MCPToolInputSchemaDTO(),
+                input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
             )
         ],
     )
-    gw_cache = MCPGatewayCache()
-    assert (
-        MCPGatewayCache.build_key("sys_0195f3a00000700080008172bda70c86")
-        == "mcp_gateway:sys_0195f3a00000700080008172bda70c86"
-    )
-    assert await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86") is None
-
-    await gw_cache.set_gateway(gateway, expire_seconds=300)
-    cached = await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86")
-    assert cached is not None
-    assert cached.id == "sys_0195f3a00000700080008172bda70c86"
-    assert cached.slug == "tavily_gateway"
-    assert len(cached.tools) == 1
-
-    await gw_cache.invalidate("sys_0195f3a00000700080008172bda70c86")
-    assert await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86") is None
 
 
 @pytest.mark.asyncio
-async def test_mcp_gateway_cache_redis_hit_hydrates_memory() -> None:
-    """Verify MCPGatewayCache populates in-memory cache when Redis returns a hit."""
-    gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
-        name="Tavily MCP Gateway",
-        slug="tavily_gateway",
-        type="mcp_gateways",
-        tools=[],
-    )
-    mock_redis = AsyncMock()
-    mock_redis.get.return_value = gateway.model_dump_json()
+async def test_typed_cache_stateful_roundtrip_str_and_bytes() -> None:
+    """Positive: Verify stateful set, get (str and bytes), TTL forwarding, and delete roundtrips."""
+    redis_client = FaultyRedisClient()
+    protocol_client: RedisClientProtocol = redis_client
+    cache_service = TypedCacheService(redis=protocol_client)
+    workflow = WorkflowFactory.build()
+    cache_key = f"workflow:{workflow.id}"
 
-    gw_cache = MCPGatewayCache(cache_service=TypedCacheService(redis=mock_redis))
-    hit = await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86")
-    assert hit is not None
-    assert hit.id == "sys_0195f3a00000700080008172bda70c86"
-    mock_redis.get.assert_called_once_with("mcp_gateway:sys_0195f3a00000700080008172bda70c86")
+    try:
+        assert await cache_service.get_cached(cache_key, Workflow) is None
+
+        # Deleting a non-existent key is a clean no-op
+        await cache_service.delete(cache_key)
+
+        await cache_service.set_cached(cache_key, workflow, expire_seconds=3600)
+        assert redis_client.last_ex == 3600
+
+        hit_str = await cache_service.get_cached(cache_key, Workflow)
+        assert hit_str is not None
+        assert hit_str.id == workflow.id
+        assert hit_str.name == workflow.name
+
+        # Verify bytes deserialization path supported by RedisClientProtocol
+        redis_client.bytes_mode = True
+        hit_bytes = await cache_service.get_cached(cache_key, Workflow)
+        assert hit_bytes is not None
+        assert hit_bytes.id == workflow.id
+
+        # Overwrite without TTL
+        await cache_service.set_cached(cache_key, workflow)
+        assert redis_client.last_ex is None
+
+        await cache_service.delete(cache_key)
+        assert await cache_service.get_cached(cache_key, Workflow) is None
+    finally:
+        redis_client.clear_faults()
+
+
+@pytest.mark.asyncio
+async def test_typed_cache_noop_when_redis_unconfigured() -> None:
+    """Positive: Verify get_cached, set_cached, and delete act as safe no-ops when redis is None."""
+    workflow = WorkflowFactory.build()
+    cache_key = f"workflow:{workflow.id}"
+    cache_service = TypedCacheService(redis=None)
+
+    assert await cache_service.get_cached(cache_key, Workflow) is None
+    await cache_service.set_cached(cache_key, workflow, expire_seconds=60)
+    await cache_service.delete(cache_key)
+
+
+@pytest.mark.asyncio
+async def test_typed_cache_auto_eviction_on_validation_error() -> None:
+    """Negative (ISTQB): Corrupted cached JSON auto-evicts key and raises VALIDATION_FAILED AppException."""
+    redis_client = InMemoryRedisClient()
+    cache_service = TypedCacheService(redis=redis_client)
+    corrupted_key = f"workflow:{generate_opaque_id(EntityPrefix.WORKFLOW)}"
+    await redis_client.set(corrupted_key, '{"unexpected_field": "invalid"}')
+
+    with pytest.raises(AppException) as exc_info:
+        await cache_service.get_cached(corrupted_key, Workflow)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert await redis_client.get(corrupted_key) is None
+
+
+@pytest.mark.asyncio
+async def test_typed_cache_auto_eviction_delete_failure() -> None:
+    """Negative (ISTQB): Transport failure during ValidationError auto-eviction raises VALIDATION_FAILED."""
+    faulty_redis = FaultyRedisClient()
+    cache_service = TypedCacheService(redis=faulty_redis)
+    corrupted_key = f"workflow:{generate_opaque_id(EntityPrefix.WORKFLOW)}"
+    await faulty_redis.set(corrupted_key, "{malformed_json")
+
+    faulty_redis.fail_on_delete = True
+    try:
+        with pytest.raises(AppException) as exc_info:
+            await cache_service.get_cached(corrupted_key, Workflow)
+
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    finally:
+        faulty_redis.clear_faults()
+
+
+@pytest.mark.asyncio
+async def test_typed_cache_rejects_empty_or_whitespace_keys_and_non_positive_ttl() -> None:
+    """Negative & BVA (ISTQB min-1): Empty/whitespace keys and expire_seconds <= 0 or timeout <= 0 raise VALIDATION_FAILED."""
+    redis_client = InMemoryRedisClient()
+    cache_service = TypedCacheService(redis=redis_client)
+    workflow = WorkflowFactory.build()
+    valid_key = f"workflow:{workflow.id}"
+
+    for invalid_key in ("", "   "):
+        with pytest.raises(AppException) as get_exc:
+            await cache_service.get_cached(invalid_key, Workflow)
+        assert get_exc.value.status_code == 400
+        assert get_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as set_exc:
+            await cache_service.set_cached(invalid_key, workflow)
+        assert set_exc.value.status_code == 400
+        assert set_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as del_exc:
+            await cache_service.delete(invalid_key)
+        assert del_exc.value.status_code == 400
+        assert del_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    for invalid_ttl in (0, -1):
+        with pytest.raises(AppException) as ttl_exc:
+            await cache_service.set_cached(valid_key, workflow, expire_seconds=invalid_ttl)
+        assert ttl_exc.value.status_code == 400
+        assert ttl_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    for invalid_timeout in (0.0, -0.5):
+        with pytest.raises(AppException) as timeout_init_exc:
+            TypedCacheService(redis=redis_client, timeout_seconds=invalid_timeout)
+        assert timeout_init_exc.value.status_code == 400
+        assert timeout_init_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_typed_cache_transport_errors_and_settings_timeout_sovereignty() -> None:
+    """Negative (ISTQB): Redis transport errors and Settings timeout breaches translate to STORAGE_ACCESS_FAILED."""
+    faulty_redis = FaultyRedisClient()
+    workflow = WorkflowFactory.build()
+    cache_key = f"workflow:{workflow.id}"
+    base_settings = get_settings()
+    short_timeout_settings = base_settings.model_copy(update={"redis_connection_timeout_seconds": 1})
+    cache_service = TypedCacheService(
+        redis=faulty_redis,
+        get_settings_fn=lambda: short_timeout_settings,
+    )
+
+    try:
+        faulty_redis.fail_on_get = True
+        with pytest.raises(AppException) as get_err:
+            await cache_service.get_cached(cache_key, Workflow)
+        assert get_err.value.status_code == 500
+        assert get_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+        faulty_redis.fail_on_get = False
+
+        faulty_redis.fail_on_set = True
+        with pytest.raises(AppException) as set_err:
+            await cache_service.set_cached(cache_key, workflow, expire_seconds=60)
+        assert set_err.value.status_code == 500
+        assert set_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+        faulty_redis.fail_on_set = False
+
+        faulty_redis.fail_on_delete = True
+        with pytest.raises(AppException) as del_err:
+            await cache_service.delete(cache_key)
+        assert del_err.value.status_code == 500
+        assert del_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+        faulty_redis.fail_on_delete = False
+
+        # Verify bounded asyncio.timeout cancellation using explicit timeout_seconds override
+        fast_timeout_cache = TypedCacheService(redis=faulty_redis, timeout_seconds=0.01)
+        faulty_redis.delay_seconds = 0.05
+        with pytest.raises(AppException) as timeout_err:
+            await fast_timeout_cache.get_cached(cache_key, Workflow)
+        assert timeout_err.value.status_code == 500
+        assert timeout_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    finally:
+        faulty_redis.clear_faults()
+
+
+@pytest.mark.asyncio
+async def test_mcp_gateway_cache_stateful_roundtrip_and_invalid_id_rejection() -> None:
+    """Positive & Negative (ISTQB): Verify MCPGatewayCache roundtrip and canonical sys_<hex32> ID enforcement."""
+    gateway = _build_gateway()
+    gw_cache = MCPGatewayCache()
+    assert MCPGatewayCache.build_key(gateway.id) == f"mcp_gateway:{gateway.id}"
+    assert await gw_cache.get_gateway(gateway.id) is None
+
+    await gw_cache.set_gateway(gateway, expire_seconds=300)
+    cached = await gw_cache.get_gateway(gateway.id)
+    assert cached is not None
+    assert cached.id == gateway.id
+    assert cached.name == "Tavily MCP Gateway"
+    assert len(cached.tools) == 1
+
+    await gw_cache.invalidate(gateway.id)
+    assert await gw_cache.get_gateway(gateway.id) is None
+
+    # Negative: non-canonical or wrong-prefix IDs must fail fast with VALIDATION_FAILED
+    wrong_prefix_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    for bad_gateway_id in ("", "tavily_gateway", wrong_prefix_id):
+        with pytest.raises(AppException) as bad_id_exc:
+            await gw_cache.get_gateway(bad_gateway_id)
+        assert bad_id_exc.value.status_code == 400
+        assert bad_id_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
