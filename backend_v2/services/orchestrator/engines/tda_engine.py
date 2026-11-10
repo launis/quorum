@@ -6,7 +6,8 @@ Strategy engine executing Kahn-based causal wave graphs over propositional asser
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, override
+from collections.abc import Sequence
+from typing import Any, override
 
 from fastapi import status
 
@@ -15,16 +16,13 @@ from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
-from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult, FlattenedAtom
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
 from backend_v2.services.orchestrator.result_projector import ResultProjector
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +51,58 @@ class TDAEngine(ExecutionEngine):
     def telemetry_strategy_label(self) -> str:
         """Canonical telemetry strategy label for execution trace recording."""
         return "tda"
+
+    @staticmethod
+    def _build_linked_atom_nodes(
+        atoms: Sequence[FlattenedAtom],
+        reasoning: str,
+    ) -> list[LinkedAtomGraph]:
+        """Constructs LinkedAtomGraph nodes from pre-compiled matrix assertions."""
+        return [
+            LinkedAtomGraph(
+                atom=ExtractedAtom(
+                    reasoning=reasoning,
+                    resolved_claim=atom.question,
+                    is_logical_deduction=True,
+                    is_inverse=atom.is_inverse,
+                    source_quotes=None,
+                    tda_id=atom.atom_id,
+                    source_id=_MATRIX_SOURCE_SENTINEL,
+                    source_sequence_index=i,
+                ),
+                depends_on=list(atom.depends_on),
+            )
+            for i, atom in enumerate(atoms)
+        ]
+
+    @classmethod
+    async def _short_circuit_starved_execution(
+        cls,
+        request: EngineExecutionRequest,
+        shuffled_atoms: Sequence[FlattenedAtom],
+    ) -> EngineExecutionResult:
+        """Builds a short-circuited failed result when analytical input data is starved."""
+        starvation_reason = "Insufficient input data (Data Starvation)."
+        nodes = cls._build_linked_atom_nodes(shuffled_atoms, reasoning=starvation_reason)
+        states = {
+            atom.atom_id: AtomExecutionState(
+                tda_id=atom.atom_id,
+                status=ExecutionStatus.FAILED,
+                evaluation_reasoning=starvation_reason,
+                short_circuit_reason_tda_ids=[],
+                extensions={},
+            )
+            for atom in shuffled_atoms
+        }
+        projected = ResultProjector.project(nodes, states, matrix_id=request.matrix_block_id)
+        if request.progress_callback:
+            await request.progress_callback(100, 100)
+        return EngineExecutionResult(
+            results=projected.results,
+            hydrated_references=projected.hydrated_references,
+            trace_events=[],
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        )
 
     @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
@@ -94,37 +144,7 @@ class TDAEngine(ExecutionEngine):
                 "[TDAEngine] Data starvation circuit breaker active for step %s. Short-circuiting LLM execution.",
                 request.step.id,
             )
-            nodes = []
-            states = {}
-            for i, atom in enumerate(request.shuffled_atoms):
-                extracted = ExtractedAtom(
-                    reasoning="Insufficient input data (Data Starvation).",
-                    resolved_claim=atom.question,
-                    is_logical_deduction=True,
-                    is_inverse=atom.is_inverse,
-                    source_quotes=None,
-                    tda_id=atom.atom_id,
-                    source_id=_MATRIX_SOURCE_SENTINEL,
-                    source_sequence_index=i,
-                )
-                nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
-                states[atom.atom_id] = AtomExecutionState(
-                    tda_id=atom.atom_id,
-                    status=ExecutionStatus.FAILED,
-                    evaluation_reasoning="Insufficient input data (Data Starvation).",
-                    short_circuit_reason_tda_ids=[],
-                    extensions={},
-                )
-
-            projected = ResultProjector.project(nodes, states, matrix_id=request.matrix_block_id)
-            if request.progress_callback:
-                await request.progress_callback(100, 100)
-            return EngineExecutionResult(
-                results=projected.results,
-                hydrated_references=projected.hydrated_references,
-                trace_events=[],
-                usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-            )
+            return await self._short_circuit_starved_execution(request, request.shuffled_atoms)
 
         try:
             llm_executor = LLMTaskExecutor(
@@ -175,19 +195,10 @@ class TDAEngine(ExecutionEngine):
                 t"{hydrated_text}\n\n<ontology>\n{ontology}\n</ontology>"
             )
 
-            nodes = []
-            for i, atom in enumerate(request.shuffled_atoms):
-                extracted = ExtractedAtom(
-                    reasoning="Matrix assertion provided by orchestrator.",
-                    resolved_claim=atom.question,
-                    is_logical_deduction=True,
-                    is_inverse=atom.is_inverse,
-                    source_quotes=None,
-                    tda_id=atom.atom_id,
-                    source_id=_MATRIX_SOURCE_SENTINEL,
-                    source_sequence_index=i,
-                )
-                nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
+            nodes = self._build_linked_atom_nodes(
+                request.shuffled_atoms,
+                reasoning="Matrix assertion provided by orchestrator.",
+            )
 
             matrix_context = None
             if request.matrix_context is not None:
