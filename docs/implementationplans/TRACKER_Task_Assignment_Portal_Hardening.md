@@ -35,12 +35,12 @@
   - [x] @[backend_v2/services/execution/facade.py]
   - [x] @[backend_v2/services/studio/prompt_block_service.py]
   - [x] @[scripts/audit_zero_orm_strictness.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
   - [x] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
   - [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [x] @[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]
   - [x] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
-  - [ ] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
+  - [x] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
