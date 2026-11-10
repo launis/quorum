@@ -209,6 +209,81 @@ class ExtractiveSensorService:
         return fuzz.partial_ratio(anchor.lower(), source_text.lower()) >= threshold
 
     @staticmethod
+    def _resolve_tda_early_exit(
+        tda: TDAAssertion,
+        allow_contextual_override: bool,
+        reason: str,
+    ) -> PreFlightResult:
+        """Resolve deterministic TDA early-exit decision when required anchors are missing.
+
+        Args:
+            tda: The TDAAssertion under evaluation.
+            allow_contextual_override: Flag indicating whether contextual overrides bypass early exit.
+            reason: Structured log reason describing the missing anchor condition.
+
+        Returns:
+            PreFlightResult indicating whether the evaluation was decided early.
+        """
+        logger = logging.getLogger(__name__)
+        if allow_contextual_override:
+            logger.info(
+                "[ExtractiveSensor] TDA %s bypassed early exit due to allow_contextual_override=True",
+                tda.tda_id,
+            )
+            return PreFlightResult(decided=False)
+        res = ExecutionStatus.PASSED if tda.inverse_evidence else ExecutionStatus.FAILED
+        logger.info(
+            "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (%s)",
+            tda.tda_id,
+            res,
+            reason,
+        )
+        return PreFlightResult(
+            decided=True,
+            result=res,
+            exact_quotes=None,
+        )
+
+    @staticmethod
+    def _build_atom_evaluation_result(
+        eval_result: BooleanEvaluationResult,
+        call_tda_id: str,
+        is_inverse_map: dict[str, bool],
+    ) -> AtomEvaluationResultDTO:
+        """Convert a single LLM BooleanEvaluationResult into a typed AtomEvaluationResultDTO.
+
+        Args:
+            eval_result: Parsed LLM boolean evaluation result for an alias.
+            call_tda_id: Resolved canonical TDA identifier.
+            is_inverse_map: Mapping of TDA IDs to inverse evidence polarity flags.
+
+        Returns:
+            Populated AtomEvaluationResultDTO with polarity-adjusted status and extensions.
+        """
+        extensions: dict[str, str] = {}
+        if eval_result.coaching:
+            extensions["coaching"] = eval_result.coaching
+        if eval_result.contextual_override is not None:
+            extensions["contextual_override"] = str(eval_result.contextual_override)
+        if eval_result.falsification:
+            extensions["falsification"] = eval_result.falsification
+        if eval_result.remediation_steps:
+            extensions["remediation_steps"] = "\n".join(f"- {step}" for step in eval_result.remediation_steps)
+
+        is_inverse = is_inverse_map[call_tda_id] if call_tda_id in is_inverse_map else False
+        if is_inverse:
+            status = ExecutionStatus.FAILED if eval_result.is_true else ExecutionStatus.PASSED
+        else:
+            status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
+
+        return AtomEvaluationResultDTO(
+            status=status,
+            reasoning=eval_result.reasoning,
+            source_quotes=eval_result.source_quotes,
+            extensions=extensions,
+        )
+
+    @staticmethod
     def pre_evaluate(
         tda: TDAAssertion | ExtractedAtom,
         source_text: str,
@@ -276,46 +351,18 @@ class ExtractiveSensorService:
         # Early exit logic:
         # If we need AT LEAST ONE anchor (EXISTS) but found ZERO -> Definitive FAIL
         if tda.aggregation_mode == "EXISTS" and len(found) == 0:
-            if allow_contextual_override:
-                logger.info(
-                    "[ExtractiveSensor] TDA %s bypassed early exit due to allow_contextual_override=True", tda.tda_id
-                )
-                return PreFlightResult(decided=False)
-            if tda.inverse_evidence:
-                res = ExecutionStatus.PASSED
-            else:
-                res = ExecutionStatus.FAILED
-            logger.info(
-                "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=EXISTS, found=0)",
-                tda.tda_id,
-                res,
-            )
-            return PreFlightResult(
-                decided=True,
-                result=res,
-                exact_quotes=None,
+            return ExtractiveSensorService._resolve_tda_early_exit(
+                tda=tda,
+                allow_contextual_override=allow_contextual_override,
+                reason="aggregation=EXISTS, found=0",
             )
 
         # If we need ALL anchors (ALL_MUST_COMPLY) but are MISSING ANY -> Definitive FAIL
         if tda.aggregation_mode == "ALL_MUST_COMPLY" and len(found) < len(tda.syntactic_anchors):
-            if allow_contextual_override:
-                logger.info(
-                    "[ExtractiveSensor] TDA %s bypassed early exit due to allow_contextual_override=True", tda.tda_id
-                )
-                return PreFlightResult(decided=False)
-            if tda.inverse_evidence:
-                res = ExecutionStatus.PASSED
-            else:
-                res = ExecutionStatus.FAILED
-            logger.info(
-                "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=ALL_MUST_COMPLY, missing anchors)",
-                tda.tda_id,
-                res,
-            )
-            return PreFlightResult(
-                decided=True,
-                result=res,
-                exact_quotes=None,
+            return ExtractiveSensorService._resolve_tda_early_exit(
+                tda=tda,
+                allow_contextual_override=allow_contextual_override,
+                reason="aggregation=ALL_MUST_COMPLY, missing anchors",
             )
 
         # Anchors WERE found. We MUST delegate to LLM to evaluate contextual conditions.
@@ -613,40 +660,10 @@ class ExtractiveSensorService:
 
                         returned_aliases.add(alias)
                         call_tda_id = alias_engine.resolve_alias(alias)
-
-                        extensions: dict[str, str] = {}
-                        if eval_result.coaching:
-                            extensions["coaching"] = eval_result.coaching
-                        if eval_result.contextual_override is not None:
-                            extensions["contextual_override"] = str(eval_result.contextual_override)
-                        if eval_result.falsification:
-                            extensions["falsification"] = eval_result.falsification
-                        if eval_result.remediation_steps:
-                            extensions["remediation_steps"] = "\n".join(
-                                f"- {step}" for step in eval_result.remediation_steps
-                            )
-
-                        if call_tda_id in is_inverse_map:
-                            is_inverse = is_inverse_map[call_tda_id]
-                        else:
-                            is_inverse = False
-
-                        if is_inverse:
-                            if eval_result.is_true:
-                                status = ExecutionStatus.FAILED
-                            else:
-                                status = ExecutionStatus.PASSED
-                        else:
-                            if eval_result.is_true:
-                                status = ExecutionStatus.PASSED
-                            else:
-                                status = ExecutionStatus.FAILED
-
-                        call_results[call_tda_id] = AtomEvaluationResultDTO(
-                            status=status,
-                            reasoning=eval_result.reasoning,
-                            source_quotes=eval_result.source_quotes,
-                            extensions=extensions,
+                        call_results[call_tda_id] = ExtractiveSensorService._build_atom_evaluation_result(
+                            eval_result=eval_result,
+                            call_tda_id=call_tda_id,
+                            is_inverse_map=is_inverse_map,
                         )
 
                     missing_aliases = requested_aliases - returned_aliases
@@ -683,39 +700,10 @@ class ExtractiveSensorService:
                                     if alias not in missing_aliases:
                                         continue
                                     call_tda_id = alias_engine.resolve_alias(alias)
-                                    extensions = {}
-                                    if eval_result.coaching:
-                                        extensions["coaching"] = eval_result.coaching
-                                    if eval_result.contextual_override is not None:
-                                        extensions["contextual_override"] = str(eval_result.contextual_override)
-                                    if eval_result.falsification:
-                                        extensions["falsification"] = eval_result.falsification
-                                    if eval_result.remediation_steps:
-                                        extensions["remediation_steps"] = "\n".join(
-                                            f"- {step}" for step in eval_result.remediation_steps
-                                        )
-
-                                    if call_tda_id in is_inverse_map:
-                                        is_inverse = is_inverse_map[call_tda_id]
-                                    else:
-                                        is_inverse = False
-
-                                    if is_inverse:
-                                        if eval_result.is_true:
-                                            status = ExecutionStatus.FAILED
-                                        else:
-                                            status = ExecutionStatus.PASSED
-                                    else:
-                                        if eval_result.is_true:
-                                            status = ExecutionStatus.PASSED
-                                        else:
-                                            status = ExecutionStatus.FAILED
-
-                                    call_results[call_tda_id] = AtomEvaluationResultDTO(
-                                        status=status,
-                                        reasoning=eval_result.reasoning,
-                                        source_quotes=eval_result.source_quotes,
-                                        extensions=extensions,
+                                    call_results[call_tda_id] = ExtractiveSensorService._build_atom_evaluation_result(
+                                        eval_result=eval_result,
+                                        call_tda_id=call_tda_id,
+                                        is_inverse_map=is_inverse_map,
                                     )
                             except (
                                 AgentExecutionError,
