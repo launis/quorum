@@ -5,13 +5,12 @@ from __future__ import annotations
 from typing import Literal, overload
 
 import pytest
-from pydantic import JsonValue
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
-    PROMPT_BLOCK_REGISTRY,
     MatrixPromptBlock,
     PromptBlock,
     SystemRulePromptBlock,
@@ -29,7 +28,7 @@ from backend_v2.services.matrix_parser import MatrixDomainParser
 from scripts._ast_guardrails import GuardrailSeverity, scan_source_code_for_guardrails
 
 
-def MockDTO(step_id: str, block_id: str, payload: JsonValue | StepPayloadValue = None) -> StepOutputDTO:
+def MockDTO(step_id: str, block_id: str, payload: StepPayloadValue = None) -> StepOutputDTO:
     """Test helper constructing a StepOutputDTO for matrix tests."""
     return StepOutputDTO.model_construct(
         step_id=step_id,
@@ -50,17 +49,22 @@ def get_dummy_profile(
         custom_scale_min = 4.0
         custom_scale_max = 10.0
     return OutputProfile(
-        id="prof_1234567890abcdef1234567890abcdef",
+        id="prf_1234567890abcdef1234567890abcdef",
         slug="test",
-        workflow_id="wf1",
+        workflow_id="wor_1234567890abcdef1234567890abcdef",
         name=I18nText(translations={"en": "test"}),
         display_scale=display_scale,
         custom_scale_min=custom_scale_min,
         custom_scale_max=custom_scale_max,
+        visible_metadata=[],
+        visible_block_extensions=[],
+        visible_workflow_extensions=[],
         matrix_visible_columns=matrix_visible_columns
         if matrix_visible_columns is not None
         else ["label", "distribution", "raw_score"],
+        matrix_synthesis_groups=[],
         target_block_order=[],
+        content_blocks=[],
     )
 
 
@@ -78,17 +82,14 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
     desc = I18nText(translations={"en": "test"})
     cat_enum = PromptBlockCategory(category) if isinstance(category, str) else category
     if cat_enum != PromptBlockCategory.MATRIX:
-        if cat_enum in PROMPT_BLOCK_REGISTRY:
-            cls = PROMPT_BLOCK_REGISTRY[cat_enum]
-        else:
-            cls = SystemRulePromptBlock
-        return cls(
+        return SystemRulePromptBlock(
             id="blk_1234567890abcdef1234567890abcdef",
             slug="test",
-            category_id=cat_enum,
+            category_id=PromptBlockCategory.SYSTEM_RULE,
             type=BlockDataType.INSTRUCTION,
             label=label,
             description=desc,
+            output_extensions=[],
         )
     return MatrixPromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
@@ -98,6 +99,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
         is_evaluative=True,
         label=label,
         description=desc,
+        output_extensions=[],
         computed_min=0,
         computed_max=1,
         scales=[
@@ -110,9 +112,14 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
                         label=I18nText(translations={"en": "Claim"}),
                         tda_assertions=[
                             TDAAssertion(
+                                tda_id="tda_11111111111111111111111111111111",
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
                                 concept_description="test concept description",
+                                facts_to_find=[],
+                                acceptance_criteria=[],
+                                anti_patterns=[],
+                                syntactic_anchors=[],
                                 depends_on=(),
                             )
                         ],
@@ -128,9 +135,14 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
                         label=I18nText(translations={"en": "Claim"}),
                         tda_assertions=[
                             TDAAssertion(
+                                tda_id="tda_22222222222222222222222222222222",
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
                                 concept_description="test concept description",
+                                facts_to_find=[],
+                                acceptance_criteria=[],
+                                anti_patterns=[],
+                                syntactic_anchors=[],
                                 depends_on=(),
                             )
                         ],
@@ -319,6 +331,88 @@ def test_matrix_parser_facade_full_parse_matrices_parity() -> None:
     assert f"step1_{eval_pb.id}" in res.all_parsed_matrices
     assert f"step1_{info_pb.id}" in res.all_parsed_matrices
     assert MatrixDomainParser._format_level_distribution(LevelStatsDTO(hits=1, total=2), "en") == "1/2"
+    assert MatrixDomainParser._clean_hallucinated_numbers("Valid claim text.") == "Valid claim text."
+
+
+def test_parse_matrices_skips_unmapped_block_id() -> None:
+    """Verify StepOutputDTO items whose block_id is absent from blocks_by_id are safely skipped."""
+    profile = get_dummy_profile()
+    dto = StepOutputDTO(
+        step_id="step1",
+        block_id="blk_99999999999999999999999999999999",
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(raw_score=1.0, normalized_score=100.0, evaluated_atoms={}),
+    )
+    res = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    assert not res.all_parsed_matrices
+
+
+def test_parse_matrices_raises_validation_failed_on_invalid_payload() -> None:
+    """Negative test: Verify malformed matrix payload raises AppException (VALIDATION_FAILED)."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+    dto = MockDTO(
+        step_id="step1",
+        block_id=pb.id,
+        payload="invalid_non_object_payload",
+    )
+    with pytest.raises(AppException) as exc_info:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={pb.id: pb},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+def test_parse_matrices_raises_configuration_error_on_empty_scales() -> None:
+    """Negative test: Verify MatrixPromptBlock with empty scales raises AppException (CONFIGURATION_ERROR)."""
+    profile = get_dummy_profile()
+    pb = MatrixPromptBlock.model_construct(
+        id="blk_1234567890abcdef1234567890abcdef",
+        slug="test",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        label=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
+        output_extensions=[],
+        computed_min=0,
+        computed_max=1,
+        scales=[],
+    )
+    dto = StepOutputDTO(
+        step_id="step1",
+        block_id=pb.id,
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(raw_score=1.0, normalized_score=100.0, evaluated_atoms={}),
+    )
+    with pytest.raises(AppException) as exc_info:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={pb.id: pb},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR
 
 
 def test_qgr017_bans_legacy_matrix_domain_parser_import() -> None:
