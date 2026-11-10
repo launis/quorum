@@ -18,6 +18,7 @@ from backend_v2.services.auth.email_service import EmailService, _redact_action_
 from backend_v2.settings import Settings, get_settings
 
 __all__ = [
+    "test_email_service_compose_transactional_html_idempotent_boundary",
     "test_email_service_console_dispatch_positive",
     "test_email_service_empty_batch_boundary",
     "test_email_service_http_api_blank_api_key_negative",
@@ -27,13 +28,48 @@ __all__ = [
 ]
 
 
+class _CapturedResendTag(BaseModel):
+    """Immutable Resend metadata tag key-value record.
+
+    Attributes:
+        name: Tag key identifier.
+        value: Tag string value.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    name: Annotated[str, Field(description="Tag key identifier")]
+    value: Annotated[str, Field(description="Tag string value")]
+
+
+class _OutboundResendPayload(BaseModel):
+    """Canonical Resend POST /emails request schema enforced by _StubAsyncClient.
+
+    Attributes:
+        from_address: Sender email address.
+        to: Recipient email address.
+        subject: Email subject line.
+        html: Rendered HTML body.
+        tags: Structured metadata tags.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    from_address: Annotated[str, Field(alias="from", description="Sender email address")]
+    to: Annotated[str, Field(description="Recipient email address")]
+    subject: Annotated[str, Field(description="Email subject line")]
+    html: Annotated[str, Field(description="Rendered HTML body")]
+    tags: Annotated[list[_CapturedResendTag], Field(description="Structured Resend metadata tags")]
+
+
 class _CapturedHttpRequest(BaseModel):
     """Immutable test capture record for outbound HTTP_API requests.
 
     Attributes:
         url: Target HTTP POST endpoint URL.
         recipient_to: Serialized recipient email address from JSON body.
-        action_url: Unwrapped action URL transmitted in JSON body.
+        html: Rendered HTML body transmitted in the canonical Resend payload.
+        tags: Structured Resend metadata tags transmitted in the JSON body.
         authorization_header: Outbound Bearer authorization header value.
     """
 
@@ -41,7 +77,8 @@ class _CapturedHttpRequest(BaseModel):
 
     url: Annotated[str, Field(description="Target HTTP POST endpoint URL")]
     recipient_to: Annotated[str, Field(description="Serialized recipient email address")]
-    action_url: Annotated[str, Field(description="Transmitted action URL")]
+    html: Annotated[str, Field(description="Rendered HTML body transmitted to Resend")]
+    tags: Annotated[list[_CapturedResendTag], Field(description="Structured Resend metadata tags")]
     authorization_header: Annotated[str, Field(description="Authorization header value")]
 
 
@@ -109,12 +146,12 @@ class _StubAsyncClient:
         """
         _ = (exc_type, exc_val, exc_tb)
 
-    async def post(self, url: str, *, json: dict[str, str | None], headers: dict[str, str]) -> httpx.Response:
+    async def post(self, url: str, *, json: object, headers: dict[str, str]) -> httpx.Response:
         """Record POST request and return stubbed httpx.Response or raise transport error.
 
         Args:
             url: Target HTTP endpoint URL.
-            json: Outbound JSON payload dictionary.
+            json: Outbound JSON payload validated against _OutboundResendPayload.
             headers: Outbound HTTP request headers.
 
         Returns:
@@ -123,12 +160,14 @@ class _StubAsyncClient:
         Raises:
             httpx.ConnectError: When recipient email belongs to raise_for_emails.
         """
-        recipient = str(json["to"])
+        parsed = _OutboundResendPayload.model_validate(json)
+        recipient = parsed.to
         self.captured_requests.append(
             _CapturedHttpRequest(
                 url=url,
                 recipient_to=recipient,
-                action_url=str(json["action_url"]),
+                html=parsed.html,
+                tags=parsed.tags,
                 authorization_header=headers["Authorization"],
             )
         )
@@ -337,4 +376,27 @@ async def test_email_service_http_api_partial_failure_negative(monkeypatch: pyte
     assert result.delivery_statuses[id_500] == EmailDeliveryStatus.FAILED
     assert result.delivery_statuses[id_timeout] == EmailDeliveryStatus.FAILED
     assert len(stub_client.captured_requests) == 4
-    assert stub_client.captured_requests[0].action_url == f"{base_url}/task/tok_ok"
+    assert f'<a href="{base_url}/task/tok_ok"' in stub_client.captured_requests[0].html
+    assert "Open Quorum Portal" in stub_client.captured_requests[0].html
+    assert stub_client.captured_requests[0].tags == [
+        _CapturedResendTag(name="category", value="EXECUTION_ASSIGNMENT"),
+        _CapturedResendTag(name="entity_id", value=id_ok),
+        _CapturedResendTag(name="locale", value=SystemLocale.EN.value),
+    ]
+
+
+def test_email_service_compose_transactional_html_idempotent_boundary() -> None:
+    """Verify _compose_transactional_html escapes query ampersands and avoids duplicate CTA embedding."""
+    base_url = get_settings().frontend_app_base_url.rstrip("/")
+    query_url = f"{base_url}/invite/accept?token=tok_1&org=org_2"
+    rendered = EmailService._compose_transactional_html("<p>Hello</p>", SecretStr(query_url))
+    escaped_query_url = f"{base_url}/invite/accept?token=tok_1&amp;org=org_2"
+    assert f'<a href="{escaped_query_url}"' in rendered
+    assert "Open Quorum Portal" in rendered
+
+    # Pre-embedded URL should not be duplicated
+    idempotent = EmailService._compose_transactional_html(rendered, SecretStr(query_url))
+    assert idempotent == rendered
+
+    # Blank URL returns original HTML untouched
+    assert EmailService._compose_transactional_html("<p>Only body</p>", SecretStr("   ")) == "<p>Only body</p>"

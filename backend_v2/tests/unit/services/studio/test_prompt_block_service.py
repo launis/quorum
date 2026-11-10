@@ -7,7 +7,12 @@ import pytest
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.tests.fakes.in_memory_repositories import (
@@ -309,3 +314,34 @@ async def test_clone_prompt_block_not_found(
 ) -> None:
     with pytest.raises(ResourceNotFoundError):
         await prompt_block_service.clone_prompt_block(admin_token, "blk_missing")
+
+
+async def test_create_task_definition_prompt_block_draft_and_clone(
+    prompt_block_service: StudioPromptBlockService,
+    prompt_block_repo: InMemoryPromptBlockRepository,
+    admin_token: TokenData,
+) -> None:
+    draft = await prompt_block_service.create_prompt_block_draft(
+        admin_token,
+        category_id=PromptBlockCategory.TASK_DEFINITION,
+    )
+    assert isinstance(draft, SystemRulePromptBlock)
+    assert draft.category_id == PromptBlockCategory.TASK_DEFINITION
+    assert draft.organization_id == "org_123"
+
+    runtime_draft = await prompt_block_service.create_prompt_block_draft(
+        admin_token,
+        category_id=PromptBlockCategory.RUNTIME_VARIABLES,
+    )
+    assert isinstance(runtime_draft, SystemRulePromptBlock)
+    assert runtime_draft.category_id == PromptBlockCategory.RUNTIME_VARIABLES
+
+    cloned = await prompt_block_service.clone_prompt_block(admin_token, draft.id)
+    assert isinstance(cloned, SystemRulePromptBlock)
+    assert cloned.category_id == PromptBlockCategory.TASK_DEFINITION
+    assert cloned.id != draft.id
+    assert cloned.label.translations["en"].endswith("(Copy)")
+
+    persisted_clone = await prompt_block_repo.get_prompt_block_by_id(cloned.id)
+    assert isinstance(persisted_clone, SystemRulePromptBlock)
+    assert persisted_clone.category_id == PromptBlockCategory.TASK_DEFINITION

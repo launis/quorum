@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 from backend_v2.database.interfaces import IPromptBlockRepository, ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
@@ -228,13 +229,22 @@ class StudioPromptBlockService:
                 ],
             )
         else:
+            resolved_rule_category: Literal[
+                PromptBlockCategory.SYSTEM_RULE,
+                PromptBlockCategory.RUNTIME_VARIABLES,
+                PromptBlockCategory.TASK_DEFINITION,
+            ] = PromptBlockCategory.SYSTEM_RULE
+            if category_id == PromptBlockCategory.TASK_DEFINITION:
+                resolved_rule_category = PromptBlockCategory.TASK_DEFINITION
+            elif category_id == PromptBlockCategory.RUNTIME_VARIABLES:
+                resolved_rule_category = PromptBlockCategory.RUNTIME_VARIABLES
             draft = SystemRulePromptBlock(
                 id=new_id,
                 slug=new_id,
                 label=I18nText(translations={"en": "New Block", "fi": "Uusi lohko"}),
                 description=I18nText(translations={"en": "Draft block", "fi": "Luonnos"}),
                 instruction_text="Initial AI logic draft.",
-                category_id=PromptBlockCategory.SYSTEM_RULE,
+                category_id=resolved_rule_category,
                 type=BlockDataType.INSTRUCTION,
                 output_extensions=[],
                 organization_id=target_org,

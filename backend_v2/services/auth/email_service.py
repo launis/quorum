@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 from typing import NoReturn
 from urllib.parse import urlsplit
@@ -257,6 +258,37 @@ class EmailService:
             delivery_statuses=statuses,
         )
 
+    @staticmethod
+    def _compose_transactional_html(html_body: str, action_url: SecretStr) -> str:
+        """Embed an HTML-escaped call-to-action button and fallback link into the email body.
+
+        Args:
+            html_body: Base transactional HTML body content.
+            action_url: SecretStr wrapping the target magic link or invitation URL.
+
+        Returns:
+            HTML body containing the clickable call-to-action button and copyable URL.
+        """
+        raw_url = action_url.get_secret_value().strip()
+        if not raw_url:
+            return html_body
+        escaped_url = html.escape(raw_url, quote=True)
+        if raw_url in html_body or escaped_url in html_body:
+            return html_body
+        return (
+            f"{html_body}"
+            '<p style="margin:24px 0;">'
+            f'<a href="{escaped_url}" '
+            'style="display:inline-block;padding:12px 20px;background-color:#1f2937;'
+            'color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">'
+            "Open Quorum Portal"
+            "</a>"
+            "</p>"
+            '<p style="font-size:12px;color:#4b5563;word-break:break-all;">'
+            f"{escaped_url}"
+            "</p>"
+        )
+
     async def _send_single_http_item(
         self,
         *,
@@ -282,16 +314,17 @@ class EmailService:
         Returns:
             Single-item batch dispatch result DTO.
         """
+        rendered_html = self._compose_transactional_html(item.html_body, item.action_url)
         payload = {
-            "category": category,
-            "entity_id": item.entity_id,
             "from": from_address,
             "to": str(item.recipient_email),
-            "recipient_name": item.recipient_name,
-            "locale": item.locale.value,
             "subject": item.subject,
-            "html_body": item.html_body,
-            "action_url": item.action_url.get_secret_value(),
+            "html": rendered_html,
+            "tags": [
+                {"name": "category", "value": category},
+                {"name": "entity_id", "value": str(item.entity_id)},
+                {"name": "locale", "value": item.locale.value},
+            ],
         }
         try:
             async with asyncio.timeout(timeout_seconds):
