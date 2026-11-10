@@ -7,7 +7,7 @@ import hashlib
 import hmac
 import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Final
 
 from backend_v2.exceptions import (
     AppException,
@@ -42,13 +42,16 @@ logger = logging.getLogger(__name__)
 __all__ = ["UserService"]
 
 
-_ROLE_HIERARCHY: dict[UserRole, int] = {
+_ROLE_HIERARCHY: Final[dict[UserRole, int]] = {
     UserRole.ROOT: 40,
     UserRole.ADMIN: 30,
     UserRole.MANAGER: 20,
     UserRole.MEMBER: 10,
     UserRole.VIEWER: 5,
 }
+_SYSTEM_ORG_DEFAULT_QUOTA_LIMIT: Final[float] = 5000.0
+_SYSTEM_ORG_DEFAULT_TPM_LIMIT: Final[int] = 50000
+_SYSTEM_ORG_DEFAULT_RPM_LIMIT: Final[int] = 500
 
 
 class UserService:
@@ -73,7 +76,7 @@ class UserService:
         firebase_auth: Any = None,
         revocation_cache: Any = None,
     ) -> None:
-        """Initializes the UserService.
+        """Initialize the UserService.
 
         Args:
             user_repo: Repository wrapper for user operations.
@@ -91,60 +94,205 @@ class UserService:
         self.firebase_auth = firebase_auth
         self.revocation_cache = revocation_cache
 
-    async def create_user(self, creator_id: str, user_data: UserCreate) -> User:
-        """Creates a new user, enforcing hierarchy and tenancy.
+    async def _get_existing_user_or_raise(
+        self,
+        user_id: str,
+        *,
+        operation: str,
+        not_found_message: str = "User not found",
+    ) -> User:
+        """Fetch an existing user by canonical identifier or raise a 404 AppException.
 
         Args:
-            creator_id: The UID of the user initiating the creation.
-            user_data: The user creation payload.
+            user_id: Canonical User identifier (usr_<hex32>) to resolve.
+            operation: Calling operation label for structured error diagnostics.
+            not_found_message: Client-facing 404 error message.
 
         Returns:
-            The newly created user.
+            Resolved User domain model.
+
+        Raises:
+            AppException: With ErrorCodes.RESOURCE_NOT_FOUND if the user does not exist, or
+                ErrorCodes.STORAGE_ACCESS_FAILED if persistence lookup fails.
+        """
+        user = await self.repo.get_by_id(user_id)
+        if user is None:
+            logger.error(
+                "[UserService] %s: User %s not found during %s.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                user_id,
+                operation,
+                exc_info=True,
+            )
+            raise AppException(
+                message=not_found_message,
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
+        return user
+
+    async def _ensure_not_last_org_admin(
+        self,
+        org_id: str,
+        *,
+        conflict_message: str,
+    ) -> None:
+        """Verify that an organization retains more than one active administrator.
+
+        Args:
+            org_id: Canonical Organization identifier (org_<hex32>) to inspect.
+            conflict_message: Error message emitted when Last Admin Protection triggers.
+
+        Raises:
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if only one active administrator remains.
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if listing users fails.
+        """
+        admin_count = await self._count_org_admins(org_id)
+        if admin_count <= 1:
+            logger.error(
+                "[UserService] %s: %s (org_id=%s).",
+                ErrorCodes.CONFLICT_ERROR.name,
+                conflict_message,
+                org_id,
+                exc_info=True,
+            )
+            raise ConflictError(
+                message=conflict_message,
+                details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
+            )
+
+    async def _ensure_target_deletable(
+        self,
+        target: User,
+        *,
+        conflict_message: str,
+    ) -> None:
+        """Enforce primary Root account immunity and Last Admin Protection prior to deletion.
+
+        Args:
+            target: Target User model scheduled for GDPR soft-deletion.
+            conflict_message: Error message emitted when Last Admin Protection triggers.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if targeting SYSTEM_ROOT_USER_ID.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last active org administrator.
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if listing users fails.
+        """
+        if target.id == SYSTEM_ROOT_USER_ID:
+            logger.error(
+                "[UserService] %s: Attempted to delete protected Root account %s.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                target.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("The primary Root account cannot be deleted.")
+
+        if target.role == UserRole.ADMIN and target.organization_id:
+            await self._ensure_not_last_org_admin(
+                target.organization_id,
+                conflict_message=conflict_message,
+            )
+
+    async def _apply_user_update_or_raise(
+        self,
+        target_id: str,
+        updates: UserUpdate,
+        *,
+        failure_message: str,
+    ) -> User:
+        """Persist an in-place user update and verify the refreshed model is returned.
+
+        Args:
+            target_id: Canonical User identifier (usr_<hex32>) to update.
+            updates: Validated partial UserUpdate payload.
+            failure_message: Error message emitted if persistence returns None.
+
+        Returns:
+            Refreshed User domain model after update.
+
+        Raises:
+            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if the updated user cannot be reloaded,
+                or ErrorCodes.STORAGE_ACCESS_FAILED if persistence fails.
+        """
+        updated_user = await self.repo.update(target_id, updates)
+        if updated_user is None:
+            logger.error(
+                "[UserService] %s: %s (target_id=%s).",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                failure_message,
+                target_id,
+                exc_info=True,
+            )
+            raise AppException(
+                message=failure_message,
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
+        return updated_user
+
+    async def _revoke_user_sessions_if_configured(self, user_id: str) -> None:
+        """Revoke all active JWT sessions for a user when a Redis revocation cache is configured.
+
+        Args:
+            user_id: Canonical User identifier (usr_<hex32>) whose sessions must be revoked.
+
+        Raises:
+            AppException: With ErrorCodes.SERVICE_UNAVAILABLE if Redis revocation fails.
+        """
+        if self.revocation_cache is not None:
+            await self.revocation_cache.revoke_user_sessions(
+                user_id,
+                ttl_seconds=get_settings().iam_revocation_ttl_seconds,
+            )
+
+    async def create_user(self, creator_id: str, user_data: UserCreate) -> User:
+        """Create a new user while enforcing role hierarchy and multi-tenant isolation.
+
+        Args:
+            creator_id: Canonical ID of the user initiating the creation.
+            user_data: Validated user creation payload.
+
+        Returns:
+            Newly created User domain model.
 
         Raises:
             AppException: With ErrorCodes.RESOURCE_NOT_FOUND if creator is not found,
-                ErrorCodes.VALIDATION_FAILED if target org does not exist, or
+                ErrorCodes.VALIDATION_FAILED if target organization does not exist, or
                 ErrorCodes.INTERNAL_SERVER_ERROR if Firebase creation fails.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or org constraints are violated.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if the provisioned user ID already exists.
         """
         return await self._create_user_internal(creator_id, user_data)
 
     async def _create_user_internal(
         self, creator_id: str, user_data: UserCreate, force_org_id: str | None = None
     ) -> User:
-        """Internal method to create a user with optional forced organization.
+        """Create a user internally with an optional forced organization assignment.
 
         Args:
-            creator_id: The UID of the user initiating the creation.
-            user_data: The user creation payload.
-            force_org_id: Optional organization ID to bypass standard derivation.
+            creator_id: Canonical ID of the user initiating the creation.
+            user_data: Validated user creation payload.
+            force_org_id: Optional organization ID overriding standard tenant derivation.
 
         Returns:
-            The newly created user.
+            Newly created User domain model.
 
         Raises:
             AppException: With ErrorCodes.RESOURCE_NOT_FOUND if creator is not found,
-                ErrorCodes.VALIDATION_FAILED if target org does not exist, or
+                ErrorCodes.VALIDATION_FAILED if target organization does not exist, or
                 ErrorCodes.INTERNAL_SERVER_ERROR if Firebase creation fails.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or org constraints are violated.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if the provisioned user ID already exists.
         """
-        creator = await self.repo.get_by_id(creator_id)
-        if not creator:
-            logger.error(
-                "[UserService] %s: Creator not found (creator_id=%s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                creator_id,
-                exc_info=True,
-            )
-            raise AppException(
-                message="Creator not found",
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-            )
+        creator = await self._get_existing_user_or_raise(
+            creator_id,
+            operation="create_user",
+            not_found_message="Creator not found",
+        )
 
         target_org_id = await self._resolve_target_org_for_creation(creator, user_data, force_org_id)
         self._enforce_hierarchy(creator, user_data.role)
-        new_id = self._provision_firebase_or_local_user_id(user_data)
+        new_id = await self._provision_firebase_or_local_user_id(user_data)
 
         new_user = User(
             id=new_id,
@@ -160,7 +308,7 @@ class UserService:
         )
         saved_user = await self.repo.create(new_user)
 
-        if self.audit_service:
+        if self.audit_service is not None:
             await self.audit_service.log_event(
                 actor_id=creator_id,
                 action="USER_CREATED",
@@ -233,8 +381,8 @@ class UserService:
                 )
         return target_org_id
 
-    def _provision_firebase_or_local_user_id(self, user_data: UserCreate) -> str:
-        """Provision a Firebase user ID when enabled or generate a canonical UUIDv7 user ID.
+    async def _provision_firebase_or_local_user_id(self, user_data: UserCreate) -> str:
+        """Provision a Firebase user ID within a bounded timeout or generate a canonical UUIDv7 user ID.
 
         Args:
             user_data: Validated UserCreate payload.
@@ -243,17 +391,26 @@ class UserService:
             Provisioned user ID string.
 
         Raises:
-            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase creation fails.
+            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase creation or lookup fails.
         """
-        if self.use_firebase and user_data.password:
+        if self.use_firebase and self.firebase_auth is not None and user_data.password:
+            timeout_seconds = get_settings().http_client_timeout_seconds
             try:
-                fb_user = self.firebase_auth.create_user(
-                    email=user_data.email, password=user_data.password, name=user_data.name
-                )
+                async with asyncio.timeout(timeout_seconds):
+                    fb_user = await asyncio.to_thread(
+                        self.firebase_auth.create_user,
+                        email=user_data.email,
+                        password=user_data.password,
+                        name=user_data.name,
+                    )
                 return str(fb_user.id)
             except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
                 try:
-                    existing = self.firebase_auth.get_user_by_email(user_data.email)
+                    async with asyncio.timeout(timeout_seconds):
+                        existing = await asyncio.to_thread(
+                            self.firebase_auth.get_user_by_email,
+                            user_data.email,
+                        )
                     logger.info("User %s already in Firebase. Using existing UID.", existing.id)
                     return str(existing.id)
                 except AppException, OSError, ValueError, KeyError, RuntimeError, TypeError:
@@ -271,11 +428,11 @@ class UserService:
         return generate_opaque_id(EntityPrefix.USER)
 
     def _enforce_hierarchy(self, creator: User, target_role: UserRole) -> None:
-        """Enforces role hierarchy rules for user creation.
+        """Enforce role hierarchy rules for user creation.
 
         Args:
-            creator: The user attempting to create another user.
-            target_role: The role being assigned to the new user.
+            creator: User attempting to create another user.
+            target_role: Role being assigned to the new user.
 
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the creator lacks sufficient privileges.
@@ -314,13 +471,17 @@ class UserService:
         raise PermissionDeniedError("This user role cannot create users")
 
     async def _count_org_admins(self, org_id: str) -> int:
-        """Counts the number of active, non-deleted admins in an organization.
+        """Count the number of active, non-deleted administrators in an organization.
 
         Args:
-            org_id: The ID of the organization.
+            org_id: Canonical ID of the organization.
 
         Returns:
-            The number of active, non-deleted admin users.
+            Number of active, non-deleted admin users.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if listing users fails.
         """
         all_users = await self.repo.list_all()
         return sum(
@@ -330,25 +491,29 @@ class UserService:
         )
 
     async def get_users_by_organization(self, organization_id: str) -> list[User]:
-        """Async retrieval of all users for a given organization.
+        """Retrieve all users belonging to a given organization.
 
         Args:
-            organization_id: The target organization ID.
+            organization_id: Target organization identifier (org_<hex32>).
 
         Returns:
-            A list of users belonging to the organization.
+            List of users belonging to the organization.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence query fails.
         """
         return await self.repo.get_by_organization(organization_id)
 
     async def delete_user(self, initiator_id: str, target_id: str) -> bool:
-        """Execute in-place GDPR Soft-Delete anonymization on a user, with Last Admin Protection.
+        """Execute in-place GDPR Soft-Delete anonymization on a user with Last Admin Protection.
 
         Args:
-            initiator_id: The UID of the user attempting deletion.
-            target_id: The UID of the user to delete.
+            initiator_id: Canonical ID of the user attempting deletion.
+            target_id: Canonical ID of the user to delete.
 
         Returns:
-            True if soft-deletion was successful.
+            True if soft-deletion succeeded.
 
         Raises:
             AppException: With ErrorCodes.RESOURCE_NOT_FOUND if either user is not found, or
@@ -356,31 +521,17 @@ class UserService:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if permissions are insufficient or target is protected.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the user violates Last Admin Protection.
         """
-        # Execute in-place GDPR Soft-Delete anonymization
+        # Execute in-place GDPR Soft-Delete anonymization preserving execution foreign keys
         logger.info("[UserService] delete_user called. Initiator: %s, Target: %s", initiator_id, target_id)
 
-        initiator = await self.repo.get_by_id(initiator_id)
-        target = await self.repo.get_by_id(target_id)
-
-        if not initiator or not target:
-            logger.error(
-                "[UserService] %s: Initiator %s or target %s not found for delete_user.",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                initiator_id,
-                target_id,
-                exc_info=True,
-            )
-            raise AppException(
-                message="User not found",
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-            )
+        initiator = await self._get_existing_user_or_raise(initiator_id, operation="delete_user")
+        target = await self._get_existing_user_or_raise(target_id, operation="delete_user")
 
         await self._validate_delete_user_permissions(initiator, target)
         await self._delete_firebase_user_if_enabled(target.id)
         await self._execute_gdpr_soft_delete(target)
 
-        if self.audit_service:
+        if self.audit_service is not None:
             await self.audit_service.log_event(
                 actor_id=initiator_id,
                 action="USER_DELETED",
@@ -395,12 +546,13 @@ class UserService:
         """Validate RBAC permissions, Root protection, and Last Admin Protection for user deletion.
 
         Args:
-            initiator: The user initiating the deletion.
-            target: The target user being deleted.
+            initiator: User initiating the deletion.
+            target: Target user being deleted.
 
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if permissions are insufficient or target is protected.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last active administrator.
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if listing users fails.
         """
         if initiator.role != UserRole.ROOT:
             if initiator.role == UserRole.ADMIN:
@@ -425,43 +577,29 @@ class UserService:
                 )
                 raise PermissionDeniedError("Insufficient permissions to delete users")
 
-        if target.id == SYSTEM_ROOT_USER_ID:
-            logger.error(
-                "[UserService] %s: Attempted to delete protected Root account %s (initiator=%s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                target.id,
-                initiator.id,
-                exc_info=True,
-            )
-            raise PermissionDeniedError("The primary Root account cannot be deleted.")
-
-        if target.role == UserRole.ADMIN and target.organization_id:
-            admin_count = await self._count_org_admins(target.organization_id)
-            if admin_count <= 1:
-                logger.error(
-                    "[UserService] %s: Cannot delete the last Administrator of an Organization.",
-                    ErrorCodes.CONFLICT_ERROR.name,
-                    exc_info=True,
-                )
-                raise ConflictError(
-                    message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. "
-                    "Promote another user first.",
-                    details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
-                )
+        await self._ensure_target_deletable(
+            target,
+            conflict_message=(
+                "LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. "
+                "Promote another user first."
+            ),
+        )
 
     async def _delete_firebase_user_if_enabled(self, user_id: str) -> None:
-        """Delete the corresponding Firebase Auth user when Firebase integration is enabled.
+        """Delete the corresponding Firebase Auth user within a bounded timeout when enabled.
 
         Args:
             user_id: Target user identifier.
 
         Raises:
-            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase deletion fails.
+            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase deletion fails or times out.
         """
         if self.use_firebase and self.firebase_auth is not None:
+            timeout_seconds = get_settings().http_client_timeout_seconds
             try:
                 logger.info("[UserService] Deleting Firebase user %s...", user_id)
-                await asyncio.to_thread(self.firebase_auth.delete_user, user_id)
+                async with asyncio.timeout(timeout_seconds):
+                    await asyncio.to_thread(self.firebase_auth.delete_user, user_id)
             except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
                 logger.error(
                     "[UserService] %s: Failed to delete user %s in Firebase: %s",
@@ -484,12 +622,13 @@ class UserService:
 
         Returns:
             Anonymized User model persisted in the repository.
+
+        Raises:
+            AppException: With ErrorCodes.SERVICE_UNAVAILABLE if Redis revocation fails, or
+                ErrorCodes.STORAGE_ACCESS_FAILED if persistence fails.
         """
         # Trigger RevocationCache kill-switch before anonymizing the user record
-        if self.revocation_cache is not None:
-            await self.revocation_cache.revoke_user_sessions(
-                target.id, ttl_seconds=get_settings().iam_revocation_ttl_seconds
-            )
+        await self._revoke_user_sessions_if_configured(target.id)
 
         # In-place GDPR anonymization preserving executions foreign keys
         anonymized = target.model_copy(
@@ -517,6 +656,8 @@ class UserService:
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if no user matches firebase_uid.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if targeting SYSTEM_ROOT_USER_ID.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last active administrator.
+            AppException: With ErrorCodes.SERVICE_UNAVAILABLE or ErrorCodes.STORAGE_ACCESS_FAILED
+                if session revocation or persistence fails.
         """
         # Webhook-triggered GDPR Soft-Delete by firebase_uid
         target = await self.repo.get_by_firebase_uid(firebase_uid)
@@ -531,31 +672,13 @@ class UserService:
             )
             raise ResourceNotFoundError(resource_type="user", resource_id=firebase_uid)
 
-        if target.id == SYSTEM_ROOT_USER_ID:
-            logger.error(
-                "[UserService] %s: Attempted to soft-delete protected Root account %s via webhook.",
-                ErrorCodes.PERMISSION_DENIED.name,
-                target.id,
-                exc_info=True,
-            )
-            raise PermissionDeniedError("The primary Root account cannot be deleted.")
-
-        if target.role == UserRole.ADMIN and target.organization_id:
-            admin_count = await self._count_org_admins(target.organization_id)
-            if admin_count <= 1:
-                logger.error(
-                    "[UserService] %s: Cannot soft-delete the last Administrator of organization %s.",
-                    ErrorCodes.CONFLICT_ERROR.name,
-                    target.organization_id,
-                    exc_info=True,
-                )
-                raise ConflictError(
-                    message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization.",
-                    details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
-                )
+        await self._ensure_target_deletable(
+            target,
+            conflict_message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization.",
+        )
 
         await self._execute_gdpr_soft_delete(target)
-        if self.audit_service:
+        if self.audit_service is not None:
             await self.audit_service.log_event(
                 actor_id=SYSTEM_ROOT_USER_ID,
                 action="USER_DELETED",
@@ -585,6 +708,8 @@ class UserService:
             AppException: With ErrorCodes.CONFIGURATION_ERROR if firebase_webhook_secret is not configured.
             AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if HMAC signature is missing or invalid.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if targeting SYSTEM_ROOT_USER_ID.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last active administrator.
         """
         # Validate X-Quorum-Webhook-Signature HMAC against firebase_webhook_secret
         settings = get_settings()
@@ -621,15 +746,15 @@ class UserService:
         return UserDeleteResponse(status="success", id=firebase_uid)
 
     async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:
-        """General update method for users enforcing 4-Tier RBAC, hierarchy, and Last Admin Protection.
+        """Update user fields while enforcing 4-Tier RBAC, hierarchy, and Last Admin Protection.
 
         Args:
-            initiator_id: The UID of the user initiating the update.
-            target_id: The UID of the user to update.
-            updates: The update payload.
+            initiator_id: Canonical ID of the user initiating the update.
+            target_id: Canonical ID of the user to update.
+            updates: Validated partial update payload.
 
         Returns:
-            The updated user model.
+            Updated User domain model.
 
         Raises:
             AppException: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found, or
@@ -637,42 +762,21 @@ class UserService:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or org constraints are violated.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if Last Admin Protection is violated.
         """
-        initiator = await self.repo.get_by_id(initiator_id)
-        target = await self.repo.get_by_id(target_id)
-
-        if not initiator or not target:
-            logger.error(
-                "[UserService] %s: Initiator %s or target %s not found for update_user.",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                initiator_id,
-                target_id,
-                exc_info=True,
-            )
-            raise AppException(
-                message="User not found",
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-            )
+        initiator = await self._get_existing_user_or_raise(initiator_id, operation="update_user")
+        target = await self._get_existing_user_or_raise(target_id, operation="update_user")
 
         self._validate_update_user_permissions(initiator, target, updates)
         await self._enforce_last_admin_protection_on_update(target, updates)
 
-        updated_user = await self.repo.update(target_id, updates)
-        if not updated_user:
-            logger.error(
-                "[UserService] %s: User update failed (not found despite check).",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                exc_info=True,
-            )
-            raise AppException(
-                message="User update failed (not found despite check).",
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-            )
+        updated_user = await self._apply_user_update_or_raise(
+            target_id,
+            updates,
+            failure_message="User update failed (not found despite check).",
+        )
 
         await self._maybe_revoke_sessions_on_update(target, updates)
 
-        if self.audit_service:
+        if self.audit_service is not None:
             changed_fields = updates.model_dump(exclude_unset=True)
             await self.audit_service.log_event(
                 actor_id=initiator_id,
@@ -824,6 +928,7 @@ class UserService:
 
         Raises:
             ConflictError: With ErrorCodes.CONFLICT_ERROR if demoting or deactivating the last active org ADMIN.
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if listing users fails.
         """
         if target.role != UserRole.ADMIN or not target.organization_id:
             return
@@ -835,17 +940,10 @@ class UserService:
         if not demoting_admin and not deactivating_admin:
             return
 
-        admin_count = await self._count_org_admins(target.organization_id)
-        if admin_count <= 1:
-            logger.error(
-                "[UserService] %s: Cannot demote or deactivate the last Administrator of an Organization.",
-                ErrorCodes.CONFLICT_ERROR.name,
-                exc_info=True,
-            )
-            raise ConflictError(
-                message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator of an Organization.",
-                details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
-            )
+        await self._ensure_not_last_org_admin(
+            target.organization_id,
+            conflict_message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator of an Organization.",
+        )
 
     async def _maybe_revoke_sessions_on_update(self, target: User, updates: UserUpdate) -> None:
         """Trigger immediate Redis Kill-Switch when role, organization_id, or active status changes.
@@ -855,51 +953,33 @@ class UserService:
             updates: Applied UserUpdate payload.
 
         Raises:
-            AppException: If Redis session revocation fails when revocation_cache is configured.
+            AppException: With ErrorCodes.SERVICE_UNAVAILABLE if Redis session revocation fails.
         """
-        if self.revocation_cache is None:
-            return
         role_changed = updates.role is not None and updates.role != target.role
         org_changed = updates.organization_id is not None and updates.organization_id != target.organization_id
         deactivated = updates.is_active is False
         if role_changed or org_changed or deactivated:
-            await self.revocation_cache.revoke_user_sessions(
-                target.id, ttl_seconds=get_settings().iam_revocation_ttl_seconds
-            )
+            await self._revoke_user_sessions_if_configured(target.id)
 
     async def update_user_role(self, initiator_id: str, target_id: str, new_role: UserRole) -> User:
-        """Updates a user's role with strict Last Admin Protection and immediate Redis session revocation.
+        """Update a user's role with strict Last Admin Protection and immediate Redis session revocation.
 
         Args:
-            initiator_id: The UID of the user changing the role.
-            target_id: The UID of the user whose role is changing.
-            new_role: The new role to assign.
+            initiator_id: Canonical ID of the user changing the role.
+            target_id: Canonical ID of the user whose role is changing.
+            new_role: New role to assign.
 
         Returns:
-            The updated user model.
+            Updated User domain model.
 
         Raises:
-            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy is violated.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or tenancy rules are violated.
             AppException: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found, or
                 ErrorCodes.INTERNAL_SERVER_ERROR if repository update fails.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if Last Admin Protection is triggered.
         """
-        initiator = await self.repo.get_by_id(initiator_id)
-        target = await self.repo.get_by_id(target_id)
-
-        if not initiator or not target:
-            logger.error(
-                "[UserService] %s: Initiator %s or target %s not found for update_user_role.",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                initiator_id,
-                target_id,
-                exc_info=True,
-            )
-            raise AppException(
-                message="User not found",
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-            )
+        initiator = await self._get_existing_user_or_raise(initiator_id, operation="update_user_role")
+        target = await self._get_existing_user_or_raise(target_id, operation="update_user_role")
 
         if initiator.role != UserRole.ROOT:
             self._enforce_role_modification_hierarchy(initiator, target, new_role)
@@ -924,39 +1004,22 @@ class UserService:
                 )
                 raise PermissionDeniedError("Insufficient permissions to update user roles.")
 
-        if target.role == UserRole.ADMIN and new_role != UserRole.ADMIN:
-            if target.organization_id:
-                count = await self._count_org_admins(target.organization_id)
-                if count <= 1:
-                    logger.error(
-                        "[UserService] %s: LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
-                        ErrorCodes.CONFLICT_ERROR.name,
-                        exc_info=True,
-                    )
-                    raise ConflictError(
-                        message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
-                        details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
-                    )
-
-        updated = await self.repo.update(target_id, UserUpdate(role=new_role))
-        if not updated:
-            logger.error(
-                "[UserService] %s: User update failed (user reference lost).",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                exc_info=True,
-            )
-            raise AppException(
-                message="User update failed (user reference lost).",
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        if target.role == UserRole.ADMIN and new_role != UserRole.ADMIN and target.organization_id:
+            await self._ensure_not_last_org_admin(
+                target.organization_id,
+                conflict_message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
             )
 
-        if self.revocation_cache is not None and new_role != target.role:
-            await self.revocation_cache.revoke_user_sessions(
-                target_id, ttl_seconds=get_settings().iam_revocation_ttl_seconds
-            )
+        updated = await self._apply_user_update_or_raise(
+            target_id,
+            UserUpdate(role=new_role),
+            failure_message="User update failed (user reference lost).",
+        )
 
-        if self.audit_service:
+        if new_role != target.role:
+            await self._revoke_user_sessions_if_configured(target_id)
+
+        if self.audit_service is not None:
             await self.audit_service.log_event(
                 actor_id=initiator_id,
                 action="USER_ROLE_UPDATED",
@@ -971,10 +1034,14 @@ class UserService:
         """List users securely scoped by the 4-Tier RBAC Governance Matrix.
 
         Args:
-            initiator: The token data of the user requesting the list.
+            initiator: Verified token data of the user requesting the list.
 
         Returns:
-            A list of users scoped to the initiator's role and organization.
+            List of users scoped to the initiator's role and organization.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence query fails.
         """
         all_users: list[User] = await self.repo.list_all()
 
@@ -988,18 +1055,20 @@ class UserService:
         return [u for u in all_users if u.organization_id == org_id]
 
     async def get_user(self, initiator: TokenData, target_id: str) -> User:
-        """Fetch user securely enforcing the 4-Tier RBAC Governance Matrix.
+        """Fetch a user securely enforcing the 4-Tier RBAC Governance Matrix.
 
         Args:
-            initiator: The token data of the user requesting the fetch.
-            target_id: The UID of the user to fetch.
+            initiator: Verified token data of the user requesting the fetch.
+            target_id: Canonical ID of the user to fetch.
 
         Returns:
-            The requested user model.
+            Requested User domain model.
 
         Raises:
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user does not exist.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator lacks access.
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence lookup fails.
         """
         user = await self.repo.get_by_id(target_id)
 
@@ -1031,18 +1100,19 @@ class UserService:
         raise PermissionDeniedError("You do not have permission to view this user.")
 
     async def ensure_root_user(self, email: str = "root@example.com") -> User:
-        """Bootstraps a root user and Development Scenario (Demo Corp) if needed.
+        """Ensure the system organization exists and verify the canonical root user is anchored to it.
 
         Args:
-            email: Default email for root user if creation was supported.
+            email: Fallback contact email parameter retained for bootstrap signature parity.
 
         Returns:
-            The root User object.
+            Canonical root User domain model.
 
         Raises:
             AppException: With ErrorCodes.CONFIGURATION_ERROR if the root user is missing from the database,
                 or ErrorCodes.INTERNAL_SERVER_ERROR if refreshing the root user fails.
         """
+        _ = email
         if not await self.org_repo.get_by_id(SystemOrganizations.ROOT_SYSTEM):
             logger.info("[UserService] Creating 'system' Organization.")
 
@@ -1054,9 +1124,9 @@ class UserService:
                     is_active=True,
                     tier="enterprise",
                     subscription_status=SubscriptionStatus.ACTIVE,
-                    quota_limit=5000.0,
-                    tpm_limit=50000,
-                    rpm_limit=500,
+                    quota_limit=_SYSTEM_ORG_DEFAULT_QUOTA_LIMIT,
+                    tpm_limit=_SYSTEM_ORG_DEFAULT_TPM_LIMIT,
+                    rpm_limit=_SYSTEM_ORG_DEFAULT_RPM_LIMIT,
                     allowed_email_domains=[],
                 )
             )
@@ -1070,7 +1140,9 @@ class UserService:
                 exc_info=True,
             )
             raise AppException(
-                message="Root user 'root_master' missing from DB. Run 'python -m backend_v2.seed.run_seed local'.",
+                message=(
+                    "Root user 'root_master' missing from DB. Run 'uv run python backend_v2/seed/run_seed.py local'."
+                ),
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
@@ -1082,23 +1154,10 @@ class UserService:
                 SystemOrganizations.ROOT_SYSTEM,
             )
 
-            await self.repo.update(
+            root = await self._apply_user_update_or_raise(
                 SYSTEM_ROOT_USER_ID,
                 UserUpdate(organization_id=SystemOrganizations.ROOT_SYSTEM),
-            )
-
-            root = await self.repo.get_by_id(SYSTEM_ROOT_USER_ID)
-
-        if not root:
-            logger.error(
-                "[UserService] %s: Failed to obtain Root user.",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                exc_info=True,
-            )
-            raise AppException(
-                message="Failed to obtain Root user.",
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                failure_message="Failed to obtain Root user.",
             )
 
         return root

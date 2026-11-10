@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -38,9 +40,13 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 @pytest.fixture
-def mock_repo() -> InMemoryUnifiedWorkflowRepository:
-    """Provide an in-memory unified repository for testing."""
-    return InMemoryUnifiedWorkflowRepository()
+def mock_repo() -> Iterator[InMemoryUnifiedWorkflowRepository]:
+    """Provide an in-memory unified repository with deterministic fault cleanup."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    try:
+        yield repo
+    finally:
+        repo.clear_faults()
 
 
 @pytest.mark.asyncio
@@ -447,11 +453,16 @@ async def test_auth_service_update_user_branches(
 
     # 7. Update fails on repository level raises 500
     mock_repo.inject_fault("update_user", AppException("Update failed", status_code=500), trigger_count=1)
-    with pytest.raises(AppException) as exc_up_fail:
-        await auth.update_user(
-            "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserUpdate(name="Failing")
-        )
-    assert exc_up_fail.value.status_code == 500
+    try:
+        with pytest.raises(AppException) as exc_up_fail:
+            await auth.update_user(
+                "usr_0195f3a0000070008000000000000006",
+                "usr_0195f3a0000070008000000000000007",
+                UserUpdate(name="Failing"),
+            )
+        assert exc_up_fail.value.status_code == 500
+    finally:
+        mock_repo.clear_faults()
 
     # 8. Successful update with audit logging
     res = await auth.update_user(
@@ -546,11 +557,16 @@ async def test_auth_service_update_user_role_branches(
 
     # 6. Update failure raises 500
     mock_repo.inject_fault("update_user", AppException("Update failed", status_code=500), trigger_count=1)
-    with pytest.raises(AppException) as exc_fail:
-        await auth.update_user_role(
-            "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserRole.MANAGER
-        )
-    assert exc_fail.value.status_code == 500
+    try:
+        with pytest.raises(AppException) as exc_fail:
+            await auth.update_user_role(
+                "usr_0195f3a0000070008000000000000006",
+                "usr_0195f3a0000070008000000000000007",
+                UserRole.MANAGER,
+            )
+        assert exc_fail.value.status_code == 500
+    finally:
+        mock_repo.clear_faults()
 
     # 7. Successful update
     res = await auth.update_user_role(
@@ -616,10 +632,13 @@ async def test_auth_service_ensure_root_user_branches(
 
     # Case 4: Root user refresh fails -> raises 500
     mock_repo.inject_fault("update_user", AppException("Update failure", status_code=500), trigger_count=1)
-    await mock_repo.create_user(drifted_root)
-    with pytest.raises(AppException) as exc_refresh_fail:
-        await auth.ensure_root_user()
-    assert exc_refresh_fail.value.status_code == 500
+    try:
+        await mock_repo.create_user(drifted_root)
+        with pytest.raises(AppException) as exc_refresh_fail:
+            await auth.ensure_root_user()
+        assert exc_refresh_fail.value.status_code == 500
+    finally:
+        mock_repo.clear_faults()
 
 
 @pytest.mark.asyncio
@@ -2097,10 +2116,10 @@ async def test_user_service_with_exchanged_quorum_jwt_token_data(
 
 
 @pytest.mark.asyncio
-async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocation(
+async def test_user_service_self_update_hierarchy_last_admin_and_revocation(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """Verify Step 5.2 self-update guards, role hierarchy, soft-delete aware LAST_ADMIN_PROTECTION, and RevocationCache."""
+    """Verify self-update guards, role hierarchy, soft-delete aware LAST_ADMIN_PROTECTION, and RevocationCache."""
     mock_revocation = MagicMock(revoke_user_sessions=AsyncMock())
     auth_service = AuthService(mock_repo, use_firebase=False, revocation_cache=mock_revocation)
 
@@ -2465,3 +2484,172 @@ async def test_gdpr_soft_delete_webhook_negative_and_boundary(
     with pytest.raises(ConflictError) as last_adm_exc:
         await auth_service.user_service.soft_delete_by_firebase_uid("fb_sole_admin_wh")
     assert last_adm_exc.value.details["reason"] == "LAST_ADMIN_PROTECTION"
+
+
+@pytest.mark.asyncio
+async def test_user_service_firebase_timeout_and_role_boundary_negative(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negative & Boundary: Verify bounded Firebase I/O timeouts, MANAGER role-update denial, and null update guards."""
+    from backend_v2.settings import Settings
+
+    short_timeout_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        http_client_timeout_seconds=0.1,
+    )
+    monkeypatch.setattr("backend_v2.services.auth.user_service.get_settings", lambda: short_timeout_settings)
+
+    def _blocking_fb_op(*_args: object, **_kwargs: object) -> object:
+        threading.Event().wait(0.35)
+        mock_fb_res = MagicMock()
+        mock_fb_res.id = "usr_0195f3a00000700080000000000000fa"
+        return mock_fb_res
+
+    mock_fb = MagicMock()
+    mock_fb.create_user.side_effect = _blocking_fb_op
+    mock_fb.get_user_by_email.side_effect = _blocking_fb_op
+    mock_fb.delete_user.side_effect = _blocking_fb_op
+
+    user_repo = UserRepository(mock_repo)
+    org_repo = OrganizationRepository(mock_repo)
+    service = UserService(
+        user_repo=user_repo,
+        org_repo=org_repo,
+        use_firebase=True,
+        firebase_auth=mock_fb,
+    )
+
+    org_id = "org_0195f3a00000700080000000000000f1"
+    root_id = SYSTEM_ROOT_USER_ID
+    admin_id = "usr_0195f3a00000700080000000000000f1"
+    inactive_admin_id = "usr_0195f3a00000700080000000000000f2"
+    manager_id = "usr_0195f3a00000700080000000000000f3"
+    member_id = "usr_0195f3a00000700080000000000000f4"
+
+    await mock_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="Boundary Org",
+            is_active=True,
+            created_at=datetime.now(UTC),
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+            allowed_email_domains=[],
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=root_id,
+            email="root_bound@test.com",
+            name="Root Bound",
+            role=UserRole.ROOT,
+            organization_id=SystemOrganizations.ROOT_SYSTEM,
+            is_active=True,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=admin_id,
+            email="admin_bound@test.com",
+            name="Admin Bound",
+            role=UserRole.ADMIN,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=inactive_admin_id,
+            email="inactive_admin@test.com",
+            name="Inactive Admin",
+            role=UserRole.ADMIN,
+            organization_id=org_id,
+            is_active=False,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=manager_id,
+            email="mgr_bound@test.com",
+            name="Manager Bound",
+            role=UserRole.MANAGER,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=member_id,
+            email="mem_bound@test.com",
+            name="Member Bound",
+            role=UserRole.MEMBER,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+
+    # 1. Bounded Firebase create_user timeout raises AppException 500 INTERNAL_SERVER_ERROR
+    with pytest.raises(AppException) as create_timeout_exc:
+        await service.create_user(
+            root_id,
+            UserCreate(
+                email="timeout_create@test.com",
+                password="password123",
+                name="Timeout User",
+                role=UserRole.MEMBER,
+                organization_id=org_id,
+                is_active=True,
+                language=SystemLocale.EN,
+                theme_mode="system",
+            ),
+        )
+    assert create_timeout_exc.value.status_code == 500
+    assert create_timeout_exc.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+
+    # 2. Bounded Firebase delete_user timeout raises AppException 500 INTERNAL_SERVER_ERROR
+    with pytest.raises(AppException) as delete_timeout_exc:
+        await service.delete_user(root_id, member_id)
+    assert delete_timeout_exc.value.status_code == 500
+    assert delete_timeout_exc.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+
+    # 3. MANAGER attempting update_user_role on lower-ranked MEMBER raises PermissionDeniedError
+    with pytest.raises(PermissionDeniedError) as mgr_role_exc:
+        await service.update_user_role(manager_id, member_id, UserRole.VIEWER)
+    assert "Insufficient permissions to update user roles." in str(mgr_role_exc.value)
+
+    # 4. Boundary: updating inactive admin role or active admin name does not trigger LAST_ADMIN_PROTECTION
+    demoted_inactive = await service.update_user(root_id, inactive_admin_id, UserUpdate(role=UserRole.MEMBER))
+    assert demoted_inactive.role == UserRole.MEMBER
+    renamed_sole_admin = await service.update_user(root_id, admin_id, UserUpdate(name="Renamed Sole Admin"))
+    assert renamed_sole_admin.name == "Renamed Sole Admin"
+
+    # 5. Concurrent vanishing record returning None from UserRepository.update raises AppException 500
+    with pytest.raises(AppException) as null_update_exc:
+        await service._apply_user_update_or_raise(
+            "usr_0195f3a00000700080000000000000ff",
+            UserUpdate(name="Lost"),
+            failure_message="User update failed (not found despite check).",
+        )
+    assert null_update_exc.value.status_code == 500
+    assert null_update_exc.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
