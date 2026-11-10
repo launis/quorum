@@ -1,7 +1,7 @@
 """Unit tests for ChatParserService.
 
 Validates anchor-based boundary slicing, role segregation, Fail-Fast schema validation,
-and exception handling under modern V2 architecture.
+minimum payload length boundaries, and RFC 7807 exception handling.
 """
 
 from __future__ import annotations
@@ -13,25 +13,102 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
 from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.services.chat_parser import AnchorSpanDTO, ChatParserService
+from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+__all__ = [
+    "mock_repository",
+    "test_anchor_span_dto_negative_bounds_rejected",
+    "test_chat_parser_below_min_payload_length_fails_fast_before_llm_init",
+    "test_chat_parser_configuration_error",
+    "test_chat_parser_empty_conversation_fails_fast",
+    "test_chat_parser_empty_input_fails_fast",
+    "test_chat_parser_empty_turns_after_slicing_fails_fast",
+    "test_chat_parser_end_anchor_not_found_fails_fast",
+    "test_chat_parser_exact_min_payload_length_boundary_succeeds",
+    "test_chat_parser_json_decode_error",
+    "test_chat_parser_markdown_table_anchor_resilience",
+    "test_chat_parser_role_segregation_and_success",
+    "test_chat_parser_start_anchor_not_found_fails_fast",
+    "test_chat_parser_unexpected_exception",
+    "test_chat_parser_unicode_whitespace_resilience",
+    "test_chat_parser_validation_error",
+    "test_chat_parser_with_explicit_registry_id_and_provider",
+    "test_find_anchor_span_delimiter_only_raises_value_error",
+    "test_find_anchor_span_empty_or_whitespace_raises_value_error",
+    "test_find_anchor_span_markdown_table_pipe_resilience",
+]
 
 
 @pytest.fixture
 def mock_repository() -> InMemoryUnifiedWorkflowRepository:
-    """Provide an isolated in-memory repository fake."""
+    """Provide an isolated in-memory repository fake.
+
+    Returns:
+        Fresh InMemoryUnifiedWorkflowRepository instance.
+    """
     return InMemoryUnifiedWorkflowRepository()
 
 
 @pytest.mark.asyncio
 async def test_chat_parser_empty_input_fails_fast(mock_repository: InMemoryUnifiedWorkflowRepository) -> None:
-    """FAIL-FAST: Ensure empty input raises immediate AppException."""
+    """FAIL-FAST: Ensure empty and whitespace-only inputs raise immediate AppException."""
     with pytest.raises(AppException) as excinfo:
         await ChatParserService.parse_pasted_chat("", mock_repository)
 
     assert excinfo.value.details["error_code"] == ErrorCodes.EMPTY_INPUT.value
+
+    with pytest.raises(AppException) as whitespace_exc:
+        await ChatParserService.parse_pasted_chat("   \t\r\n  ", mock_repository)
+
+    assert whitespace_exc.value.details["error_code"] == ErrorCodes.EMPTY_INPUT.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_tier")
+async def test_chat_parser_below_min_payload_length_fails_fast_before_llm_init(
+    mock_from_tier: AsyncMock,
+    mock_repository: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """ISTQB BVA (min - 1): Reject short payloads before initializing LLMClient."""
+    min_len = get_settings().llm_min_payload_length
+    short_payload = "x" * (min_len - 1)
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat(short_payload, mock_repository)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    mock_from_tier.assert_not_called()
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_tier")
+async def test_chat_parser_exact_min_payload_length_boundary_succeeds(
+    mock_from_tier: AsyncMock,
+    mock_repository: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """ISTQB BVA (exact min): Accept payload whose stripped length equals llm_min_payload_length."""
+    min_len = get_settings().llm_min_payload_length
+    exact_payload = "a" * min_len
+
+    mock_client = AsyncMock()
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[ChatTurnAnchorDTO(speaker="user", start_phrase=exact_payload, end_phrase=exact_payload)]
+    )
+    mock_client.run_structured_task.return_value = (
+        mock_anchors,
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+    mock_from_tier.return_value = mock_client
+
+    res = await ChatParserService.parse_pasted_chat(exact_payload, mock_repository)
+    assert len(res.conversation) == 1
+    assert res.conversation[0].content == exact_payload
 
 
 @pytest.mark.asyncio
@@ -50,7 +127,7 @@ async def test_chat_parser_role_segregation_and_success(
     )
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+        TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
     )
 
     mock_config = MagicMock()
@@ -111,7 +188,7 @@ async def test_chat_parser_empty_conversation_fails_fast(
     mock_anchors = ChatTurnAnchorsResponseDTO(turns=[])
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+        TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
     )
     mock_from_tier.return_value = mock_client
 
@@ -140,7 +217,7 @@ async def test_chat_parser_start_anchor_not_found_fails_fast(
     )
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+        TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
     )
     mock_from_tier.return_value = mock_client
 
@@ -165,7 +242,7 @@ async def test_chat_parser_end_anchor_not_found_fails_fast(
     )
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+        TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
     )
     mock_from_tier.return_value = mock_client
 
@@ -252,11 +329,10 @@ async def test_chat_parser_unicode_whitespace_resilience(
     )
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        TokenUsage(prompt_tokens=50, completion_tokens=20, total_tokens=70),
     )
     mock_from_tier.return_value = mock_client
 
-    # Source text contains \u2002 (en space) and \u00a0 (no-break space)
     raw_source = (
         "Hei\u2002miten\u2002menee tänään, tässä on hieman tekstiä ja haluaisin\xa0tietää\xa0enemmän.\n\n"
         "Hei hyvin menee kiitos kysymästä, voin   auttaa\u2002mielelläni!"
@@ -323,7 +399,7 @@ async def test_chat_parser_markdown_table_anchor_resilience(
     )
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        TokenUsage(prompt_tokens=50, completion_tokens=20, total_tokens=70),
     )
     mock_from_tier.return_value = mock_client
 
@@ -356,7 +432,7 @@ async def test_chat_parser_with_explicit_registry_id_and_provider(
     )
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
     mock_from_tier.return_value = mock_client
 
@@ -393,7 +469,7 @@ async def test_chat_parser_empty_turns_after_slicing_fails_fast(
     )
     mock_client.run_structured_task.return_value = (
         mock_anchors,
-        {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
     mock_from_tier.return_value = mock_client
     mock_find_span.return_value = AnchorSpanDTO(start=0, end=0)
