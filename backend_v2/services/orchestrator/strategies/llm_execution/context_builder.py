@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class ContextBuilder:
-    """Builds and sanitizes the LLM context data based on input mappings in Phase 9.
+    """Builds and sanitizes the LLM context data based on input mappings.
 
     Attributes:
         None
@@ -82,7 +82,7 @@ class ContextBuilder:
 
             match block_type:
                 case "MATRIX":
-                    if isinstance(value, (str, int, float, bool)) or value is None:
+                    if isinstance(value, str | int | float | bool) or value is None:
                         logger.error(
                             "Matrix value validation failed. Key: %s is not a dict.",
                             key,
@@ -141,7 +141,7 @@ class ContextBuilder:
             return [ContextBuilder._project_compressed(item) for item in obj]
         elif isinstance(obj, BaseModel):
             return ContextBuilder._project_compressed(obj.model_dump(mode="json"))
-        elif isinstance(obj, (str, int, float, bool)) or obj is None:
+        elif isinstance(obj, str | int | float | bool) or obj is None:
             return obj
         else:
             result = {}
@@ -338,7 +338,7 @@ class ContextBuilder:
                     resolved_value = _prune_step_dtos(dto_list)
                 elif (
                     clean_path == "global_context_vars"
-                    and not isinstance(resolved_value, (str, int, float, bool, list))
+                    and not isinstance(resolved_value, str | int | float | bool | list)
                     and resolved_value is not None
                 ):
                     resolved_dict = dict(resolved_value)
@@ -413,6 +413,7 @@ class ContextBuilder:
                     limit = get_settings().max_safe_tokens
                     if tokens > limit:
                         msg = f"Mapping '{_logical_name}' exceeded token limit ({tokens} > {limit})."
+                        logger.error(msg, exc_info=True)
                         raise TokenLimitExceededError(message=msg)
                 except TokenLimitExceededError:
                     raise
@@ -422,7 +423,7 @@ class ContextBuilder:
                     raise AppException(
                         message=msg,
                         status_code=500,
-                        details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                        details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
                     ) from e
 
                 if clean_path == "steps" or clean_path.startswith("steps."):
@@ -436,13 +437,13 @@ class ContextBuilder:
                         if i == len(parts) - 1:
                             curr_node[part] = copy.deepcopy(resolved_value)
                         else:
-                            if part not in curr_node or isinstance(curr_node[part], (str, int, float, bool, list)):
+                            if part not in curr_node or isinstance(curr_node[part], str | int | float | bool | list):
                                 curr_node[part] = {}
                             curr_node = curr_node[part]
                     extracted_inputs[_logical_name] = copy.deepcopy(resolved_value)
                     new_input_mappings[_logical_name] = path
             except Exception as e:
-                if isinstance(e, (TokenLimitExceededError, AppException)):
+                if isinstance(e, TokenLimitExceededError | AppException):
                     raise
                 msg = f"Failed to resolve input mapping {path}: {e}"
                 logger.error(msg, exc_info=True)
