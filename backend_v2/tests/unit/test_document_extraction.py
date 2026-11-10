@@ -1,28 +1,91 @@
+"""Unit tests for DocumentExtractionService covering eager extraction, PDF dates, and ISTQB negative boundaries."""
+
+from __future__ import annotations
+
 import base64
+from pathlib import Path
 from unittest.mock import patch
 
+import fitz
 import pytest
+from fastapi import status
+from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.services.document_extraction import DocumentExtractionService
+
+_SITRA_FIXTURE_PATH = Path("data/test_inputs_sitra/keskusteluhistoria SITRA.pdf")
+
+
+class Base64AttachmentFactory(ModelFactory[Base64Attachment]):
+    """Polyfactory model factory for Base64Attachment ingress payloads."""
+
+    __model__ = Base64Attachment
+    __set_as_default_factory_for_type__ = True
+
+
+class WorkflowInputsIngressFactory(ModelFactory[WorkflowInputsIngress]):
+    """Polyfactory model factory for WorkflowInputsIngress models."""
+
+    __model__ = WorkflowInputsIngress
+    __set_as_default_factory_for_type__ = True
+
+
+class ChatMessageDTOFactory(ModelFactory[ChatMessageDTO]):
+    """Polyfactory model factory for ChatMessageDTO turns."""
+
+    __model__ = ChatMessageDTO
+    __set_as_default_factory_for_type__ = True
+
+
+class ChatHistoryDTOFactory(ModelFactory[ChatHistoryDTO]):
+    """Polyfactory model factory for ChatHistoryDTO transcripts."""
+
+    __model__ = ChatHistoryDTO
+    __set_as_default_factory_for_type__ = True
+
+
+def _build_pdf_bytes(
+    text: str,
+    mod_date: str = "",
+    creation_date: str = "",
+) -> bytes:
+    """Create deterministic in-memory PDF binary bytes with optional metadata dates.
+
+    Args:
+        text: Body text to render onto the first PDF page.
+        mod_date: Optional PDF modDate metadata string.
+        creation_date: Optional PDF creationDate metadata string.
+
+    Returns:
+        Serialized PDF bytes.
+    """
+    doc = fitz.open()
+    try:
+        page = doc.new_page()
+        page.insert_text((50, 50), text)
+        if mod_date or creation_date:
+            doc.set_metadata({"modDate": mod_date, "creationDate": creation_date})
+        return bytes(doc.tobytes())
+    finally:
+        doc.close()
 
 
 @pytest.mark.asyncio
 async def test_process_ingress_payload_empty() -> None:
-    """Test that empty dynamic_inputs are bypassed securely."""
+    """Verify empty dynamic_inputs pass through without mutation."""
     service = DocumentExtractionService()
-    ingress = WorkflowInputsIngress()
+    ingress = WorkflowInputsIngressFactory.build(dynamic_inputs={})
 
     result = await service.process_ingress_payload(ingress)
     assert result.dynamic_inputs == {}
 
 
 def test_process_ingress_payload_strict_hydration_failure() -> None:
-    """Test that Duck Typing is prevented and missing filename raises ValidationError at boundary."""
-    from pydantic import ValidationError
-
-    # Payload missing 'filename', but has 'content_base64'
+    """Verify missing required Base64Attachment fields fail fast with ValidationError at ingress."""
     with pytest.raises(ValidationError):
         WorkflowInputsIngress.model_validate(
             {"dynamic_inputs": {"file_1": {"content_base64": base64.b64encode(b"dummy data").decode("utf-8")}}}
@@ -30,109 +93,115 @@ def test_process_ingress_payload_strict_hydration_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_process_ingress_payload_text_decoding() -> None:
-    """Test successful decoding of a text file from Base64."""
+async def test_process_ingress_payload_text_decoding_and_multiline_base64() -> None:
+    """Verify UTF-8 text attachments decode cleanly including RFC 2045 line-wrapped base64."""
     service = DocumentExtractionService()
 
-    original_text = "Hello, strict Pydantic world!"
-    b64_content = base64.b64encode(original_text.encode("utf-8")).decode("utf-8")
+    original_text = "Hello, strict Pydantic world! Explicit multi-line base64 verification."
+    raw_b64 = base64.b64encode(original_text.encode("utf-8")).decode("utf-8")
+    wrapped_b64 = f"{raw_b64[:16]}\r\n{raw_b64[16:]}"
 
-    ingress = WorkflowInputsIngress(
-        dynamic_inputs={"file_1": Base64Attachment(filename="notes.txt", content_base64=b64_content)}
-    )
+    attachment = Base64AttachmentFactory.build(filename="notes.txt", content_base64=wrapped_b64)
+    ingress = WorkflowInputsIngressFactory.build(dynamic_inputs={"file_1": attachment, "plain_key": "unchanged"})
 
     result = await service.process_ingress_payload(ingress)
 
-    # The base64 blob should be replaced by decoded utf-8 text
     assert result.dynamic_inputs["file_1"] == original_text
+    assert result.dynamic_inputs["plain_key"] == "unchanged"
 
 
 @pytest.mark.asyncio
-async def test_process_ingress_payload_pdf_extraction() -> None:
-    """Test successful routing of PDF extraction to threadpool."""
+async def test_process_ingress_payload_pdf_extraction_real_bytes() -> None:
+    """Verify binary PDF attachments extract text through threadpool execution without partial mocks."""
     service = DocumentExtractionService()
-
-    # We mock _extract_pdf_sync so we don't need actual fitz/pymupdf running in the test
-    b64_content = base64.b64encode(b"fake pdf bytes").decode("utf-8")
-
-    ingress = WorkflowInputsIngress(
-        dynamic_inputs={"file_1": Base64Attachment(filename="document.pdf", content_base64=b64_content)}
+    expected_phrase = (
+        "Deterministic PDF prose body exceeding one hundred characters so markdown extraction "
+        "is verified end-to-end through the real PyMuPDF pipeline without partial mocking."
     )
+    pdf_bytes = _build_pdf_bytes(expected_phrase)
+    b64_content = base64.b64encode(pdf_bytes).decode("utf-8")
 
-    with patch.object(service, "_extract_pdf_sync", return_value=("# Extracted PDF Content", None)):
-        result = await service.process_ingress_payload(ingress)
+    attachment = Base64AttachmentFactory.build(filename="document.PDF", content_base64=b64_content)
+    ingress = WorkflowInputsIngressFactory.build(dynamic_inputs={"file_1": attachment})
 
-    # The base64 blob should be replaced by the mocked extracted string
-    assert result.dynamic_inputs["file_1"] == "# Extracted PDF Content"
+    result = await service.process_ingress_payload(ingress)
+
+    extracted_val = result.dynamic_inputs["file_1"]
+    assert isinstance(extracted_val, str)
+    assert "Deterministic PDF prose body" in extracted_val
+    assert "document_date" not in result.dynamic_inputs
 
 
-def test_pdf_date_parser_formats() -> None:
-    """Test that parse_pdf_date correctly parses a range of standard PDF date/timezone formats."""
-    # Test valid UTC format
+def test_pdf_date_parser_formats_and_bva_boundaries() -> None:
+    """Verify parse_pdf_date handles valid formats and ISTQB BVA min-1/min/max/max+1 boundaries."""
+    # Valid UTC and offset formats
     assert DocumentExtractionService.parse_pdf_date("D:20230117123000Z") == "2023-01-17T12:30:00Z"
-
-    # Test valid offset with single quotes (+03'00')
     assert DocumentExtractionService.parse_pdf_date("D:20260526064500+03'00'") == "2026-05-26T06:45:00+03:00"
-
-    # Test valid offset with single quotes and negative sign (-05'00')
     assert DocumentExtractionService.parse_pdf_date("D:20260526064500-05'00'") == "2026-05-26T06:45:00-05:00"
-
-    # Test valid offset without quotes (+0200)
     assert DocumentExtractionService.parse_pdf_date("D:20260526064500+0200") == "2026-05-26T06:45:00+02:00"
-
-    # Test incomplete date/time (defaulting sub-components)
+    assert DocumentExtractionService.parse_pdf_date("D:20260526064500+03") == "2026-05-26T06:45:00+03:00"
+    assert DocumentExtractionService.parse_pdf_date("D:20260526064500-05") == "2026-05-26T06:45:00-05:00"
     assert DocumentExtractionService.parse_pdf_date("D:20230117") == "2023-01-17T00:00:00Z"
 
-    # Test invalid format (missing D: prefix)
+    # ISTQB Boundary Value Analysis: exact valid min/max bounds
+    assert DocumentExtractionService.parse_pdf_date("D:20260101000000Z") == "2026-01-01T00:00:00Z"
+    assert DocumentExtractionService.parse_pdf_date("D:20261231235959Z") == "2026-12-31T23:59:59Z"
+
+    # ISTQB Boundary Value Analysis: out-of-range min-1 / max+1 components clamp to defaults
+    assert DocumentExtractionService.parse_pdf_date("D:20260032246060X") == "2026-01-01T00:00:00Z"
+    assert DocumentExtractionService.parse_pdf_date("D:20261300999999+ab") == "2026-01-01T00:00:00Z"
+
+    # Invalid prefix, short year, empty, and None inputs
     assert DocumentExtractionService.parse_pdf_date("20230117123000Z") is None
-
-    # Test short invalid string
     assert DocumentExtractionService.parse_pdf_date("D:202") is None
-
-    # Test empty/None values
+    assert DocumentExtractionService.parse_pdf_date("D:abcd") is None
     assert DocumentExtractionService.parse_pdf_date("") is None
     assert DocumentExtractionService.parse_pdf_date(None) is None
 
 
 @pytest.mark.asyncio
-async def test_pdf_metadata_date_propagation() -> None:
-    """Test that parsed PDF dates are successfully injected into raw_inputs dynamic_inputs."""
+async def test_pdf_metadata_date_propagation_and_chronological_precedence() -> None:
+    """Verify multiple PDF attachments propagate the most recent modDate unless document_date is preset."""
     service = DocumentExtractionService()
 
-    b64_content = base64.b64encode(b"fake pdf bytes").decode("utf-8")
+    older_pdf = _build_pdf_bytes("Older document content", mod_date="D:20250115080000Z")
+    newer_pdf = _build_pdf_bytes("Newer document content", mod_date="D:20260526064500+03'00'")
 
-    # PDF date metadata mock: returns text + valid parsed date string
-    mock_pdf_extracted_date = "2026-05-26T06:45:00+03:00"
-
-    ingress = WorkflowInputsIngress(
+    ingress = WorkflowInputsIngressFactory.build(
         dynamic_inputs={
-            "chat_log": Base64Attachment(filename="keskusteluhistoria SITRA.pdf", content_base64=b64_content)
+            "older_doc": Base64AttachmentFactory.build(
+                filename="older.pdf",
+                content_base64=base64.b64encode(older_pdf).decode("utf-8"),
+            ),
+            "newer_doc": Base64AttachmentFactory.build(
+                filename="newer.pdf",
+                content_base64=base64.b64encode(newer_pdf).decode("utf-8"),
+            ),
         }
     )
 
-    with patch.object(service, "_extract_pdf_sync", return_value=("# Chat Log Text", mock_pdf_extracted_date)):
-        result = await service.process_ingress_payload(ingress)
+    result = await service.process_ingress_payload(ingress)
+    assert result.dynamic_inputs["document_date"] == "2026-05-26T06:45:00+03:00"
 
-    # Check that text got extracted
-    assert result.dynamic_inputs["chat_log"] == "# Chat Log Text"
-
-    # Check that document_date was propagated to dynamic_inputs
-    assert result.dynamic_inputs["document_date"] == mock_pdf_extracted_date
+    # Existing non-empty document_date must not be overwritten
+    preset_ingress = WorkflowInputsIngressFactory.build(
+        dynamic_inputs={
+            "newer_doc": Base64AttachmentFactory.build(
+                filename="newer.pdf",
+                content_base64=base64.b64encode(newer_pdf).decode("utf-8"),
+            ),
+            "document_date": "2024-12-31T00:00:00Z",
+        }
+    )
+    preset_result = await service.process_ingress_payload(preset_ingress)
+    assert preset_result.dynamic_inputs["document_date"] == "2024-12-31T00:00:00Z"
 
 
 def test_pdf_fallback_when_picture_comment_detected() -> None:
-    """Test that _extract_pdf_sync falls back to plain text when pymupdf4llm outputs picture comments."""
+    """Verify _extract_pdf_sync falls back to plain text when pymupdf4llm outputs picture comments."""
     service = DocumentExtractionService()
-    # Create minimal valid PDF bytes with fitz
-    import fitz
+    pdf_bytes = _build_pdf_bytes("User Question: Hello AI\nAI Answer: Hello User! This is full dialogue.")
 
-    doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((50, 50), "User Question: Hello AI\nAI Answer: Hello User! This is full dialogue.")
-    pdf_bytes = doc.tobytes()
-    doc.close()
-
-    # When pymupdf4llm returns picture text comment, fallback should activate
     with patch(
         "pymupdf4llm.to_markdown",
         return_value="<!-- Start of picture text -->\nUser Question: Hello AI<br><!-- End of picture text -->",
@@ -143,25 +212,23 @@ def test_pdf_fallback_when_picture_comment_detected() -> None:
 
 
 def test_pdf_extraction_routes_to_conversation_extractor() -> None:
-    """Test that _extract_pdf_sync routes to PdfChatExtractorService when conversation is detected."""
+    """Verify _extract_pdf_sync routes to PdfChatExtractorService when conversation bubbles are detected."""
     service = DocumentExtractionService()
-    import fitz
-
-    from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 
     doc = fitz.open()
-    page = doc.new_page(width=595, height=842)
-    # Draw bubble to trigger is_conversation_pdf
-    page.draw_rect(fitz.Rect(360, 100, 520, 160), color=(0.9, 0.9, 0.9), fill=(0.91, 0.93, 0.96))
-    page.insert_text((370, 120), "User prompt inside bubble")
-    page.insert_text((59, 200), "AI response text")
-    pdf_bytes = doc.tobytes()
-    doc.close()
+    try:
+        page = doc.new_page(width=595, height=842)
+        page.draw_rect(fitz.Rect(360, 100, 520, 160), color=(0.9, 0.9, 0.9), fill=(0.91, 0.93, 0.96))
+        page.insert_text((370, 120), "User prompt inside bubble")
+        page.insert_text((59, 200), "AI response text")
+        pdf_bytes = bytes(doc.tobytes())
+    finally:
+        doc.close()
 
-    mock_chat = ChatHistoryDTO(
+    mock_chat = ChatHistoryDTOFactory.build(
         conversation=[
-            ChatMessageDTO(role="user", content="User prompt inside bubble"),
-            ChatMessageDTO(role="ai", content="AI response text"),
+            ChatMessageDTOFactory.build(role="user", content="User prompt inside bubble"),
+            ChatMessageDTOFactory.build(role="ai", content="AI response text"),
         ]
     )
 
@@ -175,19 +242,13 @@ def test_pdf_extraction_routes_to_conversation_extractor() -> None:
     assert "User prompt inside bubble" in extracted_text
 
 
+@pytest.mark.skipif(
+    not _SITRA_FIXTURE_PATH.exists(),
+    reason="Local fixture data/test_inputs_sitra/keskusteluhistoria SITRA.pdf not present",
+)
 def test_extract_pdf_sync_sitra_conversation_no_segfault() -> None:
-    """Regression test: verify real conversation PDF does not segfault in C++ mupdfcpp64.dll.
-
-    Ensures that layout engine activation from pymupdf4llm does not poison PyMuPDF's
-    native table and drawing extractors during conversation chat parsing.
-    """
-    from pathlib import Path
-
-    pdf_path = Path("data/test_inputs_sitra/keskusteluhistoria SITRA.pdf")
-    if not pdf_path.exists():
-        pytest.skip("Test input file data/test_inputs_sitra/keskusteluhistoria SITRA.pdf not present")
-
-    file_bytes = pdf_path.read_bytes()
+    """Verify real conversation PDF extracts cleanly without C++ layout engine segfaults."""
+    file_bytes = _SITRA_FIXTURE_PATH.read_bytes()
     extracted_text, parsed_date = DocumentExtractionService._extract_pdf_sync(file_bytes)
 
     assert len(extracted_text) > 1000
@@ -197,41 +258,89 @@ def test_extract_pdf_sync_sitra_conversation_no_segfault() -> None:
 
 
 @pytest.mark.asyncio
-async def test_process_ingress_payload_extraction_failure() -> None:
-    """Test that extraction failures raise AppException with VALIDATION_FAILED."""
+async def test_process_ingress_payload_corrupt_pdf_raises_app_exception() -> None:
+    """Negative test: corrupt non-PDF binary bytes raise AppException(VALIDATION_FAILED)."""
     service = DocumentExtractionService()
-    ingress = WorkflowInputsIngress(
+    ingress = WorkflowInputsIngressFactory.build(
         dynamic_inputs={
-            "broken_pdf": Base64Attachment(
+            "broken_pdf": Base64AttachmentFactory.build(
                 filename="broken.pdf",
-                content_base64=base64.b64encode(b"invalid pdf").decode("utf-8"),
+                content_base64=base64.b64encode(b"not a valid pdf stream").decode("utf-8"),
             )
         }
     )
 
-    with patch.object(service, "_extract_pdf_sync", side_effect=RuntimeError("PyMuPDF parser failure")):
-        with pytest.raises(AppException) as exc_info:
-            await service.process_ingress_payload(ingress)
-        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    with pytest.raises(AppException) as exc_info:
+        await service.process_ingress_payload(ingress)
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
-def test_pdf_date_parser_short_offset() -> None:
-    """Test parse_pdf_date handles short timezone offsets like +03 and -05."""
-    assert DocumentExtractionService.parse_pdf_date("D:20260526064500+03") == "2026-05-26T06:45:00+03:00"
-    assert DocumentExtractionService.parse_pdf_date("D:20260526064500-05") == "2026-05-26T06:45:00-05:00"
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_b64", ["!@#$", "abc", "   \n\t  "])
+async def test_process_ingress_payload_invalid_base64_raises_app_exception(invalid_b64: str) -> None:
+    """Negative test: non-base64 characters, bad padding, or whitespace-only payloads raise AppException."""
+    service = DocumentExtractionService()
+    ingress = WorkflowInputsIngressFactory.build(
+        dynamic_inputs={
+            "bad_attachment": Base64AttachmentFactory.build(
+                filename="notes.txt",
+                content_base64=invalid_b64,
+            )
+        }
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await service.process_ingress_payload(ingress)
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+
+
+@pytest.mark.asyncio
+async def test_process_ingress_payload_reraises_downstream_app_exception() -> None:
+    """Negative test: downstream AppException is preserved without re-wrapping."""
+    service = DocumentExtractionService()
+    doc = fitz.open()
+    try:
+        page = doc.new_page(width=595, height=842)
+        page.draw_rect(fitz.Rect(360, 100, 520, 160), color=(0.9, 0.9, 0.9), fill=(0.91, 0.93, 0.96))
+        page.insert_text((370, 120), "User prompt")
+        pdf_bytes = bytes(doc.tobytes())
+    finally:
+        doc.close()
+
+    ingress = WorkflowInputsIngressFactory.build(
+        dynamic_inputs={
+            "chat_pdf": Base64AttachmentFactory.build(
+                filename="chat.pdf",
+                content_base64=base64.b64encode(pdf_bytes).decode("utf-8"),
+            )
+        }
+    )
+    downstream_exc = AppException(
+        message="Downstream conversation fault",
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        details={"error_code": ErrorCodes.EMPTY_INPUT.value},
+    )
+
+    with (
+        patch(
+            "backend_v2.services.document_extraction.PdfChatExtractorService.extract_conversation",
+            side_effect=downstream_exc,
+        ),
+        pytest.raises(AppException) as exc_info,
+    ):
+        await service.process_ingress_payload(ingress)
+
+    assert exc_info.value is downstream_exc
 
 
 def test_pdf_metadata_creation_date_fallback() -> None:
-    """Test that _extract_pdf_sync falls back to creationDate when modDate is absent."""
+    """Verify _extract_pdf_sync falls back to creationDate when modDate is empty."""
     service = DocumentExtractionService()
-    import fitz
-
-    doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((50, 50), "Test document text")
-    doc.set_metadata({"creationDate": "D:20260101120000Z", "modDate": ""})
-    pdf_bytes = doc.tobytes()
-    doc.close()
+    pdf_bytes = _build_pdf_bytes("Test document text", mod_date="", creation_date="D:20260101120000Z")
 
     text, parsed_date = service._extract_pdf_sync(pdf_bytes)
     assert "Test document text" in text
