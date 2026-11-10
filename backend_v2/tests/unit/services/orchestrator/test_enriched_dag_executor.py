@@ -1,6 +1,8 @@
 """Unit tests for EnrichedDagExecutor."""
 
-from typing import Any
+import asyncio
+import inspect
+from collections.abc import Awaitable, Callable
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -16,6 +18,11 @@ from backend_v2.models.dtos.dag_models import (
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
+
+type BatchCallback = Callable[
+    [list[LinkedAtomGraph], dict[str, AtomExecutionState]],
+    Awaitable[dict[str, AtomEvaluationResultDTO]],
+]
 
 
 @pytest.fixture
@@ -36,14 +43,16 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
 
     dummy_result: dict[str, AtomExecutionState] = {}
-    captured_callback = None
+    captured_callback: BatchCallback | None = None
     progress_calls: list[tuple[int, int]] = []
 
     async def mock_progress(completed: int, total: int) -> None:
         progress_calls.append((completed, total))
 
     async def fake_evaluate_graph(
-        self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
+        self_obj: TopologicalEvaluator,
+        nodes: list[LinkedAtomGraph],
+        batch_evaluation_callback: BatchCallback,
     ) -> dict[str, AtomExecutionState]:
         nonlocal captured_callback
         captured_callback = batch_evaluation_callback
@@ -119,10 +128,12 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
     """Test when all nodes are decided in pre-flight, and progress callback is used."""
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
 
-    captured_callback = None
+    captured_callback: BatchCallback | None = None
 
     async def fake_evaluate_graph(
-        self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
+        self_obj: TopologicalEvaluator,
+        nodes: list[LinkedAtomGraph],
+        batch_evaluation_callback: BatchCallback,
     ) -> dict[str, AtomExecutionState]:
         nonlocal captured_callback
         captured_callback = batch_evaluation_callback
@@ -145,16 +156,20 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
 
     assert captured_callback is not None
 
-    progress_calls = []
+    progress_calls: list[tuple[int, int]] = []
+    captured_batch_results: dict[str, AtomEvaluationResultDTO] = {}
 
     async def mock_progress(completed: int, total: int) -> None:
         progress_calls.append((completed, total))
 
-    # Let's do it properly by patching evaluate_graph to run the callback
     async def fake_evaluate_graph_exec(
-        self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
+        self_obj: TopologicalEvaluator,
+        nodes: list[LinkedAtomGraph],
+        batch_evaluation_callback: BatchCallback,
     ) -> dict[str, AtomExecutionState]:
-        return await batch_evaluation_callback(nodes, {})
+        nonlocal captured_batch_results
+        captured_batch_results = await batch_evaluation_callback(nodes, {})
+        return {}
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph_exec):
         with (
@@ -182,10 +197,10 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
                 },
                 [],
             )
-            result, usage = await executor.execute_graph(
+            _, usage = await executor.execute_graph(
                 nodes=[mock_node], source_text="test text", locale="fi", progress_callback=mock_progress
             )
-            assert result["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
+            assert captured_batch_results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
             assert usage.total_tokens == 0
             assert progress_calls == [(1, 1)]
 
@@ -196,11 +211,16 @@ async def test_execute_graph_callback_persistent_error(
 ) -> None:
     """Test when process_chunk raises a persistent error, it's caught and returns SYSTEM_ERROR."""
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+    captured_batch_results: dict[str, AtomEvaluationResultDTO] = {}
 
     async def fake_evaluate_graph_exec(
-        self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
+        self_obj: TopologicalEvaluator,
+        nodes: list[LinkedAtomGraph],
+        batch_evaluation_callback: BatchCallback,
     ) -> dict[str, AtomExecutionState]:
-        return await batch_evaluation_callback(nodes, {})
+        nonlocal captured_batch_results
+        captured_batch_results = await batch_evaluation_callback(nodes, {})
+        return {}
 
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
@@ -214,7 +234,7 @@ async def test_execute_graph_callback_persistent_error(
         depends_on=[],
     )
 
-    progress_calls = []
+    progress_calls: list[tuple[int, int]] = []
 
     async def mock_progress(completed: int, total: int) -> None:
         progress_calls.append((completed, total))
@@ -235,13 +255,12 @@ async def test_execute_graph_callback_persistent_error(
             ),
         ):
             mock_pre_eval.side_effect = ValueError("Some persistent validation error")
-            result, usage = await executor.execute_graph(
+            _, usage = await executor.execute_graph(
                 nodes=[mock_node], source_text="test text", locale="fi", progress_callback=mock_progress
             )
-            assert result["tda_11111111111111111111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-            assert "Some persistent validation error" in (
-                result["tda_11111111111111111111111111111111"].reasoning or ""
-            )
+            eval_res = captured_batch_results["tda_11111111111111111111111111111111"]
+            assert eval_res.status == ExecutionStatus.SYSTEM_ERROR
+            assert "Some persistent validation error" in (eval_res.reasoning or "")
             assert usage.total_tokens == 0
             assert progress_calls == [(1, 1)]
 
@@ -252,9 +271,12 @@ async def test_execute_graph_callback_transient_error(mock_llm_executor: AsyncMo
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
 
     async def fake_evaluate_graph_exec(
-        self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
+        self_obj: TopologicalEvaluator,
+        nodes: list[LinkedAtomGraph],
+        batch_evaluation_callback: BatchCallback,
     ) -> dict[str, AtomExecutionState]:
-        return await batch_evaluation_callback(nodes, {})
+        await batch_evaluation_callback(nodes, {})
+        return {}
 
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
@@ -317,7 +339,7 @@ async def test_execute_graph_invalid_locale_fails_fast(
 async def test_enriched_dag_executor_execute_graph_without_semaphore(
     mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock
 ) -> None:
-    """Phase 3 Test Contract: execute_graph without semaphore returns dict[str, AtomExecutionState] and TokenUsage."""
+    """Verifies that execute_graph without semaphore returns state mapping and TokenUsage."""
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
 
     result, usage = await executor.execute_graph(nodes=[], source_text="test text", locale="en")
@@ -329,19 +351,17 @@ async def test_enriched_dag_executor_execute_graph_without_semaphore(
 async def test_enriched_dag_executor_execute_graph_rejects_unexpected_semaphore_kwarg(
     mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock
 ) -> None:
-    """Phase 3 Test Contract: execute_graph raises TypeError if caller passes semaphore kwarg."""
-    import asyncio
-
+    """Verifies that execute_graph raises TypeError if caller passes an unexpected semaphore kwarg."""
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
     dummy_sem = asyncio.Semaphore(1)
-    unexpected_kwargs = {"semaphore": dummy_sem}
+    sig = inspect.signature(executor.execute_graph)
 
     with pytest.raises(TypeError, match="unexpected keyword argument 'semaphore'"):
-        await executor.execute_graph(
+        sig.bind(
             nodes=[],
             source_text="test text",
             locale="en",
-            **unexpected_kwargs,
+            semaphore=dummy_sem,
         )
 
 

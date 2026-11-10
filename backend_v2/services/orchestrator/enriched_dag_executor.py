@@ -109,6 +109,14 @@ class EnrichedDagExecutor:
         progress_lock = asyncio.Lock()
         accumulated_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
+        async def record_progress(chunk_size: int) -> None:
+            """Updates completed atom count and invokes the optional progress callback."""
+            nonlocal completed_atoms
+            if progress_callback:
+                async with progress_lock:
+                    completed_atoms += chunk_size
+                    await progress_callback(completed_atoms, total_atoms)
+
         async def process_chunk(
             chunk: list[LinkedAtomGraph],
             current_states: dict[str, AtomExecutionState],
@@ -122,7 +130,7 @@ class EnrichedDagExecutor:
             Returns:
                 A dictionary mapping each chunk node's tda_id to its AtomEvaluationResultDTO.
             """
-            nonlocal completed_atoms, accumulated_usage
+            nonlocal accumulated_usage
             try:
                 allow_override = matrix_context.allow_contextual_override if matrix_context else False
                 pre_flight_results, undecided_nodes = await ExtractiveSensorService.batch_pre_evaluate(
@@ -130,10 +138,7 @@ class EnrichedDagExecutor:
                 )
 
                 if not undecided_nodes:
-                    if progress_callback:
-                        async with progress_lock:
-                            completed_atoms += len(chunk)
-                            await progress_callback(completed_atoms, total_atoms)
+                    await record_progress(len(chunk))
                     return pre_flight_results
 
                 llm_results, chunk_usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
@@ -149,10 +154,7 @@ class EnrichedDagExecutor:
                 )
                 accumulated_usage = accumulated_usage + chunk_usage
                 res = {**pre_flight_results, **llm_results}
-                if progress_callback:
-                    async with progress_lock:
-                        completed_atoms += len(chunk)
-                        await progress_callback(completed_atoms, total_atoms)
+                await record_progress(len(chunk))
                 return res
             except Exception as e:
                 cause = e.__cause__ or e
@@ -180,10 +182,7 @@ class EnrichedDagExecutor:
                     )
                     for node in chunk
                 }
-                if progress_callback:
-                    async with progress_lock:
-                        completed_atoms += len(chunk)
-                        await progress_callback(completed_atoms, total_atoms)
+                await record_progress(len(chunk))
                 return res
 
         async def batch_evaluation_callback(
