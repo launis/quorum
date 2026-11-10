@@ -108,7 +108,44 @@ class SynthesisPayloadCompressor:
         return json.dumps(cleaned, ensure_ascii=False, indent=2)
 
     @staticmethod
-    def _prune_and_stratify_evaluations(evals: list[DistilledEvaluation], limit: int) -> list[DistilledEvaluation]:
+    def _resolve_atom_id(item: DistilledEvaluation) -> str:
+        """Resolve canonical string atom_id for deterministic sorting."""
+        if item.atom_id is not None:
+            return item.atom_id
+        return ""
+
+    @staticmethod
+    def _sanitize_quotes_and_reasoning(
+        raw_quotes: list[str],
+        raw_reasoning: str | None,
+        max_quote_length: int,
+        max_reasoning_length: int,
+    ) -> tuple[list[str], str | None]:
+        """Filter placeholder quotes and apply configured length bounds to quotes and reasoning."""
+        valid_quotes = [
+            q.strip()
+            for q in raw_quotes
+            if q.strip()
+            and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
+            and not (q.strip().startswith("[") and q.strip().endswith("]"))
+        ]
+        if max_quote_length > 0:
+            sliced_quotes = [q[:max_quote_length] for q in valid_quotes]
+        else:
+            sliced_quotes = list(valid_quotes)
+
+        reasoning: str | None = None
+        if raw_reasoning:
+            raw_reasoning_str = str(raw_reasoning)
+            if max_reasoning_length > 0:
+                reasoning = raw_reasoning_str[:max_reasoning_length]
+            else:
+                reasoning = raw_reasoning_str
+
+        return sliced_quotes, reasoning
+
+    @classmethod
+    def _prune_and_stratify_evaluations(cls, evals: list[DistilledEvaluation], limit: int) -> list[DistilledEvaluation]:
         """Prune and stratify evaluations with deterministic prioritized stratification.
 
         When limit == 0: Unbounded mode (forward all without truncation).
@@ -138,23 +175,18 @@ class SynthesisPayloadCompressor:
             else:
                 strengths.append(item)
 
-        def _resolve_atom_id(item: DistilledEvaluation) -> str:
-            if item.atom_id is not None:
-                return item.atom_id
-            return ""
-
         deficits.sort(
             key=lambda item: (
                 -int(item.is_inverse_evidence),
                 -item.topological_out_degree,
                 len(item.short_circuit_reason_tda_ids),
-                _resolve_atom_id(item),
+                cls._resolve_atom_id(item),
             )
         )
         strengths.sort(
             key=lambda item: (
                 -len(item.exact_quotes),
-                _resolve_atom_id(item),
+                cls._resolve_atom_id(item),
             )
         )
 
@@ -175,13 +207,7 @@ class SynthesisPayloadCompressor:
             selected_strengths = strengths[:strength_budget]
 
         selected = selected_deficits + selected_strengths
-
-        def get_atom_id(x: DistilledEvaluation) -> str:
-            if x.atom_id is not None:
-                return x.atom_id
-            return ""
-
-        selected.sort(key=get_atom_id)
+        selected.sort(key=cls._resolve_atom_id)
 
         logger.warning(
             "Token Shield: Prioritized stratification applied",
@@ -283,31 +309,18 @@ class SynthesisPayloadCompressor:
                             raw_quotes = list(ev.source_quotes)
                     elif ev.source_quotes is not None:
                         raw_quotes = list(ev.source_quotes)
-                    valid_quotes = [
-                        q.strip()
-                        for q in raw_quotes
-                        if q.strip()
-                        and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
-                        and not (q.strip().startswith("[") and q.strip().endswith("]"))
-                    ]
+                    sliced_quotes, reasoning = cls._sanitize_quotes_and_reasoning(
+                        raw_quotes=raw_quotes,
+                        raw_reasoning=ev.evaluation_reasoning,
+                        max_quote_length=settings.max_synthesis_quote_length,
+                        max_reasoning_length=settings.max_synthesis_reasoning_length,
+                    )
                     is_exempt_status = (
                         ev.status in ("FAILED", "N_A", ExecutionStatus.FAILED, ExecutionStatus.N_A)
                         or ev.is_inverse_evidence
                     )
-                    if not is_exempt_status and not valid_quotes and not ev.evaluation_reasoning:
+                    if not is_exempt_status and not sliced_quotes and not reasoning:
                         continue
-
-                    reasoning: str | None = None
-                    if ev.evaluation_reasoning:
-                        raw_reasoning_str = str(ev.evaluation_reasoning)
-                        if settings.max_synthesis_reasoning_length > 0:
-                            reasoning = raw_reasoning_str[: settings.max_synthesis_reasoning_length]
-                        else:
-                            reasoning = raw_reasoning_str
-                    if settings.max_synthesis_quote_length > 0:
-                        sliced_quotes = [q[: settings.max_synthesis_quote_length] for q in valid_quotes]
-                    else:
-                        sliced_quotes = list(valid_quotes)
                     depends_on_ids: list[str] = []
                     short_circuit_ids: list[str] = []
                     extensions_val: dict[str, str | int | float | bool | list[str]] | None = None
@@ -392,38 +405,19 @@ class SynthesisPayloadCompressor:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         ) from e
 
-                    valid_quotes = [
-                        q.strip()
-                        for q in parsed_ev.exact_quotes
-                        if q.strip()
-                        and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
-                        and not (q.strip().startswith("[") and q.strip().endswith("]"))
-                    ]
-
+                    sliced_dict_quotes, sem_reasoning = cls._sanitize_quotes_and_reasoning(
+                        raw_quotes=parsed_ev.exact_quotes,
+                        raw_reasoning=parsed_ev.semantic_reasoning,
+                        max_quote_length=settings.max_synthesis_quote_length,
+                        max_reasoning_length=settings.max_synthesis_reasoning_length,
+                    )
                     is_exempt_dict = (
                         parsed_ev.status in ("FAILED", "N_A", ExecutionStatus.FAILED, ExecutionStatus.N_A)
                         or parsed_ev.is_inverse_evidence
                     )
                     has_quotes_in_source = "exact_quotes" in ev or "source_quotes" in ev
-                    if (
-                        not is_exempt_dict
-                        and has_quotes_in_source
-                        and not valid_quotes
-                        and not parsed_ev.semantic_reasoning
-                    ):
+                    if not is_exempt_dict and has_quotes_in_source and not sliced_dict_quotes and not sem_reasoning:
                         continue
-
-                    sem_reasoning: str | None = None
-                    if parsed_ev.semantic_reasoning:
-                        raw_sem_reasoning = str(parsed_ev.semantic_reasoning)
-                        if settings.max_synthesis_reasoning_length > 0:
-                            sem_reasoning = raw_sem_reasoning[: settings.max_synthesis_reasoning_length]
-                        else:
-                            sem_reasoning = raw_sem_reasoning
-                    if settings.max_synthesis_quote_length > 0:
-                        sliced_dict_quotes = [q[: settings.max_synthesis_quote_length] for q in valid_quotes]
-                    else:
-                        sliced_dict_quotes = list(valid_quotes)
                     distilled_evals.append(
                         DistilledEvaluation(
                             atom_id=parsed_ev.atom_id,
