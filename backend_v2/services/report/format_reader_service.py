@@ -54,6 +54,7 @@ class ReportFormatReaderService:
                 "[ReportService] %s: Report artifact '%s' not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 report_id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "report_id": report_id},
             )
             raise ResourceNotFoundError(resource_type="report_artifact", resource_id=report_id)
@@ -80,6 +81,7 @@ class ReportFormatReaderService:
                 "[ReportService] %s: %s",
                 ErrorCodes.REPORT_NOT_READY.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.REPORT_NOT_READY.value, "report_id": report.id},
             )
             raise AppException(message=msg, status_code=409, details={"error_code": ErrorCodes.REPORT_NOT_READY.value})
@@ -92,6 +94,7 @@ class ReportFormatReaderService:
                 artifact_type,
                 path,
                 err,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "path": path},
             )
             raise AppException(
@@ -205,7 +208,7 @@ class ReportFormatReaderService:
                 ReportRowItemDTO(
                     execution_id=report.execution_id,
                     report_id=report_id,
-                    metric_key=atom.matrix_id or atom.tda_id,
+                    metric_key=atom.matrix_id if atom.matrix_id is not None else atom.tda_id,
                     metric_label=label,
                     score=score,
                     max_scale=1.0,
