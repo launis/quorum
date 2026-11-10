@@ -9,10 +9,13 @@ import logging
 import secrets
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import jwt
 from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from backend_v2.core.redis_security import RevocationCache
 
 if importlib.util.find_spec("firebase_admin") is not None:
     import firebase_admin
@@ -24,7 +27,13 @@ else:
     firebase_credentials_module = None
 
 from backend_v2.database.interfaces import get_registered_uow_factory
-from backend_v2.exceptions import AuthenticationError, ConfigurationError, ConflictError, ErrorCodes
+from backend_v2.exceptions import (
+    AppException,
+    AuthenticationError,
+    ConfigurationError,
+    ConflictError,
+    ErrorCodes,
+)
 from backend_v2.models.auth import (
     SystemOrganizations,
     TokenData,
@@ -44,7 +53,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["TokenService", "initialize_firebase_admin_from_secrets"]
 
 _SENTINEL = object()
-_FIREBASE_VERIFY_TIMEOUT_SECONDS: float = 10.0
 
 
 async def initialize_firebase_admin_from_secrets(
@@ -119,6 +127,8 @@ async def initialize_firebase_admin_from_secrets(
         cert = firebase_credentials_module.Certificate(sa_payload)
         firebase_admin.initialize_app(cert)
         logger.info("[TokenService] Firebase Admin SDK default app initialized from encrypted tenant_secrets.")
+    except AppException:
+        raise
     except Exception as exc:
         msg = "Failed to initialize Firebase Admin SDK from Service Account certificate."
         logger.error(
@@ -149,7 +159,7 @@ class TokenService:
         use_firebase: bool = False,
         firebase_module: Any = _SENTINEL,
         get_settings_fn: Callable[[], Settings] | None = None,
-        revocation_cache: Any = None,
+        revocation_cache: RevocationCache | None = None,
     ) -> None:
         """Initialize TokenService.
 
@@ -164,7 +174,7 @@ class TokenService:
         self.use_firebase = use_firebase
         self._firebase_module = firebase_auth_module if firebase_module is _SENTINEL else firebase_module
         self._get_settings_fn = get_settings_fn
-        self.revocation_cache = revocation_cache
+        self.revocation_cache: RevocationCache | None = revocation_cache
         self._initialized_firebase = False
         self.firebase_auth: Any = None
 
@@ -241,28 +251,82 @@ class TokenService:
 
         verified_user = await self._validate_active_user_and_revocation(user)
         expire_seconds = settings.jwt_access_token_expire_minutes * 60
-        now_epoch = int(time.time())
-        jti_str = str(generate_uuid7())
-        signed_jwt = jwt.encode(
-            {
-                "sub": verified_user.id,
-                "org": verified_user.organization_id,
-                "role": verified_user.role.value,
-                "email": verified_user.email,
-                "mfa": True,
-                "jti": jti_str,
-                "iat": now_epoch,
-                "exp": now_epoch + expire_seconds,
-                "type": "access",
-            },
-            settings.jwt_secret_key.get_secret_value(),
-            algorithm=settings.jwt_algorithm,
+        signed_jwt = self._encode_local_jwt(
+            settings=settings,
+            subject_id=verified_user.id,
+            organization_id=verified_user.organization_id,
+            role=verified_user.role,
+            email=verified_user.email,
+            duration_seconds=expire_seconds,
+            token_type="access",
         )
         return TokenExchangeResponseDTO(
             access_token=signed_jwt,
             token_type="bearer",
             expires_in_seconds=expire_seconds,
             user=verified_user,
+        )
+
+    def _encode_local_jwt(
+        self,
+        *,
+        settings: Settings,
+        subject_id: str,
+        organization_id: str | None,
+        role: UserRole,
+        email: str | None,
+        duration_seconds: int,
+        token_type: Literal["access", "impersonation"],
+        actor_id: str | None = None,
+    ) -> str:
+        """Sign a stateless Quorum Local JWT using the configured HMAC secret and algorithm.
+
+        Args:
+            settings: Active application Settings instance.
+            subject_id: Authenticated or impersonated target user Opaque Stripe ID.
+            organization_id: Associated organization Opaque Stripe ID, if tenant-scoped.
+            role: Effective permission role embedded in stateless claims.
+            email: Associated user email address, if present.
+            duration_seconds: Token validity lifetime in seconds.
+            token_type: Canonical Quorum token discriminator ('access' or 'impersonation').
+            actor_id: Optional RFC 8693 initiator user ID embedded under 'act.sub'.
+
+        Returns:
+            Signed Quorum Local JWT string.
+        """
+        now_epoch = int(time.time())
+        jti_str = str(generate_uuid7())
+        if actor_id is not None:
+            return jwt.encode(
+                {
+                    "sub": subject_id,
+                    "org": organization_id,
+                    "role": role.value,
+                    "email": email,
+                    "mfa": True,
+                    "jti": jti_str,
+                    "iat": now_epoch,
+                    "exp": now_epoch + duration_seconds,
+                    "type": token_type,
+                    "act": {"sub": actor_id},
+                },
+                settings.jwt_secret_key.get_secret_value(),
+                algorithm=settings.jwt_algorithm,
+            )
+        return jwt.encode(
+            {
+                "sub": subject_id,
+                "org": organization_id,
+                "role": role.value,
+                "email": email,
+                "mfa": True,
+                "jti": jti_str,
+                "iat": now_epoch,
+                "exp": now_epoch + duration_seconds,
+                "type": token_type,
+            },
+            settings.jwt_secret_key.get_secret_value(),
+            algorithm=settings.jwt_algorithm,
         )
 
     async def _resolve_interactive_firebase_user(
@@ -295,8 +359,10 @@ class TokenService:
                 details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
             )
         try:
-            async with asyncio.timeout(_FIREBASE_VERIFY_TIMEOUT_SECONDS):
+            async with asyncio.timeout(settings.http_client_timeout_seconds):
                 decoded_token = await asyncio.to_thread(self.firebase_auth.verify_id_token, firebase_token)
+        except AppException:
+            raise
         except Exception as exc:
             logger.error(
                 "[TokenService] %s: Firebase ID token verification failed: %s",
@@ -476,17 +542,18 @@ class TokenService:
     def create_impersonation_token(
         self,
         target_id: str,
-        duration_seconds: int = 900,
+        duration_seconds: int | None = None,
         organization_id: str | None = None,
         role: UserRole = UserRole.MEMBER,
         email: str | None = None,
         actor_id: str | None = None,
     ) -> str:
-        """Generate a signed 15-minute RFC 8693 break-glass impersonation JWT.
+        """Generate a signed RFC 8693 break-glass impersonation JWT.
 
         Args:
             target_id: Opaque Stripe ID of the target user to impersonate.
-            duration_seconds: Token validity duration in seconds (defaults to 900).
+            duration_seconds: Optional token validity duration in seconds; resolves from
+                Settings.jwt_access_token_expire_minutes when omitted.
             organization_id: Target user's organization ID.
             role: Target user's permission role.
             email: Target user's email address.
@@ -494,42 +561,51 @@ class TokenService:
 
         Returns:
             Signed Quorum Local JWT string.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if target_id is empty or
+                duration_seconds is less than 1 second.
         """
         # Issue an RFC 8693 Section 4.1 break-glass impersonation JWT with optional actor claim.
-        settings = self._resolve_settings()
-        now_epoch = int(time.time())
-        jti_str = str(generate_uuid7())
-        if actor_id is not None:
-            return jwt.encode(
-                {
-                    "sub": target_id,
-                    "org": organization_id,
-                    "role": role.value,
-                    "email": email,
-                    "mfa": True,
-                    "jti": jti_str,
-                    "iat": now_epoch,
-                    "exp": now_epoch + duration_seconds,
-                    "type": "impersonation",
-                    "act": {"sub": actor_id},
-                },
-                settings.jwt_secret_key.get_secret_value(),
-                algorithm=settings.jwt_algorithm,
+        if not target_id or not target_id.strip():
+            msg = "Target user ID cannot be empty for impersonation token creation."
+            logger.error(
+                "[TokenService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
             )
-        return jwt.encode(
-            {
-                "sub": target_id,
-                "org": organization_id,
-                "role": role.value,
-                "email": email,
-                "mfa": True,
-                "jti": jti_str,
-                "iat": now_epoch,
-                "exp": now_epoch + duration_seconds,
-                "type": "impersonation",
-            },
-            settings.jwt_secret_key.get_secret_value(),
-            algorithm=settings.jwt_algorithm,
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        settings = self._resolve_settings()
+        effective_duration = (
+            settings.jwt_access_token_expire_minutes * 60 if duration_seconds is None else duration_seconds
+        )
+        if effective_duration < 1:
+            msg = "Impersonation token duration must be at least 1 second."
+            logger.error(
+                "[TokenService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        return self._encode_local_jwt(
+            settings=settings,
+            subject_id=target_id.strip(),
+            organization_id=organization_id,
+            role=role,
+            email=email,
+            duration_seconds=effective_duration,
+            token_type="impersonation",
+            actor_id=actor_id,
         )
 
     async def verify_token(self, token: str) -> TokenData:

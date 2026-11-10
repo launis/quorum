@@ -11,11 +11,16 @@ import pytest
 from pydantic import SecretStr
 
 from backend_v2.exceptions import (
+    AppException,
     AuthenticationError,
+    ConfigurationError,
     ConflictError,
     ErrorCodes,
 )
 from backend_v2.models.auth import (
+    SYSTEM_ROOT_USER_ID,
+    SystemOrganizations,
+    TenantSecretCreateDTO,
     TokenData,
     TokenExchangeRequestDTO,
     TokenExchangeResponseDTO,
@@ -23,24 +28,17 @@ from backend_v2.models.auth import (
     UserRole,
 )
 from backend_v2.models.core_base import generate_uuid7
-from backend_v2.models.enums import SystemLocale
+from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode, SystemLocale
 from backend_v2.services.auth import (
     AuthService,
+    SecretService,
     TokenService,
     UserRepository,
+    initialize_firebase_admin_from_secrets,
 )
-from backend_v2.settings import Settings, get_settings
+from backend_v2.settings import Settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
-
-
-def _jwt_secret() -> str:
-    """Resolve active JWT secret key from Settings."""
-    return get_settings().jwt_secret_key.get_secret_value()
-
-
-def _jwt_algorithm() -> str:
-    """Resolve active JWT signing algorithm from Settings."""
-    return get_settings().jwt_algorithm
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.fixture
@@ -724,17 +722,6 @@ async def test_initialize_firebase_admin_from_secrets_initializes_app_from_verte
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify initialize_firebase_admin_from_secrets decrypts vertex_ai SA JSON and initializes firebase_admin."""
-    from backend_v2.exceptions import ConfigurationError
-    from backend_v2.models.auth import (
-        SYSTEM_ROOT_USER_ID,
-        SystemOrganizations,
-        TenantSecretCreateDTO,
-    )
-    from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode
-    from backend_v2.services.auth.secret_service import SecretService
-    from backend_v2.services.auth.token_service import initialize_firebase_admin_from_secrets
-    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
-
     uow = InMemoryUnitOfWork()
     secret_service = SecretService(entity_adapter=uow.entities)
     initiator = TokenData(
@@ -799,17 +786,6 @@ async def test_initialize_firebase_admin_from_secrets_fails_fast_on_invalid_json
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify initialize_firebase_admin_from_secrets raises ConfigurationError on non-JSON or malformed SA secret."""
-    from backend_v2.exceptions import ConfigurationError
-    from backend_v2.models.auth import (
-        SYSTEM_ROOT_USER_ID,
-        SystemOrganizations,
-        TenantSecretCreateDTO,
-    )
-    from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode
-    from backend_v2.services.auth.secret_service import SecretService
-    from backend_v2.services.auth.token_service import initialize_firebase_admin_from_secrets
-    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
-
     uow = InMemoryUnitOfWork()
     secret_service = SecretService(entity_adapter=uow.entities)
     initiator = TokenData(
@@ -872,3 +848,68 @@ async def test_initialize_firebase_admin_from_secrets_fails_fast_on_invalid_json
     with pytest.raises(ConfigurationError) as exc_cert_err:
         await initialize_firebase_admin_from_secrets(secret_service, enabled_settings)
     assert exc_cert_err.value.error_code == ErrorCodes.CONFIGURATION_ERROR
+
+
+@pytest.mark.asyncio
+async def test_create_impersonation_token_ssot_ttl_and_boundary_validation(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify create_impersonation_token resolves default TTL from Settings SSOT and enforces ISTQB BVA guards."""
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        jwt_access_token_expire_minutes=20,
+    )
+    token_service = TokenService(
+        repo=UserRepository(mock_repo),
+        use_firebase=False,
+        get_settings_fn=lambda: mock_settings,
+    )
+
+    # Positive 1: Omit duration_seconds -> resolves 20 * 60 = 1200 seconds from Settings SSOT
+    default_ttl_jwt = token_service.create_impersonation_token(
+        target_id="usr_0195f3a0000070008000000000000101",
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        role=UserRole.ADMIN,
+    )
+    decoded_default = jwt.decode(
+        default_ttl_jwt,
+        mock_settings.jwt_secret_key.get_secret_value(),
+        algorithms=[mock_settings.jwt_algorithm],
+    )
+    assert decoded_default["exp"] - decoded_default["iat"] == 1200
+
+    # Positive 2: Lower valid boundary (min = 1 second)
+    min_ttl_jwt = token_service.create_impersonation_token(
+        target_id="usr_0195f3a0000070008000000000000101",
+        duration_seconds=1,
+    )
+    decoded_min = jwt.decode(
+        min_ttl_jwt,
+        mock_settings.jwt_secret_key.get_secret_value(),
+        algorithms=[mock_settings.jwt_algorithm],
+    )
+    assert decoded_min["exp"] - decoded_min["iat"] == 1
+
+    # Negative 1 (BVA min - 1): duration_seconds = 0 and -5 raise AppException(VALIDATION_FAILED)
+    for invalid_duration in (0, -5):
+        with pytest.raises(AppException) as exc_dur:
+            token_service.create_impersonation_token(
+                target_id="usr_0195f3a0000070008000000000000101",
+                duration_seconds=invalid_duration,
+            )
+        assert exc_dur.value.status_code == 400
+        assert exc_dur.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert ErrorCodes.VALIDATION_FAILED.name in caplog.text
+
+    # Negative 2: Empty or whitespace target_id raises AppException(VALIDATION_FAILED)
+    for invalid_target in ("", "   "):
+        with pytest.raises(AppException) as exc_target:
+            token_service.create_impersonation_token(
+                target_id=invalid_target,
+                duration_seconds=60,
+            )
+        assert exc_target.value.status_code == 400
+        assert exc_target.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
