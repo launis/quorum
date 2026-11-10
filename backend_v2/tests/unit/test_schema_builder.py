@@ -1,10 +1,23 @@
+"""Unit tests for SchemaCompilerService dynamic Pydantic schema and MCP tool compilation."""
+
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.schema_builder import SchemaCompilerService
-from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock, SystemRulePromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory, XaiExtensionType
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.dtos.mcp import (
+    MCPToolDescriptorDTO,
+    MCPToolInputSchemaDTO,
+    MCPToolSchemaPropertyDTO,
+)
+from backend_v2.models.enums import (
+    BlockDataType,
+    JSONSchemaPropertyType,
+    XaiExtensionType,
+)
 from backend_v2.models.prompts.common import (
     XAI_DESC_EMOTIONAL_SENTIMENT,
     XAI_DESC_MISSING_CONTEXT,
@@ -12,52 +25,36 @@ from backend_v2.models.prompts.common import (
     XAI_DESC_RISK_FLAG,
     XAI_DESC_THEORY_LINK,
 )
+from backend_v2.tests.factories.model_factories import (
+    MatrixPromptBlockFactory,
+    SystemRulePromptBlockFactory,
+)
+
+_TEST_BLOCK_ID = "blk_1234567890abcdef1234567890abcdef"
 
 
 def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) -> PromptBlock:
-    """Helper to create a valid V2 PromptBlock for schema testing."""
-    if btype in (BlockDataType.FLOAT, BlockDataType.INT):
-        from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
+    """Create a valid V2 PromptBlock for schema testing using Polyfactory.
 
-        scale = MatrixScale(
-            score=1,
-            ai_label="TEST",
-            claims=[
-                MatrixClaim(
-                    label=I18nText(translations={"en": "Test"}),
-                    tda_assertions=[
-                        TDAAssertion(
-                            concept_description="Concept test",
-                            inverse_evidence=False,
-                            aggregation_mode="EXISTS",
-                        )
-                    ],
-                )
-            ],
-        )
-        return MatrixPromptBlock(
-            id="blk_1234567890abcdef1234567890abcdef",
+    Args:
+        slug: Informational block slug.
+        btype: Block data type enum.
+        extensions: List of requested XAI output extensions.
+
+    Returns:
+        Instantiated MatrixPromptBlock or SystemRulePromptBlock.
+    """
+    if btype in (BlockDataType.FLOAT, BlockDataType.INT):
+        return MatrixPromptBlockFactory.build(
+            id=_TEST_BLOCK_ID,
             slug=slug,
-            label=I18nText(translations={"en": "Test Label", "fi": "Test Label"}),
-            description=I18nText(translations={"en": "Test Desc", "fi": "Test Desc"}),
-            ai_description="Test AI instruction",
-            category_id=PromptBlockCategory.MATRIX,
-            is_evaluative=True,
             type=btype,
-            allow_decimals=False,
             output_extensions=extensions,
-            scales=[scale],
         )
-    return SystemRulePromptBlock(
-        id="blk_1234567890abcdef1234567890abcdef",
+    return SystemRulePromptBlockFactory.build(
+        id=_TEST_BLOCK_ID,
         slug=slug,
-        label=I18nText(translations={"en": "Test Label", "fi": "Test Label"}),
-        description=I18nText(translations={"en": "Test Desc", "fi": "Test Desc"}),
-        instruction_text="Test AI instruction",
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        is_evaluative=True,
-        type=btype,
-        allow_decimals=False,
+        type=BlockDataType.STRING,
         output_extensions=extensions,
     )
 
@@ -69,8 +66,8 @@ def test_schema_compiler_basic_compile() -> None:
     DynamicModel = SchemaCompilerService.compile([block])
 
     # Should validate correct data using the alias
-    instance = DynamicModel.model_validate({"eval_1": 3.5})
-    assert instance.model_dump()["blk_1234567890abcdef1234567890abcdef"] == 3.5
+    instance = DynamicModel.model_validate_json('{"eval_1": 3.5}')
+    assert instance.model_dump()[_TEST_BLOCK_ID] == 3.5
 
     # Should forbid extra fields due to strict=True, extra='forbid'
     with pytest.raises(ValidationError):
@@ -146,15 +143,11 @@ def test_schema_compiler_int_and_remaining_extensions() -> None:
     assert f"eval_1_{XaiExtensionType.CONFIDENCE.value}" in props
 
     # Valid validation
-    instance = DynamicModel.model_validate(
-        {
-            "eval_1": 4,
-            f"eval_1_{XaiExtensionType.JUSTIFICATION.value}": "Justification text",
-            f"eval_1_{XaiExtensionType.CITATION.value}": "Citation text",
-            f"eval_1_{XaiExtensionType.CONFIDENCE.value}": 0.9,
-        }
+    instance = DynamicModel.model_validate_json(
+        '{"eval_1": 4, "eval_1_justification": "Justification text", '
+        '"eval_1_citation": "Citation text", "eval_1_confidence": 0.9}'
     )
-    assert instance.blk_1234567890abcdef1234567890abcdef == 4
+    assert instance.model_dump()[_TEST_BLOCK_ID] == 4
 
     # Negative test: invalid int type raises ValidationError
     with pytest.raises(ValidationError):
@@ -170,3 +163,42 @@ def test_schema_compiler_int_and_remaining_extensions() -> None:
     # Negative test: missing required field raises ValidationError
     with pytest.raises(ValidationError):
         DynamicModel.model_validate({"eval_1": 4})
+
+
+def test_schema_compiler_mcp_tool_delegation_and_negative_boundaries() -> None:
+    """Test MCP tool argument model and declaration delegation plus negative AppException boundaries."""
+    input_schema = MCPToolInputSchemaDTO(
+        properties={
+            "query": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.STRING,
+                description="Search query string.",
+            )
+        },
+        required=["query"],
+    )
+
+    arg_model = SchemaCompilerService.create_mcp_tool_argument_model("gw_search__web", input_schema)
+    validated_args = arg_model.model_validate_json('{"query": "quorum architecture"}')
+    assert validated_args.model_dump() == {"query": "quorum architecture"}
+
+    descriptor = MCPToolDescriptorDTO(
+        gateway_id="sys_1234567890abcdef1234567890abcdef",
+        gateway_slug="gw_search",
+        namespaced_alias="gw_search__web",
+        tool_id="web",
+        description="Execute web search.",
+        input_schema=input_schema,
+    )
+    declaration = SchemaCompilerService.build_mcp_tool_declaration("gw_search__web", descriptor)
+    assert declaration.function.name == "gw_search__web"
+    assert declaration.function.description == "Execute web search."
+
+    # Negative test 1: blank namespaced_alias in create_mcp_tool_argument_model raises AppException
+    with pytest.raises(AppException) as exc_arg:
+        SchemaCompilerService.create_mcp_tool_argument_model("   ", input_schema)
+    assert exc_arg.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+    # Negative test 2: blank namespaced_alias in build_mcp_tool_declaration raises AppException
+    with pytest.raises(AppException) as exc_decl:
+        SchemaCompilerService.build_mcp_tool_declaration("", descriptor)
+    assert exc_decl.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED

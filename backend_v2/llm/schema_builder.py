@@ -1,5 +1,7 @@
 """Schema Compiler Service for compiling PromptBlocks into dynamic Pydantic models."""
 
+from __future__ import annotations
+
 import functools
 import hashlib
 import json
@@ -55,7 +57,14 @@ class BlockSchemaConfigDTO(BaseModel):
 
 
 class DynamicFieldSpecDTO(V2CoreBase):
-    """Specification of a dynamically generated schema field."""
+    """Specification of a dynamically generated schema field.
+
+    Attributes:
+        name: Internal field name on the generated model.
+        type_hint: Python type annotation for the generated field.
+        description: Schema description instruction for the LLM.
+        alias: Deterministic evaluation alias exposed to the LLM.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)
 
@@ -78,7 +87,7 @@ class SchemaCompilerService:
 
     @staticmethod
     def _generate_hash(blocks_config: list[BlockSchemaConfigDTO]) -> str:
-        """Generates a stable SHA-256 hash for a given schema configuration.
+        """Generate a stable SHA-256 hash for a given schema configuration.
 
         Args:
             blocks_config: List of block configuration DTOs.
@@ -94,7 +103,8 @@ class SchemaCompilerService:
     @staticmethod
     @functools.lru_cache(maxsize=1024)
     def _get_or_create_model(schema_hash: str, fields_tuple: tuple[DynamicFieldSpecDTO, ...]) -> type[BaseModel]:
-        """Retrieves or creates a Pydantic Model based on the fields tuple.
+        """Retrieve or create a Pydantic Model based on the fields tuple.
+
         LRU Cache strictly prevents Python `type` memory leaks (OOM) during dynamic creation.
 
         Args:
@@ -112,9 +122,146 @@ class SchemaCompilerService:
         )
         return cast(type[BaseModel], model)
 
+    @staticmethod
+    def _resolve_primary_field_spec(block_id: str, alias_name: str, b_type: str) -> DynamicFieldSpecDTO:
+        """Build the primary evaluation DynamicFieldSpecDTO for a prompt block.
+
+        Args:
+            block_id: Canonical prompt block identifier.
+            alias_name: Deterministic evaluation alias (e.g., 'eval_1').
+            b_type: Serialized BlockDataType value.
+
+        Returns:
+            Configured DynamicFieldSpecDTO for the primary block output.
+        """
+        if b_type == BlockDataType.FLOAT.value:
+            type_hint: Any = float
+            desc = f"Float numerical value for {block_id}"
+        elif b_type == BlockDataType.INT.value:
+            type_hint = int
+            desc = f"Integer numerical value for {block_id}"
+        else:
+            type_hint = str
+            desc = f"Extracted text content for {block_id}"
+
+        return DynamicFieldSpecDTO(
+            name=block_id,
+            type_hint=type_hint,
+            description=desc,
+            alias=alias_name,
+        )
+
+    @staticmethod
+    def _make_extension_spec(
+        block_id: str,
+        alias_name: str,
+        ext_type: XaiExtensionType,
+        type_hint: Any,
+        description: str,
+    ) -> DynamicFieldSpecDTO:
+        """Create a DynamicFieldSpecDTO for a single XAI output extension.
+
+        Args:
+            block_id: Canonical prompt block identifier.
+            alias_name: Deterministic evaluation alias (e.g., 'eval_1').
+            ext_type: XAI extension enum variant.
+            type_hint: Python type annotation for the extension field.
+            description: Formatted schema description instruction.
+
+        Returns:
+            Configured DynamicFieldSpecDTO for the extension field.
+        """
+        return DynamicFieldSpecDTO(
+            name=f"{block_id}_{ext_type.value}",
+            type_hint=type_hint,
+            description=description,
+            alias=f"{alias_name}_{ext_type.value}",
+        )
+
+    @classmethod
+    def _build_xai_extension_specs(
+        cls,
+        block_id: str,
+        alias_name: str,
+        extensions: list[str],
+    ) -> list[DynamicFieldSpecDTO]:
+        """Build XAI extension field specifications for a prompt block.
+
+        Args:
+            block_id: Canonical prompt block identifier.
+            alias_name: Deterministic evaluation alias (e.g., 'eval_1').
+            extensions: Requested XAI output extension identifiers.
+
+        Returns:
+            Ordered list of DynamicFieldSpecDTO instances for active extensions.
+        """
+        extension_set = set(extensions)
+        specs: list[DynamicFieldSpecDTO] = []
+        if XaiExtensionType.JUSTIFICATION.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(
+                    block_id,
+                    alias_name,
+                    XaiExtensionType.JUSTIFICATION,
+                    str,
+                    XAI_DESC_JUSTIFICATION.format(block_id=block_id),
+                )
+            )
+        if XaiExtensionType.CITATION.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(
+                    block_id, alias_name, XaiExtensionType.CITATION, str, XAI_DESC_CITATION.format(block_id=block_id)
+                )
+            )
+        if XaiExtensionType.COACHING.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(block_id, alias_name, XaiExtensionType.COACHING, str, XAI_DESC_COACHING)
+            )
+        if XaiExtensionType.CONFIDENCE.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(block_id, alias_name, XaiExtensionType.CONFIDENCE, float, XAI_DESC_CONFIDENCE)
+            )
+        if XaiExtensionType.FALSIFICATION.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(
+                    block_id,
+                    alias_name,
+                    XaiExtensionType.FALSIFICATION,
+                    str,
+                    XAI_DESC_FALSIFICATION.format(block_id=block_id),
+                )
+            )
+        if XaiExtensionType.MISSING_CONTEXT.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(
+                    block_id, alias_name, XaiExtensionType.MISSING_CONTEXT, str, XAI_DESC_MISSING_CONTEXT
+                )
+            )
+        if XaiExtensionType.RISK_FLAG.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(block_id, alias_name, XaiExtensionType.RISK_FLAG, bool, XAI_DESC_RISK_FLAG)
+            )
+        if XaiExtensionType.REMEDIATION_STEPS.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(
+                    block_id, alias_name, XaiExtensionType.REMEDIATION_STEPS, list[str], XAI_DESC_REMEDIATION_STEPS
+                )
+            )
+        if XaiExtensionType.EMOTIONAL_SENTIMENT.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(
+                    block_id, alias_name, XaiExtensionType.EMOTIONAL_SENTIMENT, str, XAI_DESC_EMOTIONAL_SENTIMENT
+                )
+            )
+        if XaiExtensionType.THEORY_LINK.value in extension_set:
+            specs.append(
+                cls._make_extension_spec(block_id, alias_name, XaiExtensionType.THEORY_LINK, str, XAI_DESC_THEORY_LINK)
+            )
+        return specs
+
     @classmethod
     def compile(cls, prompt_blocks: list[PromptBlock]) -> type[BaseModel]:
-        """Compiles a list of PromptBlocks into a rigid Pydantic model.
+        """Compile a list of PromptBlocks into a rigid Pydantic model.
 
         Args:
             prompt_blocks: List of PromptBlock configuration blocks.
@@ -122,145 +269,25 @@ class SchemaCompilerService:
         Returns:
             Compiled Pydantic Model.
         """
-        # 1. Create a hashable representation of the schema requirements
-        blocks_config: list[BlockSchemaConfigDTO] = []
-        for block in prompt_blocks:
-            blocks_config.append(
-                BlockSchemaConfigDTO(
-                    id=block.id,
-                    type=block.type.value if isinstance(block.type, Enum) else str(block.type),
-                    output_extensions=block.output_extensions,
-                )
+        blocks_config: list[BlockSchemaConfigDTO] = [
+            BlockSchemaConfigDTO(
+                id=block.id,
+                type=block.type.value if isinstance(block.type, Enum) else str(block.type),
+                output_extensions=block.output_extensions,
             )
+            for block in prompt_blocks
+        ]
 
-        # Sort blocks_config by id to ensure deterministic hashing regardless of input order
         blocks_config.sort(key=lambda x: x.id)
         schema_hash = cls._generate_hash(blocks_config)
 
-        # 2. Build the fields tuple for Pydantic (must be hashable for lru_cache)
         fields_list: list[DynamicFieldSpecDTO] = []
         for index, cfg in enumerate(blocks_config):
-            block_id = cfg.id
             alias_name = f"eval_{index + 1}"
-            b_type = cfg.type
+            fields_list.append(cls._resolve_primary_field_spec(cfg.id, alias_name, cfg.type))
+            fields_list.extend(cls._build_xai_extension_specs(cfg.id, alias_name, cfg.output_extensions))
 
-            type_hint: Any
-            # Map BlockDataType to strict Python primitives
-            if b_type == BlockDataType.FLOAT.value:
-                type_hint = float
-                desc = f"Float numerical value for {block_id}"
-            elif b_type == BlockDataType.INT.value:
-                type_hint = int
-                desc = f"Integer numerical value for {block_id}"
-            else:
-                type_hint = str
-                desc = f"Extracted text content for {block_id}"
-
-            fields_list.append(
-                DynamicFieldSpecDTO(
-                    name=block_id,
-                    type_hint=type_hint,
-                    description=desc,
-                    alias=alias_name,
-                )
-            )
-
-            # Dynamically inject requested XAI output extensions into Pydantic schema
-            extensions = cfg.output_extensions
-            if XaiExtensionType.JUSTIFICATION.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.JUSTIFICATION.value}",
-                        type_hint=str,
-                        description=XAI_DESC_JUSTIFICATION.format(block_id=block_id),
-                        alias=f"{alias_name}_{XaiExtensionType.JUSTIFICATION.value}",
-                    )
-                )
-            if XaiExtensionType.CITATION.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.CITATION.value}",
-                        type_hint=str,
-                        description=XAI_DESC_CITATION.format(block_id=block_id),
-                        alias=f"{alias_name}_{XaiExtensionType.CITATION.value}",
-                    )
-                )
-            if XaiExtensionType.COACHING.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.COACHING.value}",
-                        type_hint=str,
-                        description=XAI_DESC_COACHING,
-                        alias=f"{alias_name}_{XaiExtensionType.COACHING.value}",
-                    )
-                )
-            if XaiExtensionType.CONFIDENCE.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.CONFIDENCE.value}",
-                        type_hint=float,
-                        description=XAI_DESC_CONFIDENCE,
-                        alias=f"{alias_name}_{XaiExtensionType.CONFIDENCE.value}",
-                    )
-                )
-            if XaiExtensionType.FALSIFICATION.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.FALSIFICATION.value}",
-                        type_hint=str,
-                        description=XAI_DESC_FALSIFICATION.format(block_id=block_id),
-                        alias=f"{alias_name}_{XaiExtensionType.FALSIFICATION.value}",
-                    )
-                )
-            if XaiExtensionType.MISSING_CONTEXT.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.MISSING_CONTEXT.value}",
-                        type_hint=str,
-                        description=XAI_DESC_MISSING_CONTEXT,
-                        alias=f"{alias_name}_{XaiExtensionType.MISSING_CONTEXT.value}",
-                    )
-                )
-            if XaiExtensionType.RISK_FLAG.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.RISK_FLAG.value}",
-                        type_hint=bool,
-                        description=XAI_DESC_RISK_FLAG,
-                        alias=f"{alias_name}_{XaiExtensionType.RISK_FLAG.value}",
-                    )
-                )
-            if XaiExtensionType.REMEDIATION_STEPS.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.REMEDIATION_STEPS.value}",
-                        type_hint=list[str],
-                        description=XAI_DESC_REMEDIATION_STEPS,
-                        alias=f"{alias_name}_{XaiExtensionType.REMEDIATION_STEPS.value}",
-                    )
-                )
-            if XaiExtensionType.EMOTIONAL_SENTIMENT.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
-                        type_hint=str,
-                        description=XAI_DESC_EMOTIONAL_SENTIMENT,
-                        alias=f"{alias_name}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
-                    )
-                )
-            if XaiExtensionType.THEORY_LINK.value in extensions:
-                fields_list.append(
-                    DynamicFieldSpecDTO(
-                        name=f"{block_id}_{XaiExtensionType.THEORY_LINK.value}",
-                        type_hint=str,
-                        description=XAI_DESC_THEORY_LINK,
-                        alias=f"{alias_name}_{XaiExtensionType.THEORY_LINK.value}",
-                    )
-                )
-
-        # Convert to immutable tuple to safely cross the LRU cache boundary
-        fields_tuple = tuple(fields_list)
-        return cls._get_or_create_model(schema_hash, fields_tuple)
+        return cls._get_or_create_model(schema_hash, tuple(fields_list))
 
     @classmethod
     def create_mcp_tool_argument_model(
@@ -278,7 +305,7 @@ class SchemaCompilerService:
             Dynamically generated Pydantic V2 BaseModel enforcing strict=True, extra='forbid', frozen=True.
 
         Raises:
-            AppException: If namespaced_alias is empty or input_schema has invalid required keys.
+            AppException: With VALIDATION_FAILED if namespaced_alias is empty or input_schema has invalid required keys.
         """
         return SchemaFactory.create_mcp_tool_argument_model(namespaced_alias, input_schema)
 
@@ -298,6 +325,6 @@ class SchemaCompilerService:
             Strongly typed MCPToolDeclarationDTO ready for LLM provider serialization.
 
         Raises:
-            AppException: If namespaced_alias is empty.
+            AppException: With VALIDATION_FAILED if namespaced_alias is empty.
         """
         return SchemaFactory.build_mcp_tool_declaration(namespaced_alias, tool)
