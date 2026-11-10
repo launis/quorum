@@ -18,19 +18,21 @@ from backend_v2.models.enums import EngineType, EntityPrefix, ExecutionStatus, H
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator import (
-    ENGINE_REGISTRY,
     CausalCohesionEvaluationDTO,
     CausalCohesionEvaluator,
     ContextRouter,
     DAGCompilerService,
-    DAGExecutor,
-    ExecutionEngine,
     MatrixReducer,
     PromptCompiler,
+    PromptCompilerAdapter,
     RoutingModeConfig,
+)
+from backend_v2.services.orchestrator.dag_executor import DAGExecutor, NodeExecutor
+from backend_v2.services.orchestrator.engines import (
+    ENGINE_REGISTRY,
+    ExecutionEngine,
     build_execution_engine,
 )
-from backend_v2.services.orchestrator.dag_executor import NodeExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -85,25 +87,26 @@ async def test_orchestrator_init_public_interface_and_resolution() -> None:
         "CausalCohesionEvaluator",
         "ContextRouter",
         "DAGCompilerService",
-        "DAGExecutor",
-        "ENGINE_REGISTRY",
-        "ExecutionEngine",
         "MatrixReducer",
         "PromptCompiler",
+        "PromptCompilerAdapter",
         "RoutingModeConfig",
-        "build_execution_engine",
     ]
     assert sorted(orchestrator_pkg.__all__) == expected
 
     compiler = PromptCompiler()
+    adapter = PromptCompilerAdapter()
+    assert adapter.resolve_i18n(I18nText(translations={"en": "Hello", "fi": "Hei"}), "fi") == "Hei"
     engine = build_execution_engine(EngineType.TDA, compiler)
     assert isinstance(engine, ExecutionEngine)
     assert EngineType.TDA in ENGINE_REGISTRY
     assert CausalCohesionEvaluator is orchestrator_pkg.CausalCohesionEvaluator
     assert CausalCohesionEvaluationDTO is orchestrator_pkg.CausalCohesionEvaluationDTO
     assert ContextRouter is orchestrator_pkg.ContextRouter
-    assert DAGExecutor is orchestrator_pkg.DAGExecutor
+    assert DAGCompilerService is orchestrator_pkg.DAGCompilerService
     assert MatrixReducer is orchestrator_pkg.MatrixReducer
+    assert PromptCompiler is orchestrator_pkg.PromptCompiler
+    assert PromptCompilerAdapter is orchestrator_pkg.PromptCompilerAdapter
     assert RoutingModeConfig is orchestrator_pkg.RoutingModeConfig
 
     step_1_id = generate_opaque_id(EntityPrefix.STEP)
