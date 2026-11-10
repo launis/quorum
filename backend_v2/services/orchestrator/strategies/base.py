@@ -53,8 +53,8 @@ class StrategyContext(BaseModel):
         metadata: Execution metadata container.
         expected_inputs: Optional expected inputs definition.
         cognitive_tier: Cognitive tier determining model profile resolution.
-        strictness_level: Int representing strictness level.
-        lexical_strictness_level: Int representing lexical strictness level.
+        strictness_level: Numerical strictness threshold level.
+        lexical_strictness_level: Numerical lexical strictness threshold level.
         global_context_vars: Global context variables.
         context_variables: Local context variables.
         prompt_blocks: Hydrated prompt blocks for execution.
@@ -105,7 +105,20 @@ EngineExecutionRequest.model_rebuild()
 
 @dataclass(frozen=True)
 class StrategyDependencies:
-    """Immutable dependency container injected into execution strategies."""
+    """Immutable dependency container injected into execution strategies.
+
+    Attributes:
+        exec_repo: Execution state persistence repository.
+        workflow_repo: Workflow blueprint repository.
+        comp_repo: Step component repository.
+        prompt_block_repo: Prompt block repository.
+        output_profile_repo: Output profile repository.
+        identity_repo: Identity and organization repository.
+        audit_repo: Financial and token usage audit repository.
+        system_repo: System configuration repository.
+        prompt_compiler: Prompt compilation engine instance.
+        arq_pool: Optional background Arq worker connection pool.
+    """
 
     exec_repo: IExecutionRepository
     workflow_repo: IWorkflowRepository
@@ -206,6 +219,11 @@ class NodeStrategy(ABC):
 
         Returns:
             An array of new TraceEvents representing the node's outputs or errors.
+
+        Raises:
+            AppException: If node execution fails validation, configuration, or runtime invariants
+                (ErrorCodes.CONFIGURATION_ERROR, ErrorCodes.RATE_LIMIT_EXCEEDED,
+                ErrorCodes.AGENT_EXECUTION_CRITICAL).
         """
         pass
 
@@ -233,12 +251,54 @@ class NodeStrategy(ABC):
                 "[NodeStrategy] %s: Circuit Breaker Tripped - %s",
                 ErrorCodes.RATE_LIMIT_EXCEEDED.name,
                 msg,
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
                 status_code=402,
                 details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
             )
+
+    async def _execute_hook_sequence(
+        self,
+        hooks: list[str],
+        step_id: str,
+        blueprint_id: str,
+        hook_phase_label: str,
+        hook_state: HookState,
+        hook_deps: HookDependencies,
+    ) -> tuple[HookState, list[TraceEvent]]:
+        """Execute an ordered sequence of pre- or post-hooks and reduce emitted state deltas.
+
+        Args:
+            hooks: Ordered list of hook identifiers from the step blueprint.
+            step_id: DAG step rule identifier for trace attribution.
+            blueprint_id: Canonical step blueprint identifier for diagnostic logging.
+            hook_phase_label: Label identifying the hook phase ('Pre-hook' or 'Post-hook').
+            hook_state: Current immutable hook execution state.
+            hook_deps: Dependency container injected into each hook.
+
+        Returns:
+            A tuple containing the updated HookState and emitted TraceEvents.
+        """
+        emitted_events: list[TraceEvent] = []
+        if not hooks:
+            return hook_state, emitted_events
+
+        for hook_name in hooks:
+            res = await hook_registry.execute(hook_name, hook_state, hook_deps)
+            if res.success and res.state_delta:
+                hook_state, events = reduce_hook_delta(hook_state, res.state_delta, step_id)
+                emitted_events.extend(events)
+            elif not res.success:
+                logger.warning(
+                    "[NodeStrategy] %s '%s' returned success=False for step '%s'.",
+                    hook_phase_label,
+                    hook_name,
+                    blueprint_id,
+                )
+
+        return hook_state, emitted_events
 
     async def run_pre_hooks(
         self,
@@ -249,8 +309,6 @@ class NodeStrategy(ABC):
     ) -> tuple[HookState, list[TraceEvent]]:
         """Executes all pre-hooks associated with the step safely and deterministically.
 
-        Extracts common pre-hook loops previously bundled inside the God Method execution branches.
-
         Args:
             step_obj: The V2Step definition containing the hooks.
             step: The node step rule from the DAG.
@@ -259,26 +317,18 @@ class NodeStrategy(ABC):
 
         Returns:
             A tuple containing the mutated HookState and a list of TraceEvents.
+
+        Raises:
+            AppException: If an underlying registered pre-hook raises a fatal execution error.
         """
-        emitted_events: list[TraceEvent] = []
-        # SSOT Enforcement: Only the Blueprint (step_obj) owns pre_hooks
-        if not step_obj.pre_hooks:
-            return hook_state, emitted_events
-
-        for pre_hook in step_obj.pre_hooks:
-            res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
-            if res.success and res.state_delta:
-                hook_state, events = reduce_hook_delta(hook_state, res.state_delta, step.id)
-                emitted_events.extend(events)
-            elif not res.success:
-                # RFC 7807: Hook signaled non-success — log explicitly so the audit trail captures it.
-                logger.warning(
-                    "[NodeStrategy] Pre-hook '%s' returned success=False for step '%s'.",
-                    pre_hook,
-                    step_obj.id,
-                )
-
-        return hook_state, emitted_events
+        return await self._execute_hook_sequence(
+            hooks=step_obj.pre_hooks,
+            step_id=step.id,
+            blueprint_id=step_obj.id,
+            hook_phase_label="Pre-hook",
+            hook_state=hook_state,
+            hook_deps=hook_deps,
+        )
 
     async def run_post_hooks(
         self,
@@ -289,8 +339,6 @@ class NodeStrategy(ABC):
     ) -> tuple[HookState, list[TraceEvent]]:
         """Executes all post-hooks deterministically across both AI and synchronous domains.
 
-        Safely relies on the strictly typed HookState which must be populated before calling this.
-
         Args:
             step_obj: The V2Step definition containing the hooks.
             step: The node step rule from the DAG.
@@ -299,23 +347,15 @@ class NodeStrategy(ABC):
 
         Returns:
             A tuple containing the mutated HookState and a list of TraceEvents.
+
+        Raises:
+            AppException: If an underlying registered post-hook raises a fatal execution error.
         """
-        emitted_events: list[TraceEvent] = []
-        # SSOT Enforcement: Only the Blueprint (step_obj) owns post_hooks.
-        if not step_obj.post_hooks:
-            return hook_state, emitted_events
-
-        for post_hook in step_obj.post_hooks:
-            ph_res = await hook_registry.execute(post_hook, hook_state, hook_deps)
-            if ph_res.success and ph_res.state_delta:
-                hook_state, events = reduce_hook_delta(hook_state, ph_res.state_delta, step.id)
-                emitted_events.extend(events)
-            elif not ph_res.success:
-                # RFC 7807: Post-hook signaled non-success — log explicitly so the audit trail captures it.
-                logger.warning(
-                    "[NodeStrategy] Post-hook '%s' returned success=False for step '%s'.",
-                    post_hook,
-                    step_obj.id,
-                )
-
-        return hook_state, emitted_events
+        return await self._execute_hook_sequence(
+            hooks=step_obj.post_hooks,
+            step_id=step.id,
+            blueprint_id=step_obj.id,
+            hook_phase_label="Post-hook",
+            hook_state=hook_state,
+            hook_deps=hook_deps,
+        )
