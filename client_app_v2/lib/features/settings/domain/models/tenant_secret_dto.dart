@@ -1,5 +1,6 @@
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/workflow_inputs.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -210,6 +211,23 @@ abstract class TenantSecretResponseDto with _$TenantSecretResponseDto {
       _$TenantSecretResponseDtoFromJson(json);
 }
 
+/// Read-only projection of a Task Definition PromptBlock attached to an assignment.
+@Freezed(equal: false)
+abstract class TaskAssignmentBriefDto with _$TaskAssignmentBriefDto {
+  const TaskAssignmentBriefDto._();
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory TaskAssignmentBriefDto({
+    @StrictOpaqueIdConverter() required String id,
+    required I18nText label,
+    @JsonKey(name: 'instruction_text') String? instructionText,
+    @JsonKey(name: 'source_url') String? sourceUrl,
+  }) = _TaskAssignmentBriefDto;
+
+  factory TaskAssignmentBriefDto.fromJson(Map<String, dynamic> json) =>
+      _$TaskAssignmentBriefDtoFromJson(json);
+}
+
 /// Payload for creating a single-use workflow execution assignment.
 @Freezed(equal: false)
 abstract class ExecutionAssignmentCreateDto
@@ -230,6 +248,7 @@ abstract class ExecutionAssignmentCreateDto
     @JsonKey(name: 'workflow_id')
     required String workflowId,
     @JsonKey(name: 'output_profile_id') String? outputProfileId,
+    @JsonKey(name: 'task_brief_id') String? taskBriefId,
     @JsonKey(name: 'target_locale') @Default('fi') String targetLocale,
     @JsonKey(name: 'locked_inputs') required WorkflowInputs lockedInputs,
     @JsonKey(name: 'assignee_input_keys')
@@ -287,6 +306,7 @@ abstract class ExecutionAssignmentBatchCreateDto
     @JsonKey(name: 'workflow_id')
     required String workflowId,
     @JsonKey(name: 'output_profile_id') String? outputProfileId,
+    @JsonKey(name: 'task_brief_id') String? taskBriefId,
     @JsonKey(name: 'target_locale') @Default('fi') String targetLocale,
     @JsonKey(name: 'locked_inputs') required WorkflowInputs lockedInputs,
     @JsonKey(name: 'assignee_input_keys')
@@ -324,6 +344,8 @@ abstract class ExecutionAssignmentResponseDto
     @JsonKey(name: 'workflow_id')
     required String workflowId,
     @JsonKey(name: 'output_profile_id') String? outputProfileId,
+    @JsonKey(name: 'task_brief_id') String? taskBriefId,
+    @JsonKey(name: 'task_brief') TaskAssignmentBriefDto? taskBrief,
     @JsonKey(name: 'target_locale') required String targetLocale,
     @JsonKey(name: 'locked_inputs') required WorkflowInputs lockedInputs,
     @JsonKey(name: 'assignee_input_keys')
@@ -387,6 +409,8 @@ abstract class ExecutionAssignmentPreviewDto
     @StrictOpaqueIdConverter()
     @JsonKey(name: 'workflow_id')
     required String workflowId,
+    @JsonKey(name: 'task_brief_id') String? taskBriefId,
+    @JsonKey(name: 'task_brief') TaskAssignmentBriefDto? taskBrief,
     @JsonKey(name: 'target_locale') required String targetLocale,
     required AssignmentStatus status,
     @JsonKey(name: 'hard_deadline_at') required DateTime hardDeadlineAt,

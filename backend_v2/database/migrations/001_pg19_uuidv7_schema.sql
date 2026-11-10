@@ -406,6 +406,7 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     invited_role TEXT NOT NULL DEFAULT 'MEMBER',
     workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
     output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
+    task_brief_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL,
     target_locale TEXT NOT NULL,
     locked_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
     assignee_input_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -427,9 +428,11 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     CONSTRAINT enforce_assignment_assigned_user_uuidv7 CHECK (assigned_user_id IS NULL OR uuid_extract_version(assigned_user_id) = 7),
     CONSTRAINT enforce_assignment_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
     CONSTRAINT enforce_assignment_output_profile_uuidv7 CHECK (output_profile_id IS NULL OR uuid_extract_version(output_profile_id) = 7),
+    CONSTRAINT enforce_assignment_task_brief_uuidv7 CHECK (task_brief_id IS NULL OR uuid_extract_version(task_brief_id) = 7),
     CONSTRAINT enforce_assignment_execution_uuidv7 CHECK (execution_id IS NULL OR uuid_extract_version(execution_id) = 7),
     CONSTRAINT enforce_assignment_created_by_uuidv7 CHECK (uuid_extract_version(created_by) = 7)
 );
+ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL;
 
 -- Dynamic PG 18+/19 VIRTUAL vs PG 17 STORED Timestamp Guard
 DO $$

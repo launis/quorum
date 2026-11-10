@@ -13,6 +13,7 @@ void main() {
   const validWfId = 'wf_01960000000070008000000000000005';
   const validTskId = 'tsk_01960000000070008000000000000006';
   const validBatchId = 'tsk_01960000000070008000000000000007';
+  const validBriefId = 'blk_01960000000070008000000000000008';
 
   group('tenant_secret_dto Domain Models Hardening Tests', () {
     test(
@@ -123,6 +124,7 @@ void main() {
           'assigned_email': 'exec@quorum.ai',
           'invited_role': 'MEMBER',
           'workflow_id': validWfId,
+          'task_brief_id': validBriefId,
           'target_locale': 'fi',
           'locked_inputs': {
             'dynamic_inputs': {'brief': 'Context doc'},
@@ -136,16 +138,19 @@ void main() {
           assignmentCreate.resultVisibility,
           equals(AssignmentResultVisibility.fullReportAccess),
         );
+        expect(assignmentCreate.taskBriefId, equals(validBriefId));
 
         final batchCreate = ExecutionAssignmentBatchCreateDto.fromJson({
           'recipients': [
             {'email': 'one@quorum.ai', 'name': 'One', 'target_locale': 'en'},
           ],
           'workflow_id': validWfId,
+          'task_brief_id': validBriefId,
           'locked_inputs': const <String, dynamic>{},
           'hard_deadline_at': '2026-12-01T00:00:00.000Z',
         });
         expect(batchCreate.recipients.single.name, equals('One'));
+        expect(batchCreate.taskBriefId, equals(validBriefId));
 
         final batchRes = ExecutionAssignmentBatchResponseDto.fromJson({
           'batch_id': validBatchId,
@@ -158,6 +163,18 @@ void main() {
               'assigned_email': 'one@quorum.ai',
               'invited_role': 'MEMBER',
               'workflow_id': validWfId,
+              'task_brief_id': validBriefId,
+              'task_brief': {
+                'id': validBriefId,
+                'label': {
+                  'translations': {
+                    'en': 'Case Brief',
+                    'fi': 'Tehtäväohje',
+                  },
+                },
+                'instruction_text': 'Analyze the scenario.',
+                'source_url': 'https://docs.qrum.ai/case-1',
+              },
               'target_locale': 'en',
               'locked_inputs': const <String, dynamic>{},
               'assignee_input_keys': ['input_a'],
@@ -176,6 +193,14 @@ void main() {
           batchRes.assignments.single.status,
           equals(AssignmentStatus.activated),
         );
+        expect(
+          batchRes.assignments.single.taskBrief?.sourceUrl,
+          equals('https://docs.qrum.ai/case-1'),
+        );
+        expect(
+          batchRes.assignments.single.taskBrief?.label.translations['en'],
+          equals('Case Brief'),
+        );
 
         final preview = ExecutionAssignmentPreviewDto.fromJson({
           'id': validTskId,
@@ -183,11 +208,28 @@ void main() {
           'organization_name': 'Quorum Enterprise',
           'assigned_email_masked': 'o***@quorum.ai',
           'workflow_id': validWfId,
+          'task_brief_id': validBriefId,
+          'task_brief': {
+            'id': validBriefId,
+            'label': {
+              'translations': {
+                'en': 'Case Brief',
+                'fi': 'Tehtäväohje',
+              },
+            },
+            'instruction_text': 'Analyze the scenario.',
+            'source_url': 'https://docs.qrum.ai/case-1',
+          },
           'target_locale': 'fi',
           'status': 'pending',
           'hard_deadline_at': '2026-12-01T00:00:00.000Z',
         });
         expect(preview.organizationName, equals('Quorum Enterprise'));
+        expect(preview.taskBriefId, equals(validBriefId));
+        expect(
+          preview.taskBrief?.instructionText,
+          equals('Analyze the scenario.'),
+        );
 
         final onboarding = ExecutionAssignmentOnboardingRequestDto.fromJson({
           'name': 'Onboarded User',
@@ -268,6 +310,17 @@ void main() {
         // Missing required fields must throw CheckedFromJsonException
         expect(
           () => InvitationResponseDto.fromJson({'id': validInvId}),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        expect(
+          () => TaskAssignmentBriefDto.fromJson({
+            'id': validBriefId,
+            'label': {
+              'translations': {'en': 'Brief'},
+            },
+            'unknown_key': 'forbidden',
+          }),
           throwsA(isA<CheckedFromJsonException>()),
         );
       },

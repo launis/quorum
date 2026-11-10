@@ -153,36 +153,37 @@ _LIST_TENANT_SECRETS_BY_ORG_SQL: str = """SELECT id, organization_id, scope, tar
 FROM tenant_secrets WHERE organization_id = $1::uuid"""
 
 _UPSERT_EXECUTION_ASSIGNMENT_SQL: str = """INSERT INTO execution_assignments (id, batch_id, organization_id,
-    assigned_email, assigned_user_id, invited_role, workflow_id, output_profile_id, target_locale, locked_inputs,
-    assignee_input_keys, draft_inputs, token_hash, status, email_delivery_status, result_visibility,
+    assigned_email, assigned_user_id, invited_role, workflow_id, output_profile_id, task_brief_id, target_locale,
+    locked_inputs, assignee_input_keys, draft_inputs, token_hash, status, email_delivery_status, result_visibility,
     hard_deadline_at, relative_duration_seconds, activated_at, submitted_at, execution_id, created_by)
-VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::uuid, $6, $7::uuid, $8::uuid, $9, $10::jsonb, $11::jsonb,
-    $12::jsonb, $13, $14, $15, $16, $17::timestamptz, $18, $19::timestamptz, $20::timestamptz, $21::uuid, $22::uuid)
+VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::uuid, $6, $7::uuid, $8::uuid, $9::uuid, $10, $11::jsonb, $12::jsonb,
+    $13::jsonb, $14, $15, $16, $17, $18::timestamptz, $19, $20::timestamptz, $21::timestamptz, $22::uuid, $23::uuid)
 ON CONFLICT (id) DO UPDATE SET batch_id = EXCLUDED.batch_id, organization_id = EXCLUDED.organization_id,
     assigned_email = EXCLUDED.assigned_email, assigned_user_id = EXCLUDED.assigned_user_id,
     invited_role = EXCLUDED.invited_role, workflow_id = EXCLUDED.workflow_id,
-    output_profile_id = EXCLUDED.output_profile_id, target_locale = EXCLUDED.target_locale,
-    locked_inputs = EXCLUDED.locked_inputs, assignee_input_keys = EXCLUDED.assignee_input_keys,
-    draft_inputs = EXCLUDED.draft_inputs, token_hash = EXCLUDED.token_hash, status = EXCLUDED.status,
+    output_profile_id = EXCLUDED.output_profile_id, task_brief_id = EXCLUDED.task_brief_id,
+    target_locale = EXCLUDED.target_locale, locked_inputs = EXCLUDED.locked_inputs,
+    assignee_input_keys = EXCLUDED.assignee_input_keys, draft_inputs = EXCLUDED.draft_inputs,
+    token_hash = EXCLUDED.token_hash, status = EXCLUDED.status,
     email_delivery_status = EXCLUDED.email_delivery_status, result_visibility = EXCLUDED.result_visibility,
     hard_deadline_at = EXCLUDED.hard_deadline_at, relative_duration_seconds = EXCLUDED.relative_duration_seconds,
     activated_at = EXCLUDED.activated_at, submitted_at = EXCLUDED.submitted_at,
     execution_id = EXCLUDED.execution_id, created_by = EXCLUDED.created_by"""
 
 _GET_EXECUTION_ASSIGNMENT_SQL: str = """SELECT id, batch_id, organization_id, assigned_email, assigned_user_id,
-       invited_role, workflow_id, output_profile_id, target_locale, locked_inputs, assignee_input_keys,
+       invited_role, workflow_id, output_profile_id, task_brief_id, target_locale, locked_inputs, assignee_input_keys,
        draft_inputs, token_hash, status, email_delivery_status, result_visibility, hard_deadline_at,
        relative_duration_seconds, activated_at, submitted_at, execution_id, created_by, created_at
 FROM execution_assignments WHERE id = $1::uuid"""
 
 _LIST_EXECUTION_ASSIGNMENTS_SQL: str = """SELECT id, batch_id, organization_id, assigned_email, assigned_user_id,
-       invited_role, workflow_id, output_profile_id, target_locale, locked_inputs, assignee_input_keys,
+       invited_role, workflow_id, output_profile_id, task_brief_id, target_locale, locked_inputs, assignee_input_keys,
        draft_inputs, token_hash, status, email_delivery_status, result_visibility, hard_deadline_at,
        relative_duration_seconds, activated_at, submitted_at, execution_id, created_by, created_at
 FROM execution_assignments"""
 
 _LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL: str = """SELECT id, batch_id, organization_id, assigned_email,
-       assigned_user_id, invited_role, workflow_id, output_profile_id, target_locale, locked_inputs,
+       assigned_user_id, invited_role, workflow_id, output_profile_id, task_brief_id, target_locale, locked_inputs,
        assignee_input_keys, draft_inputs, token_hash, status, email_delivery_status, result_visibility,
        hard_deadline_at, relative_duration_seconds, activated_at, submitted_at, execution_id, created_by, created_at
 FROM execution_assignments WHERE organization_id = $1::uuid"""
@@ -781,6 +782,7 @@ def hydrate_execution_assignment_row(row: AsyncPgRecordProtocol) -> ExecutionAss
             "invited_role": row["invited_role"],
             "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
             "output_profile_id": _format_optional_uuid7(row["output_profile_id"], EntityPrefix.OUTPUT_PROFILE),
+            "task_brief_id": _format_optional_uuid7(row["task_brief_id"], EntityPrefix.PROMPT_BLOCK),
             "target_locale": row["target_locale"],
             "locked_inputs": _decode_jsonb_column(row["locked_inputs"]),
             "assignee_input_keys": _decode_jsonb_column(row["assignee_input_keys"]),
@@ -831,6 +833,7 @@ async def upsert_execution_assignment_row(
         assignment.invited_role.value,
         parse_prefixed_uuid7(assignment.workflow_id, EntityPrefix.WORKFLOW),
         _parse_optional_uuid7(assignment.output_profile_id, EntityPrefix.OUTPUT_PROFILE),
+        _parse_optional_uuid7(assignment.task_brief_id, EntityPrefix.PROMPT_BLOCK),
         str(assignment.target_locale),
         to_json(assignment.locked_inputs.model_dump(mode="json")).decode("utf-8"),
         to_json(assignment.assignee_input_keys).decode("utf-8"),

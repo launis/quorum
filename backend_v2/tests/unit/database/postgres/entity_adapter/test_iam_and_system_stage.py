@@ -61,9 +61,11 @@ from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     ModelProfile,
+    ProviderExtraParamsDTO,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
 from backend_v2.models.enums import (
     AssignmentResultVisibility,
     AssignmentStatus,
@@ -210,6 +212,7 @@ def _build_execution_assignment(organization_id: str, created_by: str) -> Execut
         invited_role=UserRole.MEMBER,
         workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
         output_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
+        task_brief_id=generate_opaque_id(EntityPrefix.PROMPT_BLOCK),
         target_locale=SystemLocale.FI,
         locked_inputs=WorkflowInputs(dynamic_inputs={"role_context": "Senior Architect"}),
         assignee_input_keys=["candidate_essay"],
@@ -234,7 +237,12 @@ def _build_model_registry() -> SystemConfigModelRegistry:
     Returns:
         Validated SystemConfigModelRegistry instance.
     """
-    profile = ModelProfile(provider="google", model_name="gemini-2.5-flash")
+    profile = ModelProfile(
+        provider="google",
+        model_name="gemini-2.5-flash",
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
+    )
     return SystemConfigModelRegistry(
         id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
         name="Primary Model Registry",
@@ -264,6 +272,7 @@ def _build_mcp_gateway() -> SystemConfigMCPGateways:
                 tool_id="web_search",
                 name=I18nText(translations={"en": "Web Search", "fi": "Verkkohaku"}),
                 description="Search the web for factual verification.",
+                input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
             )
         ],
     )
@@ -376,6 +385,7 @@ async def test_postgres_entity_adapter_iam_tables_roundtrip_positive() -> None:
         assert fetched_assign is not None
         assert fetched_assign.id == assignment.id
         assert fetched_assign.batch_id == assignment.batch_id
+        assert fetched_assign.task_brief_id == assignment.task_brief_id
         assert fetched_assign.assigned_email == assignment.assigned_email
         assert fetched_assign.locked_inputs == assignment.locked_inputs
         assert fetched_assign.assignee_input_keys == ["candidate_essay"]

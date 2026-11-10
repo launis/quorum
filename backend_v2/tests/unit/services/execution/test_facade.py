@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
@@ -358,8 +358,8 @@ async def test_facade_negative_permission_denied_and_unresumable_state() -> None
     record = create_execution_record(
         execution_id=execution_id,
         workflow_id=workflow_id,
-        raw_inputs=WorkflowInputs(),
-        frozen_context=FrozenContext(),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=FrozenContext.model_validate_json("{}"),
         source_identity_manifest={},
         created_by=owner_id,
         organization_id=owner_org_id,
@@ -394,8 +394,8 @@ def test_create_execution_record_negative_invalid_id_raises_app_exception() -> N
         create_execution_record(
             execution_id="invalid id with spaces",
             workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
-            raw_inputs=WorkflowInputs(),
-            frozen_context=FrozenContext(),
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+            frozen_context=FrozenContext.model_validate_json("{}"),
             source_identity_manifest={},
         )
     assert exc_info.value.status_code == 500
@@ -426,6 +426,10 @@ async def test_resume_execution_forwards_prompt_block_repo_for_merkle_invalidati
         hook="my_hook",
         criteria_block_ids=[block.id],
         mcp_tool_params={},
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
     )
     await workflow_repo.save_step(step)
 
@@ -433,7 +437,14 @@ async def test_resume_execution_forwards_prompt_block_repo_for_merkle_invalidati
         organization_id=org_id,
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        steps=[StepRule(id=step_rule_id, task_blueprint=step_blueprint_id)],
+        steps=[
+            StepRule(
+                id=step_rule_id,
+                task_blueprint=step_blueprint_id,
+                depends_on=[],
+                input_mappings={},
+            )
+        ],
     )
     await workflow_repo.save_workflow(workflow)
 
@@ -446,8 +457,8 @@ async def test_resume_execution_forwards_prompt_block_repo_for_merkle_invalidati
     record = create_execution_record(
         execution_id=execution_id,
         workflow_id=workflow.id,
-        raw_inputs=WorkflowInputs(),
-        frozen_context=FrozenContext(),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=FrozenContext.model_validate_json("{}"),
         source_identity_manifest={},
         created_by=user_id,
         organization_id=org_id,
@@ -494,13 +505,13 @@ async def test_facade_all_assignment_methods_negative_missing_dependency(
     assignment_id = generate_opaque_id(EntityPrefix.ASSIGNMENT)
     wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
 
-    calls = [
+    calls: list[Callable[[], Awaitable[object]]] = [
         lambda: unconfigured.create_assignment(
             caller,
             ExecutionAssignmentCreateDTO(
                 assigned_email="cand@alpha.fi",
                 workflow_id=wf_id,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=deadline,
             ),
@@ -510,7 +521,7 @@ async def test_facade_all_assignment_methods_negative_missing_dependency(
             ExecutionAssignmentBatchCreateDTO(
                 recipients=[ExecutionAssignmentRecipientDTO(email="batch@alpha.fi")],
                 workflow_id=wf_id,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
                 hard_deadline_at=deadline,
             ),
@@ -521,10 +532,15 @@ async def test_facade_all_assignment_methods_negative_missing_dependency(
         lambda: unconfigured.onboard_assignee("raw-token", ExecutionAssignmentOnboardingRequestDTO(name="Cand")),
         lambda: unconfigured.activate_assignment(caller, assignment_id),
         lambda: unconfigured.save_draft_inputs(
-            caller, assignment_id, ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs())
+            caller,
+            assignment_id,
+            ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs(dynamic_inputs={})),
         ),
         lambda: unconfigured.submit_assignment(
-            caller, assignment_id, ExecutionAssignmentSubmitDTO(submitted_inputs=WorkflowInputs()), AsyncMock()
+            caller,
+            assignment_id,
+            ExecutionAssignmentSubmitDTO(submitted_inputs=WorkflowInputs(dynamic_inputs={})),
+            AsyncMock(),
         ),
     ]
 
@@ -565,7 +581,7 @@ async def test_facade_assignment_lifecycle_end_to_end() -> None:
             model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
             historical_context_mode=HistoricalContextMode.DISABLED,
             expected_inputs=[],
-            steps=[StepRule(id=sr_id, task_blueprint=stp_id)],
+            steps=[StepRule(id=sr_id, task_blueprint=stp_id, depends_on=[], input_mappings={})],
             default_profile_id=prf_id,
             organization_id=org_id,
             is_public=False,
@@ -579,6 +595,11 @@ async def test_facade_assignment_lifecycle_end_to_end() -> None:
             type=StepType.LOGIC,
             hook="my_hook",
             mcp_tool_params={},
+            criteria_block_ids=[],
+            pre_hooks=[],
+            post_hooks=[],
+            allowed_mcp_tools=[],
+            expected_inputs=[],
         )
     )
     await repo.save_output_profile(
@@ -622,7 +643,7 @@ async def test_facade_assignment_lifecycle_end_to_end() -> None:
         assigned_email="cand@alpha.fi",
         workflow_id=wf_id,
         output_profile_id=prf_id,
-        locked_inputs=WorkflowInputs(),
+        locked_inputs=WorkflowInputs(dynamic_inputs={}),
         assignee_input_keys=[],
         hard_deadline_at=deadline,
     )
@@ -632,7 +653,7 @@ async def test_facade_assignment_lifecycle_end_to_end() -> None:
         ExecutionAssignmentBatchCreateDTO(
             recipients=[ExecutionAssignmentRecipientDTO(email="batch@alpha.fi")],
             workflow_id=wf_id,
-            locked_inputs=WorkflowInputs(),
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
             assignee_input_keys=[],
             hard_deadline_at=deadline,
         ),
@@ -666,13 +687,14 @@ async def test_facade_assignment_lifecycle_end_to_end() -> None:
         cand_token,
         created.id,
         ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs(dynamic_inputs={"note": "draft"})),
+        doc_service=None,
     )
     assert draft.draft_inputs.dynamic_inputs["note"] == "draft"
 
     submitted = await configured.submit_assignment(
         cand_token,
         created.id,
-        ExecutionAssignmentSubmitDTO(submitted_inputs=WorkflowInputs()),
+        ExecutionAssignmentSubmitDTO(submitted_inputs=WorkflowInputs(dynamic_inputs={})),
         AsyncMock(),
     )
     assert submitted.id.startswith("exe_")

@@ -16,12 +16,13 @@ from pydantic import ConfigDict, EmailStr, Field, SecretStr, field_validator, mo
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import (
+    I18nText,
     PrefixedUUID7,
     V2CoreBase,
     generate_uuid7_opaque_id,
 )
 from backend_v2.models.domain.execution import ExecutionAssignment as ExecutionAssignment
-from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.enums import (
     AssignmentResultVisibility,
@@ -86,6 +87,7 @@ __all__ = [
     "ResolvedCredentialDTO",
     "SubscriptionStatus",
     "SystemOrganizations",
+    "TaskAssignmentBriefDTO",
     "TenantSecretCreateDTO",
     "TenantSecretDTO",
     "TenantSecretResponseDTO",
@@ -1012,6 +1014,30 @@ class InvitationBatchResponseDTO(BaseResponseDTO):
 # --- Task Assignment & Transactional Email DTOs ---
 
 
+class TaskAssignmentBriefDTO(BaseResponseDTO):
+    """Hydrated Task Definition PromptBlock summary embedded in task assignment responses.
+
+    Attributes:
+        id: Canonical PromptBlock Opaque Stripe ID (blk_<hex32>).
+        label: Localized title of the task brief.
+        instruction_text: Optional plain-text or markdown task instructions.
+        source_url: Optional reference document or external resource URL.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    id: Annotated[PrefixedUUID7, Field(description="Canonical PromptBlock ID (blk_<hex32>)")]
+    label: Annotated[I18nText, Field(description="Localized title of the task brief")]
+    instruction_text: Annotated[
+        str | None,
+        Field(default=None, description="Optional task brief instruction text"),
+    ] = None
+    source_url: Annotated[
+        str | None,
+        Field(default=None, description="Optional reference URL from theory_grounding.source_url"),
+    ] = None
+
+
 class ExecutionAssignmentCreateDTO(BaseDTO):
     """Payload for creating a single-use workflow execution assignment.
 
@@ -1020,6 +1046,7 @@ class ExecutionAssignmentCreateDTO(BaseDTO):
         invited_role: Role granted upon auto-onboarding.
         workflow_id: Target Workflow ID (wf_<hex32>).
         output_profile_id: Optional Output Profile ID (prf_<hex32>).
+        task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).
         target_locale: Target execution locale.
         locked_inputs: Immutable manager-locked workflow inputs.
         assignee_input_keys: ExpectedInput keys unlocked for assignee completion.
@@ -1039,6 +1066,10 @@ class ExecutionAssignmentCreateDTO(BaseDTO):
     output_profile_id: Annotated[
         PrefixedUUID7 | None,
         Field(default=None, description="Optional Output Profile ID (prf_<hex32>)"),
+    ] = None
+    task_brief_id: Annotated[
+        PrefixedUUID7 | None,
+        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
     ] = None
     target_locale: Annotated[
         LaxSystemLocale,
@@ -1099,6 +1130,7 @@ class ExecutionAssignmentBatchCreateDTO(BaseDTO):
         invited_role: Role granted upon auto-onboarding.
         workflow_id: Shared target Workflow ID (wf_<hex32>).
         output_profile_id: Optional shared Output Profile ID (prf_<hex32>).
+        task_brief_id: Optional shared Task Definition PromptBlock ID (blk_<hex32>).
         target_locale: Default target execution locale.
         locked_inputs: Shared manager-locked workflow inputs.
         assignee_input_keys: Shared ExpectedInput keys unlocked for assignee completion.
@@ -1121,6 +1153,10 @@ class ExecutionAssignmentBatchCreateDTO(BaseDTO):
     output_profile_id: Annotated[
         PrefixedUUID7 | None,
         Field(default=None, description="Optional Output Profile ID (prf_<hex32>)"),
+    ] = None
+    task_brief_id: Annotated[
+        PrefixedUUID7 | None,
+        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
     ] = None
     target_locale: Annotated[
         LaxSystemLocale,
@@ -1163,6 +1199,8 @@ class ExecutionAssignmentResponseDTO(BaseResponseDTO):
         invited_role: Role granted upon auto-onboarding.
         workflow_id: Target Workflow ID (wf_<hex32>).
         output_profile_id: Optional Output Profile ID (prf_<hex32>).
+        task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).
+        task_brief: Optional hydrated TaskAssignmentBriefDTO.
         target_locale: Target execution locale.
         locked_inputs: Immutable manager-locked workflow inputs.
         assignee_input_keys: ExpectedInput keys unlocked for assignee completion.
@@ -1189,6 +1227,14 @@ class ExecutionAssignmentResponseDTO(BaseResponseDTO):
     invited_role: Annotated[LaxUserRole, Field(description="Role granted upon auto-onboarding")]
     workflow_id: Annotated[PrefixedUUID7, Field(description="Target Workflow ID (wf_<hex32>)")]
     output_profile_id: Annotated[PrefixedUUID7 | None, Field(default=None, description="Output Profile ID")] = None
+    task_brief_id: Annotated[
+        PrefixedUUID7 | None,
+        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
+    ] = None
+    task_brief: Annotated[
+        TaskAssignmentBriefDTO | None,
+        Field(default=None, description="Hydrated Task Definition PromptBlock metadata"),
+    ] = None
     target_locale: Annotated[LaxSystemLocale, Field(description="Target execution locale")]
     locked_inputs: Annotated[WorkflowInputs, Field(description="Immutable manager-locked workflow inputs")]
     assignee_input_keys: Annotated[list[str], Field(description="Unlocked ExpectedInput keys")]
@@ -1288,6 +1334,8 @@ class ExecutionAssignmentPreviewDTO(BaseResponseDTO):
         organization_name: Display name of the issuing organization.
         assigned_email_masked: Masked recipient email hint (e.g. 'j***@example.com').
         workflow_id: Target Workflow ID (wf_<hex32>).
+        task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).
+        task_brief: Optional hydrated TaskAssignmentBriefDTO.
         target_locale: Target execution locale.
         status: Current assignment status.
         hard_deadline_at: Absolute UTC deadline timestamp.
@@ -1301,6 +1349,14 @@ class ExecutionAssignmentPreviewDTO(BaseResponseDTO):
     organization_name: Annotated[str, Field(min_length=1, description="Issuing organization display name")]
     assigned_email_masked: Annotated[str, Field(min_length=3, description="Masked recipient email hint")]
     workflow_id: Annotated[PrefixedUUID7, Field(description="Target Workflow ID (wf_<hex32>)")]
+    task_brief_id: Annotated[
+        PrefixedUUID7 | None,
+        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
+    ] = None
+    task_brief: Annotated[
+        TaskAssignmentBriefDTO | None,
+        Field(default=None, description="Hydrated Task Definition PromptBlock metadata"),
+    ] = None
     target_locale: Annotated[LaxSystemLocale, Field(description="Target execution locale")]
     status: Annotated[LaxAssignmentStatus, Field(description="Current assignment status")]
     hard_deadline_at: Annotated[
@@ -1333,12 +1389,15 @@ class ExecutionAssignmentDraftDTO(BaseDTO):
     """Payload for auto-saving assignee draft inputs prior to final submission.
 
     Attributes:
-        draft_inputs: Partial or complete assignee workflow inputs.
+        draft_inputs: Partial or complete assignee workflow inputs (ingress or domain).
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    draft_inputs: Annotated[WorkflowInputs, Field(description="Assignee draft workflow inputs")]
+    draft_inputs: Annotated[
+        WorkflowInputsIngress | WorkflowInputs,
+        Field(description="Assignee draft workflow inputs"),
+    ]
 
 
 class ExecutionAssignmentSubmitDTO(BaseDTO):
@@ -1350,7 +1409,10 @@ class ExecutionAssignmentSubmitDTO(BaseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    submitted_inputs: Annotated[WorkflowInputs, Field(description="Final assignee workflow inputs")]
+    submitted_inputs: Annotated[
+        WorkflowInputsIngress | WorkflowInputs,
+        Field(description="Final assignee workflow inputs"),
+    ]
 
 
 # --- Tenant Secrets (BYOK Envelope Encryption) ---

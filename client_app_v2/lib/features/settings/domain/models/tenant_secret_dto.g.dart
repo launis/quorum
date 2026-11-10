@@ -542,6 +542,45 @@ Map<String, dynamic> _$TenantSecretResponseDtoToJson(
   'updated_at': instance.updatedAt.toIso8601String(),
 };
 
+_TaskAssignmentBriefDto _$TaskAssignmentBriefDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_TaskAssignmentBriefDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const ['id', 'label', 'instruction_text', 'source_url'],
+    );
+    final val = _TaskAssignmentBriefDto(
+      id: $checkedConvert(
+        'id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      label: $checkedConvert(
+        'label',
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      instructionText: $checkedConvert('instruction_text', (v) => v as String?),
+      sourceUrl: $checkedConvert('source_url', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'instructionText': 'instruction_text',
+    'sourceUrl': 'source_url',
+  },
+);
+
+Map<String, dynamic> _$TaskAssignmentBriefDtoToJson(
+  _TaskAssignmentBriefDto instance,
+) => <String, dynamic>{
+  'id': const StrictOpaqueIdConverter().toJson(instance.id),
+  'label': instance.label.toJson(),
+  'instruction_text': instance.instructionText,
+  'source_url': instance.sourceUrl,
+};
+
 _ExecutionAssignmentCreateDto _$ExecutionAssignmentCreateDtoFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -555,6 +594,7 @@ _ExecutionAssignmentCreateDto _$ExecutionAssignmentCreateDtoFromJson(
         'invited_role',
         'workflow_id',
         'output_profile_id',
+        'task_brief_id',
         'target_locale',
         'locked_inputs',
         'assignee_input_keys',
@@ -577,6 +617,7 @@ _ExecutionAssignmentCreateDto _$ExecutionAssignmentCreateDtoFromJson(
         'output_profile_id',
         (v) => v as String?,
       ),
+      taskBriefId: $checkedConvert('task_brief_id', (v) => v as String?),
       targetLocale: $checkedConvert(
         'target_locale',
         (v) => v as String? ?? 'fi',
@@ -612,6 +653,7 @@ _ExecutionAssignmentCreateDto _$ExecutionAssignmentCreateDtoFromJson(
     'invitedRole': 'invited_role',
     'workflowId': 'workflow_id',
     'outputProfileId': 'output_profile_id',
+    'taskBriefId': 'task_brief_id',
     'targetLocale': 'target_locale',
     'lockedInputs': 'locked_inputs',
     'assigneeInputKeys': 'assignee_input_keys',
@@ -628,6 +670,7 @@ Map<String, dynamic> _$ExecutionAssignmentCreateDtoToJson(
   'invited_role': instance.invitedRole.toJson(),
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'output_profile_id': ?instance.outputProfileId,
+  'task_brief_id': ?instance.taskBriefId,
   'target_locale': instance.targetLocale,
   'locked_inputs': instance.lockedInputs.toJson(),
   'assignee_input_keys': instance.assigneeInputKeys,
@@ -680,6 +723,7 @@ _ExecutionAssignmentBatchCreateDto _$ExecutionAssignmentBatchCreateDtoFromJson(
         'invited_role',
         'workflow_id',
         'output_profile_id',
+        'task_brief_id',
         'target_locale',
         'locked_inputs',
         'assignee_input_keys',
@@ -711,6 +755,7 @@ _ExecutionAssignmentBatchCreateDto _$ExecutionAssignmentBatchCreateDtoFromJson(
         'output_profile_id',
         (v) => v as String?,
       ),
+      taskBriefId: $checkedConvert('task_brief_id', (v) => v as String?),
       targetLocale: $checkedConvert(
         'target_locale',
         (v) => v as String? ?? 'fi',
@@ -745,6 +790,7 @@ _ExecutionAssignmentBatchCreateDto _$ExecutionAssignmentBatchCreateDtoFromJson(
     'invitedRole': 'invited_role',
     'workflowId': 'workflow_id',
     'outputProfileId': 'output_profile_id',
+    'taskBriefId': 'task_brief_id',
     'targetLocale': 'target_locale',
     'lockedInputs': 'locked_inputs',
     'assigneeInputKeys': 'assignee_input_keys',
@@ -761,6 +807,7 @@ Map<String, dynamic> _$ExecutionAssignmentBatchCreateDtoToJson(
   'invited_role': instance.invitedRole.toJson(),
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'output_profile_id': ?instance.outputProfileId,
+  'task_brief_id': ?instance.taskBriefId,
   'target_locale': instance.targetLocale,
   'locked_inputs': instance.lockedInputs.toJson(),
   'assignee_input_keys': instance.assigneeInputKeys,
@@ -787,6 +834,8 @@ _ExecutionAssignmentResponseDto _$ExecutionAssignmentResponseDtoFromJson(
         'invited_role',
         'workflow_id',
         'output_profile_id',
+        'task_brief_id',
+        'task_brief',
         'target_locale',
         'locked_inputs',
         'assignee_input_keys',
@@ -826,6 +875,13 @@ _ExecutionAssignmentResponseDto _$ExecutionAssignmentResponseDtoFromJson(
       outputProfileId: $checkedConvert(
         'output_profile_id',
         (v) => v as String?,
+      ),
+      taskBriefId: $checkedConvert('task_brief_id', (v) => v as String?),
+      taskBrief: $checkedConvert(
+        'task_brief',
+        (v) => v == null
+            ? null
+            : TaskAssignmentBriefDto.fromJson(v as Map<String, dynamic>),
       ),
       targetLocale: $checkedConvert('target_locale', (v) => v as String),
       lockedInputs: $checkedConvert(
@@ -890,6 +946,8 @@ _ExecutionAssignmentResponseDto _$ExecutionAssignmentResponseDtoFromJson(
     'invitedRole': 'invited_role',
     'workflowId': 'workflow_id',
     'outputProfileId': 'output_profile_id',
+    'taskBriefId': 'task_brief_id',
+    'taskBrief': 'task_brief',
     'targetLocale': 'target_locale',
     'lockedInputs': 'locked_inputs',
     'assigneeInputKeys': 'assignee_input_keys',
@@ -919,6 +977,8 @@ Map<String, dynamic> _$ExecutionAssignmentResponseDtoToJson(
   'invited_role': instance.invitedRole.toJson(),
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'output_profile_id': instance.outputProfileId,
+  'task_brief_id': instance.taskBriefId,
+  'task_brief': instance.taskBrief?.toJson(),
   'target_locale': instance.targetLocale,
   'locked_inputs': instance.lockedInputs.toJson(),
   'assignee_input_keys': instance.assigneeInputKeys,
@@ -1001,6 +1061,8 @@ _ExecutionAssignmentPreviewDto _$ExecutionAssignmentPreviewDtoFromJson(
         'organization_name',
         'assigned_email_masked',
         'workflow_id',
+        'task_brief_id',
+        'task_brief',
         'target_locale',
         'status',
         'hard_deadline_at',
@@ -1028,6 +1090,13 @@ _ExecutionAssignmentPreviewDto _$ExecutionAssignmentPreviewDtoFromJson(
         'workflow_id',
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
+      taskBriefId: $checkedConvert('task_brief_id', (v) => v as String?),
+      taskBrief: $checkedConvert(
+        'task_brief',
+        (v) => v == null
+            ? null
+            : TaskAssignmentBriefDto.fromJson(v as Map<String, dynamic>),
+      ),
       targetLocale: $checkedConvert('target_locale', (v) => v as String),
       status: $checkedConvert(
         'status',
@@ -1049,6 +1118,8 @@ _ExecutionAssignmentPreviewDto _$ExecutionAssignmentPreviewDtoFromJson(
     'organizationName': 'organization_name',
     'assignedEmailMasked': 'assigned_email_masked',
     'workflowId': 'workflow_id',
+    'taskBriefId': 'task_brief_id',
+    'taskBrief': 'task_brief',
     'targetLocale': 'target_locale',
     'hardDeadlineAt': 'hard_deadline_at',
     'relativeDurationSeconds': 'relative_duration_seconds',
@@ -1065,6 +1136,8 @@ Map<String, dynamic> _$ExecutionAssignmentPreviewDtoToJson(
   'organization_name': instance.organizationName,
   'assigned_email_masked': instance.assignedEmailMasked,
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
+  'task_brief_id': instance.taskBriefId,
+  'task_brief': instance.taskBrief?.toJson(),
   'target_locale': instance.targetLocale,
   'status': _$AssignmentStatusEnumMap[instance.status]!,
   'hard_deadline_at': instance.hardDeadlineAt.toIso8601String(),

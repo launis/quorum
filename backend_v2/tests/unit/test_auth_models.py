@@ -9,21 +9,28 @@ from pydantic import ValidationError
 
 from backend_v2.models.auth import (
     ExecutionAssignmentBatchCreateDTO,
+    ExecutionAssignmentCreateDTO,
+    ExecutionAssignmentDraftDTO,
+    ExecutionAssignmentPreviewDTO,
     ExecutionAssignmentRecipientDTO,
+    ExecutionAssignmentSubmitDTO,
     Invitation,
     InvitationBatchCreateDTO,
     InvitationCreateDTO,
     Organization,
     SubscriptionStatus,
+    TaskAssignmentBriefDTO,
     TenantSecretDTO,
     TokenExchangeRequestDTO,
     User,
     UserAdminView,
     UserRole,
 )
-from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.enums import (
     AssignmentResultVisibility,
+    AssignmentStatus,
     SecretScope,
     SecretStorageMode,
     SystemLocale,
@@ -32,6 +39,10 @@ from backend_v2.models.enums import (
 VALID_ORG_ID = "org_0195f3a0000070008000000000000001"
 VALID_USER_ID = "usr_0195f3a0000070008000000000000002"
 VALID_WF_ID = "wf_0195f3a0000070008000000000000003"
+VALID_BLK_ID = "blk_0195f3a0000070008000000000000004"
+VALID_TSK_ID = "tsk_0195f3a0000070008000000000000005"
+VALID_INV_ID = "inv_0195f3a0000070008000000000000006"
+VALID_SEC_ID = "sec_0195f3a0000070008000000000000007"
 
 
 def test_organization_fail_fast_on_corrupt_datetime() -> None:
@@ -73,17 +84,10 @@ def test_organization_fail_fast_on_corrupt_subscription() -> None:
 
 def test_organization_default_id_and_empty_name_validation() -> None:
     """Verify Organization generates an Opaque Stripe ID by default and rejects empty names."""
-    org = Organization.model_validate(
-        {
-            "name": "Acme Corp",
-            "is_active": True,
-            "tier": "enterprise",
-            "subscription_status": SubscriptionStatus.ACTIVE,
-            "quota_limit": 0.0,
-            "tpm_limit": 1000,
-            "rpm_limit": 1,
-            "created_at": "2026-01-01T00:00:00Z",
-        }
+    org = Organization.model_validate_json(
+        '{"name": "Acme Corp", "is_active": true, "tier": "enterprise", '
+        '"subscription_status": "active", "quota_limit": 0.0, "tpm_limit": 1000, '
+        '"rpm_limit": 1, "created_at": "2026-01-01T00:00:00Z"}'
     )
     assert org.id.startswith("org_")
     assert len(org.id) == 36
@@ -138,15 +142,9 @@ def test_user_fail_fast_on_corrupt_role() -> None:
 
 def test_user_default_id_and_validate_non_empty() -> None:
     """Verify User generates a default Opaque Stripe ID and enforces non-empty ID validation."""
-    user = User.model_validate(
-        {
-            "email": "valid@example.com",
-            "role": UserRole.MEMBER,
-            "is_active": True,
-            "language": SystemLocale.EN,
-            "theme_mode": "system",
-            "created_at": "2026-01-01T00:00:00Z",
-        }
+    user = User.model_validate_json(
+        '{"email": "valid@example.com", "role": "MEMBER", "is_active": true, '
+        '"language": "en", "theme_mode": "system", "created_at": "2026-01-01T00:00:00Z"}'
     )
     assert user.id.startswith("usr_")
     assert len(user.id) == 36
@@ -162,21 +160,12 @@ def test_user_admin_view_inherits_all_user_fields() -> None:
     assert user_fields.issubset(admin_view_fields)
     assert {"firebase_uid", "deleted_at", "last_login_at", "execution_count"}.issubset(admin_view_fields)
 
-    admin_view = UserAdminView.model_validate(
-        {
-            "id": VALID_USER_ID,
-            "email": "admin@quorum.ai",
-            "role": UserRole.ADMIN,
-            "organization_id": VALID_ORG_ID,
-            "is_active": True,
-            "language": SystemLocale.EN,
-            "theme_mode": "system",
-            "created_at": "2026-01-01T00:00:00Z",
-            "firebase_uid": "fb_uid_admin_01",
-            "deleted_at": "2026-11-02T12:00:00Z",
-            "last_login_at": "2026-11-02T11:00:00Z",
-            "execution_count": 7,
-        }
+    admin_view = UserAdminView.model_validate_json(
+        f'{{"id": "{VALID_USER_ID}", "email": "admin@quorum.ai", "role": "ADMIN", '
+        f'"organization_id": "{VALID_ORG_ID}", "is_active": true, "language": "en", '
+        '"theme_mode": "system", "created_at": "2026-01-01T00:00:00Z", '
+        '"firebase_uid": "fb_uid_admin_01", "deleted_at": "2026-11-02T12:00:00Z", '
+        '"last_login_at": "2026-11-02T11:00:00Z", "execution_count": 7}'
     )
     assert admin_view.firebase_uid == "fb_uid_admin_01"
     assert isinstance(admin_view.deleted_at, datetime)
@@ -289,7 +278,7 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
     assign_batch_1 = ExecutionAssignmentBatchCreateDTO(
         recipients=[rec_1],
         workflow_id=VALID_WF_ID,
-        locked_inputs=WorkflowInputs(),
+        locked_inputs=WorkflowInputs(dynamic_inputs={}),
         assignee_input_keys=[],
         result_visibility=AssignmentResultVisibility.CONFIRMATION_ONLY,
         hard_deadline_at=deadline,
@@ -299,7 +288,7 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
     assign_batch_500 = ExecutionAssignmentBatchCreateDTO(
         recipients=[ExecutionAssignmentRecipientDTO(email=f"c{i}@example.com") for i in range(500)],
         workflow_id=VALID_WF_ID,
-        locked_inputs=WorkflowInputs(),
+        locked_inputs=WorkflowInputs(dynamic_inputs={}),
         assignee_input_keys=[],
         result_visibility=AssignmentResultVisibility.FULL_REPORT_ACCESS,
         hard_deadline_at=deadline,
@@ -310,7 +299,7 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
         ExecutionAssignmentBatchCreateDTO(
             recipients=[],
             workflow_id=VALID_WF_ID,
-            locked_inputs=WorkflowInputs(),
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
             assignee_input_keys=[],
             hard_deadline_at=deadline,
         )
@@ -319,7 +308,7 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
         ExecutionAssignmentBatchCreateDTO(
             recipients=[ExecutionAssignmentRecipientDTO(email=f"c{i}@example.com") for i in range(501)],
             workflow_id=VALID_WF_ID,
-            locked_inputs=WorkflowInputs(),
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
             assignee_input_keys=[],
             hard_deadline_at=deadline,
         )
@@ -328,20 +317,16 @@ def test_invitation_and_assignment_batch_bounds_boundary() -> None:
 def test_invitation_and_tenant_secret_datetime_parsing() -> None:
     """Verify Invitation and TenantSecretDTO parse ISO 8601 strings and pass through datetime objects."""
     ts = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
-    inv_from_str = Invitation.model_validate(
-        {
-            "organization_id": VALID_ORG_ID,
-            "email": "invitee@example.com",
-            "token_hash": "a" * 64,
-            "invited_by": VALID_USER_ID,
-            "expires_at": "2026-12-01T00:00:00Z",
-            "created_at": "2026-11-01T00:00:00Z",
-        }
+    inv_from_str = Invitation.model_validate_json(
+        f'{{"organization_id": "{VALID_ORG_ID}", "email": "invitee@example.com", '
+        f'"token_hash": "{"a" * 64}", "invited_by": "{VALID_USER_ID}", '
+        '"expires_at": "2026-12-01T00:00:00Z", "created_at": "2026-11-01T00:00:00Z"}'
     )
     assert inv_from_str.id.startswith("inv_")
     assert inv_from_str.expires_at == datetime(2026, 12, 1, 0, 0, tzinfo=UTC)
 
     inv_from_dt = Invitation(
+        id=VALID_INV_ID,
         organization_id=VALID_ORG_ID,
         email="invitee@example.com",
         token_hash="b" * 64,
@@ -362,22 +347,17 @@ def test_invitation_and_tenant_secret_datetime_parsing() -> None:
             }
         )
 
-    sec_from_str = TenantSecretDTO.model_validate(
-        {
-            "organization_id": VALID_ORG_ID,
-            "scope": SecretScope.LLM_PROVIDER,
-            "target_identifier": "gemini",
-            "storage_mode": SecretStorageMode.ENVELOPE_KMS,
-            "kek_version": "kek-v1",
-            "masked_hint": "...1234",
-            "updated_by": VALID_USER_ID,
-            "updated_at": "2026-11-06T12:00:00Z",
-        }
+    sec_from_str = TenantSecretDTO.model_validate_json(
+        f'{{"organization_id": "{VALID_ORG_ID}", "scope": "llm_provider", '
+        '"target_identifier": "gemini", "storage_mode": "envelope_kms", '
+        f'"kek_version": "kek-v1", "masked_hint": "...1234", "updated_by": "{VALID_USER_ID}", '
+        '"updated_at": "2026-11-06T12:00:00Z"}'
     )
     assert sec_from_str.id.startswith("sec_")
     assert sec_from_str.updated_at == ts
 
     sec_from_dt = TenantSecretDTO(
+        id=VALID_SEC_ID,
         organization_id=VALID_ORG_ID,
         scope=SecretScope.LLM_PROVIDER,
         target_identifier="gemini",
@@ -400,5 +380,68 @@ def test_invitation_and_tenant_secret_datetime_parsing() -> None:
                 "masked_hint": "...1234",
                 "updated_by": VALID_USER_ID,
                 "updated_at": "invalid-timestamp",
+            }
+        )
+
+
+def test_task_assignment_brief_and_ingress_dtos_positive_and_negative() -> None:
+    """Verify TaskAssignmentBriefDTO, ExecutionAssignmentDraftDTO, and ExecutionAssignmentSubmitDTO schemas."""
+    brief = TaskAssignmentBriefDTO(
+        id=VALID_BLK_ID,
+        label=I18nText(translations={"en": "Strategic Brief", "fi": "Strateginen tehtävänanto"}),
+        instruction_text="Evaluate the target acquisition proposal.",
+        source_url="https://docs.example.com/brief.pdf",
+    )
+    assert brief.id == VALID_BLK_ID
+    assert brief.source_url == "https://docs.example.com/brief.pdf"
+
+    create_dto = ExecutionAssignmentCreateDTO(
+        assigned_email="candidate@example.com",
+        workflow_id=VALID_WF_ID,
+        task_brief_id=VALID_BLK_ID,
+        locked_inputs=WorkflowInputs(dynamic_inputs={}),
+        assignee_input_keys=["essay"],
+        hard_deadline_at=datetime(2027, 1, 1, tzinfo=UTC),
+    )
+    assert create_dto.task_brief_id == VALID_BLK_ID
+
+    preview_dto = ExecutionAssignmentPreviewDTO(
+        id=VALID_TSK_ID,
+        organization_id=VALID_ORG_ID,
+        organization_name="Acme Corp",
+        assigned_email_masked="c***@example.com",
+        workflow_id=VALID_WF_ID,
+        task_brief_id=VALID_BLK_ID,
+        task_brief=brief,
+        target_locale=SystemLocale.FI,
+        status=AssignmentStatus.PENDING,
+        hard_deadline_at=datetime(2027, 1, 1, tzinfo=UTC),
+    )
+    assert preview_dto.task_brief == brief
+
+    attachment = Base64Attachment(filename="essay.txt", content_base64="SGVsbG8=")
+    draft_dto = ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputsIngress(dynamic_inputs={"essay": attachment}))
+    assert isinstance(draft_dto.draft_inputs, WorkflowInputsIngress)
+    assert draft_dto.draft_inputs.dynamic_inputs["essay"] == attachment
+
+    submit_dto = ExecutionAssignmentSubmitDTO(
+        submitted_inputs=WorkflowInputsIngress(dynamic_inputs={"essay": attachment})
+    )
+    assert isinstance(submit_dto.submitted_inputs, WorkflowInputsIngress)
+
+    # Negative 1: Invalid UUIDv7 on TaskAssignmentBriefDTO.id
+    with pytest.raises(ValidationError):
+        TaskAssignmentBriefDTO(
+            id="blk_invalid",
+            label=I18nText(translations={"en": "Bad"}),
+        )
+
+    # Negative 2: Unrecognized extra field on TaskAssignmentBriefDTO (extra="forbid")
+    with pytest.raises(ValidationError):
+        TaskAssignmentBriefDTO.model_validate(
+            {
+                "id": VALID_BLK_ID,
+                "label": {"en": "Brief"},
+                "unexpected_key": "forbidden",
             }
         )

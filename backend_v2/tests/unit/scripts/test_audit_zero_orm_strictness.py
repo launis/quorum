@@ -221,7 +221,7 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
     sql_findings = audit_sql_migration_file(drift_sql)
     assert any(f.rule_code == ZeroOrmRuleCode.ZORM007 and "orphan_col" in f.message for f in sql_findings)
 
-    # Case 2: Canonical 3-table subset missing required idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS
+    # Case 2: Canonical 4-table subset missing required idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS
     missing_alter_sql = tmp_path / "missing_alter.sql"
     missing_alter_sql.write_text(
         "CREATE TABLE IF NOT EXISTS organizations (\n"
@@ -236,12 +236,16 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
         "CREATE TABLE IF NOT EXISTS executions (\n"
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
         "    state_version INTEGER NOT NULL DEFAULT 1\n"
+        ");\n"
+        "CREATE TABLE IF NOT EXISTS execution_assignments (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    task_brief_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL\n"
         ");\n",
         encoding="utf-8",
     )
     missing_findings = audit_sql_migration_file(missing_alter_sql)
     zorm007_sql = [f for f in missing_findings if f.rule_code == ZeroOrmRuleCode.ZORM007]
-    assert len(zorm007_sql) == 4
+    assert len(zorm007_sql) == 5
 
 
 def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(tmp_path: Path) -> None:

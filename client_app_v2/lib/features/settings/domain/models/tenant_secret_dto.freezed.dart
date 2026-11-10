@@ -2664,9 +2664,285 @@ as DateTime,
 
 
 /// @nodoc
+mixin _$TaskAssignmentBriefDto {
+
+@StrictOpaqueIdConverter() String get id; I18nText get label;@JsonKey(name: 'instruction_text') String? get instructionText;@JsonKey(name: 'source_url') String? get sourceUrl;
+/// Create a copy of TaskAssignmentBriefDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TaskAssignmentBriefDtoCopyWith<TaskAssignmentBriefDto> get copyWith => _$TaskAssignmentBriefDtoCopyWithImpl<TaskAssignmentBriefDto>(this as TaskAssignmentBriefDto, _$identity);
+
+  /// Serializes this TaskAssignmentBriefDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'TaskAssignmentBriefDto(id: $id, label: $label, instructionText: $instructionText, sourceUrl: $sourceUrl)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TaskAssignmentBriefDtoCopyWith<$Res>  {
+  factory $TaskAssignmentBriefDtoCopyWith(TaskAssignmentBriefDto value, $Res Function(TaskAssignmentBriefDto) _then) = _$TaskAssignmentBriefDtoCopyWithImpl;
+@useResult
+$Res call({
+@StrictOpaqueIdConverter() String id, I18nText label,@JsonKey(name: 'instruction_text') String? instructionText,@JsonKey(name: 'source_url') String? sourceUrl
+});
+
+
+$I18nTextCopyWith<$Res> get label;
+
+}
+/// @nodoc
+class _$TaskAssignmentBriefDtoCopyWithImpl<$Res>
+    implements $TaskAssignmentBriefDtoCopyWith<$Res> {
+  _$TaskAssignmentBriefDtoCopyWithImpl(this._self, this._then);
+
+  final TaskAssignmentBriefDto _self;
+  final $Res Function(TaskAssignmentBriefDto) _then;
+
+/// Create a copy of TaskAssignmentBriefDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? label = null,Object? instructionText = freezed,Object? sourceUrl = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as I18nText,instructionText: freezed == instructionText ? _self.instructionText : instructionText // ignore: cast_nullable_to_non_nullable
+as String?,sourceUrl: freezed == sourceUrl ? _self.sourceUrl : sourceUrl // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+/// Create a copy of TaskAssignmentBriefDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res> get label {
+  
+  return $I18nTextCopyWith<$Res>(_self.label, (value) {
+    return _then(_self.copyWith(label: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [TaskAssignmentBriefDto].
+extension TaskAssignmentBriefDtoPatterns on TaskAssignmentBriefDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TaskAssignmentBriefDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TaskAssignmentBriefDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TaskAssignmentBriefDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _TaskAssignmentBriefDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TaskAssignmentBriefDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TaskAssignmentBriefDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  I18nText label, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TaskAssignmentBriefDto() when $default != null:
+return $default(_that.id,_that.label,_that.instructionText,_that.sourceUrl);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  I18nText label, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)  $default,) {final _that = this;
+switch (_that) {
+case _TaskAssignmentBriefDto():
+return $default(_that.id,_that.label,_that.instructionText,_that.sourceUrl);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  I18nText label, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)?  $default,) {final _that = this;
+switch (_that) {
+case _TaskAssignmentBriefDto() when $default != null:
+return $default(_that.id,_that.label,_that.instructionText,_that.sourceUrl);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _TaskAssignmentBriefDto extends TaskAssignmentBriefDto {
+  const _TaskAssignmentBriefDto({@StrictOpaqueIdConverter() required this.id, required this.label, @JsonKey(name: 'instruction_text') this.instructionText, @JsonKey(name: 'source_url') this.sourceUrl}): super._();
+  factory _TaskAssignmentBriefDto.fromJson(Map<String, dynamic> json) => _$TaskAssignmentBriefDtoFromJson(json);
+
+@override@StrictOpaqueIdConverter() final  String id;
+@override final  I18nText label;
+@override@JsonKey(name: 'instruction_text') final  String? instructionText;
+@override@JsonKey(name: 'source_url') final  String? sourceUrl;
+
+/// Create a copy of TaskAssignmentBriefDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TaskAssignmentBriefDtoCopyWith<_TaskAssignmentBriefDto> get copyWith => __$TaskAssignmentBriefDtoCopyWithImpl<_TaskAssignmentBriefDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$TaskAssignmentBriefDtoToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'TaskAssignmentBriefDto(id: $id, label: $label, instructionText: $instructionText, sourceUrl: $sourceUrl)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TaskAssignmentBriefDtoCopyWith<$Res> implements $TaskAssignmentBriefDtoCopyWith<$Res> {
+  factory _$TaskAssignmentBriefDtoCopyWith(_TaskAssignmentBriefDto value, $Res Function(_TaskAssignmentBriefDto) _then) = __$TaskAssignmentBriefDtoCopyWithImpl;
+@override @useResult
+$Res call({
+@StrictOpaqueIdConverter() String id, I18nText label,@JsonKey(name: 'instruction_text') String? instructionText,@JsonKey(name: 'source_url') String? sourceUrl
+});
+
+
+@override $I18nTextCopyWith<$Res> get label;
+
+}
+/// @nodoc
+class __$TaskAssignmentBriefDtoCopyWithImpl<$Res>
+    implements _$TaskAssignmentBriefDtoCopyWith<$Res> {
+  __$TaskAssignmentBriefDtoCopyWithImpl(this._self, this._then);
+
+  final _TaskAssignmentBriefDto _self;
+  final $Res Function(_TaskAssignmentBriefDto) _then;
+
+/// Create a copy of TaskAssignmentBriefDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? label = null,Object? instructionText = freezed,Object? sourceUrl = freezed,}) {
+  return _then(_TaskAssignmentBriefDto(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as I18nText,instructionText: freezed == instructionText ? _self.instructionText : instructionText // ignore: cast_nullable_to_non_nullable
+as String?,sourceUrl: freezed == sourceUrl ? _self.sourceUrl : sourceUrl // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+/// Create a copy of TaskAssignmentBriefDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res> get label {
+  
+  return $I18nTextCopyWith<$Res>(_self.label, (value) {
+    return _then(_self.copyWith(label: value));
+  });
+}
+}
+
+
+/// @nodoc
 mixin _$ExecutionAssignmentCreateDto {
 
-@JsonKey(name: 'assigned_email') String get assignedEmail;@JsonKey(name: 'invited_role') UserRole get invitedRole;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'locked_inputs') WorkflowInputs get lockedInputs;@JsonKey(name: 'assignee_input_keys') List<String> get assigneeInputKeys;@JsonKey(name: 'result_visibility') AssignmentResultVisibility get resultVisibility;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;
+@JsonKey(name: 'assigned_email') String get assignedEmail;@JsonKey(name: 'invited_role') UserRole get invitedRole;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'task_brief_id') String? get taskBriefId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'locked_inputs') WorkflowInputs get lockedInputs;@JsonKey(name: 'assignee_input_keys') List<String> get assigneeInputKeys;@JsonKey(name: 'result_visibility') AssignmentResultVisibility get resultVisibility;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;
 /// Create a copy of ExecutionAssignmentCreateDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2681,7 +2957,7 @@ $ExecutionAssignmentCreateDtoCopyWith<ExecutionAssignmentCreateDto> get copyWith
 
 @override
 String toString() {
-  return 'ExecutionAssignmentCreateDto(assignedEmail: $assignedEmail, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
+  return 'ExecutionAssignmentCreateDto(assignedEmail: $assignedEmail, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, taskBriefId: $taskBriefId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
 }
 
 
@@ -2692,7 +2968,7 @@ abstract mixin class $ExecutionAssignmentCreateDtoCopyWith<$Res>  {
   factory $ExecutionAssignmentCreateDtoCopyWith(ExecutionAssignmentCreateDto value, $Res Function(ExecutionAssignmentCreateDto) _then) = _$ExecutionAssignmentCreateDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
+@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
 });
 
 
@@ -2709,12 +2985,13 @@ class _$ExecutionAssignmentCreateDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentCreateDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? assignedEmail = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? assignedEmail = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? taskBriefId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
   return _then(_self.copyWith(
 assignedEmail: null == assignedEmail ? _self.assignedEmail : assignedEmail // ignore: cast_nullable_to_non_nullable
 as String,invitedRole: null == invitedRole ? _self.invitedRole : invitedRole // ignore: cast_nullable_to_non_nullable
 as UserRole,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,outputProfileId: freezed == outputProfileId ? _self.outputProfileId : outputProfileId // ignore: cast_nullable_to_non_nullable
+as String?,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
 as String?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,lockedInputs: null == lockedInputs ? _self.lockedInputs : lockedInputs // ignore: cast_nullable_to_non_nullable
 as WorkflowInputs,assigneeInputKeys: null == assigneeInputKeys ? _self.assigneeInputKeys : assigneeInputKeys // ignore: cast_nullable_to_non_nullable
@@ -2815,10 +3092,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentCreateDto() when $default != null:
-return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   return orElse();
 
 }
@@ -2836,10 +3113,10 @@ return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.out
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentCreateDto():
-return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2856,10 +3133,10 @@ return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.out
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentCreateDto() when $default != null:
-return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   return null;
 
 }
@@ -2871,13 +3148,14 @@ return $default(_that.assignedEmail,_that.invitedRole,_that.workflowId,_that.out
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true, includeIfNull: false)
 class _ExecutionAssignmentCreateDto extends ExecutionAssignmentCreateDto {
-  const _ExecutionAssignmentCreateDto({@JsonKey(name: 'assigned_email') required this.assignedEmail, @JsonKey(name: 'invited_role') this.invitedRole = UserRole.member, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'target_locale') this.targetLocale = 'fi', @JsonKey(name: 'locked_inputs') required this.lockedInputs, @JsonKey(name: 'assignee_input_keys') final  List<String> assigneeInputKeys = const [], @JsonKey(name: 'result_visibility') this.resultVisibility = AssignmentResultVisibility.confirmationOnly, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds}): _assigneeInputKeys = assigneeInputKeys,super._();
+  const _ExecutionAssignmentCreateDto({@JsonKey(name: 'assigned_email') required this.assignedEmail, @JsonKey(name: 'invited_role') this.invitedRole = UserRole.member, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'task_brief_id') this.taskBriefId, @JsonKey(name: 'target_locale') this.targetLocale = 'fi', @JsonKey(name: 'locked_inputs') required this.lockedInputs, @JsonKey(name: 'assignee_input_keys') final  List<String> assigneeInputKeys = const [], @JsonKey(name: 'result_visibility') this.resultVisibility = AssignmentResultVisibility.confirmationOnly, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds}): _assigneeInputKeys = assigneeInputKeys,super._();
   factory _ExecutionAssignmentCreateDto.fromJson(Map<String, dynamic> json) => _$ExecutionAssignmentCreateDtoFromJson(json);
 
 @override@JsonKey(name: 'assigned_email') final  String assignedEmail;
 @override@JsonKey(name: 'invited_role') final  UserRole invitedRole;
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') final  String workflowId;
 @override@JsonKey(name: 'output_profile_id') final  String? outputProfileId;
+@override@JsonKey(name: 'task_brief_id') final  String? taskBriefId;
 @override@JsonKey(name: 'target_locale') final  String targetLocale;
 @override@JsonKey(name: 'locked_inputs') final  WorkflowInputs lockedInputs;
  final  List<String> _assigneeInputKeys;
@@ -2906,7 +3184,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionAssignmentCreateDto(assignedEmail: $assignedEmail, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
+  return 'ExecutionAssignmentCreateDto(assignedEmail: $assignedEmail, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, taskBriefId: $taskBriefId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
 }
 
 
@@ -2917,7 +3195,7 @@ abstract mixin class _$ExecutionAssignmentCreateDtoCopyWith<$Res> implements $Ex
   factory _$ExecutionAssignmentCreateDtoCopyWith(_ExecutionAssignmentCreateDto value, $Res Function(_ExecutionAssignmentCreateDto) _then) = __$ExecutionAssignmentCreateDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
+@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
 });
 
 
@@ -2934,12 +3212,13 @@ class __$ExecutionAssignmentCreateDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentCreateDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? assignedEmail = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? assignedEmail = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? taskBriefId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
   return _then(_ExecutionAssignmentCreateDto(
 assignedEmail: null == assignedEmail ? _self.assignedEmail : assignedEmail // ignore: cast_nullable_to_non_nullable
 as String,invitedRole: null == invitedRole ? _self.invitedRole : invitedRole // ignore: cast_nullable_to_non_nullable
 as UserRole,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,outputProfileId: freezed == outputProfileId ? _self.outputProfileId : outputProfileId // ignore: cast_nullable_to_non_nullable
+as String?,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
 as String?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,lockedInputs: null == lockedInputs ? _self.lockedInputs : lockedInputs // ignore: cast_nullable_to_non_nullable
 as WorkflowInputs,assigneeInputKeys: null == assigneeInputKeys ? _self._assigneeInputKeys : assigneeInputKeys // ignore: cast_nullable_to_non_nullable
@@ -3221,7 +3500,7 @@ as String?,
 /// @nodoc
 mixin _$ExecutionAssignmentBatchCreateDto {
 
- List<ExecutionAssignmentRecipientDto> get recipients;@JsonKey(name: 'invited_role') UserRole get invitedRole;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'locked_inputs') WorkflowInputs get lockedInputs;@JsonKey(name: 'assignee_input_keys') List<String> get assigneeInputKeys;@JsonKey(name: 'result_visibility') AssignmentResultVisibility get resultVisibility;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;
+ List<ExecutionAssignmentRecipientDto> get recipients;@JsonKey(name: 'invited_role') UserRole get invitedRole;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'task_brief_id') String? get taskBriefId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'locked_inputs') WorkflowInputs get lockedInputs;@JsonKey(name: 'assignee_input_keys') List<String> get assigneeInputKeys;@JsonKey(name: 'result_visibility') AssignmentResultVisibility get resultVisibility;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;
 /// Create a copy of ExecutionAssignmentBatchCreateDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3236,7 +3515,7 @@ $ExecutionAssignmentBatchCreateDtoCopyWith<ExecutionAssignmentBatchCreateDto> ge
 
 @override
 String toString() {
-  return 'ExecutionAssignmentBatchCreateDto(recipients: $recipients, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
+  return 'ExecutionAssignmentBatchCreateDto(recipients: $recipients, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, taskBriefId: $taskBriefId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
 }
 
 
@@ -3247,7 +3526,7 @@ abstract mixin class $ExecutionAssignmentBatchCreateDtoCopyWith<$Res>  {
   factory $ExecutionAssignmentBatchCreateDtoCopyWith(ExecutionAssignmentBatchCreateDto value, $Res Function(ExecutionAssignmentBatchCreateDto) _then) = _$ExecutionAssignmentBatchCreateDtoCopyWithImpl;
 @useResult
 $Res call({
- List<ExecutionAssignmentRecipientDto> recipients,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
+ List<ExecutionAssignmentRecipientDto> recipients,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
 });
 
 
@@ -3264,12 +3543,13 @@ class _$ExecutionAssignmentBatchCreateDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentBatchCreateDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? recipients = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? recipients = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? taskBriefId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
   return _then(_self.copyWith(
 recipients: null == recipients ? _self.recipients : recipients // ignore: cast_nullable_to_non_nullable
 as List<ExecutionAssignmentRecipientDto>,invitedRole: null == invitedRole ? _self.invitedRole : invitedRole // ignore: cast_nullable_to_non_nullable
 as UserRole,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,outputProfileId: freezed == outputProfileId ? _self.outputProfileId : outputProfileId // ignore: cast_nullable_to_non_nullable
+as String?,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
 as String?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,lockedInputs: null == lockedInputs ? _self.lockedInputs : lockedInputs // ignore: cast_nullable_to_non_nullable
 as WorkflowInputs,assigneeInputKeys: null == assigneeInputKeys ? _self.assigneeInputKeys : assigneeInputKeys // ignore: cast_nullable_to_non_nullable
@@ -3370,10 +3650,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentBatchCreateDto() when $default != null:
-return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   return orElse();
 
 }
@@ -3391,10 +3671,10 @@ return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.output
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentBatchCreateDto():
-return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3411,10 +3691,10 @@ return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.output
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentBatchCreateDto() when $default != null:
-return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   return null;
 
 }
@@ -3426,7 +3706,7 @@ return $default(_that.recipients,_that.invitedRole,_that.workflowId,_that.output
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true, includeIfNull: false)
 class _ExecutionAssignmentBatchCreateDto extends ExecutionAssignmentBatchCreateDto {
-  const _ExecutionAssignmentBatchCreateDto({required final  List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role') this.invitedRole = UserRole.member, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'target_locale') this.targetLocale = 'fi', @JsonKey(name: 'locked_inputs') required this.lockedInputs, @JsonKey(name: 'assignee_input_keys') final  List<String> assigneeInputKeys = const [], @JsonKey(name: 'result_visibility') this.resultVisibility = AssignmentResultVisibility.confirmationOnly, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds}): _recipients = recipients,_assigneeInputKeys = assigneeInputKeys,super._();
+  const _ExecutionAssignmentBatchCreateDto({required final  List<ExecutionAssignmentRecipientDto> recipients, @JsonKey(name: 'invited_role') this.invitedRole = UserRole.member, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'task_brief_id') this.taskBriefId, @JsonKey(name: 'target_locale') this.targetLocale = 'fi', @JsonKey(name: 'locked_inputs') required this.lockedInputs, @JsonKey(name: 'assignee_input_keys') final  List<String> assigneeInputKeys = const [], @JsonKey(name: 'result_visibility') this.resultVisibility = AssignmentResultVisibility.confirmationOnly, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds}): _recipients = recipients,_assigneeInputKeys = assigneeInputKeys,super._();
   factory _ExecutionAssignmentBatchCreateDto.fromJson(Map<String, dynamic> json) => _$ExecutionAssignmentBatchCreateDtoFromJson(json);
 
  final  List<ExecutionAssignmentRecipientDto> _recipients;
@@ -3439,6 +3719,7 @@ class _ExecutionAssignmentBatchCreateDto extends ExecutionAssignmentBatchCreateD
 @override@JsonKey(name: 'invited_role') final  UserRole invitedRole;
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') final  String workflowId;
 @override@JsonKey(name: 'output_profile_id') final  String? outputProfileId;
+@override@JsonKey(name: 'task_brief_id') final  String? taskBriefId;
 @override@JsonKey(name: 'target_locale') final  String targetLocale;
 @override@JsonKey(name: 'locked_inputs') final  WorkflowInputs lockedInputs;
  final  List<String> _assigneeInputKeys;
@@ -3467,7 +3748,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionAssignmentBatchCreateDto(recipients: $recipients, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
+  return 'ExecutionAssignmentBatchCreateDto(recipients: $recipients, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, taskBriefId: $taskBriefId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
 }
 
 
@@ -3478,7 +3759,7 @@ abstract mixin class _$ExecutionAssignmentBatchCreateDtoCopyWith<$Res> implement
   factory _$ExecutionAssignmentBatchCreateDtoCopyWith(_ExecutionAssignmentBatchCreateDto value, $Res Function(_ExecutionAssignmentBatchCreateDto) _then) = __$ExecutionAssignmentBatchCreateDtoCopyWithImpl;
 @override @useResult
 $Res call({
- List<ExecutionAssignmentRecipientDto> recipients,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
+ List<ExecutionAssignmentRecipientDto> recipients,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
 });
 
 
@@ -3495,12 +3776,13 @@ class __$ExecutionAssignmentBatchCreateDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentBatchCreateDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? recipients = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? recipients = null,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? taskBriefId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
   return _then(_ExecutionAssignmentBatchCreateDto(
 recipients: null == recipients ? _self._recipients : recipients // ignore: cast_nullable_to_non_nullable
 as List<ExecutionAssignmentRecipientDto>,invitedRole: null == invitedRole ? _self.invitedRole : invitedRole // ignore: cast_nullable_to_non_nullable
 as UserRole,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,outputProfileId: freezed == outputProfileId ? _self.outputProfileId : outputProfileId // ignore: cast_nullable_to_non_nullable
+as String?,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
 as String?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,lockedInputs: null == lockedInputs ? _self.lockedInputs : lockedInputs // ignore: cast_nullable_to_non_nullable
 as WorkflowInputs,assigneeInputKeys: null == assigneeInputKeys ? _self._assigneeInputKeys : assigneeInputKeys // ignore: cast_nullable_to_non_nullable
@@ -3527,7 +3809,7 @@ $WorkflowInputsCopyWith<$Res> get lockedInputs {
 /// @nodoc
 mixin _$ExecutionAssignmentResponseDto {
 
-@StrictOpaqueIdConverter() String get id;@JsonKey(name: 'batch_id') String? get batchId;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'assigned_email') String get assignedEmail;@JsonKey(name: 'assigned_user_id') String? get assignedUserId;@JsonKey(name: 'invited_role') UserRole get invitedRole;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'locked_inputs') WorkflowInputs get lockedInputs;@JsonKey(name: 'assignee_input_keys') List<String> get assigneeInputKeys;@JsonKey(name: 'draft_inputs') WorkflowInputs get draftInputs; AssignmentStatus get status;@JsonKey(name: 'email_delivery_status') EmailDeliveryStatus get emailDeliveryStatus;@JsonKey(name: 'result_visibility') AssignmentResultVisibility get resultVisibility;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;@JsonKey(name: 'activated_at') DateTime? get activatedAt;@JsonKey(name: 'submitted_at') DateTime? get submittedAt;@JsonKey(name: 'execution_id') String? get executionId;@StrictOpaqueIdConverter()@JsonKey(name: 'created_by') String get createdBy;@JsonKey(name: 'created_at') DateTime get createdAt;
+@StrictOpaqueIdConverter() String get id;@JsonKey(name: 'batch_id') String? get batchId;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'assigned_email') String get assignedEmail;@JsonKey(name: 'assigned_user_id') String? get assignedUserId;@JsonKey(name: 'invited_role') UserRole get invitedRole;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'output_profile_id') String? get outputProfileId;@JsonKey(name: 'task_brief_id') String? get taskBriefId;@JsonKey(name: 'task_brief') TaskAssignmentBriefDto? get taskBrief;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'locked_inputs') WorkflowInputs get lockedInputs;@JsonKey(name: 'assignee_input_keys') List<String> get assigneeInputKeys;@JsonKey(name: 'draft_inputs') WorkflowInputs get draftInputs; AssignmentStatus get status;@JsonKey(name: 'email_delivery_status') EmailDeliveryStatus get emailDeliveryStatus;@JsonKey(name: 'result_visibility') AssignmentResultVisibility get resultVisibility;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;@JsonKey(name: 'activated_at') DateTime? get activatedAt;@JsonKey(name: 'submitted_at') DateTime? get submittedAt;@JsonKey(name: 'execution_id') String? get executionId;@StrictOpaqueIdConverter()@JsonKey(name: 'created_by') String get createdBy;@JsonKey(name: 'created_at') DateTime get createdAt;
 /// Create a copy of ExecutionAssignmentResponseDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3542,7 +3824,7 @@ $ExecutionAssignmentResponseDtoCopyWith<ExecutionAssignmentResponseDto> get copy
 
 @override
 String toString() {
-  return 'ExecutionAssignmentResponseDto(id: $id, batchId: $batchId, organizationId: $organizationId, assignedEmail: $assignedEmail, assignedUserId: $assignedUserId, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, draftInputs: $draftInputs, status: $status, emailDeliveryStatus: $emailDeliveryStatus, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds, activatedAt: $activatedAt, submittedAt: $submittedAt, executionId: $executionId, createdBy: $createdBy, createdAt: $createdAt)';
+  return 'ExecutionAssignmentResponseDto(id: $id, batchId: $batchId, organizationId: $organizationId, assignedEmail: $assignedEmail, assignedUserId: $assignedUserId, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, taskBriefId: $taskBriefId, taskBrief: $taskBrief, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, draftInputs: $draftInputs, status: $status, emailDeliveryStatus: $emailDeliveryStatus, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds, activatedAt: $activatedAt, submittedAt: $submittedAt, executionId: $executionId, createdBy: $createdBy, createdAt: $createdAt)';
 }
 
 
@@ -3553,11 +3835,11 @@ abstract mixin class $ExecutionAssignmentResponseDtoCopyWith<$Res>  {
   factory $ExecutionAssignmentResponseDtoCopyWith(ExecutionAssignmentResponseDto value, $Res Function(ExecutionAssignmentResponseDto) _then) = _$ExecutionAssignmentResponseDtoCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@JsonKey(name: 'batch_id') String? batchId,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'assigned_user_id') String? assignedUserId,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'draft_inputs') WorkflowInputs draftInputs, AssignmentStatus status,@JsonKey(name: 'email_delivery_status') EmailDeliveryStatus emailDeliveryStatus,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds,@JsonKey(name: 'activated_at') DateTime? activatedAt,@JsonKey(name: 'submitted_at') DateTime? submittedAt,@JsonKey(name: 'execution_id') String? executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'created_by') String createdBy,@JsonKey(name: 'created_at') DateTime createdAt
+@StrictOpaqueIdConverter() String id,@JsonKey(name: 'batch_id') String? batchId,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'assigned_user_id') String? assignedUserId,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'task_brief') TaskAssignmentBriefDto? taskBrief,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'draft_inputs') WorkflowInputs draftInputs, AssignmentStatus status,@JsonKey(name: 'email_delivery_status') EmailDeliveryStatus emailDeliveryStatus,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds,@JsonKey(name: 'activated_at') DateTime? activatedAt,@JsonKey(name: 'submitted_at') DateTime? submittedAt,@JsonKey(name: 'execution_id') String? executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'created_by') String createdBy,@JsonKey(name: 'created_at') DateTime createdAt
 });
 
 
-$WorkflowInputsCopyWith<$Res> get lockedInputs;$WorkflowInputsCopyWith<$Res> get draftInputs;
+$TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief;$WorkflowInputsCopyWith<$Res> get lockedInputs;$WorkflowInputsCopyWith<$Res> get draftInputs;
 
 }
 /// @nodoc
@@ -3570,7 +3852,7 @@ class _$ExecutionAssignmentResponseDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentResponseDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? batchId = freezed,Object? organizationId = null,Object? assignedEmail = null,Object? assignedUserId = freezed,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? draftInputs = null,Object? status = null,Object? emailDeliveryStatus = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,Object? activatedAt = freezed,Object? submittedAt = freezed,Object? executionId = freezed,Object? createdBy = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? batchId = freezed,Object? organizationId = null,Object? assignedEmail = null,Object? assignedUserId = freezed,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? taskBriefId = freezed,Object? taskBrief = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? draftInputs = null,Object? status = null,Object? emailDeliveryStatus = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,Object? activatedAt = freezed,Object? submittedAt = freezed,Object? executionId = freezed,Object? createdBy = null,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,batchId: freezed == batchId ? _self.batchId : batchId // ignore: cast_nullable_to_non_nullable
@@ -3580,7 +3862,9 @@ as String,assignedUserId: freezed == assignedUserId ? _self.assignedUserId : ass
 as String?,invitedRole: null == invitedRole ? _self.invitedRole : invitedRole // ignore: cast_nullable_to_non_nullable
 as UserRole,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,outputProfileId: freezed == outputProfileId ? _self.outputProfileId : outputProfileId // ignore: cast_nullable_to_non_nullable
-as String?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as String?,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
+as String?,taskBrief: freezed == taskBrief ? _self.taskBrief : taskBrief // ignore: cast_nullable_to_non_nullable
+as TaskAssignmentBriefDto?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,lockedInputs: null == lockedInputs ? _self.lockedInputs : lockedInputs // ignore: cast_nullable_to_non_nullable
 as WorkflowInputs,assigneeInputKeys: null == assigneeInputKeys ? _self.assigneeInputKeys : assigneeInputKeys // ignore: cast_nullable_to_non_nullable
 as List<String>,draftInputs: null == draftInputs ? _self.draftInputs : draftInputs // ignore: cast_nullable_to_non_nullable
@@ -3598,6 +3882,18 @@ as DateTime,
   ));
 }
 /// Create a copy of ExecutionAssignmentResponseDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief {
+    if (_self.taskBrief == null) {
+    return null;
+  }
+
+  return $TaskAssignmentBriefDtoCopyWith<$Res>(_self.taskBrief!, (value) {
+    return _then(_self.copyWith(taskBrief: value));
+  });
+}/// Create a copy of ExecutionAssignmentResponseDto
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -3697,10 +3993,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @JsonKey(name: 'batch_id')  String? batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'assigned_user_id')  String? assignedUserId, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs')  WorkflowInputs draftInputs,  AssignmentStatus status, @JsonKey(name: 'email_delivery_status')  EmailDeliveryStatus emailDeliveryStatus, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds, @JsonKey(name: 'activated_at')  DateTime? activatedAt, @JsonKey(name: 'submitted_at')  DateTime? submittedAt, @JsonKey(name: 'execution_id')  String? executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by')  String createdBy, @JsonKey(name: 'created_at')  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @JsonKey(name: 'batch_id')  String? batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'assigned_user_id')  String? assignedUserId, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'task_brief')  TaskAssignmentBriefDto? taskBrief, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs')  WorkflowInputs draftInputs,  AssignmentStatus status, @JsonKey(name: 'email_delivery_status')  EmailDeliveryStatus emailDeliveryStatus, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds, @JsonKey(name: 'activated_at')  DateTime? activatedAt, @JsonKey(name: 'submitted_at')  DateTime? submittedAt, @JsonKey(name: 'execution_id')  String? executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by')  String createdBy, @JsonKey(name: 'created_at')  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentResponseDto() when $default != null:
-return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,_that.assignedUserId,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.draftInputs,_that.status,_that.emailDeliveryStatus,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds,_that.activatedAt,_that.submittedAt,_that.executionId,_that.createdBy,_that.createdAt);case _:
+return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,_that.assignedUserId,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.taskBrief,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.draftInputs,_that.status,_that.emailDeliveryStatus,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds,_that.activatedAt,_that.submittedAt,_that.executionId,_that.createdBy,_that.createdAt);case _:
   return orElse();
 
 }
@@ -3718,10 +4014,10 @@ return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @JsonKey(name: 'batch_id')  String? batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'assigned_user_id')  String? assignedUserId, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs')  WorkflowInputs draftInputs,  AssignmentStatus status, @JsonKey(name: 'email_delivery_status')  EmailDeliveryStatus emailDeliveryStatus, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds, @JsonKey(name: 'activated_at')  DateTime? activatedAt, @JsonKey(name: 'submitted_at')  DateTime? submittedAt, @JsonKey(name: 'execution_id')  String? executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by')  String createdBy, @JsonKey(name: 'created_at')  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @JsonKey(name: 'batch_id')  String? batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'assigned_user_id')  String? assignedUserId, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'task_brief')  TaskAssignmentBriefDto? taskBrief, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs')  WorkflowInputs draftInputs,  AssignmentStatus status, @JsonKey(name: 'email_delivery_status')  EmailDeliveryStatus emailDeliveryStatus, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds, @JsonKey(name: 'activated_at')  DateTime? activatedAt, @JsonKey(name: 'submitted_at')  DateTime? submittedAt, @JsonKey(name: 'execution_id')  String? executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by')  String createdBy, @JsonKey(name: 'created_at')  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentResponseDto():
-return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,_that.assignedUserId,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.draftInputs,_that.status,_that.emailDeliveryStatus,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds,_that.activatedAt,_that.submittedAt,_that.executionId,_that.createdBy,_that.createdAt);case _:
+return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,_that.assignedUserId,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.taskBrief,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.draftInputs,_that.status,_that.emailDeliveryStatus,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds,_that.activatedAt,_that.submittedAt,_that.executionId,_that.createdBy,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3738,10 +4034,10 @@ return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @JsonKey(name: 'batch_id')  String? batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'assigned_user_id')  String? assignedUserId, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs')  WorkflowInputs draftInputs,  AssignmentStatus status, @JsonKey(name: 'email_delivery_status')  EmailDeliveryStatus emailDeliveryStatus, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds, @JsonKey(name: 'activated_at')  DateTime? activatedAt, @JsonKey(name: 'submitted_at')  DateTime? submittedAt, @JsonKey(name: 'execution_id')  String? executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by')  String createdBy, @JsonKey(name: 'created_at')  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @JsonKey(name: 'batch_id')  String? batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'assigned_email')  String assignedEmail, @JsonKey(name: 'assigned_user_id')  String? assignedUserId, @JsonKey(name: 'invited_role')  UserRole invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'output_profile_id')  String? outputProfileId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'task_brief')  TaskAssignmentBriefDto? taskBrief, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'locked_inputs')  WorkflowInputs lockedInputs, @JsonKey(name: 'assignee_input_keys')  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs')  WorkflowInputs draftInputs,  AssignmentStatus status, @JsonKey(name: 'email_delivery_status')  EmailDeliveryStatus emailDeliveryStatus, @JsonKey(name: 'result_visibility')  AssignmentResultVisibility resultVisibility, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds, @JsonKey(name: 'activated_at')  DateTime? activatedAt, @JsonKey(name: 'submitted_at')  DateTime? submittedAt, @JsonKey(name: 'execution_id')  String? executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by')  String createdBy, @JsonKey(name: 'created_at')  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentResponseDto() when $default != null:
-return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,_that.assignedUserId,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.draftInputs,_that.status,_that.emailDeliveryStatus,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds,_that.activatedAt,_that.submittedAt,_that.executionId,_that.createdBy,_that.createdAt);case _:
+return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,_that.assignedUserId,_that.invitedRole,_that.workflowId,_that.outputProfileId,_that.taskBriefId,_that.taskBrief,_that.targetLocale,_that.lockedInputs,_that.assigneeInputKeys,_that.draftInputs,_that.status,_that.emailDeliveryStatus,_that.resultVisibility,_that.hardDeadlineAt,_that.relativeDurationSeconds,_that.activatedAt,_that.submittedAt,_that.executionId,_that.createdBy,_that.createdAt);case _:
   return null;
 
 }
@@ -3753,7 +4049,7 @@ return $default(_that.id,_that.batchId,_that.organizationId,_that.assignedEmail,
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ExecutionAssignmentResponseDto extends ExecutionAssignmentResponseDto {
-  const _ExecutionAssignmentResponseDto({@StrictOpaqueIdConverter() required this.id, @JsonKey(name: 'batch_id') this.batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'assigned_email') required this.assignedEmail, @JsonKey(name: 'assigned_user_id') this.assignedUserId, @JsonKey(name: 'invited_role') required this.invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'target_locale') required this.targetLocale, @JsonKey(name: 'locked_inputs') required this.lockedInputs, @JsonKey(name: 'assignee_input_keys') required final  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs') required this.draftInputs, required this.status, @JsonKey(name: 'email_delivery_status') this.emailDeliveryStatus = EmailDeliveryStatus.pending, @JsonKey(name: 'result_visibility') required this.resultVisibility, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds, @JsonKey(name: 'activated_at') this.activatedAt, @JsonKey(name: 'submitted_at') this.submittedAt, @JsonKey(name: 'execution_id') this.executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by') required this.createdBy, @JsonKey(name: 'created_at') required this.createdAt}): _assigneeInputKeys = assigneeInputKeys,super._();
+  const _ExecutionAssignmentResponseDto({@StrictOpaqueIdConverter() required this.id, @JsonKey(name: 'batch_id') this.batchId, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'assigned_email') required this.assignedEmail, @JsonKey(name: 'assigned_user_id') this.assignedUserId, @JsonKey(name: 'invited_role') required this.invitedRole, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'output_profile_id') this.outputProfileId, @JsonKey(name: 'task_brief_id') this.taskBriefId, @JsonKey(name: 'task_brief') this.taskBrief, @JsonKey(name: 'target_locale') required this.targetLocale, @JsonKey(name: 'locked_inputs') required this.lockedInputs, @JsonKey(name: 'assignee_input_keys') required final  List<String> assigneeInputKeys, @JsonKey(name: 'draft_inputs') required this.draftInputs, required this.status, @JsonKey(name: 'email_delivery_status') this.emailDeliveryStatus = EmailDeliveryStatus.pending, @JsonKey(name: 'result_visibility') required this.resultVisibility, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds, @JsonKey(name: 'activated_at') this.activatedAt, @JsonKey(name: 'submitted_at') this.submittedAt, @JsonKey(name: 'execution_id') this.executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'created_by') required this.createdBy, @JsonKey(name: 'created_at') required this.createdAt}): _assigneeInputKeys = assigneeInputKeys,super._();
   factory _ExecutionAssignmentResponseDto.fromJson(Map<String, dynamic> json) => _$ExecutionAssignmentResponseDtoFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -3764,6 +4060,8 @@ class _ExecutionAssignmentResponseDto extends ExecutionAssignmentResponseDto {
 @override@JsonKey(name: 'invited_role') final  UserRole invitedRole;
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') final  String workflowId;
 @override@JsonKey(name: 'output_profile_id') final  String? outputProfileId;
+@override@JsonKey(name: 'task_brief_id') final  String? taskBriefId;
+@override@JsonKey(name: 'task_brief') final  TaskAssignmentBriefDto? taskBrief;
 @override@JsonKey(name: 'target_locale') final  String targetLocale;
 @override@JsonKey(name: 'locked_inputs') final  WorkflowInputs lockedInputs;
  final  List<String> _assigneeInputKeys;
@@ -3800,7 +4098,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionAssignmentResponseDto(id: $id, batchId: $batchId, organizationId: $organizationId, assignedEmail: $assignedEmail, assignedUserId: $assignedUserId, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, draftInputs: $draftInputs, status: $status, emailDeliveryStatus: $emailDeliveryStatus, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds, activatedAt: $activatedAt, submittedAt: $submittedAt, executionId: $executionId, createdBy: $createdBy, createdAt: $createdAt)';
+  return 'ExecutionAssignmentResponseDto(id: $id, batchId: $batchId, organizationId: $organizationId, assignedEmail: $assignedEmail, assignedUserId: $assignedUserId, invitedRole: $invitedRole, workflowId: $workflowId, outputProfileId: $outputProfileId, taskBriefId: $taskBriefId, taskBrief: $taskBrief, targetLocale: $targetLocale, lockedInputs: $lockedInputs, assigneeInputKeys: $assigneeInputKeys, draftInputs: $draftInputs, status: $status, emailDeliveryStatus: $emailDeliveryStatus, resultVisibility: $resultVisibility, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds, activatedAt: $activatedAt, submittedAt: $submittedAt, executionId: $executionId, createdBy: $createdBy, createdAt: $createdAt)';
 }
 
 
@@ -3811,11 +4109,11 @@ abstract mixin class _$ExecutionAssignmentResponseDtoCopyWith<$Res> implements $
   factory _$ExecutionAssignmentResponseDtoCopyWith(_ExecutionAssignmentResponseDto value, $Res Function(_ExecutionAssignmentResponseDto) _then) = __$ExecutionAssignmentResponseDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@JsonKey(name: 'batch_id') String? batchId,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'assigned_user_id') String? assignedUserId,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'draft_inputs') WorkflowInputs draftInputs, AssignmentStatus status,@JsonKey(name: 'email_delivery_status') EmailDeliveryStatus emailDeliveryStatus,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds,@JsonKey(name: 'activated_at') DateTime? activatedAt,@JsonKey(name: 'submitted_at') DateTime? submittedAt,@JsonKey(name: 'execution_id') String? executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'created_by') String createdBy,@JsonKey(name: 'created_at') DateTime createdAt
+@StrictOpaqueIdConverter() String id,@JsonKey(name: 'batch_id') String? batchId,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'assigned_email') String assignedEmail,@JsonKey(name: 'assigned_user_id') String? assignedUserId,@JsonKey(name: 'invited_role') UserRole invitedRole,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'output_profile_id') String? outputProfileId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'task_brief') TaskAssignmentBriefDto? taskBrief,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'locked_inputs') WorkflowInputs lockedInputs,@JsonKey(name: 'assignee_input_keys') List<String> assigneeInputKeys,@JsonKey(name: 'draft_inputs') WorkflowInputs draftInputs, AssignmentStatus status,@JsonKey(name: 'email_delivery_status') EmailDeliveryStatus emailDeliveryStatus,@JsonKey(name: 'result_visibility') AssignmentResultVisibility resultVisibility,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds,@JsonKey(name: 'activated_at') DateTime? activatedAt,@JsonKey(name: 'submitted_at') DateTime? submittedAt,@JsonKey(name: 'execution_id') String? executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'created_by') String createdBy,@JsonKey(name: 'created_at') DateTime createdAt
 });
 
 
-@override $WorkflowInputsCopyWith<$Res> get lockedInputs;@override $WorkflowInputsCopyWith<$Res> get draftInputs;
+@override $TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief;@override $WorkflowInputsCopyWith<$Res> get lockedInputs;@override $WorkflowInputsCopyWith<$Res> get draftInputs;
 
 }
 /// @nodoc
@@ -3828,7 +4126,7 @@ class __$ExecutionAssignmentResponseDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentResponseDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? batchId = freezed,Object? organizationId = null,Object? assignedEmail = null,Object? assignedUserId = freezed,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? draftInputs = null,Object? status = null,Object? emailDeliveryStatus = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,Object? activatedAt = freezed,Object? submittedAt = freezed,Object? executionId = freezed,Object? createdBy = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? batchId = freezed,Object? organizationId = null,Object? assignedEmail = null,Object? assignedUserId = freezed,Object? invitedRole = null,Object? workflowId = null,Object? outputProfileId = freezed,Object? taskBriefId = freezed,Object? taskBrief = freezed,Object? targetLocale = null,Object? lockedInputs = null,Object? assigneeInputKeys = null,Object? draftInputs = null,Object? status = null,Object? emailDeliveryStatus = null,Object? resultVisibility = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,Object? activatedAt = freezed,Object? submittedAt = freezed,Object? executionId = freezed,Object? createdBy = null,Object? createdAt = null,}) {
   return _then(_ExecutionAssignmentResponseDto(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,batchId: freezed == batchId ? _self.batchId : batchId // ignore: cast_nullable_to_non_nullable
@@ -3838,7 +4136,9 @@ as String,assignedUserId: freezed == assignedUserId ? _self.assignedUserId : ass
 as String?,invitedRole: null == invitedRole ? _self.invitedRole : invitedRole // ignore: cast_nullable_to_non_nullable
 as UserRole,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,outputProfileId: freezed == outputProfileId ? _self.outputProfileId : outputProfileId // ignore: cast_nullable_to_non_nullable
-as String?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as String?,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
+as String?,taskBrief: freezed == taskBrief ? _self.taskBrief : taskBrief // ignore: cast_nullable_to_non_nullable
+as TaskAssignmentBriefDto?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,lockedInputs: null == lockedInputs ? _self.lockedInputs : lockedInputs // ignore: cast_nullable_to_non_nullable
 as WorkflowInputs,assigneeInputKeys: null == assigneeInputKeys ? _self._assigneeInputKeys : assigneeInputKeys // ignore: cast_nullable_to_non_nullable
 as List<String>,draftInputs: null == draftInputs ? _self.draftInputs : draftInputs // ignore: cast_nullable_to_non_nullable
@@ -3857,6 +4157,18 @@ as DateTime,
 }
 
 /// Create a copy of ExecutionAssignmentResponseDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief {
+    if (_self.taskBrief == null) {
+    return null;
+  }
+
+  return $TaskAssignmentBriefDtoCopyWith<$Res>(_self.taskBrief!, (value) {
+    return _then(_self.copyWith(taskBrief: value));
+  });
+}/// Create a copy of ExecutionAssignmentResponseDto
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -4142,7 +4454,7 @@ as List<ExecutionAssignmentResponseDto>,
 /// @nodoc
 mixin _$ExecutionAssignmentPreviewDto {
 
-@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'organization_name') String get organizationName;@JsonKey(name: 'assigned_email_masked') String get assignedEmailMasked;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'target_locale') String get targetLocale; AssignmentStatus get status;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;
+@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'organization_name') String get organizationName;@JsonKey(name: 'assigned_email_masked') String get assignedEmailMasked;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'task_brief_id') String? get taskBriefId;@JsonKey(name: 'task_brief') TaskAssignmentBriefDto? get taskBrief;@JsonKey(name: 'target_locale') String get targetLocale; AssignmentStatus get status;@JsonKey(name: 'hard_deadline_at') DateTime get hardDeadlineAt;@JsonKey(name: 'relative_duration_seconds') int? get relativeDurationSeconds;
 /// Create a copy of ExecutionAssignmentPreviewDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -4157,7 +4469,7 @@ $ExecutionAssignmentPreviewDtoCopyWith<ExecutionAssignmentPreviewDto> get copyWi
 
 @override
 String toString() {
-  return 'ExecutionAssignmentPreviewDto(id: $id, organizationId: $organizationId, organizationName: $organizationName, assignedEmailMasked: $assignedEmailMasked, workflowId: $workflowId, targetLocale: $targetLocale, status: $status, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
+  return 'ExecutionAssignmentPreviewDto(id: $id, organizationId: $organizationId, organizationName: $organizationName, assignedEmailMasked: $assignedEmailMasked, workflowId: $workflowId, taskBriefId: $taskBriefId, taskBrief: $taskBrief, targetLocale: $targetLocale, status: $status, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
 }
 
 
@@ -4168,11 +4480,11 @@ abstract mixin class $ExecutionAssignmentPreviewDtoCopyWith<$Res>  {
   factory $ExecutionAssignmentPreviewDtoCopyWith(ExecutionAssignmentPreviewDto value, $Res Function(ExecutionAssignmentPreviewDto) _then) = _$ExecutionAssignmentPreviewDtoCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'organization_name') String organizationName,@JsonKey(name: 'assigned_email_masked') String assignedEmailMasked,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String targetLocale, AssignmentStatus status,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'organization_name') String organizationName,@JsonKey(name: 'assigned_email_masked') String assignedEmailMasked,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'task_brief') TaskAssignmentBriefDto? taskBrief,@JsonKey(name: 'target_locale') String targetLocale, AssignmentStatus status,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
 });
 
 
-
+$TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief;
 
 }
 /// @nodoc
@@ -4185,21 +4497,35 @@ class _$ExecutionAssignmentPreviewDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentPreviewDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? organizationId = null,Object? organizationName = null,Object? assignedEmailMasked = null,Object? workflowId = null,Object? targetLocale = null,Object? status = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? organizationId = null,Object? organizationName = null,Object? assignedEmailMasked = null,Object? workflowId = null,Object? taskBriefId = freezed,Object? taskBrief = freezed,Object? targetLocale = null,Object? status = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String,organizationName: null == organizationName ? _self.organizationName : organizationName // ignore: cast_nullable_to_non_nullable
 as String,assignedEmailMasked: null == assignedEmailMasked ? _self.assignedEmailMasked : assignedEmailMasked // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
-as String,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as String,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
+as String?,taskBrief: freezed == taskBrief ? _self.taskBrief : taskBrief // ignore: cast_nullable_to_non_nullable
+as TaskAssignmentBriefDto?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as AssignmentStatus,hardDeadlineAt: null == hardDeadlineAt ? _self.hardDeadlineAt : hardDeadlineAt // ignore: cast_nullable_to_non_nullable
 as DateTime,relativeDurationSeconds: freezed == relativeDurationSeconds ? _self.relativeDurationSeconds : relativeDurationSeconds // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
 }
+/// Create a copy of ExecutionAssignmentPreviewDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief {
+    if (_self.taskBrief == null) {
+    return null;
+  }
 
+  return $TaskAssignmentBriefDtoCopyWith<$Res>(_self.taskBrief!, (value) {
+    return _then(_self.copyWith(taskBrief: value));
+  });
+}
 }
 
 
@@ -4281,10 +4607,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'organization_name')  String organizationName, @JsonKey(name: 'assigned_email_masked')  String assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale,  AssignmentStatus status, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'organization_name')  String organizationName, @JsonKey(name: 'assigned_email_masked')  String assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'task_brief')  TaskAssignmentBriefDto? taskBrief, @JsonKey(name: 'target_locale')  String targetLocale,  AssignmentStatus status, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentPreviewDto() when $default != null:
-return $default(_that.id,_that.organizationId,_that.organizationName,_that.assignedEmailMasked,_that.workflowId,_that.targetLocale,_that.status,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.id,_that.organizationId,_that.organizationName,_that.assignedEmailMasked,_that.workflowId,_that.taskBriefId,_that.taskBrief,_that.targetLocale,_that.status,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   return orElse();
 
 }
@@ -4302,10 +4628,10 @@ return $default(_that.id,_that.organizationId,_that.organizationName,_that.assig
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'organization_name')  String organizationName, @JsonKey(name: 'assigned_email_masked')  String assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale,  AssignmentStatus status, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'organization_name')  String organizationName, @JsonKey(name: 'assigned_email_masked')  String assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'task_brief')  TaskAssignmentBriefDto? taskBrief, @JsonKey(name: 'target_locale')  String targetLocale,  AssignmentStatus status, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentPreviewDto():
-return $default(_that.id,_that.organizationId,_that.organizationName,_that.assignedEmailMasked,_that.workflowId,_that.targetLocale,_that.status,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.id,_that.organizationId,_that.organizationName,_that.assignedEmailMasked,_that.workflowId,_that.taskBriefId,_that.taskBrief,_that.targetLocale,_that.status,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -4322,10 +4648,10 @@ return $default(_that.id,_that.organizationId,_that.organizationName,_that.assig
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'organization_name')  String organizationName, @JsonKey(name: 'assigned_email_masked')  String assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String targetLocale,  AssignmentStatus status, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'organization_name')  String organizationName, @JsonKey(name: 'assigned_email_masked')  String assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'task_brief_id')  String? taskBriefId, @JsonKey(name: 'task_brief')  TaskAssignmentBriefDto? taskBrief, @JsonKey(name: 'target_locale')  String targetLocale,  AssignmentStatus status, @JsonKey(name: 'hard_deadline_at')  DateTime hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds')  int? relativeDurationSeconds)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionAssignmentPreviewDto() when $default != null:
-return $default(_that.id,_that.organizationId,_that.organizationName,_that.assignedEmailMasked,_that.workflowId,_that.targetLocale,_that.status,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
+return $default(_that.id,_that.organizationId,_that.organizationName,_that.assignedEmailMasked,_that.workflowId,_that.taskBriefId,_that.taskBrief,_that.targetLocale,_that.status,_that.hardDeadlineAt,_that.relativeDurationSeconds);case _:
   return null;
 
 }
@@ -4337,7 +4663,7 @@ return $default(_that.id,_that.organizationId,_that.organizationName,_that.assig
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _ExecutionAssignmentPreviewDto extends ExecutionAssignmentPreviewDto {
-  const _ExecutionAssignmentPreviewDto({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'organization_name') required this.organizationName, @JsonKey(name: 'assigned_email_masked') required this.assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'target_locale') required this.targetLocale, required this.status, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds}): super._();
+  const _ExecutionAssignmentPreviewDto({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'organization_name') required this.organizationName, @JsonKey(name: 'assigned_email_masked') required this.assignedEmailMasked, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'task_brief_id') this.taskBriefId, @JsonKey(name: 'task_brief') this.taskBrief, @JsonKey(name: 'target_locale') required this.targetLocale, required this.status, @JsonKey(name: 'hard_deadline_at') required this.hardDeadlineAt, @JsonKey(name: 'relative_duration_seconds') this.relativeDurationSeconds}): super._();
   factory _ExecutionAssignmentPreviewDto.fromJson(Map<String, dynamic> json) => _$ExecutionAssignmentPreviewDtoFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -4345,6 +4671,8 @@ class _ExecutionAssignmentPreviewDto extends ExecutionAssignmentPreviewDto {
 @override@JsonKey(name: 'organization_name') final  String organizationName;
 @override@JsonKey(name: 'assigned_email_masked') final  String assignedEmailMasked;
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') final  String workflowId;
+@override@JsonKey(name: 'task_brief_id') final  String? taskBriefId;
+@override@JsonKey(name: 'task_brief') final  TaskAssignmentBriefDto? taskBrief;
 @override@JsonKey(name: 'target_locale') final  String targetLocale;
 @override final  AssignmentStatus status;
 @override@JsonKey(name: 'hard_deadline_at') final  DateTime hardDeadlineAt;
@@ -4365,7 +4693,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionAssignmentPreviewDto(id: $id, organizationId: $organizationId, organizationName: $organizationName, assignedEmailMasked: $assignedEmailMasked, workflowId: $workflowId, targetLocale: $targetLocale, status: $status, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
+  return 'ExecutionAssignmentPreviewDto(id: $id, organizationId: $organizationId, organizationName: $organizationName, assignedEmailMasked: $assignedEmailMasked, workflowId: $workflowId, taskBriefId: $taskBriefId, taskBrief: $taskBrief, targetLocale: $targetLocale, status: $status, hardDeadlineAt: $hardDeadlineAt, relativeDurationSeconds: $relativeDurationSeconds)';
 }
 
 
@@ -4376,11 +4704,11 @@ abstract mixin class _$ExecutionAssignmentPreviewDtoCopyWith<$Res> implements $E
   factory _$ExecutionAssignmentPreviewDtoCopyWith(_ExecutionAssignmentPreviewDto value, $Res Function(_ExecutionAssignmentPreviewDto) _then) = __$ExecutionAssignmentPreviewDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'organization_name') String organizationName,@JsonKey(name: 'assigned_email_masked') String assignedEmailMasked,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String targetLocale, AssignmentStatus status,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'organization_name') String organizationName,@JsonKey(name: 'assigned_email_masked') String assignedEmailMasked,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'task_brief_id') String? taskBriefId,@JsonKey(name: 'task_brief') TaskAssignmentBriefDto? taskBrief,@JsonKey(name: 'target_locale') String targetLocale, AssignmentStatus status,@JsonKey(name: 'hard_deadline_at') DateTime hardDeadlineAt,@JsonKey(name: 'relative_duration_seconds') int? relativeDurationSeconds
 });
 
 
-
+@override $TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief;
 
 }
 /// @nodoc
@@ -4393,14 +4721,16 @@ class __$ExecutionAssignmentPreviewDtoCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionAssignmentPreviewDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? organizationId = null,Object? organizationName = null,Object? assignedEmailMasked = null,Object? workflowId = null,Object? targetLocale = null,Object? status = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? organizationId = null,Object? organizationName = null,Object? assignedEmailMasked = null,Object? workflowId = null,Object? taskBriefId = freezed,Object? taskBrief = freezed,Object? targetLocale = null,Object? status = null,Object? hardDeadlineAt = null,Object? relativeDurationSeconds = freezed,}) {
   return _then(_ExecutionAssignmentPreviewDto(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String,organizationName: null == organizationName ? _self.organizationName : organizationName // ignore: cast_nullable_to_non_nullable
 as String,assignedEmailMasked: null == assignedEmailMasked ? _self.assignedEmailMasked : assignedEmailMasked // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
-as String,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as String,taskBriefId: freezed == taskBriefId ? _self.taskBriefId : taskBriefId // ignore: cast_nullable_to_non_nullable
+as String?,taskBrief: freezed == taskBrief ? _self.taskBrief : taskBrief // ignore: cast_nullable_to_non_nullable
+as TaskAssignmentBriefDto?,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as AssignmentStatus,hardDeadlineAt: null == hardDeadlineAt ? _self.hardDeadlineAt : hardDeadlineAt // ignore: cast_nullable_to_non_nullable
 as DateTime,relativeDurationSeconds: freezed == relativeDurationSeconds ? _self.relativeDurationSeconds : relativeDurationSeconds // ignore: cast_nullable_to_non_nullable
@@ -4408,7 +4738,19 @@ as int?,
   ));
 }
 
+/// Create a copy of ExecutionAssignmentPreviewDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TaskAssignmentBriefDtoCopyWith<$Res>? get taskBrief {
+    if (_self.taskBrief == null) {
+    return null;
+  }
 
+  return $TaskAssignmentBriefDtoCopyWith<$Res>(_self.taskBrief!, (value) {
+    return _then(_self.copyWith(taskBrief: value));
+  });
+}
 }
 
 

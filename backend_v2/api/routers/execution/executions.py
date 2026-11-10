@@ -317,6 +317,7 @@ async def save_execution_assignment_draft(
     payload: ExecutionAssignmentDraftDTO,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
+    doc_service: DocumentExtractionServiceDep,
 ) -> ExecutionAssignmentResponseDTO:
     """Auto-save assignee draft inputs on an active task assignment.
 
@@ -325,6 +326,7 @@ async def save_execution_assignment_draft(
         payload: Draft inputs DTO.
         current_user: Authenticated assignee token data.
         execution_service: Execution domain service.
+        doc_service: Document extraction service for eager Base64 decoding.
 
     Returns:
         Updated ExecutionAssignmentResponseDTO with persisted draft_inputs.
@@ -341,6 +343,7 @@ async def save_execution_assignment_draft(
         initiator=current_user,
         assignment_id=assignment_id,
         payload=payload,
+        doc_service=doc_service,
     )
 
 

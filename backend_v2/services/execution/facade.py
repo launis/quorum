@@ -135,6 +135,7 @@ class ExecutionService:
             assignment_service=assignment_service,
             identity_repo=identity_repo,
             workflow_repo=workflow_repo,
+            prompt_block_repo=prompt_block_repo,
             email_service=email_service,
             entity_adapter=entity_adapter,
         )
@@ -177,6 +178,7 @@ class ExecutionService:
         assignment_service: ExecutionAssignmentService | None,
         identity_repo: IIdentityRepository | None,
         workflow_repo: IWorkflowRepository,
+        prompt_block_repo: IPromptBlockRepository | None,
         email_service: EmailService | None,
         entity_adapter: EntityPersistencePort | None,
     ) -> ExecutionAssignmentService | None:
@@ -186,6 +188,7 @@ class ExecutionService:
             assignment_service: Explicit ExecutionAssignmentService override if injected.
             identity_repo: Optional identity repository backing user and organization lookups.
             workflow_repo: Workflow repository passed to assignment orchestration.
+            prompt_block_repo: Optional prompt block repository for Task Brief resolution.
             email_service: Optional transactional email dispatch service.
             entity_adapter: Optional hexagonal EntityPersistencePort for assignments.
 
@@ -202,6 +205,7 @@ class ExecutionService:
                 org_repo=org_repo,
                 user_repo=user_repo,
                 workflow_repo=workflow_repo,
+                prompt_block_repo=prompt_block_repo,
                 token_service=TokenService(repo=user_repo),
                 email_service=email_service,
                 entity_adapter=entity_adapter,
@@ -639,6 +643,7 @@ class ExecutionService:
         initiator: TokenData,
         assignment_id: str,
         payload: ExecutionAssignmentDraftDTO,
+        doc_service: DocumentExtractionService | None = None,
     ) -> ExecutionAssignmentResponseDTO:
         """Persist auto-saved assignee draft inputs on an active assignment.
 
@@ -646,6 +651,7 @@ class ExecutionService:
             initiator: Authenticated assignee token data.
             assignment_id: Canonical Task Assignment ID.
             payload: Draft inputs DTO.
+            doc_service: Optional document extraction service for Base64 attachments.
 
         Returns:
             Updated ExecutionAssignmentResponseDTO.
@@ -659,7 +665,12 @@ class ExecutionService:
                 deadline has passed (ErrorCodes.ASSIGNMENT_EXPIRED), or assignment is not yet activated
                 (ErrorCodes.VALIDATION_FAILED).
         """
-        return await self._require_assignment_service().save_draft_inputs(initiator, assignment_id, payload)
+        return await self._require_assignment_service().save_draft_inputs(
+            initiator,
+            assignment_id,
+            payload,
+            doc_service=doc_service,
+        )
 
     async def submit_assignment(
         self,

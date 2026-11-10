@@ -39,6 +39,7 @@ from backend_v2.models.enums import (
     SystemLocale,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 
 MOCK_USER_ID = "usr_0195f3a0000070018234567890abcdef"
 MOCK_ORG_ID = "org_0195f3a0000070018234567890abcdef"
@@ -77,11 +78,11 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     """Regression test: Flutter client sends null for matrix_sampling_strategy when omitted."""
     client = TestClient(app)
 
-    mock_record = ExecutionRecord(
+    mock_record: ExecutionRecord = ExecutionRecordFactory.build(
         id=MOCK_EXE_ID,
         workflow_id=MOCK_WOR_ID,
         output_profile_id=MOCK_PRF_ID,
-        target_locale="fi",
+        target_locale=SystemLocale.FI,
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.start_execution.return_value = mock_record
@@ -111,11 +112,11 @@ def test_start_execution_invalid_payload_422(override_dependencies: Any, mock_ex
 def test_list_executions_returns_records(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/ returns execution records."""
     client = TestClient(app)
-    mock_record = ExecutionRecord(
+    mock_record: ExecutionRecord = ExecutionRecordFactory.build(
         id=MOCK_EXE_ID,
         workflow_id=MOCK_WOR_ID,
         output_profile_id=MOCK_PRF_ID,
-        target_locale="fi",
+        target_locale=SystemLocale.FI,
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.list_executions.return_value = [mock_record]
@@ -130,11 +131,11 @@ def test_list_executions_returns_records(override_dependencies: Any, mock_execut
 def test_get_execution_status(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/{execution_id} returns status."""
     client = TestClient(app)
-    mock_record = ExecutionRecord(
+    mock_record: ExecutionRecord = ExecutionRecordFactory.build(
         id=MOCK_EXE_ID,
         workflow_id=MOCK_WOR_ID,
         output_profile_id=MOCK_PRF_ID,
-        target_locale="fi",
+        target_locale=SystemLocale.FI,
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.get_execution.return_value = mock_record
@@ -169,11 +170,11 @@ def test_get_execution_status_permission_denied_403(override_dependencies: Any, 
 def test_resume_execution(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test POST /api/v2/execution/executions/{execution_id}/resume resumes workflow."""
     client = TestClient(app)
-    mock_record = ExecutionRecord(
+    mock_record: ExecutionRecord = ExecutionRecordFactory.build(
         id=MOCK_EXE_ID,
         workflow_id=MOCK_WOR_ID,
         output_profile_id=MOCK_PRF_ID,
-        target_locale="fi",
+        target_locale=SystemLocale.FI,
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.resume_execution.return_value = mock_record
@@ -421,11 +422,11 @@ def test_execution_assignment_assignee_endpoints_positive(
     client = TestClient(app)
     mock_execution_service.activate_assignment.return_value = _sample_assignment_dto(AssignmentStatus.ACTIVATED)
     mock_execution_service.save_draft_inputs.return_value = _sample_assignment_dto(AssignmentStatus.ACTIVATED)
-    mock_execution_service.submit_assignment.return_value = ExecutionRecord(
+    mock_execution_service.submit_assignment.return_value = ExecutionRecordFactory.build(
         id=MOCK_EXE_ID,
         workflow_id=MOCK_WOR_ID,
         output_profile_id=MOCK_PRF_ID,
-        target_locale="fi",
+        target_locale=SystemLocale.FI,
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     act = client.post(f"/api/v2/execution/executions/assignments/{MOCK_TSK_ID}/activate")
@@ -433,12 +434,21 @@ def test_execution_assignment_assignee_endpoints_positive(
     assert act.json()["status"] == "activated"
     draft = client.put(
         f"/api/v2/execution/executions/assignments/{MOCK_TSK_ID}/draft",
-        json={"draft_inputs": {"dynamic_inputs": {"essay": "Draft content"}}},
+        json={
+            "draft_inputs": {
+                "dynamic_inputs": {"essay": {"filename": "draft.txt", "content_base64": "RHJhZnQgY29udGVudA=="}}
+            }
+        },
     )
     assert draft.status_code == 200
+    assert mock_execution_service.save_draft_inputs.call_args.kwargs["doc_service"] is not None
     sub = client.post(
         f"/api/v2/execution/executions/assignments/{MOCK_TSK_ID}/submit",
-        json={"submitted_inputs": {"dynamic_inputs": {"essay": "Final answer"}}},
+        json={
+            "submitted_inputs": {
+                "dynamic_inputs": {"essay": {"filename": "final.txt", "content_base64": "RmluYWwgYW5zd2Vy"}}
+            }
+        },
     )
     assert sub.status_code == 202
     assert sub.json()["id"] == MOCK_EXE_ID

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -42,12 +43,19 @@ from backend_v2.models.auth import (
     Organization,
     SubscriptionStatus,
     SystemOrganizations,
+    TaskAssignmentBriefDTO,
     TokenData,
     User,
     UserRole,
 )
-from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.domain.inputs import (
+    Base64Attachment,
+    WorkflowInputs,
+    WorkflowInputsIngress,
+)
+from backend_v2.models.domain.matrix import TheoryGrounding
+from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
@@ -57,8 +65,10 @@ from backend_v2.models.enums import (
     AssignmentResultVisibility,
     AssignmentStatus,
     EmailDeliveryStatus,
+    EntityPrefix,
     ExecutionStatus,
     HistoricalContextMode,
+    PromptBlockCategory,
     StepType,
     SystemLocale,
     VisualIntent,
@@ -66,6 +76,7 @@ from backend_v2.models.enums import (
 from backend_v2.services.auth.email_service import EmailService
 from backend_v2.services.auth.repositories import OrganizationRepository, UserRepository
 from backend_v2.services.auth.token_service import TokenService
+from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution import (
     ExecutionAssignmentService,
     ExecutionIngressService,
@@ -75,6 +86,7 @@ from backend_v2.services.execution.assignment_service import (
     AuditEventLoggerProtocol,
     mask_email_address,
 )
+from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
     ExecutionStepFactory,
     OutputProfileFactory,
@@ -294,6 +306,7 @@ async def _setup_assignment_harness(
         token_service=token_service,
         email_service=email_service,
         entity_adapter=entity_adapter,
+        prompt_block_repo=wf_repo,
     )
     execution_service = ExecutionService(
         exec_repo=wf_repo,
@@ -833,8 +846,6 @@ async def test_assignment_firebase_onboarding_mfa_and_router_endpoints(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify Firebase 2FA enforcement during onboarding and router endpoint delegation."""
-    from backend_v2.settings import get_settings
-
     mfa_settings = get_settings().model_copy(update={"require_mfa": True})
     monkeypatch.setattr(
         "backend_v2.services.execution.assignment_service.get_settings",
@@ -963,6 +974,7 @@ async def test_assignment_firebase_onboarding_mfa_and_router_endpoints(
         ),
         current_user=router_user_token,
         execution_service=execution_service,
+        doc_service=AsyncMock(),
     )
     assert draft_res.draft_inputs.dynamic_inputs["candidate_answer"] == "Draft via router"
 
@@ -1359,3 +1371,342 @@ async def test_assignment_hard_deadline_bva_cross_org_onboarding_and_root_org_re
     refreshed_expiring = await entity_adapter.get_execution_assignment(expiring.id)
     assert refreshed_expiring is not None
     assert refreshed_expiring.status == AssignmentStatus.EXPIRED
+
+
+@pytest.mark.asyncio
+async def test_assignment_task_brief_lifecycle_and_rbac_validation(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify task_brief_id persistence, TaskAssignmentBriefDTO projection, and negative RBAC/category guards."""
+    assignment_service, _, wf_repo, identity_repo, _, _ = await _setup_assignment_harness()
+
+    alpha_brief_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    await wf_repo.create_prompt_block(
+        SystemRulePromptBlock(
+            id=alpha_brief_id,
+            slug="alpha-task-brief",
+            category_id=PromptBlockCategory.TASK_DEFINITION,
+            label=I18nText(translations={"en": "Alpha Case Study", "fi": "Alpha-tapaustutkimus"}),
+            description=I18nText(translations={"en": "Case description", "fi": "Tapauksen kuvaus"}),
+            output_extensions=[],
+            instruction_text="Review section 4 and summarize key risks.",
+            theory_grounding=TheoryGrounding(source_url="https://docs.qrum.ai/cases/alpha-4"),
+            organization_id=ORG_ALPHA_ID,
+        )
+    )
+
+    # 1. Positive: Create single and batch assignments with task_brief_id and verify TaskAssignmentBriefDTO hydration
+    created = await assignment_service.create_assignment(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="brief.user@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            output_profile_id=PROFILE_ID,
+            task_brief_id=alpha_brief_id,
+            locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+            assignee_input_keys=["candidate_answer"],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=6),
+        ),
+    )
+    assert created.task_brief_id == alpha_brief_id
+    assert isinstance(created.task_brief, TaskAssignmentBriefDTO)
+    assert created.task_brief.id == alpha_brief_id
+    assert created.task_brief.label.translations["en"] == "Alpha Case Study"
+    assert created.task_brief.instruction_text == "Review section 4 and summarize key risks."
+    assert created.task_brief.source_url == "https://docs.qrum.ai/cases/alpha-4"
+
+    batch_created = await assignment_service.create_assignment_batch(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentBatchCreateDTO(
+            recipients=[ExecutionAssignmentRecipientDTO(email="batch.brief@alpha.fi", name="Batch Brief")],
+            workflow_id=WORKFLOW_ID,
+            output_profile_id=PROFILE_ID,
+            task_brief_id=alpha_brief_id,
+            locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Batch Context"}),
+            assignee_input_keys=["candidate_answer"],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=6),
+        ),
+    )
+    assert batch_created.assignments[0].task_brief_id == alpha_brief_id
+    assert batch_created.assignments[0].task_brief is not None
+    assert batch_created.assignments[0].task_brief.source_url == "https://docs.qrum.ai/cases/alpha-4"
+
+    raw_tok = assignment_service.get_last_generated_token(created.id)
+    assert raw_tok is not None
+    preview = await assignment_service.preview_assignment(raw_tok)
+    assert preview.task_brief_id == alpha_brief_id
+    assert preview.task_brief is not None
+    assert preview.task_brief.instruction_text == "Review section 4 and summarize key risks."
+
+    resent = await assignment_service.resend_assignment_email(_manager_token(), created.id)
+    assert resent.task_brief is not None
+    assert resent.task_brief.id == alpha_brief_id
+    rotated_tok = assignment_service.get_last_generated_token(created.id)
+    assert rotated_tok is not None
+
+    onboarded = await assignment_service.onboard_assignee(
+        rotated_tok,
+        ExecutionAssignmentOnboardingRequestDTO(name="Brief User"),
+    )
+    brief_user_tok = TokenData(
+        id=onboarded.user.id,
+        role=UserRole.MEMBER,
+        organization_id=ORG_ALPHA_ID,
+        email="brief.user@alpha.fi",
+    )
+    activated = await assignment_service.activate_assignment(brief_user_tok, created.id)
+    assert activated.task_brief is not None
+    assert activated.task_brief.id == alpha_brief_id
+
+    drafted = await assignment_service.save_draft_inputs(
+        brief_user_tok,
+        created.id,
+        ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs(dynamic_inputs={"candidate_answer": "Initial draft"})),
+    )
+    assert drafted.task_brief is not None
+    assert drafted.task_brief.id == alpha_brief_id
+
+    listed = await assignment_service.list_assignments(_manager_token())
+    assert len(listed) == 2
+    assert all(item.task_brief is not None and item.task_brief.id == alpha_brief_id for item in listed)
+
+    # 2. Boundary (strict=False): If prompt_block_repo is detached or block is deleted after creation, read paths return task_brief=None gracefully
+    await wf_repo.delete_prompt_block(alpha_brief_id)
+    listed_after_delete = await assignment_service.list_assignments(_manager_token())
+    assert all(item.task_brief_id == alpha_brief_id and item.task_brief is None for item in listed_after_delete)
+
+    # 3. Negative 1: Missing prompt_block_repo on create_assignment with task_brief_id raises SERVICE_DEPENDENCY_MISSING
+    assignment_service.prompt_block_repo = None
+    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as missing_repo_exc:
+        await assignment_service.create_assignment(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentCreateDTO(
+                assigned_email="norepo@alpha.fi",
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=alpha_brief_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+                assignee_input_keys=["candidate_answer"],
+                hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
+            ),
+        )
+    assert missing_repo_exc.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+    assignment_service.prompt_block_repo = wf_repo
+
+    # 4. Negative 2: Unknown task_brief_id raises ResourceNotFoundError
+    unknown_brief_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    with caplog.at_level(logging.ERROR), pytest.raises(ResourceNotFoundError) as not_found_exc:
+        await assignment_service.create_assignment(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentCreateDTO(
+                assigned_email="unknown.brief@alpha.fi",
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=unknown_brief_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+                assignee_input_keys=["candidate_answer"],
+                hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
+            ),
+        )
+    assert not_found_exc.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+    # 5. Negative 3: Non-TASK_DEFINITION prompt block raises AppException (VALIDATION_FAILED)
+    sys_rule_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    await wf_repo.create_prompt_block(
+        SystemRulePromptBlock(
+            id=sys_rule_id,
+            slug="not-a-task-brief",
+            category_id=PromptBlockCategory.SYSTEM_RULE,
+            label=I18nText(translations={"en": "System Rule", "fi": "Järjestelmäsääntö"}),
+            description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+            output_extensions=[],
+            instruction_text="Internal rule.",
+            organization_id=ORG_ALPHA_ID,
+        )
+    )
+    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as wrong_cat_exc:
+        await assignment_service.create_assignment(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentCreateDTO(
+                assigned_email="wrong.cat@alpha.fi",
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=sys_rule_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+                assignee_input_keys=["candidate_answer"],
+                hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
+            ),
+        )
+    assert wrong_cat_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # 6. Negative 4: Another tenant's private TASK_DEFINITION block raises PermissionDeniedError
+    beta_brief_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    await wf_repo.create_prompt_block(
+        SystemRulePromptBlock(
+            id=beta_brief_id,
+            slug="beta-private-brief",
+            category_id=PromptBlockCategory.TASK_DEFINITION,
+            label=I18nText(translations={"en": "Beta Brief", "fi": "Beta-ohje"}),
+            description=I18nText(translations={"en": "Beta Desc", "fi": "Beta-kuvaus"}),
+            output_extensions=[],
+            instruction_text="Confidential Beta brief.",
+            organization_id=ORG_BETA_ID,
+        )
+    )
+    with caplog.at_level(logging.ERROR), pytest.raises(PermissionDeniedError) as cross_org_exc:
+        await assignment_service.create_assignment(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentCreateDTO(
+                assigned_email="cross.org@alpha.fi",
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=beta_brief_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+                assignee_input_keys=["candidate_answer"],
+                hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
+            ),
+        )
+    assert cross_org_exc.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+    assert identity_repo is not None
+
+
+@pytest.mark.asyncio
+async def test_assignment_eager_base64_extraction_and_firebase_email_verified_bootstrap(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify eager Base64Attachment extraction on draft/submit and Firebase email_verified bootstrap ordering."""
+    mfa_settings = get_settings().model_copy(update={"require_mfa": True})
+    monkeypatch.setattr(
+        "backend_v2.services.execution.assignment_service.get_settings",
+        lambda: mfa_settings,
+    )
+    assignment_service, _, _, _, _, _ = await _setup_assignment_harness()
+    doc_service = DocumentExtractionService()
+
+    created = await assignment_service.create_assignment(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="upload.user@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            output_profile_id=PROFILE_ID,
+            locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+            assignee_input_keys=["candidate_answer"],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=6),
+        ),
+    )
+    raw_token = assignment_service.get_last_generated_token(created.id)
+    assert raw_token is not None
+
+    onboarded = await assignment_service.onboard_assignee(
+        raw_token,
+        ExecutionAssignmentOnboardingRequestDTO(name="Upload User"),
+    )
+    assignee_tok = TokenData(
+        id=onboarded.user.id,
+        role=UserRole.MEMBER,
+        organization_id=ORG_ALPHA_ID,
+        email="upload.user@alpha.fi",
+    )
+    await assignment_service.activate_assignment(assignee_tok, created.id)
+
+    attachment_b64 = base64.b64encode(b"Extracted candidate case response from uploaded TXT.").decode("ascii")
+    ingress_payload = WorkflowInputsIngress(
+        dynamic_inputs={
+            "candidate_answer": Base64Attachment(
+                filename="response.txt",
+                content_base64=attachment_b64,
+            )
+        }
+    )
+
+    # 1. Negative: Base64Attachment without doc_service raises AppException(SERVICE_DEPENDENCY_MISSING)
+    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as missing_doc_exc:
+        await assignment_service.save_draft_inputs(
+            assignee_tok,
+            created.id,
+            ExecutionAssignmentDraftDTO(draft_inputs=ingress_payload),
+            doc_service=None,
+        )
+    assert missing_doc_exc.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+
+    # 2. Positive: save_draft_inputs eagerly extracts Base64Attachment into plain text WorkflowInputs
+    drafted = await assignment_service.save_draft_inputs(
+        assignee_tok,
+        created.id,
+        ExecutionAssignmentDraftDTO(draft_inputs=ingress_payload),
+        doc_service=doc_service,
+    )
+    assert (
+        drafted.draft_inputs.dynamic_inputs["candidate_answer"]
+        == "Extracted candidate case response from uploaded TXT."
+    )
+
+    # 3. Positive: submit_assignment eagerly extracts Base64Attachment into plain text WorkflowInputs
+    submit_b64 = base64.b64encode(b"Final submitted attachment text.").decode("ascii")
+    submitted_rec = await assignment_service.submit_assignment(
+        initiator=assignee_tok,
+        assignment_id=created.id,
+        payload=ExecutionAssignmentSubmitDTO(
+            submitted_inputs=WorkflowInputsIngress(
+                dynamic_inputs={
+                    "candidate_answer": Base64Attachment(
+                        filename="final.txt",
+                        content_base64=submit_b64,
+                    )
+                }
+            )
+        ),
+        arq_pool=AsyncMock(spec=ArqRedis),
+        doc_service=doc_service,
+    )
+    assert submitted_rec.raw_inputs.dynamic_inputs["candidate_answer"] == "Final submitted attachment text."
+
+    # 4. Firebase onboarding: IDENTITY_MISMATCH checked before update_user, and email_verified=True marked before MFA_REQUIRED
+    assert assignment_service.token_service is not None
+    assignment_service.token_service.use_firebase = True
+    mock_fb = AsyncMock()
+    assignment_service.token_service.firebase_auth = mock_fb
+
+    mfa_assignment = await assignment_service.create_assignment(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="mfa.onboard@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+            assignee_input_keys=["candidate_answer"],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
+        ),
+    )
+    mfa_tok = assignment_service.get_last_generated_token(mfa_assignment.id)
+    assert mfa_tok is not None
+
+    # 4a. Mismatched Firebase email raises IDENTITY_MISMATCH without calling update_user
+    def _verify_mismatched(_jwt: str) -> dict[str, str]:
+        return {"uid": "fb_uid_mismatch", "email": "intruder@alpha.fi"}
+
+    mock_fb.verify_id_token = _verify_mismatched
+    mock_fb.update_user = AsyncMock()
+    with pytest.raises(PermissionDeniedError) as mismatch_exc:
+        await assignment_service.onboard_assignee(
+            mfa_tok,
+            ExecutionAssignmentOnboardingRequestDTO(
+                firebase_token="valid_firebase_jwt_token_string",
+                name="Intruder",
+            ),
+        )
+    assert mismatch_exc.value.details["error_code"] == ErrorCodes.IDENTITY_MISMATCH.value
+    mock_fb.update_user.assert_not_called()
+
+    # 4b. Matching Firebase email without email_verified marks email_verified=True BEFORE _enforce_firebase_mfa_claim raises MFA_REQUIRED
+    def _verify_unverified_no_mfa(_jwt: str) -> dict[str, str]:
+        return {"uid": "fb_uid_new_user", "email": "mfa.onboard@alpha.fi"}
+
+    mock_fb.verify_id_token = _verify_unverified_no_mfa
+    mock_fb.update_user = AsyncMock(return_value=None)
+    with pytest.raises(AuthenticationError) as mfa_exc:
+        await assignment_service.onboard_assignee(
+            mfa_tok,
+            ExecutionAssignmentOnboardingRequestDTO(
+                firebase_token="valid_firebase_jwt_token_string",
+                name="New MFA User",
+            ),
+        )
+    assert mfa_exc.value.details["error_code"] == ErrorCodes.MFA_REQUIRED.value
+    mock_fb.update_user.assert_called_once_with("fb_uid_new_user", email_verified=True)
