@@ -56,7 +56,7 @@ class ExtractedFactsDTOBase(BaseModel):
             Sanitized data structure with cosmetic placeholders replaced with None.
 
         Raises:
-            AppException: If input data is an unexpected non-dictionary container.
+            AppException: With ErrorCodes.VALIDATION_FAILED if input data is an unexpected non-dictionary container.
         """
         # Map cosmetic placeholders to None
         placeholder_set = {"none", "n/a", "", None}
@@ -71,6 +71,7 @@ class ExtractedFactsDTOBase(BaseModel):
                     ErrorCodes.VALIDATION_FAILED.name,
                     type(data).__name__,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    exc_info=True,
                 )
                 raise AppException(
                     message=f"Expected dictionary payload for dynamic extraction, got {type(data).__name__}",
@@ -101,7 +102,7 @@ class DynamicExtractionResponseBase(BaseModel):
             Sanitized data structure with cosmetic placeholders replaced with None for search_context_anchor.
 
         Raises:
-            AppException: If input data is an unexpected non-dictionary container.
+            AppException: With ErrorCodes.VALIDATION_FAILED if input data is an unexpected non-dictionary container.
         """
         # Map cosmetic placeholders to None silently ONLY for search_context_anchor
         placeholder_set = {"none", "n/a", "", None}
@@ -118,6 +119,7 @@ class DynamicExtractionResponseBase(BaseModel):
                     ErrorCodes.VALIDATION_FAILED.name,
                     type(data).__name__,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    exc_info=True,
                 )
                 raise AppException(
                     message=f"Expected dictionary payload for extraction response, got {type(data).__name__}",
@@ -139,7 +141,7 @@ class DynamicExtractionResponseBase(BaseModel):
         Raises:
             ValueError: If quote length exceeds 80% of source text.
         """
-        # Phase 1, Milestone 2: Enforce Lazy Dumping Ban (>80% of source text)
+        # Enforce Lazy Dumping Ban (>80% of source text)
         context = info.context
         if context and "source_text" in context:
             source_text = context["source_text"]
