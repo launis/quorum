@@ -1,7 +1,7 @@
 """CSV flat export service sub-module.
 
-Extracts CSV streaming routines from monolithic ExportService under Epoch 1
-(Pure Structural Lift-and-Shift) with zero behavioral changes.
+Provides CSV streaming routines for generating flat 22-column denormalized
+tabular exports from completed execution records and presentation report data.
 """
 
 from __future__ import annotations
