@@ -1,5 +1,17 @@
-"""Cache services package for typed caching and persistence."""
+"""Typed Redis cache package facade re-exporting cache services and client protocols."""
 
-from backend_v2.services.cache.typed_cache import TypedCacheService
+from __future__ import annotations
 
-__all__ = ["TypedCacheService"]
+from backend_v2.services.cache.typed_cache import (
+    InMemoryRedisClient,
+    MCPGatewayCache,
+    RedisClientProtocol,
+    TypedCacheService,
+)
+
+__all__ = [
+    "InMemoryRedisClient",
+    "MCPGatewayCache",
+    "RedisClientProtocol",
+    "TypedCacheService",
+]
