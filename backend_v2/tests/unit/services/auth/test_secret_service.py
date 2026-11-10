@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import secrets
 from datetime import UTC, datetime
 
 import pytest
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import SecretStr
 
 from backend_v2.api.routers.iam.organizations import (
@@ -51,6 +53,7 @@ from backend_v2.services.auth.secret_service import (
     CloudSecretManagerFetcherProtocol,
     SecretService,
     get_secret_service,
+    reset_secret_service,
 )
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
@@ -1140,3 +1143,179 @@ async def test_secret_service_telemetry_scope_rejects_unknown_target_identifier(
         await service.resolve_telemetry_secret("invalid_target")
     assert resolve_invalid_exc.value.status_code == 400
     assert resolve_invalid_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_secret_service_kms_master_key_id_and_explicit_sm_uri_positive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Positive & BVA: Verify Settings.kms_master_key_id KEK derivation, explicit SM URI override, short hint BVA, and singleton reset."""
+    kms_settings = get_settings().model_copy(
+        update={"kms_master_key_id": "projects/p1/locations/eu/keyRings/r1/cryptoKeys/k1"}
+    )
+    monkeypatch.setattr("backend_v2.services.auth.secret_service.get_settings", lambda: kms_settings)
+
+    # ISTQB BVA on _build_masked_hint: min-1 (3 chars) vs min (4 chars)
+    assert SecretService._build_masked_hint("abc") == "****"
+    assert SecretService._build_masked_hint("abcd") == "****abcd"
+
+    override_uri = "projects/quorum-prod/secrets/override-key/versions/7"
+    uow = InMemoryUnitOfWork()
+    service = SecretService(
+        entity_adapter=uow.entities,
+        secret_manager_fetcher=_FakeSecretManagerFetcher({override_uri: "sm-override-secret-4321"}),
+    )
+
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_token = _make_token_data(role=UserRole.ADMIN, organization_id=org_id)
+
+    # 1. ENVELOPE_KMS with kek_version=None resolves kms_master_key_id from Settings for KEK derivation
+    kms_resp = await service.upsert_tenant_secret(
+        initiator=admin_token,
+        organization_id=org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.OPENAI.value,
+            plaintext_secret=SecretStr("abc"),
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        ),
+    )
+    assert kms_resp.kek_version == "projects/p1/locations/eu/keyRings/r1/cryptoKeys/k1"
+    assert kms_resp.masked_hint == "****"
+
+    resolved_kms = await service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.OPENAI)
+    assert resolved_kms.secret_value.get_secret_value() == "abc"
+
+    # 2. Explicit secret_manager_version_uri overrides payload string in CLOUD_SECRET_MANAGER mode
+    sm_resp = await service.upsert_tenant_secret(
+        initiator=admin_token,
+        organization_id=org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.ANTHROPIC.value,
+            plaintext_secret=SecretStr("placeholder-secret"),
+            storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
+        ),
+        secret_manager_version_uri=f"  {override_uri}  ",
+    )
+    assert sm_resp.storage_mode == SecretStorageMode.CLOUD_SECRET_MANAGER
+    resolved_sm = await service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.ANTHROPIC)
+    assert resolved_sm.secret_value.get_secret_value() == "sm-override-secret-4321"
+
+    # 3. Singleton reset_secret_service guarantees fresh instance hydration with deterministic cleanup
+    try:
+        first_singleton = get_secret_service()
+        reset_secret_service()
+        second_singleton = get_secret_service()
+        assert first_singleton is not second_singleton
+    finally:
+        reset_secret_service()
+
+
+@pytest.mark.asyncio
+async def test_secret_service_decryption_and_secret_manager_boundary_failures_negative(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negative & BVA: Verify malformed local DEK length, empty SM/AES payloads, and SM timeout raise ConfigurationError."""
+    fast_timeout_settings = get_settings().model_copy(update={"mcp_default_timeout_seconds": 1})
+    monkeypatch.setattr("backend_v2.services.auth.secret_service.get_settings", lambda: fast_timeout_settings)
+
+    uow = InMemoryUnitOfWork()
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_token = _make_token_data(role=UserRole.ADMIN, organization_id=org_id)
+
+    empty_uri = "projects/p1/secrets/empty-secret/versions/1"
+    slow_uri = "projects/p1/secrets/slow-secret/versions/1"
+
+    # 1. Cloud Secret Manager returning whitespace-only payload fails fast
+    empty_sm_service = SecretService(
+        entity_adapter=uow.entities,
+        secret_manager_fetcher=_FakeSecretManagerFetcher({empty_uri: "   \n  "}),
+    )
+    await empty_sm_service.upsert_tenant_secret(
+        initiator=admin_token,
+        organization_id=org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.AI_STUDIO.value,
+            plaintext_secret=SecretStr(empty_uri),
+            storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
+        ),
+    )
+    with pytest.raises(ConfigurationError) as empty_sm_exc:
+        await empty_sm_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.AI_STUDIO)
+    assert empty_sm_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+    # 2. Cloud Secret Manager exceeding mcp_default_timeout_seconds fails fast via asyncio.timeout
+    slow_sm_service = SecretService(
+        entity_adapter=uow.entities,
+        secret_manager_fetcher=_FakeSecretManagerFetcher({slow_uri: "never-returned"}, delay_seconds=1.5),
+    )
+    await slow_sm_service.upsert_tenant_secret(
+        initiator=admin_token,
+        organization_id=org_id,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.VERTEX_AI.value,
+            plaintext_secret=SecretStr(slow_uri),
+            storage_mode=SecretStorageMode.CLOUD_SECRET_MANAGER,
+        ),
+    )
+    with pytest.raises(ConfigurationError) as timeout_exc:
+        await slow_sm_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.VERTEX_AI)
+    assert timeout_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+    # 3. Local AES-GCM wrapped DEK whose unwrapped length != 32 bytes (BVA: 16 bytes -> 12+16+16 = 44 >= 28 bytes)
+    kek_ver = "local-bva-v1"
+    kek = SecretService._derive_local_kek(kek_ver)
+    short_dek_nonce = secrets.token_bytes(12)
+    wrapped_short_dek = short_dek_nonce + AESGCM(kek).encrypt(short_dek_nonce, b"0" * 16, kek_ver.encode("utf-8"))
+    bad_local_dek_record = TenantSecretDTOFactory.build(
+        id=generate_opaque_id(EntityPrefix.TENANT_SECRET),
+        organization_id=org_id,
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier=LLMProvider.OPENAI.value,
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        secret_manager_version_uri=None,
+        encrypted_dek=wrapped_short_dek,
+        ciphertext=b"0" * 32,
+        nonce=secrets.token_bytes(12),
+        kek_version=kek_ver,
+        masked_hint="****",
+        updated_by=admin_token.id,
+        updated_at=datetime.now(UTC),
+    )
+    await uow.entities.upsert_tenant_secret(bad_local_dek_record)
+    with pytest.raises(ConfigurationError) as short_dek_exc:
+        await empty_sm_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.OPENAI)
+    assert short_dek_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+    # 4. Valid 32-byte DEK whose AES-GCM ciphertext decrypts to whitespace-only string fails fast
+    valid_dek = secrets.token_bytes(32)
+    valid_wrapped_dek = await empty_sm_service._wrap_dek(valid_dek, kek_ver)
+    payload_nonce = secrets.token_bytes(12)
+    aad = SecretService._build_aead_aad(
+        organization_id=org_id,
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier=LLMProvider.ANTHROPIC.value,
+    )
+    whitespace_ciphertext = AESGCM(valid_dek).encrypt(payload_nonce, b"   ", aad)
+    whitespace_record = TenantSecretDTOFactory.build(
+        id=generate_opaque_id(EntityPrefix.TENANT_SECRET),
+        organization_id=org_id,
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier=LLMProvider.ANTHROPIC.value,
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        secret_manager_version_uri=None,
+        encrypted_dek=valid_wrapped_dek,
+        ciphertext=whitespace_ciphertext,
+        nonce=payload_nonce,
+        kek_version=kek_ver,
+        masked_hint="****",
+        updated_by=admin_token.id,
+        updated_at=datetime.now(UTC),
+    )
+    await uow.entities.upsert_tenant_secret(whitespace_record)
+    with pytest.raises(ConfigurationError) as ws_exc:
+        await empty_sm_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.ANTHROPIC)
+    assert ws_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value

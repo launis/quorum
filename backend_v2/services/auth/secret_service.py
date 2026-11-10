@@ -82,7 +82,15 @@ class AuditLoggerProtocol(Protocol):
         target_id: str,
         details: dict[str, str],
     ) -> None:
-        """Record a security audit event without sensitive secret material."""
+        """Record a security audit event without sensitive secret material.
+
+        Args:
+            actor_id: Authenticated user identifier performing the action.
+            action: Canonical security event action identifier.
+            organization_id: Target organization identifier (org_<hex32>).
+            target_id: Canonical target entity identifier.
+            details: Redacted string metadata key-value pairs.
+        """
         ...
 
 
@@ -90,11 +98,27 @@ class CloudKMSKeyWrapperProtocol(Protocol):
     """Protocol for Cloud KMS Key Encryption Key (KEK) DEK wrapping and unwrapping."""
 
     async def encrypt_dek(self, dek: bytes, kek_version: str) -> bytes:
-        """Wrap a 256-bit Data Encryption Key using the specified Cloud KMS KEK version."""
+        """Wrap a 256-bit Data Encryption Key using the specified Cloud KMS KEK version.
+
+        Args:
+            dek: Raw 32-byte Data Encryption Key bytes.
+            kek_version: Active Cloud KMS KEK version identifier.
+
+        Returns:
+            Wrapped DEK ciphertext bytes.
+        """
         ...
 
     async def decrypt_dek(self, encrypted_dek: bytes, kek_version: str) -> bytes:
-        """Unwrap an encrypted Data Encryption Key using the specified Cloud KMS KEK version."""
+        """Unwrap an encrypted Data Encryption Key using the specified Cloud KMS KEK version.
+
+        Args:
+            encrypted_dek: Wrapped DEK ciphertext bytes.
+            kek_version: Cloud KMS KEK version identifier used to wrap the DEK.
+
+        Returns:
+            Raw 32-byte Data Encryption Key bytes.
+        """
         ...
 
 
@@ -102,7 +126,14 @@ class CloudSecretManagerFetcherProtocol(Protocol):
     """Protocol for resolving tenant secret payloads from GCP Secret Manager."""
 
     async def access_secret_version(self, version_uri: str) -> str:
-        """Fetch the plaintext secret payload for a canonical Secret Manager version URI."""
+        """Fetch the plaintext secret payload for a canonical Secret Manager version URI.
+
+        Args:
+            version_uri: Canonical GCP Secret Manager version resource URI.
+
+        Returns:
+            Plaintext secret payload string.
+        """
         ...
 
 
@@ -161,14 +192,12 @@ class SecretService:
         """
         self._verify_tenant_admin_access(initiator=initiator, organization_id=organization_id)
         records = await self._list_org_secret_records(organization_id)
-        can_view_telemetry = (
-            initiator.role == UserRole.ROOT and organization_id == SystemOrganizations.ROOT_SYSTEM.value
+        visible_records = self._filter_visible_secrets_for_initiator(
+            initiator=initiator,
+            organization_id=organization_id,
+            records=records,
         )
-        return [
-            self._to_response_dto(record)
-            for record in records
-            if record.scope != SecretScope.TELEMETRY or can_view_telemetry
-        ]
+        return [self._to_response_dto(record) for record in visible_records]
 
     async def upsert_tenant_secret(
         self,
@@ -328,7 +357,8 @@ class SecretService:
 
         Raises:
             ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
-                or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets.
+                or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets,
+                or ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         return await self._resolve_scoped_secret(
             organization_id=organization_id,
@@ -354,7 +384,8 @@ class SecretService:
 
         Raises:
             ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
-                or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets.
+                or if neither the tenant nor ROOT_SYSTEM has a secret record in tenant_secrets,
+                or ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         return await self._resolve_scoped_secret(
             organization_id=organization_id,
@@ -379,7 +410,8 @@ class SecretService:
         Raises:
             AppException: With ErrorCodes.VALIDATION_FAILED if target_identifier is not a valid telemetry target.
             ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if decryption fails
-                or if ROOT_SYSTEM has no telemetry secret record in tenant_secrets.
+                or if ROOT_SYSTEM has no telemetry secret record in tenant_secrets,
+                or ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         root_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM.value
         self._validate_target_identifier(
@@ -408,17 +440,18 @@ class SecretService:
 
         Args:
             organization_id: Tenant organization identifier (org_<hex32>).
-            scope: Secret capability scope (LLM_PROVIDER or MCP_GATEWAY).
-            target_identifier: Provider enum value or canonical MCP gateway ID.
+            scope: Secret capability scope (LLM_PROVIDER, MCP_GATEWAY, or TELEMETRY).
+            target_identifier: Provider enum value, canonical MCP gateway ID, or telemetry target ID.
             target_kind_label: Human-readable target label for structured error diagnostics.
-            detail_key: Structured RFC 7807 details key ('provider' or 'gateway_id').
+            detail_key: Structured RFC 7807 details key ('provider', 'gateway_id', or 'target_identifier').
 
         Returns:
             Non-nullable ResolvedCredentialDTO containing the decrypted SecretStr.
 
         Raises:
             ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if no secret record exists
-                or if decryption/Secret Manager lookup fails.
+                or if decryption/Secret Manager lookup fails, or ErrorCodes.CONFIGURATION_ERROR
+                if persistence is unconfigured.
         """
         record = await self._find_secret_record(
             organization_id=organization_id,
@@ -534,6 +567,28 @@ class SecretService:
                     "scope": SecretScope.TELEMETRY.value,
                 },
             )
+
+    @staticmethod
+    def _filter_visible_secrets_for_initiator(
+        *,
+        initiator: TokenData,
+        organization_id: str,
+        records: list[TenantSecretDTO],
+    ) -> list[TenantSecretDTO]:
+        """Filter out SecretScope.TELEMETRY records unless the caller is ROOT targeting ROOT_SYSTEM.
+
+        Args:
+            initiator: Authenticated caller token data.
+            organization_id: Target organization identifier (org_<hex32>).
+            records: Persisted TenantSecretDTO records for the organization.
+
+        Returns:
+            Filtered list of TenantSecretDTO records visible to the caller.
+        """
+        can_view_telemetry = (
+            initiator.role == UserRole.ROOT and organization_id == SystemOrganizations.ROOT_SYSTEM.value
+        )
+        return [record for record in records if record.scope != SecretScope.TELEMETRY or can_view_telemetry]
 
     @staticmethod
     def _build_masked_hint(raw_secret: str) -> str:
@@ -849,80 +904,78 @@ class SecretService:
 
         Args:
             organization_id: Target organization identifier (org_<hex32>).
-            scope: Capability scope (LLM_PROVIDER or MCP_GATEWAY).
-            target_identifier: Candidate provider identifier or MCP gateway ID.
+            scope: Capability scope (LLM_PROVIDER, MCP_GATEWAY, or TELEMETRY).
+            target_identifier: Candidate provider identifier, MCP gateway ID, or telemetry target ID.
 
         Raises:
             AppException: With ErrorCodes.VALIDATION_FAILED if target_identifier violates the scope contract.
         """
-        if scope == SecretScope.LLM_PROVIDER:
-            if target_identifier not in _VALID_LLM_PROVIDER_IDS:
-                msg = (
-                    f"Target identifier '{target_identifier}' is not a valid LLMProvider value "
-                    f"for organization '{organization_id}'."
-                )
-                logger.error(
-                    "[SecretService] %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    msg,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={
-                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                        "organization_id": organization_id,
-                        "target_identifier": target_identifier,
-                    },
-                )
-            return
-
-        if scope == SecretScope.TELEMETRY:
-            if target_identifier not in _VALID_TELEMETRY_TARGET_IDS:
-                msg = (
-                    f"Telemetry target_identifier '{target_identifier}' is not in "
-                    f"{sorted(_VALID_TELEMETRY_TARGET_IDS)} for organization '{organization_id}'."
-                )
-                logger.error(
-                    "[SecretService] %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    msg,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={
-                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                        "organization_id": organization_id,
-                        "target_identifier": target_identifier,
-                    },
-                )
-            return
-
-        try:
-            parse_prefixed_uuid7(target_identifier, expected_prefix=EntityPrefix.SYSTEM_CONFIG)
-        except AppException as exc:
-            msg = (
-                f"MCP gateway target_identifier '{target_identifier}' must be a canonical "
-                f"'sys_<hex32>' Opaque Stripe ID for organization '{organization_id}'."
-            )
-            logger.error(
-                "[SecretService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={
-                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                    "organization_id": organization_id,
-                    "target_identifier": target_identifier,
-                },
-            ) from exc
+        match scope:
+            case SecretScope.LLM_PROVIDER:
+                if target_identifier not in _VALID_LLM_PROVIDER_IDS:
+                    msg = (
+                        f"Target identifier '{target_identifier}' is not a valid LLMProvider value "
+                        f"for organization '{organization_id}'."
+                    )
+                    logger.error(
+                        "[SecretService] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        exc_info=True,
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "organization_id": organization_id,
+                            "target_identifier": target_identifier,
+                        },
+                    )
+            case SecretScope.TELEMETRY:
+                if target_identifier not in _VALID_TELEMETRY_TARGET_IDS:
+                    msg = (
+                        f"Telemetry target_identifier '{target_identifier}' is not in "
+                        f"{sorted(_VALID_TELEMETRY_TARGET_IDS)} for organization '{organization_id}'."
+                    )
+                    logger.error(
+                        "[SecretService] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        exc_info=True,
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "organization_id": organization_id,
+                            "target_identifier": target_identifier,
+                        },
+                    )
+            case SecretScope.MCP_GATEWAY:
+                try:
+                    parse_prefixed_uuid7(target_identifier, expected_prefix=EntityPrefix.SYSTEM_CONFIG)
+                except AppException as exc:
+                    msg = (
+                        f"MCP gateway target_identifier '{target_identifier}' must be a canonical "
+                        f"'sys_<hex32>' Opaque Stripe ID for organization '{organization_id}'."
+                    )
+                    logger.error(
+                        "[SecretService] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        exc_info=True,
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "organization_id": organization_id,
+                            "target_identifier": target_identifier,
+                        },
+                    ) from exc
 
     @staticmethod
     def _raise_unconfigured_persistence_error() -> NoReturn:
@@ -1022,8 +1075,8 @@ class SecretService:
 
         Args:
             organization_id: Tenant organization ID.
-            scope: Capability scope (LLM_PROVIDER or MCP_GATEWAY).
-            target_identifier: Provider enum value or gateway ID.
+            scope: Capability scope (LLM_PROVIDER, MCP_GATEWAY, or TELEMETRY).
+            target_identifier: Provider enum value, MCP gateway ID, or telemetry target ID.
 
         Returns:
             Matching TenantSecretDTO if configured for the organization, otherwise None.
@@ -1094,10 +1147,13 @@ class SecretService:
             return
         provider_val = ""
         gateway_val = ""
-        if record.scope == SecretScope.LLM_PROVIDER:
-            provider_val = record.target_identifier
-        elif record.scope == SecretScope.MCP_GATEWAY:
-            gateway_val = record.target_identifier
+        match record.scope:
+            case SecretScope.LLM_PROVIDER:
+                provider_val = record.target_identifier
+            case SecretScope.MCP_GATEWAY:
+                gateway_val = record.target_identifier
+            case SecretScope.TELEMETRY:
+                pass
         await self.audit_service.log_event(
             actor_id=actor_id,
             action=action,
