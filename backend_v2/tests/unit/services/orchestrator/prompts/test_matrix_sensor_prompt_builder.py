@@ -1,11 +1,42 @@
+"""Unit tests for MatrixSensorPromptBuilder."""
+
+from __future__ import annotations
+
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.matrix import TheoryGrounding
+from backend_v2.models.domain.matrix import (
+    AcceptanceCriterion,
+    AntiPattern,
+    ContrastivePairDTO,
+    TheoryGrounding,
+)
 from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus, TargetSpeaker
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
+
+__all__: list[str] = []
+
+
+def _create_test_node(
+    *,
+    tda_id: str,
+    resolved_claim: str = "Claim text.",
+    depends_on: list[CausalEdge] | None = None,
+) -> LinkedAtomGraph:
+    """Helper to construct LinkedAtomGraph with strict tuple source_quotes and explicit depends_on."""
+    return LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id=tda_id,
+            resolved_claim=resolved_claim,
+            reasoning="R",
+            source_quotes=("Q",),
+            source_id="chk_0195f3a00000700a8bcdef1234567890",
+            source_sequence_index=1,
+        ),
+        depends_on=depends_on if depends_on is not None else [],
+    )
 
 
 def _create_test_atom(
@@ -152,9 +183,10 @@ def test_build_caching_prefix_without_context() -> None:
 
 def test_build_compiled_prompt_with_assertions() -> None:
     """Test building a compiled prompt including matrix assertions."""
+    atom_id = "tda_0195f3a00000700a8bcdef1234567891"
     matrix_assertions = [
         _create_test_atom(
-            atom_id="tda_11111111",
+            atom_id=atom_id,
             question="Is it blue?",
             extraction_rule="Check for blue.",
             anchor_target="blue section",
@@ -164,18 +196,12 @@ def test_build_compiled_prompt_with_assertions() -> None:
     ]
     matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
 
-    node1 = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id="tda_11111111",
-            resolved_claim="This is not used because assertion exists.",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
+    node1 = _create_test_node(
+        tda_id=atom_id,
+        resolved_claim="This is not used because assertion exists.",
     )
 
-    tda_id_to_alias = {"tda_11111111": "a0"}
+    tda_id_to_alias = {atom_id: "a0"}
     context_text = "Doc with blue text."
 
     prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
@@ -208,19 +234,14 @@ def test_build_compiled_prompt_with_assertions() -> None:
 
 def test_build_compiled_prompt_fallback_claim() -> None:
     """Test fallback when no assertions are in the matrix context (happy path)."""
-    node = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id="tda_22222222",
-            resolved_claim="Fallback claim text.",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
+    atom_id = "tda_0195f3a00000700a8bcdef1234567892"
+    node = _create_test_node(
+        tda_id=atom_id,
+        resolved_claim="Fallback claim text.",
     )
 
     prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
-        "Context", [node], {"tda_22222222": "a1"}, target_locale="fi", matrix_context=None
+        "Context", [node], {atom_id: "a1"}, target_locale="fi", matrix_context=None
     )
 
     assert len(prompt.dynamic_messages) == 1
@@ -231,9 +252,10 @@ def test_build_compiled_prompt_fallback_claim() -> None:
 
 
 def test_build_caching_prefix_contains_evaluation_directives() -> None:
-    """Regression test (RED): Ensure static system prompt includes anti-repetition and concise reasoning directives."""
+    """Regression test: Ensure static system prompt includes anti-repetition and concise reasoning directives."""
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Sample document", None)
     system_text = prompt.static_messages[0].content
+    assert isinstance(system_text, str)
 
     # Verify that the system prompt explicitly bans repetitive keyword iteration and mandates concise reasoning
     assert "repetitive" in system_text.lower()
@@ -250,16 +272,7 @@ def test_build_compiled_prompt_empty_nodes_raises_app_exception() -> None:
 
 def test_build_compiled_prompt_missing_alias_raises_app_exception() -> None:
     """Anti-happy path: Ensure missing alias for node raises AppException."""
-    node = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id="tda_11111111",
-            resolved_claim="Claim text.",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
-    )
+    node = _create_test_node(tda_id="tda_0195f3a00000700a8bcdef1234567891")
     with pytest.raises(AppException) as exc_info:
         MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {}, target_locale="fi", matrix_context=None)
     assert exc_info.value.status_code == 400
@@ -268,9 +281,10 @@ def test_build_compiled_prompt_missing_alias_raises_app_exception() -> None:
 
 def test_build_compiled_prompt_with_inverse_assertion() -> None:
     """Test building compiled prompt with is_inverse=True assertion."""
+    atom_id = "tda_0195f3a00000700a8bcdef1234567893"
     matrix_assertions = [
         _create_test_atom(
-            atom_id="tda_33333333",
+            atom_id=atom_id,
             question="Is it absent?",
             extraction_rule="Check absence.",
             anchor_target="target",
@@ -279,19 +293,10 @@ def test_build_compiled_prompt_with_inverse_assertion() -> None:
         )
     ]
     matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
-    node = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id="tda_33333333",
-            resolved_claim="Claim",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
-    )
+    node = _create_test_node(tda_id=atom_id, resolved_claim="Claim")
 
     prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
-        "Context", [node], {"tda_33333333": "a3"}, target_locale="fi", matrix_context=matrix_context
+        "Context", [node], {atom_id: "a3"}, target_locale="fi", matrix_context=matrix_context
     )
     content = prompt.dynamic_messages[0].content
     assert "<is_inverse>" in content
@@ -300,36 +305,33 @@ def test_build_compiled_prompt_with_inverse_assertion() -> None:
 
 def test_build_compiled_prompt_with_dependencies_and_status_map() -> None:
     """Test building compiled prompt with causal dependencies and status map."""
+    tda_p1 = "tda_0195f3a00000700a8bcdef1234567891"
+    tda_p2 = "tda_0195f3a00000700a8bcdef1234567892"
+    tda_child = "tda_0195f3a00000700a8bcdef1234567893"
     dep1 = CausalEdge(
-        tda_id="tda_11111111",
-        source_id="chk_1",
+        tda_id=tda_p1,
+        source_id="chk_0195f3a00000700a8bcdef1234567890",
         expected_status=ExecutionStatus.PASSED,
         edge_reasoning="Parent must be satisfied first.",
     )
     dep2 = CausalEdge(
-        tda_id="tda_22222222",
-        source_id="chk_2",
+        tda_id=tda_p2,
+        source_id="chk_0195f3a00000700a8bcdef1234567890",
         expected_status=ExecutionStatus.FAILED,
         edge_reasoning="Alternative condition.",
     )
-    node = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id="tda_33333333",
-            resolved_claim="Child claim.",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
+    node = _create_test_node(
+        tda_id=tda_child,
+        resolved_claim="Child claim.",
         depends_on=[dep1, dep2],
     )
 
     tda_id_to_alias = {
-        "tda_33333333": "a_child",
-        "tda_11111111": "a_p1",
+        tda_child: "a_child",
+        tda_p1: "a_p1",
     }
     atom_status_map = {
-        "tda_11111111": ExecutionStatus.PASSED,
+        tda_p1: ExecutionStatus.PASSED,
     }
 
     prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
@@ -345,14 +347,14 @@ def test_build_compiled_prompt_with_dependencies_and_status_map() -> None:
     assert 'parent_alias="a_p1"' in content
     assert "<actual_status>" in content
     assert "PASSED" in content
-    assert 'parent_alias="tda_22222222"' in content
+    assert f'parent_alias="{tda_p2}"' in content
     assert "PENDING" in content
     assert "Parent must be satisfied first." in content
 
 
 def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -> None:
     """Anti-happy path: matrix assertion with empty question raises AppException(VALIDATION_FAILED)."""
-    tda_id = "tda_00000000000000000000000000000000"
+    tda_id = "tda_0195f3a00000700a8bcdef1234567890"
     matrix_assertions = [
         _create_test_atom(
             atom_id=tda_id,
@@ -364,16 +366,7 @@ def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -
         )
     ]
     matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
-    node = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id=tda_id,
-            resolved_claim="Claim",
-            reasoning="Reasoning",
-            source_quotes="Quote",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
-    )
+    node = _create_test_node(tda_id=tda_id, resolved_claim="Claim")
 
     with pytest.raises(AppException) as exc_info:
         MatrixSensorPromptBuilder.build_compiled_prompt(
@@ -388,36 +381,29 @@ def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -
     assert "empty question" in exc_info.value.message
 
 
-@pytest.mark.parametrize("invalid_locale", ["", "   ", None])
-def test_build_compiled_prompt_invalid_locale_raises_app_exception(invalid_locale: str | None) -> None:
-    """Anti-happy path: missing, empty, or whitespace target_locale raises AppException(VALIDATION_FAILED)."""
-    node = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id="tda_11111111",
-            resolved_claim="Claim",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
-    )
+@pytest.mark.parametrize("invalid_locale", ["", "   "])
+def test_build_compiled_prompt_invalid_locale_raises_app_exception(invalid_locale: str) -> None:
+    """Anti-happy path: empty or whitespace target_locale raises AppException(VALIDATION_FAILED)."""
+    atom_id = "tda_0195f3a00000700a8bcdef1234567891"
+    node = _create_test_node(tda_id=atom_id, resolved_claim="Claim")
     with pytest.raises(AppException) as exc_info:
         MatrixSensorPromptBuilder.build_compiled_prompt(
             context_text="Some context",
             nodes=[node],
-            tda_id_to_alias={"tda_11111111": "a0"},
+            tda_id_to_alias={atom_id: "a0"},
             target_locale=invalid_locale,
         )
 
     assert exc_info.value.status_code == 400
     assert "target_locale must be a non-empty string" in exc_info.value.message
+    assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_build_compiled_prompt_injects_target_speaker() -> None:
     """Positive partition: target_speaker is CDATA-encapsulated in Layer 4 dynamic messages."""
-    tda_user = "tda_11111111111111111111111111111111"
-    tda_ai = "tda_22222222222222222222222222222222"
+    tda_user = "tda_0195f3a00000700a8bcdef1234567891"
+    tda_ai = "tda_0195f3a00000700a8bcdef1234567892"
 
     atom_user = _create_test_atom(
         atom_id=tda_user,
@@ -431,26 +417,8 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
     )
     matrix_context = MatrixEvaluationContext(matrix_assertions=[atom_user, atom_ai])
 
-    node_user = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id=tda_user,
-            resolved_claim="User requirements",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
-    )
-    node_ai = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id=tda_ai,
-            resolved_claim="AI accuracy",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_2",
-            source_sequence_index=2,
-        ),
-    )
+    node_user = _create_test_node(tda_id=tda_user, resolved_claim="User requirements")
+    node_ai = _create_test_node(tda_id=tda_ai, resolved_claim="AI accuracy")
 
     compiled = MatrixSensorPromptBuilder.build_compiled_prompt(
         context_text="Dialogue content here",
@@ -462,7 +430,7 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
 
     # Invariants:
     # 1. Dynamic speaker claims must NOT be in static messages (prefix caching preservation)
-    static_content = "\n".join(m.content for m in compiled.static_messages)
+    static_content = "\n".join(m.content for m in compiled.static_messages if isinstance(m.content, str))
     assert "<![CDATA[USER]]>" not in static_content
     assert "<![CDATA[AI]]>" not in static_content
 
@@ -475,9 +443,11 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
 
 def test_build_compiled_prompt_missing_matrix_assertion_raises_app_exception() -> None:
     """Anti-happy path: Ensure missing matrix assertion for an atom raises AppException."""
+    atom_existing = "tda_0195f3a00000700a8bcdef1234567891"
+    atom_missing = "tda_0195f3a00000700a8bcdef1234567899"
     matrix_assertions = [
         _create_test_atom(
-            atom_id="tda_11111111",
+            atom_id=atom_existing,
             question="Is it blue?",
             extraction_rule="Check blue.",
             anchor_target="blue",
@@ -487,27 +457,18 @@ def test_build_compiled_prompt_missing_matrix_assertion_raises_app_exception() -
     ]
     matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
 
-    node_missing = LinkedAtomGraph(
-        atom=ExtractedAtom(
-            tda_id="tda_99999999",
-            resolved_claim="Claim text.",
-            reasoning="R",
-            source_quotes="Q",
-            source_id="chk_1",
-            source_sequence_index=1,
-        ),
-    )
+    node_missing = _create_test_node(tda_id=atom_missing, resolved_claim="Claim text.")
 
     with pytest.raises(AppException) as exc_info:
         MatrixSensorPromptBuilder.build_compiled_prompt(
             context_text="Context",
             nodes=[node_missing],
-            tda_id_to_alias={"tda_99999999": "a0"},
+            tda_id_to_alias={atom_missing: "a0"},
             target_locale="en",
             matrix_context=matrix_context,
         )
     assert exc_info.value.status_code == 400
-    assert "Missing matrix assertion for atom 'tda_99999999'" in exc_info.value.message
+    assert f"Missing matrix assertion for atom '{atom_missing}'" in exc_info.value.message
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
@@ -565,3 +526,48 @@ def test_build_compiled_prompt_polyfactory_cdata_encapsulation() -> None:
     assert "Extract something" in dyn_content
     assert "Anchor" in dyn_content
     assert "True" in dyn_content
+
+
+def test_build_compiled_prompt_with_contrastive_and_criteria_blocks() -> None:
+    """Verify contrastive grounding, acceptance criteria, anti-patterns, and syntactic anchors render cleanly."""
+    atom_id = "tda_0195f3a00000700a8bcdef1234567890"
+    flat_atom = FlattenedAtom(
+        atom_id=atom_id,
+        question="Does the speaker confirm compliance?",
+        extraction_rule="Verify explicit compliance confirmation.",
+        anchor_target="compliance section",
+        is_inverse=False,
+        depends_on=(),
+        contrastive_example=ContrastivePairDTO(
+            acceptable="We comply with section 4.",
+            rejected="We might look into compliance.",
+        ),
+        acceptance_criteria=(AcceptanceCriterion(instruction="Must state compliance explicitly."),),
+        anti_patterns=(AntiPattern(pattern="Hedging with maybe or might."),),
+        syntactic_anchors=("comply", "section 4"),
+        target_speaker=TargetSpeaker.USER,
+    )
+    matrix_ctx = MatrixEvaluationContext(matrix_assertions=[flat_atom])
+    node = _create_test_node(
+        tda_id=atom_id,
+        resolved_claim="Speaker confirms compliance.",
+    )
+
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        context_text="We comply with section 4.",
+        nodes=[node],
+        tda_id_to_alias={atom_id: "a0"},
+        target_locale="en",
+        matrix_context=matrix_ctx,
+    )
+
+    dyn_content = prompt.dynamic_messages[0].content
+    assert "<contrastive_grounding>" in dyn_content
+    assert "We comply with section 4." in dyn_content
+    assert "We might look into compliance." in dyn_content
+    assert "<acceptance_criteria>" in dyn_content
+    assert "Must state compliance explicitly." in dyn_content
+    assert "<anti_patterns>" in dyn_content
+    assert "Hedging with maybe or might." in dyn_content
+    assert "<syntactic_anchors>" in dyn_content
+    assert "<![CDATA[comply]]>" in dyn_content
