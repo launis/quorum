@@ -924,9 +924,9 @@ void main() {
           isTrue,
         );
 
-        when(
-          () => mockResolver.resolveSignIn(mockAssertion),
-        ).thenThrow(firebase.FirebaseAuthException(code: 'invalid-verification-code'));
+        when(() => mockResolver.resolveSignIn(mockAssertion)).thenThrow(
+          firebase.FirebaseAuthException(code: 'invalid-verification-code'),
+        );
         expect(
           (await customRepo.resolveChallengeAndGetIdToken('123456')).isLeft(),
           isTrue,
@@ -967,7 +967,9 @@ void main() {
             mockAssertion,
             displayName: any(named: 'displayName'),
           ),
-        ).thenThrow(firebase.FirebaseAuthException(code: 'invalid-verification-code'));
+        ).thenThrow(
+          firebase.FirebaseAuthException(code: 'invalid-verification-code'),
+        );
         expect(
           (await customRepo.enrollTotpAndGetIdToken('654321')).isLeft(),
           isTrue,
@@ -1004,11 +1006,16 @@ void main() {
           password: 'Password123!',
           totpCode: '123456',
         );
-        expect(immediateRes.getRight().toNullable(), equals('immediate_mfa_token'));
+        expect(
+          immediateRes.getRight().toNullable(),
+          equals('immediate_mfa_token'),
+        );
 
         when(() => mockUser.getIdToken(true)).thenAnswer((_) async => '');
         expect((await customRepo.refreshSession()).isLeft(), isTrue);
-        when(() => mockUser.getIdToken(true)).thenThrow(StateError('token err'));
+        when(
+          () => mockUser.getIdToken(true),
+        ).thenThrow(StateError('token err'));
         expect((await customRepo.refreshSession()).isLeft(), isTrue);
       },
     );

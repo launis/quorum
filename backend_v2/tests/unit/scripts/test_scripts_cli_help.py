@@ -14,8 +14,11 @@ from typing import Final
 
 import pytest
 
-HELP_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 15
-MAX_HELP_LATENCY_MS: Final[float] = 12_000.0
+MAX_HELP_LATENCY_SECONDS: Final[float] = 12.0
+HELP_WATCHDOG_MARGIN_SECONDS: Final[float] = 3.0
+
+MAX_HELP_LATENCY_MS: Final[float] = MAX_HELP_LATENCY_SECONDS * 1_000.0
+HELP_SUBPROCESS_TIMEOUT_SECONDS: Final[float] = MAX_HELP_LATENCY_SECONDS + HELP_WATCHDOG_MARGIN_SECONDS
 
 ALL_SCRIPTS: list[str] = sorted(
     [
@@ -121,7 +124,7 @@ def test_scripts_help_execution_latency(script_name: str) -> None:
     )
     assert result.returncode == 0
     duration_ms = (time.perf_counter() - start_time) * 1000
-    # Allow up to 12000ms for cold OS process spawn on Windows under heavy full-suite CPU and Defender load
+    # Allow cold OS process spawn latency on Windows under heavy full-suite CPU and Defender load
     assert duration_ms < MAX_HELP_LATENCY_MS, (
         f"{script_name} took {duration_ms:.2f}ms on --help (exceeded {MAX_HELP_LATENCY_MS:.0f}ms limit)"
     )

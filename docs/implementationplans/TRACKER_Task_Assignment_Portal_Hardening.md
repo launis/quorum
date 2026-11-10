@@ -20,7 +20,7 @@
   - [x] Step 2: Phase 2: Normalize First-Class Task Brief FK, Eager Base64 Ingress Extraction, Onboarding Email Verification & 1:1 DTO Parity (Finding A, Finding D & Finding E Backend Contract)
   - [x] Step 3: Phase 3: Add Authentic Firebase Auth + TOTP JIT Onboarding, Typed Task Brief Card & File Upload to TaskAssignmentPortalView (Finding A, Finding D & Finding E Part 2)
   - [x] Step 4: Phase 4: Add Admin/Root Task Brief CRUD+Clone UI & Direct Task Assignment Creation Dialog in OrganizationIamSettingsView (Finding B & Finding E Part 3)
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]`
 
 ### Post-Implementation Gates
 
@@ -62,7 +62,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -89,17 +89,18 @@
 
 ## Achieved
 - Executed all 4 phases (`Step 1` through `Step 4`, `REQ-001` through `REQ-007`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md]` in Continuous Full-Auto Mode (`--full-auto`) with 4 atomic Conventional Commits (`f50520284`, `e025b1e30`, `7bac2dc99`, `c21fca8d6`).
-- Verified all 9 backend targets (`@[backend_v2/services/auth/email_service.py]`, `@[backend_v2/services/studio/prompt_block_service.py]`, `@[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]`, `@[backend_v2/models/domain/execution.py]`, `@[backend_v2/models/auth.py]`, `@[backend_v2/api/routers/execution/executions.py]`, `@[backend_v2/services/execution/facade.py]`, `@[backend_v2/services/execution/assignment_service.py]`, `@[scripts/audit_zero_orm_strictness.py]`) with `scripts/backend_audit_loop.py --test --ast-strict` (10/10 stages passed, >90% test coverage) and verified the entire Flutter project (`client_app_v2/`) with `scripts/flutter_audit_loop.py --build` (0 warnings, 0 errors, all unit and widget tests passing).
+- Completed all 14 dedicated per-file Tier 2 Hardening passes across all 9 backend targets and all 5 frontend targets via `scripts/auto_hardening_runner.py` (`a93056dea` through `a6bd5a7b5`).
 - Completed `/tier7-describe-architecture` As-Built Architectural Sync across `@[ki_god_code_prevention.md]`, `@[ki_global_config_sovereignty.md]`, `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/01_system_context_and_invariants.md]`, `@[docs/architecture/02_data_seeding_and_ontology.md]`, and `@[docs/architecture/04_server_driven_ui_and_presentation.md]`.
+- Completed `/tier8-audit-plan` System 2 Post-Implementation Red-Team Audit across all 31 modified target files (`14` production targets, `15` companion test targets, and `2` `.arb` localization catalogs): localized `scripts/backend_audit_loop.py --test --ast-strict` passed `10/10` stages (`93%`–`100%` line coverage), global backend static audit passed `10/10` stages across `441` source files, `scripts/audit_dto_parity.py --fail-on-mismatch` verified `92/92` shared models, `scripts/audit_zero_orm_strictness.py` reported `0` violations across `411` files, `scripts/audit_technical_debt.py --include-one-hop` reported `0` findings across `31` targets + `85` 1-hop callers, and `scripts/flutter_audit_loop.py client_app_v2/ --build --strict --test` passed with `0` violations and `1387` passing tests.
 
 ## Learned
 - `riverpod_generator` (`^4.0.0`) throws `InvalidTypeException` if a `@riverpod` provider's return signature directly references a Freezed generated union subclass (`TaskDefinitionPromptBlock` from `prompt_block.freezed.dart`). Declaring `Future<List<PromptBlock>>` as the `@riverpod` return type while filtering `.whereType<TaskDefinitionPromptBlock>().toList(growable: false)` inside the provider and at consumption sites satisfies both `riverpod_generator` and Dart 3 strict type checking.
-- In `backend_v2/tests/unit/api/routers/iam/test___init__.py` (outside this plan's scope), a pre-existing stale import `test_auth_router_impersonate_and_profile_negative` references `test_auth_router_impersonate_profile_and_logout_timeout_negative` in `backend_v2/tests/unit/test_auth.py`; recorded as pre-existing outside-boundary technical debt per `explicit_scope_write`.
+- In `backend_v2/tests/unit/api/routers/iam/test___init__.py` (outside this plan's scope, introduced in prior commits `bc1096299` / `672099337`), a pre-existing stale import `test_auth_router_impersonate_and_profile_negative` references `test_auth_router_impersonate_profile_and_logout_timeout_negative` in `backend_v2/tests/unit/test_auth.py`; recorded as outside-boundary technical debt per `explicit_scope_write`. Additionally, when running the full multi-module unit suite after tests that call `configure_logging()` (mutating root logger threshold to `INFO`), `test_assignment_activate_identity_mismatch_negative` (`@[backend_v2/tests/unit/services/execution/test_assignment_service.py#L392-L423]`) captures the setup-phase `EmailService` `CONSOLE` `INFO` log unless `caplog.clear()` precedes `with caplog.at_level(logging.ERROR):`.
 
 ## Remaining
-- Complete remaining `Tier 2 Hardening (Frontend)` targets (`@[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]` and `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`) via `scripts/auto_hardening_runner.py`, followed by `/tier8-audit-plan` in a fresh context window.
+- None for in-scope implementation, hardening, documentation, or Tier 8 plan audit. Commit updated documentation and tracker files atomically if desired, and optionally run live E2E verification (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`) when live credentials are active.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]
+/tier5-resume @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]
 ```
