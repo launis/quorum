@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import re
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend_v2.exceptions import AppException, ConfigurationError, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.execution import ExecutionCreate, FrozenContext
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, generate_opaque_id
+from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -20,7 +21,13 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.telemetry import TraceContextCarrierDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
-from backend_v2.models.enums import ComponentType, HistoricalContextMode, PromptBlockCategory, StepType
+from backend_v2.models.enums import (
+    ComponentType,
+    EntityPrefix,
+    HistoricalContextMode,
+    PromptBlockCategory,
+    StepType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.execution.ingress_service import (
     ExecutionIngressService,
@@ -28,6 +35,7 @@ from backend_v2.services.execution.ingress_service import (
     create_execution_record,
     merge_assignment_inputs,
 )
+from backend_v2.tests.factories.model_factories import OutputProfileFactory, WorkflowFactory
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemorySystemRepository,
     InMemoryUnifiedWorkflowRepository,
@@ -55,7 +63,7 @@ def _create_empty_frozen_context() -> FrozenContext:
 
 
 def _create_test_workflow() -> Workflow:
-    return Workflow(
+    return WorkflowFactory.build(
         id="wor_0195f3a0000070008123456789abcdef",
         slug="test-workflow",
         name="Test Workflow",
@@ -338,6 +346,7 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
         arq_pool=arq_pool,
     )
 
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, record.id) is not None
     assert record.id.startswith("exe_")
     assert record.workflow_id == "wor_0195f3a0000070008123456789abcdef"
     assert record.metadata is not None
@@ -350,6 +359,8 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     # Verify repository persisted the record with telemetry (stateful roundtrip)
     saved_record = await repo.get_execution(record.id)
     assert saved_record is not None
+    reconstituted = ExecutionRecord.model_validate(saved_record.model_dump(mode="json"), strict=False)
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, reconstituted.id) is not None
     assert saved_record.metadata is not None
     assert saved_record.metadata.telemetry is not None
     assert saved_record.metadata.telemetry.traceparent.startswith("00-")
@@ -367,9 +378,8 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
 @pytest.mark.asyncio
 async def test_start_execution_permission_denied(initiator: TokenData) -> None:
     """Verify start_execution rejects access if workflow organization does not match."""
-    workflow = _create_test_workflow().model_copy(
-        update={"organization_id": "org_other_organization", "is_public": False}
-    )
+    other_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    workflow = _create_test_workflow().model_copy(update={"organization_id": other_org_id, "is_public": False})
 
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(workflow)
@@ -512,11 +522,11 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 404
 
     # Case 4: Output profile workflow mismatch
-    mismatched_profile = OutputProfile(
+    mismatched_profile = OutputProfileFactory.build(
         id="prf_0195f3a0000070008123456789abcdef",
         slug="mismatch",
         name=I18nText(translations={"en": "Mismatch"}),
-        workflow_id="wor_mismatched00000000",
+        workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
         target_block_order=[],
         visible_metadata=[],
         matrix_visible_columns=[],
@@ -799,4 +809,97 @@ def test_merge_assignment_inputs_partitioning() -> None:
     assert merged.dynamic_inputs == {
         "locked_key": "authoritative_val",
         "allowed_key": "assignee_val",
+    }
+
+
+def test_create_execution_record_opaque_id_bva_boundaries() -> None:
+    """Verify create_execution_record enforces ISTQB BVA bounds on execution_id (prefix 2..5, hex 32)."""
+    invalid_execution_ids = (
+        "",
+        f"exe_{'a' * 31}",  # hex length min - 1 (31)
+        f"exe_{'a' * 33}",  # hex length max + 1 (33)
+        f"e_{'a' * 32}",  # prefix length min - 1 (1)
+        f"execut_{'a' * 32}",  # prefix length max + 1 (6)
+    )
+    for invalid_exec_id in invalid_execution_ids:
+        with pytest.raises(AppException) as exc_info:
+            create_execution_record(
+                execution_id=invalid_exec_id,
+                workflow_id="wor_0195f3a0000070008123456789abcdef",
+                raw_inputs=WorkflowInputs(dynamic_inputs={}),
+                frozen_context=_create_empty_frozen_context(),
+                source_identity_manifest={},
+            )
+        assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_start_execution_without_default_profile_and_workflow_inputs(initiator: TokenData) -> None:
+    """Verify start_execution supports None profile resolution and WorkflowInputs normalization."""
+    workflow = _create_test_workflow().model_copy(update={"default_profile_id": None})
+    step_obj = Step(
+        id="stp_0195f3a0000070008123456789abcdef",
+        slug="analytical-step",
+        name=I18nText(translations={"en": "Analytical Step"}),
+        type=StepType.LOGIC,
+        hook="my_hook",
+        criteria_block_ids=[],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
+        mcp_tool_params={},
+    )
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
+    await repo.save_step(step_obj)
+    system_repo = InMemorySystemRepository()
+
+    service = ExecutionIngressService(
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=None,
+        system_repo=system_repo,
+    )
+    base_payload = ExecutionCreate(
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
+        target_locale="en",
+        profile_id=None,
+        matrix_sampling_strategy=10,
+    )
+    payload_with_workflow_inputs = base_payload.model_copy(
+        update={"raw_inputs": WorkflowInputs(dynamic_inputs={"chat_log": "Domain input"})}
+    )
+
+    record = await service.start_execution(
+        initiator=initiator,
+        payload=payload_with_workflow_inputs,
+        arq_pool=AsyncMock(),
+    )
+    assert record.output_profile_id is None
+    assert record.raw_inputs.dynamic_inputs["chat_log"] == "Domain input"
+
+
+def test_merge_assignment_inputs_empty_allowlist_and_explicit_identities() -> None:
+    """Verify merge_assignment_inputs accepts unlocked keys when allowlist is empty and applies explicit IDs."""
+    explicit_org = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    explicit_user = generate_opaque_id(EntityPrefix.USER)
+    locked = WorkflowInputs(dynamic_inputs={"locked_doc": "manager_text"})
+    submitted = WorkflowInputs(dynamic_inputs={"locked_doc": "tampered", "free_slot": "assignee_text"})
+
+    merged = merge_assignment_inputs(
+        locked_inputs=locked,
+        submitted_inputs=submitted,
+        assignee_input_keys=[],
+        organization_id=explicit_org,
+        user_id=explicit_user,
+        language="fi",
+    )
+    assert merged.organization_id == explicit_org
+    assert merged.user_id == explicit_user
+    assert merged.dynamic_inputs == {
+        "locked_doc": "manager_text",
+        "free_slot": "assignee_text",
     }
