@@ -1,7 +1,4 @@
-"""Metrics hooks for calculating text statistics and control ratios.
-
-All metrics rules adhere strictly to the Phase 9 architecture standards.
-"""
+"""Metrics hooks for calculating text statistics and control ratios."""
 
 import logging
 import re
