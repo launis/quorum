@@ -1,29 +1,33 @@
-"""File Driver Protocol (V2.9/V2026).
+"""Asynchronous file storage driver protocol.
 
-This module defines the abstract interface for asynchronous file storage,
-maintaining parity between Local and Cloud environments.
+Defines the abstract interface for asynchronous file storage operations,
+maintaining parity between local and cloud storage environments.
 """
 
+from __future__ import annotations
+
 from typing import Protocol, runtime_checkable
+
+__all__ = ["FileDriver"]
 
 
 @runtime_checkable
 class FileDriver(Protocol):
-    """Abstract interface for File Storage (Local/GCS/S3).
+    """Abstract interface for asynchronous file storage drivers.
 
-    Adheres to the Cognitive Quorum Error Handling Contract (RFC 7807).
-    Implementations MUST raise `AppException` for predictable failures.
+    Adheres to the Quorum RFC 7807 error handling contract.
+    Implementations raise `AppException` for predictable storage failures.
     """
 
     async def save(self, path: str, data: bytes | str) -> str:
-        """Saves data (bytes or string) to the specified path.
+        """Saves binary or text data to the specified relative path.
 
         Args:
-            path: Relative path/key.
-            data: Content to save.
+            path: Relative storage path or object key.
+            data: Binary or text content to persist.
 
         Returns:
-            str: Resolved path or URI.
+            Resolved storage path or URI.
 
         Raises:
             AppException: If storage is inaccessible or write fails (STORAGE_ACCESS_FAILED).
@@ -31,27 +35,27 @@ class FileDriver(Protocol):
         ...
 
     async def read(self, path: str) -> bytes:
-        """Reads raw bytes from the specified path.
+        """Reads raw bytes from the specified relative path.
 
         Args:
-            path: Relative path/key.
+            path: Relative storage path or object key.
 
         Returns:
-            bytes: Content.
+            Raw binary file content.
 
         Raises:
-            AppException: If file not found (FILE_NOT_FOUND) or read fails (STORAGE_ACCESS_FAILED).
+            AppException: If file is not found (FILE_NOT_FOUND) or read fails (STORAGE_ACCESS_FAILED).
         """
         ...
 
     async def delete(self, path: str) -> bool:
-        """Deletes file at path.
+        """Deletes the file at the specified relative path.
 
         Args:
-            path: Relative path/key.
+            path: Relative storage path or object key.
 
         Returns:
-            bool: True if deleted, False if not found (idempotent-ish check).
+            True if the file was deleted, False if it was not found.
 
         Raises:
             AppException: If storage is inaccessible (STORAGE_ACCESS_FAILED).
@@ -59,40 +63,43 @@ class FileDriver(Protocol):
         ...
 
     async def delete_directory(self, prefix: str) -> bool:
-        """Deletes a directory (or all files matching a prefix).
+        """Deletes a directory or all files matching a path prefix.
 
         Args:
-            prefix: Relative path prefix (directory path).
+            prefix: Relative directory path prefix.
 
         Returns:
-            bool: True if deleted.
+            True if matching entries were deleted, False otherwise.
 
         Raises:
-            AppException: If storage is inaccessible.
+            AppException: If storage is inaccessible (STORAGE_ACCESS_FAILED).
         """
         ...
 
     async def exists(self, path: str) -> bool:
-        """Checks if file exists.
+        """Checks whether a file exists at the specified relative path.
 
         Args:
-            path: Relative path/key.
+            path: Relative storage path or object key.
 
         Returns:
-            bool: True if exists.
+            True if the file exists, False otherwise.
 
         Raises:
-            AppException: If storage connectivity fails (optional, usually merely returns False).
+            AppException: If storage connectivity fails (STORAGE_ACCESS_FAILED).
         """
         ...
 
     async def get_url(self, path: str) -> str | None:
-        """Returns a public or pre-signed URL for the file.
+        """Returns a public or pre-signed URL for the file when supported.
 
         Args:
-            path: Relative path/key.
+            path: Relative storage path or object key.
 
         Returns:
-            str | None: URL if supported, None otherwise.
+            Public or pre-signed URL if supported by the backend, or None.
+
+        Raises:
+            AppException: If URL generation fails (STORAGE_ACCESS_FAILED).
         """
         ...
