@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 
 from pydantic import JsonValue
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
@@ -25,6 +26,7 @@ from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_delta import (
     AnomalyRetryResultDTO,
     ArchivistPrecedentsResultDTO,
+    ExecutionMetadataDeltaDTO,
     ExternalEvidenceResultDTO,
     FlatteningHookOutput,
     HookDeltaDTO,
@@ -51,6 +53,94 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+def _validate_inputs_envelope(inputs: ExecutionInputsDTO | None) -> None:
+    """Validate that optional locale and role fields are not blank whitespace."""
+    if inputs is None:
+        return
+    if inputs.target_locale is not None and not inputs.target_locale.strip():
+        logger.error(
+            "Invalid blank target_locale in ExecutionInputsDTO during state reduction.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            exc_info=True,
+        )
+        raise AppException(
+            "ExecutionInputsDTO target_locale cannot be empty or whitespace.",
+            status_code=422,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+    if inputs.user_role is not None and not inputs.user_role.strip():
+        logger.error(
+            "Invalid blank user_role in ExecutionInputsDTO during state reduction.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            exc_info=True,
+        )
+        raise AppException(
+            "ExecutionInputsDTO user_role cannot be empty or whitespace.",
+            status_code=422,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+
+def _reduce_metadata_updates(
+    current_metadata: ExecutionMetadata,
+    meta_delta: ExecutionMetadataDeltaDTO,
+    effective_step: str,
+) -> tuple[ExecutionMetadata, list[TraceEvent]]:
+    """Reduce ExecutionMetadataDeltaDTO updates into a new ExecutionMetadata and trace events."""
+    emitted: list[TraceEvent] = []
+    new_matrix_sampling = (
+        meta_delta.matrix_sampling_strategy
+        if meta_delta.matrix_sampling_strategy is not None
+        else current_metadata.matrix_sampling_strategy
+    )
+    new_provider = (
+        meta_delta.provider_override if meta_delta.provider_override is not None else current_metadata.provider_override
+    )
+    new_registry_id = (
+        meta_delta.model_registry_id if meta_delta.model_registry_id is not None else current_metadata.model_registry_id
+    )
+
+    updated_metadata = ExecutionMetadata(
+        matrix_sampling_strategy=new_matrix_sampling,
+        workflow_version=current_metadata.workflow_version,
+        global_context_vars=current_metadata.global_context_vars,
+        provider_override=new_provider,
+        model_registry_id=new_registry_id,
+    )
+
+    if meta_delta.mcp_audit_traces:
+        raw_traces = [t.model_dump(mode="json", exclude_none=True) for t in meta_delta.mcp_audit_traces]
+        emitted.append(
+            TraceEvent(
+                event_id=generate_uuid7(),
+                timestamp=datetime.now(UTC),
+                step_name=effective_step,
+                event_type="decision",
+                content={"mcp_audit_traces": cast(JsonValue, raw_traces)},
+                metadata=TraceEventMetadataDTO(mcp_audit_traces=meta_delta.mcp_audit_traces),
+                mcp_audit_traces=meta_delta.mcp_audit_traces,
+            )
+        )
+
+    if meta_delta.estimated_token_count is not None:
+        emitted.append(
+            TraceEvent(
+                event_id=generate_uuid7(),
+                timestamp=datetime.now(UTC),
+                step_name=effective_step,
+                event_type="decision",
+                content={"estimated_token_count": meta_delta.estimated_token_count},
+                metadata=TraceEventMetadataDTO(
+                    estimated_token_count=meta_delta.estimated_token_count,
+                    mcp_audit_traces=[],
+                ),
+                mcp_audit_traces=[],
+            )
+        )
+
+    return updated_metadata, emitted
+
+
 def merge_execution_inputs(
     base: ExecutionInputsDTO | None,
     delta: ExecutionInputsDTO | None,
@@ -69,7 +159,13 @@ def merge_execution_inputs(
 
     Returns:
         A new ExecutionInputsDTO representing the merged state.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if target_locale or user_role is blank whitespace.
     """
+    _validate_inputs_envelope(base)
+    _validate_inputs_envelope(delta)
+
     if base is None and delta is None:
         return ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={})
     if base is None:
@@ -116,8 +212,31 @@ def reduce_hook_delta(
 
     Returns:
         Tuple of (updated HookState, list of emitted TraceEvents).
+
+    Raises:
+        AppException: With VALIDATION_FAILED if execution_id, workflow_id, or explicit step_id is blank.
     """
     from backend_v2.core.hook_registry import HookState
+
+    if (
+        not current_state.execution_id.strip()
+        or not current_state.workflow_id.strip()
+        or (step_id is not None and not step_id.strip())
+    ):
+        logger.error(
+            "Invalid blank identifier encountered during HookState delta reduction.",
+            extra={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "execution_id": current_state.execution_id,
+                "workflow_id": current_state.workflow_id,
+            },
+            exc_info=True,
+        )
+        raise AppException(
+            "HookState reduction requires non-empty execution_id, workflow_id, and step_id.",
+            status_code=422,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     emitted_events: list[TraceEvent] = []
     if step_id is not None:
@@ -127,76 +246,24 @@ def reduce_hook_delta(
     else:
         effective_step = "unknown"
 
-    # 1. Reduce Metadata Updates
     new_metadata = current_state.metadata
     if delta_dto.metadata_updates is not None:
-        meta_delta = delta_dto.metadata_updates
-        new_matrix_sampling = (
-            meta_delta.matrix_sampling_strategy
-            if meta_delta.matrix_sampling_strategy is not None
-            else current_state.metadata.matrix_sampling_strategy
+        new_metadata, meta_events = _reduce_metadata_updates(
+            current_state.metadata,
+            delta_dto.metadata_updates,
+            effective_step,
         )
-        new_provider = (
-            meta_delta.provider_override
-            if meta_delta.provider_override is not None
-            else current_state.metadata.provider_override
-        )
-        new_registry_id = (
-            meta_delta.model_registry_id
-            if meta_delta.model_registry_id is not None
-            else current_state.metadata.model_registry_id
-        )
+        emitted_events.extend(meta_events)
 
-        new_metadata = ExecutionMetadata(
-            matrix_sampling_strategy=new_matrix_sampling,
-            workflow_version=current_state.metadata.workflow_version,
-            global_context_vars=current_state.metadata.global_context_vars,
-            provider_override=new_provider,
-            model_registry_id=new_registry_id,
-        )
-
-        if meta_delta.mcp_audit_traces:
-            raw_traces = [t.model_dump(mode="json") for t in meta_delta.mcp_audit_traces]
-            emitted_events.append(
-                TraceEvent(
-                    event_id=generate_uuid7(),
-                    timestamp=datetime.now(UTC),
-                    step_name=effective_step,
-                    event_type="decision",
-                    content={"mcp_audit_traces": cast(JsonValue, raw_traces)},
-                    metadata=TraceEventMetadataDTO(mcp_audit_traces=meta_delta.mcp_audit_traces),
-                    mcp_audit_traces=meta_delta.mcp_audit_traces,
-                )
-            )
-
-        if meta_delta.estimated_token_count is not None:
-            emitted_events.append(
-                TraceEvent(
-                    event_id=generate_uuid7(),
-                    timestamp=datetime.now(UTC),
-                    step_name=effective_step,
-                    event_type="decision",
-                    content={"estimated_token_count": meta_delta.estimated_token_count},
-                    metadata=TraceEventMetadataDTO(
-                        estimated_token_count=meta_delta.estimated_token_count,
-                        mcp_audit_traces=[],
-                    ),
-                    mcp_audit_traces=[],
-                )
-            )
-
-    # 2. Reduce Delta Payload into Inputs or Global Context Vars
     new_inputs = current_state.inputs
     new_global_vars = current_state.global_context_vars
     delta = delta_dto.delta
 
     if delta is not None:
         if isinstance(delta, ArchivistPrecedentsResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"archivist_precedents": delta.archivist_precedents})
+            new_global_vars = new_global_vars.model_copy(update={"archivist_precedents": delta.archivist_precedents})
         elif isinstance(delta, PassivityDetectionResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"passivity_detected": delta.passivity_detected})
+            new_global_vars = new_global_vars.model_copy(update={"passivity_detected": delta.passivity_detected})
             emitted_events.append(
                 TraceEvent(
                     event_id=generate_uuid7(),
@@ -209,34 +276,28 @@ def reduce_hook_delta(
                 )
             )
         elif isinstance(delta, AnomalyRetryResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(
+            new_global_vars = new_global_vars.model_copy(
                 update={"llm_anomaly_retry_requested": delta.llm_anomaly_retry_requested}
             )
         elif isinstance(delta, InputControlRatioResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"input_control_ratio": delta.input_control_ratio})
+            new_global_vars = new_global_vars.model_copy(update={"input_control_ratio": delta.input_control_ratio})
         elif isinstance(delta, ProfilerMetricsDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"profiler_metrics": delta})
+            new_global_vars = new_global_vars.model_copy(update={"profiler_metrics": delta})
         elif isinstance(delta, ExternalEvidenceResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"external_evidence": delta.external_evidence})
+            new_global_vars = new_global_vars.model_copy(update={"external_evidence": delta.external_evidence})
         elif isinstance(delta, FlatteningHookOutput):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"shuffled_atoms": delta.shuffled_atoms})
+            new_global_vars = new_global_vars.model_copy(update={"shuffled_atoms": delta.shuffled_atoms})
         elif isinstance(delta, MatrixHookResultDTO):
-            base_vars = new_global_vars if new_global_vars is not None else GlobalContextVarsDTO()
             new_scores = {
                 pb_id: float(out.normalized_score)
                 for pb_id, out in delta.matrix_outputs.items()
                 if out.normalized_score is not None
             }
-            if base_vars.evaluative_matrices is not None:
-                merged_eval = {**base_vars.evaluative_matrices, **new_scores}
+            if new_global_vars.evaluative_matrices is not None:
+                merged_eval = {**new_global_vars.evaluative_matrices, **new_scores}
             else:
                 merged_eval = new_scores
-            new_global_vars = base_vars.model_copy(update={"evaluative_matrices": merged_eval})
+            new_global_vars = new_global_vars.model_copy(update={"evaluative_matrices": merged_eval})
             matrix_inputs = ExecutionInputsDTO(
                 raw_inputs={},
                 dynamic_inputs={
@@ -258,23 +319,17 @@ def reduce_hook_delta(
                 )
             )
         elif isinstance(delta, (AnalystOutput, EvaluationResult)):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"integrity_verified_output": delta})
+            new_global_vars = new_global_vars.model_copy(update={"integrity_verified_output": delta})
         elif isinstance(delta, SynthesisDistillationDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"distillation": delta})
+            new_global_vars = new_global_vars.model_copy(update={"distillation": delta})
         elif isinstance(delta, BibliographyResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"bibliography": delta})
+            new_global_vars = new_global_vars.model_copy(update={"bibliography": delta})
         elif isinstance(delta, StepMetadataDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"step_metadata": delta})
+            new_global_vars = new_global_vars.model_copy(update={"step_metadata": delta})
         elif isinstance(delta, MetadataHookResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"step_metadata": delta.step_metadata})
+            new_global_vars = new_global_vars.model_copy(update={"step_metadata": delta.step_metadata})
         elif isinstance(delta, MetadataHookPayloadDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(
+            new_global_vars = new_global_vars.model_copy(
                 update={
                     "initiator_id": delta.sys_initiator_id,
                     "organization_id": delta.organization_id,
@@ -282,21 +337,18 @@ def reduce_hook_delta(
                 }
             )
         elif isinstance(delta, (ScoringResultDTO, TraceScoringPayloadDTO)):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"scoring": delta})
+            new_global_vars = new_global_vars.model_copy(update={"scoring": delta})
         elif isinstance(delta, InteractionAnalysisDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"interaction_analysis": delta})
+            new_global_vars = new_global_vars.model_copy(update={"interaction_analysis": delta})
         elif isinstance(delta, LinguisticsResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"step_linguistics": delta})
+            new_global_vars = new_global_vars.model_copy(update={"step_linguistics": delta})
             emitted_events.append(
                 TraceEvent(
                     event_id=generate_uuid7(),
                     timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
-                    content={"step_linguistics": delta.model_dump(mode="json")},
+                    content={"step_linguistics": delta.model_dump(mode="json", exclude_none=True)},
                     metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
                     mcp_audit_traces=[],
                 )
@@ -317,7 +369,7 @@ def reduce_hook_delta(
                     timestamp=datetime.now(UTC),
                     step_name=effective_step,
                     event_type="decision",
-                    content=delta.model_dump(mode="json"),
+                    content=delta.model_dump(mode="json", exclude_none=True),
                     metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
                     mcp_audit_traces=[],
                 )

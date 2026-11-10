@@ -8,6 +8,8 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookState
+from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.analyst import AnalystOutput, Hypothesis
 from backend_v2.models.domain.archival import ArchivalPrecedentDTO
 from backend_v2.models.domain.evaluation import EvaluationResult
@@ -22,7 +24,7 @@ from backend_v2.models.domain.metadata import (
 )
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO, ReferenceDTO
-from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.system_config import MCPAuditTrace, ProviderExtraParamsDTO
 from backend_v2.models.domain.validation import ValidationResultDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_delta import (
@@ -44,7 +46,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
-from backend_v2.models.enums import InteractionStrategy, RoleClassification
+from backend_v2.models.enums import EntityPrefix, InteractionStrategy, RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.orchestrator.state_reducer import merge_execution_inputs, reduce_hook_delta
@@ -53,23 +55,23 @@ from backend_v2.services.orchestrator.state_reducer import merge_execution_input
 def _build_test_hook_state() -> HookState:
     """Helper to build an initial HookState."""
     return HookState(
-        execution_id="exe_test_001",
-        workflow_id="wor_test_001",
-        step_id="stp_step_1",
+        execution_id=generate_opaque_id(EntityPrefix.EXECUTION),
+        workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
+        step_id=generate_opaque_id(EntityPrefix.STEP),
         metadata=ExecutionMetadata(matrix_sampling_strategy=10, workflow_version=1),
         global_context_vars=GlobalContextVarsDTO(language="en"),
-        inputs=ExecutionInputsDTO(raw_inputs={"doc": "content"}),
+        inputs=ExecutionInputsDTO(raw_inputs={"doc": "content"}, dynamic_inputs={}),
     )
 
 
 def test_merge_execution_inputs_with_none_inputs() -> None:
     """ISTQB Partition 1: None inputs handling."""
-    assert merge_execution_inputs(None, None) == ExecutionInputsDTO()
+    assert merge_execution_inputs(None, None) == ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={})
 
-    base = ExecutionInputsDTO(raw_inputs={"a": "1"})
+    base = ExecutionInputsDTO(raw_inputs={"a": "1"}, dynamic_inputs={})
     assert merge_execution_inputs(base, None) == base
 
-    delta = ExecutionInputsDTO(raw_inputs={"b": "2"})
+    delta = ExecutionInputsDTO(raw_inputs={"b": "2"}, dynamic_inputs={})
     assert merge_execution_inputs(None, delta) == delta
 
 
@@ -135,8 +137,8 @@ def test_merge_execution_inputs_negative_and_boundary_cases() -> None:
     with pytest.raises(ValidationError):
         ExecutionInputsDTO.model_validate({"target_locale": 12345})
 
-    base = ExecutionInputsDTO(raw_inputs={"a": "1"}, user_role=None, target_locale=None)
-    delta = ExecutionInputsDTO(raw_inputs={"b": "2"}, user_role=None, target_locale=None)
+    base = ExecutionInputsDTO(raw_inputs={"a": "1"}, dynamic_inputs={}, user_role=None, target_locale=None)
+    delta = ExecutionInputsDTO(raw_inputs={"b": "2"}, dynamic_inputs={}, user_role=None, target_locale=None)
     merged = merge_execution_inputs(base, delta)
     assert merged.user_role is None
     assert merged.target_locale is None
@@ -173,6 +175,8 @@ def test_reduce_hook_delta_metadata_updates_and_traces() -> None:
         step_name="stp_step_1",
         query="claim check",
         source_urls=["https://verified.org"],
+        impacted_axis_names=[],
+        timestamp=datetime.now(UTC),
     )
     meta_delta = HookDeltaDTO(
         metadata_updates=ExecutionMetadataDeltaDTO(
@@ -186,10 +190,10 @@ def test_reduce_hook_delta_metadata_updates_and_traces() -> None:
     assert new_state.metadata.matrix_sampling_strategy == 5
     assert len(events) == 2
     assert events[0].event_type == "decision"
-    assert "mcp_audit_traces" in events[0].content
+    assert events[0].content == {"mcp_audit_traces": [trace.model_dump(mode="json", exclude_none=True)]}
     assert events[0].mcp_audit_traces == [trace]
     assert events[1].event_type == "decision"
-    assert "estimated_token_count" in events[1].content
+    assert events[1].content == {"estimated_token_count": 500}
 
 
 def test_reduce_hook_delta_archivist_and_flattening() -> None:
@@ -203,7 +207,14 @@ def test_reduce_hook_delta_archivist_and_flattening() -> None:
     assert new_state.global_context_vars.archivist_precedents is not None
     assert len(new_state.global_context_vars.archivist_precedents) == 1
 
-    atom = FlattenedAtom(atom_id="atm_01", question="Criteria A?")
+    atom = FlattenedAtom(
+        atom_id="atm_01",
+        question="Criteria A?",
+        depends_on=(),
+        acceptance_criteria=(),
+        anti_patterns=(),
+        syntactic_anchors=(),
+    )
     flat_delta = HookDeltaDTO(delta=FlatteningHookOutput(shuffled_atoms=[atom]))
     new_state2, _ = reduce_hook_delta(state, flat_delta)
     assert new_state2.global_context_vars is not None
@@ -215,7 +226,12 @@ def test_reduce_hook_delta_matrix_hook_result() -> None:
     """Verify reduction of MatrixHookResultDTO."""
     state = _build_test_hook_state()
 
-    matrix_out = LightweightMatrixOutput(raw_score=4.0, normalized_score=80.0)
+    matrix_out = LightweightMatrixOutput(
+        raw_score=4.0,
+        normalized_score=80.0,
+        evaluated_atoms={},
+        extensions={},
+    )
     matrix_delta = HookDeltaDTO(
         delta=MatrixHookResultDTO(
             matrix_outputs={"blk_test": matrix_out},
@@ -257,10 +273,19 @@ def test_reduce_hook_delta_analyst_and_evaluation_and_distillation() -> None:
 
     analyst_delta = HookDeltaDTO(
         delta=AnalystOutput(
-            hypotheses=[Hypothesis(id="hyp_01", claim_text="Claim", evidence_found=False, search_query="search")],
+            hypotheses=[
+                Hypothesis(
+                    id="hyp_01",
+                    claim_text="Claim",
+                    evidence_found=False,
+                    search_query="search",
+                    quotes=[],
+                )
+            ],
             thought_process="Thinking step",
             conclusion="Hypothesis confirmed",
             confidence_score=0.95,
+            rag_evidence=[],
         )
     )
     s1, _ = reduce_hook_delta(state, analyst_delta)
@@ -279,13 +304,23 @@ def test_reduce_hook_delta_analyst_and_evaluation_and_distillation() -> None:
             dimensions=[DimensionResultItem(dimension_id="dim_01", score=4.5, reasoning="Detailed reasoning")],
             scale_min=1.0,
             scale_max=5.0,
+            citation_snippets=[],
+            penalties=[],
         )
     )
     s2, _ = reduce_hook_delta(state, eval_delta)
     assert s2.global_context_vars is not None
     assert s2.global_context_vars.integrity_verified_output is not None
 
-    dist_delta = HookDeltaDTO(delta=SynthesisDistillationDTO(distilled_inputs="compressed inputs"))
+    dist_delta = HookDeltaDTO(
+        delta=SynthesisDistillationDTO(
+            distilled_inputs="compressed inputs",
+            title_map={},
+            matrices_to_explain=[],
+            source_alias_map={},
+            alias_registry={},
+        )
+    )
     s3, _ = reduce_hook_delta(state, dist_delta)
     assert s3.global_context_vars is not None
     assert s3.global_context_vars.distillation is not None
@@ -308,7 +343,7 @@ def test_reduce_hook_delta_metadata_variants() -> None:
     """Verify reduction of MetadataHookPayloadDTO, MetadataHookResultDTO, and StepMetadataDTO."""
     state = _build_test_hook_state()
 
-    payload_delta = HookDeltaDTO(delta=MetadataHookPayloadDTO(_sys_initiator_id="usr_admin"))
+    payload_delta = HookDeltaDTO(delta=MetadataHookPayloadDTO(sys_initiator_id="usr_admin"))
     s1, _ = reduce_hook_delta(state, payload_delta)
     assert s1.global_context_vars is not None
     assert s1.global_context_vars.initiator_id == "usr_admin"
@@ -339,7 +374,11 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
     state = _build_test_hook_state()
 
     score_delta = HookDeltaDTO(
-        delta=ScoringResultDTO(score=88.5, xai_log=XAILogDto(pedagogical_key="PED_KEY"), breakdown={})
+        delta=ScoringResultDTO(
+            score=88.5,
+            xai_log=XAILogDto(pedagogical_key="PED_KEY", engine_debug_trace={}),
+            breakdown={},
+        )
     )
     s1, _ = reduce_hook_delta(state, score_delta)
     assert s1.global_context_vars is not None
@@ -368,7 +407,8 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
     assert s3.global_context_vars.interaction_analysis is not None
     assert s3.global_context_vars.interaction_analysis.imperative_command_count == 3
 
-    ling_delta = HookDeltaDTO(delta=LinguisticsResultDTO(total_word_count=45))
+    ling_dto = LinguisticsResultDTO(total_word_count=45, performative_patterns=[])
+    ling_delta = HookDeltaDTO(delta=ling_dto)
     s4, events_4 = reduce_hook_delta(state, ling_delta)
     assert s4.global_context_vars is not None
     assert s4.global_context_vars.step_linguistics is not None
@@ -376,14 +416,15 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
     assert len(events_4) == 1
     assert events_4[0].event_type == "decision"
     assert events_4[0].metadata.is_context_update is True
-    assert "step_linguistics" in events_4[0].content
+    assert events_4[0].content == {"step_linguistics": ling_dto.model_dump(mode="json", exclude_none=True)}
 
     state_no_gvars = HookState(
-        execution_id="exe_2",
-        workflow_id="wor_2",
-        step_id="stp_2",
+        execution_id=generate_opaque_id(EntityPrefix.EXECUTION),
+        workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
+        step_id=generate_opaque_id(EntityPrefix.STEP),
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
     )
     s4_no_gvars, events_no_gvars = reduce_hook_delta(state_no_gvars, ling_delta)
     assert s4_no_gvars.global_context_vars is not None
@@ -392,16 +433,17 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
     assert len(events_no_gvars) == 1
     assert events_no_gvars[0].event_type == "decision"
     assert events_no_gvars[0].metadata.is_context_update is True
-    assert "step_linguistics" in events_no_gvars[0].content
+    assert events_no_gvars[0].content == {"step_linguistics": ling_dto.model_dump(mode="json", exclude_none=True)}
 
     llm_delta = HookDeltaDTO(
         delta=LLMProviderConfig(
-            id="cfg_12345678",
+            id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
             provider="openai",
             model_name="gpt-4",
             tpm_limit=1000,
             rpm_limit=100,
             temperature=0.7,
+            additional_params=ProviderExtraParamsDTO(),
         )
     )
     s5, _ = reduce_hook_delta(state, llm_delta)
@@ -420,7 +462,7 @@ def test_reduce_hook_delta_validation_step_output_inputs_global_vars() -> None:
     s2, _ = reduce_hook_delta(state, HookDeltaDTO(delta=step_out))
     assert s2.inputs == state.inputs
 
-    inputs_delta = HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"merged_key": "merged_val"}))
+    inputs_delta = HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={"merged_key": "merged_val"}))
     s3, _ = reduce_hook_delta(state, inputs_delta)
     assert s3.inputs.dynamic_inputs["merged_key"] == "merged_val"
 
@@ -439,7 +481,12 @@ def test_reduce_hook_delta_matrix_with_existing_evaluative_matrices() -> None:
         update={"global_context_vars": GlobalContextVarsDTO(evaluative_matrices={"old_pb": 70.0, "int_pb": 60.0})}
     )
 
-    matrix_out = LightweightMatrixOutput(raw_score=4.0, normalized_score=85.0)
+    matrix_out = LightweightMatrixOutput(
+        raw_score=4.0,
+        normalized_score=85.0,
+        evaluated_atoms={},
+        extensions={},
+    )
     matrix_delta = HookDeltaDTO(
         delta=MatrixHookResultDTO(
             matrix_outputs={"new_pb": matrix_out},
@@ -455,3 +502,40 @@ def test_reduce_hook_delta_matrix_with_existing_evaluative_matrices() -> None:
     assert eval_map["old_pb"] == 70.0
     assert eval_map["int_pb"] == 60.0
     assert eval_map["new_pb"] == 85.0
+
+
+def test_merge_execution_inputs_blank_locale_or_role_raises_app_exception() -> None:
+    """ISTQB Negative Boundary: Blank target_locale or user_role raises AppException(VALIDATION_FAILED)."""
+    with pytest.raises(AppException) as exc_locale:
+        merge_execution_inputs(
+            ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}, target_locale="   "),
+            None,
+        )
+    assert exc_locale.value.status_code == 422
+
+    with pytest.raises(AppException) as exc_role:
+        merge_execution_inputs(
+            None,
+            ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}, user_role=""),
+        )
+    assert exc_role.value.status_code == 422
+
+
+def test_reduce_hook_delta_blank_identifiers_and_unknown_step_fallback() -> None:
+    """ISTQB Negative Boundary: Blank execution_id, workflow_id, or step_id raises AppException(VALIDATION_FAILED)."""
+    state = _build_test_hook_state()
+    delta = HookDeltaDTO(delta=PassivityDetectionResultDTO(passivity_detected=False))
+
+    with pytest.raises(AppException) as exc_step:
+        reduce_hook_delta(state, delta, step_id="   ")
+    assert exc_step.value.status_code == 422
+
+    blank_exec_state = state.model_copy(update={"execution_id": "  "})
+    with pytest.raises(AppException) as exc_exec:
+        reduce_hook_delta(blank_exec_state, delta)
+    assert exc_exec.value.status_code == 422
+
+    step_none_state = state.model_copy(update={"step_id": None})
+    _, events = reduce_hook_delta(step_none_state, delta, step_id=None)
+    assert len(events) == 1
+    assert events[0].step_name == "unknown"
