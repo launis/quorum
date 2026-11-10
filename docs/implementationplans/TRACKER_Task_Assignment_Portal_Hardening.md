@@ -29,7 +29,7 @@
   - [x] @[backend_v2/api/routers/execution/executions.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
   - [x] @[backend_v2/models/auth.py]
-  - [ ] @[backend_v2/models/domain/execution.py]
+  - [x] @[backend_v2/models/domain/execution.py]
   - [ ] @[backend_v2/services/auth/email_service.py]
   - [ ] @[backend_v2/services/execution/assignment_service.py]
   - [ ] @[backend_v2/services/execution/facade.py]
