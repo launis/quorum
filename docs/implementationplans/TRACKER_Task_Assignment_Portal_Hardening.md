@@ -15,7 +15,7 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]`
   - [x] Step 1: Phase 1: Harden EmailService Canonical Resend Payload & StudioPromptBlockService Task Definition Draft Lifecycle (Finding C & Finding E Part 1)
   - [x] Step 2: Phase 2: Normalize First-Class Task Brief FK, Eager Base64 Ingress Extraction, Onboarding Email Verification & 1:1 DTO Parity (Finding A, Finding D & Finding E Backend Contract)
   - [x] Step 3: Phase 3: Add Authentic Firebase Auth + TOTP JIT Onboarding, Typed Task Brief Card & File Upload to TaskAssignmentPortalView (Finding A, Finding D & Finding E Part 2)
@@ -24,7 +24,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[backend_v2/api/routers/execution/executions.py]
   - [ ] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
@@ -41,8 +41,8 @@
   - [ ] @[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]
   - [ ] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -88,18 +88,17 @@
 # Session Handover Context
 
 ## Achieved
-- Completed `/tier0-research-plan` System 2 red-teaming and proactive architectural hardening on `@[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md]` and synchronized `@[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]` with 100% bidirectional parity across 4 atomic execution steps, 7 requirements (`REQ-001`–`REQ-007`), 9 surviving backend production targets, and 5 surviving frontend production targets.
-- Eliminated 9 pre-execution showstopper defects: (1) portal `Base64Attachment` HTTP 422 rejection and skipped `DocumentExtractionService` extraction + non-existent `WorkflowInputValueFile`/`FilePicker.pickFiles` symbols, (2) Dart compile failure on `AppException.unauthorized('...')` and wrong `VALIDATION_ERROR`/`UNAUTHORIZED` error codes, (3) live Firebase `MFA_REQUIRED` + `emailVerified == false` + `'invalid-credential'` enumeration lockouts during JIT onboarding, (4) missing `l10n.edit` `.arb` key, (5) `PromptBlock.instructionText` compile error and raw `'task_definition'` string filtering, (6) `SmartIngressResolver` HTTP 400 slot collision from stuffing `task_brief_*` into `lockedInputs.dynamicInputs`, (7) Resend REST API HTTP 400/422 rejection on unknown root keys and unescaped query `&` in `href`, (8) backend HTTP 422 on empty `""` `instruction_text` / `TheoryGrounding.source_url` and HTTP 403 when tenant `ADMIN` edits/deletes `ROOT_SYSTEM` Task Briefs, and (9) `_FakeStudioClient` `NoSuchMethodError` in `organization_iam_settings_view_test.dart` plus tracker `--gate` / skill CLI flag mismatches.
+- Executed all 4 phases (`Step 1` through `Step 4`, `REQ-001` through `REQ-007`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md]` in Continuous Full-Auto Mode (`--full-auto`) with 4 atomic Conventional Commits (`f50520284`, `e025b1e30`, `7bac2dc99`, `c21fca8d6`).
+- Verified all 9 backend targets (`@[backend_v2/services/auth/email_service.py]`, `@[backend_v2/services/studio/prompt_block_service.py]`, `@[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]`, `@[backend_v2/models/domain/execution.py]`, `@[backend_v2/models/auth.py]`, `@[backend_v2/api/routers/execution/executions.py]`, `@[backend_v2/services/execution/facade.py]`, `@[backend_v2/services/execution/assignment_service.py]`, `@[scripts/audit_zero_orm_strictness.py]`) with `scripts/backend_audit_loop.py --test --ast-strict` (10/10 stages passed, >90% test coverage) and verified the entire Flutter project (`client_app_v2/`) with `scripts/flutter_audit_loop.py --build` (0 warnings, 0 errors, all unit and widget tests passing).
 
 ## Learned
-- `scripts/backend_audit_loop.py` executes `scripts/audit_dto_parity.py` unconditionally, so modifying `ExecutionAssignment*DTO` and adding `TaskAssignmentBriefDTO` in `@[backend_v2/models/auth.py]` MUST be coupled atomically in Step 2 with `@[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]` (`--build` codegen).
-- Adding `task_brief_id` to `execution_assignments` requires lockstep updates across `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (no SQL `DEFAULT` per `ZORM004`, plus `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` per `ZORM007`), `@[scripts/audit_zero_orm_strictness.py]` (`APPROVED_ADAPTER_RECORD_COLUMNS` for `ZORM006` and `REQUIRED_IDEMPOTENT_ALTER_COLUMNS` for `ZORM007`), `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]` (`missing_alter_sql`), and `@[backend_v2/models/domain/execution.py]` (`test_schema_dto_naming_parity` in `test_postgres.py`).
-- In `@[backend_v2/services/execution/assignment_service.py]`, `_verify_onboarding_firebase_token` must check `IDENTITY_MISMATCH` before calling `fb_auth.update_user(uid_str, email_verified=True)` via `asyncio.to_thread` and await `update_res` if `inspect.iscoroutine(update_res)` so `AsyncMock()` fixtures in `test_assignment_service.py` never emit unawaited coroutine warnings.
+- `riverpod_generator` (`^4.0.0`) throws `InvalidTypeException` if a `@riverpod` provider's return signature directly references a Freezed generated union subclass (`TaskDefinitionPromptBlock` from `prompt_block.freezed.dart`). Declaring `Future<List<PromptBlock>>` as the `@riverpod` return type while filtering `.whereType<TaskDefinitionPromptBlock>().toList(growable: false)` inside the provider and at consumption sites satisfies both `riverpod_generator` and Dart 3 strict type checking.
+- In `backend_v2/tests/unit/api/routers/iam/test___init__.py` (outside this plan's scope), a pre-existing stale import `test_auth_router_impersonate_and_profile_negative` references `test_auth_router_impersonate_profile_and_logout_timeout_negative` in `backend_v2/tests/unit/test_auth.py`; recorded as pre-existing outside-boundary technical debt per `explicit_scope_write`.
 
 ## Remaining
-- Start a **fresh chat session** and execute Steps 1–4 via `/tier2-execute --full-auto`, followed by Post-Implementation Gates (`auto_hardening_runner.py` for Backend and Frontend), `/tier7-describe-architecture`, and `/tier8-audit-plan`.
+- Execute Post-Implementation Gates (`Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` via `scripts/auto_hardening_runner.py`), followed by `/tier7-describe-architecture` and `/tier8-audit-plan` in a fresh context window.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Task_Assignment_Portal_Hardening.md] @[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]
 ```

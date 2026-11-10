@@ -260,7 +260,7 @@ class _FakeStudioClient implements StudioClient {
   List<McpGateway> gateways;
   List<PromptBlock> promptBlocks;
   List<Workflow> workflows;
-  String defaultDraftOrganizationId;
+  String defaultDraftOrganizationId = _FakeUserRepository.primaryOrgId;
   int _draftCounter = 0;
 
   _FakeStudioClient({
@@ -274,7 +274,6 @@ class _FakeStudioClient implements StudioClient {
     ],
     List<PromptBlock>? promptBlocks,
     List<Workflow>? workflows,
-    this.defaultDraftOrganizationId = _FakeUserRepository.primaryOrgId,
   }) : promptBlocks = List<PromptBlock>.from(promptBlocks ?? const []),
        workflows = List<Workflow>.from(
          workflows ??

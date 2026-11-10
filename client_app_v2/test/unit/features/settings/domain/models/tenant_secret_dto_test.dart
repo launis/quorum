@@ -167,10 +167,7 @@ void main() {
               'task_brief': {
                 'id': validBriefId,
                 'label': {
-                  'translations': {
-                    'en': 'Case Brief',
-                    'fi': 'Tehtäväohje',
-                  },
+                  'translations': {'en': 'Case Brief', 'fi': 'Tehtäväohje'},
                 },
                 'instruction_text': 'Analyze the scenario.',
                 'source_url': 'https://docs.qrum.ai/case-1',
@@ -212,10 +209,7 @@ void main() {
           'task_brief': {
             'id': validBriefId,
             'label': {
-              'translations': {
-                'en': 'Case Brief',
-                'fi': 'Tehtäväohje',
-              },
+              'translations': {'en': 'Case Brief', 'fi': 'Tehtäväohje'},
             },
             'instruction_text': 'Analyze the scenario.',
             'source_url': 'https://docs.qrum.ai/case-1',
