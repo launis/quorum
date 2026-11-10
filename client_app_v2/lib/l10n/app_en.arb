@@ -3112,6 +3112,27 @@
   "taskPortalSaveDraftBtn": "Save Draft",
   "taskPortalSubmitTaskBtn": "Submit Task",
   "taskPortalSubmittedTitle": "Task Submitted Successfully",
+  "orgTaskBriefsCardTitle": "Reusable Task Briefs & Case Descriptions",
+  "orgCreateTaskBriefBtn": "New Task Brief",
+  "orgEditTaskBriefTooltip": "Edit Task Brief",
+  "orgEditTaskBriefDialogTitle": "Edit Task Brief",
+  "orgTaskBriefTitleLabel": "Task Brief Title",
+  "orgTaskBriefUrlLabel": "External Reference Link / Document URL (Optional)",
+  "orgTaskBriefBodyLabel": "Task Instructions & Case Description",
+  "orgTaskBriefEmptyState": "No reusable task briefs defined yet.",
+  "taskBuilderSelectTaskBriefLabel": "Reusable Task Brief (Optional)",
+  "taskBuilderDispatchSummary": "Assignment Dispatched: {summary}",
+  "@taskBuilderDispatchSummary": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "taskBuilderExportSummaryCsvBtn": "Download Cohort Dispatch Summary (.csv)",
+  "taskPortalTaskBriefHeader": "Task Brief & Instructions",
+  "taskPortalCopyReferenceLinkTooltip": "Copy Reference Link",
+  "taskPortalTotpEnrollmentHint": "Add this TOTP secret key to your authenticator app, then enter the 6-digit code below to complete enrollment.",
   "staleTargetBlockChipLabel": "Removed from workflow: {blockId}",
   "@staleTargetBlockChipLabel": {
     "placeholders": {

@@ -6112,6 +6112,56 @@ class AppLocalizationsFi extends AppLocalizations {
   String get taskPortalSubmittedTitle => 'Tehtävä palautettu onnistuneesti';
 
   @override
+  String get orgTaskBriefsCardTitle =>
+      'Uudelleenkäytettävät tehtävänannot ja tapauskuvaukset';
+
+  @override
+  String get orgCreateTaskBriefBtn => 'Uusi tehtävänanto';
+
+  @override
+  String get orgEditTaskBriefTooltip => 'Muokkaa tehtävänantoa';
+
+  @override
+  String get orgEditTaskBriefDialogTitle => 'Muokkaa tehtävänantoa';
+
+  @override
+  String get orgTaskBriefTitleLabel => 'Tehtävänannon otsikko';
+
+  @override
+  String get orgTaskBriefUrlLabel =>
+      'Ulkoinen viitelinkki / dokumentin URL (valinnainen)';
+
+  @override
+  String get orgTaskBriefBodyLabel => 'Tehtäväohjeet ja tapauskuvaus';
+
+  @override
+  String get orgTaskBriefEmptyState =>
+      'Uudelleenkäytettäviä tehtävänantoja ei ole vielä määritetty.';
+
+  @override
+  String get taskBuilderSelectTaskBriefLabel =>
+      'Uudelleenkäytettävä tehtävänanto (valinnainen)';
+
+  @override
+  String taskBuilderDispatchSummary(String summary) {
+    return 'Tehtäväosoitus lähetetty: $summary';
+  }
+
+  @override
+  String get taskBuilderExportSummaryCsvBtn =>
+      'Lataa kohortin lähetysyhteenveto (.csv)';
+
+  @override
+  String get taskPortalTaskBriefHeader => 'Tehtävänanto ja ohjeet';
+
+  @override
+  String get taskPortalCopyReferenceLinkTooltip => 'Kopioi viitelinkki';
+
+  @override
+  String get taskPortalTotpEnrollmentHint =>
+      'Lisää tämä TOTP-salaisuusavain todennussovellukseesi ja syötä alla oleva 6-numeroinen koodi viimeistelläksesi käyttöönoton.';
+
+  @override
   String staleTargetBlockChipLabel(String blockId) {
     return 'Poistettu työnkulusta: $blockId';
   }

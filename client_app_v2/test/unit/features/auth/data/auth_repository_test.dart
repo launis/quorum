@@ -29,6 +29,11 @@ class MockFirebaseAuthMultiFactorException extends Mock
 class MockMultiFactorSession extends Mock
     implements firebase.MultiFactorSession {}
 
+class MockMultiFactorAssertion extends Mock
+    implements firebase.MultiFactorAssertion {}
+
+class MockTotpSecret extends Mock implements firebase.TotpSecret {}
+
 void main() {
   late MockDio mockDio;
   late MockFirebaseAuth mockFirebaseAuth;
@@ -508,6 +513,220 @@ void main() {
               isA<CheckedFromJsonException>(),
             ),
           ),
+        );
+      },
+    );
+
+    test(
+      'Positive 2 & Negative 3: authenticateForTaskOnboarding handles sign-in, user-not-found/invalid-credential sign-up, TOTP challenge/enrollment, and BVA',
+      () async {
+        final mockCredential = MockUserCredential();
+        final mockUser = MockFirebaseUser();
+        final mockMultiFactor = MockMultiFactor();
+        final mockAssertion = MockMultiFactorAssertion();
+        final mockSecret = MockTotpSecret();
+
+        final customRepo = AuthRepository(
+          mockFirebaseAuth,
+          mockDio,
+          signInAssertionBuilder: (enrollmentId, code) async => mockAssertion,
+          enrollmentAssertionBuilder: (secret, code) async => mockAssertion,
+        );
+
+        // 1. Negative BVA: empty email or password < 6 chars returns VALIDATION_FAILED
+        for (final badCase in <({String email, String password})>[
+          (email: '', password: 'Password123!'),
+          (email: '   ', password: 'Password123!'),
+          (email: 'user@alpha.fi', password: ''),
+          (email: 'user@alpha.fi', password: '12345'),
+        ]) {
+          final invalidRes = await customRepo.authenticateForTaskOnboarding(
+            email: badCase.email,
+            password: badCase.password,
+          );
+          expect(invalidRes.isLeft(), isTrue);
+          expect(
+            invalidRes.getLeft().toNullable()!.errorCode,
+            equals('VALIDATION_FAILED'),
+          );
+        }
+
+        // 2. Negative: null FirebaseAuth returns AUTHENTICATION_FAILED
+        final nullAuthRepo = AuthRepository(null, mockDio);
+        final nullRes = await nullAuthRepo.authenticateForTaskOnboarding(
+          email: 'user@alpha.fi',
+          password: 'Password123!',
+        );
+        expect(nullRes.isLeft(), isTrue);
+        expect(
+          nullRes.getLeft().toNullable()!.errorCode,
+          equals('AUTHENTICATION_FAILED'),
+        );
+
+        // 3. Positive: direct signInWithEmailAndPassword returns fresh ID token
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'existing@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(() => mockCredential.user).thenReturn(mockUser);
+        when(
+          () => mockUser.getIdToken(true),
+        ).thenAnswer((_) async => 'signed_in_id_token');
+
+        final signInRes = await customRepo.authenticateForTaskOnboarding(
+          email: '  existing@alpha.fi  ',
+          password: 'Password123!',
+        );
+        expect(signInRes.isRight(), isTrue);
+        expect(signInRes.getRight().toNullable(), equals('signed_in_id_token'));
+
+        // 4. Positive: 'invalid-credential' (enumeration protection) falls back to createUserWithEmailAndPassword
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'newbie@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenThrow(firebase.FirebaseAuthException(code: 'invalid-credential'));
+        when(
+          () => mockFirebaseAuth.createUserWithEmailAndPassword(
+            email: 'newbie@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenAnswer((_) async => mockCredential);
+        when(
+          () => mockUser.getIdToken(true),
+        ).thenAnswer((_) async => 'created_user_id_token');
+
+        final signUpRes = await customRepo.authenticateForTaskOnboarding(
+          email: 'newbie@alpha.fi',
+          password: 'Password123!',
+        );
+        expect(signUpRes.isRight(), isTrue);
+        expect(
+          signUpRes.getRight().toNullable(),
+          equals('created_user_id_token'),
+        );
+
+        // 5. Negative: 'email-already-in-use' during fallback sign-up maps to AUTHENTICATION_FAILED
+        when(
+          () => mockFirebaseAuth.createUserWithEmailAndPassword(
+            email: 'newbie@alpha.fi',
+            password: 'WrongPassword!',
+          ),
+        ).thenThrow(
+          firebase.FirebaseAuthException(code: 'email-already-in-use'),
+        );
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'newbie@alpha.fi',
+            password: 'WrongPassword!',
+          ),
+        ).thenThrow(firebase.FirebaseAuthException(code: 'invalid-credential'));
+
+        final wrongPassRes = await customRepo.authenticateForTaskOnboarding(
+          email: 'newbie@alpha.fi',
+          password: 'WrongPassword!',
+        );
+        expect(wrongPassRes.isLeft(), isTrue);
+        expect(
+          wrongPassRes.getLeft().toNullable()!.errorCode,
+          equals('AUTHENTICATION_FAILED'),
+        );
+
+        // 6. Positive: prepareEnrollmentForCurrentUser(reloadUser: true) + enrollTotpAndGetIdToken
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(() => mockUser.reload()).thenAnswer((_) async {});
+        when(() => mockUser.email).thenReturn('newbie@alpha.fi');
+        when(() => mockUser.multiFactor).thenReturn(mockMultiFactor);
+        when(
+          () => mockMultiFactor.getSession(),
+        ).thenThrow(Exception('Use fallback secret'));
+
+        final prepRes = await customRepo.prepareEnrollmentForCurrentUser(
+          fallbackEmail: 'newbie@alpha.fi',
+          reloadUser: true,
+        );
+        expect(prepRes.isRight(), isTrue);
+        verify(() => mockUser.reload()).called(1);
+
+        // Bind a mock TotpSecret and complete enrollment via authenticateForTaskOnboarding
+        customRepo.setPendingMfaState(
+          MfaPendingState(
+            type: MfaRequirementType.enrollment,
+            email: 'newbie@alpha.fi',
+            totpSecret: mockSecret,
+            secretKey: 'BASE32SECRET',
+          ),
+        );
+        when(
+          () => mockMultiFactor.enroll(
+            mockAssertion,
+            displayName: any(named: 'displayName'),
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockUser.getIdToken(true),
+        ).thenAnswer((_) async => 'mfa_enrolled_id_token');
+
+        final enrolledTokenRes = await customRepo.authenticateForTaskOnboarding(
+          email: 'newbie@alpha.fi',
+          password: 'Password123!',
+          totpCode: '654321',
+        );
+        expect(enrolledTokenRes.isRight(), isTrue);
+        expect(
+          enrolledTokenRes.getRight().toNullable(),
+          equals('mfa_enrolled_id_token'),
+        );
+        expect(customRepo.pendingMfaState, isNull);
+
+        // 7. Positive: FirebaseAuthMultiFactorException challenge resolved with 6-digit totpCode
+        final mockResolver = MockMultiFactorResolver();
+        final mockHint = MockMultiFactorInfo();
+        when(() => mockHint.uid).thenReturn('factor_uid_99');
+        when(
+          () => mockResolver.hints,
+        ).thenReturn(<firebase.MultiFactorInfo>[mockHint]);
+        when(
+          () => mockResolver.resolveSignIn(mockAssertion),
+        ).thenAnswer((_) async => mockCredential);
+        when(
+          () => mockUser.getIdToken(true),
+        ).thenAnswer((_) async => 'mfa_challenged_id_token');
+
+        final mockMfaException = MockFirebaseAuthMultiFactorException();
+        when(() => mockMfaException.resolver).thenReturn(mockResolver);
+        when(
+          () => mockFirebaseAuth.signInWithEmailAndPassword(
+            email: 'mfa.user@alpha.fi',
+            password: 'Password123!',
+          ),
+        ).thenThrow(mockMfaException);
+
+        // Without totpCode -> returns MFA_CHALLENGE_REQUIRED
+        final challengeNeeded = await customRepo.authenticateForTaskOnboarding(
+          email: 'mfa.user@alpha.fi',
+          password: 'Password123!',
+        );
+        expect(challengeNeeded.isLeft(), isTrue);
+        expect(
+          challengeNeeded.getLeft().toNullable()!.errorCode,
+          equals('MFA_CHALLENGE_REQUIRED'),
+        );
+
+        // Subsequent call with 6-digit totpCode resolves challenge
+        final challengeResolved = await customRepo
+            .authenticateForTaskOnboarding(
+              email: 'mfa.user@alpha.fi',
+              password: 'Password123!',
+              totpCode: '123456',
+            );
+        expect(challengeResolved.isRight(), isTrue);
+        expect(
+          challengeResolved.getRight().toNullable(),
+          equals('mfa_challenged_id_token'),
         );
       },
     );

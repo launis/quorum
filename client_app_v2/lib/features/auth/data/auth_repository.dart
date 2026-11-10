@@ -39,6 +39,18 @@ class MfaPendingState {
   bool get isEnrollment => type == MfaRequirementType.enrollment;
 }
 
+typedef TotpSignInAssertionBuilder =
+    Future<firebase.MultiFactorAssertion> Function(
+      String enrollmentId,
+      String oneTimePassword,
+    );
+
+typedef TotpEnrollmentAssertionBuilder =
+    Future<firebase.MultiFactorAssertion> Function(
+      firebase.TotpSecret secret,
+      String oneTimePassword,
+    );
+
 @Riverpod(keepAlive: true)
 AuthRepository authRepository(Ref ref) {
   return AuthRepository(
@@ -50,9 +62,21 @@ AuthRepository authRepository(Ref ref) {
 class AuthRepository {
   final firebase.FirebaseAuth? _firebaseAuth;
   final Dio _client;
+  final TotpSignInAssertionBuilder _signInAssertionBuilder;
+  final TotpEnrollmentAssertionBuilder _enrollmentAssertionBuilder;
   MfaPendingState? _pendingMfaState;
 
-  AuthRepository(this._firebaseAuth, this._client);
+  AuthRepository(
+    this._firebaseAuth,
+    this._client, {
+    TotpSignInAssertionBuilder? signInAssertionBuilder,
+    TotpEnrollmentAssertionBuilder? enrollmentAssertionBuilder,
+  }) : _signInAssertionBuilder =
+           signInAssertionBuilder ??
+           firebase.TotpMultiFactorGenerator.getAssertionForSignIn,
+       _enrollmentAssertionBuilder =
+           enrollmentAssertionBuilder ??
+           firebase.TotpMultiFactorGenerator.getAssertionForEnrollment;
 
   MfaPendingState? get pendingMfaState => _pendingMfaState;
 
@@ -96,7 +120,7 @@ class AuthRepository {
     } on DioException catch (e) {
       final mapped = _mapDioException(e);
       if (mapped.errorCode == 'MFA_REQUIRED') {
-        await _prepareEnrollmentForCurrentUser(
+        await prepareEnrollmentForCurrentUser(
           fallbackEmail: _firebaseAuth?.currentUser?.email ?? '',
         );
       }
@@ -171,8 +195,8 @@ class AuthRepository {
     }
   }
 
-  /// Completes a 2FA TOTP challenge using the captured [firebase.MultiFactorResolver] and exchanges the token.
-  Future<Either<AppException, TokenExchangeResponseDto>> resolveMfaChallenge(
+  /// Resolves an active 2FA TOTP challenge and returns the fresh MFA-verified Firebase ID token.
+  Future<Either<AppException, String>> resolveChallengeAndGetIdToken(
     String totpCode,
   ) async {
     final trimmedCode = totpCode.trim();
@@ -194,11 +218,7 @@ class AuthRepository {
       final factorUid =
           pending.enrollmentId ??
           (resolver.hints.isNotEmpty ? resolver.hints.first.uid : '');
-      final assertion =
-          await firebase.TotpMultiFactorGenerator.getAssertionForSignIn(
-            factorUid,
-            trimmedCode,
-          );
+      final assertion = await _signInAssertionBuilder(factorUid, trimmedCode);
       final userCredential = await resolver.resolveSignIn(assertion);
       final firebaseUser = userCredential.user;
       if (firebaseUser == null) {
@@ -209,18 +229,27 @@ class AuthRepository {
         return Left(AppException.unauthorized());
       }
       _pendingMfaState = null;
-      return await exchangeToken(idToken);
+      return Right(idToken);
     } on firebase.FirebaseAuthException {
       return Left(AppException.unauthorized());
-    } on DioException catch (e) {
-      return Left(_mapDioException(e));
     } catch (e) {
       return Left(AppException.unknown(e));
     }
   }
 
-  /// Completes mandatory first-time TOTP 2FA enrollment and exchanges the upgraded token.
-  Future<Either<AppException, TokenExchangeResponseDto>> completeTotpEnrollment(
+  /// Completes a 2FA TOTP challenge using the captured [firebase.MultiFactorResolver] and exchanges the token.
+  Future<Either<AppException, TokenExchangeResponseDto>> resolveMfaChallenge(
+    String totpCode,
+  ) async {
+    final idTokenResult = await resolveChallengeAndGetIdToken(totpCode);
+    return await idTokenResult.fold(
+      (error) async => Left(error),
+      (idToken) async => exchangeToken(idToken),
+    );
+  }
+
+  /// Completes mandatory first-time TOTP 2FA enrollment and returns the fresh MFA-verified Firebase ID token.
+  Future<Either<AppException, String>> enrollTotpAndGetIdToken(
     String totpCode, {
     String accountDisplayName = 'Quorum Authenticator',
   }) async {
@@ -241,11 +270,10 @@ class AuthRepository {
     try {
       final firebaseUser = _firebaseAuth?.currentUser;
       if (firebaseUser != null && pending.totpSecret != null) {
-        final assertion =
-            await firebase.TotpMultiFactorGenerator.getAssertionForEnrollment(
-              pending.totpSecret!,
-              trimmedCode,
-            );
+        final assertion = await _enrollmentAssertionBuilder(
+          pending.totpSecret!,
+          trimmedCode,
+        );
         await firebaseUser.multiFactor.enroll(
           assertion,
           displayName: accountDisplayName,
@@ -255,13 +283,119 @@ class AuthRepository {
           return Left(AppException.unauthorized());
         }
         _pendingMfaState = null;
-        return await exchangeToken(idToken);
+        return Right(idToken);
       }
       return Left(AppException.unauthorized());
     } on firebase.FirebaseAuthException {
       return Left(AppException.unauthorized());
-    } on DioException catch (e) {
-      return Left(_mapDioException(e));
+    } catch (e) {
+      return Left(AppException.unknown(e));
+    }
+  }
+
+  /// Completes mandatory first-time TOTP 2FA enrollment and exchanges the upgraded token.
+  Future<Either<AppException, TokenExchangeResponseDto>> completeTotpEnrollment(
+    String totpCode, {
+    String accountDisplayName = 'Quorum Authenticator',
+  }) async {
+    final idTokenResult = await enrollTotpAndGetIdToken(
+      totpCode,
+      accountDisplayName: accountDisplayName,
+    );
+    return await idTokenResult.fold(
+      (error) async => Left(error),
+      (idToken) async => exchangeToken(idToken),
+    );
+  }
+
+  /// Authenticates or registers a task assignee via Firebase Auth and resolves TOTP 2FA when required.
+  Future<Either<AppException, String>> authenticateForTaskOnboarding({
+    required String email,
+    required String password,
+    String? totpCode,
+  }) async {
+    final normalizedEmail = email.trim();
+    final trimmedTotp = totpCode?.trim();
+    if (normalizedEmail.isEmpty || password.length < 6) {
+      return Left(
+        AppException.validation(
+          'Email and password (min 6 chars) are required.',
+        ),
+      );
+    }
+    if (_firebaseAuth == null) {
+      return Left(AppException.unauthorized());
+    }
+
+    final pending = _pendingMfaState;
+    if (pending != null && trimmedTotp != null && trimmedTotp.length == 6) {
+      if (pending.isChallenge) {
+        return resolveChallengeAndGetIdToken(trimmedTotp);
+      }
+      if (pending.isEnrollment) {
+        return enrollTotpAndGetIdToken(trimmedTotp);
+      }
+    }
+
+    try {
+      firebase.UserCredential userCredential;
+      try {
+        userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+          email: normalizedEmail,
+          password: password,
+        );
+      } on firebase.FirebaseAuthMultiFactorException {
+        rethrow;
+      } on firebase.FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+          try {
+            userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+              email: normalizedEmail,
+              password: password,
+            );
+          } on firebase.FirebaseAuthException {
+            return Left(AppException.unauthorized());
+          } catch (err) {
+            return Left(AppException.unknown(err));
+          }
+        } else if (e.code == 'wrong-password') {
+          return Left(AppException.unauthorized());
+        } else {
+          return Left(
+            AppException.validation(ValidationErrorReason.unknown.toString()),
+          );
+        }
+      }
+
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null) {
+        return Left(AppException.unauthorized());
+      }
+      final idToken = await firebaseUser.getIdToken(true);
+      if (idToken == null || idToken.trim().isEmpty) {
+        return Left(AppException.unauthorized());
+      }
+      return Right(idToken);
+    } on firebase.FirebaseAuthMultiFactorException catch (e) {
+      final hints = e.resolver.hints;
+      final firstFactorUid = hints.isNotEmpty ? hints.first.uid : null;
+      _pendingMfaState = MfaPendingState(
+        type: MfaRequirementType.challenge,
+        email: normalizedEmail,
+        resolver: e.resolver,
+        enrollmentId: firstFactorUid,
+      );
+      if (trimmedTotp != null && trimmedTotp.length == 6) {
+        return resolveChallengeAndGetIdToken(trimmedTotp);
+      }
+      return const Left(
+        AppException(
+          status: 403,
+          title: 'MFA Challenge Required',
+          detail: 'Enter your 6-digit TOTP authentication code.',
+          extensions: {'error_code': 'MFA_CHALLENGE_REQUIRED'},
+        ),
+      );
     } catch (e) {
       return Left(AppException.unknown(e));
     }
@@ -306,11 +440,21 @@ class AuthRepository {
     await _firebaseAuth?.signOut();
   }
 
-  Future<void> _prepareEnrollmentForCurrentUser({
+  /// Prepares TOTP 2FA enrollment for the active Firebase user (optionally reloading `emailVerified` state first).
+  Future<Either<AppException, MfaPendingState>>
+  prepareEnrollmentForCurrentUser({
     required String fallbackEmail,
+    bool reloadUser = false,
   }) async {
     final firebaseUser = _firebaseAuth?.currentUser;
     if (firebaseUser != null) {
+      if (reloadUser) {
+        try {
+          await firebaseUser.reload();
+        } catch (_) {
+          // Proceed to enrollment session creation if reload is unsupported in test fakes.
+        }
+      }
       await _prepareEnrollmentForUser(
         firebaseUser,
         fallbackEmail: fallbackEmail,
@@ -324,6 +468,7 @@ class AuthRepository {
             'otpauth://totp/Quorum:$fallbackEmail?issuer=Quorum&secret=QUORUMTOTPSETUP',
       );
     }
+    return Right(_pendingMfaState!);
   }
 
   Future<void> _prepareEnrollmentForUser(

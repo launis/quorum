@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/features/auth/data/auth_repository.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
@@ -13,7 +16,9 @@ import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/router.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -32,8 +37,13 @@ Future<ExecutionAssignmentPreviewDto> taskAssignmentPreview(
 
 class TaskAssignmentPortalView extends HookConsumerWidget {
   final String token;
+  final Future<WorkflowInputValue?> Function(String inputKey)? onPickFile;
 
-  const TaskAssignmentPortalView({super.key, required this.token});
+  const TaskAssignmentPortalView({
+    super.key,
+    required this.token,
+    this.onPickFile,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,6 +72,7 @@ class TaskAssignmentPortalView extends HookConsumerWidget {
                 authState: authState,
                 l10n: l10n,
                 theme: theme,
+                onPickFile: onPickFile,
               ),
             },
           ),
@@ -77,6 +88,7 @@ class _TaskPortalBody extends HookConsumerWidget {
   final AsyncValue<User?> authState;
   final AppLocalizations l10n;
   final ThemeData theme;
+  final Future<WorkflowInputValue?> Function(String inputKey)? onPickFile;
 
   const _TaskPortalBody({
     required this.token,
@@ -84,6 +96,7 @@ class _TaskPortalBody extends HookConsumerWidget {
     required this.authState,
     required this.l10n,
     required this.theme,
+    this.onPickFile,
   });
 
   bool _isIdentityMismatch(String userEmail, String maskedOrEmail) {
@@ -107,11 +120,56 @@ class _TaskPortalBody extends HookConsumerWidget {
     return false;
   }
 
+  String _resolveLocalizedText(
+    BuildContext context,
+    Map<String, String> translations,
+  ) {
+    final langCode = Localizations.localeOf(context).languageCode;
+    final activeText = translations[langCode];
+    if (activeText != null && activeText.trim().isNotEmpty) {
+      return activeText;
+    }
+    final fallbackEn = translations['en'];
+    if (fallbackEn != null && fallbackEn.trim().isNotEmpty) {
+      return fallbackEn;
+    }
+    throw AppException.validation('Fail-Fast: Missing required translation.');
+  }
+
+  Future<WorkflowInputValue?> _defaultPickFile(String inputKey) async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'txt', 'docx'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) {
+      return null;
+    }
+    final picked = result.files.first;
+    final bytes = picked.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      return null;
+    }
+    return WorkflowInputValue.file(
+      filename: picked.name,
+      contentBase64: base64Encode(bytes),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activatedAssignment = useState<ExecutionAssignmentResponseDto?>(null);
     final submittedRecord = useState<ExecutionRecord?>(null);
     final remainingSeconds = useState<int?>(preview.relativeDurationSeconds);
+    final pendingOnboardingMfa = useState<MfaPendingState?>(null);
+    final selectedFileInputs = useState<Map<String, WorkflowInputValue>>(
+      const <String, WorkflowInputValue>{},
+    );
+    final onboardingEmailController = useTextEditingController(
+      text: preview.assignedEmailMasked.contains('*')
+          ? ''
+          : preview.assignedEmailMasked,
+    );
     final onboardingNameController = useTextEditingController();
     final onboardingTokenController = useTextEditingController();
     final totpCodeController = useTextEditingController();
@@ -352,6 +410,13 @@ class _TaskPortalBody extends HookConsumerWidget {
               ),
             ),
           ),
+          if ((activatedAssignment.value?.taskBrief ?? preview.taskBrief) !=
+              null)
+            _buildTaskBriefCard(
+              context: context,
+              brief:
+                  (activatedAssignment.value?.taskBrief ?? preview.taskBrief)!,
+            ),
           if (currentUser == null)
             Card(
               key: const Key('task_portal_jit_onboarding_card'),
@@ -369,6 +434,16 @@ class _TaskPortalBody extends HookConsumerWidget {
                       l10n.taskPortalJitOnboardingTitle,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    AppSpacing.h12,
+                    TextFormField(
+                      key: const Key('task_portal_onboard_email_field'),
+                      controller: onboardingEmailController,
+                      decoration: InputDecoration(
+                        labelText: l10n.emailLabel,
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     AppSpacing.h12,
@@ -392,6 +467,34 @@ class _TaskPortalBody extends HookConsumerWidget {
                         border: const OutlineInputBorder(),
                       ),
                     ),
+                    if (pendingOnboardingMfa.value?.isEnrollment == true &&
+                        pendingOnboardingMfa.value?.secretKey != null) ...[
+                      AppSpacing.h12,
+                      Container(
+                        padding: AppSpacing.p12,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(AppSpacing.s8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.taskPortalTotpEnrollmentHint,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            AppSpacing.h8,
+                            SelectableText(
+                              pendingOnboardingMfa.value!.secretKey!,
+                              key: const Key('task_portal_totp_secret_text'),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     AppSpacing.h12,
                     TextFormField(
                       key: const Key('task_portal_onboard_totp_field'),
@@ -413,31 +516,75 @@ class _TaskPortalBody extends HookConsumerWidget {
                       onPressed: portalMutation.isLoading
                           ? null
                           : () => portalMutation.mutate(() async {
-                              final exchange = await ref
-                                  .read(executionClientProvider)
-                                  .onboardAssignee(
-                                    token: token,
-                                    payload:
-                                        ExecutionAssignmentOnboardingRequestDto(
-                                          firebaseToken:
-                                              onboardingTokenController.text
-                                                  .trim()
-                                                  .isEmpty
-                                              ? null
-                                              : onboardingTokenController.text
-                                                    .trim(),
-                                          name:
-                                              onboardingNameController.text
-                                                  .trim()
-                                                  .isEmpty
-                                              ? null
-                                              : onboardingNameController.text
-                                                    .trim(),
-                                        ),
-                                  );
-                              await ref
-                                  .read(authControllerProvider.notifier)
-                                  .applyTokenExchangeResponse(exchange);
+                              final emailText = onboardingEmailController.text
+                                  .trim();
+                              final passwordOrTokenText =
+                                  onboardingTokenController.text.trim();
+                              final totpText = totpCodeController.text.trim();
+                              String? resolvedIdToken;
+
+                              if (emailText.isNotEmpty &&
+                                  passwordOrTokenText.isNotEmpty) {
+                                final authResult = await ref
+                                    .read(authRepositoryProvider)
+                                    .authenticateForTaskOnboarding(
+                                      email: emailText,
+                                      password: passwordOrTokenText,
+                                      totpCode: totpText.isEmpty
+                                          ? null
+                                          : totpText,
+                                    );
+                                if (!context.mounted) return;
+                                resolvedIdToken = authResult.fold((err) {
+                                  if (err.errorCode ==
+                                      'MFA_CHALLENGE_REQUIRED') {
+                                    pendingOnboardingMfa.value = ref
+                                        .read(authRepositoryProvider)
+                                        .pendingMfaState;
+                                  }
+                                  throw err;
+                                }, (idToken) => idToken);
+                              } else if (passwordOrTokenText.isNotEmpty) {
+                                resolvedIdToken = passwordOrTokenText;
+                              }
+
+                              try {
+                                final exchange = await ref
+                                    .read(executionClientProvider)
+                                    .onboardAssignee(
+                                      token: token,
+                                      payload:
+                                          ExecutionAssignmentOnboardingRequestDto(
+                                            firebaseToken: resolvedIdToken,
+                                            name:
+                                                onboardingNameController.text
+                                                    .trim()
+                                                    .isEmpty
+                                                ? null
+                                                : onboardingNameController.text
+                                                      .trim(),
+                                          ),
+                                    );
+                                if (!context.mounted) return;
+                                pendingOnboardingMfa.value = null;
+                                await ref
+                                    .read(authControllerProvider.notifier)
+                                    .applyTokenExchangeResponse(exchange);
+                              } on AppException catch (e) {
+                                if (e.errorCode == 'MFA_REQUIRED') {
+                                  final prepResult = await ref
+                                      .read(authRepositoryProvider)
+                                      .prepareEnrollmentForCurrentUser(
+                                        fallbackEmail: emailText,
+                                        reloadUser: true,
+                                      );
+                                  if (!context.mounted) return;
+                                  prepResult.fold((_) {}, (pendingState) {
+                                    pendingOnboardingMfa.value = pendingState;
+                                  });
+                                }
+                                rethrow;
+                              }
                             }),
                       icon: const Icon(Icons.verified_user_outlined),
                       label: Text(l10n.taskPortalJitCompleteBtn),
@@ -471,6 +618,7 @@ class _TaskPortalBody extends HookConsumerWidget {
                               final activated = await ref
                                   .read(executionClientProvider)
                                   .activateAssignment(preview.id);
+                              if (!context.mounted) return;
                               for (final key in activated.assigneeInputKeys) {
                                 final existing =
                                     activated.draftInputs.dynamicInputs[key];
@@ -494,11 +642,88 @@ class _TaskPortalBody extends HookConsumerWidget {
               active: activatedAssignment.value!,
               remainingSeconds: remainingSeconds.value,
               inputControllers: inputControllers,
+              selectedFileInputs: selectedFileInputs,
               portalMutation: portalMutation,
               onDraftSaved: (updated) => activatedAssignment.value = updated,
               onSubmitted: (record) => submittedRecord.value = record,
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTaskBriefCard({
+    required BuildContext context,
+    required TaskAssignmentBriefDto brief,
+  }) {
+    final localizedTitle = _resolveLocalizedText(
+      context,
+      brief.label.translations,
+    );
+    return Card(
+      key: const Key('task_portal_task_brief_card'),
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
+      child: Padding(
+        padding: AppSpacing.p16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.taskPortalTaskBriefHeader,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            AppSpacing.h4,
+            Text(
+              localizedTitle,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (brief.instructionText != null &&
+                brief.instructionText!.trim().isNotEmpty) ...[
+              AppSpacing.h8,
+              SelectableText(
+                brief.instructionText!,
+                key: const Key('task_portal_task_brief_body'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            if (brief.sourceUrl != null &&
+                brief.sourceUrl!.trim().isNotEmpty) ...[
+              AppSpacing.h8,
+              Row(
+                children: [
+                  const Icon(Icons.link, size: AppSpacing.s16),
+                  AppSpacing.w8,
+                  Expanded(
+                    child: SelectableText(
+                      brief.sourceUrl!,
+                      key: const Key('task_portal_task_brief_link'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('task_portal_copy_brief_link_btn'),
+                    tooltip: l10n.taskPortalCopyReferenceLinkTooltip,
+                    icon: const Icon(Icons.copy_outlined, size: AppSpacing.s16),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: brief.sourceUrl!));
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -509,6 +734,7 @@ class _TaskPortalBody extends HookConsumerWidget {
     required ExecutionAssignmentResponseDto active,
     required int? remainingSeconds,
     required Map<String, TextEditingController> inputControllers,
+    required ValueNotifier<Map<String, WorkflowInputValue>> selectedFileInputs,
     required MutationState<void> portalMutation,
     required ValueChanged<ExecutionAssignmentResponseDto> onDraftSaved,
     required ValueChanged<ExecutionRecord> onSubmitted,
@@ -518,7 +744,9 @@ class _TaskPortalBody extends HookConsumerWidget {
         language: active.targetLocale,
         dynamicInputs: {
           for (final key in active.assigneeInputKeys)
-            if ((inputControllers[key]?.text.trim() ?? '').isNotEmpty)
+            if (selectedFileInputs.value[key]?.fileValue != null)
+              key: selectedFileInputs.value[key]!
+            else if ((inputControllers[key]?.text.trim() ?? '').isNotEmpty)
               key: WorkflowInputValue.text(inputControllers[key]!.text.trim()),
         },
       );
@@ -562,16 +790,81 @@ class _TaskPortalBody extends HookConsumerWidget {
                 inputKey,
                 () => TextEditingController(),
               );
+              final attachedFile =
+                  selectedFileInputs.value[inputKey]?.fileValue;
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.s16),
-                child: TextFormField(
-                  key: Key('task_portal_input_$inputKey'),
-                  controller: inputControllers[inputKey],
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    labelText: inputKey,
-                    border: const OutlineInputBorder(),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            inputKey,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          key: Key('task_portal_upload_file_btn_$inputKey'),
+                          onPressed: portalMutation.isLoading
+                              ? null
+                              : () async {
+                                  final picker = onPickFile ?? _defaultPickFile;
+                                  final picked = await picker(inputKey);
+                                  if (!context.mounted || picked == null) {
+                                    return;
+                                  }
+                                  selectedFileInputs.value =
+                                      <String, WorkflowInputValue>{
+                                        ...selectedFileInputs.value,
+                                        inputKey: picked,
+                                      };
+                                },
+                          icon: const Icon(Icons.upload_file_outlined),
+                          label: Text(l10n.uploadFile),
+                        ),
+                        if (attachedFile != null) ...[
+                          AppSpacing.w8,
+                          Flexible(
+                            child: Text(
+                              attachedFile.filename,
+                              key: Key(
+                                'task_portal_attached_filename_$inputKey',
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                          IconButton(
+                            key: Key('task_portal_clear_file_btn_$inputKey'),
+                            tooltip: l10n.delete,
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              final updated =
+                                  Map<String, WorkflowInputValue>.from(
+                                    selectedFileInputs.value,
+                                  )..remove(inputKey);
+                              selectedFileInputs.value = updated;
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                    AppSpacing.h8,
+                    TextFormField(
+                      key: Key('task_portal_input_$inputKey'),
+                      controller: inputControllers[inputKey],
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: inputKey,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
                 ),
               );
             }),
@@ -594,6 +887,7 @@ class _TaskPortalBody extends HookConsumerWidget {
                                   draftInputs: collectCurrentInputs(),
                                 ),
                               );
+                          if (!context.mounted) return;
                           onDraftSaved(updated);
                         }),
                   icon: const Icon(Icons.save_outlined),
@@ -613,6 +907,7 @@ class _TaskPortalBody extends HookConsumerWidget {
                                   submittedInputs: collectCurrentInputs(),
                                 ),
                               );
+                          if (!context.mounted) return;
                           onSubmitted(record);
                         }),
                   icon: const Icon(Icons.send_outlined),

@@ -2324,6 +2324,27 @@
   "taskPortalSaveDraftBtn": "Tallenna luonnos",
   "taskPortalSubmitTaskBtn": "Palauta tehtävä",
   "taskPortalSubmittedTitle": "Tehtävä palautettu onnistuneesti",
+  "orgTaskBriefsCardTitle": "Uudelleenkäytettävät tehtävänannot ja tapauskuvaukset",
+  "orgCreateTaskBriefBtn": "Uusi tehtävänanto",
+  "orgEditTaskBriefTooltip": "Muokkaa tehtävänantoa",
+  "orgEditTaskBriefDialogTitle": "Muokkaa tehtävänantoa",
+  "orgTaskBriefTitleLabel": "Tehtävänannon otsikko",
+  "orgTaskBriefUrlLabel": "Ulkoinen viitelinkki / dokumentin URL (valinnainen)",
+  "orgTaskBriefBodyLabel": "Tehtäväohjeet ja tapauskuvaus",
+  "orgTaskBriefEmptyState": "Uudelleenkäytettäviä tehtävänantoja ei ole vielä määritetty.",
+  "taskBuilderSelectTaskBriefLabel": "Uudelleenkäytettävä tehtävänanto (valinnainen)",
+  "taskBuilderDispatchSummary": "Tehtäväosoitus lähetetty: {summary}",
+  "@taskBuilderDispatchSummary": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "taskBuilderExportSummaryCsvBtn": "Lataa kohortin lähetysyhteenveto (.csv)",
+  "taskPortalTaskBriefHeader": "Tehtävänanto ja ohjeet",
+  "taskPortalCopyReferenceLinkTooltip": "Kopioi viitelinkki",
+  "taskPortalTotpEnrollmentHint": "Lisää tämä TOTP-salaisuusavain todennussovellukseesi ja syötä alla oleva 6-numeroinen koodi viimeistelläksesi käyttöönoton.",
   "staleTargetBlockChipLabel": "Poistettu työnkulusta: {blockId}",
   "@staleTargetBlockChipLabel": {
     "placeholders": {

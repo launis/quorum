@@ -6068,6 +6068,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskPortalSubmittedTitle => 'Task Submitted Successfully';
 
   @override
+  String get orgTaskBriefsCardTitle =>
+      'Reusable Task Briefs & Case Descriptions';
+
+  @override
+  String get orgCreateTaskBriefBtn => 'New Task Brief';
+
+  @override
+  String get orgEditTaskBriefTooltip => 'Edit Task Brief';
+
+  @override
+  String get orgEditTaskBriefDialogTitle => 'Edit Task Brief';
+
+  @override
+  String get orgTaskBriefTitleLabel => 'Task Brief Title';
+
+  @override
+  String get orgTaskBriefUrlLabel =>
+      'External Reference Link / Document URL (Optional)';
+
+  @override
+  String get orgTaskBriefBodyLabel => 'Task Instructions & Case Description';
+
+  @override
+  String get orgTaskBriefEmptyState => 'No reusable task briefs defined yet.';
+
+  @override
+  String get taskBuilderSelectTaskBriefLabel =>
+      'Reusable Task Brief (Optional)';
+
+  @override
+  String taskBuilderDispatchSummary(String summary) {
+    return 'Assignment Dispatched: $summary';
+  }
+
+  @override
+  String get taskBuilderExportSummaryCsvBtn =>
+      'Download Cohort Dispatch Summary (.csv)';
+
+  @override
+  String get taskPortalTaskBriefHeader => 'Task Brief & Instructions';
+
+  @override
+  String get taskPortalCopyReferenceLinkTooltip => 'Copy Reference Link';
+
+  @override
+  String get taskPortalTotpEnrollmentHint =>
+      'Add this TOTP secret key to your authenticator app, then enter the 6-digit code below to complete enrollment.';
+
+  @override
   String staleTargetBlockChipLabel(String blockId) {
     return 'Removed from workflow: $blockId';
   }

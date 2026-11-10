@@ -10940,6 +10940,90 @@ abstract class AppLocalizations {
   /// **'Task Submitted Successfully'**
   String get taskPortalSubmittedTitle;
 
+  /// No description provided for @orgTaskBriefsCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reusable Task Briefs & Case Descriptions'**
+  String get orgTaskBriefsCardTitle;
+
+  /// No description provided for @orgCreateTaskBriefBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'New Task Brief'**
+  String get orgCreateTaskBriefBtn;
+
+  /// No description provided for @orgEditTaskBriefTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Task Brief'**
+  String get orgEditTaskBriefTooltip;
+
+  /// No description provided for @orgEditTaskBriefDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Task Brief'**
+  String get orgEditTaskBriefDialogTitle;
+
+  /// No description provided for @orgTaskBriefTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Brief Title'**
+  String get orgTaskBriefTitleLabel;
+
+  /// No description provided for @orgTaskBriefUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'External Reference Link / Document URL (Optional)'**
+  String get orgTaskBriefUrlLabel;
+
+  /// No description provided for @orgTaskBriefBodyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Instructions & Case Description'**
+  String get orgTaskBriefBodyLabel;
+
+  /// No description provided for @orgTaskBriefEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No reusable task briefs defined yet.'**
+  String get orgTaskBriefEmptyState;
+
+  /// No description provided for @taskBuilderSelectTaskBriefLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reusable Task Brief (Optional)'**
+  String get taskBuilderSelectTaskBriefLabel;
+
+  /// No description provided for @taskBuilderDispatchSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment Dispatched: {summary}'**
+  String taskBuilderDispatchSummary(String summary);
+
+  /// No description provided for @taskBuilderExportSummaryCsvBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Cohort Dispatch Summary (.csv)'**
+  String get taskBuilderExportSummaryCsvBtn;
+
+  /// No description provided for @taskPortalTaskBriefHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Brief & Instructions'**
+  String get taskPortalTaskBriefHeader;
+
+  /// No description provided for @taskPortalCopyReferenceLinkTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Reference Link'**
+  String get taskPortalCopyReferenceLinkTooltip;
+
+  /// No description provided for @taskPortalTotpEnrollmentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this TOTP secret key to your authenticator app, then enter the 6-digit code below to complete enrollment.'**
+  String get taskPortalTotpEnrollmentHint;
+
   /// No description provided for @staleTargetBlockChipLabel.
   ///
   /// In en, this message translates to:
