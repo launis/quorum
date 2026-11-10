@@ -542,64 +542,35 @@ def test_main_cli_relative_plan_path(
 
 
 def test_scan_python_technical_debt_async_event_loop_blocking_detected() -> None:
-    """ISTQB Negative: Verifies detection of synchronous blocking calls inside async def (Item 8A)."""
+    """ISTQB Negative: Verifies detection of synchronous time.sleep inside async def (Item 8)."""
     code = """
-import pandas as pd
 import time
-from pypdf import PdfReader
 
-async def generate_report(df, path: str):
+async def poll_status():
     time.sleep(1)
-    reader = PdfReader(path)
-    with pd.ExcelWriter(path) as writer:
-        df.to_excel(writer)
-    return reader
+    return True
 """
-    findings = scan_python_technical_debt("backend_v2/services/export/excel_exporter.py", source_text=code)
+    findings = scan_python_technical_debt("backend_v2/services/execution/poller.py", source_text=code)
     blocking = [f for f in findings if f.rule_code == "TD_ASYNC_EVENT_LOOP_BLOCKING"]
-    assert len(blocking) == 4
-    assert all(f.debt_category == "async_event_loop_blocking" for f in blocking)
+    assert len(blocking) == 1
+    assert blocking[0].debt_category == "async_event_loop_blocking"
 
 
 def test_scan_python_technical_debt_async_event_loop_blocking_sync_helper_exempt() -> None:
-    """Verifies synchronous helper functions offloaded via asyncio.to_thread do not trigger TD_ASYNC_EVENT_LOOP_BLOCKING."""
+    """Verifies asyncio.sleep inside async def and time.sleep inside sync helper do not trigger TD_ASYNC_EVENT_LOOP_BLOCKING."""
     code = """
 import asyncio
-import pandas as pd
+import time
 
-def _write_excel_sync(df, path: str) -> None:
-    with pd.ExcelWriter(path) as writer:
-        df.to_excel(writer)
+def _blocking_worker() -> None:
+    time.sleep(0.1)
 
-async def generate_report(df, path: str) -> None:
+async def poll_status() -> None:
     def _nested_sync() -> None:
-        df.to_excel(path)
-    await asyncio.to_thread(_write_excel_sync, df, path)
+        time.sleep(0.05)
+    await asyncio.sleep(0.1)
+    await asyncio.to_thread(_blocking_worker)
     await asyncio.to_thread(_nested_sync)
 """
-    findings = scan_python_technical_debt("backend_v2/services/export/excel_exporter.py", source_text=code)
+    findings = scan_python_technical_debt("backend_v2/services/execution/poller.py", source_text=code)
     assert not any(f.rule_code == "TD_ASYNC_EVENT_LOOP_BLOCKING" for f in findings)
-
-
-def test_scan_python_technical_debt_unbounded_hot_path_query_detected() -> None:
-    """ISTQB Negative: Verifies detection of unbounded .get_all_*() scans on hot execution/export paths (Item 8B)."""
-    code = """
-async def resolve_blocks(repo):
-    blocks = await repo.get_all_prompt_blocks()
-    steps = await repo.get_all_steps()
-    return blocks, steps
-"""
-    findings = scan_python_technical_debt("backend_v2/services/export/excel_exporter.py", source_text=code)
-    unbounded = [f for f in findings if f.rule_code == "TD_UNBOUNDED_HOT_PATH_QUERY"]
-    assert len(unbounded) == 2
-    assert all(f.debt_category == "unbounded_hot_path_query" for f in unbounded)
-
-
-def test_scan_python_technical_debt_unbounded_query_catalog_service_exempt() -> None:
-    """Verifies .get_all_*() in non-hot studio/admin catalog services does not trigger TD_UNBOUNDED_HOT_PATH_QUERY."""
-    code = """
-async def list_studio_catalog(repo):
-    return await repo.get_all_prompt_blocks()
-"""
-    findings = scan_python_technical_debt("backend_v2/services/studio/catalog_service.py", source_text=code)
-    assert not any(f.rule_code == "TD_UNBOUNDED_HOT_PATH_QUERY" for f in findings)

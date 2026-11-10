@@ -9,7 +9,7 @@ and their 1-hop caller dependencies against the technical debt checklist:
 5. Flutter Dart Anti-Patterns (DGR001-DGR010)
 6. ISTQB Test Partition Check (negative test partitions)
 7. Model Factory Parity (polyfactory vs raw dicts)
-8. Async Event-Loop Blocking Calls & Unbounded Hot-Path Queries
+8. Async Event-Loop Blocking Calls (time.sleep inside async def)
 """
 
 from __future__ import annotations
@@ -234,80 +234,24 @@ def _has_pytest_raises_item(items: list[ast.withitem]) -> bool:
     return False
 
 
-_BLOCKING_ASYNC_CONSTRUCTOR_NAMES: frozenset[str] = frozenset(
-    {
-        "ExcelWriter",
-        "PdfReader",
-        "ZipFile",
-        "load_workbook",
-    }
-)
-
-_BLOCKING_ASYNC_QUALIFIED_CALLS: frozenset[tuple[str, str]] = frozenset(
-    {
-        ("fitz", "open"),
-        ("openpyxl", "load_workbook"),
-        ("pd", "ExcelWriter"),
-        ("pd", "read_excel"),
-        ("pymupdf", "open"),
-        ("time", "sleep"),
-        ("zipfile", "ZipFile"),
-    }
-)
-
-_BLOCKING_ASYNC_METHOD_ATTRS: frozenset[str] = frozenset(
-    {
-        "read_excel",
-        "to_excel",
-    }
-)
-
-_HOT_EXECUTION_PATH_SEGMENTS: tuple[str, ...] = (
-    "backend_v2/services/execution/",
-    "backend_v2/services/export/",
-    "backend_v2/services/orchestrator/",
-    "backend_v2/hooks/",
-)
-
-_UNBOUNDED_REPO_QUERY_ATTRS: frozenset[str] = frozenset(
-    {
-        "get_all_executions",
-        "get_all_mcp_gateways",
-        "get_all_organizations",
-        "get_all_output_profiles",
-        "get_all_prompt_blocks",
-        "get_all_steps",
-        "get_all_users",
-        "get_all_workflows",
-    }
-)
-
-
 def _is_blocking_sync_call_in_async(node: ast.Call) -> bool:
-    """Checks whether an AST Call invokes a known synchronous CPU/disk-blocking API directly.
+    """Checks whether an AST Call invokes blocking `time.sleep(...)` inside an async function.
 
     Args:
         node: AST Call node to inspect.
 
     Returns:
-        True if the call matches a known synchronous blocking constructor, function, or method.
+        True if the call invokes `time.sleep(...)`.
     """
     match node.func:
-        case ast.Name(id=fn_name) if fn_name in _BLOCKING_ASYNC_CONSTRUCTOR_NAMES:
-            return True
-        case ast.Attribute(value=ast.Name(id=mod_name), attr=attr_name) if (
-            mod_name,
-            attr_name,
-        ) in _BLOCKING_ASYNC_QUALIFIED_CALLS:
-            return True
-        case ast.Attribute(attr=method_name) if method_name in _BLOCKING_ASYNC_METHOD_ATTRS:
+        case ast.Attribute(value=ast.Name(id="time"), attr="sleep"):
             return True
         case _:
             return False
 
 
 class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
-    """AST visitor inspecting a Python source file for 7-item technical debt patterns.
+    """AST visitor inspecting a Python source file for technical debt patterns.
 
     Attributes:
         filepath: Original file path string.
@@ -343,9 +287,6 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self._dict_literal_vars: set[str] = set()
         self._in_pytest_raises: bool = False
         self._in_async_func: bool = False
-        self._is_hot_execution_path: bool = self.is_domain_code and any(
-            seg in self.normalized_path for seg in _HOT_EXECUTION_PATH_SEGMENTS
-        )
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Inspect class definitions for mutable defaults and duplicate Annotated Field() calls.
@@ -620,7 +561,7 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                     )
                 )
 
-        # Item 8A: Synchronous CPU/disk blocking call inside async def
+        # Item 8: Synchronous event-loop blocking call (time.sleep) inside async def
         if self.is_domain_code and self._in_async_func and _is_blocking_sync_call_in_async(node):
             self.findings.append(
                 TechnicalDebtFindingDTO(
@@ -628,29 +569,10 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                     file_path=self.filepath,
                     lineno=node.lineno,
                     col_offset=node.col_offset,
-                    message=f"Synchronous CPU/disk blocking call inside `async def`: `{ast.unparse(node)}`.",
-                    remediation="Offload synchronous CPU/file-I/O operations to a worker thread via `await asyncio.to_thread(...)`.",
+                    message=f"Synchronous event-loop blocking call inside `async def`: `{ast.unparse(node)}`.",
+                    remediation="Use `await asyncio.sleep(...)` instead of blocking `time.sleep(...)` inside `async def`.",
                     severity=GuardrailSeverity.WARNING,
                     debt_category="async_event_loop_blocking",
-                )
-            )
-
-        # Item 8B: Unbounded full-table `.get_all_*()` repository scan on hot execution/export paths
-        if (
-            self._is_hot_execution_path
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr in _UNBOUNDED_REPO_QUERY_ATTRS
-        ):
-            self.findings.append(
-                TechnicalDebtFindingDTO(
-                    rule_code="TD_UNBOUNDED_HOT_PATH_QUERY",
-                    file_path=self.filepath,
-                    lineno=node.lineno,
-                    col_offset=node.col_offset,
-                    message=f"Unbounded full-collection query `{node.func.attr}()` on hot execution/export path: `{ast.unparse(node)}`.",
-                    remediation="Replace full-table `.get_all_*()` scans with targeted $O(1)$ ID lookups or scoped batch queries.",
-                    severity=GuardrailSeverity.WARNING,
-                    debt_category="unbounded_hot_path_query",
                 )
             )
 

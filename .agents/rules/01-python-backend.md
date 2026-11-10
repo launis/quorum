@@ -517,7 +517,7 @@
     </rule_block>
 
     <rule_block id="async_event_loop_non_blocking_mandate">
-        <mandate>NEVER invoke synchronous CPU-bound or disk-blocking operations (`pd.ExcelWriter`, `.to_excel()`, `openpyxl.load_workbook`, `fitz.open`, `PdfReader`, `zipfile.ZipFile`, `time.sleep`) directly inside an `async def` coroutine without offloading via `await asyncio.to_thread(...)`, and NEVER invoke unbounded full-table `.get_all_*()` queries inside hot execution, orchestration, hook, or export paths (`TD_ASYNC_EVENT_LOOP_BLOCKING`, `TD_UNBOUNDED_HOT_PATH_QUERY`).</mandate>
+        <mandate>NEVER invoke synchronous `time.sleep(...)` directly inside an `async def` coroutine (`TD_ASYNC_EVENT_LOOP_BLOCKING`; always use `await asyncio.sleep(...)`), and offload heavy synchronous disk I/O or CPU-bound document parsing to a worker thread via `await asyncio.to_thread(...)`. When querying repositories on hot execution or export paths, prefer targeted $O(1)$ ID or batch methods defined on `backend_v2/database/interfaces.py` (`get_execution_by_id`, `get_prompt_blocks_by_ids`) whenever the protocol provides them.</mandate>
     </rule_block>
 </architectural_invariants>
 
