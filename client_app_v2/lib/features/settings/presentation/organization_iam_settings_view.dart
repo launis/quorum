@@ -3,16 +3,20 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/models/prompt_block_category.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/auth/data/repositories/user_repository.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -23,6 +27,24 @@ part 'organization_iam_settings_view.g.dart';
 @riverpod
 Future<List<McpGateway>> availableMcpGateways(Ref ref) async =>
     ref.watch(studioClientProvider).getMcpGateways();
+
+@riverpod
+Future<List<PromptBlock>> organizationTaskBriefs(Ref ref) async {
+  final blocks = await ref.watch(studioClientProvider).getPromptBlocks();
+  return blocks.whereType<TaskDefinitionPromptBlock>().toList(growable: false);
+}
+
+String _resolveTaskBriefLabel(I18nText text, String localeCode) {
+  final primary = text.translations[localeCode];
+  if (primary != null && primary.trim().isNotEmpty) {
+    return primary;
+  }
+  final fallback = text.translations['en'];
+  if (fallback != null && fallback.trim().isNotEmpty) {
+    return fallback;
+  }
+  throw AppException.validation('Fail-Fast: Missing required translation.');
+}
 
 @riverpod
 Future<List<Organization>> availableOrganizations(Ref ref) async {
@@ -137,6 +159,7 @@ class OrganizationIamSettingsView extends HookConsumerWidget {
                             selectedOrgId.value = nextOrgId;
                             ref.invalidate(organizationMembersProvider);
                             ref.invalidate(organizationAssignmentsProvider);
+                            ref.invalidate(organizationTaskBriefsProvider);
                           },
                         ),
                       _OrganizationMetadataCard(
@@ -148,6 +171,12 @@ class OrganizationIamSettingsView extends HookConsumerWidget {
                       if (isAdminOrRoot) ...[
                         _InvitationsAndMembersCard(
                           orgId: activeOrgId,
+                          currentUser: value,
+                          l10n: l10n,
+                          theme: theme,
+                        ),
+                        _TaskBriefsManagementCard(
+                          activeOrgId: activeOrgId,
                           currentUser: value,
                           l10n: l10n,
                           theme: theme,
@@ -500,10 +529,29 @@ class _TaskAssignmentsManagementCard extends HookConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                OutlinedButton.icon(
+                IconButton(
+                  key: const Key('org_refresh_assignments_btn'),
+                  tooltip: l10n.refresh,
                   onPressed: () =>
                       ref.invalidate(organizationAssignmentsProvider),
                   icon: const Icon(Icons.refresh),
+                ),
+                AppSpacing.w8,
+                OutlinedButton.icon(
+                  key: const Key('org_new_task_assignment_btn'),
+                  onPressed: () async {
+                    final localeCode = Localizations.localeOf(
+                      context,
+                    ).languageCode;
+                    await showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) =>
+                          TaskAssignmentConfigDialog(targetLocale: localeCode),
+                    );
+                    if (!context.mounted) return;
+                    ref.invalidate(organizationAssignmentsProvider);
+                  },
+                  icon: const Icon(Icons.add_task_outlined),
                   label: Text(l10n.orgNewTaskAssignmentBtn),
                 ),
               ],
@@ -676,6 +724,337 @@ class _TaskAssignmentsManagementCard extends HookConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TaskBriefsManagementCard extends HookConsumerWidget {
+  final String activeOrgId;
+  final User currentUser;
+  final AppLocalizations l10n;
+  final ThemeData theme;
+
+  const _TaskBriefsManagementCard({
+    required this.activeOrgId,
+    required this.currentUser,
+    required this.l10n,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final briefsAsync = ref.watch(organizationTaskBriefsProvider);
+    final mutation = useMutation<void>();
+    final localeCode = Localizations.localeOf(context).languageCode;
+
+    return Card(
+      key: const Key('org_task_briefs_card'),
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
+      child: Padding(
+        padding: AppSpacing.p16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.orgTaskBriefsCardTitle,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('org_create_task_brief_btn'),
+                  onPressed: mutation.isLoading
+                      ? null
+                      : () => mutation.mutate(() async {
+                          await ref
+                              .read(studioClientProvider)
+                              .createPromptBlockDraft(
+                                categoryId:
+                                    PromptBlockCategory.taskDefinition.id,
+                              );
+                          ref.invalidate(organizationTaskBriefsProvider);
+                          ref.invalidate(availableTaskBriefsProvider);
+                        }),
+                  icon: const Icon(Icons.note_add_outlined),
+                  label: Text(l10n.orgCreateTaskBriefBtn),
+                ),
+              ],
+            ),
+            AppSpacing.h16,
+            if (mutation.hasError) ...[
+              ErrorView(error: mutation.error!, compact: true),
+              AppSpacing.h12,
+            ],
+            switch (briefsAsync) {
+              AsyncLoading() => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              AsyncError(:final error, :final stackTrace) => ErrorView(
+                error: error,
+                stackTrace: stackTrace,
+                compact: true,
+              ),
+              AsyncData(:final value) => () {
+                final briefs = value
+                    .whereType<TaskDefinitionPromptBlock>()
+                    .toList(growable: false);
+                if (briefs.isEmpty) {
+                  return Text(
+                    l10n.orgTaskBriefEmptyState,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  );
+                }
+                return Column(
+                  children: briefs.map((block) {
+                    final canModify =
+                        currentUser.role == UserRole.root ||
+                        block.organizationId == activeOrgId;
+                    final title = _resolveTaskBriefLabel(
+                      block.label,
+                      localeCode,
+                    );
+                    final sourceUrl = block.theoryGrounding?.sourceUrl;
+                    final bodyText = block.instructionText;
+                    return Container(
+                      key: Key('org_task_brief_row_${block.id}'),
+                      margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+                      padding: AppSpacing.p12,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                        borderRadius: BorderRadius.circular(AppSpacing.s12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (sourceUrl != null &&
+                                    sourceUrl.trim().isNotEmpty) ...[
+                                  AppSpacing.h4,
+                                  Text(
+                                    sourceUrl,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                if (bodyText != null &&
+                                    bodyText.trim().isNotEmpty) ...[
+                                  AppSpacing.h4,
+                                  Text(
+                                    bodyText,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            key: Key('org_clone_task_brief_btn_${block.id}'),
+                            tooltip: l10n.tooltipDuplicate,
+                            icon: const Icon(Icons.copy_outlined),
+                            onPressed: mutation.isLoading
+                                ? null
+                                : () => mutation.mutate(() async {
+                                    await ref
+                                        .read(studioClientProvider)
+                                        .clonePromptBlock(block.id);
+                                    ref.invalidate(
+                                      organizationTaskBriefsProvider,
+                                    );
+                                    ref.invalidate(availableTaskBriefsProvider);
+                                  }),
+                          ),
+                          IconButton(
+                            key: Key('org_edit_task_brief_btn_${block.id}'),
+                            tooltip: l10n.orgEditTaskBriefTooltip,
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: (!canModify || mutation.isLoading)
+                                ? null
+                                : () async {
+                                    await showDialog<void>(
+                                      context: context,
+                                      builder: (dialogContext) =>
+                                          _EditTaskBriefDialog(
+                                            block: block,
+                                            l10n: l10n,
+                                          ),
+                                    );
+                                    if (!context.mounted) return;
+                                    ref.invalidate(
+                                      organizationTaskBriefsProvider,
+                                    );
+                                    ref.invalidate(availableTaskBriefsProvider);
+                                  },
+                          ),
+                          IconButton(
+                            key: Key('org_delete_task_brief_btn_${block.id}'),
+                            tooltip: l10n.delete,
+                            color: theme.colorScheme.error,
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: (!canModify || mutation.isLoading)
+                                ? null
+                                : () => mutation.mutate(() async {
+                                    await ref
+                                        .read(studioClientProvider)
+                                        .deletePromptBlock(block.id);
+                                    ref.invalidate(
+                                      organizationTaskBriefsProvider,
+                                    );
+                                    ref.invalidate(availableTaskBriefsProvider);
+                                  }),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                );
+              }(),
+            },
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditTaskBriefDialog extends HookConsumerWidget {
+  final TaskDefinitionPromptBlock block;
+  final AppLocalizations l10n;
+
+  const _EditTaskBriefDialog({required this.block, required this.l10n});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final titleController = useTextEditingController(
+      text: _resolveTaskBriefLabel(block.label, localeCode),
+    );
+    final urlController = useTextEditingController(
+      text: block.theoryGrounding?.sourceUrl ?? '',
+    );
+    final bodyController = useTextEditingController(
+      text: block.instructionText ?? '',
+    );
+    final saveMutation = useMutation<void>();
+
+    Future<void> saveBrief() async {
+      final nextTitle = titleController.text.trim();
+      final nextUrl = urlController.text.trim();
+      final nextBody = bodyController.text.trim();
+
+      await saveMutation.mutate(() async {
+        if (nextTitle.isEmpty) {
+          throw AppException.validation(l10n.errorValidation);
+        }
+        final updatedBlock = block.copyWith(
+          label: I18nText(
+            translations: <String, String>{
+              ...block.label.translations,
+              'en': nextTitle,
+              'fi': nextTitle,
+            },
+          ),
+          instructionText: nextBody.isEmpty ? null : nextBody,
+          theoryGrounding: nextUrl.isEmpty
+              ? null
+              : TheoryGrounding(
+                  sourceUrl: nextUrl,
+                  citationReference: block.theoryGrounding?.citationReference,
+                ),
+        );
+        await ref
+            .read(studioClientProvider)
+            .savePromptBlock(block.id, updatedBlock);
+        if (!context.mounted) return;
+        Navigator.of(context).pop();
+      });
+    }
+
+    return AlertDialog(
+      key: const Key('org_edit_task_brief_dialog'),
+      title: Text(l10n.orgEditTaskBriefDialogTitle),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                key: const Key('org_edit_task_brief_title_field'),
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: l10n.orgTaskBriefTitleLabel,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              AppSpacing.h12,
+              TextField(
+                key: const Key('org_edit_task_brief_url_field'),
+                controller: urlController,
+                decoration: InputDecoration(
+                  labelText: l10n.orgTaskBriefUrlLabel,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              AppSpacing.h12,
+              TextField(
+                key: const Key('org_edit_task_brief_body_field'),
+                controller: bodyController,
+                minLines: 4,
+                maxLines: 8,
+                decoration: InputDecoration(
+                  labelText: l10n.orgTaskBriefBodyLabel,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              if (saveMutation.hasError) ...[
+                AppSpacing.h12,
+                ErrorView(error: saveMutation.error!, compact: true),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        OutlinedButton.icon(
+          key: const Key('org_edit_task_brief_save_btn'),
+          onPressed: saveMutation.isLoading ? null : saveBrief,
+          icon: const Icon(Icons.save_outlined),
+          label: Text(l10n.save),
+        ),
+      ],
     );
   }
 }

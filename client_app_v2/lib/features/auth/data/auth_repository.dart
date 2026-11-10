@@ -344,8 +344,6 @@ class AuthRepository {
           email: normalizedEmail,
           password: password,
         );
-      } on firebase.FirebaseAuthMultiFactorException {
-        rethrow;
       } on firebase.FirebaseAuthException catch (e) {
         if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
           try {

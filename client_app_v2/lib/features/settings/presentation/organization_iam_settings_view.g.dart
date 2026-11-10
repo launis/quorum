@@ -49,6 +49,48 @@ final class AvailableMcpGatewaysProvider
 String _$availableMcpGatewaysHash() =>
     r'1d646403e8d7213f924d688b4aa5ca0f3124ce6b';
 
+@ProviderFor(organizationTaskBriefs)
+final organizationTaskBriefsProvider = OrganizationTaskBriefsProvider._();
+
+final class OrganizationTaskBriefsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<PromptBlock>>,
+          List<PromptBlock>,
+          FutureOr<List<PromptBlock>>
+        >
+    with
+        $FutureModifier<List<PromptBlock>>,
+        $FutureProvider<List<PromptBlock>> {
+  OrganizationTaskBriefsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'organizationTaskBriefsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$organizationTaskBriefsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<PromptBlock>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<PromptBlock>> create(Ref ref) {
+    return organizationTaskBriefs(ref);
+  }
+}
+
+String _$organizationTaskBriefsHash() =>
+    r'7e382638d3cf928f6f6b5c61ad727e14b79c0374';
+
 @ProviderFor(availableOrganizations)
 final availableOrganizationsProvider = AvailableOrganizationsProvider._();
 

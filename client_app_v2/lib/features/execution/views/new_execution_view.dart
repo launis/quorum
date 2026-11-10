@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:client_app/core/api/studio_client.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
@@ -17,10 +18,12 @@ import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -32,6 +35,25 @@ part 'new_execution_view.g.dart';
 Future<List<Workflow>> availableWorkflows(Ref ref) async {
   final client = ref.watch(studioClientProvider);
   return await client.getWorkflows();
+}
+
+@riverpod
+Future<List<PromptBlock>> availableTaskBriefs(Ref ref) async {
+  final client = ref.watch(studioClientProvider);
+  final blocks = await client.getPromptBlocks();
+  return blocks.whereType<TaskDefinitionPromptBlock>().toList(growable: false);
+}
+
+String _resolveLocalizedLabel(I18nText text, String localeCode) {
+  final primary = text.translations[localeCode];
+  if (primary != null && primary.trim().isNotEmpty) {
+    return primary;
+  }
+  final fallback = text.translations['en'];
+  if (fallback != null && fallback.trim().isNotEmpty) {
+    return fallback;
+  }
+  throw AppException.validation('Fail-Fast: Missing required translation.');
 }
 
 @riverpod
@@ -179,7 +201,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     final localeCode = Localizations.localeOf(context).languageCode;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => _TaskAssignmentConfigDialog(
+      builder: (dialogContext) => TaskAssignmentConfigDialog(
         workflow: workflow,
         profileId: _selectedProfileId,
         initialCompiledInputs: Map<String, WorkflowInputValue>.from(
@@ -781,26 +803,27 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 }
 
 /// Task assignment configuration dialog for single and batch workflow assignments.
-class _TaskAssignmentConfigDialog extends ConsumerStatefulWidget {
-  final Workflow workflow;
+class TaskAssignmentConfigDialog extends ConsumerStatefulWidget {
+  final Workflow? workflow;
   final String? profileId;
   final Map<String, WorkflowInputValue> initialCompiledInputs;
   final String targetLocale;
 
-  const _TaskAssignmentConfigDialog({
-    required this.workflow,
-    required this.profileId,
-    required this.initialCompiledInputs,
+  const TaskAssignmentConfigDialog({
+    super.key,
+    this.workflow,
+    this.profileId,
+    this.initialCompiledInputs = const <String, WorkflowInputValue>{},
     required this.targetLocale,
   });
 
   @override
-  ConsumerState<_TaskAssignmentConfigDialog> createState() =>
+  ConsumerState<TaskAssignmentConfigDialog> createState() =>
       _TaskAssignmentConfigDialogState();
 }
 
 class _TaskAssignmentConfigDialogState
-    extends ConsumerState<_TaskAssignmentConfigDialog> {
+    extends ConsumerState<TaskAssignmentConfigDialog> {
   final TextEditingController _singleEmailController = TextEditingController();
   final TextEditingController _batchEmailsController = TextEditingController();
   final TextEditingController _deadlineHoursController = TextEditingController(
@@ -809,6 +832,10 @@ class _TaskAssignmentConfigDialogState
   final TextEditingController _durationMinutesController =
       TextEditingController();
 
+  Workflow? _selectedWorkflow;
+  String? _selectedProfileId;
+  String? _selectedTaskBriefId;
+  bool _hasCustomAssigneeSelection = false;
   bool _isBatchMode = false;
   late Set<String> _assigneeInputKeys;
   AssignmentResultVisibility _resultVisibility =
@@ -823,10 +850,17 @@ class _TaskAssignmentConfigDialogState
   @override
   void initState() {
     super.initState();
-    _assigneeInputKeys = {
-      for (final item in widget.workflow.expectedInputs)
-        if (!widget.initialCompiledInputs.containsKey(item.inputKey))
-          item.inputKey,
+    _selectedWorkflow = widget.workflow;
+    _selectedProfileId =
+        widget.profileId ??
+        (widget.workflow != null && widget.workflow!.defaultProfileId.isNotEmpty
+            ? widget.workflow!.defaultProfileId
+            : null);
+    _assigneeInputKeys = <String>{
+      if (widget.workflow != null)
+        for (final item in widget.workflow!.expectedInputs)
+          if (!widget.initialCompiledInputs.containsKey(item.inputKey))
+            item.inputKey,
     };
   }
 
@@ -837,6 +871,37 @@ class _TaskAssignmentConfigDialogState
     _deadlineHoursController.dispose();
     _durationMinutesController.dispose();
     super.dispose();
+  }
+
+  Set<String> _resolveAssigneeKeys(Workflow? activeWorkflow) {
+    if (_hasCustomAssigneeSelection || widget.workflow != null) {
+      return _assigneeInputKeys;
+    }
+    if (activeWorkflow == null) {
+      return const <String>{};
+    }
+    return <String>{
+      for (final item in activeWorkflow.expectedInputs)
+        if (!widget.initialCompiledInputs.containsKey(item.inputKey))
+          item.inputKey,
+    };
+  }
+
+  String? _resolveProfileId(Workflow? activeWorkflow) {
+    if (activeWorkflow == null) {
+      return null;
+    }
+    if (_selectedProfileId != null &&
+        activeWorkflow.outputProfiles.containsKey(_selectedProfileId)) {
+      return _selectedProfileId;
+    }
+    if (activeWorkflow.defaultProfileId.isNotEmpty &&
+        activeWorkflow.outputProfiles.containsKey(
+          activeWorkflow.defaultProfileId,
+        )) {
+      return activeWorkflow.defaultProfileId;
+    }
+    return null;
   }
 
   void _parseBatchText(String raw) {
@@ -894,7 +959,16 @@ class _TaskAssignmentConfigDialogState
     });
   }
 
-  Future<void> _submitAssignment() async {
+  Future<void> _submitAssignment(Workflow? activeWorkflow) async {
+    if (activeWorkflow == null) {
+      setState(() {
+        _error = AppException.validation('Workflow selection is required.');
+      });
+      return;
+    }
+
+    final effectiveAssigneeKeys = _resolveAssigneeKeys(activeWorkflow);
+    final effectiveProfileId = _resolveProfileId(activeWorkflow);
     final hours = int.tryParse(_deadlineHoursController.text.trim()) ?? 72;
     final hardDeadline = DateTime.now().toUtc().add(Duration(hours: hours));
     final durationMinutes = int.tryParse(
@@ -907,7 +981,7 @@ class _TaskAssignmentConfigDialogState
 
     final lockedMap = <String, WorkflowInputValue>{
       for (final entry in widget.initialCompiledInputs.entries)
-        if (!_assigneeInputKeys.contains(entry.key)) entry.key: entry.value,
+        if (!effectiveAssigneeKeys.contains(entry.key)) entry.key: entry.value,
     };
     final lockedInputs = WorkflowInputs(
       language: widget.targetLocale,
@@ -928,11 +1002,12 @@ class _TaskAssignmentConfigDialogState
         final batchRes = await client.createAssignmentBatch(
           ExecutionAssignmentBatchCreateDto(
             recipients: _parsedBatchRecipients,
-            workflowId: widget.workflow.id,
-            outputProfileId: widget.profileId,
+            workflowId: activeWorkflow.id,
+            outputProfileId: effectiveProfileId,
+            taskBriefId: _selectedTaskBriefId,
             targetLocale: widget.targetLocale,
             lockedInputs: lockedInputs,
-            assigneeInputKeys: _assigneeInputKeys.toList(),
+            assigneeInputKeys: effectiveAssigneeKeys.toList(),
             resultVisibility: _resultVisibility,
             hardDeadlineAt: hardDeadline,
             relativeDurationSeconds: relativeDurationSeconds,
@@ -947,11 +1022,12 @@ class _TaskAssignmentConfigDialogState
         final singleRes = await client.createAssignment(
           ExecutionAssignmentCreateDto(
             assignedEmail: _singleEmailController.text.trim(),
-            workflowId: widget.workflow.id,
-            outputProfileId: widget.profileId,
+            workflowId: activeWorkflow.id,
+            outputProfileId: effectiveProfileId,
+            taskBriefId: _selectedTaskBriefId,
             targetLocale: widget.targetLocale,
             lockedInputs: lockedInputs,
-            assigneeInputKeys: _assigneeInputKeys.toList(),
+            assigneeInputKeys: effectiveAssigneeKeys.toList(),
             resultVisibility: _resultVisibility,
             hardDeadlineAt: hardDeadline,
             relativeDurationSeconds: relativeDurationSeconds,
@@ -984,6 +1060,34 @@ class _TaskAssignmentConfigDialogState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final workflowsAsync = ref.watch(availableWorkflowsProvider);
+    final taskBriefsAsync = ref.watch(availableTaskBriefsProvider);
+
+    final List<Workflow> workflowOptions = switch (workflowsAsync) {
+      AsyncData(:final value) when value.isNotEmpty => value,
+      _ =>
+        widget.workflow != null
+            ? <Workflow>[widget.workflow!]
+            : const <Workflow>[],
+    };
+
+    final Workflow? activeWorkflow =
+        _selectedWorkflow ??
+        widget.workflow ??
+        (workflowOptions.isNotEmpty ? workflowOptions.first : null);
+
+    final effectiveAssigneeKeys = _resolveAssigneeKeys(activeWorkflow);
+    final effectiveProfileId = _resolveProfileId(activeWorkflow);
+
+    final List<TaskDefinitionPromptBlock> taskBriefs =
+        switch (taskBriefsAsync) {
+          AsyncData(:final value) =>
+            value.whereType<TaskDefinitionPromptBlock>().toList(
+              growable: false,
+            ),
+          _ => const <TaskDefinitionPromptBlock>[],
+        };
 
     return AlertDialog(
       key: const Key('task_assignment_config_dialog'),
@@ -1000,6 +1104,114 @@ class _TaskAssignmentConfigDialogState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (workflowOptions.isNotEmpty) ...[
+                DropdownButtonFormField<String>(
+                  key: const Key('task_builder_workflow_dropdown'),
+                  isExpanded: true,
+                  initialValue: activeWorkflow?.id,
+                  decoration: InputDecoration(
+                    labelText: l10n.studioDashboardWorkflowsTitle,
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: workflowOptions.map((wf) {
+                    return DropdownMenuItem<String>(
+                      value: wf.id,
+                      child: Text(
+                        _resolveLocalizedLabel(wf.name, localeCode),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (nextId) {
+                    if (nextId == null) return;
+                    final nextWf = workflowOptions
+                        .where((w) => w.id == nextId)
+                        .firstOrNull;
+                    if (nextWf == null) return;
+                    setState(() {
+                      _selectedWorkflow = nextWf;
+                      _selectedProfileId = nextWf.defaultProfileId.isNotEmpty
+                          ? nextWf.defaultProfileId
+                          : null;
+                      _hasCustomAssigneeSelection = true;
+                      _assigneeInputKeys = <String>{
+                        for (final item in nextWf.expectedInputs)
+                          if (!widget.initialCompiledInputs.containsKey(
+                            item.inputKey,
+                          ))
+                            item.inputKey,
+                      };
+                    });
+                  },
+                ),
+                AppSpacing.h12,
+              ],
+              if (activeWorkflow != null &&
+                  activeWorkflow.outputProfiles.isNotEmpty) ...[
+                DropdownButtonFormField<String?>(
+                  key: const Key('task_builder_profile_dropdown'),
+                  isExpanded: true,
+                  initialValue: effectiveProfileId,
+                  decoration: InputDecoration(
+                    labelText: l10n.printVariantSelectorTitle,
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('-'),
+                    ),
+                    ...activeWorkflow.outputProfiles.entries.map((entry) {
+                      return DropdownMenuItem<String?>(
+                        value: entry.key,
+                        child: Text(
+                          _resolveLocalizedLabel(entry.value.name, localeCode),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedProfileId = val;
+                    });
+                  },
+                ),
+                AppSpacing.h12,
+              ],
+              DropdownButtonFormField<String?>(
+                key: const Key('task_builder_task_brief_dropdown'),
+                isExpanded: true,
+                initialValue:
+                    taskBriefs.any((b) => b.id == _selectedTaskBriefId)
+                    ? _selectedTaskBriefId
+                    : null,
+                decoration: InputDecoration(
+                  labelText: l10n.taskBuilderSelectTaskBriefLabel,
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('-'),
+                  ),
+                  ...taskBriefs.map((brief) {
+                    return DropdownMenuItem<String?>(
+                      value: brief.id,
+                      child: Text(
+                        _resolveLocalizedLabel(brief.label, localeCode),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _selectedTaskBriefId = val;
+                  });
+                },
+              ),
+              AppSpacing.h16,
               Wrap(
                 spacing: AppSpacing.s8,
                 children: [
@@ -1074,24 +1286,36 @@ class _TaskAssignmentConfigDialogState
               Wrap(
                 spacing: AppSpacing.s8,
                 runSpacing: AppSpacing.s8,
-                children: widget.workflow.expectedInputs.map((item) {
-                  final key = item.inputKey;
-                  final selected = _assigneeInputKeys.contains(key);
-                  return FilterChip(
-                    key: Key('task_builder_assignee_chip_$key'),
-                    label: Text(key),
-                    selected: selected,
-                    onSelected: (val) {
-                      setState(() {
-                        if (val) {
-                          _assigneeInputKeys.add(key);
-                        } else {
-                          _assigneeInputKeys.remove(key);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
+                children:
+                    (activeWorkflow?.expectedInputs ?? const <ExpectedInput>[])
+                        .map((item) {
+                          final key = item.inputKey;
+                          final selected = effectiveAssigneeKeys.contains(key);
+                          final chipLabel = _resolveLocalizedLabel(
+                            item.label,
+                            localeCode,
+                          );
+                          return FilterChip(
+                            key: Key('task_builder_assignee_chip_$key'),
+                            label: Text(chipLabel),
+                            selected: selected,
+                            onSelected: (val) {
+                              setState(() {
+                                _selectedWorkflow = activeWorkflow;
+                                _hasCustomAssigneeSelection = true;
+                                _assigneeInputKeys = Set<String>.from(
+                                  effectiveAssigneeKeys,
+                                );
+                                if (val) {
+                                  _assigneeInputKeys.add(key);
+                                } else {
+                                  _assigneeInputKeys.remove(key);
+                                }
+                              });
+                            },
+                          );
+                        })
+                        .toList(),
               ),
               AppSpacing.h16,
               Row(
@@ -1171,8 +1395,8 @@ class _TaskAssignmentConfigDialogState
                         Expanded(
                           child: SelectableText(
                             key: const Key('task_builder_magic_link_text'),
-                            l10n.taskBuilderMagicLinkReady(
-                              '/task/${_createdSingle!.id}',
+                            l10n.taskBuilderDispatchSummary(
+                              '${_createdSingle!.assignedEmail} (${_createdSingle!.emailDeliveryStatus.name.toUpperCase()} • ${_createdSingle!.id})',
                             ),
                           ),
                         ),
@@ -1181,7 +1405,8 @@ class _TaskAssignmentConfigDialogState
                           onPressed: () {
                             Clipboard.setData(
                               ClipboardData(
-                                text: '/task/${_createdSingle!.id}',
+                                text:
+                                    '${_createdSingle!.assignedEmail} (${_createdSingle!.emailDeliveryStatus.name.toUpperCase()} • ${_createdSingle!.id})',
                               ),
                             );
                           },
@@ -1197,14 +1422,14 @@ class _TaskAssignmentConfigDialogState
                   key: const Key('task_builder_export_csv_btn'),
                   onPressed: () {
                     final csvLines = <String>[
-                      'email,assignment_id,magic_link',
+                      'email,assignment_id,status,email_delivery_status,hard_deadline_at',
                       for (final item in _createdBatch!.assignments)
-                        '${item.assignedEmail},${item.id},/task/${item.id}',
+                        '${item.assignedEmail},${item.id},${item.status.backendValue},${item.emailDeliveryStatus.backendValue},${item.hardDeadlineAt.toUtc().toIso8601String()}',
                     ].join('\n');
                     Clipboard.setData(ClipboardData(text: csvLines));
                   },
                   icon: const Icon(Icons.download_outlined),
-                  label: Text(l10n.taskBuilderExportCsvBtn),
+                  label: Text(l10n.taskBuilderExportSummaryCsvBtn),
                 ),
               ],
             ],
@@ -1218,7 +1443,9 @@ class _TaskAssignmentConfigDialogState
         ),
         OutlinedButton.icon(
           key: const Key('task_builder_submit_btn'),
-          onPressed: _isSubmitting ? null : _submitAssignment,
+          onPressed: _isSubmitting
+              ? null
+              : () => _submitAssignment(activeWorkflow),
           icon: const Icon(Icons.send_outlined),
           label: Text(
             _isBatchMode

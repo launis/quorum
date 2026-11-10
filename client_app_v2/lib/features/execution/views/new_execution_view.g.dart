@@ -49,6 +49,48 @@ final class AvailableWorkflowsProvider
 String _$availableWorkflowsHash() =>
     r'6daccfc472d3b4c4275393f75039c22ff4e26acb';
 
+@ProviderFor(availableTaskBriefs)
+final availableTaskBriefsProvider = AvailableTaskBriefsProvider._();
+
+final class AvailableTaskBriefsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<PromptBlock>>,
+          List<PromptBlock>,
+          FutureOr<List<PromptBlock>>
+        >
+    with
+        $FutureModifier<List<PromptBlock>>,
+        $FutureProvider<List<PromptBlock>> {
+  AvailableTaskBriefsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'availableTaskBriefsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$availableTaskBriefsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<PromptBlock>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<PromptBlock>> create(Ref ref) {
+    return availableTaskBriefs(ref);
+  }
+}
+
+String _$availableTaskBriefsHash() =>
+    r'18ed0284070479c9322061acc7ce90478d4a7be7';
+
 @ProviderFor(NewExecutionController)
 final newExecutionControllerProvider = NewExecutionControllerProvider._();
 

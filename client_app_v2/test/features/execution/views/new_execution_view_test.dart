@@ -4,12 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/studio_client.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_user_provider.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -27,6 +30,9 @@ class FakeExecutionCreateRequestDto extends Fake
 class FakeExecutionAssignmentCreateDto extends Fake
     implements ExecutionAssignmentCreateDto {}
 
+class FakeExecutionAssignmentBatchCreateDto extends Fake
+    implements ExecutionAssignmentBatchCreateDto {}
+
 void main() {
   late MockStudioClient mockStudioClient;
   late MockExecutionClient mockExecutionClient;
@@ -34,11 +40,15 @@ void main() {
   setUpAll(() {
     registerFallbackValue(FakeExecutionCreateRequestDto());
     registerFallbackValue(FakeExecutionAssignmentCreateDto());
+    registerFallbackValue(FakeExecutionAssignmentBatchCreateDto());
   });
 
   setUp(() {
     mockStudioClient = MockStudioClient();
     mockExecutionClient = MockExecutionClient();
+    when(
+      () => mockStudioClient.getPromptBlocks(),
+    ).thenAnswer((_) async => const <PromptBlock>[]);
   });
 
   Widget createTestWidget({
@@ -446,6 +456,140 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(ErrorView), findsOneWidget);
+        expect(
+          find.byKey(const Key('task_builder_magic_link_text')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'selects TaskDefinitionPromptBlock in TaskAssignmentConfigDialog, submits taskBriefId without polluting lockedInputs, and renders verified dispatch summary',
+      (tester) async {
+        const wfId = 'wor_018f123456787abc8000000000000021';
+        const briefId = 'blk_018f123456787abc8000000000000055';
+        const assignmentId = 'tsk_018f123456787abc8000000000000077';
+        final textInput = ExpectedInput(
+          inputKey: 'candidate_response',
+          label: const I18nText(
+            translations: {'en': 'Candidate Response', 'fi': 'Vastaus'},
+          ),
+          description: const I18nText(
+            translations: {'en': 'Provide response', 'fi': 'Anna vastaus'},
+          ),
+          required: true,
+          inputModes: const ['text'],
+        );
+
+        final wf = createWorkflow(
+          id: wfId,
+          name: 'Manager Assignment Flow',
+          expectedInputs: [textInput],
+        );
+
+        const taskBrief = TaskDefinitionPromptBlock(
+          id: briefId,
+          slug: 'case_study_brief',
+          organizationId: 'org_018f123456787abc8000000000000088',
+          label: I18nText(
+            translations: {
+              'en': 'Executive Case Brief',
+              'fi': 'Johdon tehtävänanto',
+            },
+          ),
+          description: I18nText(
+            translations: {'en': 'Brief desc', 'fi': 'Kuvaus'},
+          ),
+          instructionText: 'Analyze the board deck.',
+        );
+
+        const managerUser = User(
+          id: 'usr_018f123456787abc8000000000000099',
+          email: 'manager@quorum.fi',
+          role: UserRole.manager,
+          organizationId: 'org_018f123456787abc8000000000000088',
+        );
+
+        ExecutionAssignmentCreateDto? capturedCreateDto;
+
+        when(
+          () => mockStudioClient.getWorkflows(),
+        ).thenAnswer((_) async => [wf]);
+        when(
+          () => mockStudioClient.getPromptBlocks(),
+        ).thenAnswer((_) async => const <PromptBlock>[taskBrief]);
+        when(() => mockExecutionClient.createAssignment(any())).thenAnswer((
+          inv,
+        ) async {
+          capturedCreateDto =
+              inv.positionalArguments.first as ExecutionAssignmentCreateDto;
+          return ExecutionAssignmentResponseDto(
+            id: assignmentId,
+            organizationId: 'org_018f123456787abc8000000000000088',
+            assignedEmail: capturedCreateDto!.assignedEmail,
+            invitedRole: UserRole.member,
+            workflowId: wfId,
+            taskBriefId: capturedCreateDto!.taskBriefId,
+            targetLocale: 'en',
+            lockedInputs: const WorkflowInputs(),
+            assigneeInputKeys: const ['candidate_response'],
+            draftInputs: const WorkflowInputs(),
+            status: AssignmentStatus.pending,
+            emailDeliveryStatus: EmailDeliveryStatus.sent,
+            resultVisibility: AssignmentResultVisibility.confirmationOnly,
+            hardDeadlineAt: DateTime.utc(2026, 12, 1),
+            createdBy: managerUser.id,
+            createdAt: DateTime.utc(2026, 11, 1),
+          );
+        });
+
+        await tester.pumpWidget(
+          createTestWidget(
+            studioClient: mockStudioClient,
+            executionClient: mockExecutionClient,
+            authenticatedUser: managerUser,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Manager Assignment Flow'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('assign_as_task_btn')));
+        await tester.pumpAndSettle();
+
+        // FilterChip displays localized label ('Candidate Response') instead of raw inputKey
+        expect(find.text('Candidate Response'), findsWidgets);
+
+        // Select Reusable Task Brief
+        final briefDropdown = find.byKey(
+          const Key('task_builder_task_brief_dropdown'),
+        );
+        expect(briefDropdown, findsOneWidget);
+        await tester.tap(briefDropdown);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Executive Case Brief').last);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('task_builder_single_email_field')),
+          'candidate@example.com',
+        );
+        await tester.tap(find.byKey(const Key('task_builder_submit_btn')));
+        await tester.pumpAndSettle();
+
+        expect(capturedCreateDto, isNotNull);
+        expect(capturedCreateDto!.taskBriefId, equals(briefId));
+        expect(capturedCreateDto!.lockedInputs.dynamicInputs, isEmpty);
+
+        expect(
+          find.byKey(const Key('task_builder_magic_link_text')),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('candidate@example.com (SENT • $assignmentId)'),
+          findsOneWidget,
+        );
       },
     );
   });

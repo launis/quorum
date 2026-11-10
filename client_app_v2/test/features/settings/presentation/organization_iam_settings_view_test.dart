@@ -11,8 +11,11 @@ import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/settings/presentation/organization_iam_settings_view.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -255,6 +258,10 @@ class _FakeUserRepository implements UserRepository {
 
 class _FakeStudioClient implements StudioClient {
   List<McpGateway> gateways;
+  List<PromptBlock> promptBlocks;
+  List<Workflow> workflows;
+  String defaultDraftOrganizationId;
+  int _draftCounter = 0;
 
   _FakeStudioClient({
     this.gateways = const <McpGateway>[
@@ -265,39 +272,202 @@ class _FakeStudioClient implements StudioClient {
         type: 'mcp_gateways',
       ),
     ],
-  });
+    List<PromptBlock>? promptBlocks,
+    List<Workflow>? workflows,
+    this.defaultDraftOrganizationId = _FakeUserRepository.primaryOrgId,
+  }) : promptBlocks = List<PromptBlock>.from(promptBlocks ?? const []),
+       workflows = List<Workflow>.from(
+         workflows ??
+             const <Workflow>[
+               Workflow(
+                 id: 'wor_01960000000070008000000000000010',
+                 slug: 'leadership_workflow',
+                 name: I18nText(
+                   translations: {
+                     'en': 'Leadership Evaluation',
+                     'fi': 'Johtajuusarviointi',
+                   },
+                 ),
+                 description: I18nText(
+                   translations: {
+                     'en': 'Evaluate leadership case',
+                     'fi': 'Arvioi johtamistapaus',
+                   },
+                 ),
+                 modelRegistryId: 'sys_01960000000070008000000000000090',
+                 expectedInputs: [
+                   ExpectedInput(
+                     inputKey: 'candidate_response',
+                     label: I18nText(
+                       translations: {
+                         'en': 'Candidate Response',
+                         'fi': 'Kandidaatin vastaus',
+                       },
+                     ),
+                     description: I18nText(
+                       translations: {
+                         'en': 'Submit response',
+                         'fi': 'Lähetä vastaus',
+                       },
+                     ),
+                     required: true,
+                     inputModes: ['text'],
+                   ),
+                 ],
+               ),
+             ],
+       );
 
   @override
   Future<List<McpGateway>> getMcpGateways() async => gateways;
+
+  @override
+  Future<List<Workflow>> getWorkflows() async =>
+      List<Workflow>.unmodifiable(workflows);
+
+  @override
+  Future<List<PromptBlock>> getPromptBlocks() async =>
+      List<PromptBlock>.unmodifiable(promptBlocks);
+
+  @override
+  Future<PromptBlock> createPromptBlockDraft({String? categoryId}) async {
+    _draftCounter += 1;
+    final hexTail = _draftCounter.toRadixString(16).padLeft(8, '0');
+    final draftId = 'blk_019600000000700080000000$hexTail';
+    final PromptBlock draft = switch (categoryId) {
+      'task_definition' => TaskDefinitionPromptBlock(
+        id: draftId,
+        slug: 'draft_task_brief_$_draftCounter',
+        organizationId: defaultDraftOrganizationId,
+        label: const I18nText(
+          translations: {'en': 'Draft Task Brief', 'fi': 'Luonnostehtävä'},
+        ),
+        description: const I18nText(
+          translations: {'en': 'Draft description', 'fi': 'Luonnoskuvaus'},
+        ),
+        instructionText: 'Initial draft instructions',
+      ),
+      _ => SystemRulePromptBlock(
+        id: draftId,
+        slug: 'draft_rule_$_draftCounter',
+        organizationId: defaultDraftOrganizationId,
+        label: const I18nText(
+          translations: {'en': 'Draft Rule', 'fi': 'Luonnossääntö'},
+        ),
+        description: const I18nText(
+          translations: {'en': 'Draft description', 'fi': 'Luonnoskuvaus'},
+        ),
+        instructionText: 'Initial rule',
+      ),
+    };
+    promptBlocks = <PromptBlock>[draft, ...promptBlocks];
+    return draft;
+  }
+
+  @override
+  Future<PromptBlock> savePromptBlock(String id, PromptBlock data) async {
+    final idx = promptBlocks.indexWhere((b) => b.id == id);
+    if (idx < 0) {
+      throw AppException.notFound('PromptBlock not found: $id');
+    }
+    promptBlocks = <PromptBlock>[
+      for (var i = 0; i < promptBlocks.length; i++)
+        if (i == idx) data else promptBlocks[i],
+    ];
+    return data;
+  }
+
+  @override
+  Future<PromptBlock> clonePromptBlock(String id) async {
+    final original = promptBlocks.where((b) => b.id == id).firstOrNull;
+    if (original == null) {
+      throw AppException.notFound('PromptBlock not found: $id');
+    }
+    _draftCounter += 1;
+    final hexTail = _draftCounter.toRadixString(16).padLeft(8, '0');
+    final clonedId = 'blk_019600000000700080000000$hexTail';
+    final enTitle = original.label.translations['en'] ?? 'Brief';
+    final fiTitle = original.label.translations['fi'] ?? enTitle;
+    final cloned = original.copyWith(
+      id: clonedId,
+      slug: '${original.slug}_copy_$_draftCounter',
+      organizationId: defaultDraftOrganizationId,
+      label: I18nText(
+        translations: <String, String>{
+          'en': '$enTitle (Copy)',
+          'fi': '$fiTitle (Copy)',
+        },
+      ),
+    );
+    promptBlocks = <PromptBlock>[cloned, ...promptBlocks];
+    return cloned;
+  }
+
+  @override
+  Future<void> deletePromptBlock(String id) async {
+    promptBlocks = promptBlocks.where((b) => b.id != id).toList();
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeExecutionClient implements ExecutionClient {
+  ExecutionAssignmentCreateDto? lastCreatedAssignment;
+  List<ExecutionAssignmentResponseDto> assignments = [
+    ExecutionAssignmentResponseDto(
+      id: 'asg_01960000000070008000000000000001',
+      organizationId: 'org_01960000000070008000000000000001',
+      assignedEmail: 'candidate@quorum.ai',
+      invitedRole: UserRole.member,
+      workflowId: 'wf_01960000000070008000000000000001',
+      targetLocale: 'fi',
+      lockedInputs: const WorkflowInputs(),
+      assigneeInputKeys: const ['candidate_response'],
+      draftInputs: const WorkflowInputs(),
+      status: AssignmentStatus.pending,
+      emailDeliveryStatus: EmailDeliveryStatus.sent,
+      resultVisibility: AssignmentResultVisibility.confirmationOnly,
+      hardDeadlineAt: DateTime.utc(2026, 12, 1),
+      createdBy: 'usr_01960000000070008000000000000001',
+      createdAt: DateTime.utc(2026, 11, 1),
+    ),
+  ];
+
   @override
   Future<List<ExecutionAssignmentResponseDto>> listAssignments({
     String? batchId,
   }) async {
-    return [
-      ExecutionAssignmentResponseDto(
-        id: 'asg_01960000000070008000000000000001',
-        organizationId: 'org_01960000000070008000000000000001',
-        assignedEmail: 'candidate@quorum.ai',
-        invitedRole: UserRole.member,
-        workflowId: 'wf_01960000000070008000000000000001',
-        targetLocale: 'fi',
-        lockedInputs: const WorkflowInputs(),
-        assigneeInputKeys: const ['candidate_response'],
-        draftInputs: const WorkflowInputs(),
-        status: AssignmentStatus.pending,
-        emailDeliveryStatus: EmailDeliveryStatus.sent,
-        resultVisibility: AssignmentResultVisibility.confirmationOnly,
-        hardDeadlineAt: DateTime.utc(2026, 12, 1),
-        createdBy: 'usr_01960000000070008000000000000001',
-        createdAt: DateTime.utc(2026, 11, 1),
-      ),
-    ];
+    return List<ExecutionAssignmentResponseDto>.unmodifiable(assignments);
+  }
+
+  @override
+  Future<ExecutionAssignmentResponseDto> createAssignment(
+    ExecutionAssignmentCreateDto dto,
+  ) async {
+    lastCreatedAssignment = dto;
+    final created = ExecutionAssignmentResponseDto(
+      id: 'tsk_01960000000070008000000000000099',
+      organizationId: _FakeUserRepository.primaryOrgId,
+      assignedEmail: dto.assignedEmail,
+      invitedRole: dto.invitedRole,
+      workflowId: dto.workflowId,
+      outputProfileId: dto.outputProfileId,
+      taskBriefId: dto.taskBriefId,
+      targetLocale: dto.targetLocale,
+      lockedInputs: dto.lockedInputs,
+      assigneeInputKeys: dto.assigneeInputKeys,
+      draftInputs: const WorkflowInputs(),
+      status: AssignmentStatus.pending,
+      emailDeliveryStatus: EmailDeliveryStatus.sent,
+      resultVisibility: dto.resultVisibility,
+      hardDeadlineAt: dto.hardDeadlineAt,
+      relativeDurationSeconds: dto.relativeDurationSeconds,
+      createdBy: 'usr_01960000000070008000000000000001',
+      createdAt: DateTime.utc(2026, 11, 2),
+    );
+    assignments = <ExecutionAssignmentResponseDto>[created, ...assignments];
+    return created;
   }
 
   @override
@@ -594,6 +764,9 @@ void main() {
 
         // 2. Update Member Name & Active Status via Edit Dialog
         const memberId = 'usr_01960000000070008000000000000002';
+        await tester.ensureVisible(
+          find.byKey(const Key('org_edit_member_btn_$memberId')),
+        );
         await tester.tap(
           find.byKey(const Key('org_edit_member_btn_$memberId')),
         );
@@ -705,6 +878,9 @@ void main() {
 
         // Edit member in secondaryOrgId and transfer them to primaryOrgId via org_edit_member_org_dropdown
         const partnerMemberId = 'usr_01960000000070008000000000000003';
+        await tester.ensureVisible(
+          find.byKey(const Key('org_edit_member_btn_$partnerMemberId')),
+        );
         await tester.tap(
           find.byKey(const Key('org_edit_member_btn_$partnerMemberId')),
         );
@@ -1151,6 +1327,178 @@ void main() {
         expect(
           userRepo.lastSavedSecret!.plaintextSecret,
           equals('pylf_v1_eu_read_token'),
+        );
+      },
+    );
+
+    testWidgets(
+      'Positive & Boundary: Task Briefs CRUD+Clone lifecycle, blank URL/body null normalization, ROOT_SYSTEM edit/delete guard for ADMIN, MANAGER hidden card, and direct TaskAssignmentConfigDialog launch',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1440, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const rootBriefId = 'blk_0195f3a0000070008000000000000701';
+        const rootBrief = TaskDefinitionPromptBlock(
+          id: rootBriefId,
+          slug: 'root_standard_brief',
+          organizationId: 'org_0195f3a0000070008000000000000001',
+          label: I18nText(
+            translations: {
+              'en': 'Global Case Template',
+              'fi': 'Yleinen tehtäväpohja',
+            },
+          ),
+          description: I18nText(
+            translations: {'en': 'System template', 'fi': 'Järjestelmäpohja'},
+          ),
+          instructionText: 'System level instructions.',
+          theoryGrounding: TheoryGrounding(
+            sourceUrl: 'https://qrum.ai/docs/template.pdf',
+          ),
+        );
+
+        final userRepo = _FakeUserRepository();
+        final execClient = _FakeExecutionClient();
+        final studioClient = _FakeStudioClient(
+          promptBlocks: const <PromptBlock>[rootBrief],
+        );
+
+        // 1. Boundary: MANAGER does not see org_task_briefs_card
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: userWithRole(UserRole.manager),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: studioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('org_task_briefs_card')), findsNothing);
+
+        // 2. Boundary: Tenant ADMIN sees org_task_briefs_card; ROOT_SYSTEM block allows Clone but disables Edit & Delete
+        await tester.pumpWidget(
+          _buildIamViewForRole(
+            user: userWithRole(UserRole.admin),
+            userRepo: userRepo,
+            execClient: execClient,
+            studioClient: studioClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('org_task_briefs_card')), findsOneWidget);
+        final rootCloneBtn = tester.widget<IconButton>(
+          find.byKey(const Key('org_clone_task_brief_btn_$rootBriefId')),
+        );
+        final rootEditBtn = tester.widget<IconButton>(
+          find.byKey(const Key('org_edit_task_brief_btn_$rootBriefId')),
+        );
+        final rootDeleteBtn = tester.widget<IconButton>(
+          find.byKey(const Key('org_delete_task_brief_btn_$rootBriefId')),
+        );
+        expect(rootCloneBtn.onPressed, isNotNull);
+        expect(rootEditBtn.onPressed, isNull);
+        expect(rootDeleteBtn.onPressed, isNull);
+
+        // 3. Positive: ADMIN clones ROOT_SYSTEM Task Brief into tenant org and edits it (normalizing blank URL and body to null)
+        await tester.tap(
+          find.byKey(const Key('org_clone_task_brief_btn_$rootBriefId')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Global Case Template (Copy)'), findsOneWidget);
+        final clonedBrief = studioClient.promptBlocks
+            .whereType<TaskDefinitionPromptBlock>()
+            .firstWhere((b) => b.id != rootBriefId);
+
+        await tester.tap(
+          find.byKey(Key('org_edit_task_brief_btn_${clonedBrief.id}')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('org_edit_task_brief_dialog')),
+          findsOneWidget,
+        );
+        await tester.enterText(
+          find.byKey(const Key('org_edit_task_brief_title_field')),
+          'Custom Tenant Case Brief',
+        );
+        await tester.enterText(
+          find.byKey(const Key('org_edit_task_brief_url_field')),
+          '   ',
+        );
+        await tester.enterText(
+          find.byKey(const Key('org_edit_task_brief_body_field')),
+          '   ',
+        );
+        await tester.tap(find.byKey(const Key('org_edit_task_brief_save_btn')));
+        await tester.pumpAndSettle();
+
+        final updatedCloned = studioClient.promptBlocks
+            .whereType<TaskDefinitionPromptBlock>()
+            .firstWhere((b) => b.id == clonedBrief.id);
+        expect(
+          updatedCloned.label.translations['en'],
+          equals('Custom Tenant Case Brief'),
+        );
+        expect(updatedCloned.theoryGrounding, isNull);
+        expect(updatedCloned.instructionText, isNull);
+
+        // 4. Positive: ADMIN creates a new Task Brief draft and deletes it
+        await tester.tap(find.byKey(const Key('org_create_task_brief_btn')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Draft Task Brief'), findsOneWidget);
+        final createdDraft = studioClient.promptBlocks
+            .whereType<TaskDefinitionPromptBlock>()
+            .firstWhere(
+              (b) => b.label.translations['en'] == 'Draft Task Brief',
+            );
+
+        await tester.tap(
+          find.byKey(Key('org_delete_task_brief_btn_${createdDraft.id}')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Draft Task Brief'), findsNothing);
+
+        // 5. Positive: Launching TaskAssignmentConfigDialog via org_new_task_assignment_btn and submitting with taskBriefId
+        await tester.tap(find.byKey(const Key('org_new_task_assignment_btn')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('task_assignment_config_dialog')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('task_builder_workflow_dropdown')),
+          findsOneWidget,
+        );
+
+        final briefSelector = find.byKey(
+          const Key('task_builder_task_brief_dropdown'),
+        );
+        await tester.tap(briefSelector);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Custom Tenant Case Brief').last);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('task_builder_single_email_field')),
+          'direct_assignee@quorum.ai',
+        );
+        await tester.tap(find.byKey(const Key('task_builder_submit_btn')));
+        await tester.pumpAndSettle();
+
+        expect(execClient.lastCreatedAssignment, isNotNull);
+        expect(
+          execClient.lastCreatedAssignment!.assignedEmail,
+          equals('direct_assignee@quorum.ai'),
+        );
+        expect(
+          execClient.lastCreatedAssignment!.taskBriefId,
+          equals(clonedBrief.id),
         );
       },
     );
