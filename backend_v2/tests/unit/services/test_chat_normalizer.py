@@ -7,18 +7,19 @@ table preservation, cryptographic Unicode noise marker preservation, and XML esc
 
 from __future__ import annotations
 
-import json
+import logging
 from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.inputs import ProcessedChatDTO
 from backend_v2.services.chat_normalizer import ChatNormalizerService
-from backend_v2.services.chat_parser import ChatParserService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
+
+_CHAT_MESSAGE_LIST_ADAPTER: TypeAdapter[list[ChatMessageDTO]] = TypeAdapter(list[ChatMessageDTO])
 
 
 @pytest.fixture
@@ -40,16 +41,18 @@ class TestChatNormalizerService:
         text = '```json\n{"key": "val"}\n```'
         assert ChatNormalizerService.strip_code_fences(text) == '{"key": "val"}'
 
+    def test_strip_code_fences_single_line_fence_boundary(self) -> None:
+        """Boundary: Single-line fence without newline returns empty string."""
+        assert ChatNormalizerService.strip_code_fences("```json") == ""
+
     def test_try_parse_json_dict_format(self) -> None:
         """Verify parsing valid JSON object with conversation array."""
-        payload = json.dumps(
-            {
-                "conversation": [
-                    {"role": "user", "content": "Hi"},
-                    {"role": "ai", "content": "Hello"},
-                ]
-            }
-        )
+        payload = ChatHistoryDTO(
+            conversation=[
+                ChatMessageDTO(role="user", content="Hi"),
+                ChatMessageDTO(role="ai", content="Hello"),
+            ]
+        ).model_dump_json()
         result = ChatNormalizerService.try_parse_json(payload)
         assert result is not None
         assert len(result.conversation) == 2
@@ -58,12 +61,12 @@ class TestChatNormalizerService:
 
     def test_try_parse_json_list_format(self) -> None:
         """Verify parsing valid JSON array of chat message turns."""
-        payload = json.dumps(
+        payload = _CHAT_MESSAGE_LIST_ADAPTER.dump_json(
             [
-                {"role": "user", "content": "Query"},
-                {"role": "assistant", "content": "Answer"},
+                ChatMessageDTO(role="user", content="Query"),
+                ChatMessageDTO(role="assistant", content="Answer"),
             ]
-        )
+        ).decode("utf-8")
         result = ChatNormalizerService.try_parse_json(payload)
         assert result is not None
         assert len(result.conversation) == 2
@@ -71,25 +74,22 @@ class TestChatNormalizerService:
 
     def test_try_parse_json_fenced_json(self) -> None:
         """Verify parsing markdown-fenced JSON string into ChatHistoryDTO."""
-        payload = (
-            "```json\n"
-            + json.dumps(
-                {
-                    "conversation": [
-                        {"role": "user", "content": "Question"},
-                        {"role": "ai", "content": "Response"},
-                    ]
-                }
-            )
-            + "\n```"
-        )
+        inner = ChatHistoryDTO(
+            conversation=[
+                ChatMessageDTO(role="user", content="Question"),
+                ChatMessageDTO(role="ai", content="Response"),
+            ]
+        ).model_dump_json()
+        payload = f"```json\n{inner}\n```"
         result = ChatNormalizerService.try_parse_json(payload)
         assert result is not None
         assert len(result.conversation) == 2
 
     def test_try_parse_json_invalid_schema(self) -> None:
-        """Negative: Verify invalid JSON structure returns None."""
+        """Negative: Verify invalid JSON object, invalid JSON array, and non-JSON return None."""
         assert ChatNormalizerService.try_parse_json('{"invalid": "data"}') is None
+        assert ChatNormalizerService.try_parse_json('[{"invalid": 1}]') is None
+        assert ChatNormalizerService.try_parse_json("[malformed") is None
         assert ChatNormalizerService.try_parse_json("not json") is None
 
     def test_try_parse_fast_path_english_labels(self) -> None:
@@ -133,6 +133,10 @@ class TestChatNormalizerService:
         raw = "Assistant: Hello.\nAI: Another greeting."
         assert ChatNormalizerService.try_parse_fast_path(raw) is None
 
+    def test_clean_turn_content_empty_boundary(self) -> None:
+        """Boundary: Empty turn content returns empty string directly."""
+        assert ChatNormalizerService.clean_turn_content("") == ""
+
     def test_clean_turn_content_preserves_paragraphs_and_tables(self) -> None:
         """Verify clean_turn_content preserves structural linebreaks, bullet points, and markdown tables."""
         raw = (
@@ -174,9 +178,10 @@ class TestChatNormalizerService:
         assert cleaned == "\u00a0\u00a0"
 
     def test_build_processed_chat_xml_escaping_in_user_payload(self) -> None:
-        """Verify user turn content has XML characters escaped in combined prompt payload."""
+        """Verify user turn content has XML characters escaped in combined prompt payload and skips empty turns."""
         dto = ChatHistoryDTO(
             conversation=[
+                ChatMessageDTO(role="user", content="\u200b"),
                 ChatMessageDTO(role="user", content="<script>alert('xss')</script> & </user_payload>"),
                 ChatMessageDTO(role="ai", content="I cannot execute scripts."),
             ]
@@ -185,7 +190,6 @@ class TestChatNormalizerService:
         assert "<user_payload>" in processed.combined
         assert "&lt;script&gt;alert('xss')&lt;/script&gt; &amp; &lt;/user_payload&gt;" in processed.combined
         assert "<script>" not in processed.combined
-        # Unescaped raw text in user_only stream
         assert processed.user_only == "<script>alert('xss')</script> & </user_payload>"
         assert processed.ai_only == "I cannot execute scripts."
 
@@ -204,10 +208,25 @@ class TestChatNormalizerService:
         assert marker not in processed.ai_only
 
     @pytest.mark.asyncio
+    async def test_parse_chat_to_dto_json_fast_path(self, mock_system_repo: InMemorySystemRepository) -> None:
+        """Verify parse_chat_to_dto succeeds via structured JSON without invoking LLM fallback."""
+        raw = ChatHistoryDTO(
+            conversation=[
+                ChatMessageDTO(role="user", content="JSON question"),
+                ChatMessageDTO(role="ai", content="JSON answer"),
+            ]
+        ).model_dump_json()
+        with patch("backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat") as mock_llm_parse:
+            result = await ChatNormalizerService.parse_chat_to_dto(raw, "chat_log", mock_system_repo)
+            mock_llm_parse.assert_not_called()
+            assert len(result.conversation) == 2
+            assert result.conversation[0].content == "JSON question"
+
+    @pytest.mark.asyncio
     async def test_parse_chat_to_dto_fast_path(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify parse_chat_to_dto succeeds via fast-path without LLM fallback."""
         raw = "User: Need help\nAI: I am ready"
-        with patch.object(ChatParserService, "parse_pasted_chat") as mock_llm_parse:
+        with patch("backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat") as mock_llm_parse:
             result = await ChatNormalizerService.parse_chat_to_dto(raw, "chat_log", mock_system_repo)
             mock_llm_parse.assert_not_called()
             assert len(result.conversation) == 2
@@ -222,35 +241,86 @@ class TestChatNormalizerService:
                 ChatMessageDTO(role="ai", content="Person 2 response"),
             ]
         )
-        with patch.object(ChatParserService, "parse_pasted_chat", return_value=mock_chat) as mock_llm_parse:
+        with patch(
+            "backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat",
+            return_value=mock_chat,
+        ) as mock_llm_parse:
             result = await ChatNormalizerService.parse_chat_to_dto(raw, "chat_log", mock_system_repo)
             mock_llm_parse.assert_called_once_with(raw, system_repo=mock_system_repo)
             assert len(result.conversation) == 2
 
     @pytest.mark.asyncio
     async def test_parse_chat_to_dto_empty_input_raises_app_exception(
-        self, mock_system_repo: InMemorySystemRepository
+        self,
+        mock_system_repo: InMemorySystemRepository,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Negative: Empty or whitespace input raises AppException with EMPTY_INPUT."""
-        with pytest.raises(AppException) as excinfo:
-            await ChatNormalizerService.parse_chat_to_dto("", "chat_log", mock_system_repo)
+        """Negative: Empty or whitespace input logs RFC 7807 error with exc_info and raises EMPTY_INPUT."""
+        with caplog.at_level(logging.ERROR, logger="backend_v2.services.chat_normalizer"):
+            with pytest.raises(AppException) as excinfo:
+                await ChatNormalizerService.parse_chat_to_dto("", "chat_log", mock_system_repo)
         assert excinfo.value.details["error_code"] == ErrorCodes.EMPTY_INPUT.value
+        assert any(
+            record.exc_info is not None and "[ChatNormalizer] EMPTY_INPUT" in record.getMessage()
+            for record in caplog.records
+        )
 
         with pytest.raises(AppException) as excinfo2:
             await ChatNormalizerService.parse_chat_to_dto("   \n\t  ", "chat_log", mock_system_repo)
         assert excinfo2.value.details["error_code"] == ErrorCodes.EMPTY_INPUT.value
 
     @pytest.mark.asyncio
-    async def test_parse_chat_to_dto_llm_failure_raises_app_exception(
+    async def test_parse_chat_to_dto_llm_empty_conversation_failure_raises_app_exception(
         self, mock_system_repo: InMemorySystemRepository
     ) -> None:
-        """Negative: LLM parser returning empty conversation raises AppException."""
+        """Negative: LLM parser returning empty conversation raises AppException with PARSING_FAILED."""
         raw = "Some prose"
         empty_chat = ChatHistoryDTO(conversation=[])
-        with patch.object(ChatParserService, "parse_pasted_chat", return_value=empty_chat):
+        with patch(
+            "backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat",
+            return_value=empty_chat,
+        ):
             with pytest.raises(AppException) as excinfo:
                 await ChatNormalizerService.parse_chat_to_dto(raw, "chat_log", mock_system_repo)
             assert excinfo.value.details["error_code"] == ErrorCodes.PARSING_FAILED.value
+
+    @pytest.mark.asyncio
+    async def test_parse_chat_to_dto_llm_app_exception_propagates_unchanged(
+        self, mock_system_repo: InMemorySystemRepository
+    ) -> None:
+        """Negative: Upstream AppException from ChatParserService propagates without double wrapping."""
+        upstream_exc = AppException(
+            message="Upstream configuration error",
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+        with patch(
+            "backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat",
+            side_effect=upstream_exc,
+        ):
+            with pytest.raises(AppException) as excinfo:
+                await ChatNormalizerService.parse_chat_to_dto("Unstructured input", "chat_log", mock_system_repo)
+            assert excinfo.value is upstream_exc
+            assert excinfo.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    @pytest.mark.asyncio
+    async def test_parse_chat_to_dto_llm_unexpected_error_raises_parsing_failed(
+        self,
+        mock_system_repo: InMemorySystemRepository,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Negative: Unexpected runtime error in ChatParserService logs exc_info and raises PARSING_FAILED."""
+        with patch(
+            "backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat",
+            side_effect=RuntimeError("transport reset"),
+        ):
+            with caplog.at_level(logging.ERROR, logger="backend_v2.services.chat_normalizer"):
+                with pytest.raises(AppException) as excinfo:
+                    await ChatNormalizerService.parse_chat_to_dto("Unstructured input", "chat_log", mock_system_repo)
+            assert excinfo.value.status_code == 400
+            assert excinfo.value.details["error_code"] == ErrorCodes.PARSING_FAILED.value
+            assert isinstance(excinfo.value.__cause__, RuntimeError)
+            assert any(record.exc_info is not None for record in caplog.records)
 
     @pytest.mark.asyncio
     async def test_normalize_chat_end_to_end(self, mock_system_repo: InMemorySystemRepository) -> None:
@@ -320,9 +390,7 @@ class TestChatNormalizerService:
         """Verify content inside code fences is never stripped even if matching button labels."""
         raw = "User: Show me bash commands.\nAssistant:\n```bash\ncopy code\nedit file.txt\nshare\n```\nCopy code\n"
         cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
-        # Inside code fence preserved
         assert "copy code\nedit file.txt\nshare" in cleaned
-        # Outside code fence stripped
         lines = [line.strip() for line in cleaned.splitlines()]
         assert lines[-1] == "```"
 
@@ -364,7 +432,7 @@ class TestChatNormalizerService:
         raw = "\n".join(rows)
         normalized = ChatNormalizerService.normalize_tables(raw)
         lines = normalized.splitlines()
-        assert len(lines) == 12  # 1 header + 1 separator + 10 rows
+        assert len(lines) == 12
         assert lines[0] == "| Otsikko 1 | Otsikko 2 | Otsikko 3 |"
         assert lines[1] == "| :--- | :--- | :--- |"
         assert lines[2] == "| Rivi 1 A | Rivi 1 B | Rivi 1 C |"
@@ -372,11 +440,12 @@ class TestChatNormalizerService:
 
     def test_chat_normalizer_preserves_tab_structure_before_whitespace_collapse(self) -> None:
         """Verify clean_turn_content produces Markdown pipe table without collapsing tabs to single spaces."""
-        raw = "Arvo\tKuvaus\nErinomainen\tErittäin hyvä"
+        raw = "Arvo\tKuvaus\nErinomainen\tErittäin hyvä\nJatkorivi ilman sarkainta"
         cleaned = ChatNormalizerService.clean_turn_content(raw)
         assert "| Arvo | Kuvaus |" in cleaned
         assert "| :--- | :--- |" in cleaned
         assert "| Erinomainen | Erittäin hyvä |" in cleaned
+        assert "Jatkorivi ilman sarkainta" in cleaned
         assert "Arvo Kuvaus" not in cleaned
 
     def test_chat_normalizer_preserves_tabs_inside_code_fence(self) -> None:
@@ -429,7 +498,7 @@ class TestChatNormalizerService:
 
     def test_chat_normalizer_attachment_card_normalization(self) -> None:
         """Verify attachment cards are normalized to canonical prompt metadata."""
-        raw1 = "Reflektiodokumentti hyvä.pdf\nPDF"
+        raw1 = "Reflektiodokumentti hyvä.pdf\n\nPDF"
         cleaned1 = ChatNormalizerService.strip_known_ui_fluff(raw1)
         assert cleaned1 == "[Liite: Reflektiodokumentti hyvä.pdf]"
 

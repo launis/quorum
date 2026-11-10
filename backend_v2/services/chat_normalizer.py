@@ -31,16 +31,25 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-# Closed set of recognized conversational role labels
+# Closed English and Finnish conversational role label vocabularies for deterministic fast-path parsing.
 USER_ROLE_LABELS: frozenset[str] = frozenset({"user", "human", "you", "käyttäjä", "sinä", "ihminen"})
 AI_ROLE_LABELS: frozenset[str] = frozenset(
     {"assistant", "ai", "chatgpt", "claude", "gemini", "assistentti", "avustaja", "tekoäly"}
 )
-# TODO(multi-lang): Expand role label vocabularies if non-Fi/En languages are formally adopted.
 
 _ZERO_WIDTH_CHARS_PATTERN: re.Pattern[str] = re.compile(r"[\u200b\u200c\u200d\ufeff\u00ad]")
 _CONSECUTIVE_NEWLINES_PATTERN: re.Pattern[str] = re.compile(r"\n\s*\n\s*\n+")
 _HORIZONTAL_ASCII_WHITESPACE_PATTERN: re.Pattern[str] = re.compile(r"[ \t]+")
+_FAST_PATH_ROLE_PATTERN: re.Pattern[str] = re.compile(r"^([A-Za-zäöåÄÖÅ0-9_\- \t]{2,30})[ \t]*:[ \t]*(.*)$")
+
+_ATTACHMENT_CHIP_LABELS: frozenset[str] = frozenset({"pdf", "liite"})
+_ATTACHMENT_EXTENSIONS: tuple[str, ...] = (".pdf", ".docx", ".txt", ".csv", ".xlsx", ".md")
+_MAX_ATTACHMENT_TITLE_WORDS: int = 4
+_MAX_DISCLAIMER_FOOTER_LENGTH: int = 140
+_MIN_DIALOGUE_TURNS: int = 2
+_MIN_TABLE_ROWS: int = 2
+
+_CHAT_MESSAGE_LIST_ADAPTER: TypeAdapter[list[ChatMessageDTO]] = TypeAdapter(list[ChatMessageDTO])
 
 _KNOWN_FLUFF_EXACT_LINES: frozenset[str] = frozenset(
     {
@@ -109,6 +118,79 @@ class ChatNormalizerService:
     """
 
     @staticmethod
+    def _try_consume_attachment_chip_pair(
+        lines: list[str],
+        index: int,
+        cleaned_lines: list[str],
+    ) -> int | None:
+        """Detect and normalize two-line browser attachment chips into canonical annotations.
+
+        Args:
+            lines: Source transcript lines split by linebreaks.
+            index: Current line index outside markdown code fences.
+            cleaned_lines: Output accumulator to append normalized `[Liite: <filename>]` lines to.
+
+        Returns:
+            Next line index after consuming the attachment pair, or None if not an attachment pair.
+        """
+        n = len(lines)
+        if index + 1 >= n:
+            return None
+
+        j = index + 1
+        while j < n and not lines[j].strip():
+            j += 1
+        if j >= n:
+            return None
+
+        trimmed = lines[index].strip()
+        next_trimmed = lines[j].strip()
+
+        if (
+            trimmed
+            and not trimmed.startswith("[Liite:")
+            and next_trimmed.lower() in _ATTACHMENT_CHIP_LABELS
+            and (
+                trimmed.lower().endswith(_ATTACHMENT_EXTENSIONS)
+                or (len(trimmed.split()) <= _MAX_ATTACHMENT_TITLE_WORDS and not any(ch in trimmed for ch in ":/?#\n"))
+            )
+        ):
+            cleaned_lines.append(f"[Liite: {trimmed}]")
+            return j + 1
+
+        if (
+            trimmed.lower() in _ATTACHMENT_CHIP_LABELS
+            and next_trimmed
+            and not next_trimmed.startswith("[Liite:")
+            and (
+                next_trimmed.lower().endswith(_ATTACHMENT_EXTENSIONS)
+                or len(next_trimmed.split()) <= _MAX_ATTACHMENT_TITLE_WORDS
+            )
+        ):
+            fname = next_trimmed if "." in next_trimmed else f"{next_trimmed}.pdf"
+            cleaned_lines.append(f"[Liite: {fname}]")
+            return j + 1
+
+        return None
+
+    @staticmethod
+    def _is_known_fluff_line(trimmed: str) -> bool:
+        """Evaluate whether a trimmed non-fenced line matches known web UI artifacts.
+
+        Args:
+            trimmed: Leading/trailing whitespace-trimmed line outside code fences.
+
+        Returns:
+            True if the line matches a button label, header pattern, or disclaimer footer.
+        """
+        lower_trimmed = trimmed.lower()
+        if lower_trimmed in _KNOWN_FLUFF_EXACT_LINES:
+            return True
+        if any(p.match(trimmed) for p in _KNOWN_FLUFF_LINE_PATTERNS):
+            return True
+        return len(trimmed) < _MAX_DISCLAIMER_FOOTER_LENGTH and any(s in lower_trimmed for s in _KNOWN_FLUFF_SUBSTRINGS)
+
+    @staticmethod
     def strip_known_ui_fluff(raw_text: str) -> str:
         """Deterministically strip known web UI artifacts from pasted chat transcripts.
 
@@ -147,59 +229,13 @@ class ChatNormalizerService:
                 i += 1
                 continue
 
-            # Lookahead check for attachment chip pairs outside code fences
-            if i + 1 < n and not in_code_fence:
-                j = i + 1
-                while j < n and not lines[j].strip():
-                    j += 1
-                if j < n:
-                    next_trimmed = lines[j].strip()
-                    # Pattern 1: Filename on line i, "PDF" or "Liite" on line j
-                    if (
-                        trimmed
-                        and not trimmed.startswith("[Liite:")
-                        and next_trimmed.lower() in ("pdf", "liite")
-                        and (
-                            trimmed.lower().endswith((".pdf", ".docx", ".txt", ".csv", ".xlsx", ".md"))
-                            or (len(trimmed.split()) <= 4 and not any(ch in trimmed for ch in ":/?#\n"))
-                        )
-                    ):
-                        cleaned_lines.append(f"[Liite: {trimmed}]")
-                        i = j + 1
-                        continue
-                    # Pattern 2: "PDF" or "Liite" on line i, filename on line j
-                    if (
-                        trimmed.lower() in ("pdf", "liite")
-                        and next_trimmed
-                        and not next_trimmed.startswith("[Liite:")
-                        and (
-                            next_trimmed.lower().endswith((".pdf", ".docx", ".txt", ".csv", ".xlsx", ".md"))
-                            or len(next_trimmed.split()) <= 4
-                        )
-                    ):
-                        fname = next_trimmed if "." in next_trimmed else f"{next_trimmed}.pdf"
-                        cleaned_lines.append(f"[Liite: {fname}]")
-                        i = j + 1
-                        continue
-
-            lower_trimmed = trimmed.lower()
-
-            # 1. Exact match against known button/action labels
-            if lower_trimmed in _KNOWN_FLUFF_EXACT_LINES:
-                i += 1
+            next_index = ChatNormalizerService._try_consume_attachment_chip_pair(lines, i, cleaned_lines)
+            if next_index is not None:
+                i = next_index
                 continue
 
-            # 2. Pattern match for model headers / search status / timestamps / repo paths
-            if any(p.match(trimmed) for p in _KNOWN_FLUFF_LINE_PATTERNS):
-                i += 1
-                continue
-
-            # 3. Substring match for short disclaimer footers (< 140 chars)
-            if len(trimmed) < 140 and any(s in lower_trimmed for s in _KNOWN_FLUFF_SUBSTRINGS):
-                i += 1
-                continue
-
-            cleaned_lines.append(line)
+            if not ChatNormalizerService._is_known_fluff_line(trimmed):
+                cleaned_lines.append(line)
             i += 1
 
         return "\n".join(cleaned_lines)
@@ -226,6 +262,27 @@ class ChatNormalizerService:
         return stripped.strip(" \t\r\n")
 
     @staticmethod
+    def _deserialize_json_chat(stripped: str) -> ChatHistoryDTO:
+        """Deserialize stripped JSON object or array text into a typed ChatHistoryDTO.
+
+        Args:
+            stripped: Code-fence-stripped text starting with '{' or '['.
+
+        Returns:
+            Populated ChatHistoryDTO on schema match, or an empty ChatHistoryDTO on validation failure.
+        """
+        if stripped.startswith("{"):
+            try:
+                return ChatHistoryDTO.model_validate_json(stripped)
+            except ValidationError, ValueError:
+                return ChatHistoryDTO(conversation=[])
+        try:
+            messages = _CHAT_MESSAGE_LIST_ADAPTER.validate_json(stripped)
+            return ChatHistoryDTO(conversation=messages)
+        except ValidationError, ValueError:
+            return ChatHistoryDTO(conversation=[])
+
+    @staticmethod
     def try_parse_json(text: str) -> ChatHistoryDTO | None:
         """Attempt to deserialize chat text as raw or fenced JSON into ChatHistoryDTO.
 
@@ -233,25 +290,33 @@ class ChatNormalizerService:
             text: Raw input string containing possible JSON payload.
 
         Returns:
-            ChatHistoryDTO if JSON matches schema, otherwise None.
+            ChatHistoryDTO if JSON matches schema with at least one turn, otherwise None.
         """
         stripped = ChatNormalizerService.strip_code_fences(text)
-        if stripped.startswith("{"):
-            try:
-                return ChatHistoryDTO.model_validate_json(stripped)
-            except (ValidationError, ValueError) as err:
-                if isinstance(err, (KeyboardInterrupt, SystemExit)):
-                    raise
-                return None
-        elif stripped.startswith("["):
-            try:
-                messages = TypeAdapter(list[ChatMessageDTO]).validate_json(stripped)
-                return ChatHistoryDTO(conversation=messages)
-            except (ValidationError, ValueError) as err:
-                if isinstance(err, (KeyboardInterrupt, SystemExit)):
-                    raise
-                return None
-        return None
+        if not stripped.startswith(("{", "[")):
+            return None
+        parsed = ChatNormalizerService._deserialize_json_chat(stripped)
+        if not parsed.conversation:
+            return None
+        return parsed
+
+    @staticmethod
+    def _append_completed_turn(
+        turns: list[ChatMessageDTO],
+        role: str | None,
+        content_lines: list[str],
+    ) -> None:
+        """Append a completed non-empty conversational turn to the turns accumulator.
+
+        Args:
+            turns: Chronological turn accumulator list.
+            role: Speaker role ('user' or 'ai') of the active turn, if started.
+            content_lines: Collected raw lines belonging to the active turn.
+        """
+        if role is not None and content_lines:
+            full_content = "\n".join(content_lines).strip(" \t\r\n")
+            if full_content:
+                turns.append(ChatMessageDTO(role=role, content=full_content))
 
     @staticmethod
     def try_parse_fast_path(text: str) -> ChatHistoryDTO | None:
@@ -269,15 +334,12 @@ class ChatNormalizerService:
         stripped = ChatNormalizerService.strip_code_fences(text)
         lines = stripped.splitlines()
 
-        # Anchored role prefix regex at start of line with strict ASCII whitespace matching
-        role_pattern = re.compile(r"^([A-Za-zäöåÄÖÅ0-9_\- \t]{2,30})[ \t]*:[ \t]*(.*)$")
-
         turns: list[ChatMessageDTO] = []
         current_role: str | None = None
         current_content_lines: list[str] = []
 
         for line in lines:
-            match = role_pattern.match(line)
+            match = _FAST_PATH_ROLE_PATTERN.match(line)
             if match:
                 prefix = match.group(1).strip().lower()
                 content_start = match.group(2)
@@ -288,29 +350,19 @@ class ChatNormalizerService:
                     matched_role = "ai"
 
                 if matched_role is not None:
-                    # Save completed previous turn if present
-                    if current_role is not None and current_content_lines:
-                        full_content = "\n".join(current_content_lines).strip(" \t\r\n")
-                        if full_content:
-                            turns.append(ChatMessageDTO(role=current_role, content=full_content))
+                    ChatNormalizerService._append_completed_turn(turns, current_role, current_content_lines)
                     current_role = matched_role
                     current_content_lines = []
                     if content_start:
                         current_content_lines.append(content_start)
                     continue
 
-            # Continuation line of current turn
             if current_role is not None:
                 current_content_lines.append(line)
 
-        # Flush final turn
-        if current_role is not None and current_content_lines:
-            full_content = "\n".join(current_content_lines).strip(" \t\r\n")
-            if full_content:
-                turns.append(ChatMessageDTO(role=current_role, content=full_content))
+        ChatNormalizerService._append_completed_turn(turns, current_role, current_content_lines)
 
-        # Validate minimum structural requirements
-        if len(turns) < 2:
+        if len(turns) < _MIN_DIALOGUE_TURNS:
             return None
 
         has_user = any(t.role == "user" for t in turns)
@@ -319,6 +371,32 @@ class ChatNormalizerService:
             return None
 
         return ChatHistoryDTO(conversation=turns)
+
+    @staticmethod
+    def _format_tab_block_as_markdown(tab_block: list[str]) -> list[str]:
+        """Format a block of tab-delimited lines into GitHub-Flavored Markdown table rows.
+
+        Args:
+            tab_block: Consecutive lines containing tab characters outside code fences.
+
+        Returns:
+            Markdown pipe table lines if at least two rows exist, otherwise the original lines.
+        """
+        if len(tab_block) < _MIN_TABLE_ROWS:
+            return list(tab_block)
+
+        rows = [line.split("\t") for line in tab_block]
+        max_cols = max(len(r) for r in rows)
+
+        formatted_rows: list[str] = []
+        for idx, row in enumerate(rows):
+            padded = row + [""] * (max_cols - len(row))
+            sanitized_cells = [cell.strip().replace("\n", " ").replace("|", r"\|") for cell in padded]
+            formatted_rows.append(f"| {' | '.join(sanitized_cells)} |")
+            if idx == 0:
+                formatted_rows.append(f"| {' | '.join([':---'] * max_cols)} |")
+
+        return formatted_rows
 
     @staticmethod
     def normalize_tables(raw_text: str) -> str:
@@ -338,49 +416,16 @@ class ChatNormalizerService:
         if not raw_text or "\t" not in raw_text:
             return raw_text
 
-        lines = raw_text.splitlines()
         result_lines: list[str] = []
         tab_block: list[str] = []
         in_code_fence = False
 
-        def flush_tab_block() -> None:
-            nonlocal tab_block
-            if not tab_block:
-                return
-            if len(tab_block) < 2:
-                # Single-line tab data is rejected from table conversion
-                result_lines.extend(tab_block)
-                tab_block = []
-                return
-
-            rows = [line.split("\t") for line in tab_block]
-            max_cols = max(len(r) for r in rows)
-            if max_cols < 2:
-                result_lines.extend(tab_block)
-                tab_block = []
-                return
-
-            # Format as GitHub-Flavored Markdown table
-            formatted_rows: list[str] = []
-            for idx, r in enumerate(rows):
-                # Pad uneven column counts
-                padded = r + [""] * (max_cols - len(r))
-                # Sanitize cell contents: replace \n with space, escape pipe characters
-                sanitized_cells = [cell.strip().replace("\n", " ").replace("|", r"\|") for cell in padded]
-                row_str = f"| {' | '.join(sanitized_cells)} |"
-                formatted_rows.append(row_str)
-                if idx == 0:
-                    # Add header separator row
-                    sep_str = f"| {' | '.join([':---'] * max_cols)} |"
-                    formatted_rows.append(sep_str)
-
-            result_lines.extend(formatted_rows)
-            tab_block = []
-
-        for line in lines:
+        for line in raw_text.splitlines():
             trimmed = line.strip()
             if trimmed.startswith("```"):
-                flush_tab_block()
+                if tab_block:
+                    result_lines.extend(ChatNormalizerService._format_tab_block_as_markdown(tab_block))
+                    tab_block = []
                 in_code_fence = not in_code_fence
                 result_lines.append(line)
                 continue
@@ -392,10 +437,14 @@ class ChatNormalizerService:
             if "\t" in line:
                 tab_block.append(line)
             else:
-                flush_tab_block()
+                if tab_block:
+                    result_lines.extend(ChatNormalizerService._format_tab_block_as_markdown(tab_block))
+                    tab_block = []
                 result_lines.append(line)
 
-        flush_tab_block()
+        if tab_block:
+            result_lines.extend(ChatNormalizerService._format_tab_block_as_markdown(tab_block))
+
         return "\n".join(result_lines)
 
     @staticmethod
@@ -418,22 +467,13 @@ class ChatNormalizerService:
         if not content:
             return ""
 
-        # 1. Unicode NFC composition
         normalized = unicodedata.normalize("NFC", content)
-
-        # 2. Strip zero-width and invisible formatting characters
         normalized = _ZERO_WIDTH_CHARS_PATTERN.sub("", normalized)
-
-        # 3. Consolidate structural paragraph linebreaks
         normalized = _CONSECUTIVE_NEWLINES_PATTERN.sub("\n\n", normalized)
-
-        # 4. Strip known UI fluff and buttons (expand_more, expand_less, feedback widgets, timestamps)
         normalized = ChatNormalizerService.strip_known_ui_fluff(normalized)
-
-        # 5. CRITICAL EXECUTION ORDER: Normalize tab-delimited tables BEFORE collapsing horizontal whitespace!
+        # Normalize tab-delimited tables before collapsing horizontal whitespace so tab cell boundaries survive.
         normalized = ChatNormalizerService.normalize_tables(normalized)
 
-        # 6. Collapse horizontal ASCII whitespace line-by-line, preserving Unicode spaces & Markdown tables
         cleaned_lines: list[str] = []
         in_code_fence = False
         for line in normalized.splitlines():
@@ -451,7 +491,6 @@ class ChatNormalizerService:
                 collapsed_line = _HORIZONTAL_ASCII_WHITESPACE_PATTERN.sub(" ", line).strip(" \t")
                 cleaned_lines.append(collapsed_line)
 
-        # Join lines and strip leading/trailing empty lines
         return "\n".join(cleaned_lines).strip(" \t\r\n")
 
     @staticmethod
@@ -488,6 +527,23 @@ class ChatNormalizerService:
         )
 
     @staticmethod
+    def _log_chat_error(error_code: ErrorCodes, message: str, key: str) -> None:
+        """Emit a structured RFC 7807 error log entry with stack context for chat normalization failures.
+
+        Args:
+            error_code: Canonical RFC 7807 ErrorCodes identifier.
+            message: Diagnostic failure description.
+            key: Workflow input key identifier.
+        """
+        logger.error(
+            "[ChatNormalizer] %s: %s",
+            error_code.name,
+            message,
+            exc_info=True,
+            extra={"error_code": error_code.name, "input_key": key},
+        )
+
+    @staticmethod
     async def parse_chat_to_dto(
         raw_text: str,
         key: str,
@@ -504,12 +560,13 @@ class ChatNormalizerService:
             ChatHistoryDTO containing dialogue turns.
 
         Raises:
-            AppException: If raw_text is empty (EMPTY_INPUT) or parsing completely fails (PARSING_FAILED).
+            AppException: If raw_text is empty (ErrorCodes.EMPTY_INPUT) or parsing fails (ErrorCodes.PARSING_FAILED).
         """
         if not raw_text or not raw_text.strip(" \t\r\n"):
-            logger.error(
-                "Empty input received for chat key.",
-                extra={"error_code": ErrorCodes.EMPTY_INPUT.name, "input_key": key},
+            ChatNormalizerService._log_chat_error(
+                ErrorCodes.EMPTY_INPUT,
+                f"Empty input received for chat key '{key}'.",
+                key,
             )
             raise AppException(
                 message=f"Empty input received for {key}.",
@@ -517,43 +574,37 @@ class ChatNormalizerService:
                 details={"error_code": ErrorCodes.EMPTY_INPUT.value, "input_key": key},
             )
 
-        # 1. Try structured JSON parsing
         chat_dto = ChatNormalizerService.try_parse_json(raw_text)
-        if chat_dto:
+        if chat_dto is not None:
             logger.info("[ChatNormalizer] Valid JSON chat detected for %s.", key)
         else:
-            # Clean known UI fluff for fast-path regex and LLM fallback
             cleaned_text = ChatNormalizerService.strip_known_ui_fluff(raw_text)
-
-            # 2. Try fast-path regex parsing
             chat_dto = ChatNormalizerService.try_parse_fast_path(cleaned_text)
-            if chat_dto:
+            if chat_dto is not None:
                 logger.info("[ChatNormalizer] Fast-path regex matched dialogue turns for %s.", key)
             else:
-                # 3. Fallback to LLM parser
                 logger.info("[ChatNormalizer] Falling back to ChatParserService LLM parsing for %s...", key)
                 try:
                     chat_dto = await ChatParserService.parse_pasted_chat(cleaned_text, system_repo=system_repo)
                 except AppException:
                     raise
-                except Exception as e:
-                    logger.error(
-                        "LLM chat parser failed for %s: %s",
+                except Exception as exc:
+                    ChatNormalizerService._log_chat_error(
+                        ErrorCodes.PARSING_FAILED,
+                        f"LLM chat parser failed for '{key}': {exc}",
                         key,
-                        e,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.PARSING_FAILED.name, "input_key": key},
                     )
                     raise AppException(
-                        message=f"Failed to parse dialogue conversation for {key}: {e}",
+                        message=f"Failed to parse dialogue conversation for {key}: {exc}",
                         status_code=status.HTTP_400_BAD_REQUEST,
                         details={"error_code": ErrorCodes.PARSING_FAILED.value, "input_key": key},
-                    ) from e
+                    ) from exc
 
-        if not chat_dto or not chat_dto.conversation:
-            logger.error(
-                "Failed to parse conversation turns.",
-                extra={"error_code": ErrorCodes.PARSING_FAILED.name, "input_key": key},
+        if not chat_dto.conversation:
+            ChatNormalizerService._log_chat_error(
+                ErrorCodes.PARSING_FAILED,
+                f"Failed to parse non-empty conversation turns for '{key}'.",
+                key,
             )
             raise AppException(
                 message=f"Failed to parse dialogue conversation for {key}.",
@@ -580,7 +631,7 @@ class ChatNormalizerService:
             ProcessedChatDTO containing segregated dialogue streams.
 
         Raises:
-            AppException: If raw_text is empty (EMPTY_INPUT) or parsing completely fails (PARSING_FAILED).
+            AppException: If raw_text is empty (ErrorCodes.EMPTY_INPUT) or parsing fails (ErrorCodes.PARSING_FAILED).
         """
         chat_dto = await ChatNormalizerService.parse_chat_to_dto(raw_text, key, system_repo)
         return ChatNormalizerService.build_processed_chat(chat_dto)
