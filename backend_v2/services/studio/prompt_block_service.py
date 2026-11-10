@@ -49,6 +49,31 @@ class StudioPromptBlockService:
         self.prompt_block_repo = prompt_block_repo
         self.system_repo = system_repo
 
+    async def _require_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
+        """Fetch a prompt block by ID or raise ResourceNotFoundError.
+
+        Args:
+            initiator: The authenticated user requesting the resource.
+            id: The canonical prompt block identifier.
+
+        Returns:
+            The resolved PromptBlock domain instance.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the prompt block does not exist.
+        """
+        block = await self.prompt_block_repo.get_prompt_block_by_id(id)
+        if not block:
+            logger.error(
+                "[StudioPromptBlockService] %s: PromptBlock %s not found (Initiator: %s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                id,
+                initiator.id,
+                exc_info=True,
+            )
+            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
+        return block
+
     async def list_prompt_blocks(self, initiator: TokenData) -> list[PromptBlock]:
         """List prompt blocks.
 
@@ -82,16 +107,7 @@ class StudioPromptBlockService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        block = await self.prompt_block_repo.get_prompt_block_by_id(id)
-        if not block:
-            logger.error(
-                "[StudioPromptBlockService] %s: PromptBlock %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
-
+        block = await self._require_prompt_block(initiator, id)
         enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
         return block
 
@@ -135,16 +151,7 @@ class StudioPromptBlockService:
             data = data.model_copy(update={"id": id})
         await self.prompt_block_repo.create_prompt_block(data)
 
-        saved = await self.prompt_block_repo.get_prompt_block_by_id(id)
-        if not saved:
-            logger.error(
-                "[StudioPromptBlockService] %s: PromptBlock %s not found after save (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
-        return saved
+        return await self._require_prompt_block(initiator, id)
 
     async def delete_prompt_block(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         """Delete prompt block.
@@ -159,16 +166,7 @@ class StudioPromptBlockService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete a protocol block without force.
         """
-        block = await self.prompt_block_repo.get_prompt_block_by_id(id)
-        if not block:
-            logger.error(
-                "[StudioPromptBlockService] %s: PromptBlock %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
-
+        block = await self._require_prompt_block(initiator, id)
         enforce_modification_rights(initiator, block.organization_id)
 
         if not force_delete and block.category_id == PromptBlockCategory.PROTOCOL:
@@ -177,6 +175,7 @@ class StudioPromptBlockService:
                 ErrorCodes.SYSTEM_PROTECTED_RESOURCE.name,
                 id,
                 initiator.id,
+                exc_info=True,
             )
             raise AppException(
                 message=f"Cannot delete protocol prompt block '{id}' without force_delete.",
@@ -257,17 +256,7 @@ class StudioPromptBlockService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): If atomization fails prior to save.
         """
-        block = await self.prompt_block_repo.get_prompt_block_by_id(id)
-        if not block:
-            logger.error(
-                "[StudioPromptBlockService] %s: PromptBlock %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
-
-        enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
+        block = await self.get_prompt_block(initiator, id)
 
         new_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
         target_org = block.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id

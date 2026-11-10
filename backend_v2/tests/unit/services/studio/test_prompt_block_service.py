@@ -7,7 +7,7 @@ import pytest
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.tests.fakes.in_memory_repositories import (
@@ -62,6 +62,8 @@ def sample_block() -> PersonaPromptBlock:
         type=BlockDataType.INSTRUCTION,
         organization_id="org_123",
         role_enforcement="Strict enforcement.",
+        output_extensions=[],
+        tone_directives=[],
     )
 
 
@@ -228,6 +230,31 @@ async def test_delete_prompt_block_not_found(
         await prompt_block_service.delete_prompt_block(admin_token, "blk_missing")
 
 
+async def test_delete_protocol_prompt_block_without_force_raises(
+    prompt_block_service: StudioPromptBlockService,
+    prompt_block_repo: InMemoryPromptBlockRepository,
+    admin_token: TokenData,
+) -> None:
+    protocol_block = ProtocolPromptBlock(
+        id="blk_0195f3a0000070018234567890abcdef",
+        slug="blk_protocol",
+        label=I18nText(translations={"en": "Protocol Block"}),
+        description=I18nText(translations={"en": "Protocol Desc"}),
+        category_id=PromptBlockCategory.PROTOCOL,
+        type=BlockDataType.INSTRUCTION,
+        organization_id="org_123",
+        output_extensions=[],
+        protocol_instructions="Strict protocol enforcement.",
+    )
+    await prompt_block_repo.create_prompt_block(protocol_block)
+    with pytest.raises(AppException) as exc_info:
+        await prompt_block_service.delete_prompt_block(
+            admin_token, "blk_0195f3a0000070018234567890abcdef", force_delete=False
+        )
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.details == {"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE}
+
+
 async def test_create_prompt_block_draft(
     prompt_block_service: StudioPromptBlockService,
     prompt_block_repo: InMemoryPromptBlockRepository,
@@ -241,6 +268,21 @@ async def test_create_prompt_block_draft(
     assert persisted is not None
     assert persisted.id == draft.id
     assert persisted.organization_id == "org_123"
+
+
+async def test_create_matrix_prompt_block_draft(
+    prompt_block_service: StudioPromptBlockService,
+    prompt_block_repo: InMemoryPromptBlockRepository,
+    admin_token: TokenData,
+) -> None:
+    draft = await prompt_block_service.create_prompt_block_draft(admin_token, category_id=PromptBlockCategory.MATRIX)
+    assert isinstance(draft, MatrixPromptBlock)
+    assert draft.category_id == PromptBlockCategory.MATRIX
+    assert len(draft.scales) == 1
+
+    persisted = await prompt_block_repo.get_prompt_block_by_id(draft.id)
+    assert isinstance(persisted, MatrixPromptBlock)
+    assert persisted.id == draft.id
 
 
 async def test_clone_prompt_block_success(
