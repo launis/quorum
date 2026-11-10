@@ -1,7 +1,10 @@
-"""Validation hooks for structural integrity checks in Phase 9 system."""
+"""Validation hooks for structural integrity, output language, and Guttman anomaly checks."""
+
+from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Sequence
 
 from fastapi import status
 from pydantic import ValidationError
@@ -32,6 +35,107 @@ __all__ = [
     "verify_structure",
 ]
 
+_MIN_STRUCTURAL_CHARS: int = 10
+_IGNORED_STRUCTURAL_KEYS: frozenset[str] = frozenset({"language", "locale", "target_locale"})
+_ENGLISH_STOP_WORDS: frozenset[str] = frozenset(
+    {"the", "and", "is", "are", "was", "were", "this", "that", "these", "those", "from", "with"}
+)
+_ENGLISH_STOP_WORD_THRESHOLD: int = 3
+_GUTTMAN_INVERSION_MARGIN: float = 0.4
+
+
+def _extract_inputs_source(state: HookState) -> object:
+    """Extract raw inputs dictionary or model dump from hook execution state.
+
+    Args:
+        state: Current frozen workflow execution state.
+
+    Returns:
+        Raw inputs mapping or dumped model dictionary for validation.
+    """
+    return state.inputs.raw_inputs if state.inputs.raw_inputs is not None else state.inputs.model_dump()
+
+
+def _collect_structural_warnings(payload: ValidationHookPayloadDTO) -> list[ValidationWarningDTO]:
+    """Flatten nested payload containers and validate minimum character length across fields.
+
+    Args:
+        payload: Validated hook payload DTO.
+
+    Returns:
+        List of structural validation warnings discovered across fields.
+    """
+    inputs_dict = payload.root
+    fields_to_validate = {}
+
+    if "raw_inputs" in inputs_dict:
+        raw_sub = inputs_dict["raw_inputs"]
+        if raw_sub is not None:
+            fields_to_validate.update(ValidationHookPayloadDTO.model_validate(raw_sub).root)
+
+    if "inputs" in inputs_dict:
+        inputs_sub = inputs_dict["inputs"]
+        if inputs_sub is not None:
+            fields_to_validate.update(ValidationHookPayloadDTO.model_validate(inputs_sub).root)
+
+    if not fields_to_validate and not (
+        "steps" in inputs_dict or "raw_inputs" in inputs_dict or "inputs" in inputs_dict
+    ):
+        fields_to_validate = inputs_dict
+
+    warnings: list[ValidationWarningDTO] = []
+    valid_content_keys = 0
+
+    for key, val in fields_to_validate.items():
+        key_lower = key.lower()
+        if (
+            key_lower in _IGNORED_STRUCTURAL_KEYS
+            or key_lower.endswith("_id")
+            or key_lower.endswith("_mode")
+            or key_lower.startswith("_")
+        ):
+            continue
+
+        if not val or not str(val).strip():
+            warnings.append(
+                ValidationWarningDTO(
+                    type=f"{AppException.PROBLEM_BASE_URI}/empty-input",
+                    title="Empty Analysis Input",
+                    error_code=ErrorCodes.EMPTY_INPUT.name,
+                    detail=f"Field '{key}' requires content.",
+                    meta={"key": key},
+                )
+            )
+            continue
+
+        text = str(val).strip()
+        if len(text) < _MIN_STRUCTURAL_CHARS:
+            warnings.append(
+                ValidationWarningDTO(
+                    type=f"{AppException.PROBLEM_BASE_URI}/input-too-short",
+                    title="Analysis Input Too Short",
+                    error_code=ErrorCodes.VALIDATION_FAILED.name,
+                    detail=f"Field '{key}' has length {len(text)}, required {_MIN_STRUCTURAL_CHARS}.",
+                    meta={"key": key, "length": len(text), "min_chars": _MIN_STRUCTURAL_CHARS},
+                )
+            )
+            continue
+
+        valid_content_keys += 1
+
+    if valid_content_keys == 0 and len(warnings) == 0:
+        warnings.append(
+            ValidationWarningDTO(
+                type=f"{AppException.PROBLEM_BASE_URI}/no-content",
+                title="No Content Detected",
+                error_code=ErrorCodes.EMPTY_INPUT.name,
+                detail="No valid analysis content was provided in the payload.",
+                meta={},
+            )
+        )
+
+    return warnings
+
 
 @hook_registry.register(name="verify_structure")
 def verify_structure(state: HookState | None, deps: HookDependencies) -> HookResult:
@@ -55,13 +159,6 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     """
     logger.debug("[ValidationHook] Running structural inputs check...")
 
-    # Minimum char limits
-    MIN_CHARS = 10
-    # System metadata keys that should bypass length constraints
-    ignored_keys = {"language", "locale", "target_locale"}
-
-    warnings: list[ValidationWarningDTO] = []
-
     if not state:
         msg = "State missing in validation hook."
         logger.error("[ValidationHook] %s: %s", ErrorCodes.EMPTY_INPUT.name, msg, exc_info=True)
@@ -72,8 +169,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
         )
 
     try:
-        # Zero-Compromise: Enforce strict dictionary structure via DTO validation
-        payload_source = state.inputs.raw_inputs if state.inputs.raw_inputs is not None else state.inputs.model_dump()
+        payload_source = _extract_inputs_source(state)
         payload = ValidationHookPayloadDTO.model_validate(payload_source)
     except ValidationError as e:
         msg = "Missing or invalid 'inputs' in state. Expected dict."
@@ -84,81 +180,9 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         ) from e
 
-    inputs_dict = payload.root
-
-    # V2 Architecture: Flatten nested structures to validate actual text content
-    fields_to_validate = {}
-
-    # 1. Unpack raw_inputs dynamically
-    if "raw_inputs" in inputs_dict:
-        raw_sub = inputs_dict["raw_inputs"]
-        if raw_sub is not None:
-            fields_to_validate.update(ValidationHookPayloadDTO.model_validate(raw_sub).root)
-
-    # 2. Unpack inputs dynamically
-    if "inputs" in inputs_dict:
-        inputs_sub = inputs_dict["inputs"]
-        if inputs_sub is not None:
-            fields_to_validate.update(ValidationHookPayloadDTO.model_validate(inputs_sub).root)
-
-    # Fallback to the root if it's a flat payload, excluding known container keys
-    if not fields_to_validate and not (
-        "steps" in inputs_dict or "raw_inputs" in inputs_dict or "inputs" in inputs_dict
-    ):
-        fields_to_validate = inputs_dict
-
-    # Validate length for all payload texts, ignoring pure metadata and core identifiers
-    valid_content_keys = 0
-    for key, val in fields_to_validate.items():
-        key_lower = key.lower()
-        if (
-            key_lower in ignored_keys
-            or key_lower.endswith("_id")
-            or key_lower.endswith("_mode")
-            or key_lower.startswith("_")
-        ):
-            continue
-
-        if not val or not str(val).strip():
-            warnings.append(
-                ValidationWarningDTO(
-                    type=f"{AppException.PROBLEM_BASE_URI}/empty-input",
-                    title="Empty Analysis Input",
-                    error_code=ErrorCodes.EMPTY_INPUT.name,
-                    detail=f"Field '{key}' requires content.",
-                    meta={"key": key},
-                )
-            )
-            continue
-
-        text = str(val).strip()
-        if len(text) < MIN_CHARS:
-            warnings.append(
-                ValidationWarningDTO(
-                    type=f"{AppException.PROBLEM_BASE_URI}/input-too-short",
-                    title="Analysis Input Too Short",
-                    error_code=ErrorCodes.VALIDATION_FAILED.name,
-                    detail=f"Field '{key}' has length {len(text)}, required {MIN_CHARS}.",
-                    meta={"key": key, "length": len(text), "min_chars": MIN_CHARS},
-                )
-            )
-            continue
-
-        valid_content_keys += 1
-
-    if valid_content_keys == 0 and len(warnings) == 0:
-        warnings.append(
-            ValidationWarningDTO(
-                type=f"{AppException.PROBLEM_BASE_URI}/no-content",
-                title="No Content Detected",
-                error_code=ErrorCodes.EMPTY_INPUT.name,
-                detail="No valid analysis content was provided in the payload.",
-                meta={},
-            )
-        )
+    warnings = _collect_structural_warnings(payload)
 
     try:
-        # Create strict DTO result
         result_dto = ValidationResultDTO(is_valid=len(warnings) == 0, errors=warnings)
     except ValidationError as e:
         logger.error("[ValidationHook] Failed to create ValidationResult: %s", e, exc_info=True)
@@ -169,11 +193,8 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
         ) from e
 
     if not result_dto.is_valid:
-        # Preserve the structural dumps cleanly utilizing model_dump to prevent bypass errors
         msg = f"Structural Validation Failed: {[w.model_dump(mode='json') for w in warnings]}"
-        logger.error("[ValidationHook] %s", msg)
-
-        # FAIL FAST: Pre-validation failure is a client error (Bad Request)
+        logger.error("[ValidationHook] %s", msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -182,9 +203,8 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
                 "warnings": [w.model_dump(mode="json") for w in warnings],
             },
         )
-    else:
-        logger.debug("[ValidationHook] Checks passed.")
 
+    logger.debug("[ValidationHook] Checks passed.")
     return HookResult(
         success=True,
         state_delta=HookDeltaDTO(delta=result_dto),
@@ -237,12 +257,12 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
     try:
-        inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs is not None else state.inputs.model_dump()
+        inputs_source = _extract_inputs_source(state)
         payload = ValidationHookPayloadDTO.model_validate(inputs_source)
         target_locale = _resolve_target_locale(state, payload)
         if not target_locale:
             msg = "Execution state is missing mandatory 'target_locale'."
-            logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -258,36 +278,28 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         ) from e
 
-    inputs_dict = payload.root
-
     if target_locale == "en":
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    # Heuristics: Extremely common, unambiguous English stop words.
-    english_stops = {"the", "and", "is", "are", "was", "were", "this", "that", "these", "those", "from", "with"}
-
-    # Target Generative text fields
-    target_keys = ["evaluation_notes"]
+    target_keys = {"evaluation_notes"}
     leakage_detected = False
 
-    for key, value in inputs_dict.items():
+    for key, value in payload.root.items():
         if not isinstance(value, str):
             continue
 
         if key in target_keys or key.endswith("_justification"):
             words = set(re.findall(r"\b[a-z]{2,}\b", value.lower()))
-            overlap = words.intersection(english_stops)
+            overlap = words.intersection(_ENGLISH_STOP_WORDS)
 
-            if len(overlap) >= 3:
+            if len(overlap) >= _ENGLISH_STOP_WORD_THRESHOLD:
                 leakage_detected = True
                 logger.warning(
                     "[ValidationHook] Language mismatch detected in field '%s'. "
-                    "Target locale was '%s' but detected English stop words: %s. "
-                    "Text excerpt: %s...",
+                    "Target locale was '%s' but detected %d English stop words.",
                     key,
                     target_locale,
-                    overlap,
-                    value[:100],
+                    len(overlap),
                 )
 
     if leakage_detected:
@@ -322,6 +334,68 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
     return HookResult(success=True, state_delta=HookDeltaDTO())
 
 
+def _evaluate_block_guttman_anomaly(block_id: str, atoms: Sequence[object]) -> bool:
+    """Evaluate a single block's atom list for Guttman hit-rate inversion.
+
+    Args:
+        block_id: Identifier of the evaluated block.
+        atoms: Non-empty sequence of raw or hydrated atom items.
+
+    Returns:
+        True if a Guttman logic inversion is detected, otherwise False.
+
+    Raises:
+        AppException: VALIDATION_FAILED if an atom item fails schema validation.
+    """
+    hits_by_level: dict[float, float] = {}
+    total_by_level: dict[float, float] = {}
+
+    for atom in atoms:
+        try:
+            atom_dto = GuttmanAtomItemDTO.model_validate(atom)
+        except ValidationError as e:
+            msg = f"Malformed atom payload in block '{block_id}': {e}"
+            logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
+
+        level = atom_dto.score_level
+        if level not in hits_by_level:
+            hits_by_level[level] = 0.0
+            total_by_level[level] = 0.0
+        if atom_dto.hit:
+            hits_by_level[level] += 1.0
+        total_by_level[level] += 1.0
+
+    if len(total_by_level) <= 1:
+        return False
+
+    sorted_levels = sorted(total_by_level.keys())
+    for i in range(len(sorted_levels)):
+        for j in range(i + 1, len(sorted_levels)):
+            level_low = sorted_levels[i]
+            level_high = sorted_levels[j]
+            hr_low = hits_by_level[level_low] / total_by_level[level_low]
+            hr_high = hits_by_level[level_high] / total_by_level[level_high]
+
+            if hr_low < hr_high - _GUTTMAN_INVERSION_MARGIN or (hr_low == 0.0 and hr_high == 1.0):
+                logger.warning(
+                    "[ValidationHook] Guttman logic anomaly detected in block %s: "
+                    "L%s rate (%.2f) vs L%s rate (%.2f). Requesting LLM Self-Correction.",
+                    block_id,
+                    level_low,
+                    hr_low,
+                    level_high,
+                    hr_high,
+                )
+                return True
+
+    return False
+
+
 @hook_registry.register(name="verify_anomaly")
 def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResult:
     """HOOK: verify_anomaly.
@@ -347,67 +421,12 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
     if not inputs_source:
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    anomaly_detected = False
-
     for block_id, result in inputs_source.items():
         if isinstance(result, list) and len(result) > 0:
-            hits_by_level: dict[float, float] = {}
-            total_by_level: dict[float, float] = {}
-
-            for atom in result:
-                try:
-                    atom_dto = GuttmanAtomItemDTO.model_validate(atom)
-                except ValidationError as e:
-                    msg = f"Malformed atom payload in block '{block_id}': {e}"
-                    logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    raise AppException(
-                        message=msg,
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
-
-                level = atom_dto.score_level
-                if level not in hits_by_level:
-                    hits_by_level[level] = 0.0
-                    total_by_level[level] = 0.0
-                if atom_dto.hit:
-                    hits_by_level[level] += 1.0
-                total_by_level[level] += 1.0
-
-            if len(total_by_level) > 1:
-                sorted_levels = sorted(total_by_level.keys())
-                for i in range(len(sorted_levels)):
-                    for j in range(i + 1, len(sorted_levels)):
-                        L_low = sorted_levels[i]
-                        L_high = sorted_levels[j]
-                        hr_low = 0.0
-                        if total_by_level[L_low] > 0.0:
-                            hr_low = hits_by_level[L_low] / total_by_level[L_low]
-                        hr_high = 0.0
-                        if total_by_level[L_high] > 0.0:
-                            hr_high = hits_by_level[L_high] / total_by_level[L_high]
-
-                        if hr_low < hr_high - 0.4 or (hr_low == 0.0 and hr_high == 1.0):
-                            logger.warning(
-                                "[ValidationHook] Guttman logic anomaly detected in block %s: "
-                                "L%s rate (%.2f) vs L%s rate (%.2f). Requesting LLM Self-Correction.",
-                                block_id,
-                                L_low,
-                                hr_low,
-                                L_high,
-                                hr_high,
-                            )
-                            anomaly_detected = True
-                            break
-                    if anomaly_detected:
-                        break
-
-        if anomaly_detected:
-            break
-
-    if anomaly_detected:
-        return HookResult(
-            success=True, state_delta=HookDeltaDTO(delta=AnomalyRetryResultDTO(llm_anomaly_retry_requested=True))
-        )
+            if _evaluate_block_guttman_anomaly(block_id, result):
+                return HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=AnomalyRetryResultDTO(llm_anomaly_retry_requested=True)),
+                )
 
     return HookResult(success=True, state_delta=HookDeltaDTO())
