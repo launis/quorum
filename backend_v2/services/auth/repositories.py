@@ -1,11 +1,11 @@
-"""Repository layer for Organization and User entities."""
+"""Repository wrappers for Organization and User identity persistence."""
 
 from __future__ import annotations
 
 import logging
 
 from backend_v2.database.interfaces import IIdentityRepository
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import ConflictError, ErrorCodes
 from backend_v2.models.auth import Organization, OrganizationUpdateDTO, User, UserUpdate
 
 logger = logging.getLogger(__name__)
@@ -17,120 +17,163 @@ __all__ = [
 
 
 class OrganizationRepository:
-    """Repository for Organization data access.
+    """Repository wrapper for Organization identity persistence operations.
 
     Attributes:
-        repo: The underlying identity repository interface.
+        repo: Underlying hexagonal identity repository protocol implementation.
     """
 
     def __init__(self, repo: IIdentityRepository) -> None:
-        """Initializes the Organization repository wrapper.
+        """Initialize the OrganizationRepository wrapper.
 
         Args:
-            repo: The underlying identity repository interface.
+            repo: Underlying hexagonal identity repository protocol implementation.
         """
         self.repo = repo
 
     async def get_by_id(self, org_id: str) -> Organization | None:
-        """Fetches an organization by its ID.
+        """Fetch an organization by its canonical identifier.
 
         Args:
-            org_id: The ID of the organization to fetch.
+            org_id: Canonical Organization identifier (org_<hex32>).
 
         Returns:
-            The Organization object if found, else None.
+            Validated Organization domain model if found, otherwise None.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence lookup or model hydration fails.
         """
         return await self.repo.get_organization(org_id)
 
     async def create(self, org: Organization) -> Organization:
-        """Creates a new organization in the database.
+        """Create a new organization after verifying primary identifier uniqueness.
 
         Args:
-            org: The Organization object to create.
+            org: Validated Organization domain model to persist.
 
         Returns:
-            The created Organization object.
+            Created Organization domain model.
+
+        Raises:
+            ConflictError: With ErrorCodes.CONFLICT_ERROR (409) if an organization with the
+                same canonical ID already exists.
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if persistence fails.
         """
+        if await self.get_by_id(org.id) is not None:
+            logger.error(
+                "[OrganizationRepository] %s: Organization with ID %s already exists.",
+                ErrorCodes.CONFLICT_ERROR.name,
+                org.id,
+                exc_info=True,
+            )
+            raise ConflictError(
+                message=f"Organization with ID {org.id} already exists.",
+                details={"error_code": ErrorCodes.CONFLICT_ERROR.value},
+            )
+
         await self.repo.create_organization(org)
         return org
 
     async def update(self, org_id: str, updates: OrganizationUpdateDTO) -> bool:
-        """Updates an existing organization in the database.
+        """Update an existing organization record in-place.
 
         Args:
-            org_id: The ID of the organization to update.
-            updates: The organization updates payload.
+            org_id: Canonical Organization identifier (org_<hex32>) to update.
+            updates: Validated partial update payload.
 
         Returns:
-            True if updated successfully, False otherwise.
+            True if the organization existed and was updated, otherwise False.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if persistence fails.
         """
         return await self.repo.update_organization(org_id, updates)
 
     async def delete(self, org_id: str) -> bool:
-        """Deletes an organization by ID from the database.
+        """Delete an organization record by its canonical identifier.
 
         Args:
-            org_id: The ID of the organization to delete.
+            org_id: Canonical Organization identifier (org_<hex32>) to delete.
 
         Returns:
-            True if deleted successfully, False otherwise.
+            True if the organization existed and was deleted, otherwise False.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if persistence fails.
         """
         return await self.repo.delete_organization(org_id)
 
     async def list_all(self) -> list[Organization]:
-        """Lists all organizations.
+        """List all persisted organizations.
 
         Returns:
-            A list of all Organization objects.
+            List of validated Organization domain models.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence query or model hydration fails.
         """
         return await self.repo.list_organizations()
 
 
 class UserRepository:
-    """Repository for User data access.
+    """Repository wrapper for User identity persistence operations.
 
     Attributes:
-        repo: The underlying identity repository interface.
+        repo: Underlying hexagonal identity repository protocol implementation.
     """
 
     def __init__(self, repo: IIdentityRepository) -> None:
-        """Initializes the User repository wrapper.
+        """Initialize the UserRepository wrapper.
 
         Args:
-            repo: The underlying identity repository interface.
+            repo: Underlying hexagonal identity repository protocol implementation.
         """
         self.repo = repo
 
     async def get_by_id(self, id: str) -> User | None:
-        """Fetches a user by their ID.
+        """Fetch a user by their canonical identifier.
 
         Args:
-            id: The ID of the user to fetch.
+            id: Canonical User identifier (usr_<hex32>).
 
         Returns:
-            The User object if found, else None.
+            Validated User domain model if found, otherwise None.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence lookup or model hydration fails.
         """
         return await self.repo.get_user(id)
 
     async def get_by_email(self, email: str) -> User | None:
-        """Fetches a user by their email address.
+        """Fetch a user by their email address.
 
         Args:
-            email: The email address of the user.
+            email: Normalized user email address.
 
         Returns:
-            The User object if found, else None.
+            Validated User domain model if found, otherwise None.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence query or model hydration fails.
         """
         return await self.repo.get_user_by_email(email)
 
     async def get_by_firebase_uid(self, firebase_uid: str) -> User | None:
-        """Fetches an active user by their external Firebase Auth UID.
+        """Fetch an active, non-deleted user by their external Firebase Auth UID.
 
         Args:
-            firebase_uid: External Firebase Auth UID.
+            firebase_uid: External Firebase Authentication UID.
 
         Returns:
-            The matching User object if found and not soft-deleted, else None.
+            Matching User domain model if found and not soft-deleted, otherwise None.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence query or model hydration fails.
         """
         users = await self.repo.list_users()
         for user in users:
@@ -139,27 +182,28 @@ class UserRepository:
         return None
 
     async def create(self, user: User) -> User:
-        """Creates a new user in the database.
+        """Create a new user after verifying primary identifier uniqueness.
 
         Args:
-            user: The User object to create.
+            user: Validated User domain model to persist.
 
         Returns:
-            The created User object.
+            Created User domain model.
 
         Raises:
-            AppException: With ErrorCodes.CONFLICT_ERROR (409) if a user with the same ID already exists.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR (409) if a user with the same
+                canonical ID already exists.
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if persistence fails.
         """
-        if await self.get_by_id(user.id):
+        if await self.get_by_id(user.id) is not None:
             logger.error(
                 "[UserRepository] %s: User with ID %s already exists.",
                 ErrorCodes.CONFLICT_ERROR.name,
                 user.id,
                 exc_info=True,
             )
-            raise AppException(
+            raise ConflictError(
                 message=f"User with ID {user.id} already exists.",
-                status_code=409,
                 details={"error_code": ErrorCodes.CONFLICT_ERROR.value},
             )
 
@@ -167,49 +211,63 @@ class UserRepository:
         return user
 
     async def update(self, id: str, updates: UserUpdate) -> User | None:
-        """Updates an existing user.
+        """Update an existing user in-place and return the refreshed domain model.
 
         Args:
-            id: The ID of the user to update.
-            updates: The update payload.
+            id: Canonical User identifier (usr_<hex32>) to update.
+            updates: Validated partial user update payload.
 
         Returns:
-            The updated User object if successful, else None.
+            Updated User domain model if found, otherwise None.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence update or roundtrip hydration fails.
         """
         user = await self.get_by_id(id)
-
-        if not user:
+        if user is None:
             return None
 
         await self.repo.update_user(id, updates)
         return await self.get_by_id(id)
 
     async def list_all(self) -> list[User]:
-        """Lists all users.
+        """List all persisted users across organizations.
 
         Returns:
-            A list of all User objects.
+            List of validated User domain models.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence query or model hydration fails.
         """
         return await self.repo.list_users()
 
     async def delete(self, id: str) -> bool:
-        """Deletes a user by their ID.
+        """Delete a user record by their canonical identifier.
 
         Args:
-            id: The ID of the user to delete.
+            id: Canonical User identifier (usr_<hex32>) to delete.
 
         Returns:
-            True if deletion was successful, False otherwise.
+            True if the user existed and was deleted, otherwise False.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if persistence fails.
         """
         return await self.repo.delete_user(id)
 
     async def get_by_organization(self, org_id: str) -> list[User]:
-        """Fetches all users belonging to a specific organization.
+        """Fetch all users belonging to a specific organization.
 
         Args:
-            org_id: The ID of the organization.
+            org_id: Canonical Organization identifier (org_<hex32>).
 
         Returns:
-            A list of User objects.
+            List of validated User domain models scoped to the organization.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED
+                if persistence query or model hydration fails.
         """
         return await self.repo.list_users(org_id)
