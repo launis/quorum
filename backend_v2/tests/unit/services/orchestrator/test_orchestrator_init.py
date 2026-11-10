@@ -199,7 +199,7 @@ def test_negative_orchestrator_init_strictness_and_routing_validation_fail_fast(
     """Negative test (ISTQB): invalid strictness level or missing routing mode raises AppException."""
     compiler = PromptCompiler()
     with pytest.raises(AppException) as exc_info:
-        compiler.calibrate_strictness("not-a-number")  # type: ignore[arg-type]
+        compiler.calibrate_strictness(float("nan"))
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details is not None

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing
+from collections.abc import Callable
 
 import pytest
 from pydantic import BaseModel
@@ -1058,10 +1059,11 @@ def test_extract_value_from_state_missing_step_negative() -> None:
 def test_extract_value_from_state_additional_resolution_and_error_branches() -> None:
     """Verify remaining state resolution branches and negative unsupported state_data type."""
     compiler = PromptCompiler()
+    extract_untyped: Callable[..., str] = compiler._extract_value_from_state
 
     # Unsupported state_data type raises AppException
     with pytest.raises(AppException) as exc_info:
-        compiler._extract_value_from_state("inputs.doc", object())  # type: ignore[arg-type]
+        extract_untyped("inputs.doc", object())
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 

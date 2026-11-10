@@ -37,8 +37,9 @@ def test_build_linker_user_prompt() -> None:
 
 def test_build_linker_user_prompt_missing_required_arguments_raises() -> None:
     """Verify omitting required arguments raises TypeError."""
+    partial_kwargs: dict[str, str] = {"global_ontology_map": "only_one_arg"}
     with pytest.raises(TypeError):
-        build_linker_user_prompt("only_one_arg")  # type: ignore[call-arg]
+        build_linker_user_prompt(**partial_kwargs)
 
 
 def test_build_linker_user_prompt_boundary_empty_and_cdata_injection() -> None:
