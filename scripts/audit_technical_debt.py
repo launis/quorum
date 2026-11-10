@@ -1,7 +1,7 @@
 """Automated Technical Debt and 1-Hop Caller Audit Scanner CLI.
 
 Single Source of Truth for static scanning of implementation plan target files
-and their 1-hop caller dependencies against the 7-item technical debt checklist:
+and their 1-hop caller dependencies against the technical debt checklist:
 1. Python AST Reflection (getattr, hasattr, setattr)
 2. Python AST Dict Fallbacks (.get() lookups)
 3. Python AST Exception Swallowing (except Exception: pass)
@@ -9,6 +9,7 @@ and their 1-hop caller dependencies against the 7-item technical debt checklist:
 5. Flutter Dart Anti-Patterns (DGR001-DGR010)
 6. ISTQB Test Partition Check (negative test partitions)
 7. Model Factory Parity (polyfactory vs raw dicts)
+8. Async Event-Loop Blocking Calls & Unbounded Hot-Path Queries
 """
 
 from __future__ import annotations
@@ -233,6 +234,65 @@ def _has_pytest_raises_item(items: list[ast.withitem]) -> bool:
     return False
 
 
+_BLOCKING_ASYNC_CONSTRUCTOR_NAMES: frozenset[str] = frozenset(
+    {
+        "ExcelWriter",
+        "PdfReader",
+        "ZipFile",
+        "load_workbook",
+    }
+)
+
+_BLOCKING_ASYNC_QUALIFIED_CALLS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("fitz", "open"),
+        ("openpyxl", "load_workbook"),
+        ("pd", "ExcelWriter"),
+        ("pd", "read_excel"),
+        ("pymupdf", "open"),
+        ("time", "sleep"),
+        ("zipfile", "ZipFile"),
+    }
+)
+
+_BLOCKING_ASYNC_METHOD_ATTRS: frozenset[str] = frozenset(
+    {
+        "read_excel",
+        "to_excel",
+    }
+)
+
+_HOT_EXECUTION_PATH_SEGMENTS: tuple[str, ...] = (
+    "backend_v2/services/execution/",
+    "backend_v2/services/export/",
+    "backend_v2/services/orchestrator/",
+    "backend_v2/hooks/",
+)
+
+
+def _is_blocking_sync_call_in_async(node: ast.Call) -> bool:
+    """Checks whether an AST Call invokes a known synchronous CPU/disk-blocking API directly.
+
+    Args:
+        node: AST Call node to inspect.
+
+    Returns:
+        True if the call matches a known synchronous blocking constructor, function, or method.
+    """
+    match node.func:
+        case ast.Name(id=fn_name) if fn_name in _BLOCKING_ASYNC_CONSTRUCTOR_NAMES:
+            return True
+        case ast.Attribute(value=ast.Name(id=mod_name), attr=attr_name) if (
+            mod_name,
+            attr_name,
+        ) in _BLOCKING_ASYNC_QUALIFIED_CALLS:
+            return True
+        case ast.Attribute(attr=method_name) if method_name in _BLOCKING_ASYNC_METHOD_ATTRS:
+            return True
+        case _:
+            return False
+
+
 class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
     """AST visitor inspecting a Python source file for 7-item technical debt patterns.
 
@@ -269,6 +329,10 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self.test_function_names: list[str] = []
         self._dict_literal_vars: set[str] = set()
         self._in_pytest_raises: bool = False
+        self._in_async_func: bool = False
+        self._is_hot_execution_path: bool = self.is_domain_code and any(
+            seg in self.normalized_path for seg in _HOT_EXECUTION_PATH_SEGMENTS
+        )
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Inspect class definitions for mutable defaults and duplicate Annotated Field() calls.
@@ -369,9 +433,12 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         if node.name.startswith("test_"):
             self.test_function_names.append(node.name)
         saved_dict_vars = set(self._dict_literal_vars)
+        saved_async = self._in_async_func
         self._dict_literal_vars.clear()
+        self._in_async_func = False
         self.generic_visit(node)
         self._dict_literal_vars = saved_dict_vars
+        self._in_async_func = saved_async
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         """Inspect asynchronous function definitions for mutable defaults and test names.
@@ -383,9 +450,12 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         if node.name.startswith("test_"):
             self.test_function_names.append(node.name)
         saved_dict_vars = set(self._dict_literal_vars)
+        saved_async = self._in_async_func
         self._dict_literal_vars.clear()
+        self._in_async_func = True
         self.generic_visit(node)
         self._dict_literal_vars = saved_dict_vars
+        self._in_async_func = saved_async
 
     def _check_function_defaults(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         """Check function parameter defaults for mutable literal containers.
@@ -536,6 +606,40 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                         debt_category="model_factory_parity",
                     )
                 )
+
+        # Item 8A: Synchronous CPU/disk blocking call inside async def
+        if self.is_domain_code and self._in_async_func and _is_blocking_sync_call_in_async(node):
+            self.findings.append(
+                TechnicalDebtFindingDTO(
+                    rule_code="TD_ASYNC_EVENT_LOOP_BLOCKING",
+                    file_path=self.filepath,
+                    lineno=node.lineno,
+                    col_offset=node.col_offset,
+                    message=f"Synchronous CPU/disk blocking call inside `async def`: `{ast.unparse(node)}`.",
+                    remediation="Offload synchronous CPU/file-I/O operations to a worker thread via `await asyncio.to_thread(...)`.",
+                    severity=GuardrailSeverity.WARNING,
+                    debt_category="async_event_loop_blocking",
+                )
+            )
+
+        # Item 8B: Unbounded full-table `.get_all_*()` scan on hot execution/export paths
+        if (
+            self._is_hot_execution_path
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr.startswith("get_all_")
+        ):
+            self.findings.append(
+                TechnicalDebtFindingDTO(
+                    rule_code="TD_UNBOUNDED_HOT_PATH_QUERY",
+                    file_path=self.filepath,
+                    lineno=node.lineno,
+                    col_offset=node.col_offset,
+                    message=f"Unbounded full-collection query `{node.func.attr}()` on hot execution/export path: `{ast.unparse(node)}`.",
+                    remediation="Replace full-table `.get_all_*()` scans with targeted $O(1)$ ID lookups or scoped batch queries.",
+                    severity=GuardrailSeverity.WARNING,
+                    debt_category="unbounded_hot_path_query",
+                )
+            )
 
         self.generic_visit(node)
 

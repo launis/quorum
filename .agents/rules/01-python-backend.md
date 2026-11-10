@@ -507,6 +507,18 @@
         2) **Mandatory Pre-Flight Migration Execution**: Every entrypoint initializing or seeding PostgreSQL (`main.py:_validate_database_preflight`, `run_seed.py:_seed_postgres`, `worker.py`) MUST execute `await resolved_uow.pool_manager.apply_migrations()` via the public `PostgresUnitOfWork.pool_manager` property BEFORE calling `verify_schema_tables()` or executing queries. Direct external access to private `._pool_manager` is strictly prohibited (`ZORM007`).
         3) **Native PostgreSQL 19 DDL & Bulk SQL Standards**: NEVER use `gen_random_uuid()` (UUIDv4), `SERIAL`/`BIGSERIAL`, physical duplicate `created_at DEFAULT NOW()` columns on UUIDv7-keyed tables, `WHERE id NOT IN (SELECT ...)`, `dict(record)` row unpacking (`ZORM002`), or Python `for` loops executing N+1 `await conn.execute(...)` writes. ALWAYS use native `id UUID PRIMARY KEY DEFAULT uuidv7()` with `CHECK (uuid_extract_version(id) = 7)`, zero-storage `created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL`, `WHERE NOT EXISTS (...)`, GIN-indexed `@>` JSONB containment, and single-roundtrip bulk operations (`await conn.executemany(...)` or `UNNEST($1::uuid[], ...)`).</mandate>
     </rule_block>
+
+    <rule_block id="service_tenant_rbac_isolation_mandate">
+        <mandate>Every public Service method accepting a primary or relational entity ID for read, mutation, export, or deletion MUST deterministically verify multi-tenant and RBAC ownership (`initiator.organization_id` match or `is_resource_accessible(initiator, entity)`) before returning data or mutating state, raising `AppException(ErrorCodes.FORBIDDEN)` or `AppException(ErrorCodes.RESOURCE_NOT_FOUND)` on cross-tenant access attempts (IDOR prevention). Internal helper methods must explicitly document and rely on caller-verified tenant context.</mandate>
+    </rule_block>
+
+    <rule_block id="uow_transactional_concurrency_mandate">
+        <mandate>Multi-step persistence mutations modifying two or more coupled records or tables MUST execute atomically inside a single `async with uow:` transaction boundary to prevent partial writes on failure. Concurrent state transitions on mutable lifecycle records (`ExecutionRecord`, `Workflow`) MUST enforce optimistic concurrency control via `expected_state_version`, raising `AppException(ErrorCodes.CONFLICT)` on stale version mismatches.</mandate>
+    </rule_block>
+
+    <rule_block id="async_event_loop_non_blocking_mandate">
+        <mandate>NEVER invoke synchronous CPU-bound or disk-blocking operations (`pd.ExcelWriter`, `.to_excel()`, `openpyxl.load_workbook`, `fitz.open`, `PdfReader`, `zipfile.ZipFile`, `time.sleep`) directly inside an `async def` coroutine without offloading via `await asyncio.to_thread(...)`, and NEVER invoke unbounded full-table `.get_all_*()` queries inside hot execution, orchestration, hook, or export paths (`TD_ASYNC_EVENT_LOOP_BLOCKING`, `TD_UNBOUNDED_HOT_PATH_QUERY`).</mandate>
+    </rule_block>
 </architectural_invariants>
 
 <agentic_safety_guardrails>
