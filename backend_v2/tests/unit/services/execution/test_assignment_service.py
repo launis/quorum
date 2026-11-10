@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
+from arq import ArqRedis
 
 from backend_v2.api.routers.execution.executions import (
     activate_execution_assignment,
@@ -23,6 +26,7 @@ from backend_v2.database.interfaces import EntityPersistencePort
 from backend_v2.exceptions import (
     AppException,
     AuthenticationError,
+    ConfigurationError,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
@@ -37,13 +41,13 @@ from backend_v2.models.auth import (
     ExecutionAssignmentSubmitDTO,
     Organization,
     SubscriptionStatus,
+    SystemOrganizations,
     TokenData,
     User,
     UserRole,
 )
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
@@ -66,9 +70,16 @@ from backend_v2.services.execution import (
     ExecutionAssignmentService,
     ExecutionIngressService,
     ExecutionService,
-    ExecutionStep,
 )
-from backend_v2.services.execution.assignment_service import mask_email_address
+from backend_v2.services.execution.assignment_service import (
+    AuditEventLoggerProtocol,
+    mask_email_address,
+)
+from backend_v2.tests.factories.model_factories import (
+    ExecutionStepFactory,
+    OutputProfileFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryIdentityRepository,
     InMemorySystemRepository,
@@ -87,17 +98,55 @@ ASSIGNEE_ID = "usr_0195f3a0000070008000000000000201"
 INTRUDER_ID = "usr_0195f3a0000070008000000000000202"
 
 
+@dataclass
+class RecordedAuditEvent:
+    """In-memory captured audit event record for stateful verification."""
+
+    actor_id: str
+    action: str
+    organization_id: str
+    target_id: str
+    details: Mapping[str, str | int | float | bool | None]
+
+
+@dataclass
+class InMemoryAuditEventLogger:
+    """Hermetic in-memory AuditEventLoggerProtocol test double."""
+
+    events: list[RecordedAuditEvent] = field(default_factory=list)
+
+    async def log_event(
+        self,
+        *,
+        actor_id: str,
+        action: str,
+        organization_id: str,
+        target_id: str,
+        details: Mapping[str, str | int | float | bool | None],
+    ) -> None:
+        """Append a structured audit event to the in-memory ledger."""
+        self.events.append(
+            RecordedAuditEvent(
+                actor_id=actor_id,
+                action=action,
+                organization_id=organization_id,
+                target_id=target_id,
+                details=details,
+            )
+        )
+
+
 def _build_workflow() -> Workflow:
-    """Construct a valid test Workflow with locked and assignee input slots.
+    """Construct a valid test Workflow via WorkflowFactory with locked and assignee input slots.
 
     Returns:
         Validated Workflow domain model.
     """
-    return Workflow(
+    return WorkflowFactory.build(
         id=WORKFLOW_ID,
         slug="assignment-workflow",
-        name="Assignment Workflow",
-        description="Assignment Workflow Description",
+        name=I18nText(translations={"en": "Assignment Workflow", "fi": "Tehtävätyönkulku"}),
+        description=I18nText(translations={"en": "Assignment Workflow Description", "fi": "Kuvaus"}),
         status="active",
         version=1,
         default_strictness_level=50,
@@ -173,11 +222,12 @@ async def _setup_assignment_harness(
         )
     )
     await wf_repo.save_output_profile(
-        OutputProfile(
+        OutputProfileFactory.build(
             id=PROFILE_ID,
             slug="eval-profile",
             name=I18nText(translations={"en": "Eval Profile", "fi": "Profiili"}),
             workflow_id=WORKFLOW_ID,
+            organization_id=ORG_ALPHA_ID,
             target_block_order=[],
             visible_block_extensions=[],
             visible_workflow_extensions=[],
@@ -354,6 +404,10 @@ async def test_assignment_activate_identity_mismatch_negative(
 
     assert exc_info.value.status_code == 403
     assert ErrorCodes.IDENTITY_MISMATCH.name in caplog.text
+    assert "wrong.person@alpha.fi" not in caplog.text
+    assert "participant@alpha.fi" not in caplog.text
+    assert "w***@alpha.fi" in caplog.text
+    assert "p***@alpha.fi" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -404,7 +458,7 @@ async def test_assignment_submit_dual_clock_expiration_bva_boundary(
                 initiator=assignee,
                 assignment_id=created.id,
                 payload=submit_dto,
-                arq_pool=AsyncMock(),
+                arq_pool=AsyncMock(spec=ArqRedis),
                 now_override=simulated_now,
             )
             assert record.id.startswith("exe_")
@@ -414,7 +468,7 @@ async def test_assignment_submit_dual_clock_expiration_bva_boundary(
                     initiator=assignee,
                     assignment_id=created.id,
                     payload=submit_dto,
-                    arq_pool=AsyncMock(),
+                    arq_pool=AsyncMock(spec=ArqRedis),
                     now_override=simulated_now,
                 )
             assert exc_info.value.status_code == 410
@@ -453,7 +507,7 @@ async def test_assignment_submit_replay_already_submitted_negative(
         initiator=assignee,
         assignment_id=created.id,
         payload=submit_dto,
-        arq_pool=AsyncMock(),
+        arq_pool=AsyncMock(spec=ArqRedis),
     )
     # Verify locked_inputs cannot be overridden by assignee
     assert first_record.raw_inputs.dynamic_inputs["manager_context"] == "Immutable brief"
@@ -465,7 +519,7 @@ async def test_assignment_submit_replay_already_submitted_negative(
             initiator=assignee,
             assignment_id=created.id,
             payload=submit_dto,
-            arq_pool=AsyncMock(),
+            arq_pool=AsyncMock(spec=ArqRedis),
         )
     assert exc_info.value.status_code == 409
     assert ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.name in caplog.text
@@ -705,11 +759,11 @@ async def test_assignment_jit_onboarding_draft_and_confirmation_only_visibility(
         payload=ExecutionAssignmentSubmitDTO(
             submitted_inputs=WorkflowInputs(dynamic_inputs={"candidate_answer": "Final answer"})
         ),
-        arq_pool=AsyncMock(),
+        arq_pool=AsyncMock(spec=ArqRedis),
     )
 
     # Simulate completed execution with forensic synthesis and scorecard atoms in repository
-    populated_step = ExecutionStep(
+    populated_step = ExecutionStepFactory.build(
         id=STEP_ID,
         label="Eval Step",
         status=ExecutionStatus.PASSED,
@@ -917,7 +971,7 @@ async def test_assignment_firebase_onboarding_mfa_and_router_endpoints(
         payload=ExecutionAssignmentSubmitDTO(
             submitted_inputs=WorkflowInputs(dynamic_inputs={"candidate_answer": "Submitted via router"})
         ),
-        arq_pool=AsyncMock(),
+        arq_pool=AsyncMock(spec=ArqRedis),
         current_user=router_user_token,
         execution_service=execution_service,
         doc_service=AsyncMock(),
@@ -931,8 +985,9 @@ async def test_assignment_firebase_onboarding_mfa_and_router_endpoints(
 async def test_assignment_edge_and_negative_branches() -> None:
     """Exercise remaining negative, RBAC, persistence fallback, and audit branches."""
     assignment_service, _, _, identity_repo, _, _ = await _setup_assignment_harness()
-    assignment_service.audit_service = AsyncMock()
-    assignment_service.audit_service.log_event = AsyncMock()
+    audit_logger = InMemoryAuditEventLogger()
+    assert isinstance(audit_logger, AuditEventLoggerProtocol)
+    assignment_service.audit_service = audit_logger
 
     assert assignment_service.get_last_generated_token("tsk_0195f3a0000070008000000000000000") is None
 
@@ -976,7 +1031,9 @@ async def test_assignment_edge_and_negative_branches() -> None:
             hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
         ),
     )
-    assert assignment_service.audit_service.log_event.called
+    assert len(audit_logger.events) == 1
+    assert audit_logger.events[0].action == "ASSIGNMENT_CREATED"
+    assert audit_logger.events[0].target_id == created.id
     raw_token = assignment_service.get_last_generated_token(created.id)
     assert raw_token is not None
 
@@ -1046,13 +1103,14 @@ async def test_assignment_edge_and_negative_branches() -> None:
         payload=ExecutionAssignmentSubmitDTO(
             submitted_inputs=WorkflowInputs(dynamic_inputs={"candidate_answer": "Done"})
         ),
-        arq_pool=AsyncMock(),
+        arq_pool=AsyncMock(spec=ArqRedis),
     )
 
-    # Exercise get_assignment_by_execution_id from entity_adapter
+    # Exercise get_assignment_by_execution_id from entity_adapter (hit + miss)
     by_exec = await assignment_service.get_assignment_by_execution_id(record.id)
     assert by_exec is not None
     assert by_exec.id == created.id
+    assert await assignment_service.get_assignment_by_execution_id("exe_0195f3a0000070008000000000009999") is None
 
     # Resend, activate, and save_draft on already-submitted assignment raise 409 ConflictError
     with pytest.raises(ConflictError):
@@ -1100,3 +1158,204 @@ async def test_assignment_edge_and_negative_branches() -> None:
             tok2,
             ExecutionAssignmentOnboardingRequestDTO(firebase_token="bad_firebase_token_value", name="FB Edge"),
         )
+
+
+@pytest.mark.asyncio
+async def test_assignment_uow_factory_roundtrip_and_unconfigured_persistence_negative(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify transactional uow_factory persistence roundtrip and Fail-Fast ConfigurationError when unconfigured."""
+    base_service, _, _, identity_repo, email_service, _ = await _setup_assignment_harness()
+    monkeypatch.setattr(
+        "backend_v2.services.execution.assignment_service.get_registered_uow_factory",
+        lambda: None,
+    )
+
+    # 1. Negative: Unconfigured persistence fails fast with ConfigurationError + RFC 7807 log
+    unconfigured = ExecutionAssignmentService(
+        ingress_service=base_service.ingress_service,
+        org_repo=base_service.org_repo,
+        user_repo=base_service.user_repo,
+        workflow_repo=base_service.workflow_repo,
+        token_service=base_service.token_service,
+        email_service=email_service,
+        entity_adapter=None,
+        uow_factory=None,
+    )
+    with caplog.at_level(logging.ERROR), pytest.raises(ConfigurationError) as cfg_err:
+        await unconfigured.list_assignments(_manager_token())
+    assert cfg_err.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+    assert ErrorCodes.CONFIGURATION_ERROR.name in caplog.text
+
+    # 2. Positive: Transactional uow_factory stateful roundtrip + FULL_PORTAL visibility
+    uow = InMemoryUnitOfWork()
+    uow_service = ExecutionAssignmentService(
+        ingress_service=base_service.ingress_service,
+        org_repo=base_service.org_repo,
+        user_repo=base_service.user_repo,
+        workflow_repo=base_service.workflow_repo,
+        token_service=base_service.token_service,
+        email_service=email_service,
+        entity_adapter=None,
+        uow_factory=lambda: uow,
+    )
+    created = await uow_service.create_assignment(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="uow.user@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            output_profile_id=PROFILE_ID,
+            locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "UoW Brief"}),
+            assignee_input_keys=["candidate_answer"],
+            result_visibility=AssignmentResultVisibility.FULL_REPORT_ACCESS,
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=6),
+        ),
+    )
+    raw_token = uow_service.get_last_generated_token(created.id)
+    assert raw_token is not None
+
+    onboarded = await uow_service.onboard_assignee(
+        raw_token,
+        ExecutionAssignmentOnboardingRequestDTO(name="UoW Assignee"),
+    )
+    assert onboarded.user.email == "uow.user@alpha.fi"
+    persisted_uow_user = await uow.entities.get_user(onboarded.user.id)
+    assert persisted_uow_user is not None
+    assert persisted_uow_user.organization_id == ORG_ALPHA_ID
+
+    uow_assignee_tok = TokenData(
+        id=onboarded.user.id,
+        role=UserRole.MEMBER,
+        organization_id=ORG_ALPHA_ID,
+        email="uow.user@alpha.fi",
+    )
+    activated = await uow_service.activate_assignment(uow_assignee_tok, created.id)
+    assert activated.status == AssignmentStatus.ACTIVATED
+
+    full_record = await uow_service.submit_assignment(
+        initiator=uow_assignee_tok,
+        assignment_id=created.id,
+        payload=ExecutionAssignmentSubmitDTO(
+            submitted_inputs=WorkflowInputs(dynamic_inputs={"candidate_answer": "UoW Submission"})
+        ),
+        arq_pool=AsyncMock(spec=ArqRedis),
+    )
+    assert full_record.frozen_context is not None
+    fetched_list = await uow_service.list_assignments(_manager_token())
+    assert len(fetched_list) == 1
+    assert fetched_list[0].status == AssignmentStatus.SUBMITTED
+    assert fetched_list[0].execution_id == full_record.id
+
+
+@pytest.mark.asyncio
+async def test_assignment_hard_deadline_bva_cross_org_onboarding_and_root_org_resolution(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify hard_deadline_at expiration state transition, cross-org onboarding collision, and missing org errors."""
+    assignment_service, _, _, identity_repo, _, entity_adapter = await _setup_assignment_harness()
+
+    # 1. ROOT without organization_id resolves SystemOrganizations.ROOT_SYSTEM; missing org raises ResourceNotFoundError
+    root_token = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.ROOT, organization_id=None)
+    with caplog.at_level(logging.ERROR), pytest.raises(ResourceNotFoundError) as not_found_exc:
+        await assignment_service.create_assignment(
+            initiator=root_token,
+            payload=ExecutionAssignmentCreateDTO(
+                assigned_email="root.target@alpha.fi",
+                workflow_id=WORKFLOW_ID,
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
+                assignee_input_keys=[],
+                hard_deadline_at=datetime.now(UTC) + timedelta(hours=2),
+            ),
+        )
+    assert not_found_exc.value.status_code == 404
+    assert ErrorCodes.RESOURCE_NOT_FOUND.name in caplog.text
+
+    # Seed ROOT_SYSTEM org and verify ROOT with organization_id=None creates assignment cleanly
+    await identity_repo.create_organization(
+        Organization(
+            id=SystemOrganizations.ROOT_SYSTEM,
+            name="System Root",
+            created_at=datetime.now(UTC),
+            is_active=True,
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=100000,
+            rpm_limit=100,
+            allowed_email_domains=[],
+        )
+    )
+    root_created = await assignment_service.create_assignment(
+        initiator=root_token,
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="root.target@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
+            assignee_input_keys=[],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=2),
+        ),
+    )
+    assert root_created.organization_id == SystemOrganizations.ROOT_SYSTEM
+
+    # 2. Cross-org collision during onboard_assignee when user joins ORG_BETA_ID after assignment creation
+    collision_assignment = await assignment_service.create_assignment(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="late.collision@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
+            assignee_input_keys=[],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=2),
+        ),
+    )
+    collision_tok = assignment_service.get_last_generated_token(collision_assignment.id)
+    assert collision_tok is not None
+    await identity_repo.create_user(
+        User(
+            id="usr_0195f3a0000070008000000000000888",
+            email="late.collision@alpha.fi",
+            name="Moved To Beta",
+            role=UserRole.MEMBER,
+            organization_id=ORG_BETA_ID,
+            is_active=True,
+            created_at=datetime.now(UTC),
+            language=SystemLocale.FI,
+            theme_mode="system",
+        )
+    )
+    with caplog.at_level(logging.ERROR), pytest.raises(ConflictError) as col_exc:
+        await assignment_service.onboard_assignee(
+            collision_tok,
+            ExecutionAssignmentOnboardingRequestDTO(name="Collision User"),
+        )
+    assert col_exc.value.details["error_code"] == ErrorCodes.USER_ALREADY_ASSIGNED.value
+
+    # 3. Hard deadline expiration during onboard_assignee transitions stored status to EXPIRED and raises 410
+    expiring = await assignment_service.create_assignment(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="expiring@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            locked_inputs=WorkflowInputs(dynamic_inputs={}),
+            assignee_input_keys=[],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=1),
+        ),
+    )
+    expiring_tok = assignment_service.get_last_generated_token(expiring.id)
+    assert expiring_tok is not None
+    stored_expiring = await entity_adapter.get_execution_assignment(expiring.id)
+    assert stored_expiring is not None
+    await entity_adapter.upsert_execution_assignment(
+        stored_expiring.model_copy(update={"hard_deadline_at": datetime.now(UTC) - timedelta(seconds=1)})
+    )
+    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as exp_exc:
+        await assignment_service.onboard_assignee(
+            expiring_tok,
+            ExecutionAssignmentOnboardingRequestDTO(name="Late User"),
+        )
+    assert exp_exc.value.status_code == 410
+    assert exp_exc.value.details["error_code"] == ErrorCodes.ASSIGNMENT_EXPIRED.value
+    refreshed_expiring = await entity_adapter.get_execution_assignment(expiring.id)
+    assert refreshed_expiring is not None
+    assert refreshed_expiring.status == AssignmentStatus.EXPIRED

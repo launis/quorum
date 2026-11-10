@@ -7,10 +7,13 @@ import hashlib
 import logging
 import secrets
 import time
+from collections.abc import AsyncIterator, Mapping
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
-from typing import Any, NoReturn
+from typing import Never, Protocol, runtime_checkable
 
 import jwt
+from arq import ArqRedis
 from pydantic import SecretStr
 
 from backend_v2.database.interfaces import (
@@ -81,7 +84,27 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["ExecutionAssignmentService", "mask_email_address", "redact_execution_for_confirmation_only"]
+__all__ = [
+    "AuditEventLoggerProtocol",
+    "ExecutionAssignmentService",
+    "mask_email_address",
+    "redact_execution_for_confirmation_only",
+]
+
+
+@runtime_checkable
+class AuditEventLoggerProtocol(Protocol):
+    """Protocol for structured task assignment audit event logging across bounded contexts."""
+
+    async def log_event(
+        self,
+        *,
+        actor_id: str,
+        action: str,
+        organization_id: str,
+        target_id: str,
+        details: Mapping[str, str | int | float | bool | None],
+    ) -> None: ...
 
 
 def mask_email_address(email: str) -> str:
@@ -154,7 +177,7 @@ class ExecutionAssignmentService:
         workflow_repo: IWorkflowRepository | None = None,
         token_service: TokenService | None = None,
         email_service: EmailService | None = None,
-        audit_service: Any = None,
+        audit_service: AuditEventLoggerProtocol | None = None,
         entity_adapter: EntityPersistencePort | None = None,
         uow_factory: UnitOfWorkFactory | None = None,
     ) -> None:
@@ -167,7 +190,7 @@ class ExecutionAssignmentService:
             workflow_repo: Optional IWorkflowRepository instance.
             token_service: Optional TokenService instance.
             email_service: Optional EmailService instance.
-            audit_service: Optional audit logging service.
+            audit_service: Optional structured audit event logger implementing AuditEventLoggerProtocol.
             entity_adapter: Optional hexagonal EntityPersistencePort for assignments.
             uow_factory: Optional UnitOfWork factory for transactional assignment persistence.
         """
@@ -177,7 +200,7 @@ class ExecutionAssignmentService:
         self.workflow_repo = workflow_repo
         self.token_service = token_service
         self.email_service: EmailService = email_service if email_service is not None else EmailService()
-        self.audit_service = audit_service
+        self.audit_service: AuditEventLoggerProtocol | None = audit_service
         self._entity_adapter: EntityPersistencePort | None = entity_adapter
         self._uow_factory: UnitOfWorkFactory | None = uow_factory
         self._last_generated_tokens: dict[str, str] = {}
@@ -191,7 +214,7 @@ class ExecutionAssignmentService:
         return self._uow_factory if self._uow_factory is not None else get_registered_uow_factory()
 
     @staticmethod
-    def _raise_unconfigured_persistence_error() -> NoReturn:
+    def _raise_unconfigured_persistence_error() -> Never:
         """Raise Fail-Fast ConfigurationError when no persistence port or UoW is configured.
 
         Raises:
@@ -200,11 +223,86 @@ class ExecutionAssignmentService:
         logger.error(
             "[ExecutionAssignmentService] %s: ExecutionAssignmentService requires an entity_adapter or uow_factory.",
             ErrorCodes.CONFIGURATION_ERROR.name,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
         raise ConfigurationError(
             message="ExecutionAssignmentService requires an entity_adapter or uow_factory for assignment persistence.",
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
+
+    @asynccontextmanager
+    async def _acquire_entity_port(
+        self,
+        *,
+        commit: bool = False,
+    ) -> AsyncIterator[EntityPersistencePort]:
+        """Yield the active EntityPersistencePort from entity_adapter or a UnitOfWork transaction.
+
+        Args:
+            commit: Whether to commit the UnitOfWork transaction upon successful exit.
+
+        Yields:
+            Configured EntityPersistencePort instance.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
+        """
+        if self._entity_adapter is not None:
+            yield self._entity_adapter
+            return
+        uow_factory = self._resolve_uow_factory()
+        if uow_factory is not None:
+            async with uow_factory() as uow:
+                yield uow.entities
+                if commit:
+                    await uow.commit()
+            return
+        self._raise_unconfigured_persistence_error()
+
+    @staticmethod
+    def _ensure_utc(dt: datetime) -> datetime:
+        """Normalize a datetime value to timezone-aware UTC.
+
+        Args:
+            dt: Input datetime instance.
+
+        Returns:
+            Timezone-aware UTC datetime instance.
+        """
+        return dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt
+
+    @staticmethod
+    def _assert_not_submitted(
+        assignment: ExecutionAssignment,
+        *,
+        operation: str,
+    ) -> None:
+        """Raise ConflictError if the assignment has already been submitted.
+
+        Args:
+            assignment: Target ExecutionAssignment domain model.
+            operation: Human-readable operation description for structured diagnostics.
+
+        Raises:
+            ConflictError: With ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED if already submitted.
+        """
+        if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
+            logger.error(
+                "[ExecutionAssignmentService] %s: Cannot %s already submitted assignment '%s'.",
+                ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.name,
+                operation,
+                assignment.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.value},
+            )
+            raise ConflictError(
+                message="Assignment has already been submitted.",
+                details={
+                    "error_code": ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.value,
+                    "assignment_id": assignment.id,
+                },
+            )
 
     def get_last_generated_token(self, assignment_id: str) -> str | None:
         """Return the raw token generated for an assignment ID in test/local workflows.
@@ -234,6 +332,7 @@ class ExecutionAssignmentService:
             Redacted ExecutionAssignmentResponseDTO without token_hash.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED on role or domain violation.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if organization is missing.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on cross-tenant identity collision.
@@ -298,6 +397,7 @@ class ExecutionAssignmentService:
             ExecutionAssignmentBatchResponseDTO with shared batch_id and created assignments.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED on role or domain violation.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if organization is missing.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on cross-tenant identity collision.
@@ -347,6 +447,9 @@ class ExecutionAssignmentService:
 
         Returns:
             List of ExecutionAssignmentResponseDTO accessible to the caller.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
         all_records = await self._list_all_assignments(
             organization_id=None if initiator.role == UserRole.ROOT else initiator.organization_id
@@ -379,22 +482,14 @@ class ExecutionAssignmentService:
             Updated ExecutionAssignmentResponseDTO with refreshed email_delivery_status.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if assignment is missing.
             ConflictError: With ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED if already submitted.
         """
         assignment = await self._get_assignment_or_raise(assignment_id)
         self._verify_manager_or_admin_for_org(initiator=initiator, org_id=assignment.organization_id)
-        if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
-            logger.error(
-                "[ExecutionAssignmentService] %s: Cannot resend already submitted assignment '%s'.",
-                ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.name,
-                assignment.id,
-            )
-            raise ConflictError(
-                message="Cannot resend email for an already submitted assignment.",
-                details={"error_code": ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.value},
-            )
+        self._assert_not_submitted(assignment, operation="resend")
         org = await self._fetch_org_or_raise(assignment.organization_id)
         raw_token = secrets.token_urlsafe(32)
         new_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
@@ -419,17 +514,13 @@ class ExecutionAssignmentService:
             ExecutionAssignmentPreviewDTO with masked email and deadline metadata.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if token digest is unknown.
         """
-        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-        assignment = await self._find_assignment_by_token_hash(token_hash)
-        if assignment is None:
-            logger.error(
-                "[ExecutionAssignmentService] %s: Assignment preview token not found.",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-            )
-            raise ResourceNotFoundError(resource_type="execution_assignment", resource_id="token")
-
+        assignment = await self._resolve_assignment_by_raw_token_or_raise(
+            raw_token,
+            context_label="Assignment preview",
+        )
         org = await self._fetch_org_or_raise(assignment.organization_id)
         return ExecutionAssignmentPreviewDTO(
             id=assignment.id,
@@ -458,21 +549,17 @@ class ExecutionAssignmentService:
             TokenExchangeResponseDTO containing a signed 15-minute Quorum Local JWT and User profile.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if token digest is unknown.
             AppException: With ErrorCodes.ASSIGNMENT_EXPIRED if hard_deadline_at has passed.
             AuthenticationError: With ErrorCodes.MFA_REQUIRED or AUTHENTICATION_FAILED on invalid token.
             PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if Firebase email mismatches assignment.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if user belongs to another organization.
         """
-        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-        assignment = await self._find_assignment_by_token_hash(token_hash)
-        if assignment is None:
-            logger.error(
-                "[ExecutionAssignmentService] %s: Onboarding token digest not found.",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-            )
-            raise ResourceNotFoundError(resource_type="execution_assignment", resource_id="token")
-
+        assignment = await self._resolve_assignment_by_raw_token_or_raise(
+            raw_token,
+            context_label="Onboarding",
+        )
         now = datetime.now(UTC)
         await self._assert_not_hard_expired(assignment=assignment, now=now)
         firebase_uid = await self._verify_onboarding_firebase_token(
@@ -504,6 +591,7 @@ class ExecutionAssignmentService:
             ExecutionAssignmentResponseDTO with status='activated' and populated activated_at.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if assignment does not exist.
             PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email mismatches.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on cross-org collision or
@@ -512,16 +600,7 @@ class ExecutionAssignmentService:
         """
         assignment = await self._get_assignment_or_raise(assignment_id)
         await self._verify_assignee_identity(initiator=initiator, assignment=assignment)
-        if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
-            logger.error(
-                "[ExecutionAssignmentService] %s: Assignment '%s' is already submitted.",
-                ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.name,
-                assignment.id,
-            )
-            raise ConflictError(
-                message="Assignment has already been submitted.",
-                details={"error_code": ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.value},
-            )
+        self._assert_not_submitted(assignment, operation="activate")
         now = datetime.now(UTC)
         await self._assert_not_hard_expired(assignment=assignment, now=now)
         if assignment.status == AssignmentStatus.ACTIVATED and assignment.activated_at is not None:
@@ -555,6 +634,7 @@ class ExecutionAssignmentService:
             Updated ExecutionAssignmentResponseDTO with saved draft_inputs.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if assignment is missing.
             PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email mismatches.
             ConflictError: With ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED if already submitted.
@@ -563,16 +643,7 @@ class ExecutionAssignmentService:
         """
         assignment = await self._get_assignment_or_raise(assignment_id)
         await self._verify_assignee_identity(initiator=initiator, assignment=assignment)
-        if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
-            logger.error(
-                "[ExecutionAssignmentService] %s: Cannot save draft on submitted assignment '%s'.",
-                ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.name,
-                assignment.id,
-            )
-            raise ConflictError(
-                message="Assignment has already been submitted.",
-                details={"error_code": ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.value},
-            )
+        self._assert_not_submitted(assignment, operation="save draft on")
         now = datetime.now(UTC)
         await self._assert_within_dual_clock_deadline(assignment=assignment, now=now, include_grace=False)
         if assignment.status != AssignmentStatus.ACTIVATED:
@@ -580,6 +651,8 @@ class ExecutionAssignmentService:
                 "[ExecutionAssignmentService] %s: Assignment '%s' must be activated before saving draft.",
                 ErrorCodes.VALIDATION_FAILED.name,
                 assignment.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
             raise AppException(
                 message="Assignment must be activated before saving draft inputs.",
@@ -595,7 +668,7 @@ class ExecutionAssignmentService:
         initiator: TokenData,
         assignment_id: str,
         payload: ExecutionAssignmentSubmitDTO,
-        arq_pool: Any,
+        arq_pool: ArqRedis,
         doc_service: DocumentExtractionService | None = None,
         now_override: datetime | None = None,
     ) -> ExecutionRecord:
@@ -613,6 +686,7 @@ class ExecutionAssignmentService:
             Initialized ExecutionRecord (redacted if result_visibility is CONFIRMATION_ONLY).
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if assignment is missing.
             PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email mismatches.
             ConflictError: With ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED on replay submission.
@@ -620,19 +694,7 @@ class ExecutionAssignmentService:
         """
         assignment = await self._get_assignment_or_raise(assignment_id)
         await self._verify_assignee_identity(initiator=initiator, assignment=assignment)
-        if assignment.status == AssignmentStatus.SUBMITTED or assignment.execution_id is not None:
-            logger.error(
-                "[ExecutionAssignmentService] %s: Replay submission rejected for assignment '%s'.",
-                ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.name,
-                assignment.id,
-            )
-            raise ConflictError(
-                message="Assignment has already been submitted.",
-                details={
-                    "error_code": ErrorCodes.ASSIGNMENT_ALREADY_SUBMITTED.value,
-                    "assignment_id": assignment.id,
-                },
-            )
+        self._assert_not_submitted(assignment, operation="submit")
         now = now_override if now_override is not None else datetime.now(UTC)
         await self._assert_within_dual_clock_deadline(assignment=assignment, now=now, include_grace=True)
 
@@ -710,6 +772,8 @@ class ExecutionAssignmentService:
                 "[ExecutionAssignmentService] %s: Role '%s' cannot create task assignments.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.role.value,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only MANAGER, ADMIN, or ROOT can create task assignments.")
 
@@ -719,6 +783,8 @@ class ExecutionAssignmentService:
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
                 invited_role.value,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("MANAGER can only assign tasks with MEMBER role.")
 
@@ -727,17 +793,22 @@ class ExecutionAssignmentService:
                 "[ExecutionAssignmentService] %s: Non-ROOT '%s' attempted to assign ROOT role.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can assign tasks with ROOT role.")
 
-        org_id = initiator.organization_id
-        if org_id is None and initiator.role == UserRole.ROOT:
+        if initiator.organization_id:
+            org_id: str = initiator.organization_id
+        elif initiator.role == UserRole.ROOT:
             org_id = SystemOrganizations.ROOT_SYSTEM
-        if not org_id:
+        else:
             logger.error(
                 "[ExecutionAssignmentService] %s: Caller '%s' has no organization_id.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Caller must belong to an organization to create task assignments.")
         return await self._fetch_org_or_raise(org_id)
@@ -753,12 +824,14 @@ class ExecutionAssignmentService:
         Raises:
             AppException: With ErrorCodes.VALIDATION_FAILED if hard_deadline_at <= now.
         """
-        deadline_utc = hard_deadline_at.replace(tzinfo=UTC) if hard_deadline_at.tzinfo is None else hard_deadline_at
+        deadline_utc = ExecutionAssignmentService._ensure_utc(hard_deadline_at)
         if deadline_utc <= now:
             logger.error(
                 "[ExecutionAssignmentService] %s: hard_deadline_at '%s' must be in the future.",
                 ErrorCodes.VALIDATION_FAILED.name,
                 deadline_utc.isoformat(),
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
             raise AppException(
                 message="Assignment hard_deadline_at must be in the future.",
@@ -795,6 +868,8 @@ class ExecutionAssignmentService:
                     ErrorCodes.PERMISSION_DENIED.name,
                     email_domain,
                     org.id,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
                 )
                 raise PermissionDeniedError(
                     f"Recipient domain '{email_domain}' is not permitted for organization '{org.id}'."
@@ -813,6 +888,8 @@ class ExecutionAssignmentService:
                 existing_user.id,
                 existing_user.organization_id,
                 org.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.USER_ALREADY_ASSIGNED.value},
             )
             raise ConflictError(
                 message=f"Recipient already belongs to another organization ('{existing_user.organization_id}').",
@@ -839,6 +916,10 @@ class ExecutionAssignmentService:
 
         Returns:
             Deduplicated list of (normalized_email, ExecutionAssignmentRecipientDTO) pairs.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if any email domain is disallowed.
+            ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if any recipient belongs to another org.
         """
         deduplicated: list[tuple[str, ExecutionAssignmentRecipientDTO]] = []
         seen_emails: set[str] = set()
@@ -875,6 +956,9 @@ class ExecutionAssignmentService:
 
         Returns:
             List of persisted ExecutionAssignmentResponseDTO models.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
         drafts: list[ExecutionAssignment] = []
         email_items: list[TransactionalEmailItemDTO] = []
@@ -968,7 +1052,7 @@ class ExecutionAssignmentService:
             Validated ExecutionAssignment domain model.
         """
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-        deadline_utc = hard_deadline_at.replace(tzinfo=UTC) if hard_deadline_at.tzinfo is None else hard_deadline_at
+        deadline_utc = ExecutionAssignmentService._ensure_utc(hard_deadline_at)
         return ExecutionAssignment(
             id=generate_uuid7_opaque_id(EntityPrefix.ASSIGNMENT),
             batch_id=batch_id,
@@ -1058,6 +1142,9 @@ class ExecutionAssignmentService:
 
         Returns:
             Persisted ExecutionAssignment with updated email_delivery_status.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
         email_item = self._build_assignment_email(
             org=org,
@@ -1100,6 +1187,8 @@ class ExecutionAssignmentService:
                 logger.error(
                     "[ExecutionAssignmentService] %s: Missing firebase_token during onboarding.",
                     ErrorCodes.AUTHENTICATION_FAILED.name,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
                 )
                 raise AuthenticationError(
                     message="Firebase ID token is required for assignee onboarding.",
@@ -1109,12 +1198,15 @@ class ExecutionAssignmentService:
             try:
                 async with asyncio.timeout(settings.email_http_timeout_seconds):
                     decoded = await asyncio.to_thread(fb_auth.verify_id_token, firebase_token)
+            except AppException:
+                raise
             except Exception as exc:
                 logger.error(
                     "[ExecutionAssignmentService] %s: Firebase token verification failed: %s",
                     ErrorCodes.AUTHENTICATION_FAILED.name,
                     exc,
                     exc_info=True,
+                    extra={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
                 )
                 raise AuthenticationError(
                     message="Invalid Firebase ID token.",
@@ -1127,8 +1219,10 @@ class ExecutionAssignmentService:
                     logger.error(
                         "[ExecutionAssignmentService] %s: Onboarding token email '%s' != '%s'.",
                         ErrorCodes.IDENTITY_MISMATCH.name,
-                        token_email,
-                        expected_email,
+                        mask_email_address(token_email),
+                        mask_email_address(expected_email),
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.IDENTITY_MISMATCH.value},
                     )
                     raise PermissionDeniedError(
                         message="Authenticated Firebase email does not match assignment recipient.",
@@ -1159,6 +1253,7 @@ class ExecutionAssignmentService:
             Persisted User model bound to assignment.organization_id.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if user belongs to another org.
         """
         existing = await self.user_repo.get_by_email(str(assignment.assigned_email))
@@ -1169,6 +1264,8 @@ class ExecutionAssignmentService:
                     ErrorCodes.USER_ALREADY_ASSIGNED.name,
                     existing.id,
                     existing.organization_id,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.USER_ALREADY_ASSIGNED.value},
                 )
                 raise ConflictError(
                     message="User already belongs to another organization.",
@@ -1193,8 +1290,8 @@ class ExecutionAssignmentService:
                     "firebase_uid": firebase_uid if firebase_uid is not None else existing.firebase_uid,
                 }
             )
-            if self._entity_adapter is not None:
-                await self._entity_adapter.upsert_user(bound)
+            async with self._acquire_entity_port(commit=True) as port:
+                await port.upsert_user(bound)
             return bound
 
         resolved_name = display_name if display_name is not None else str(assignment.assigned_email).split("@")[0]
@@ -1211,8 +1308,8 @@ class ExecutionAssignmentService:
             theme_mode="system",
         )
         await self.user_repo.create(new_user)
-        if self._entity_adapter is not None:
-            await self._entity_adapter.upsert_user(new_user)
+        async with self._acquire_entity_port(commit=True) as port:
+            await port.upsert_user(new_user)
         return new_user
 
     @staticmethod
@@ -1273,13 +1370,18 @@ class ExecutionAssignmentService:
                 caller_email = str(user.email)
 
         if caller_email is None or caller_email.strip().lower() != str(assignment.assigned_email).strip().lower():
+            masked_caller = "***"
+            if caller_email is not None:
+                masked_caller = mask_email_address(caller_email)
             logger.error(
                 "[ExecutionAssignmentService] %s: Caller '%s' (email='%s') mismatched assignment '%s' ('%s').",
                 ErrorCodes.IDENTITY_MISMATCH.name,
                 initiator.id,
-                caller_email,
+                masked_caller,
                 assignment.id,
-                assignment.assigned_email,
+                mask_email_address(str(assignment.assigned_email)),
+                exc_info=True,
+                extra={"error_code": ErrorCodes.IDENTITY_MISMATCH.value},
             )
             raise PermissionDeniedError(
                 message="Authenticated user identity does not match the assigned recipient email.",
@@ -1296,6 +1398,8 @@ class ExecutionAssignmentService:
                 initiator.id,
                 initiator.organization_id,
                 assignment.organization_id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.USER_ALREADY_ASSIGNED.value},
             )
             raise ConflictError(
                 message="Authenticated user belongs to a different organization.",
@@ -1318,13 +1422,10 @@ class ExecutionAssignmentService:
             now: Current server UTC timestamp.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             AppException: With ErrorCodes.ASSIGNMENT_EXPIRED if expired or revoked.
         """
-        hard_deadline = (
-            assignment.hard_deadline_at.replace(tzinfo=UTC)
-            if assignment.hard_deadline_at.tzinfo is None
-            else assignment.hard_deadline_at
-        )
+        hard_deadline = self._ensure_utc(assignment.hard_deadline_at)
         if assignment.status in (AssignmentStatus.EXPIRED, AssignmentStatus.REVOKED) or now > hard_deadline:
             if assignment.status not in (AssignmentStatus.EXPIRED, AssignmentStatus.REVOKED) and now > hard_deadline:
                 await self._save_assignment(assignment.model_copy(update={"status": AssignmentStatus.EXPIRED}))
@@ -1334,6 +1435,8 @@ class ExecutionAssignmentService:
                 assignment.id,
                 hard_deadline.isoformat(),
                 now.isoformat(),
+                exc_info=True,
+                extra={"error_code": ErrorCodes.ASSIGNMENT_EXPIRED.value},
             )
             raise AppException(
                 message="Task assignment has expired.",
@@ -1359,6 +1462,7 @@ class ExecutionAssignmentService:
             include_grace: Whether to add assignment_submission_grace_seconds to effective_expires_at.
 
         Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             AppException: With ErrorCodes.ASSIGNMENT_EXPIRED if current time exceeds deadline.
         """
         effective_expires_at = self.compute_effective_expires_at(assignment)
@@ -1375,6 +1479,8 @@ class ExecutionAssignmentService:
                 assignment.id,
                 now.isoformat(),
                 cutoff.isoformat(),
+                exc_info=True,
+                extra={"error_code": ErrorCodes.ASSIGNMENT_EXPIRED.value},
             )
             raise AppException(
                 message="Task assignment deadline has expired.",
@@ -1398,17 +1504,9 @@ class ExecutionAssignmentService:
         Returns:
             Timezone-aware UTC effective expiration timestamp.
         """
-        hard_deadline = (
-            assignment.hard_deadline_at.replace(tzinfo=UTC)
-            if assignment.hard_deadline_at.tzinfo is None
-            else assignment.hard_deadline_at
-        )
+        hard_deadline = ExecutionAssignmentService._ensure_utc(assignment.hard_deadline_at)
         if assignment.relative_duration_seconds is not None and assignment.activated_at is not None:
-            activated_utc = (
-                assignment.activated_at.replace(tzinfo=UTC)
-                if assignment.activated_at.tzinfo is None
-                else assignment.activated_at
-            )
+            activated_utc = ExecutionAssignmentService._ensure_utc(assignment.activated_at)
             relative_deadline = activated_utc + timedelta(seconds=assignment.relative_duration_seconds)
             return min(hard_deadline, relative_deadline)
         return hard_deadline
@@ -1419,7 +1517,7 @@ class ExecutionAssignmentService:
         initiator: TokenData,
         assignment: ExecutionAssignment,
         submitted_inputs: WorkflowInputs,
-        arq_pool: Any,
+        arq_pool: ArqRedis,
         doc_service: DocumentExtractionService | None,
     ) -> ExecutionRecord:
         """Merge manager locked_inputs over submitted_inputs and invoke ExecutionIngressService.
@@ -1433,6 +1531,11 @@ class ExecutionAssignmentService:
 
         Returns:
             Created ExecutionRecord from ExecutionIngressService.start_execution.
+
+        Raises:
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if workflow or profile is missing.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if workflow access is denied.
+            AppException: With ErrorCodes.VALIDATION_FAILED or RATE_LIMIT_EXCEEDED on ingress validation failure.
         """
         merged_inputs = merge_assignment_inputs(
             locked_inputs=assignment.locked_inputs,
@@ -1477,6 +1580,8 @@ class ExecutionAssignmentService:
             ErrorCodes.PERMISSION_DENIED.name,
             initiator.id,
             org_id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
         )
         raise PermissionDeniedError("Insufficient permissions to manage assignments for this organization.")
 
@@ -1498,6 +1603,8 @@ class ExecutionAssignmentService:
                 "[ExecutionAssignmentService] %s: Organization '%s' not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 org_id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
             raise ResourceNotFoundError(resource_type="organization", resource_id=org_id)
         return org
@@ -1515,25 +1622,21 @@ class ExecutionAssignmentService:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if assignment does not exist.
         """
-        if self._entity_adapter is not None:
-            persisted = await self._entity_adapter.get_execution_assignment(assignment_id)
-        else:
-            uow_factory = self._resolve_uow_factory()
-            if uow_factory is None:
-                self._raise_unconfigured_persistence_error()
-            async with uow_factory() as uow:
-                persisted = await uow.entities.get_execution_assignment(assignment_id)
+        async with self._acquire_entity_port() as port:
+            persisted = await port.get_execution_assignment(assignment_id)
         if persisted is not None:
             return persisted
         logger.error(
             "[ExecutionAssignmentService] %s: Assignment '%s' not found.",
             ErrorCodes.RESOURCE_NOT_FOUND.name,
             assignment_id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
         raise ResourceNotFoundError(resource_type="execution_assignment", resource_id=assignment_id)
 
     async def _save_assignment(self, assignment: ExecutionAssignment) -> None:
-        """Persist an ExecutionAssignment to EntityPersistencePort or UnitOfWork.
+        """Persist an ExecutionAssignment via the acquired EntityPersistencePort.
 
         Args:
             assignment: Validated ExecutionAssignment domain model.
@@ -1541,18 +1644,11 @@ class ExecutionAssignmentService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        if self._entity_adapter is not None:
-            await self._entity_adapter.upsert_execution_assignment(assignment)
-            return
-        uow_factory = self._resolve_uow_factory()
-        if uow_factory is not None:
-            async with uow_factory() as uow:
-                await uow.entities.upsert_execution_assignment(assignment)
-            return
-        self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port(commit=True) as port:
+            await port.upsert_execution_assignment(assignment)
 
     async def _list_all_assignments(self, organization_id: str | None = None) -> list[ExecutionAssignment]:
-        """List all persisted execution assignments.
+        """List all persisted execution assignments via the acquired EntityPersistencePort.
 
         Args:
             organization_id: Optional organization filter.
@@ -1563,13 +1659,8 @@ class ExecutionAssignmentService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        if self._entity_adapter is not None:
-            return await self._entity_adapter.list_execution_assignments(organization_id=organization_id)
-        uow_factory = self._resolve_uow_factory()
-        if uow_factory is not None:
-            async with uow_factory() as uow:
-                return await uow.entities.list_execution_assignments(organization_id=organization_id)
-        self._raise_unconfigured_persistence_error()
+        async with self._acquire_entity_port() as port:
+            return await port.list_execution_assignments(organization_id=organization_id)
 
     async def _find_assignment_by_token_hash(self, token_hash: str) -> ExecutionAssignment | None:
         """Locate an ExecutionAssignment matching the SHA-256 token digest in constant time.
@@ -1588,6 +1679,38 @@ class ExecutionAssignmentService:
             if secrets.compare_digest(item.token_hash, token_hash):
                 return item
         return None
+
+    async def _resolve_assignment_by_raw_token_or_raise(
+        self,
+        raw_token: str,
+        *,
+        context_label: str,
+    ) -> ExecutionAssignment:
+        """Hash a raw assignment token with SHA-256 and resolve the matching assignment or fail fast.
+
+        Args:
+            raw_token: Raw URL-safe assignment token string.
+            context_label: Diagnostic operation label for structured RFC 7807 error logging.
+
+        Returns:
+            Matching ExecutionAssignment domain model.
+
+        Raises:
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if token digest is unknown.
+        """
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        assignment = await self._find_assignment_by_token_hash(token_hash)
+        if assignment is None:
+            logger.error(
+                "[ExecutionAssignmentService] %s: %s token digest not found.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                context_label,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
+            raise ResourceNotFoundError(resource_type="execution_assignment", resource_id="token")
+        return assignment
 
     async def _log_audit(
         self,
