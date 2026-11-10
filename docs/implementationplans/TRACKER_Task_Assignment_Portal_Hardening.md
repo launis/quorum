@@ -32,7 +32,7 @@
   - [x] @[backend_v2/models/domain/execution.py]
   - [x] @[backend_v2/services/auth/email_service.py]
   - [x] @[backend_v2/services/execution/assignment_service.py]
-  - [ ] @[backend_v2/services/execution/facade.py]
+  - [x] @[backend_v2/services/execution/facade.py]
   - [ ] @[backend_v2/services/studio/prompt_block_service.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
