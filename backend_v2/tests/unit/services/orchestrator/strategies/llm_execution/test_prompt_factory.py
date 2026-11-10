@@ -1,20 +1,39 @@
-from datetime import UTC
+"""Unit tests for the PromptFactory service."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
 
-from backend_v2.exceptions import AppException
-from backend_v2.models.dtos.prompt import LLMContextDataDTO
-from backend_v2.models.enums import PromptBlockCategory
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlock,
+    PromptBlockAdapter,
+    ProtocolPromptBlock,
+)
+from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
+from backend_v2.tests.factories.model_factories import (
+    GlobalContextVarsDTOFactory,
+    I18nTextFactory,
+    MatrixPromptBlockFactory,
+    SystemRulePromptBlockFactory,
+)
 
 
 @pytest.fixture
 def mock_compiler() -> MagicMock:
+    """Create a configured MagicMock prompt compiler."""
     compiler = MagicMock()
     compiler.compile_static_instructions.return_value = "Static Instructions"
     compiler.compile_dynamic_instructions.return_value = "Dynamic Instructions"
-
     compiler.generate_mcp_instruction.return_value = "MCP Instruction"
     compiler.build_xml_context.return_value = "<context></context>"
     return compiler
@@ -22,14 +41,23 @@ def mock_compiler() -> MagicMock:
 
 @pytest.fixture
 def default_context() -> LLMContextDataDTO:
+    """Create a default empty LLMContextDataDTO."""
     return LLMContextDataDTO()
 
 
-def test_prompt_factory_build_success(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
-    """Test successful compilation of PromptPayload."""
-    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+@pytest.fixture
+def empty_mappings() -> PromptMappingDTO:
+    """Create an empty PromptMappingDTO."""
+    return PromptMappingDTO(mappings={})
 
-    criteria_blocks = [
+
+def test_prompt_factory_build_success(
+    mock_compiler: MagicMock,
+    default_context: LLMContextDataDTO,
+    empty_mappings: PromptMappingDTO,
+) -> None:
+    """Test successful compilation of PromptPayload."""
+    criteria_blocks: list[PromptBlock] = [
         PromptBlockAdapter.validate_python(
             {
                 "id": "blk_12345678901234567890123456789012",
@@ -75,41 +103,43 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock, default_context:
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=True,
     )
 
-    # Layer 1 Global Mandates & Persona in base_system_prompt
     assert "<global_system_mandates>" in payload.base_system_prompt
     assert "<global_system_mandates>" not in payload.user_payload
     assert "You are a highly accurate, structured evaluation assistant." in payload.base_system_prompt
     assert "Static Instructions" in payload.base_system_prompt
-
     assert "MCP Instruction" in payload.base_system_prompt
-
     assert "context" in payload.user_payload
     assert "RUNTIME_AWARENESS" in payload.user_payload
     assert "Dynamic Instructions" in payload.user_payload
-
-    # Check atom hashing
     assert len(payload.atom_to_block_ids) == 2
 
 
-def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
-    """Test Fail-Fast when tda_assertions are missing."""
-    from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale
-    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-
-    criteria_blocks = [
+def test_prompt_factory_missing_tda_assertions(
+    mock_compiler: MagicMock,
+    default_context: LLMContextDataDTO,
+    empty_mappings: PromptMappingDTO,
+) -> None:
+    """Test Fail-Fast when tda_assertions are empty."""
+    label = I18nTextFactory.build()
+    criteria_blocks: list[PromptBlock] = [
         MatrixPromptBlock.model_construct(
             id="blk_12345678901234567890123456789012",
+            slug="test_slug",
+            label=label,
+            description=label,
+            output_extensions=[],
             category_id=PromptBlockCategory.MATRIX,
             scales=[
                 MatrixScale.model_construct(
                     score=1,
-                    claims=[MatrixClaim.model_construct(tda_assertions=[])],
+                    ai_label="Scale 1",
+                    claims=[MatrixClaim.model_construct(label=label, tda_assertions=[])],
                 )
             ],
         )
@@ -124,7 +154,7 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock, default
             criteria_blocks=criteria_blocks,
             target_locale="en",
             effective_mcp_tools=None,
-            input_mappings={},
+            input_mappings=empty_mappings,
             llm_context_data=default_context,
             expected_inputs=None,
             has_shuffled_atoms=True,
@@ -134,7 +164,70 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock, default
     assert "missing mandatory 'tda_assertions'" in str(exc_info.value.message)
 
 
-def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
+def test_prompt_factory_invalid_tda_assertions_after_empty_block_id_error(
+    mock_compiler: MagicMock,
+    default_context: LLMContextDataDTO,
+    empty_mappings: PromptMappingDTO,
+) -> None:
+    """Test Fail-Fast on boundary scale claim missing tda_assertions after skipping an empty block ID."""
+    label = I18nTextFactory.build()
+    criteria_blocks: list[PromptBlock] = [
+        MatrixPromptBlock.model_construct(
+            id="",
+            slug="empty_id_slug",
+            label=label,
+            description=label,
+            output_extensions=[],
+            category_id=PromptBlockCategory.MATRIX,
+            scales=[
+                MatrixScale.model_construct(
+                    score=1,
+                    ai_label="Scale 1",
+                    claims=[MatrixClaim.model_construct(label=label, tda_assertions=[])],
+                )
+            ],
+        ),
+        MatrixPromptBlock.model_construct(
+            id="blk_0195f3a0000070008000000000000099",
+            slug="valid_id_slug",
+            label=label,
+            description=label,
+            output_extensions=[],
+            category_id=PromptBlockCategory.MATRIX,
+            scales=[
+                MatrixScale.model_construct(
+                    score=2,
+                    ai_label="Scale 2",
+                    claims=[MatrixClaim.model_construct(label=label, tda_assertions=[])],
+                )
+            ],
+        ),
+    ]
+
+    with pytest.raises(AppException) as exc_info:
+        PromptFactory.build(
+            compiler=mock_compiler,
+            role_block=criteria_blocks[1],
+            protocol_block=None,
+            execution_persona_block=None,
+            criteria_blocks=criteria_blocks,
+            target_locale="en",
+            effective_mcp_tools=None,
+            input_mappings=empty_mappings,
+            llm_context_data=default_context,
+            expected_inputs=None,
+            has_shuffled_atoms=False,
+        )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+
+
+def test_prompt_factory_includes_language_mandate(
+    mock_compiler: MagicMock,
+    default_context: LLMContextDataDTO,
+    empty_mappings: PromptMappingDTO,
+) -> None:
     """Test that static linguistic protocol is in base_system_prompt and parameters in user_payload."""
     payload = PromptFactory.build(
         compiler=mock_compiler,
@@ -144,7 +237,7 @@ def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock, defa
         criteria_blocks=[],
         target_locale="fi",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
@@ -155,18 +248,13 @@ def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock, defa
     assert "<required_output_language>fi</required_output_language>" in payload.user_payload
 
 
-def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> None:
+def test_prompt_factory_prompt_purity_assertion(
+    mock_compiler: MagicMock,
+    empty_mappings: PromptMappingDTO,
+) -> None:
     """Test that mechanical_anchors are isolated in user_payload and not in base_system_prompt."""
-    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-    from backend_v2.models.enums import PromptBlockCategory
-
-    criteria_blocks = [
-        MatrixPromptBlock.model_construct(
-            id="blk_grounded",
-            slug="matrix_causal_analyst",
-            category_id=PromptBlockCategory.MATRIX,
-            scales=[],
-        )
+    criteria_blocks: list[PromptBlock] = [
+        MatrixPromptBlockFactory.build(),
     ]
     llm_context_data = LLMContextDataDTO(
         raw_inputs={
@@ -185,7 +273,7 @@ def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> Non
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=llm_context_data,
         expected_inputs=None,
         has_shuffled_atoms=False,
@@ -196,18 +284,14 @@ def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> Non
     assert "<word_count>150</word_count>" in payload.user_payload
 
 
-def test_prompt_factory_missing_anchors_data(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
+def test_prompt_factory_missing_anchors_data(
+    mock_compiler: MagicMock,
+    default_context: LLMContextDataDTO,
+    empty_mappings: PromptMappingDTO,
+) -> None:
     """Test that missing anchor data defaults correctly and maintains prompt purity."""
-    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-    from backend_v2.models.enums import PromptBlockCategory
-
-    criteria_blocks = [
-        MatrixPromptBlock.model_construct(
-            id="blk_grounded",
-            slug="matrix_causal_analyst",
-            category_id=PromptBlockCategory.MATRIX,
-            scales=[],
-        )
+    criteria_blocks: list[PromptBlock] = [
+        MatrixPromptBlockFactory.build(),
     ]
 
     payload = PromptFactory.build(
@@ -218,7 +302,7 @@ def test_prompt_factory_missing_anchors_data(mock_compiler: MagicMock, default_c
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
@@ -254,39 +338,39 @@ def test_prompt_factory_has_zero_reflection_via_ast() -> None:
 
 
 def test_prompt_factory_polymorphic_blocks_resolution(
-    mock_compiler: MagicMock, default_context: LLMContextDataDTO
+    mock_compiler: MagicMock,
+    default_context: LLMContextDataDTO,
+    empty_mappings: PromptMappingDTO,
 ) -> None:
     """Test polymorphic resolution of PersonaPromptBlock, ProtocolPromptBlock, and SystemRulePromptBlock."""
-    from backend_v2.models.core_base import I18nText
-    from backend_v2.models.domain.prompt_blocks import (
-        PersonaPromptBlock,
-        ProtocolPromptBlock,
-    )
-    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-
     persona = PersonaPromptBlock(
         id="blk_0195f3a0000070018111111111111111",
         slug="persona_test",
         label=I18nText(translations={"en": "Persona"}),
         description=I18nText(translations={"en": "Desc"}),
+        output_extensions=[],
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
         type=BlockDataType.INSTRUCTION,
         role_enforcement="Act as an expert evaluator.",
+        tone_directives=[],
     )
     role = PersonaPromptBlock(
         id="blk_0195f3a0000070028222222222222222",
         slug="role_test",
         label=I18nText(translations={"en": "Role"}),
         description=I18nText(translations={"en": "Desc"}),
+        output_extensions=[],
         category_id=PromptBlockCategory.AGENT_ROLE,
         type=BlockDataType.INSTRUCTION,
         role_enforcement="You are a strict prosecutor.",
+        tone_directives=[],
     )
     protocol = ProtocolPromptBlock(
         id="blk_0195f3a0000070038333333333333333",
         slug="protocol_test",
         label=I18nText(translations={"en": "Protocol"}),
         description=I18nText(translations={"en": "Desc"}),
+        output_extensions=[],
         category_id=PromptBlockCategory.PROTOCOL,
         type=BlockDataType.INSTRUCTION,
         protocol_instructions="Extract exact quotes without paraphrasing.",
@@ -300,7 +384,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(
         criteria_blocks=[],
         target_locale="en",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
@@ -315,41 +399,14 @@ def test_prompt_factory_polymorphic_blocks_resolution(
 
 
 def test_prompt_factory_system_rule_and_default_branches(
-    mock_compiler: MagicMock, default_context: LLMContextDataDTO
+    mock_compiler: MagicMock,
+    default_context: LLMContextDataDTO,
+    empty_mappings: PromptMappingDTO,
 ) -> None:
     """Test SystemRulePromptBlock and default fallback persona in PromptFactory."""
-    from backend_v2.models.core_base import I18nText
-    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
-    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-
-    # 1. SystemRulePromptBlock with instruction_text for persona, role, protocol
-    persona_sys = SystemRulePromptBlock(
-        id="blk_0195f3a0000070048444444444444444",
-        slug="persona_sys",
-        label=I18nText(translations={"en": "Persona"}),
-        description=I18nText(translations={"en": "Desc"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        instruction_text="Persona via instruction text.",
-    )
-    role_sys = SystemRulePromptBlock(
-        id="blk_0195f3a0000070058555555555555555",
-        slug="role_sys",
-        label=I18nText(translations={"en": "Role"}),
-        description=I18nText(translations={"en": "Desc"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        instruction_text="Role via instruction text.",
-    )
-    proto_sys = SystemRulePromptBlock(
-        id="blk_0195f3a0000070068666666666666666",
-        slug="proto_sys",
-        label=I18nText(translations={"en": "Protocol"}),
-        description=I18nText(translations={"en": "Desc"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        instruction_text="Protocol via instruction text.",
-    )
+    persona_sys = SystemRulePromptBlockFactory.build(instruction_text="Persona via instruction text.")
+    role_sys = SystemRulePromptBlockFactory.build(instruction_text="Role via instruction text.")
+    proto_sys = SystemRulePromptBlockFactory.build(instruction_text="Protocol via instruction text.")
 
     payload1 = PromptFactory.build(
         compiler=mock_compiler,
@@ -359,7 +416,7 @@ def test_prompt_factory_system_rule_and_default_branches(
         criteria_blocks=[],
         target_locale="en",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
@@ -370,7 +427,6 @@ def test_prompt_factory_system_rule_and_default_branches(
         "<EXTRACTION_PROTOCOL>\nProtocol via instruction text.\n</EXTRACTION_PROTOCOL>" in payload1.base_system_prompt
     )
 
-    # 2. None blocks use default evaluation assistant persona and omit role/protocol directives
     payload2 = PromptFactory.build(
         compiler=mock_compiler,
         role_block=None,
@@ -379,7 +435,7 @@ def test_prompt_factory_system_rule_and_default_branches(
         criteria_blocks=[],
         target_locale="en",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
@@ -389,17 +445,15 @@ def test_prompt_factory_system_rule_and_default_branches(
     assert "<EXTRACTION_PROTOCOL>" not in payload2.base_system_prompt
 
 
-def test_prompt_factory_execution_time_and_external_evidence(mock_compiler: MagicMock) -> None:
+def test_prompt_factory_execution_time_and_external_evidence(
+    mock_compiler: MagicMock,
+    empty_mappings: PromptMappingDTO,
+) -> None:
     """Test PromptFactory formats execution_time in document_date and injects external evidence."""
-    from datetime import datetime
-
-    from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
-    from backend_v2.models.dtos.prompt import LLMContextDataDTO
-
     context_data = LLMContextDataDTO(
         execution_time=datetime(2026, 9, 21, 14, 30, 0, tzinfo=UTC),
     )
-    global_vars = GlobalContextVarsDTO(
+    global_vars = GlobalContextVarsDTOFactory.build(
         external_evidence="Aggregated external research evidence text.",
     )
 
@@ -411,7 +465,7 @@ def test_prompt_factory_execution_time_and_external_evidence(mock_compiler: Magi
         criteria_blocks=[],
         target_locale="en",
         effective_mcp_tools=None,
-        input_mappings={},
+        input_mappings=empty_mappings,
         llm_context_data=context_data,
         expected_inputs=None,
         global_context_vars=global_vars,

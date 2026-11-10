@@ -31,6 +31,7 @@ from backend_v2.models.prompts.common import (
 from backend_v2.services.orchestrator.strategies.llm_execution.execution_time_resolver import (
     ExecutionTimeResolver,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,71 @@ class PromptFactory:
 
     Enforces physical disk timestamp alignment and formats mechanical UI anchors safely.
     """
+
+    @staticmethod
+    def _extract_block_instruction(block: PromptBlock | None) -> str:
+        """Extract stripped instruction text from a polymorphic Persona, Protocol, or SystemRule block.
+
+        Args:
+            block: Optional PromptBlock domain model.
+
+        Returns:
+            Stripped instruction string when present, or an empty string.
+        """
+        if block is None:
+            return ""
+        match block:
+            case PersonaPromptBlock(role_enforcement=text) if text:
+                return text.strip()
+            case ProtocolPromptBlock(protocol_instructions=text) if text:
+                return text.strip()
+            case SystemRulePromptBlock(instruction_text=text) if text:
+                return text.strip()
+            case _:
+                return ""
+
+    @staticmethod
+    def _build_atom_to_block_ids(criteria_blocks: list[PromptBlock]) -> dict[str, set[str]]:
+        """Validate matrix claim TDA assertions and map atom IDs to owning PromptBlock IDs.
+
+        Args:
+            criteria_blocks: Criteria PromptBlock models evaluated by the current step.
+
+        Returns:
+            Mapping of TDA assertion IDs to sets of owning PromptBlock IDs.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if a matrix claim lacks tda_assertions.
+        """
+        atom_to_block_ids: dict[str, set[str]] = {}
+        for block_model in criteria_blocks:
+            if isinstance(block_model, MatrixPromptBlock) and block_model.scales:
+                b_id = block_model.id
+                if not b_id:
+                    continue
+                for scale in block_model.scales:
+                    for claim in scale.claims:
+                        tda_assertions = claim.tda_assertions
+                        if tda_assertions and len(tda_assertions) > 0:
+                            for tda in tda_assertions:
+                                aid = str(tda.tda_id)
+                                if aid not in atom_to_block_ids:
+                                    atom_to_block_ids[aid] = set()
+                                atom_to_block_ids[aid].add(b_id)
+                        else:
+                            msg = f"PromptBlock '{b_id}' claim is missing mandatory 'tda_assertions' during runtime."
+                            logger.error(
+                                "[%s] %s",
+                                ErrorCodes.VALIDATION_FAILED.name,
+                                msg,
+                                exc_info=True,
+                            )
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+        return atom_to_block_ids
 
     @classmethod
     def build(
@@ -98,74 +164,49 @@ class PromptFactory:
             An immutable PromptPayload containing structured prompt components.
 
         Raises:
-            AppException: If criteria validation checks fail or are structurally deficient.
+            AppException: With ErrorCodes.VALIDATION_FAILED if criteria validation checks fail
+                or matrix claims lack tda_assertions.
         """
         static_instructions = compiler.compile_static_instructions(criteria_blocks, target_locale)
-
-        # Deterministically resolve execution/document timestamp via ExecutionTimeResolver
         execution_time = ExecutionTimeResolver.resolve(
             llm_context_data=llm_context_data,
             execution_id=execution_id,
         )
-
         dynamic_instructions = compiler.compile_dynamic_instructions(
             criteria_blocks, target_locale, execution_time=execution_time
         )
-
         mcp_instruction = compiler.generate_mcp_instruction(effective_mcp_tools)
 
-        # Polymorphic check for grounded matrix blocks requiring mechanical anchors
         is_grounded_step = any(isinstance(b, MatrixPromptBlock) for b in criteria_blocks)
-
         anchors_xml = ""
         if is_grounded_step:
             anchors_payload = MechanicalAnchorsPayload.from_context(llm_context_data)
             anchors_xml = anchors_payload.to_xml()
 
-        # Layer 1: Global Mandates static caching prefix
+        # Layer 1: Global Mandates static caching prefix and execution persona
         base_system_prompt = f"{GLOBAL_MANDATES_XML.strip()}\n\n{STATIC_LINGUISTIC_PROTOCOL.strip()}"
-
-        # Persona instruction or fallback base instruction (Phase 8 pattern matching)
-        persona = "You are a highly accurate, structured evaluation assistant."
-        if execution_persona_block:
-            match execution_persona_block:
-                case PersonaPromptBlock(role_enforcement=role_text) if role_text:
-                    persona = role_text.strip()
-                case SystemRulePromptBlock(instruction_text=text) if text:
-                    persona = text.strip()
+        persona = cls._extract_block_instruction(execution_persona_block)
+        if not persona:
+            persona = "You are a highly accurate, structured evaluation assistant."
         base_system_prompt += f"\n\n{persona}"
 
-        # Layer 2: Role Directive & Protocols (Phase 8 pattern matching)
-        if role_block:
-            role_text = ""
-            match role_block:
-                case PersonaPromptBlock(role_enforcement=text) if text:
-                    role_text = text.strip()
-                case SystemRulePromptBlock(instruction_text=text) if text:
-                    role_text = text.strip()
-            if role_text:
-                base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_text}\n</ROLE_DIRECTIVE>"
+        # Layer 2: Role Directive & Extraction Protocols
+        role_text = cls._extract_block_instruction(role_block)
+        if role_text:
+            base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_text}\n</ROLE_DIRECTIVE>"
 
-        if protocol_block:
-            proto_text = ""
-            match protocol_block:
-                case ProtocolPromptBlock(protocol_instructions=text) if text:
-                    proto_text = text.strip()
-                case SystemRulePromptBlock(instruction_text=text) if text:
-                    proto_text = text.strip()
-            if proto_text:
-                base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{proto_text}\n</EXTRACTION_PROTOCOL>"
+        proto_text = cls._extract_block_instruction(protocol_block)
+        if proto_text:
+            base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{proto_text}\n</EXTRACTION_PROTOCOL>"
 
         # Layer 3: Criteria Guidelines & MCP Tools
         if static_instructions:
             base_system_prompt += f"\n\n<CRITERIA_GUIDELINES>\n{static_instructions}\n</CRITERIA_GUIDELINES>"
-
         if mcp_instruction:
             base_system_prompt += f"\n\n{mcp_instruction}"
 
-        # Dynamic user payload (Layer 4 / dynamic inputs isolated at tail)
+        # Layer 4: Dynamic user payload and runtime inputs isolated at tail
         linguistic_params = build_linguistic_parameters(target_locale=target_locale)
-
         exec_params = f"<execution_context>\n<target_locale>{target_locale}</target_locale>\n"
         exec_params += f"{linguistic_params}\n"
         if execution_time:
@@ -174,24 +215,20 @@ class PromptFactory:
             exec_params += f"{anchors_xml}\n"
         exec_params += "</execution_context>\n"
 
-        xml_ctx = compiler.build_xml_context(
+        source_data_content = compiler.build_xml_context(
             input_mappings=input_mappings,
             state_data=llm_context_data,
             target_locale=target_locale,
             expected_inputs=expected_inputs,
             alias_engine=alias_engine,
         )
-
-        source_data_content = xml_ctx
-        evidence_val = None
-        if isinstance(global_context_vars, GlobalContextVarsDTO):
-            evidence_val = global_context_vars.external_evidence
-
-        if evidence_val and isinstance(evidence_val, str):
-            from backend_v2.settings import get_settings
-
+        if (
+            isinstance(global_context_vars, GlobalContextVarsDTO)
+            and isinstance(global_context_vars.external_evidence, str)
+            and global_context_vars.external_evidence
+        ):
             evidence_budget = get_settings().source_evidence_max_chars
-            truncated_evidence = evidence_val[:evidence_budget].strip()
+            truncated_evidence = global_context_vars.external_evidence[:evidence_budget].strip()
             source_data_content = f"{source_data_content}\n\n{truncated_evidence}".strip()
 
         user_payload = TemplateProcessor.render_prompt(
@@ -202,33 +239,8 @@ class PromptFactory:
                 t"\n\n<RUNTIME_AWARENESS>\n{dynamic_instructions:raw}\n</RUNTIME_AWARENESS>"
             )
 
-        atom_to_block_ids: dict[str, set[str]] = {}
-        for block_model in criteria_blocks:
-            if isinstance(block_model, MatrixPromptBlock) and block_model.scales:
-                b_id = block_model.id
-                if not b_id:
-                    continue
-                for scale in block_model.scales:
-                    for claim in scale.claims:
-                        tda_assertions = claim.tda_assertions
-                        if tda_assertions and len(tda_assertions) > 0:
-                            for tda in tda_assertions:
-                                aid = str(tda.tda_id)
-                                if aid not in atom_to_block_ids:
-                                    atom_to_block_ids[aid] = set()
-                                mock_block_set = atom_to_block_ids[aid]
-                                mock_block_set.add(b_id)
-                        else:
-                            msg = f"PromptBlock '{b_id}' claim is missing mandatory 'tda_assertions' during runtime."
-                            logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                            raise AppException(
-                                message=msg,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            )
-
         return PromptPayload(
             base_system_prompt=base_system_prompt,
             user_payload=user_payload,
-            atom_to_block_ids=atom_to_block_ids,
+            atom_to_block_ids=cls._build_atom_to_block_ids(criteria_blocks),
         )
