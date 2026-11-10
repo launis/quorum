@@ -53,9 +53,9 @@ class ProgressState(BaseModel):
 
     status: Annotated[str, Field(description="Progress state status")]
     timestamp: Annotated[str, Field(description="ISO-8601 UTC timestamp string")]
-    current_step: Annotated[str | None, Field(default=None, description="Current active step or task name")] = None
-    progress: Annotated[int | None, Field(default=None, description="Completion progress percentage (0-100)")] = None
-    error: Annotated[str | None, Field(default=None, description="Error message string if failed")] = None
+    current_step: Annotated[str | None, Field(description="Current active step or task name")] = None
+    progress: Annotated[int | None, Field(description="Completion progress percentage (0-100)")] = None
+    error: Annotated[str | None, Field(description="Error message string if failed")] = None
 
 
 @runtime_checkable
@@ -155,26 +155,23 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
         self.repository = repository
         self.execution_id = execution_id
 
-    @override
-    async def start(self) -> None:
-        """Set execution status to 'started' in the database.
+    async def _persist_update(self, payload: ExecutionUpdateDTO, error_prefix: str) -> None:
+        """Persist an execution update payload via the repository with RFC 7807 error reporting.
+
+        Args:
+            payload: Validated execution update DTO to persist.
+            error_prefix: Contextual message prefix for error reporting on failure.
 
         Returns:
             None
 
         Raises:
-            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if repository persistence fails.
         """
         try:
-            now_dt = datetime.now(UTC)
-            payload = ExecutionUpdateDTO(
-                status=STATUS_STARTED,
-                created_at=now_dt,
-                updated_at=now_dt,
-            )
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
-            msg = f"Failed to start progress tracking for {self.execution_id}"
+            msg = f"{error_prefix} for {self.execution_id}"
             logger.error(
                 "[ProgressTracker] %s: %s - %s",
                 ErrorCodes.PROGRESS_UPDATE_FAILED.name,
@@ -188,6 +185,24 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
                 status_code=500,
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
+
+    @override
+    async def start(self) -> None:
+        """Set execution status to 'started' in the database.
+
+        Returns:
+            None
+
+        Raises:
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
+        """
+        now_dt = datetime.now(UTC)
+        payload = ExecutionUpdateDTO(
+            status=STATUS_STARTED,
+            created_at=now_dt,
+            updated_at=now_dt,
+        )
+        await self._persist_update(payload, "Failed to start progress tracking")
 
     @override
     async def update(self, current_step: str, progress: int) -> None:
@@ -203,30 +218,14 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
         Raises:
             AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
         """
-        try:
-            payload = ExecutionUpdateDTO(
-                status=STATUS_RUNNING,
-                current_step=current_step,
-                current_step_name=current_step,
-                progress=progress,
-                updated_at=datetime.now(UTC),
-            )
-            await self.repository.update_execution(self.execution_id, payload)
-        except Exception as e:
-            msg = f"Failed to update progress for {self.execution_id}"
-            logger.error(
-                "[ProgressTracker] %s: %s - %s",
-                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
-                msg,
-                e,
-                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
-            ) from e
+        payload = ExecutionUpdateDTO(
+            status=STATUS_RUNNING,
+            current_step=current_step,
+            current_step_name=current_step,
+            progress=progress,
+            updated_at=datetime.now(UTC),
+        )
+        await self._persist_update(payload, "Failed to update progress")
 
     @override
     async def complete(self) -> None:
@@ -238,29 +237,13 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
         Raises:
             AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
         """
-        try:
-            now_dt = datetime.now(UTC)
-            payload = ExecutionUpdateDTO(
-                status=STATUS_COMPLETED,
-                completed_at=now_dt,
-                updated_at=now_dt,
-            )
-            await self.repository.update_execution(self.execution_id, payload)
-        except Exception as e:
-            msg = f"Failed to complete progress tracking for {self.execution_id}"
-            logger.error(
-                "[ProgressTracker] %s: %s - %s",
-                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
-                msg,
-                e,
-                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
-            ) from e
+        now_dt = datetime.now(UTC)
+        payload = ExecutionUpdateDTO(
+            status=STATUS_COMPLETED,
+            completed_at=now_dt,
+            updated_at=now_dt,
+        )
+        await self._persist_update(payload, "Failed to complete progress tracking")
 
     @override
     async def fail(self, error: str) -> None:
@@ -275,30 +258,14 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
         Raises:
             AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
         """
-        try:
-            now_dt = datetime.now(UTC)
-            payload = ExecutionUpdateDTO(
-                status=STATUS_FAILED,
-                error=error,
-                completed_at=now_dt,
-                updated_at=now_dt,
-            )
-            await self.repository.update_execution(self.execution_id, payload)
-        except Exception as e:
-            msg = f"Failed to report failure for {self.execution_id}"
-            logger.error(
-                "[ProgressTracker] %s: %s - %s",
-                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
-                msg,
-                e,
-                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
-            ) from e
+        now_dt = datetime.now(UTC)
+        payload = ExecutionUpdateDTO(
+            status=STATUS_FAILED,
+            error=error,
+            completed_at=now_dt,
+            updated_at=now_dt,
+        )
+        await self._persist_update(payload, "Failed to report failure")
 
 
 class InMemoryProgressTracker(ProgressTrackerProtocol):
