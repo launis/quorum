@@ -7,6 +7,7 @@ and complete ISTQB branch/equivalence partitions.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -432,3 +433,62 @@ async def test_exists_app_exception_reraises(mock_storage: Any) -> None:
         await driver.exists("test.txt")
 
     assert exc_info.value.message == "Client failed"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_bucket", ["", "   ", "\t\n"])
+async def test_init_blank_or_whitespace_bucket_raises(mock_storage: Any, invalid_bucket: str) -> None:
+    """Verify initialization with empty or whitespace bucket name raises AppException."""
+    with pytest.raises(AppException) as exc_info:
+        GCSFileDriver(bucket_name=invalid_bucket)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_BUCKET_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_timeout", [0.0, -0.01, -5.0])
+async def test_init_non_positive_timeout_raises(mock_storage: Any, invalid_timeout: float) -> None:
+    """Verify ISTQB boundary value <= 0 for timeout_seconds raises STORAGE_CONFIG_ERROR."""
+    with pytest.raises(AppException) as exc_info:
+        GCSFileDriver(bucket_name="test-bucket", timeout_seconds=invalid_timeout)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_CONFIG_ERROR.value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("bad_path", ["", "   ", "/"])
+async def test_operations_reject_empty_or_root_path(mock_storage: Any, bad_path: str) -> None:
+    """Verify all path/prefix operations fail fast with FILESYSTEM_VIOLATION on empty keys."""
+    driver = GCSFileDriver(bucket_name="test-bucket")
+
+    for op in (
+        lambda: driver.save(bad_path, b"payload"),
+        lambda: driver.read(bad_path),
+        lambda: driver.delete(bad_path),
+        lambda: driver.delete_directory(bad_path),
+        lambda: driver.exists(bad_path),
+        lambda: driver.get_url(bad_path),
+    ):
+        with pytest.raises(AppException) as exc_info:
+            await op()
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.details["error_code"] == ErrorCodes.FILESYSTEM_VIOLATION.value
+
+
+@pytest.mark.asyncio
+async def test_operation_timeout_raises_storage_access_failed(mock_storage: Any) -> None:
+    """Verify bounded asyncio.timeout translates slow GCS I/O to STORAGE_ACCESS_FAILED."""
+    driver = GCSFileDriver(bucket_name="test-bucket", timeout_seconds=0.02)
+
+    async def _slow_to_thread(*_args: object, **_kwargs: object) -> bytes:
+        await asyncio.sleep(0.2)
+        return b"late"
+
+    with patch("backend_v2.services.drivers.gcs_file_driver.asyncio.to_thread", side_effect=_slow_to_thread):
+        with pytest.raises(AppException) as exc_info:
+            await driver.read("slow/blob.bin")
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
