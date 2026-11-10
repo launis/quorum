@@ -1529,7 +1529,55 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
     usage_mock.check_quota.return_value = False
     assert await resumption.check_resumability(rec_valid_version) is False
 
-    # Valid resumability + successful resume_execution roundtrip
+    # Valid resumability + successful resume_execution roundtrip with step blueprint hydration
+    block_id = "blk_0195f3a0000070008123456789abcdef"
+    matrix_block = MatrixPromptBlock(
+        id=block_id,
+        slug="matrix-resume",
+        label=I18nText(translations={"en": "Resume Matrix"}),
+        description=I18nText(translations={"en": "Resume Matrix Desc"}),
+        category_id="matrix",
+        type="int",
+        scales=[
+            MatrixScale(score=1, ai_label="Low"),
+            MatrixScale(score=5, ai_label="High"),
+        ],
+    )
+    repo.set_prompt_blocks([matrix_block])
+    step_id = "stp_0195f3a0000070008123456789abcdef"
+    step_obj = Step(
+        id=step_id,
+        slug="step-resume",
+        name=I18nText(translations={"en": "Resume Step"}),
+        role_block_id=None,
+        extraction_protocol_block_id=block_id,
+        criteria_block_ids=[block_id],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
+    )
+    repo.seed_raw_step(step_id, step_obj)
+    wf_with_step = _make_test_workflow(
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        version=2,
+        default_profile_id=None,
+        steps=[StepRule(id=step_id, task_blueprint=step_id, depends_on=[], input_mappings={})],
+    )
+    repo.set_workflow(wf_with_step)
+    rec_valid_version = rec_valid_version.model_copy(
+        update={
+            "step_states": {
+                step_id: ExecutionStep(
+                    id=step_id,
+                    label="Resume Step",
+                    status=ExecutionStatus.FAILED,
+                    scorecard_atoms={},
+                )
+            }
+        }
+    )
     usage_mock.check_quota.return_value = True
     assert await resumption.check_resumability(rec_valid_version) is True
 
@@ -1541,3 +1589,8 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
     assert persisted is not None
     assert persisted.status == ExecutionStatus.RUNNING
     arq_pool.enqueue_job.assert_called_once()
+
+    # Non-Workflow branch in _invalidate_drifted_steps
+    repo.set_workflow(None)
+    unchanged = await resumption._invalidate_drifted_steps(rec_valid_version)
+    assert unchanged == rec_valid_version

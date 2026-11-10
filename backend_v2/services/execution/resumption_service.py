@@ -128,13 +128,45 @@ class ExecutionResumptionService:
         if workflow.version != orig_version:
             return False
 
-        org_id = record.organization_id
-        if org_id and self.usage_service is not None:
-            is_quota_safe = await self.usage_service.check_quota(org_id)
-            if not is_quota_safe:
-                return False
+        return await self._is_organization_quota_safe(record.organization_id)
 
+    async def _is_organization_quota_safe(self, org_id: str | None) -> bool:
+        """Evaluate whether the given organization is within its execution quota.
+
+        Args:
+            org_id: Canonical Opaque Stripe ID of the organization, or None.
+
+        Returns:
+            True if no quota limit is violated or usage evaluation is disabled, False otherwise.
+        """
+        if org_id and self.usage_service is not None:
+            return await self.usage_service.check_quota(org_id)
         return True
+
+    async def _invalidate_drifted_steps(self, record: ExecutionRecord) -> ExecutionRecord:
+        """Invalidate previously passed steps whose Merkle input hashes have drifted.
+
+        Args:
+            record: Execution record domain model to inspect and update.
+
+        Returns:
+            Updated ExecutionRecord with drifted passed steps invalidated.
+        """
+        wf_res = self.workflow_repo.get_workflow_by_id(record.workflow_id)
+        workflow = await wf_res if inspect.isawaitable(wf_res) else wf_res
+        if not isinstance(workflow, Workflow):
+            return record
+
+        step_definitions: dict[str, Step] = {}
+        for step_rule in workflow.steps:
+            if step_rule.task_blueprint:
+                step_res = self.workflow_repo.get_step_by_id(step_rule.task_blueprint)
+                step_data = await step_res if inspect.isawaitable(step_res) else step_res
+                if isinstance(step_data, Step):
+                    step_definitions[step_rule.task_blueprint] = step_data
+        pb_repo = self.prompt_block_repo if self.prompt_block_repo is not None else self.workflow_repo
+        blocks_by_id = await _fetch_referenced_prompt_blocks(step_definitions, pb_repo)
+        return invalidate_drifted_passed_steps(record, workflow, step_definitions, blocks_by_id)
 
     async def resume_execution(self, initiator: TokenData, execution_id: str, arq_pool: ArqRedis) -> ExecutionRecord:
         """Securely resume an existing FAILED execution and enqueue its background worker job.
@@ -173,34 +205,20 @@ class ExecutionResumptionService:
             )
 
         org_id = initiator.organization_id
-        if org_id and self.usage_service is not None:
-            is_quota_safe = await self.usage_service.check_quota(org_id)
-            if not is_quota_safe:
-                msg = f"Organization '{org_id}' has exceeded its execution quota. Resumption blocked."
-                logger.error(
-                    "[ExecutionResumptionService] Circuit Breaker Tripped: %s",
-                    msg,
-                    extra={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value, "organization_id": org_id},
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=402,
-                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
-                )
+        if not await self._is_organization_quota_safe(org_id):
+            msg = f"Organization '{org_id}' has exceeded its execution quota. Resumption blocked."
+            logger.error(
+                "[ExecutionResumptionService] Circuit Breaker Tripped: %s",
+                msg,
+                extra={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value, "organization_id": org_id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=402,
+                details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
+            )
 
-        wf_res = self.workflow_repo.get_workflow_by_id(record.workflow_id)
-        workflow = await wf_res if inspect.isawaitable(wf_res) else wf_res
-        if isinstance(workflow, Workflow):
-            step_definitions: dict[str, Step] = {}
-            for step_rule in workflow.steps:
-                if step_rule.task_blueprint:
-                    step_res = self.workflow_repo.get_step_by_id(step_rule.task_blueprint)
-                    step_data = await step_res if inspect.isawaitable(step_res) else step_res
-                    if isinstance(step_data, Step):
-                        step_definitions[step_rule.task_blueprint] = step_data
-            pb_repo = self.prompt_block_repo if self.prompt_block_repo is not None else self.workflow_repo
-            blocks_by_id = await _fetch_referenced_prompt_blocks(step_definitions, pb_repo)
-            record = invalidate_drifted_passed_steps(record, workflow, step_definitions, blocks_by_id)
+        record = await self._invalidate_drifted_steps(record)
 
         record = record.model_copy(update={"status": ExecutionStatus.RUNNING})
         await self.exec_repo.update_execution(
