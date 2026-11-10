@@ -2166,7 +2166,7 @@
           "Executions"
         ],
         "summary": "Save Execution Assignment Draft",
-        "description": "Auto-save assignee draft inputs on an active task assignment.\n\nArgs:\n    assignment_id: Canonical Task Assignment ID (tsk_<hex32>).\n    payload: Draft inputs DTO.\n    current_user: Authenticated assignee token data.\n    execution_service: Execution domain service.\n\nReturns:\n    Updated ExecutionAssignmentResponseDTO with persisted draft_inputs.\n\nRaises:\n    PermissionDeniedError: If caller is not the assigned user or attempts to\n        mutate locked_inputs (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If assignment does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If assignment has expired or is already submitted\n        (ErrorCodes.TASK_ASSIGNMENT_EXPIRED, ErrorCodes.TASK_ASSIGNMENT_ALREADY_SUBMITTED).",
+        "description": "Auto-save assignee draft inputs on an active task assignment.\n\nArgs:\n    assignment_id: Canonical Task Assignment ID (tsk_<hex32>).\n    payload: Draft inputs DTO.\n    current_user: Authenticated assignee token data.\n    execution_service: Execution domain service.\n    doc_service: Document extraction service for eager Base64 decoding.\n\nReturns:\n    Updated ExecutionAssignmentResponseDTO with persisted draft_inputs.\n\nRaises:\n    PermissionDeniedError: If caller is not the assigned user or attempts to\n        mutate locked_inputs (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If assignment does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If assignment has expired or is already submitted\n        (ErrorCodes.TASK_ASSIGNMENT_EXPIRED, ErrorCodes.TASK_ASSIGNMENT_ALREADY_SUBMITTED).",
         "operationId": "save_execution_assignment_draft_api_v2_execution_executions_assignments__assignment_id__draft_put",
         "security": [
           {
@@ -10004,6 +10004,17 @@
             ],
             "description": "Optional Output Profile ID (prf_<hex32>)"
           },
+          "task_brief_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+          },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
             "description": "Default target execution locale",
@@ -10054,7 +10065,7 @@
           "hard_deadline_at"
         ],
         "title": "ExecutionAssignmentBatchCreateDTO",
-        "description": "Payload for bulk-creating 1 to 500 single-use workflow execution assignments.\n\nAttributes:\n    recipients: List of 1 to 500 task assignment recipients.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Shared target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional shared Output Profile ID (prf_<hex32>).\n    target_locale: Default target execution locale.\n    locked_inputs: Shared manager-locked workflow inputs.\n    assignee_input_keys: Shared ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Shared post-submission result visibility policy.\n    hard_deadline_at: Shared absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional shared countdown timer in seconds from activation."
+        "description": "Payload for bulk-creating 1 to 500 single-use workflow execution assignments.\n\nAttributes:\n    recipients: List of 1 to 500 task assignment recipients.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Shared target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional shared Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional shared Task Definition PromptBlock ID (blk_<hex32>).\n    target_locale: Default target execution locale.\n    locked_inputs: Shared manager-locked workflow inputs.\n    assignee_input_keys: Shared ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Shared post-submission result visibility policy.\n    hard_deadline_at: Shared absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional shared countdown timer in seconds from activation."
       },
       "ExecutionAssignmentBatchResponseDTO": {
         "properties": {
@@ -10115,6 +10126,17 @@
             ],
             "description": "Optional Output Profile ID (prf_<hex32>)"
           },
+          "task_brief_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+          },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
             "description": "Target execution locale",
@@ -10165,12 +10187,20 @@
           "hard_deadline_at"
         ],
         "title": "ExecutionAssignmentCreateDTO",
-        "description": "Payload for creating a single-use workflow execution assignment.\n\nAttributes:\n    assigned_email: Recipient email address.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
+        "description": "Payload for creating a single-use workflow execution assignment.\n\nAttributes:\n    assigned_email: Recipient email address.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
       },
       "ExecutionAssignmentDraftDTO": {
         "properties": {
           "draft_inputs": {
-            "$ref": "#/components/schemas/WorkflowInputs-Input",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowInputsIngress"
+              },
+              {
+                "$ref": "#/components/schemas/WorkflowInputs-Input"
+              }
+            ],
+            "title": "Draft Inputs",
             "description": "Assignee draft workflow inputs"
           }
         },
@@ -10180,7 +10210,7 @@
           "draft_inputs"
         ],
         "title": "ExecutionAssignmentDraftDTO",
-        "description": "Payload for auto-saving assignee draft inputs prior to final submission.\n\nAttributes:\n    draft_inputs: Partial or complete assignee workflow inputs."
+        "description": "Payload for auto-saving assignee draft inputs prior to final submission.\n\nAttributes:\n    draft_inputs: Partial or complete assignee workflow inputs (ingress or domain)."
       },
       "ExecutionAssignmentOnboardingRequestDTO": {
         "properties": {
@@ -10243,6 +10273,28 @@
             "$ref": "#/components/schemas/PrefixedUUID7",
             "description": "Target Workflow ID (wf_<hex32>)"
           },
+          "task_brief_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+          },
+          "task_brief": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskAssignmentBriefDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Hydrated Task Definition PromptBlock metadata"
+          },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
             "description": "Target execution locale"
@@ -10283,7 +10335,7 @@
           "hard_deadline_at"
         ],
         "title": "ExecutionAssignmentPreviewDTO",
-        "description": "Public pre-activation preview of a single-use workflow execution assignment.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    organization_name: Display name of the issuing organization.\n    assigned_email_masked: Masked recipient email hint (e.g. 'j***@example.com').\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    target_locale: Target execution locale.\n    status: Current assignment status.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
+        "description": "Public pre-activation preview of a single-use workflow execution assignment.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    organization_name: Display name of the issuing organization.\n    assigned_email_masked: Masked recipient email hint (e.g. 'j***@example.com').\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).\n    task_brief: Optional hydrated TaskAssignmentBriefDTO.\n    target_locale: Target execution locale.\n    status: Current assignment status.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
       },
       "ExecutionAssignmentRecipientDTO": {
         "properties": {
@@ -10383,6 +10435,28 @@
               }
             ],
             "description": "Output Profile ID"
+          },
+          "task_brief_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+          },
+          "task_brief": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskAssignmentBriefDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Hydrated Task Definition PromptBlock metadata"
           },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
@@ -10502,12 +10576,20 @@
           "created_at"
         ],
         "title": "ExecutionAssignmentResponseDTO",
-        "description": "API response DTO representing a task assignment without exposing token_hash.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    batch_id: Optional cohort batch ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    assigned_email: Recipient email address.\n    assigned_user_id: Bound User ID once activated (usr_<hex32>).\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    draft_inputs: Server-side auto-saved draft inputs.\n    status: Lifecycle status of the task assignment.\n    email_delivery_status: Transactional email delivery status.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation.\n    activated_at: UTC activation timestamp.\n    submitted_at: UTC submission timestamp.\n    execution_id: Triggered ExecutionRecord ID (exe_<hex32>).\n    created_by: Creator User ID (usr_<hex32>).\n    created_at: UTC creation timestamp."
+        "description": "API response DTO representing a task assignment without exposing token_hash.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    batch_id: Optional cohort batch ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    assigned_email: Recipient email address.\n    assigned_user_id: Bound User ID once activated (usr_<hex32>).\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).\n    task_brief: Optional hydrated TaskAssignmentBriefDTO.\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    draft_inputs: Server-side auto-saved draft inputs.\n    status: Lifecycle status of the task assignment.\n    email_delivery_status: Transactional email delivery status.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation.\n    activated_at: UTC activation timestamp.\n    submitted_at: UTC submission timestamp.\n    execution_id: Triggered ExecutionRecord ID (exe_<hex32>).\n    created_by: Creator User ID (usr_<hex32>).\n    created_at: UTC creation timestamp."
       },
       "ExecutionAssignmentSubmitDTO": {
         "properties": {
           "submitted_inputs": {
-            "$ref": "#/components/schemas/WorkflowInputs-Input",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowInputsIngress"
+              },
+              {
+                "$ref": "#/components/schemas/WorkflowInputs-Input"
+              }
+            ],
+            "title": "Submitted Inputs",
             "description": "Final assignee workflow inputs"
           }
         },
@@ -25044,6 +25126,50 @@
         ],
         "title": "TargetSpeaker",
         "description": "Evaluated target speaker for dialogue or deliverable claims."
+      },
+      "TaskAssignmentBriefDTO": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Canonical PromptBlock ID (blk_<hex32>)"
+          },
+          "label": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized title of the task brief"
+          },
+          "instruction_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction Text",
+            "description": "Optional task brief instruction text"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Optional reference URL from theory_grounding.source_url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "TaskAssignmentBriefDTO",
+        "description": "Hydrated Task Definition PromptBlock summary embedded in task assignment responses.\n\nAttributes:\n    id: Canonical PromptBlock Opaque Stripe ID (blk_<hex32>).\n    label: Localized title of the task brief.\n    instruction_text: Optional plain-text or markdown task instructions.\n    source_url: Optional reference document or external resource URL."
       },
       "TenantSecretCreateDTO": {
         "properties": {
