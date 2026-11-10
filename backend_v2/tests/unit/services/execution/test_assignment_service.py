@@ -412,6 +412,7 @@ async def test_assignment_activate_identity_mismatch_negative(
         organization_id=ORG_ALPHA_ID,
         email="wrong.person@alpha.fi",
     )
+    caplog.clear()
     with caplog.at_level(logging.ERROR), pytest.raises(PermissionDeniedError) as exc_info:
         await assignment_service.activate_assignment(initiator=intruder, assignment_id=created.id)
 

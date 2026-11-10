@@ -77,7 +77,12 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
     SystemLocale,
 )
-from backend_v2.services.auth.email_service import EmailService
+from backend_v2.services.auth.email_service import (
+    EmailService,
+)
+from backend_v2.services.auth.email_service import (
+    mask_email_address as mask_email_address,
+)
 from backend_v2.services.auth.repositories import OrganizationRepository, UserRepository
 from backend_v2.services.auth.token_service import TokenService
 from backend_v2.services.document_extraction import DocumentExtractionService
@@ -110,24 +115,6 @@ class AuditEventLoggerProtocol(Protocol):
         target_id: str,
         details: Mapping[str, str | int | float | bool | None],
     ) -> None: ...
-
-
-def mask_email_address(email: str) -> str:
-    """Mask an email address for public preview responses (e.g. 'j***@example.com').
-
-    Args:
-        email: Raw email address string.
-
-    Returns:
-        Redacted email hint preserving first character and domain.
-    """
-    normalized = email.strip()
-    if "@" not in normalized:
-        return "***"
-    local_part, domain = normalized.split("@", 1)
-    if not local_part:
-        return f"***@{domain}"
-    return f"{local_part[0]}***@{domain}"
 
 
 def redact_execution_for_confirmation_only(record: ExecutionRecord) -> ExecutionRecord:

@@ -14,7 +14,7 @@ from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.models.auth import TransactionalEmailItemDTO
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EmailDeliveryStatus, EmailTransportMode, EntityPrefix, SystemLocale
-from backend_v2.services.auth.email_service import EmailService, _redact_action_url
+from backend_v2.services.auth.email_service import EmailService, _redact_action_url, mask_email_address
 from backend_v2.settings import Settings, get_settings
 
 __all__ = [
@@ -235,6 +235,12 @@ async def test_email_service_console_dispatch_positive(
     assert redacted_assignment.endswith("/task/[REDACTED_TOKEN]")
     assert "secret_query_token_12345" not in caplog.text
     assert "secret_path_token_67890" not in caplog.text
+    assert "alice@acme.example.com" not in caplog.text
+    assert "bob@acme.example.com" not in caplog.text
+    assert "candidate@acme.example.com" not in caplog.text
+    assert "a***@acme.example.com" in caplog.text
+    assert "b***@acme.example.com" in caplog.text
+    assert "c***@acme.example.com" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -247,6 +253,11 @@ async def test_email_service_empty_batch_boundary() -> None:
     assert result.delivery_statuses == {}
     assert _redact_action_url("/relative/path?token=abc") == "/relative/path"
     assert _redact_action_url("/task/raw_relative_secret_token") == "/task/[REDACTED_TOKEN]"
+    assert mask_email_address("") == "***"
+    assert mask_email_address("   ") == "***"
+    assert mask_email_address("invalid-no-at") == "***"
+    assert mask_email_address("@acme.example.com") == "***@acme.example.com"
+    assert mask_email_address("  alice@acme.example.com  ") == "a***@acme.example.com"
 
 
 @pytest.mark.asyncio

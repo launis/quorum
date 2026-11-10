@@ -22,7 +22,25 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["EmailService"]
+__all__ = ["EmailService", "mask_email_address"]
+
+
+def mask_email_address(email: str) -> str:
+    """Mask an email address for public previews and telemetry logs.
+
+    Args:
+        email: Raw email address string.
+
+    Returns:
+        Redacted email hint preserving the first local character and domain.
+    """
+    normalized = email.strip()
+    if "@" not in normalized:
+        return "***"
+    local_part, domain = normalized.split("@", 1)
+    if not local_part:
+        return f"***@{domain}"
+    return f"{local_part[0]}***@{domain}"
 
 
 def _redact_action_url(action_url: SecretStr | str) -> str:
@@ -129,7 +147,7 @@ class EmailService:
         category: str,
         items: list[TransactionalEmailItemDTO],
     ) -> TransactionalEmailBatchResultDTO:
-        """Record batch items in the console outbox and emit token-redacted telemetry logs.
+        """Record batch items in the console outbox and emit PII- and token-redacted telemetry logs.
 
         Args:
             category: Logical email category identifier for structured telemetry.
@@ -146,7 +164,7 @@ class EmailService:
                 "[EmailService] CONSOLE dispatch category=%s entity_id=%s to=%s subject=%s action_path=%s",
                 category,
                 item.entity_id,
-                item.recipient_email,
+                mask_email_address(str(item.recipient_email)),
                 item.subject,
                 _redact_action_url(item.action_url),
             )

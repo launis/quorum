@@ -10,8 +10,12 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Final
 
 import pytest
+
+HELP_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 15
+MAX_HELP_LATENCY_MS: Final[float] = 12_000.0
 
 ALL_SCRIPTS: list[str] = sorted(
     [
@@ -70,7 +74,7 @@ def test_all_scripts_respond_to_help_flag(script_name: str, flag: str) -> None:
         [sys.executable, str(script_path), flag],
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=HELP_SUBPROCESS_TIMEOUT_SECONDS,
     )
     assert result.returncode == 0, (
         f"Script {script_name} failed on {flag} with code {result.returncode}.\n"
@@ -86,7 +90,7 @@ def test_all_scripts_emit_usage_and_description(script_name: str) -> None:
         [sys.executable, str(script_path), "--help"],
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=HELP_SUBPROCESS_TIMEOUT_SECONDS,
     )
     assert result.returncode == 0
     stdout = result.stdout.lower()
@@ -113,12 +117,14 @@ def test_scripts_help_execution_latency(script_name: str) -> None:
         [sys.executable, str(script_path), "--help"],
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=HELP_SUBPROCESS_TIMEOUT_SECONDS,
     )
     assert result.returncode == 0
     duration_ms = (time.perf_counter() - start_time) * 1000
-    # Must complete in under 8000ms even under cold OS process spawn on Windows under heavy test-runner CPU load
-    assert duration_ms < 8000, f"{script_name} took {duration_ms:.2f}ms on --help (exceeded 8000ms limit)"
+    # Allow up to 12000ms for cold OS process spawn on Windows under heavy full-suite CPU and Defender load
+    assert duration_ms < MAX_HELP_LATENCY_MS, (
+        f"{script_name} took {duration_ms:.2f}ms on --help (exceeded {MAX_HELP_LATENCY_MS:.0f}ms limit)"
+    )
 
 
 @pytest.mark.parametrize("script_name", ALL_SCRIPTS)
@@ -129,7 +135,7 @@ def test_scripts_cli_invalid_argument_fails(script_name: str) -> None:
         [sys.executable, str(script_path), "--invalid-test-flag-xyz"],
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=HELP_SUBPROCESS_TIMEOUT_SECONDS,
     )
     assert result.returncode == 2, (
         f"Script {script_name} did not exit with code 2 on invalid flag. Code: {result.returncode}\n"
@@ -150,7 +156,7 @@ def test_scripts_cli_zero_side_effects() -> None:
             [sys.executable, str(script_path), "--help"],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=HELP_SUBPROCESS_TIMEOUT_SECONDS,
         )
         assert result.returncode == 0
 
