@@ -106,7 +106,7 @@ def _build_sample_matrix_rows(n: int = 1) -> list[MatrixScorecardRowDTO]:
     for i in range(1, n):
         rows.append(
             MatrixScorecardRowDTO(
-                block_id=f"blk_matrix_{i:04d}",
+                block_id=f"blk_0195f3a0000070008123456789abcd{i:02x}",
                 name=f"Matrix {i}",
                 label_i18n=I18nText(translations={"fi": f"Matriisi {i}", "en": f"Matrix {i}"}),
                 score=4.0,
@@ -200,10 +200,10 @@ async def test_export_excel_includes_causal_propositions() -> None:
                 paragraph_ref="p1",
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
-                dependent_child_ids=["causal_prop_0001"],
+                dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
             ),
             CausalNodeDTO(
-                node_id="causal_prop_0001",
+                node_id="tda_0195f3a0000070008000000000000002",
                 claim="Unmapped Causal Proposition",
                 paragraph_ref="p2",
                 status=ExecutionStatus.FAILED,
@@ -348,7 +348,7 @@ async def test_export_excel_writer_error_raises_500() -> None:
     report_dto = _build_sample_report_dto()
     matrices = _build_sample_matrix_rows(1)
 
-    with patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk failure")):
+    with patch("backend_v2.services.export.excel_exporter.pd.ExcelWriter", side_effect=RuntimeError("Disk failure")):
         with pytest.raises(AppException) as exc_info:
             await exporter.export_excel(
                 execution=exec_record,
@@ -383,14 +383,15 @@ async def test_export_excel_with_execution_id_override() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
     matrices = _build_sample_matrix_rows(1)
+    override_id = "exe_0195f3a0000070008999999999999999"
 
     payload = await exporter.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=matrices,
-        execution_id="exe_custom_override_999",
+        execution_id=override_id,
     )
-    assert payload.filename == "execution_export_exe_custom_override_999.xlsx"
+    assert payload.filename == f"execution_export_{override_id}.xlsx"
 
     wb = openpyxl.load_workbook(io.BytesIO(payload.content_bytes))
     sheet_summary = ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, "fi")
@@ -398,7 +399,7 @@ async def test_export_excel_with_execution_id_override() -> None:
     rows = list(ws.iter_rows(values_only=True))
     assert len(rows) >= 2
     # Execution ID is column 0
-    assert rows[1][0] == "exe_custom_override_999"
+    assert rows[1][0] == override_id
 
 
 @pytest.mark.asyncio
