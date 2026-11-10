@@ -1,6 +1,7 @@
 """Scoring Hook Package.
 
-Exposes the decomposed scoring hooks through a Strangler Fig Facade for seamless backward compatibility.
+Exports the public scoring hooks and wrapper DTOs for falsifier evaluation,
+matrix score calculation, score normalization, and passivity penalty enforcement.
 """
 
 from backend_v2.hooks.scoring.falsifier_hook import (
