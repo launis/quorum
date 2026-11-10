@@ -1,3 +1,7 @@
+"""Unit tests for PromptCompiler dynamic schema and XML context compilation."""
+
+from __future__ import annotations
+
 import typing
 
 import pytest
@@ -14,7 +18,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
     from backend_v2.models.enums import BlockDataType
 
-    # Mocking the JSON structure we confirmed in Phase 1
+    # Construct matrix block fixture for schema compilation
     mock_matrix_block = {
         "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "test_matrix",
@@ -206,12 +210,10 @@ def test_generate_mcp_instruction() -> None:
 
 
 def test_prompt_compiler_architectural_integrity() -> None:
-    """Suojelee arkkitehtuuria vahinkopoistoilta ja "salaa poistamisilta".
-    Varmistaa, että molemmat evaluointistrategiat pysyvät olemassa.
-    """
+    """Protect architectural integrity against accidental method removal."""
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
-    msg1 = "CRITICAL: build_dynamic_schema on SALAA POISTETTU! Tämä rikkoo XAI-laajennukset ja 3D-matriisit."
+    msg1 = "CRITICAL: build_dynamic_schema was removed, breaking XAI extensions and 3D matrices."
     assert callable(PromptCompiler.build_dynamic_schema), msg1
 
 
@@ -259,25 +261,22 @@ def test_dynamic_schema_descriptions_are_present() -> None:
 
 
 def test_fsm_serving_state_safety_limits() -> None:
-    """Varmistaa, että FSM-tilojen räjähdyksen estävät rajoitukset ovat riittävän tiukat."""
+    """Verify that FSM state explosion limits remain strictly bounded."""
     from backend_v2.settings import get_settings
 
-    # Vertex AI FSM -kääntäjä ei hyväksy liian suuria sisäkkäisiä taulukkorajoja.
-    # Varmistetaan matemaattinen yläraja tilojen määrälle.
+    # Ensure mathematical upper bounds for nested array schema limits.
     assert get_settings().schema_max_localized_anchors <= 30
     assert get_settings().schema_max_evaluations <= 30
     assert get_settings().schema_max_chunk_records <= 30
 
 
 def test_prompt_compiler_extreme_description_truncation() -> None:
-    """Epic 56 Phase 4: Varmistaa, että erittäin pitkät ai_description-kentät säilytetään
-    täydellisinä dynamic schema -kenttien kuvauksissa ilman keinotekoista typistämistä.
-    """
+    """Verify that long ai_description fields are preserved without truncation in dynamic schema descriptions."""
     compiler = PromptCompiler()
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
     from backend_v2.models.enums import BlockDataType
 
-    extreme_desc = "X" * 1000  # 1000 merkin pituinen ohjeistus
+    extreme_desc = "X" * 1000  # 1000-character instruction string
     mock_block = {
         "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "extreme_test",
@@ -319,7 +318,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
     compiled_desc = field_info.description
     assert compiled_desc is not None
 
-    # Kuvauksen tulee sisältää koko extreme_desc ilman typistystä
+    # Description must retain the full extreme_desc without truncation
     assert extreme_desc in compiled_desc
     assert len(compiled_desc) > 1000
 
@@ -414,7 +413,7 @@ def test_build_xml_context() -> None:
 
 
 def test_build_xml_context_chat_history_cdata_containment_neg08() -> None:
-    """Verify Scenario NEG-08: chat history is encapsulated in <chat_history><![CDATA[...]]></chat_history>
+    """Verify chat history is encapsulated in <chat_history><![CDATA[...]]></chat_history>
     and XML injection payloads remain inert.
     """
     from backend_v2.models.core_base import I18nText
@@ -1054,3 +1053,42 @@ def test_extract_value_from_state_missing_step_negative() -> None:
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_extract_value_from_state_additional_resolution_and_error_branches() -> None:
+    """Verify remaining state resolution branches and negative unsupported state_data type."""
+    compiler = PromptCompiler()
+
+    # Unsupported state_data type raises AppException
+    with pytest.raises(AppException) as exc_info:
+        compiler._extract_value_from_state("inputs.doc", object())  # type: ignore[arg-type]
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # Missing steps.* on LLMContextDataDTO raises AppException
+    llm_dto = LLMContextDataDTO(
+        inputs={"direct_key": "val"},
+        raw_inputs={"nested_raw": {"inner": "raw_inner_val"}},
+    )
+    with pytest.raises(AppException):
+        compiler._extract_value_from_state("steps.missing_step", llm_dto)
+
+    # Dot notation into raw_inputs on LLMContextDataDTO
+    assert compiler._extract_value_from_state("nested_raw.inner", llm_dto) == "raw_inner_val"
+
+    # ExecutionInputsDTO direct and dot-notation branches
+    exec_dto = ExecutionInputsDTO(
+        raw_inputs={"raw_key": "raw_val", "raw_obj": {"sub": "sub_val"}},
+        dynamic_inputs={"dyn_key": "dyn_val", "dyn_obj": {"sub": "dyn_sub"}},
+    )
+    assert compiler._extract_value_from_state("raw_key", exec_dto) == "raw_val"
+    assert compiler._extract_value_from_state("dyn_key", exec_dto) == "dyn_val"
+    assert compiler._extract_value_from_state("raw_obj.sub", exec_dto) == "sub_val"
+    assert compiler._extract_value_from_state("dyn_obj.sub", exec_dto) == "dyn_sub"
+
+    # Non-mapping 'outputs' entry inside nested mapping in _format_state_value
+    non_map_outputs = LLMContextDataDTO(
+        inputs={"step_data": {"section": {"outputs": "scalar_output", "note": "extra"}}}
+    )
+    formatted = compiler._extract_value_from_state("step_data", non_map_outputs)
+    assert "<Outputs><![CDATA[scalar_output]]></Outputs>" in formatted

@@ -4,7 +4,7 @@ Transforms abstract workflow state and domain models into executable
 LLM payloads with system context, strictness calibration, and format enforcement.
 
 Acts as a high-level orchestrator delegating schema generation to SchemaFactory
-and localization/instruction compilation to LocalizationCompiler (SRP Rule 88).
+and localization/instruction compilation to LocalizationCompiler.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ class _InputMetaDTO(BaseModel):
         """Whether this input metadata includes the assignment modality.
 
         Returns:
-            bool: True if 'assignment' is in input_modes.
+            True if 'assignment' is in input_modes.
         """
         return "assignment" in self.input_modes
 
@@ -79,7 +79,7 @@ class PromptCompiler:
 
     Converts static DB models into runtime execution contexts.
     Delegates schema generation to SchemaFactory and localization
-    to LocalizationCompiler (SRP God Object decomposition, Rule 88).
+    to LocalizationCompiler.
 
     Attributes:
         _schema_factory: Handles dynamic Pydantic schema generation.
@@ -199,6 +199,71 @@ class PromptCompiler:
 
     # ── Native PromptCompiler methods (remain here) ─────────────────────
 
+    def _build_input_meta_map(self, expected_inputs: list[Any] | None, target_locale: str) -> dict[str, _InputMetaDTO]:
+        """Build a lookup map from '$inputs.<key>' to typed _InputMetaDTO instances.
+
+        Args:
+            expected_inputs: Optional list of ExpectedInput domain instances.
+            target_locale: Target language code for localized label and description resolution.
+
+        Returns:
+            Dictionary mapping canonical '$inputs.<key>' strings to _InputMetaDTO records.
+        """
+        input_meta_map: dict[str, _InputMetaDTO] = {}
+        if not expected_inputs:
+            return input_meta_map
+
+        for ei in expected_inputs:
+            if not isinstance(ei, ExpectedInput) or not ei.input_key:
+                continue
+
+            input_meta_map[f"$inputs.{ei.input_key}"] = _InputMetaDTO(
+                label=self.resolve_i18n(ei.label, target_locale),
+                desc=self.resolve_i18n(ei.description, target_locale),
+                ai_desc=ei.ai_description,
+                is_chat_history=ei.is_chat_history,
+                input_modes=ei.input_modes,
+                is_endorsed_deliverable=ei.is_endorsed_deliverable,
+            )
+        return input_meta_map
+
+    @staticmethod
+    def _render_mapped_input_xml(source_id_to_use: str, meta: _InputMetaDTO, value: str) -> str:
+        """Render the `<document_metadata>` block and wrapped payload XML for a mapped input.
+
+        Args:
+            source_id_to_use: Canonical or aliased source document identifier.
+            meta: Validated _InputMetaDTO for the input.
+            value: Extracted string payload value.
+
+        Returns:
+            Combined `<document_metadata>` and fenced payload XML string.
+        """
+        meta_parts: list[str] = [
+            TemplateProcessor.render_prompt(t"    <document_id>{source_id_to_use:raw}</document_id>")
+        ]
+        if meta.label:
+            meta_label = meta.label
+            meta_parts.append(TemplateProcessor.render_prompt(t"    <document_name>{meta_label:raw}</document_name>"))
+        if meta.ai_desc:
+            ai_desc_val = meta.ai_desc
+            meta_parts.append(
+                TemplateProcessor.render_prompt(t"    <ai_context_mandate>{ai_desc_val:raw}</ai_context_mandate>")
+            )
+        if meta.is_endorsed_deliverable:
+            meta_parts.append("    <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>")
+
+        meta_body = "\n".join(meta_parts)
+        desc_text = f"  <document_metadata>\n{meta_body}\n  </document_metadata>\n"
+
+        if meta.is_assignment:
+            wrapped_val = TemplateProcessor.render_prompt(t"<assignment_context>\n{value}\n</assignment_context>")
+        elif meta.is_chat_history:
+            wrapped_val = TemplateProcessor.render_prompt(t"<chat_history>\n{value}\n</chat_history>")
+        else:
+            wrapped_val = TemplateProcessor.render_prompt(t"<user_payload>\n{value}\n</user_payload>")
+        return f"{desc_text}{wrapped_val}"
+
     def build_xml_context(
         self,
         input_mappings: PromptMappingDTO | dict[str, str],
@@ -220,39 +285,17 @@ class PromptCompiler:
             A single string containing XML-wrapped elements.
 
         Raises:
-            AppException: If unmapped input reference is encountered (ErrorCodes.CONFIGURATION_ERROR).
+            AppException: If an unsupported prefix or unmapped input reference is encountered
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.CONFIGURATION_ERROR).
         """
-        xml_blocks = []
-
-        input_meta_map: dict[str, _InputMetaDTO] = {}
-        if expected_inputs:
-            for ei in expected_inputs:
-                if not isinstance(ei, ExpectedInput):
-                    continue
-
-                key = ei.input_key
-                if not key:
-                    continue
-
-                # Fail-Fast Mandatory I18n extraction
-                label_str = self.resolve_i18n(ei.label, target_locale)
-                desc_str = self.resolve_i18n(ei.description, target_locale)
-
-                input_meta_map[f"$inputs.{key}"] = _InputMetaDTO(
-                    label=label_str,
-                    desc=desc_str,
-                    ai_desc=ei.ai_description,
-                    is_chat_history=ei.is_chat_history,
-                    input_modes=ei.input_modes,
-                    is_endorsed_deliverable=ei.is_endorsed_deliverable,
-                )
-
+        xml_blocks: list[str] = []
+        input_meta_map = self._build_input_meta_map(expected_inputs, target_locale)
         mappings = input_mappings.mappings if isinstance(input_mappings, PromptMappingDTO) else input_mappings
 
         for logical_name, source_path in mappings.items():
             if not (source_path.startswith("$inputs") or source_path.startswith("$steps")):
                 msg = f"Unsupported source_path prefix: {source_path}"
-                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=400,
@@ -260,211 +303,140 @@ class PromptCompiler:
                 )
 
             value = self._extract_value_from_state(source_path, state_data)
-            if value:
-                source_id_to_use = logical_name
-                if alias_engine:
-                    alias = alias_engine.register(logical_name, prefix="doc")
-                    alias_engine.source_document_aliases.append(alias)
-                    source_id_to_use = alias
+            if not value:
+                continue
 
-                base_path = ".".join(source_path.split(".")[:2]) if source_path.startswith("$") else source_path
+            source_id_to_use = logical_name
+            if alias_engine:
+                alias = alias_engine.register(logical_name, prefix="doc")
+                alias_engine.source_document_aliases.append(alias)
+                source_id_to_use = alias
 
-                desc_text = ""
+            base_path = ".".join(source_path.split(".")[:2]) if source_path.startswith("$") else source_path
 
-                if source_path.startswith("$inputs"):
-                    if base_path not in input_meta_map:
-                        msg = (
-                            f"Unmapped input reference '{source_path}' in step input mappings "
-                            "(missing expected_input definition)."
-                        )
-                        logger.error("[PromptCompiler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                        raise AppException(
-                            message=msg,
-                            status_code=400,
-                            details={
-                                "error_code": ErrorCodes.CONFIGURATION_ERROR.value,
-                                "source_path": source_path,
-                                "base_path": base_path,
-                            },
-                        )
-                    meta = input_meta_map[base_path]
-
-                    meta_parts: list[str] = [
-                        TemplateProcessor.render_prompt(t"    <document_id>{source_id_to_use:raw}</document_id>")
-                    ]
-                    if meta.label:
-                        meta_label = meta.label
-                        meta_parts.append(
-                            TemplateProcessor.render_prompt(t"    <document_name>{meta_label:raw}</document_name>")
-                        )
-                    if meta.ai_desc:
-                        ai_desc_val = meta.ai_desc
-                        meta_parts.append(
-                            TemplateProcessor.render_prompt(
-                                t"    <ai_context_mandate>{ai_desc_val:raw}</ai_context_mandate>"
-                            )
-                        )
-                    if meta.is_endorsed_deliverable:
-                        meta_parts.append("    <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>")
-
-                    meta_body = "\n".join(meta_parts)
-                    desc_text = f"  <document_metadata>\n{meta_body}\n  </document_metadata>\n"
-
-                    if meta.is_assignment:
-                        wrapped_val = TemplateProcessor.render_prompt(
-                            t"<assignment_context>\n{value}\n</assignment_context>"
-                        )
-                    elif meta.is_chat_history:
-                        wrapped_val = TemplateProcessor.render_prompt(t"<chat_history>\n{value}\n</chat_history>")
-                    else:
-                        wrapped_val = TemplateProcessor.render_prompt(t"<user_payload>\n{value}\n</user_payload>")
-                else:
-                    wrapped_val = TemplateProcessor.render_prompt(t"<ai_draft_context>\n{value}\n</ai_draft_context>")
-
-                inner_xml = f"{desc_text}{wrapped_val}"
-                xml_blocks.append(
-                    TemplateProcessor.render_prompt(
-                        t'<matrix_input source_id="{source_id_to_use}">\n{inner_xml:raw}\n</matrix_input>'
+            if source_path.startswith("$inputs"):
+                if base_path not in input_meta_map:
+                    msg = (
+                        f"Unmapped input reference '{source_path}' in step input mappings "
+                        "(missing expected_input definition)."
                     )
+                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.CONFIGURATION_ERROR.value,
+                            "source_path": source_path,
+                            "base_path": base_path,
+                        },
+                    )
+                inner_xml = self._render_mapped_input_xml(source_id_to_use, input_meta_map[base_path], value)
+            else:
+                inner_xml = TemplateProcessor.render_prompt(t"<ai_draft_context>\n{value}\n</ai_draft_context>")
+
+            xml_blocks.append(
+                TemplateProcessor.render_prompt(
+                    t'<matrix_input source_id="{source_id_to_use}">\n{inner_xml:raw}\n</matrix_input>'
                 )
+            )
 
-        compiled = "\n\n".join(xml_blocks)
+        return "\n\n".join(xml_blocks)
 
-        return compiled
-
-    def _extract_value_from_state(self, path: str, state_data: ExecutionInputsDTO | LLMContextDataDTO) -> str:
-        """Extract a value from workflow state using a path like '$inputs.history_text'.
+    @staticmethod
+    def _resolve_state_value(clean_path: str, state_data: ExecutionInputsDTO | LLMContextDataDTO) -> object:
+        """Resolve a normalized path against LLMContextDataDTO or ExecutionInputsDTO state containers.
 
         Args:
-            path: The dot-notation path string (e.g., '$inputs.document').
-            state_data: The current workflow execution state DTO.
+            clean_path: Dot-notation path with leading '$' stripped.
+            state_data: Typed workflow execution state DTO.
 
         Returns:
-            The extracted and stringified value.
+            The raw resolved value from the state container.
 
         Raises:
-            AppException: If the path is invalid or resolution fails.
+            MissingInputMappingError: If an explicit inputs.* or steps.* key is absent.
         """
-        if not isinstance(path, str):
-            msg = f"Variable reference path must be a string, got {type(path)}"
-            logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        primary_source = state_data.inputs if isinstance(state_data, LLMContextDataDTO) else state_data.raw_inputs
+        secondary_source = (
+            state_data.raw_inputs if isinstance(state_data, LLMContextDataDTO) else state_data.dynamic_inputs
+        )
+        step_source = state_data.inputs if isinstance(state_data, LLMContextDataDTO) else state_data.dynamic_inputs
+        step_label = (
+            "LLMContextDataDTO inputs"
+            if isinstance(state_data, LLMContextDataDTO)
+            else "ExecutionInputsDTO dynamic_inputs"
+        )
 
-        # Removing '$' prefix if present
-        clean_path = path[1:] if path.startswith("$") else path
+        state_type_name = type(state_data).__name__
 
-        try:
-            if isinstance(state_data, LLMContextDataDTO):
-                if clean_path.startswith("inputs."):
-                    sub_key = clean_path.split(".", 1)[1]
-                    if state_data.inputs and sub_key in state_data.inputs:
-                        current = state_data.inputs[sub_key]
-                    elif state_data.raw_inputs and sub_key in state_data.raw_inputs:
-                        current = state_data.raw_inputs[sub_key]
-                    else:
-                        raise MissingInputMappingError(
-                            path=clean_path,
-                            state_type=type(state_data).__name__,
-                            reason=f"Key '{sub_key}' missing from LLMContextDataDTO",
-                        )
-                elif clean_path.startswith("steps."):
-                    sub_key = clean_path.split(".", 1)[1]
-                    if state_data.inputs and clean_path in state_data.inputs:
-                        current = state_data.inputs[clean_path]
-                    elif state_data.inputs and sub_key in state_data.inputs:
-                        current = state_data.inputs[sub_key]
-                    else:
-                        raise MissingInputMappingError(
-                            path=clean_path,
-                            state_type=type(state_data).__name__,
-                            reason=f"Step '{sub_key}' missing from LLMContextDataDTO inputs",
-                        )
-                elif state_data.inputs and clean_path in state_data.inputs:
-                    current = state_data.inputs[clean_path]
-                elif state_data.raw_inputs and clean_path in state_data.raw_inputs:
-                    current = state_data.raw_inputs[clean_path]
-                elif "." in clean_path:
-                    root_key, sub_path = clean_path.split(".", 1)
-                    if state_data.inputs and root_key in state_data.inputs:
-                        current = resolve_dot_notation(state_data.inputs[root_key], sub_path)
-                    elif state_data.raw_inputs and root_key in state_data.raw_inputs:
-                        current = resolve_dot_notation(state_data.raw_inputs[root_key], sub_path)
-                    else:
-                        current = resolve_dot_notation(state_data, clean_path)
-                else:
-                    current = resolve_dot_notation(state_data, clean_path)
-            elif isinstance(state_data, ExecutionInputsDTO):
-                if clean_path.startswith("inputs."):
-                    sub_key = clean_path.split(".", 1)[1]
-                    if sub_key in state_data.raw_inputs:
-                        current = state_data.raw_inputs[sub_key]
-                    elif sub_key in state_data.dynamic_inputs:
-                        current = state_data.dynamic_inputs[sub_key]
-                    else:
-                        raise MissingInputMappingError(
-                            path=clean_path,
-                            state_type=type(state_data).__name__,
-                            reason=f"Key '{sub_key}' missing from ExecutionInputsDTO",
-                        )
-                elif clean_path.startswith("steps."):
-                    sub_key = clean_path.split(".", 1)[1]
-                    if clean_path in state_data.dynamic_inputs:
-                        current = state_data.dynamic_inputs[clean_path]
-                    elif sub_key in state_data.dynamic_inputs:
-                        current = state_data.dynamic_inputs[sub_key]
-                    else:
-                        raise MissingInputMappingError(
-                            path=clean_path,
-                            state_type=type(state_data).__name__,
-                            reason=f"Step '{sub_key}' missing from ExecutionInputsDTO dynamic_inputs",
-                        )
-                elif clean_path in state_data.raw_inputs:
-                    current = state_data.raw_inputs[clean_path]
-                elif clean_path in state_data.dynamic_inputs:
-                    current = state_data.dynamic_inputs[clean_path]
-                elif "." in clean_path:
-                    root_key, sub_path = clean_path.split(".", 1)
-                    if root_key in state_data.dynamic_inputs:
-                        current = resolve_dot_notation(state_data.dynamic_inputs[root_key], sub_path)
-                    elif root_key in state_data.raw_inputs:
-                        current = resolve_dot_notation(state_data.raw_inputs[root_key], sub_path)
-                    else:
-                        current = resolve_dot_notation(state_data, clean_path)
-                else:
-                    current = resolve_dot_notation(state_data, clean_path)
-            else:
-                msg = f"Unsupported state_data type for prompt compilation: {type(state_data)}"
-                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
-        except (MissingInputMappingError, KeyError, IndexError, AttributeError) as e:
-            msg = f"Path resolution failed: '{path}'. Component missing from state context: {e}"
-            logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
+        if clean_path.startswith("inputs."):
+            sub_key = clean_path.split(".", 1)[1]
+            if primary_source and sub_key in primary_source:
+                return primary_source[sub_key]
+            if secondary_source and sub_key in secondary_source:
+                return secondary_source[sub_key]
+            raise MissingInputMappingError(
+                path=clean_path,
+                state_type=state_type_name,
+                reason=f"Key '{sub_key}' missing from {state_type_name}",
+            )
 
+        if clean_path.startswith("steps."):
+            sub_key = clean_path.split(".", 1)[1]
+            if step_source and clean_path in step_source:
+                return step_source[clean_path]
+            if step_source and sub_key in step_source:
+                return step_source[sub_key]
+            raise MissingInputMappingError(
+                path=clean_path,
+                state_type=state_type_name,
+                reason=f"Step '{sub_key}' missing from {step_label}",
+            )
+
+        if primary_source and clean_path in primary_source:
+            return primary_source[clean_path]
+        if secondary_source and clean_path in secondary_source:
+            return secondary_source[clean_path]
+
+        if "." in clean_path:
+            root_key, sub_path = clean_path.split(".", 1)
+            if step_source and root_key in step_source:
+                return resolve_dot_notation(step_source[root_key], sub_path)
+            if primary_source and root_key in primary_source:
+                return resolve_dot_notation(primary_source[root_key], sub_path)
+            if secondary_source and root_key in secondary_source:
+                return resolve_dot_notation(secondary_source[root_key], sub_path)
+            return resolve_dot_notation(state_data, clean_path)
+
+        return resolve_dot_notation(state_data, clean_path)
+
+    @staticmethod
+    def _format_state_value(current: object) -> str:
+        """Serialize an extracted state value into an LLM-ready string or XML snippet.
+
+        Args:
+            current: Raw value resolved from execution state.
+
+        Returns:
+            Formatted string representation of the value.
+        """
         if isinstance(current, str):
-            # Already a string, return directly
             return current
 
         if isinstance(current, BaseModel):
             return str(current.model_dump_json(indent=2))
 
-        if isinstance(current, (int, float, bool)):
+        if isinstance(current, int | float | bool):
             return str(current)
 
         match current:
             case Mapping() as current_map if not isinstance(current, list):
-                # Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
-                formatted = []
+                formatted: list[str] = []
                 for k, v in current_map.items():
                     clean_k = str(k).upper()
                     formatted.append(f"<{clean_k}>")
                     match v:
                         case Mapping() as v_map:
-                            # Attempt to access 'outputs' key directly if available
                             target_dict = v_map
                             if "outputs" in v_map:
                                 out_val = v_map["outputs"]
@@ -482,7 +454,6 @@ class PromptCompiler:
                                     case Mapping() as sub_map:
                                         formatted.append(f"<{str(sub_k).upper()}>")
                                         for micro_k, micro_v in sub_map.items():
-                                            # Clean cognitive prefixes for readability
                                             clean_key = (
                                                 str(micro_k)
                                                 .replace("step_1_", "")
@@ -509,9 +480,44 @@ class PromptCompiler:
                     formatted.append(f"</{clean_k}>")
                 return "\n".join(formatted)
             case _:
-                pass
+                return json.dumps(pydantic_core.to_jsonable_python(current), indent=2, ensure_ascii=False)
 
-        return json.dumps(pydantic_core.to_jsonable_python(current), indent=2, ensure_ascii=False)
+    def _extract_value_from_state(self, path: str, state_data: ExecutionInputsDTO | LLMContextDataDTO) -> str:
+        """Extract a value from workflow state using a path like '$inputs.history_text'.
+
+        Args:
+            path: The dot-notation path string (e.g., '$inputs.document').
+            state_data: The current workflow execution state DTO.
+
+        Returns:
+            The extracted and stringified value.
+
+        Raises:
+            AppException: If the path or state container is invalid or resolution fails
+                (ErrorCodes.VALIDATION_FAILED).
+        """
+        if not isinstance(path, str):
+            msg = f"Variable reference path must be a string, got {type(path)}"
+            logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        if not isinstance(state_data, LLMContextDataDTO | ExecutionInputsDTO):
+            msg = f"Unsupported state_data type for prompt compilation: {type(state_data)}"
+            logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        clean_path = path[1:] if path.startswith("$") else path
+
+        try:
+            current = self._resolve_state_value(clean_path, state_data)
+        except (MissingInputMappingError, KeyError, IndexError, AttributeError) as e:
+            msg = f"Path resolution failed: '{path}'. Component missing from state context: {e}"
+            logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
+
+        return self._format_state_value(current)
 
     def calibrate_strictness(self, level: int | float | None) -> str:
         """Convert a numeric strictness level (0-100) into a semantic directive.
