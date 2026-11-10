@@ -153,7 +153,7 @@ def _build_title_map(
                     f"Data integrity failure: StepRule '{step.id}' "
                     f"references missing Step (TaskBlueprint) '{step.task_blueprint}'."
                 )
-                logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=400,
@@ -194,13 +194,13 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     if not state:
         msg = "Strict Fail-Fast Enforced: Missing HookState in synthesis_distiller_hook."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     inputs = state.inputs
     if not isinstance(inputs, ExecutionInputsDTO):
         msg = "Missing or invalid 'inputs'. Expected ExecutionInputsDTO."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -209,7 +209,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     if "steps" not in inputs.dynamic_inputs:
         msg = "Strict Fail-Fast Enforced: 'steps' key is missing from state inputs."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     raw_locale = None
@@ -220,7 +220,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     if not raw_locale or not str(raw_locale).strip():
         msg = "Strict Fail-Fast Enforced: 'target_locale' must be a non-empty string."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
     target_locale = str(raw_locale).strip().lower()
 
@@ -237,7 +237,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
                     available_dtos.append(StepOutputDTO.model_validate(item))
                 except (ValidationError, TypeError, ValueError) as err:
                     msg = f"Invalid StepOutputDTO item in dynamic_inputs['steps']: {err}"
-                    logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -245,18 +245,18 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
                     ) from err
     else:
         msg = f"Unexpected type for dynamic_inputs['steps']: {type(steps_data)}"
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    # Phase 2, Milestone 1.6: Fetch workflow and execution for context resolution
+    # Fetch workflow and execution record for context resolution
     workflow_data: Workflow | None = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
     if not workflow_data:
         msg = f"Workflow '{state.workflow_id}' not found."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_404_NOT_FOUND,
@@ -270,18 +270,18 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         output_profile_id = execution_data.output_profile_id
     if not output_profile_id:
         msg = f"Execution {state.execution_id} missing mandatory output_profile_id."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    # Phase 2, Milestone 1.6: Resolve output profile for historical context mode
+    # Resolve output profile for historical context mode and synthesis limits
     output_profile: OutputProfile | None = await deps.output_profile_repo.get_output_profile_by_id(output_profile_id)
     if not output_profile:
         msg = f"Resolved output profile '{output_profile_id}' not found in SSOT database."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_404_NOT_FOUND,
@@ -293,12 +293,12 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     historical_mode = workflow_data.historical_context_mode
 
-    # Phase 2, Milestone 1.3: Fetch historical context inside distiller
+    # Fetch historical context inside distiller
     historical_context_text = await _fetch_historical_context(
         mode=historical_mode, deps=deps, state=state, profile_to_use=output_profile_id
     )
 
-    # Phase 2, Milestone 1.4: Build title map
+    # Build localized title map for steps, inputs, and prompt blocks
     all_steps: list[Step] = await deps.workflow_repo.get_all_steps()
 
     raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
