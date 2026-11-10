@@ -269,6 +269,19 @@ _HOT_EXECUTION_PATH_SEGMENTS: tuple[str, ...] = (
     "backend_v2/hooks/",
 )
 
+_UNBOUNDED_REPO_QUERY_ATTRS: frozenset[str] = frozenset(
+    {
+        "get_all_executions",
+        "get_all_mcp_gateways",
+        "get_all_organizations",
+        "get_all_output_profiles",
+        "get_all_prompt_blocks",
+        "get_all_steps",
+        "get_all_users",
+        "get_all_workflows",
+    }
+)
+
 
 def _is_blocking_sync_call_in_async(node: ast.Call) -> bool:
     """Checks whether an AST Call invokes a known synchronous CPU/disk-blocking API directly.
@@ -622,11 +635,11 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                 )
             )
 
-        # Item 8B: Unbounded full-table `.get_all_*()` scan on hot execution/export paths
+        # Item 8B: Unbounded full-table `.get_all_*()` repository scan on hot execution/export paths
         if (
             self._is_hot_execution_path
             and isinstance(node.func, ast.Attribute)
-            and node.func.attr.startswith("get_all_")
+            and node.func.attr in _UNBOUNDED_REPO_QUERY_ATTRS
         ):
             self.findings.append(
                 TechnicalDebtFindingDTO(
