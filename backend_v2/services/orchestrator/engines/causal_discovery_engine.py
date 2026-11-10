@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, override
+from typing import Any, Never, override
 
 from fastapi import status
 
@@ -55,6 +55,186 @@ class CausalDiscoveryEngine(ExecutionEngine):
         """Canonical telemetry strategy label for execution trace recording."""
         return "causal"
 
+    def _raise_empty_document_error(self, step_id: str) -> Never:
+        """Log and raise a standardized RFC 7807 AppException for empty source document text.
+
+        Args:
+            step_id: Canonical Opaque Stripe ID of the executing step.
+
+        Raises:
+            AppException: Always raised with CAUSAL_DISCOVERY_EMPTY_DOCUMENT and HTTP 422 status.
+        """
+        msg = f"Causal discovery cannot execute on an empty text document for Step '{step_id}'."
+        logger.error(
+            "[CausalDiscoveryEngine] %s: %s",
+            ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name,
+            msg,
+            exc_info=True,
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            details={
+                "error_code": ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value,
+                "step_id": step_id,
+            },
+        )
+
+    def _resolve_deliverable_keys(self, request: EngineExecutionRequest) -> set[str] | None:
+        """Resolve target deliverable input keys from execution context expected inputs.
+
+        Args:
+            request: The strongly typed engine execution request.
+
+        Returns:
+            Set of deliverable input keys if present, otherwise None.
+        """
+        if not request.context.expected_inputs:
+            return None
+        deliverable_keys = {ei.input_key for ei in request.context.expected_inputs if ei.is_endorsed_deliverable}
+        if not deliverable_keys:
+            deliverable_keys = {
+                ei.input_key
+                for ei in request.context.expected_inputs
+                if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
+            }
+        target_deliverable_keys: set[str] | None = None
+        if len(deliverable_keys) > 0:
+            target_deliverable_keys = deliverable_keys
+        return target_deliverable_keys
+
+    def _build_causal_graph_payload(
+        self,
+        valid_atoms: list[ExtractedAtom],
+        linked_nodes: list[LinkedAtomGraph],
+        final_states: dict[str, AtomExecutionState],
+        atom_key_map: dict[str, str | None],
+    ) -> CausalGraphPayloadDTO:
+        """Assemble the topological evaluation states and linked nodes into a CausalGraphPayloadDTO.
+
+        Args:
+            valid_atoms: Lexically verified extracted atoms.
+            linked_nodes: Directed causal graph nodes produced by the sliding window linker.
+            final_states: Terminal topological evaluation states keyed by atom ID.
+            atom_key_map: Mapping of atom IDs to resolved source document input keys.
+
+        Returns:
+            Constructed CausalGraphPayloadDTO containing nodes, edges, and root cause diagnostics.
+        """
+        cycle_detected = any(
+            s.status == ExecutionStatus.SYSTEM_ERROR
+            and s.evaluation_reasoning is not None
+            and "CYCLIC" in s.evaluation_reasoning
+            for s in final_states.values()
+        )
+
+        extracted_ids = {a.tda_id for a in valid_atoms}
+        causal_edges: list[CausalEdgeDTO] = []
+        in_deps: dict[str, list[str]] = {aid: [] for aid in extracted_ids}
+        out_deps: dict[str, list[str]] = {aid: [] for aid in extracted_ids}
+
+        for node in linked_nodes:
+            cid = node.atom.tda_id
+            if cid not in extracted_ids:
+                continue
+            for edge in node.depends_on:
+                pid = edge.tda_id
+                if pid in extracted_ids and pid != cid:
+                    in_deps[cid].append(pid)
+                    out_deps[pid].append(cid)
+                    causal_edges.append(
+                        CausalEdgeDTO(
+                            source_id=pid,
+                            target_id=cid,
+                            reasoning=edge.edge_reasoning,
+                            warrant_quotes=edge.warrant_quotes,
+                        )
+                    )
+
+        isolated_ids = [aid for aid in extracted_ids if not in_deps[aid] and not out_deps[aid]]
+
+        root_cause_ids: list[str] = [
+            aid
+            for aid in extracted_ids
+            if aid in final_states
+            and final_states[aid].status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
+            and not any(
+                p in final_states and final_states[p].status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
+                for p in in_deps[aid]
+            )
+        ]
+
+        atom_claim_map: dict[str, str] = {a.tda_id: a.resolved_claim.strip() for a in valid_atoms}
+        causal_nodes: list[CausalNodeDTO] = []
+        for node in linked_nodes:
+            nid = node.atom.tda_id
+            if nid not in extracted_ids:
+                continue
+            node_status = final_states[nid].status if nid in final_states else ExecutionStatus.PASSED
+
+            visited: set[str] = set()
+            q = list(in_deps[nid])
+            depth = 0
+            max_d = len(extracted_ids)
+            while q and depth < max_d:
+                depth += 1
+                curr = q.pop(0)
+                if curr in visited:
+                    continue
+                visited.add(curr)
+                if curr in final_states and final_states[curr].status in (
+                    ExecutionStatus.SYSTEM_ERROR,
+                    ExecutionStatus.BLOCKED,
+                ):
+                    q.extend(u for u in in_deps[curr] if u not in visited)
+
+            blame_parents = [
+                b
+                for b in visited
+                if b in final_states
+                and final_states[b].status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
+            ]
+
+            resolved_key = node.atom.source_input_key
+            if resolved_key is None and nid in atom_key_map:
+                resolved_key = atom_key_map[nid]
+
+            short_circuited_claims = [
+                atom_claim_map[b] for b in blame_parents if b in atom_claim_map and atom_claim_map[b]
+            ]
+
+            causal_nodes.append(
+                CausalNodeDTO(
+                    node_id=nid,
+                    claim=node.atom.resolved_claim,
+                    source_quotes=node.atom.source_quotes,
+                    paragraph_ref=node.atom.source_id,
+                    status=node_status,
+                    blame_parent_ids=blame_parents,
+                    dependent_child_ids=out_deps[nid],
+                    source_input_key=resolved_key,
+                    short_circuited_by_claims=short_circuited_claims,
+                    falsified_warrant_claims=[],
+                )
+            )
+
+        partition_node_ids: dict[str, list[str]] = {}
+        for c_node in causal_nodes:
+            if c_node.source_input_key is not None:
+                if c_node.source_input_key not in partition_node_ids:
+                    partition_node_ids[c_node.source_input_key] = []
+                partition_node_ids[c_node.source_input_key].append(c_node.node_id)
+
+        return CausalGraphPayloadDTO(
+            nodes=causal_nodes,
+            edges=causal_edges,
+            root_cause_node_ids=root_cause_ids,
+            cycle_detected=cycle_detected,
+            isolated_node_ids=isolated_ids,
+            partition_node_ids=partition_node_ids,
+            edge_root_causes=[],
+        )
+
     @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         """Executes autonomous causal discovery pipeline over source document text.
@@ -76,23 +256,9 @@ class CausalDiscoveryEngine(ExecutionEngine):
 
             document_text = request.global_source_text
             if not document_text or not document_text.strip():
-                msg = f"Causal discovery cannot execute on an empty text document for Step '{request.step.id}'."
-                logger.error(
-                    "[CausalDiscoveryEngine] %s: %s",
-                    ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name,
-                    msg,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    details={
-                        "error_code": ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value,
-                        "step_id": request.step.id,
-                    },
-                )
+                self._raise_empty_document_error(request.step.id)
 
-            # Step 3.1 / 3.2: Paragraph Indexing & Document Provenance
+            # Paragraph indexing and document provenance extraction
             directive_pattern = re.compile(
                 r'<ai_context_directive\s+document="(?P<doc_key>[A-Za-z0-9_]{1,64})">(?P<body>.*?)</ai_context_directive>',
                 re.DOTALL,
@@ -134,21 +300,7 @@ class CausalDiscoveryEngine(ExecutionEngine):
                         paragraph_doc_keys.append(None)
 
             if not paragraphs:
-                msg = f"Causal discovery cannot execute on an empty text document for Step '{request.step.id}'."
-                logger.error(
-                    "[CausalDiscoveryEngine] %s: %s",
-                    ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name,
-                    msg,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    details={
-                        "error_code": ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value,
-                        "step_id": request.step.id,
-                    },
-                )
+                self._raise_empty_document_error(request.step.id)
             hydrated_text = "\n\n".join(f"[B{i}] {p}" for i, p in enumerate(paragraphs))
 
             llm_executor = LLMTaskExecutor(
@@ -238,25 +390,11 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 overlap=settings.causal_discovery_overlap,
             )
 
-            deliverable_keys: set[str] = set()
-            if request.context.expected_inputs:
-                deliverable_keys = {
-                    ei.input_key for ei in request.context.expected_inputs if ei.is_endorsed_deliverable
-                }
-                if not deliverable_keys:
-                    deliverable_keys = {
-                        ei.input_key
-                        for ei in request.context.expected_inputs
-                        if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
-                    }
-
             async def link_cb(c: int, t: int) -> None:
                 if request.progress_callback and t > 0:
                     await request.progress_callback(60 + int((c / t) * 20), 100)
 
-            target_deliverable_keys: set[str] | None = None
-            if len(deliverable_keys) > 0:
-                target_deliverable_keys = deliverable_keys
+            target_deliverable_keys = self._resolve_deliverable_keys(request)
 
             linked_nodes, u_link = await linker.link_graph(
                 executor=llm_executor,
@@ -283,122 +421,11 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 }
 
             final_states = await evaluator.evaluate_graph(linked_nodes, noop_eval)
-
-            cycle_detected = any(
-                s.status == ExecutionStatus.SYSTEM_ERROR
-                and s.evaluation_reasoning is not None
-                and "CYCLIC" in s.evaluation_reasoning
-                for s in final_states.values()
-            )
-
-            extracted_ids = {a.tda_id for a in valid_atoms}
-            causal_edges: list[CausalEdgeDTO] = []
-            in_deps: dict[str, list[str]] = {aid: [] for aid in extracted_ids}
-            out_deps: dict[str, list[str]] = {aid: [] for aid in extracted_ids}
-
-            for node in linked_nodes:
-                cid = node.atom.tda_id
-                if cid not in extracted_ids:
-                    continue
-                for edge in node.depends_on:
-                    pid = edge.tda_id
-                    if pid in extracted_ids and pid != cid:
-                        in_deps[cid].append(pid)
-                        out_deps[pid].append(cid)
-                        causal_edges.append(
-                            CausalEdgeDTO(
-                                source_id=pid,
-                                target_id=cid,
-                                reasoning=edge.edge_reasoning,
-                                warrant_quotes=edge.warrant_quotes,
-                            )
-                        )
-
-            isolated_ids = [aid for aid in extracted_ids if not in_deps[aid] and not out_deps[aid]]
-
-            root_cause_ids: list[str] = [
-                aid
-                for aid in extracted_ids
-                if aid in final_states
-                and final_states[aid].status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
-                and not any(
-                    p in final_states
-                    and final_states[p].status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
-                    for p in in_deps[aid]
-                )
-            ]
-
-            atom_claim_map: dict[str, str] = {a.tda_id: a.resolved_claim.strip() for a in valid_atoms}
-            causal_nodes: list[CausalNodeDTO] = []
-            for node in linked_nodes:
-                nid = node.atom.tda_id
-                if nid not in extracted_ids:
-                    continue
-                node_status = final_states[nid].status if nid in final_states else ExecutionStatus.PASSED
-
-                visited: set[str] = set()
-                q = list(in_deps[nid])
-                depth = 0
-                max_d = len(extracted_ids)
-                while q and depth < max_d:
-                    depth += 1
-                    curr = q.pop(0)
-                    if curr in visited:
-                        continue
-                    visited.add(curr)
-                    if curr in final_states and final_states[curr].status in (
-                        ExecutionStatus.SYSTEM_ERROR,
-                        ExecutionStatus.BLOCKED,
-                    ):
-                        q.extend(u for u in in_deps[curr] if u not in visited)
-
-                blame_parents = [
-                    b
-                    for b in visited
-                    if b in final_states
-                    and final_states[b].status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
-                ]
-
-                resolved_key = node.atom.source_input_key
-                if resolved_key is None and nid in atom_key_map:
-                    resolved_key = atom_key_map[nid]
-
-                short_circuited_claims = [
-                    atom_claim_map[b] for b in blame_parents if b in atom_claim_map and atom_claim_map[b]
-                ]
-
-                causal_nodes.append(
-                    CausalNodeDTO(
-                        node_id=nid,
-                        claim=node.atom.resolved_claim,
-                        source_quotes=node.atom.source_quotes,
-                        paragraph_ref=node.atom.source_id,
-                        status=node_status,
-                        blame_parent_ids=blame_parents,
-                        dependent_child_ids=out_deps[nid],
-                        source_input_key=resolved_key,
-                        short_circuited_by_claims=short_circuited_claims,
-                        falsified_warrant_claims=[],
-                    )
-                )
-
-            partition_node_ids: dict[str, list[str]] = {}
-            for c_node in causal_nodes:
-                if c_node.source_input_key is not None:
-                    if c_node.source_input_key not in partition_node_ids:
-                        partition_node_ids[c_node.source_input_key] = []
-                    partition_node_ids[c_node.source_input_key].append(c_node.node_id)
-
-            edge_root_causes: list[str] = []
-
-            graph_payload = CausalGraphPayloadDTO(
-                nodes=causal_nodes,
-                edges=causal_edges,
-                root_cause_node_ids=root_cause_ids,
-                cycle_detected=cycle_detected,
-                isolated_node_ids=isolated_ids,
-                partition_node_ids=partition_node_ids,
-                edge_root_causes=edge_root_causes,
+            graph_payload = self._build_causal_graph_payload(
+                valid_atoms=valid_atoms,
+                linked_nodes=linked_nodes,
+                final_states=final_states,
+                atom_key_map=atom_key_map,
             )
 
             if request.progress_callback:
