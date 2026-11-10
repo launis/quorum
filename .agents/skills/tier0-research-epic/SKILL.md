@@ -76,6 +76,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; STATE VERIFICATION">
       <action>Read and internalize the provided `[epic_document]`. Extract its canonical `<required_context_rules>` XML block.</action>
       <action>Physically run the boundary audit script on the Epic: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic>`.</action>
+      <action name="TECHNICAL DEBT &amp; 1-HOP CALLER SWEEP">Physically run the deterministic technical debt and 1-hop caller scanner on the Epic's target files: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop`.</action>
       <action>Use bounded `grep_search` and `view_file` (`StartLine`/`EndLine`) to check the current state of referenced files.</action>
     </step>
     

@@ -101,7 +101,7 @@ description: Tier 4 (Bug Hunting & RCA) - Skill for deep root cause analysis and
     
     <step id="4">BLAST RADIUS ANALYSIS &amp; THE 5 WHYS (Root Cause Proof):
       - Perform a "5 Whys" backward trace down the parent-child span hierarchy and producing layers to locate the true origin of the bug.
-      - Use `grep_search` to find all downstream consumers of the function you intend to modify.
+      - Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` and use `grep_search` to map all 1-hop callers, downstream consumers, and surrounding technical debt of the module you intend to modify.
       - Generate TWO artifacts: 1) `bug_fix_plan.md` using the XML Sandwich format with explicit `<action>` tags for every file in the blast radius, and 2) `task.md` containing the execution steps as an uncompleted `[ ]` checklist.
     </step>
     

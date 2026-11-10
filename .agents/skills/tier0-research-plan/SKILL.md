@@ -49,7 +49,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     </rule_block>
 
     <rule_block id="touched_scope_tech_debt_mandate">
-      <mandate>ALWAYS execute the deterministic technical debt auditor via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop` (or `--plan &lt;plan_path&gt;`). Inspect TARGET files and 1-hop callers for 7 technical debt items and inject discovered debt into `Phase 1: Pre-Implementation Cleanups`.</mandate>
+      <mandate>ALWAYS execute the deterministic technical debt auditor via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop` (or `--plan &lt;plan_path&gt; --include-one-hop`). Inspect TARGET files and 1-hop callers per `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]` and inject discovered debt into `Phase 1: Pre-Implementation Cleanups`.</mandate>
     </rule_block>
 
     <rule_block id="preflight_metatest_and_exemption_mapping_mandate">
@@ -68,6 +68,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
   <execution_protocol level="0_research_plan">
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION">
       <action>Read target `[implementation_plan]`. Target referenced files in `backend_v2/` and `seed_data.json` with bounded `view_file`. When red-teaming Gemini/Vertex AI, Google Cloud, or Flutter SDK integrations, verify upstream specifications via the `gemini-api` plugin (`gemini_search_docs`, `gemini_get_doc`) and `google-developer-knowledge` plugin (`retrieving-developer-knowledge` skill), and verify PostgreSQL 19 schemas via read-only `@[.agents/plugins/postgres/mcp_config.json]` (`quorum-postgres-mcp`). Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_planner_output.py --epic [epic_path] --plan-dir [dir]` if Epic exists to verify line boundaries.</action>
+      <action name="TECHNICAL DEBT &amp; 1-HOP CALLER SWEEP">Physically run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --plan [plan_path] --include-one-hop` to verify all target files and 1-hop callers against the technical debt checklist.</action>
       <constraint>Do NOT read entire codebase blindly.</constraint>
     </step>
 

@@ -98,6 +98,7 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
       <action>Gather all requirements and the explicit target Epic number (specifically: EPIC 110) from the user.</action>
       <constraint>Epic numbers MUST ALWAYS be manually assigned by the user; NEVER attempt to automatically guess or auto-increment Epic numbers.</constraint>
       <action>Search affected backend/frontend directories using native MCP tools (`grep_search`, `view_file`) to verify current codebase state before drafting.</action>
+      <action name="TECHNICAL DEBT &amp; 1-HOP CALLER SWEEP">Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` on the identified target files/directories and schedule all discovered technical debt into `Phase 1: Pre-Implementation Cleanups`.</action>
     </step>
 
     <step id="2" name="SYSTEM 2 DESIGN &amp; CHAIN-OF-THOUGHT">
