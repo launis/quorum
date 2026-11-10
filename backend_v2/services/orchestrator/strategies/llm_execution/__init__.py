@@ -1,5 +1,7 @@
 """LLM Execution logic and components for Orchestrator Strategies."""
 
+from __future__ import annotations
+
 from .context_builder import ContextBuilder
 from .prompt_factory import PromptFactory, PromptPayload
 from .source_document_packer import ContextTargetFilterDTO, SourceDocumentPacker
