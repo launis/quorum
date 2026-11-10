@@ -52,6 +52,12 @@ def _make_valid_profile(profile_id: str, slug: str, workflow_id: str, org_id: st
         name=I18nText(translations={"en": name}),
         organization_id=org_id,
         target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
+        visible_metadata=[],
+        matrix_visible_columns=[],
+        visible_block_extensions=[],
+        visible_workflow_extensions=[],
+        matrix_synthesis_groups=[],
+        content_blocks=[],
     )
 
 
@@ -539,6 +545,10 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         criteria_block_ids=[cohesion_block_id],
         extraction_protocol_block_id="blk_0195f3a0000070008000000000000002",
         is_system_core=True,
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        expected_inputs=[],
     )
     await wf_repo.save_step(system_core_step)
 
@@ -555,6 +565,8 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
             StepRule(
                 id="sr_0195f3a00000700a88f1d71000000002",
                 task_blueprint=causal_step_id,
+                depends_on=[],
+                input_mappings={},
             )
         ],
         default_profile_id=profile_id,
@@ -596,7 +608,7 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
 async def test_save_output_profile_rejects_stale_variance_target_block_with_validation_failed(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
-    """Phase 2, Step 2.1 Negative: Rejects stale variance_target_block absent from allowed_prompt_blocks."""
+    """ISTQB Negative: Rejects stale variance_target_block absent from allowed_prompt_blocks."""
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
@@ -630,7 +642,7 @@ async def test_save_output_profile_rejects_stale_variance_target_block_with_vali
 async def test_save_output_profile_rejects_stale_user_role_target_block_with_validation_failed(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
-    """Phase 2, Step 2.1 Negative: Rejects stale user_role_target_block absent from allowed_prompt_blocks."""
+    """ISTQB Negative: Rejects stale user_role_target_block absent from allowed_prompt_blocks."""
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,

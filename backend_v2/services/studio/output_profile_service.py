@@ -45,6 +45,72 @@ class StudioOutputProfileService:
         self.output_profile_repo = output_profile_repo
         self.workflow_service = workflow_service
 
+    async def _require_output_profile(
+        self, initiator: TokenData, id: str, *, after_save: bool = False
+    ) -> OutputProfile:
+        """Fetch an output profile by ID or raise ResourceNotFoundError.
+
+        Args:
+            initiator: The authenticated user.
+            id: The output profile ID.
+            after_save: Whether the lookup occurs during post-save roundtrip verification.
+
+        Returns:
+            The resolved OutputProfile domain model.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the output profile does not exist.
+        """
+        profile = await self.output_profile_repo.get_output_profile_by_id(id)
+        if not profile:
+            context_suffix = " after save" if after_save else ""
+            logger.error(
+                "[StudioOutputProfileService] %s: Output Profile %s not found%s (Initiator: %s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                id,
+                context_suffix,
+                initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
+            )
+            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
+        return profile
+
+    def _validate_target_block(
+        self,
+        initiator: TokenData,
+        profile_id: str,
+        workflow_id: str,
+        target_label: str,
+        block_id: str | None,
+        allowed_targets: set[str],
+    ) -> None:
+        """Validate that a referenced target block exists within the workflow's allowed target set.
+
+        Args:
+            initiator: The authenticated user.
+            profile_id: The output profile ID being validated.
+            workflow_id: The parent workflow ID.
+            target_label: Human-readable descriptor of the target reference field.
+            block_id: Candidate block or layout target identifier.
+            allowed_targets: Authoritative set of valid target IDs for the workflow.
+
+        Raises:
+            AppException (ErrorCodes.VALIDATION_FAILED): If the block ID is not in allowed_targets.
+        """
+        if block_id is not None and block_id not in allowed_targets:
+            msg = f"{target_label} '{block_id}' does not exist in the context of Workflow '{workflow_id}'."
+            logger.error(
+                "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                initiator.id,
+                profile_id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "profile_id": profile_id},
+            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
     async def list_output_profiles(self, initiator: TokenData) -> list[OutputProfile]:
         """List output profiles.
 
@@ -78,18 +144,7 @@ class StudioOutputProfileService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        profile = await self.output_profile_repo.get_output_profile_by_id(id)
-        if not profile:
-            logger.error(
-                "[StudioOutputProfileService] %s: Output Profile %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
-
+        profile = await self._require_output_profile(initiator, id)
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
         return profile
 
@@ -121,71 +176,33 @@ class StudioOutputProfileService:
 
         for group in profile.matrix_synthesis_groups:
             for comp in group.target_blocks:
-                if comp not in allowed_blocks:
-                    msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.id}'."
-                    logger.error(
-                        "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        msg,
-                        initiator.id,
-                        profile.id,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "profile_id": profile.id},
-                    )
-                    raise AppException(
-                        message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED}
-                    )
+                self._validate_target_block(
+                    initiator, profile.id, workflow.id, "Target Component", comp, allowed_blocks
+                )
 
         # Validate variance_target_block and user_role_target_block against allowed_prompt_blocks
-        if profile.variance_target_block is not None and profile.variance_target_block not in allowed_prompt_blocks:
-            msg = (
-                f"Variance Target Block '{profile.variance_target_block}' does not exist in the context "
-                f"of Workflow '{workflow.id}'."
-            )
-            logger.error(
-                "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                initiator.id,
-                profile.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "profile_id": profile.id},
-            )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-
-        if profile.user_role_target_block is not None and profile.user_role_target_block not in allowed_prompt_blocks:
-            msg = (
-                f"User Role Target Block '{profile.user_role_target_block}' does not exist in the context "
-                f"of Workflow '{workflow.id}'."
-            )
-            logger.error(
-                "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                initiator.id,
-                profile.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "profile_id": profile.id},
-            )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        self._validate_target_block(
+            initiator,
+            profile.id,
+            workflow.id,
+            "Variance Target Block",
+            profile.variance_target_block,
+            allowed_prompt_blocks,
+        )
+        self._validate_target_block(
+            initiator,
+            profile.id,
+            workflow.id,
+            "User Role Target Block",
+            profile.user_role_target_block,
+            allowed_prompt_blocks,
+        )
 
         if profile.id != id:
             profile = profile.model_copy(update={"id": id})
 
         await self.output_profile_repo.create_output_profile(profile)
-
-        saved = await self.output_profile_repo.get_output_profile_by_id(id)
-        if not saved:
-            logger.error(
-                "[StudioOutputProfileService] %s: Output Profile %s not found after save (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
-        return saved
+        return await self._require_output_profile(initiator, id, after_save=True)
 
     async def delete_output_profile(self, initiator: TokenData, id: str) -> None:
         """Delete output profile.
@@ -199,18 +216,7 @@ class StudioOutputProfileService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If output profile is configured as default on a workflow.
         """
-        profile = await self.output_profile_repo.get_output_profile_by_id(id)
-        if not profile:
-            logger.error(
-                "[StudioOutputProfileService] %s: Output Profile %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
-
+        profile = await self._require_output_profile(initiator, id)
         enforce_modification_rights(initiator, profile.organization_id)
 
         workflows = await self.workflow_service.list_workflows(initiator)
@@ -299,18 +305,7 @@ class StudioOutputProfileService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.VALIDATION_FAILED): If cloned layout target validation fails.
         """
-        profile = await self.output_profile_repo.get_output_profile_by_id(id)
-        if not profile:
-            logger.error(
-                "[StudioOutputProfileService] %s: OutputProfile %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
-
+        profile = await self._require_output_profile(initiator, id)
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
 
         new_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
