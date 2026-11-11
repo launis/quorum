@@ -40,7 +40,7 @@
   - [x] @[backend_v2/database/repository.py]
   - [x] @[backend_v2/main.py]
   - [x] @[backend_v2/models/domain/__init__.py]
-  - [ ] @[backend_v2/models/domain/prompt_blocks.py]
+  - [x] @[backend_v2/models/domain/prompt_blocks.py]
   - [ ] @[backend_v2/models/domain/task_brief.py]
   - [ ] @[backend_v2/models/dtos/studio.py]
   - [ ] @[backend_v2/models/enums.py]
