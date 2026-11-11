@@ -24,11 +24,11 @@
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[scripts/audit_plan_tracker_parity.py]
   - [x] @[scripts/audit_tracker_output.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Streamline_Epic_And_Tracker_Verification_Gates.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md]
   ```
@@ -73,16 +73,17 @@
 - Implemented Step 1: Removed `### Phase 4: Verification & E2E Integration Gate` from `@[.agents/skills/tier0-create-epic/resources/epic_template.md]`, added `<rule_block id="ban_verification_only_phases">` to `@[.agents/skills/tier0-create-epic/SKILL.md]` and `@[.agents/skills/tier1-planner/SKILL.md]`, and updated `tracker_auto_synchronization_mandate` and Step 4 (`MANDATORY TRACKER AUTO-UPDATE`) in `tier1-planner`.
 - Implemented Step 2: Streamlined `@[.agents/skills/tier1-tracker-generator/resources/epic_tracker_template.md]`, `@[.agents/skills/tier1-tracker-generator/SKILL.md]`, `@[.agents/skills/tier1-plan-tracker-generator/resources/plan_tracker_template.md]`, `@[.agents/skills/tier1-plan-tracker-generator/SKILL.md]`, and Step 8 (`PLAN WRAP-UP & AUDIT ROUTING` / `DUAL_MODE_WRAPUP_SYNC`) in `@[.agents/skills/tier2-execute/SKILL.md]` across CREATE and UPDATE modes.
 - Implemented Step 3: Removed mandatory per-phase/step `has_audit` check from `check_phase_format` and `check_step_format` in `@[scripts/audit_tracker_output.py]`, pruned `has_golden_master_gate`, `has_pre_delete_gate`, and `has_semantic_coverage_gate` from `@[scripts/audit_plan_tracker_parity.py]`, updated unit tests in `@[backend_v2/tests/unit/scripts/test_audit_tracker_output.py]` and `@[backend_v2/tests/unit/scripts/test_audit_plan_tracker_parity.py]`, and dogfood-streamlined `@[docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md]`.
-- Verified `0` findings across `scripts/audit_skills_architecture.py`, `scripts/backend_audit_loop.py --test --ast-strict`, `scripts/audit_tracker_output.py --mode plan`, and `scripts/audit_plan_tracker_parity.py`.
+- Completed `Tier 2 Hardening (Backend)` across `@[scripts/audit_plan_tracker_parity.py]` and `@[scripts/audit_tracker_output.py]`.
+- Completed `As-Built Architectural Sync` (`/tier7-describe-architecture`), synchronizing `@[ki_deterministic_hardening_state.md]`, `@[ki_god_code_prevention.md]`, `@[.agents/rules/04_directory_reference.md]`, and `@[docs/architecture/01_SYSTEM_CONTEXT_AND_INVARIANTS.md]`.
 
 ## Learned
 - `check_mandatory_sections` in `@[scripts/audit_tracker_output.py]` and `has_final_audit_gate` in `@[scripts/audit_plan_tracker_parity.py]` authoritatively enforce the single final audit section (`### Final Epic Audit` / `### Final Plan Audit`), allowing per-phase and `## Step Execution Status` blocks to focus purely on `**Plan:** @[...]`, `Execution:`, and indented `Step` items.
 - Upgrading module-level `SAMPLE_TRACKER` in `@[backend_v2/tests/unit/scripts/test_audit_plan_tracker_parity.py]` to include `Tier 2 Hardening (Backend)` with `--agent-cmd`, `As-Built Architectural Sync`, and `System 2 Red-Team Audit` tightened `test_main_cli_success` and `test_main_cli_auto_infer_plan` from permissive `in (0, 1)` assertions to strict `exc_info.value.code == 0`.
 
 ## Remaining
-- Execute post-implementation `Tier 2 Hardening (Backend)` (`--agent-cmd`), `As-Built Architectural Sync` (`/tier7-describe-architecture`), and `System 2 Red-Team Audit` (`/tier8-audit-plan`).
+- Execute `System 2 Red-Team Audit` (`/tier8-audit-plan`).
 
 ## Resume Command
 ```powershell
-$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Streamline_Epic_And_Tracker_Verification_Gates.md] @[docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md]
 ```
