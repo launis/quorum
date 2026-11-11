@@ -91,6 +91,11 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
       <mandatory_pattern>Whenever an Epic introduces or modifies a rule (`&lt;rule_block&gt;`) or static checker (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_dict_eradication.py]`, `@[scripts/audit_technical_debt.py]`, `@[scripts/audit_skills_architecture.py]`), it MUST mandate pairwise one-by-one verification against all other rules and static checkers via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` and canonical syntax probes across `_ast_guardrails.py`, `audit_dict_eradication.py`, `ruff`, and `mypy --strict`.</mandatory_pattern>
       <catastrophic_reason>Conflicting rules or static checkers create syntax deadlocks where satisfying one guardrail triggers fatal errors in another checker or in `pydantic.mypy`.</catastrophic_reason>
     </rule_block>
+    <rule_block id="ban_verification_only_phases">
+      <banned_pattern>Creating standalone verification-only, test-only, or E2E gate phases (specifically and exhaustively: `### Phase 4: Verification &amp; E2E Integration Gate` or `04_phase4_plan.md`) inside `## 3. Phased Execution Plan (Implementation Strategy)`.</banned_pattern>
+      <mandatory_pattern>Every phase in `## 3. Phased Execution Plan (Implementation Strategy)` MUST deliver production code paired directly with its companion unit and widget tests in the same phase. Full-repository audit loops (`scripts/backend_audit_loop.py`, `scripts/flutter_audit_loop.py`), database seed verification (`backend_v2/seed/run_seed.py local`), and Live E2E (`backend_v2/tests/integration/test_integration_real_llm.py`) belong exclusively in `## 4. Definition of Done (DoD) &amp; Verification Plan`.</mandatory_pattern>
+      <catastrophic_reason>Standalone test-only phases duplicate unit test verification already executed in implementation phases and generate redundant planning, research, execution, and audit overhead.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_create_epic">

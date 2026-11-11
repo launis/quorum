@@ -44,13 +44,10 @@
 - [Scoped Boy Scout cleanup of existing anti-patterns in touched target files before new logic.]
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
-- [Core backend domain and service implementation.]
+- [Core backend domain and service implementation paired with companion unit tests in the same phase; global full-suite audit loops, database seed verification, and Live E2E reside exclusively in Section 4.]
 
 ### Phase 3: Frontend Flutter UI & Freezed DTO Synchronization
-- [Cross-domain DTO parity and Flutter UI updates.]
-
-### Phase 4: Verification & E2E Integration Gate
-- [Unit, integration, and live E2E verification.]
+- [Cross-domain DTO parity and Flutter UI updates paired with companion unit and widget tests in the same phase; global full-suite audit loops, database seed verification, and Live E2E reside exclusively in Section 4.]
 
 ## 4. Definition of Done (DoD) & Verification Plan
 
