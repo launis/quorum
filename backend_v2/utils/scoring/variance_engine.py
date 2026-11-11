@@ -41,7 +41,7 @@ def calculate_mechanical_cognitive_variance(
             - alignment_verdict: AlignmentVerdict enum value (ALIGNED, MISALIGNED_SYCOPHANCY, or MISALIGNED).
 
     Raises:
-        AppException: If parameters fail structural or validation constraints.
+        AppException: With ErrorCodes.VALIDATION_FAILED if parameters fail structural or validation constraints.
     """
     if (
         isinstance(performative_phrases_count, bool)
@@ -102,7 +102,7 @@ def calculate_mechanical_cognitive_variance(
         or math.isinf(max_cognitive_score)
     ):
         msg = f"max_cognitive_score must be a positive finite float, got {max_cognitive_score}."
-        logger.error("[VarianceEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[VarianceEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
