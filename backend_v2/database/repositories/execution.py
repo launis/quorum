@@ -393,6 +393,38 @@ class ExecutionRepositoryImpl(BaseRepository):
         """
         return await self.driver.delete("executions", execution_id)
 
+    def _parse_execution_record(self, raw_record: dict[str, JsonValue]) -> ExecutionRecord:
+        """Validates a raw database execution document into an ExecutionRecord model.
+
+        Args:
+            raw_record: Raw execution dictionary returned by the storage driver.
+
+        Returns:
+            Validated ExecutionRecord instance.
+
+        Raises:
+            AppException: If the stored execution record is corrupted and fails model
+                validation (ErrorCodes.DATA_CORRUPTION).
+        """
+        try:
+            return ExecutionRecord.model_validate(raw_record, strict=False)
+        except Exception as e:
+            item_id = "unknown"
+            if "id" in raw_record:
+                item_id = str(raw_record["id"])
+            logger.error(
+                "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                item_id,
+                e,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Corrupted execution {item_id} in database",
+                status_code=500,
+                details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
+            ) from e
+
     async def get_all_executions(
         self, organization_id: str | None = None, user_id: str | None = None
     ) -> list[ExecutionRecord]:
@@ -416,28 +448,7 @@ class ExecutionRepositoryImpl(BaseRepository):
             filters.append(Filter("user_id", "==", user_id))
 
         results = await self.driver.query("executions", filters)
-
-        parsed_results = []
-        for r in results:
-            try:
-                parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in r:
-                    item_id = str(r["id"])
-                logger.error(
-                    "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted execution {item_id} in database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
-                ) from e
-        return parsed_results
+        return [self._parse_execution_record(r) for r in results]
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
         """Retrieves recent completed executions ordered by completed_at descending.
@@ -456,28 +467,7 @@ class ExecutionRepositoryImpl(BaseRepository):
         results = await self.driver.query(
             "executions", filters=filters, limit=limit, order_by="completed_at", descending=True
         )
-
-        parsed_results = []
-        for r in results:
-            try:
-                parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in r:
-                    item_id = str(r["id"])
-                logger.error(
-                    "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted execution {item_id} in database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
-                ) from e
-        return parsed_results
+        return [self._parse_execution_record(r) for r in results]
 
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
         """Counts executions associated with a specific matrix ID.
