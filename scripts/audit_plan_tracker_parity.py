@@ -138,9 +138,6 @@ class TrackerDocumentAST(BaseModel):
     step_checkboxes: Annotated[list[TrackerStepCheckboxDTO], Field(default_factory=list, description="Step checkboxes")]
     traceability_rows: Annotated[list[TraceabilityRowDTO], Field(default_factory=list, description="Matrix rows")]
     hardening_checklist: Annotated[TrackerHardeningChecklistDTO, Field(description="Hardening checklist files")]
-    has_golden_master_gate: Annotated[bool, Field(description="Whether Golden Master gate is present")]
-    has_pre_delete_gate: Annotated[bool, Field(description="Whether Pre-Delete audit gate is present")]
-    has_semantic_coverage_gate: Annotated[bool, Field(description="Whether Semantic Coverage gate is present")]
     has_doc_sync_gate: Annotated[bool, Field(description="Whether As-Built Architectural Sync is present")]
     has_final_audit_gate: Annotated[bool, Field(description="Whether Final Plan Audit is present")]
     has_session_handover: Annotated[bool, Field(description="Whether Session Handover Context is present")]
@@ -426,9 +423,6 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
     )
 
     # 7. Quality Gates
-    has_gm = bool(re.search(r"Golden Master & Test Restoration Audit", content, re.IGNORECASE))
-    has_pd = bool(re.search(r"Pre-Delete Audit", content, re.IGNORECASE))
-    has_sc = bool(re.search(r"Semantic Coverage & Zero-Loss Audit", content, re.IGNORECASE))
     has_ds = bool(re.search(r"As-Built Architectural Sync", content, re.IGNORECASE))
     has_fa = bool(re.search(r"System 2 Red-Team Audit|Final (?:Plan|Epic) Audit", content, re.IGNORECASE))
     has_sh = bool(re.search(r"#\s+Session Handover Context", content, re.IGNORECASE))
@@ -443,9 +437,6 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
         step_checkboxes=step_checkboxes,
         traceability_rows=matrix_rows,
         hardening_checklist=hardening,
-        has_golden_master_gate=has_gm,
-        has_pre_delete_gate=has_pd,
-        has_semantic_coverage_gate=has_sc,
         has_doc_sync_gate=has_ds,
         has_final_audit_gate=has_fa,
         has_session_handover=has_sh,
@@ -728,40 +719,6 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
                     "Update `Tier 2 Hardening (Frontend)` header to run `scripts/auto_hardening_runner.py ... "
                     '--agent-cmd "agy --model {model} --dangerously-skip-permissions --print '
                     "'/tier2-hardening-frontend @[{target}]'\"` without `--no-agent`."
-                ),
-            )
-        )
-    if not tracker_ast.has_golden_master_gate:
-        findings.append(
-            ParityAuditFindingDTO(
-                rule_code=ParityRuleCode.TPR008,
-                category="Quality Gates",
-                severity=GuardrailSeverity.FATAL,
-                message="Tracker is missing `Golden Master & Test Restoration Audit` gate.",
-                remediation=(
-                    "Add `- [ ] **[NOK] Golden Master & Test Restoration Audit**: ...` under Post-Implementation Gates."
-                ),
-            )
-        )
-    if not tracker_ast.has_pre_delete_gate:
-        findings.append(
-            ParityAuditFindingDTO(
-                rule_code=ParityRuleCode.TPR008,
-                category="Quality Gates",
-                severity=GuardrailSeverity.FATAL,
-                message="Tracker is missing `Pre-Delete Audit` gate.",
-                remediation="Add `- [ ] **[NOK] Pre-Delete Audit**: ...` under Post-Implementation Gates.",
-            )
-        )
-    if not tracker_ast.has_semantic_coverage_gate:
-        findings.append(
-            ParityAuditFindingDTO(
-                rule_code=ParityRuleCode.TPR008,
-                category="Quality Gates",
-                severity=GuardrailSeverity.FATAL,
-                message="Tracker is missing `Semantic Coverage & Zero-Loss Audit` gate.",
-                remediation=(
-                    "Add `- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: ...` under Post-Implementation Gates."
                 ),
             )
         )

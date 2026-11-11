@@ -86,14 +86,18 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     phase_text = "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
     assert check_phase_format(phase_text) == []
 
-    # Missing Audit step
+    # Streamlined phase without per-phase Audit step passes cleanly
     missing_audit_phase = (
         "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n"
     )
-    missing_audit_findings = check_phase_format(missing_audit_phase)
-    assert len(missing_audit_findings) == 1
-    assert missing_audit_findings[0].rule_code == "TRK002"
-    assert "Missing mandatory `Audit:` step line" in missing_audit_findings[0].message
+    assert check_phase_format(missing_audit_phase) == []
+
+    # Missing Execution step triggers TRK002
+    missing_exec_phase = "### Phase 1: Test\n**Plan:** @[plan.md]\n  - [ ] Step 1\n"
+    missing_exec_findings = check_phase_format(missing_exec_phase)
+    assert len(missing_exec_findings) == 1
+    assert missing_exec_findings[0].rule_code == "TRK002"
+    assert "Missing mandatory `Execution:` step line" in missing_exec_findings[0].message
 
     broken_phase = "### Phase 1: Test\nNo plan reference here"
     broken_findings = check_phase_format(broken_phase)
@@ -101,7 +105,7 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     assert all(f.rule_code == "TRK002" for f in broken_findings)
 
     # Deferred plan format
-    deferred_phase = "### Phase 2: Deferred\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n- [ ] [NOK] Create Plan\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
+    deferred_phase = "### Phase 2: Deferred\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n- [ ] [NOK] Create Plan\n"
     assert check_phase_format(deferred_phase) == []
 
     # check_required_context_rules
@@ -604,7 +608,6 @@ def test_plan_mode_step_format_valid() -> None:
         "- [ ] **[NOK] Execution:** `/tier2-execute @[plan.md] @[tracker.md]`\n"
         "  - [ ] Step 1: Initialize baseline\n"
         "  - [ ] Step 2: Implement core logic\n"
-        "- [ ] **[NOK] Audit:** `/tier8-audit-plan @[plan.md] @[tracker.md]`\n"
     )
     findings = check_step_format(content)
     assert findings == []
@@ -615,18 +618,11 @@ def test_plan_mode_step_format_missing_components() -> None:
     assert len(check_step_format("No step execution status")) == 1
     assert check_step_format("No step execution status")[0].rule_code == "TRK002"
 
-    no_plan = (
-        "## Step Execution Status\n\n"
-        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
-        "  - [ ] Step 1\n"
-        "- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
-    )
+    no_plan = "## Step Execution Status\n\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n"
     findings_no_plan = check_step_format(no_plan)
     assert any("Missing `**Plan:** @[...]` reference" in f.message for f in findings_no_plan)
 
-    no_exec = (
-        "## Step Execution Status\n\n**Plan:** @[plan.md]\n  - [ ] Step 1\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
-    )
+    no_exec = "## Step Execution Status\n\n**Plan:** @[plan.md]\n  - [ ] Step 1\n"
     findings_no_exec = check_step_format(no_exec)
     assert any("Missing mandatory `Execution:` step line" in f.message for f in findings_no_exec)
 
@@ -636,15 +632,9 @@ def test_plan_mode_step_format_missing_components() -> None:
         "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
         "  - [ ] Step 1\n"
     )
-    findings_no_audit = check_step_format(no_audit)
-    assert any("Missing mandatory `Audit:` step line" in f.message for f in findings_no_audit)
+    assert check_step_format(no_audit) == []
 
-    no_steps = (
-        "## Step Execution Status\n\n"
-        "**Plan:** @[plan.md]\n"
-        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
-        "- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
-    )
+    no_steps = "## Step Execution Status\n\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n"
     findings_no_steps = check_step_format(no_steps)
     assert any("Missing indented `- [ ] Step`" in f.message for f in findings_no_steps)
 

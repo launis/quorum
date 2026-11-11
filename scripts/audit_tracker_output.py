@@ -142,20 +142,6 @@ def check_phase_format(content: str) -> list[TrackerAuditFinding]:
                 )
             )
 
-        has_audit = bool(
-            re.search(r"-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+Audit(?:\s*\([^\)]+\))?:", phase_body, re.IGNORECASE)
-        )
-        if not has_audit:
-            findings.append(
-                TrackerAuditFinding(
-                    section=section_name,
-                    rule_code="TRK002",
-                    message=f"Phase {phase_num}: Missing mandatory `Audit:` step line.",
-                    severity=GuardrailSeverity.FATAL,
-                    remediation=f"Add `- [ ] **[NOK] Audit:** /tier8-audit-plan @[plan.md] @[tracker.md]` under '### Phase {phase_num}'.",
-                )
-            )
-
         has_indented_steps = bool(re.search(r"^\s{2,}-\s+\[[ x]\]\s+Step\b", phase_body, re.MULTILINE))
         is_deferred = bool(re.search(r"\[(?:OK|NOK)\]\s+Create Plan", phase_body, re.IGNORECASE))
         if not has_indented_steps and not is_deferred:
@@ -222,20 +208,6 @@ def check_step_format(content: str) -> list[TrackerAuditFinding]:
                 message="Step Execution Status: Missing mandatory `Execution:` step line.",
                 severity=GuardrailSeverity.FATAL,
                 remediation="Add `- [ ] **[NOK] Execution:** /tier2-execute @[plan.md] @[tracker.md]` under '## Step Execution Status'.",
-            )
-        )
-
-    has_audit = bool(
-        re.search(r"-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+Audit(?:\s*\([^\)]+\))?:", step_body, re.IGNORECASE)
-    )
-    if not has_audit:
-        findings.append(
-            TrackerAuditFinding(
-                section=section_name,
-                rule_code="TRK002",
-                message="Step Execution Status: Missing mandatory `Audit:` step line.",
-                severity=GuardrailSeverity.FATAL,
-                remediation="Add `- [ ] **[NOK] Audit:** /tier8-audit-plan @[plan.md] @[tracker.md]` under '## Step Execution Status'.",
             )
         )
 

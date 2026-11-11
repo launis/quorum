@@ -51,18 +51,19 @@ SAMPLE_TRACKER = """<required_context_rules>
   - [ ] Step 1: STEP ONE: INIT
 
 ### Post-Implementation Gates
-- [ ] @[scripts/tool.py]
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --gate all --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+  - [ ] @[scripts/tool.py]
 
 ### Documentation & Knowledge Item Update
-- [ ] Update KI
+- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture`.
 
 ### Final Plan Audit
-- [ ] Audit
+- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan`.
 
 ## Requirements Traceability Matrix
 | Requirement | Description | Plan Step | Status |
 |---|---|---|---|
-| REQ-001 | Init | Step 1 | [ ] Pending |
+| REQ-001 | Initialize baseline tooling and verification gates | Step 1 | [ ] Pending |
 
 # Session Handover Context
 ## Achieved
@@ -91,6 +92,8 @@ def test_parse_and_parity_clean(tmp_path: Path) -> None:
 
     report = audit_plan_tracker_parity(plan_ast, tracker_ast)
     assert report.total_steps == 1
+    assert report.passed is True
+    assert report.findings == []
 
 
 def test_main_cli_success(tmp_path: Path) -> None:
@@ -103,7 +106,7 @@ def test_main_cli_success(tmp_path: Path) -> None:
 
     with pytest.raises(SystemExit) as exc_info:
         main(["--tracker", str(tracker_file), "--plan", str(plan_file)])
-    assert exc_info.value.code in (0, 1)
+    assert exc_info.value.code == 0
 
 
 def test_main_cli_json_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -147,7 +150,7 @@ def test_main_cli_auto_infer_plan(tmp_path: Path) -> None:
 
     with pytest.raises(SystemExit) as exc_info:
         main(["--tracker", str(tracker_file)])
-    assert exc_info.value.code in (0, 1)
+    assert exc_info.value.code == 0
 
 
 def test_main_cli_tracker_missing_plan_reference(tmp_path: Path) -> None:
@@ -225,9 +228,6 @@ def test_non_code_targets_excluded_from_hardening_check(tmp_path: Path) -> None:
   - [ ] Step 1: STEP ONE
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**
-- [ ] **[NOK] Pre-Delete Audit**
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/services/code.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
@@ -293,9 +293,6 @@ def test_invalid_extension_and_test_file_in_hardening_checklist(tmp_path: Path) 
   - [ ] Step 1: STEP ONE
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**
-- [ ] **[NOK] Pre-Delete Audit**
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/services/code.py]
   - [ ] @[backend_v2/seed/seed_data.json]
@@ -355,11 +352,9 @@ def test_backend_only_hardening_checklist_without_frontend_gate(tmp_path: Path) 
   - [ ] Step 1: STEP ONE
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[scripts/audit_skills_architecture.py]
-- [ ] **[NOK] Pre-Delete Audit**: Verify `@[scripts/old_tool.py]` is unused.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
+- [ ] **[NOK] Additional Gate**: Verify `@[scripts/old_tool.py]` is not parsed into backend hardening files.
 
 ### Documentation & Knowledge Item Update
 - [ ] **[NOK]** As-Built Architectural Sync: Run:
@@ -417,9 +412,6 @@ def test_missing_hardening_agent_cmd_triggers_fatal_tpr008(tmp_path: Path) -> No
   - [ ] Step 1: STEP ONE
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**
-- [ ] **[NOK] Pre-Delete Audit**
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --gate backend`
   - [ ] @[backend_v2/services/code.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `scripts/auto_hardening_runner.py --gate frontend --no-agent --agent-cmd "/tier2-hardening-frontend"`
@@ -470,6 +462,20 @@ def test_missing_hardening_agent_cmd_triggers_fatal_tpr008(tmp_path: Path) -> No
         in messages
     )
 
+    # Also verify missing As-Built Architectural Sync and missing System 2 Red-Team Audit trigger TPR008
+    tracker_missing_doc_and_audit = (
+        tracker_text.replace("As-Built Architectural Sync", "Doc Update")
+        .replace("System 2 Red-Team Audit", "Audit Placeholder")
+        .replace("### Final Plan Audit", "### Closing Section")
+    )
+    tracker_ast_missing = parse_tracker_document(tracker_missing_doc_and_audit, t_file)
+    assert tracker_ast_missing.has_doc_sync_gate is False
+    assert tracker_ast_missing.has_final_audit_gate is False
+    report_missing = audit_plan_tracker_parity(plan_ast, tracker_ast_missing)
+    missing_messages = " ".join(f.message for f in report_missing.findings if f.severity.value == "FATAL")
+    assert "Tracker is missing `As-Built Architectural Sync` gate." in missing_messages
+    assert "Tracker is missing `System 2 Red-Team Audit` (Final Plan Audit) gate." in missing_messages
+
 
 def test_deleted_targets_excluded_from_required_hardening_checklist(tmp_path: Path) -> None:
     """Verify [DELETE] target files in plan are excluded from required Tier 2 Hardening checklists."""
@@ -501,9 +507,6 @@ def test_deleted_targets_excluded_from_required_hardening_checklist(tmp_path: Pa
   - [ ] Step 1: STEP ONE
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**
-- [ ] **[NOK] Pre-Delete Audit**
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --gate all --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/services/surviving.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `scripts/auto_hardening_runner.py --gate all --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
@@ -574,9 +577,6 @@ def test_deleted_target_included_in_hardening_checklist_triggers_fatal_tpr004(tm
   - [ ] Step 1: STEP ONE
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**
-- [ ] **[NOK] Pre-Delete Audit**
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/services/surviving.py]
   - [ ] @[backend_v2/services/dead_router.py]
