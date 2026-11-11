@@ -49,9 +49,9 @@
   - [x] @[backend_v2/services/studio/__init__.py]
   - [x] @[backend_v2/services/studio/prompt_block_service.py]
   - [x] @[backend_v2/services/studio/task_brief_service.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
-  - [ ] @[client_app_v2/lib/features/studio/models/task_brief.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/task_brief.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols (`PromptBlockCategory.TASK_DEFINITION`, `TaskDefinitionPromptBlock`, `PromptBlockCategory.taskDefinition`, `categoryTaskDefinition`) or legacy synthesis block references (`blk_0195f3a0000070018a2b3c4d5e6f7a8b`, `blk_0195f3a0000070088b7a6f5e4d3c2b1a`) remain across Python, SQL, JSON, or Dart files.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
