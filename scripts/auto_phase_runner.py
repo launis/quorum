@@ -72,14 +72,16 @@ if _workspace_root not in sys.path:
 from scripts._script_base import ANSIColors, get_repo_root, setup_script_environment
 from scripts.auto_hardening_runner import (
     HardeningGate,
+    acquire_windows_wake_lock,
     check_tracker_has_unparsed_hardening_items,
     parse_tracker_unhardened_targets,
+    release_windows_wake_lock,
 )
 
-GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
-TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
-DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 1800
-DEFAULT_SUBAGENT_TIMEOUT_SECONDS: Final[int] = 7200
+GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 120
+TASKKILL_TIMEOUT_SECONDS: Final[int] = 30
+DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 3600
+DEFAULT_SUBAGENT_TIMEOUT_SECONDS: Final[int] = 14400
 DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
 DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
 SUBAGENT_STARTUP_GRACE_SECONDS: Final[float] = 45.0
@@ -96,19 +98,28 @@ __all__ = [
     "AutoPhaseRunnerArgsDTO",
     "PhaseExecutionResultDTO",
     "PhaseItemDTO",
+    "PostLifecycleStageDTO",
     "QualityGateResultDTO",
     "SubagentExecutionResultDTO",
     "clean_path_arg",
+    "commit_lifecycle_stage_checkpoint",
     "commit_phase_checkpoint",
+    "execute_lifecycle_prompt_subagent",
     "execute_phase_subagent",
     "filter_phases",
     "main",
     "mark_phase_completed_in_tracker",
+    "mark_red_teaming_completed_in_tracker",
+    "mark_section_completed_in_tracker",
     "parse_tracker_phases",
+    "parse_tracker_post_stage",
     "resolve_agy_binary",
+    "run_integration_checkpoint_gate",
     "run_phase_pipeline",
     "run_phase_quality_gate",
     "run_post_hardening_gate",
+    "run_tier7_documentation_gate",
+    "run_tier8_final_audit_gate",
     "unquote_git_path",
 ]
 
@@ -123,6 +134,24 @@ class PhaseItemDTO(BaseModel):
     plan_path: Annotated[Path, Field(description="Resolved workspace-relative path to implementation plan .md.")]
     is_completed: Annotated[bool, Field(description="Whether execution checkbox is already marked [x].")]
     command: Annotated[str, Field(description="Extracted or default /tier2-execute slash command.")]
+    red_team_command: Annotated[
+        str | None,
+        Field(default=None, description="Extracted /tier0-research-plan slash command if present."),
+    ] = None
+    is_red_teamed: Annotated[
+        bool,
+        Field(default=False, description="Whether Red-Teaming checkbox is already marked [x]."),
+    ] = False
+
+
+class PostLifecycleStageDTO(BaseModel):
+    """Extracted state and slash command for a post-implementation lifecycle section."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    section_title: Annotated[str, Field(description="Markdown section title.")]
+    is_completed: Annotated[bool, Field(description="Whether section checkbox is already marked [x].")]
+    command: Annotated[str | None, Field(default=None, description="Extracted slash command if present.")] = None
 
 
 class AutoPhaseRunnerArgsDTO(BaseModel):
@@ -164,8 +193,31 @@ class AutoPhaseRunnerArgsDTO(BaseModel):
         ),
     ] = DEFAULT_SUBAGENT_MAX_RETRIES
     timeout: Annotated[
-        int, Field(default=DEFAULT_SUBAGENT_TIMEOUT_SECONDS, description="Per-phase timeout in seconds.")
+        int,
+        Field(
+            default=DEFAULT_SUBAGENT_TIMEOUT_SECONDS,
+            ge=1,
+            description="Per-phase and per-subagent timeout in seconds.",
+        ),
     ] = DEFAULT_SUBAGENT_TIMEOUT_SECONDS
+    full_lifecycle: Annotated[
+        bool,
+        Field(
+            default=False,
+            description=(
+                "Execute complete start-to-finish lifecycle: Tier 0 Red-Teaming, Tier 2 Phase Execution, "
+                "Full-Stack Integration Checkpoint, Tier 2 AI Hardening, Tier 7 Describe Architecture, "
+                "and Tier 8 Final Epic/Plan Audit."
+            ),
+        ),
+    ] = False
+    with_live_e2e: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Include Live LLM E2E pytest verification during Integration Checkpoint.",
+        ),
+    ] = False
     dry_run: Annotated[bool, Field(default=False, description="Simulate without executing agy subprocesses.")] = False
     verbose: Annotated[bool, Field(default=False, description="Enable verbose log output.")] = False
 
@@ -325,6 +377,11 @@ def parse_tracker_phases(tracker_path: Path, repo_root: Path | None = None) -> l
         re.IGNORECASE,
     )
     plan_pattern = re.compile(r"(?m)^(?:\s*-\s*)?\*\*Plan:\*\*\s*@?\[?([^\],\n`]+)\]?")
+    red_team_pattern = re.compile(
+        r"-\s*\[([ xX])\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Red-Teaming(?:\s*\([^\)]+\))?:\*\*\s*"
+        r"(?:`?(/tier0-research-plan[^\n`]+)`?|[^\n]*)",
+        re.IGNORECASE,
+    )
     exec_pattern = re.compile(
         r"-\s*\[([ xX])\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Execution(?:\s*\([^\)]+\))?:\*\*\s*"
         r"(?:`?(/tier2-execute[^\n`]+)`?|[^\n]*)",
@@ -348,6 +405,22 @@ def parse_tracker_phases(tracker_path: Path, repo_root: Path | None = None) -> l
             resolved_plan = plan_path if plan_path.is_absolute() else (root / plan_path)
             if not resolved_plan.exists():
                 raise FileNotFoundError(f"Referenced plan file not found on disk: {plan_path} (in Phase {phase_num})")
+
+            # Extract Red-Teaming command & completion status
+            rt_m = red_team_pattern.search(section_body)
+            is_red_teamed = False
+            red_team_cmd: str | None = None
+            if rt_m:
+                is_red_teamed = rt_m.group(1).lower() == "x"
+                raw_rt = rt_m.group(2)
+                if raw_rt:
+                    cleaned_rt = raw_rt.strip().strip("`").strip()
+                    cleaned_rt = re.sub(r"\s*\(`?[a-f0-9]+`?\)$", "", cleaned_rt, flags=re.IGNORECASE).strip()
+                    red_team_cmd = cleaned_rt
+                else:
+                    rel_plan_posix = plan_path.as_posix()
+                    rel_tracker_posix = cleaned_tracker.as_posix()
+                    red_team_cmd = f"/tier0-research-plan @[{rel_plan_posix}] @[{rel_tracker_posix}]"
 
             # Extract execution command & completion status
             exec_m = exec_pattern.search(section_body)
@@ -379,6 +452,8 @@ def parse_tracker_phases(tracker_path: Path, repo_root: Path | None = None) -> l
                     plan_path=plan_path,
                     is_completed=is_completed,
                     command=command,
+                    red_team_command=red_team_cmd,
+                    is_red_teamed=is_red_teamed,
                 )
             )
 
@@ -628,33 +703,25 @@ def _execute_single_subagent_attempt(
     )
 
 
-def execute_phase_subagent(
-    phase: PhaseItemDTO,
+def execute_lifecycle_prompt_subagent(
+    prompt: str,
     args: AutoPhaseRunnerArgsDTO,
     repo_root: Path,
 ) -> SubagentExecutionResultDTO:
-    """Spawn an agy CLI subagent process for the designated phase with streaming output and retry loop.
-
-    Retries transient startup glitches (such as remote model catalog fetch failures or network timeouts)
-    up to args.max_retries attempts with linear backoff before reporting failure.
+    """Spawn an agy CLI subagent process for an arbitrary lifecycle prompt with streaming and retry loop.
 
     Args:
-        phase: Phase to execute.
+        prompt: Instruction prompt string to pass via `--print`.
         args: Pipeline runner arguments.
         repo_root: Repository root path for working directory.
 
     Returns:
         SubagentExecutionResultDTO capturing returncode, output, duration, and timeout status.
+
+    Raises:
+        FileNotFoundError: If the agy CLI binary cannot be resolved on the host system.
     """
     agy_bin = resolve_agy_binary()
-
-    # Construct instruction prompt ensuring continuous full-auto authorization.
-    prompt = phase.command
-    if "PERMISSION GRANTED" not in prompt:
-        prompt = (
-            f"{phase.command}. PERMISSION GRANTED for continuous full-auto execution across all steps. "
-            f"Proceed autonomously through all steps without intermediate confirmations."
-        )
 
     # Wrap .cmd / .bat invocation on Windows via cmd.exe /c to prevent Win32 application execution errors.
     if sys.platform == "win32" and str(agy_bin).lower().endswith((".cmd", ".bat")):
@@ -701,6 +768,38 @@ def execute_phase_subagent(
     return last_res
 
 
+def execute_phase_subagent(
+    phase: PhaseItemDTO,
+    args: AutoPhaseRunnerArgsDTO,
+    repo_root: Path,
+) -> SubagentExecutionResultDTO:
+    """Spawn an agy CLI subagent process for the designated phase with streaming output and retry loop.
+
+    Retries transient startup glitches (such as remote model catalog fetch failures or network timeouts)
+    up to args.max_retries attempts with linear backoff before reporting failure.
+
+    Args:
+        phase: Phase to execute.
+        args: Pipeline runner arguments.
+        repo_root: Repository root path for working directory.
+
+    Returns:
+        SubagentExecutionResultDTO capturing returncode, output, duration, and timeout status.
+
+    Raises:
+        FileNotFoundError: If the agy CLI binary cannot be resolved on the host system.
+    """
+    prompt = phase.command
+    if "PERMISSION GRANTED" not in prompt:
+        prompt = (
+            f"{phase.command}. PERMISSION GRANTED for continuous full-auto execution across all steps, "
+            f"PERMISSION GRANTED to mutate DAG Orchestrator ecosystem, and PERMISSION GRANTED for structural "
+            f"seed_data.json schema updates with 100% coaching prompt preservation. "
+            f"Proceed autonomously through all steps without intermediate confirmations."
+        )
+    return execute_lifecycle_prompt_subagent(prompt, args, repo_root)
+
+
 def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateResultDTO:
     """Execute the Universal Quality Gate audit checks on modified domains.
 
@@ -710,6 +809,9 @@ def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateR
 
     Returns:
         QualityGateResultDTO with audit exit code and combined output.
+
+    Raises:
+        subprocess.SubprocessError: If audit subprocess invocation encounters an unexpected OS error.
     """
     # Detect any dirty python files in scripts/ to audit alongside backend_v2
     dirty_proc = subprocess.run(
@@ -720,6 +822,7 @@ def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateR
         errors="replace",
         cwd=repo_root,
         check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     dirty_scripts: list[str] = []
     if dirty_proc.returncode == 0:
@@ -757,6 +860,109 @@ def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateR
     )
 
 
+def commit_lifecycle_stage_checkpoint(
+    commit_msg: str,
+    tracker_path: Path,
+    repo_root: Path,
+) -> str | None:
+    """Commit completed lifecycle stage modifications atomically using Conventional Commits.
+
+    Args:
+        commit_msg: Conventional Commit message string.
+        tracker_path: Path to tracker markdown file.
+        repo_root: Root directory of repository.
+
+    Returns:
+        Short commit hash if a commit was executed, None if working tree was clean.
+
+    Raises:
+        subprocess.SubprocessError: If git subprocess execution encounters an OS error.
+    """
+    status_proc = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=repo_root,
+        check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    )
+    if status_proc.returncode != 0:
+        return None
+
+    raw_lines = status_proc.stdout.splitlines()
+    if not raw_lines:
+        return None
+
+    staged_candidates: list[str] = []
+    for line in raw_lines:
+        if len(line) < 4:
+            continue
+        status_code = line[:2]
+        file_path = unquote_git_path(line[3:])
+        if not file_path or _has_invalid_git_path_chars(file_path):
+            continue
+        if any(file_path.startswith(prefix) for prefix in (".gemini/", ".system_generated/", "scratch/", "tmp/")):
+            continue
+        if "D" not in status_code and (repo_root / ".git").exists() and not (repo_root / file_path).exists():
+            continue
+        staged_candidates.append(file_path)
+
+    if not staged_candidates:
+        return None
+
+    tracker_rel = clean_path_arg(tracker_path)
+    try:
+        tracker_str = (tracker_path.resolve()).relative_to(repo_root.resolve()).as_posix()
+    except ValueError, RuntimeError:
+        tracker_str = tracker_rel.as_posix() if tracker_rel else str(tracker_path).replace("\\", "/")
+
+    add_cmd = ["git", "add"] + staged_candidates
+    if tracker_str not in staged_candidates and (
+        not (repo_root / ".git").exists() or (repo_root / tracker_str).exists()
+    ):
+        add_cmd.append(tracker_str)
+
+    subprocess.run(
+        add_cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=repo_root,
+        check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    )
+
+    commit_proc = subprocess.run(
+        ["git", "commit", "-m", commit_msg],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=repo_root,
+        check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    )
+    if commit_proc.returncode != 0:
+        return None
+
+    rev_proc = subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=repo_root,
+        check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    )
+    if rev_proc.returncode == 0:
+        return rev_proc.stdout.strip()
+    return None
+
+
 def commit_phase_checkpoint(
     phase: PhaseItemDTO,
     tracker_path: Path,
@@ -771,6 +977,9 @@ def commit_phase_checkpoint(
 
     Returns:
         Short commit hash if a commit was executed, None if working tree was clean.
+
+    Raises:
+        subprocess.SubprocessError: If git subprocess execution encounters an OS error.
     """
     status_proc = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -780,6 +989,7 @@ def commit_phase_checkpoint(
         errors="replace",
         cwd=repo_root,
         check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     if status_proc.returncode != 0:
         return None
@@ -828,6 +1038,7 @@ def commit_phase_checkpoint(
             errors="replace",
             cwd=repo_root,
             check=False,
+            timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
         )
     else:
         # Sanitize title removing redundant "Phase N:" prefix
@@ -847,6 +1058,7 @@ def commit_phase_checkpoint(
             errors="replace",
             cwd=repo_root,
             check=False,
+            timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
         )
 
     commit_proc = subprocess.run(
@@ -857,6 +1069,7 @@ def commit_phase_checkpoint(
         errors="replace",
         cwd=repo_root,
         check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     if commit_proc.returncode != 0:
         return None
@@ -869,10 +1082,145 @@ def commit_phase_checkpoint(
         errors="replace",
         cwd=repo_root,
         check=False,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     if rev_proc.returncode == 0:
         return rev_proc.stdout.strip()
     return None
+
+
+def mark_red_teaming_completed_in_tracker(
+    tracker_path: Path,
+    phase_num: int,
+    commit_hash: str | None = None,
+) -> None:
+    """Mark a phase Red-Teaming row as completed ([x] **[OK] Red-Teaming:**) in tracker markdown in-place.
+
+    Args:
+        tracker_path: Path to tracker markdown file.
+        phase_num: Index of phase to mark red-teamed.
+        commit_hash: Optional short git commit hash to record on Red-Teaming line.
+
+    Raises:
+        OSError: If reading or writing the tracker file fails.
+    """
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None or not cleaned_tracker.exists():
+        return
+
+    content = cleaned_tracker.read_text(encoding="utf-8")
+    phase_header_pattern = re.compile(rf"^### Phase\s+{phase_num}[:\-]?", re.MULTILINE | re.IGNORECASE)
+    match = phase_header_pattern.search(content)
+    if not match:
+        return
+
+    start_idx = match.start()
+    next_boundary = re.search(
+        r"(?m)^(?:### Phase\s+\d+|### Integration Checkpoint|### Post-Implementation|\Z)",
+        content[match.end() :],
+    )
+    end_idx = match.end() + next_boundary.start() if next_boundary else len(content)
+    section_slice = content[start_idx:end_idx]
+
+    def _replace_rt(m: re.Match[str]) -> str:
+        cmd = m.group(1).strip()
+        cmd_clean = re.sub(r"\s*\(`?[a-f0-9]+`?\)$", "", cmd, flags=re.IGNORECASE).strip().strip("`").strip()
+        if commit_hash:
+            return f"- [x] **[OK] Red-Teaming:** `{cmd_clean}` (`{commit_hash}`)"
+        return f"- [x] **[OK] Red-Teaming:** `{cmd_clean}`"
+
+    rt_line_re = re.compile(
+        r"-\s*\[[ xX]\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Red-Teaming(?:\s*\([^\)]+\))?:\*\*\s*"
+        r"`?([^`\n]+)`?(?:\s*\(`?[a-f0-9]+`?\))?",
+        re.IGNORECASE,
+    )
+    updated_slice = rt_line_re.sub(_replace_rt, section_slice)
+    updated_content = content[:start_idx] + updated_slice + content[end_idx:]
+    cleaned_tracker.write_text(updated_content, encoding="utf-8")
+
+
+def parse_tracker_post_stage(
+    tracker_content: str,
+    section_header_regex: str,
+    slash_prefix: str,
+) -> PostLifecycleStageDTO:
+    """Extract completion status and slash command from a post-implementation tracker section.
+
+    Args:
+        tracker_content: Raw markdown text of tracker file.
+        section_header_regex: Regex matching the target markdown section heading.
+        slash_prefix: Expected slash command prefix (such as `/tier7-describe-architecture`).
+
+    Returns:
+        PostLifecycleStageDTO containing section title, completion status, and extracted command.
+    """
+    sec_match = re.search(section_header_regex, tracker_content, re.MULTILINE | re.IGNORECASE)
+    if not sec_match:
+        return PostLifecycleStageDTO(section_title=slash_prefix, is_completed=True, command=None)
+
+    section_title = sec_match.group(0).lstrip("#").strip()
+    next_boundary = re.search(
+        r"(?m)^(?:###\s+|##\s+|#\s+|\Z)",
+        tracker_content[sec_match.end() :],
+    )
+    end_idx = sec_match.end() + next_boundary.start() if next_boundary else len(tracker_content)
+    section_slice = tracker_content[sec_match.start() : end_idx]
+
+    checkboxes = re.findall(r"^-\s*\[([ xX])\]", section_slice, re.MULTILINE)
+    is_completed = bool(checkboxes) and all(c.lower() == "x" for c in checkboxes)
+
+    cmd_re = re.compile(rf"({re.escape(slash_prefix)}[^\n`]*)", re.IGNORECASE)
+    cmd_match = cmd_re.search(section_slice)
+    command = cmd_match.group(1).strip() if cmd_match else None
+
+    return PostLifecycleStageDTO(
+        section_title=section_title,
+        is_completed=is_completed,
+        command=command,
+    )
+
+
+def mark_section_completed_in_tracker(
+    tracker_path: Path,
+    section_header_regex: str,
+) -> None:
+    """Mark all top-level checkboxes (`- [ ] **[NOK]`) inside a tracker section as completed (`- [x] **[OK]`).
+
+    Args:
+        tracker_path: Path to tracker markdown file.
+        section_header_regex: Regex matching the target section header.
+
+    Raises:
+        OSError: If reading or writing the tracker file fails.
+    """
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None or not cleaned_tracker.exists():
+        return
+
+    content = cleaned_tracker.read_text(encoding="utf-8")
+    sec_match = re.search(section_header_regex, content, re.MULTILINE | re.IGNORECASE)
+    if not sec_match:
+        return
+
+    start_idx = sec_match.start()
+    next_boundary = re.search(r"(?m)^(?:###\s+|##\s+|#\s+|\Z)", content[sec_match.end() :])
+    end_idx = sec_match.end() + next_boundary.start() if next_boundary else len(content)
+
+    section_slice = content[start_idx:end_idx]
+    updated_slice = re.sub(
+        r"^(-\s*)\[[ xX]\](\s*\*\*)\[(?:OK|NOK)\]",
+        r"\1[x]\2[OK]",
+        section_slice,
+        flags=re.MULTILINE | re.IGNORECASE,
+    )
+    updated_slice = re.sub(
+        r"^(-\s*)\[ \]",
+        r"\1[x]",
+        updated_slice,
+        flags=re.MULTILINE,
+    )
+    updated_content = content[:start_idx] + updated_slice + content[end_idx:]
+    cleaned_tracker.write_text(updated_content, encoding="utf-8")
 
 
 def mark_phase_completed_in_tracker(
@@ -1098,6 +1446,254 @@ def run_post_hardening_gate(
     return 0
 
 
+def run_integration_checkpoint_gate(
+    tracker_path: Path,
+    args: AutoPhaseRunnerArgsDTO,
+    repo_root: Path,
+) -> int:
+    """Execute Full-Stack Integration Checkpoint gates (Seed Vault, Zero-ORM, DTO Parity, Audits, optional Live E2E).
+
+    Args:
+        tracker_path: Path to tracker markdown file.
+        args: Pipeline runner arguments.
+        repo_root: Repository root directory.
+
+    Returns:
+        Exit code (0 on success, non-zero on first gate failure).
+
+    Raises:
+        subprocess.SubprocessError: If any integration gate subprocess encounters an OS execution failure.
+    """
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None:
+        return 0
+    resolved_tracker = cleaned_tracker if cleaned_tracker.is_absolute() else (repo_root / cleaned_tracker)
+
+    commands: list[tuple[str, list[str]]] = [
+        (
+            "Seed Vault Dry-Run",
+            ["uv", "run", "--no-sync", "--offline", "python", "backend_v2/seed/run_seed.py", "local", "--dry-run"],
+        ),
+        (
+            "Database Atoms Strict Audit",
+            ["uv", "run", "--no-sync", "--offline", "python", "scripts/audit_database_atoms.py", "--strict"],
+        ),
+        (
+            "Seed Vault Local Execution",
+            ["uv", "run", "--no-sync", "--offline", "python", "backend_v2/seed/run_seed.py", "local"],
+        ),
+        (
+            "Zero-ORM Strictness Gate",
+            ["uv", "run", "--no-sync", "--offline", "python", "scripts/audit_zero_orm_strictness.py"],
+        ),
+        (
+            "Cross-Language DTO Parity Gate",
+            ["uv", "run", "--no-sync", "--offline", "python", "scripts/audit_dto_parity.py", "--fail-on-mismatch"],
+        ),
+        (
+            "Skills Architecture Gate",
+            ["uv", "run", "--no-sync", "--offline", "python", "scripts/audit_skills_architecture.py"],
+        ),
+        (
+            "Global Backend Audit Loop",
+            [
+                "uv",
+                "run",
+                "--no-sync",
+                "--offline",
+                "python",
+                "scripts/backend_audit_loop.py",
+                "backend_v2/",
+                "--test",
+                "--ast-strict",
+            ],
+        ),
+        (
+            "Global Flutter Audit Loop",
+            [
+                "uv",
+                "run",
+                "--no-sync",
+                "--offline",
+                "python",
+                "scripts/flutter_audit_loop.py",
+                "client_app_v2/",
+                "--build",
+            ],
+        ),
+    ]
+    if args.with_live_e2e:
+        commands.append(
+            (
+                "Live E2E REST API Verification Gate",
+                [
+                    "uv",
+                    "run",
+                    "--no-sync",
+                    "--offline",
+                    "pytest",
+                    "backend_v2/tests/integration/test_integration_real_llm.py",
+                ],
+            )
+        )
+
+    env = os.environ.copy()
+    env["UV_NO_SYNC"] = "1"
+    env["UV_OFFLINE"] = "1"
+    if args.with_live_e2e:
+        env["RUN_LIVE_E2E"] = "true"
+
+    print(
+        f"\n{ANSIColors.CYAN}=== Executing Full-Stack Integration Checkpoint ({len(commands)} gates) ==={ANSIColors.RESET}",
+        flush=True,
+    )
+    for label, cmd in commands:
+        print(f"  -> Running Integration Gate: {label}", flush=True)
+        proc = subprocess.run(
+            cmd,
+            cwd=repo_root,
+            env=env,
+            check=False,
+            timeout=DEFAULT_AUDIT_TIMEOUT_SECONDS,
+        )
+        if proc.returncode != 0:
+            print(
+                f"{ANSIColors.RED}[FAILED] Integration Gate '{label}' failed with exit code {proc.returncode}.{ANSIColors.RESET}",
+                flush=True,
+            )
+            return proc.returncode
+
+    if resolved_tracker.exists():
+        mark_section_completed_in_tracker(resolved_tracker, r"^###\s+Integration\s+Checkpoint")
+        if not args.skip_commit:
+            commit_lifecycle_stage_checkpoint(
+                "chore(integration): complete full-stack integration checkpoint gates",
+                resolved_tracker,
+                repo_root,
+            )
+    return 0
+
+
+def run_tier7_documentation_gate(
+    tracker_path: Path,
+    args: AutoPhaseRunnerArgsDTO,
+    repo_root: Path,
+) -> int:
+    """Execute Tier 7 As-Built Architectural & Knowledge Item Sync gate from tracker.
+
+    Args:
+        tracker_path: Path to tracker markdown file.
+        args: Pipeline runner arguments.
+        repo_root: Repository root directory.
+
+    Returns:
+        Exit code (0 on success or already completed, non-zero on failure).
+
+    Raises:
+        FileNotFoundError: If the agy binary cannot be resolved when executing the subagent.
+    """
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None:
+        return 0
+    resolved_tracker = cleaned_tracker if cleaned_tracker.is_absolute() else (repo_root / cleaned_tracker)
+    if not resolved_tracker.exists():
+        return 1
+
+    stage = parse_tracker_post_stage(
+        resolved_tracker.read_text(encoding="utf-8"),
+        r"^###\s+Documentation\s*&\s*Knowledge\s+Item\s+Update",
+        "/tier7-describe-architecture",
+    )
+    if stage.is_completed or not stage.command:
+        return 0
+
+    print(
+        f"\n{ANSIColors.CYAN}=== Executing Tier 7 As-Built Architectural & KI Sync ==={ANSIColors.RESET}\n"
+        f"Command: {stage.command}\n",
+        flush=True,
+    )
+    prompt = (
+        f"{stage.command}. PERMISSION GRANTED for continuous full-auto execution. "
+        f"Synchronize all listed Knowledge Items, .agents/rules/04_directory_reference.md, "
+        f"and docs/architecture/ narratives in timeless present tense without intermediate confirmations."
+    )
+    res = execute_lifecycle_prompt_subagent(prompt, args, repo_root)
+    if res.is_timeout or res.exit_code != 0:
+        return res.exit_code if res.exit_code != 0 else 1
+
+    mark_section_completed_in_tracker(resolved_tracker, r"^###\s+Documentation\s*&\s*Knowledge\s+Item\s+Update")
+    if not args.skip_commit:
+        commit_lifecycle_stage_checkpoint(
+            "docs(arch): synchronize as-built architecture and knowledge items",
+            resolved_tracker,
+            repo_root,
+        )
+    return 0
+
+
+def run_tier8_final_audit_gate(
+    tracker_path: Path,
+    args: AutoPhaseRunnerArgsDTO,
+    repo_root: Path,
+) -> int:
+    """Execute Tier 8 Final System 2 Reverse Epic/Plan Audit gate from tracker.
+
+    Args:
+        tracker_path: Path to tracker markdown file.
+        args: Pipeline runner arguments.
+        repo_root: Repository root directory.
+
+    Returns:
+        Exit code (0 on success or already completed, non-zero on failure).
+
+    Raises:
+        FileNotFoundError: If the agy binary cannot be resolved when executing the subagent.
+    """
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None:
+        return 0
+    resolved_tracker = cleaned_tracker if cleaned_tracker.is_absolute() else (repo_root / cleaned_tracker)
+    if not resolved_tracker.exists():
+        return 1
+
+    tracker_text = resolved_tracker.read_text(encoding="utf-8")
+    stage = parse_tracker_post_stage(
+        tracker_text,
+        r"^###\s+Final\s+Epic\s+Audit",
+        "/tier8-audit-epic",
+    )
+    if stage.command is None:
+        stage = parse_tracker_post_stage(
+            tracker_text,
+            r"^###\s+Final\s+Plan\s+Audit",
+            "/tier8-audit-plan",
+        )
+    if stage.is_completed or not stage.command:
+        return 0
+
+    print(
+        f"\n{ANSIColors.CYAN}=== Executing Tier 8 Final System 2 Audit ==={ANSIColors.RESET}\n"
+        f"Command: {stage.command}\n",
+        flush=True,
+    )
+    prompt = (
+        f"{stage.command}. PERMISSION GRANTED for continuous full-auto System 2 audit execution. "
+        f"Proceed autonomously without intermediate confirmations."
+    )
+    res = execute_lifecycle_prompt_subagent(prompt, args, repo_root)
+    if res.is_timeout or res.exit_code != 0:
+        return res.exit_code if res.exit_code != 0 else 1
+
+    mark_section_completed_in_tracker(resolved_tracker, r"^###\s+Final\s+(?:Epic|Plan)\s+Audit")
+    if not args.skip_commit:
+        commit_lifecycle_stage_checkpoint(
+            "docs(audit): complete final system 2 reverse audit",
+            resolved_tracker,
+            repo_root,
+        )
+    return 0
+
+
 def run_phase_pipeline(
     args: AutoPhaseRunnerArgsDTO,
     repo_root: Path | None = None,
@@ -1120,7 +1716,7 @@ def run_phase_pipeline(
         f"Autonomous Headless CLI Phase Orchestrator (Multi-Phase Pipeline Runner)\n"
         f"Tracker: {args.tracker}\n"
         f"Discovered Phases: {len(all_phases)} total, {len(pending_phases)} pending execution\n"
-        f"Model: {args.model} | Timeout: {args.timeout}s"
+        f"Model: {args.model} | Timeout: {args.timeout}s | Full-Lifecycle: {args.full_lifecycle}"
         f"{ANSIColors.RESET}\n",
         flush=True,
     )
@@ -1131,7 +1727,32 @@ def run_phase_pipeline(
             flush=True,
         )
         for p in pending_phases:
+            if args.full_lifecycle and not p.is_red_teamed and p.red_team_command:
+                print(f"  - Phase {p.phase_num} [Tier 0 Red-Teaming]: {p.red_team_command}", flush=True)
             print(f"  - Phase {p.phase_num}: {p.title} -> {p.command}", flush=True)
+        if args.full_lifecycle:
+            cleaned_tracker = clean_path_arg(args.tracker)
+            resolved_tracker = (
+                cleaned_tracker
+                if cleaned_tracker and cleaned_tracker.is_absolute()
+                else (root / cleaned_tracker if cleaned_tracker else root)
+            )
+            if resolved_tracker.is_file():
+                t_text = resolved_tracker.read_text(encoding="utf-8")
+                t7 = parse_tracker_post_stage(
+                    t_text, r"^###\s+Documentation\s*&\s*Knowledge\s+Item\s+Update", "/tier7-describe-architecture"
+                )
+                t8 = parse_tracker_post_stage(t_text, r"^###\s+Final\s+Epic\s+Audit", "/tier8-audit-epic")
+                if t8.command is None:
+                    t8 = parse_tracker_post_stage(t_text, r"^###\s+Final\s+Plan\s+Audit", "/tier8-audit-plan")
+                print(
+                    "  - [Post-Phase] Full-Stack Integration Checkpoint (Seed Vault, Zero-ORM, DTO Parity, Audits)",
+                    flush=True,
+                )
+                if t7.command and not t7.is_completed:
+                    print(f"  - [Post-Phase Tier 7]: {t7.command}", flush=True)
+                if t8.command and not t8.is_completed:
+                    print(f"  - [Post-Phase Tier 8]: {t8.command}", flush=True)
         return AutoPhaseRunSummaryDTO(
             tracker_path=args.tracker,
             total_phases=len(all_phases),
@@ -1141,129 +1762,188 @@ def run_phase_pipeline(
             results=[],
         )
 
-    results: list[PhaseExecutionResultDTO] = []
-    executed_count = 0
-    succeeded_count = 0
-    failed_count = 0
+    wake_lock_state = acquire_windows_wake_lock()
+    try:
+        results: list[PhaseExecutionResultDTO] = []
+        executed_count = 0
+        succeeded_count = 0
+        failed_count = 0
 
-    for phase in pending_phases:
-        executed_count += 1
-        print(
-            f"\n{ANSIColors.BOLD}{ANSIColors.GREEN}"
-            f"=== Starting Phase {phase.phase_num}: {phase.title} ==="
-            f"{ANSIColors.RESET}\n"
-            f"Command: {phase.command}\n",
-            flush=True,
-        )
+        for phase in pending_phases:
+            if args.full_lifecycle and not phase.is_red_teamed and phase.red_team_command:
+                print(
+                    f"\n{ANSIColors.BOLD}{ANSIColors.CYAN}"
+                    f"=== Tier 0 Red-Teaming Phase {phase.phase_num}: {phase.title} ==="
+                    f"{ANSIColors.RESET}\n"
+                    f"Command: {phase.red_team_command}\n",
+                    flush=True,
+                )
+                rt_prompt = (
+                    f"{phase.red_team_command}. PERMISSION GRANTED for continuous full-auto red-teaming. "
+                    f"Auto-apply any minor boundary or contract fixes directly to the plan and tracker "
+                    f"without intermediate confirmations."
+                )
+                rt_res = execute_lifecycle_prompt_subagent(rt_prompt, args, root)
+                if rt_res.is_timeout or rt_res.exit_code != 0:
+                    failed_count += 1
+                    err_msg = (
+                        f"Tier 0 Red-Teaming timeout after {rt_res.duration_seconds:.1f}s"
+                        if rt_res.is_timeout
+                        else f"Tier 0 Red-Teaming exited with code {rt_res.exit_code}"
+                    )
+                    results.append(
+                        PhaseExecutionResultDTO(
+                            phase_num=phase.phase_num,
+                            title=phase.title,
+                            success=False,
+                            duration_seconds=rt_res.duration_seconds,
+                            error_message=err_msg,
+                        )
+                    )
+                    break
+                mark_red_teaming_completed_in_tracker(args.tracker, phase.phase_num)
+                if not args.skip_commit:
+                    commit_lifecycle_stage_checkpoint(
+                        f"docs(phase{phase.phase_num}): complete tier 0 red-teaming for phase {phase.phase_num}",
+                        args.tracker,
+                        root,
+                    )
 
-        subagent_res = execute_phase_subagent(phase, args, root)
-
-        if subagent_res.is_timeout:
+            executed_count += 1
             print(
-                f"\n{ANSIColors.RED}[TIMEOUT] Phase {phase.phase_num} timed out after "
-                f"{subagent_res.duration_seconds:.1f}s. Subprocess tree killed.{ANSIColors.RESET}",
+                f"\n{ANSIColors.BOLD}{ANSIColors.GREEN}"
+                f"=== Starting Phase {phase.phase_num}: {phase.title} ==="
+                f"{ANSIColors.RESET}\n"
+                f"Command: {phase.command}\n",
                 flush=True,
             )
-            failed_count += 1
+
+            subagent_res = execute_phase_subagent(phase, args, root)
+
+            if subagent_res.is_timeout:
+                print(
+                    f"\n{ANSIColors.RED}[TIMEOUT] Phase {phase.phase_num} timed out after "
+                    f"{subagent_res.duration_seconds:.1f}s. Subprocess tree killed.{ANSIColors.RESET}",
+                    flush=True,
+                )
+                failed_count += 1
+                results.append(
+                    PhaseExecutionResultDTO(
+                        phase_num=phase.phase_num,
+                        title=phase.title,
+                        success=False,
+                        duration_seconds=subagent_res.duration_seconds,
+                        error_message=f"Timeout after {subagent_res.duration_seconds:.1f}s",
+                    )
+                )
+                break
+
+            if subagent_res.exit_code != 0:
+                print(
+                    f"\n{ANSIColors.RED}[FAILED] Phase {phase.phase_num} failed with exit code "
+                    f"{subagent_res.exit_code}. Halting pipeline immediately (circuit breaker).{ANSIColors.RESET}",
+                    flush=True,
+                )
+                failed_count += 1
+                results.append(
+                    PhaseExecutionResultDTO(
+                        phase_num=phase.phase_num,
+                        title=phase.title,
+                        success=False,
+                        duration_seconds=subagent_res.duration_seconds,
+                        error_message=f"Subagent exited with code {subagent_res.exit_code}",
+                    )
+                )
+                break
+
+            print(
+                f"\n{ANSIColors.CYAN}Verifying Phase {phase.phase_num} Universal Quality Gate...{ANSIColors.RESET}",
+                flush=True,
+            )
+            qg_res = run_phase_quality_gate(phase, root)
+
+            if not qg_res.success:
+                print(
+                    f"\n{ANSIColors.RED}[QUALITY GATE FAILED] Phase {phase.phase_num} audit loops failed "
+                    f"with code {qg_res.exit_code}. Halting pipeline immediately.{ANSIColors.RESET}",
+                    flush=True,
+                )
+                if qg_res.output:
+                    print(f"\n{ANSIColors.YELLOW}--- Quality Gate Output ---{ANSIColors.RESET}", flush=True)
+                    print(qg_res.output, flush=True)
+                    print(f"{ANSIColors.YELLOW}--- End Quality Gate Output ---{ANSIColors.RESET}\n", flush=True)
+                failed_count += 1
+                results.append(
+                    PhaseExecutionResultDTO(
+                        phase_num=phase.phase_num,
+                        title=phase.title,
+                        success=False,
+                        duration_seconds=subagent_res.duration_seconds,
+                        error_message=f"Quality gate audit failed with exit code {qg_res.exit_code}",
+                    )
+                )
+                break
+
+            # Checkpoint git commit and update tracker
+            commit_hash: str | None = None
+            if not args.skip_commit:
+                commit_hash = commit_phase_checkpoint(phase, args.tracker, root)
+
+            mark_phase_completed_in_tracker(args.tracker, phase.phase_num, commit_hash=commit_hash)
+
+            succeeded_count += 1
             results.append(
                 PhaseExecutionResultDTO(
                     phase_num=phase.phase_num,
                     title=phase.title,
-                    success=False,
+                    success=True,
                     duration_seconds=subagent_res.duration_seconds,
-                    error_message=f"Timeout after {subagent_res.duration_seconds:.1f}s",
                 )
             )
-            break
-
-        if subagent_res.exit_code != 0:
             print(
-                f"\n{ANSIColors.RED}[FAILED] Phase {phase.phase_num} failed with exit code "
-                f"{subagent_res.exit_code}. Halting pipeline immediately (circuit breaker).{ANSIColors.RESET}",
-                flush=True,
-            )
-            failed_count += 1
-            results.append(
-                PhaseExecutionResultDTO(
-                    phase_num=phase.phase_num,
-                    title=phase.title,
-                    success=False,
-                    duration_seconds=subagent_res.duration_seconds,
-                    error_message=f"Subagent exited with code {subagent_res.exit_code}",
-                )
-            )
-            break
-
-        print(
-            f"\n{ANSIColors.CYAN}Verifying Phase {phase.phase_num} Universal Quality Gate...{ANSIColors.RESET}",
-            flush=True,
-        )
-        qg_res = run_phase_quality_gate(phase, root)
-
-        if not qg_res.success:
-            print(
-                f"\n{ANSIColors.RED}[QUALITY GATE FAILED] Phase {phase.phase_num} audit loops failed "
-                f"with code {qg_res.exit_code}. Halting pipeline immediately.{ANSIColors.RESET}",
-                flush=True,
-            )
-            if qg_res.output:
-                print(f"\n{ANSIColors.YELLOW}--- Quality Gate Output ---{ANSIColors.RESET}", flush=True)
-                print(qg_res.output, flush=True)
-                print(f"{ANSIColors.YELLOW}--- End Quality Gate Output ---{ANSIColors.RESET}\n", flush=True)
-            failed_count += 1
-            results.append(
-                PhaseExecutionResultDTO(
-                    phase_num=phase.phase_num,
-                    title=phase.title,
-                    success=False,
-                    duration_seconds=subagent_res.duration_seconds,
-                    error_message=f"Quality gate audit failed with exit code {qg_res.exit_code}",
-                )
-            )
-            break
-
-        # Checkpoint git commit and update tracker
-        commit_hash: str | None = None
-        if not args.skip_commit:
-            commit_hash = commit_phase_checkpoint(phase, args.tracker, root)
-
-        mark_phase_completed_in_tracker(args.tracker, phase.phase_num, commit_hash=commit_hash)
-
-        succeeded_count += 1
-        results.append(
-            PhaseExecutionResultDTO(
-                phase_num=phase.phase_num,
-                title=phase.title,
-                success=True,
-                duration_seconds=subagent_res.duration_seconds,
-            )
-        )
-        print(
-            f"{ANSIColors.BOLD}{ANSIColors.GREEN}"
-            f"=== Successfully Completed Phase {phase.phase_num}: {phase.title} "
-            f"({subagent_res.duration_seconds:.1f}s) ==="
-            f"{ANSIColors.RESET}",
-            flush=True,
-        )
-
-    # If all pending phases succeeded, run post-implementation hardening handoff
-    if failed_count == 0 and executed_count > 0 and not args.skip_hardening:
-        hardening_code = run_post_hardening_gate(args.tracker, args, root)
-        if hardening_code != 0:
-            print(
-                f"{ANSIColors.YELLOW}[WARNING] Post-implementation hardening gate "
-                f"exited with code {hardening_code}.{ANSIColors.RESET}",
+                f"{ANSIColors.BOLD}{ANSIColors.GREEN}"
+                f"=== Successfully Completed Phase {phase.phase_num}: {phase.title} "
+                f"({subagent_res.duration_seconds:.1f}s) ==="
+                f"{ANSIColors.RESET}",
                 flush=True,
             )
 
-    return AutoPhaseRunSummaryDTO(
-        tracker_path=args.tracker,
-        total_phases=len(all_phases),
-        executed_phases=executed_count,
-        succeeded_phases=succeeded_count,
-        failed_phases=failed_count,
-        results=results,
-    )
+        # If all pending phases succeeded, run post-implementation hardening and full-lifecycle gates
+        if failed_count == 0 and (executed_count > 0 or args.full_lifecycle):
+            if not args.skip_hardening:
+                hardening_code = run_post_hardening_gate(args.tracker, args, root)
+                if hardening_code != 0:
+                    print(
+                        f"{ANSIColors.YELLOW}[WARNING] Post-implementation hardening gate "
+                        f"exited with code {hardening_code}.{ANSIColors.RESET}",
+                        flush=True,
+                    )
+                    if args.full_lifecycle:
+                        failed_count += 1
+
+            if args.full_lifecycle and failed_count == 0:
+                ic_code = run_integration_checkpoint_gate(args.tracker, args, root)
+                if ic_code != 0:
+                    failed_count += 1
+                else:
+                    t7_code = run_tier7_documentation_gate(args.tracker, args, root)
+                    if t7_code != 0:
+                        failed_count += 1
+                    else:
+                        t8_code = run_tier8_final_audit_gate(args.tracker, args, root)
+                        if t8_code != 0:
+                            failed_count += 1
+
+        return AutoPhaseRunSummaryDTO(
+            tracker_path=args.tracker,
+            total_phases=len(all_phases),
+            executed_phases=executed_count,
+            succeeded_phases=succeeded_count,
+            failed_phases=failed_count,
+            results=results,
+        )
+    finally:
+        release_windows_wake_lock(wake_lock_state)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1280,17 +1960,17 @@ Autonomous AI Subagent Execution Examples:
 1. Execute all pending phases in an Epic tracker unattended:
    uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md
 
-2. Resume pipeline starting from Phase 3:
+2. Execute FULL start-to-finish lifecycle (Tier 0 Red-Teaming -> Phases -> Hardening -> Seed/Parity/Audits -> Tier 7 -> Tier 8):
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --full-lifecycle --timeout 14400
+
+3. Resume pipeline starting from Phase 3:
    uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --from-phase 3
 
-3. Execute strictly Phase 2 (for targeted verification):
+4. Execute strictly Phase 2 (for targeted verification):
    uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --only-phase 2
 
-4. Dry-run simulation (inspect discovered phases and commands without spawning subprocesses):
-   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --dry-run
-
-5. Execute all phases and automatically run AI-driven Tier 2 hardening per file upon completion:
-   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --hardening-agent
+5. Dry-run simulation (inspect discovered phases and commands without spawning subprocesses):
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --full-lifecycle --dry-run
 
 Key Behavioral Invariants for Autonomous AI Agents:
 - Subagent Isolation: Each phase spawns an independent `agy` CLI subagent process with a fresh context.
@@ -1355,13 +2035,28 @@ Key Behavioral Invariants for Autonomous AI Agents:
         "--timeout",
         type=int,
         default=DEFAULT_SUBAGENT_TIMEOUT_SECONDS,
-        help=f"Per-phase subagent timeout in seconds (default: {DEFAULT_SUBAGENT_TIMEOUT_SECONDS}).",
+        help=f"Per-phase and per-subagent timeout in seconds (default: {DEFAULT_SUBAGENT_TIMEOUT_SECONDS}).",
     )
     parser.add_argument(
         "--max-retries",
         type=int,
         default=DEFAULT_SUBAGENT_MAX_RETRIES,
         help=f"Max automatic retries for transient subagent startup failures (default: {DEFAULT_SUBAGENT_MAX_RETRIES}).",
+    )
+    parser.add_argument(
+        "--full-lifecycle",
+        action="store_true",
+        default=False,
+        help=(
+            "Execute complete start-to-finish Epic/Plan lifecycle: Tier 0 Red-Teaming, Tier 2 Phase Execution, "
+            "Tier 2 AI Hardening, Full-Stack Integration Checkpoint, Tier 7 Describe Architecture, and Tier 8 Audit."
+        ),
+    )
+    parser.add_argument(
+        "--with-live-e2e",
+        action="store_true",
+        default=False,
+        help="Include Live LLM E2E pytest verification during the Full-Stack Integration Checkpoint.",
     )
     parser.add_argument(
         "--dry-run",
@@ -1393,6 +2088,8 @@ Key Behavioral Invariants for Autonomous AI Agents:
             hardening_model=parsed.hardening_model,
             max_retries=parsed.max_retries,
             timeout=parsed.timeout,
+            full_lifecycle=parsed.full_lifecycle,
+            with_live_e2e=parsed.with_live_e2e,
             dry_run=parsed.dry_run,
             verbose=parsed.verbose,
         )

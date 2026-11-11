@@ -37,8 +37,11 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
       <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during complex Epic scoping.</catastrophic_reason>
     </rule_block>
     <rule_block id="subagent_context_offloading">
-      <mandatory_pattern>To preserve the primary System 2 architectural context window, whenever Epic scouting or `audit_technical_debt.py` sweeps require inspecting more than 3 files, offload the reconnaissance to the read-only `research` subagent via `invoke_subagent` (`TypeName="research"`), requesting a structured summary of module boundaries, schemas, and technical debt. When referencing Python symbols in the Epic, you may author symbolic `@[path/to/file.py#SymbolName]` anchors and auto-bind exact `#Lnn-mm` spans via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic> --fix`.</mandatory_pattern>
-      <catastrophic_reason>Consuming the primary architect context window with raw multi-file dumps and manual AST line counting degrades multi-phase Epic synthesis.</catastrophic_reason>
+      <mandatory_pattern>To preserve the primary System 2 architectural context window without sacrificing reasoning depth:
+        1. ALWAYS execute deterministic CLI sweeps (`$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop`) directly in the primary agent via `run_command` FIRST (since read-only `research` subagents lack shell execution tools).
+        2. Whenever Epic scouting requires inspecting more than 3 files, offload deep domain inspection to the read-only `research` subagent via `invoke_subagent` (`TypeName="research"`, `Model="inherit"` to preserve full System 2 reasoning depth), passing the pre-computed `audit_technical_debt.py` output and a scoped list of target modules and architectural questions so the subagent focuses 100% on contract verification and blast-radius analysis instead of blind repository-wide `grep` loops.
+        3. When referencing Python classes or functions in the Epic, ALWAYS author symbolic `@[path/to/file.py#SymbolName]` anchors instead of manually guessing `#Lnn-mm` line numbers, and auto-bind exact AST `#Lnn-mm` spans in Step 5 via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file &lt;path_to_epic&gt; --fix`.</mandatory_pattern>
+      <catastrophic_reason>Consuming the primary architect context window with raw multi-file dumps, forcing shell-less subagents to manually simulate AST CLI scripts, or manually guessing line numbers causes context compaction stalls and AST boundary drift.</catastrophic_reason>
     </rule_block>
     <rule_block id="english_language_mandate">
       <mandatory_pattern>You MUST write the ENTIRE Epic document EXCLUSIVELY in English (as mandated by `00-antigravity-core.md`). Never use Finnish or non-English terms in Epic titles, headings, descriptions, or inline documentation.</mandatory_pattern>
@@ -96,14 +99,28 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
       <mandatory_pattern>Every phase in `## 3. Phased Execution Plan (Implementation Strategy)` MUST deliver production code paired directly with its companion unit and widget tests in the same phase. Full-repository audit loops (`scripts/backend_audit_loop.py`, `scripts/flutter_audit_loop.py`), database seed verification (`backend_v2/seed/run_seed.py local`), and Live E2E (`backend_v2/tests/integration/test_integration_real_llm.py`) belong exclusively in `## 4. Definition of Done (DoD) &amp; Verification Plan`.</mandatory_pattern>
       <catastrophic_reason>Standalone test-only phases duplicate unit test verification already executed in implementation phases and generate redundant planning, research, execution, and audit overhead.</catastrophic_reason>
     </rule_block>
+    <rule_block id="preflight_metatest_and_exemption_mapping_mandate">
+      <banned_pattern>Scoping `[DELETE]` targets, adding new scripts to `scripts/`, or tightening AST guardrails in an Epic without mapping static guardrail exemption tuples and CLI metatests.</banned_pattern>
+      <mandatory_pattern>Whenever an Epic includes `[DELETE]` targets, adds new scripts to `scripts/`, or removes legacy symbols/drivers, pre-flight scouting MUST execute `grep_search` across `scripts/` and `backend_v2/tests/unit/scripts/` (specifically and exhaustively: `BOUNDARY_EXEMPTION_FILES`, `OPEN_JSON_EXEMPTION_FILES`, `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`, `RESIDUAL_FUTURE_PHASE_QGR028_FILES`, `EXEMPT_FILES`, `test_ast_guardrails.py`, and `test_scripts_cli_help.py`). Any discovered metatest files, exemption tuples, or CLI help callers MUST be explicitly added to the corresponding phase `[MODIFY]` target list.</mandatory_pattern>
+      <catastrophic_reason>Leaving deleted files or resolved technical-debt targets inside static guardrail exemption tuples causes metatest failures and masks regressions during execution.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="filesystem_and_seed_ground_truth_mandate">
+      <banned_pattern>Listing `[MODIFY]` or `[DELETE]` file paths without verifying their physical path on disk, dropping domain model fields without checking active Producers/Consumers and Cross-Domain DTO parity, or adding `NOT NULL` / `min_length=1` / foreign-key constraints without inspecting `backend_v2/seed/seed_data.json`.</banned_pattern>
+      <mandatory_pattern>Before finalizing `## 2. Architectural Impact &amp; Compliance Matrix` and `## 3. Phased Execution Plan`:
+        1. Verify every `[MODIFY]` and `[DELETE]` file path physically exists on disk (since `scripts/audit_markdown_boundaries.py` skips existence checks on `[DELETE]` tags for post-execution compatibility).
+        2. For every field, model, or symbol in `### Deprecations &amp; Sunset List`, run `grep_search` across `backend_v2/` and `client_app_v2/` to prove whether an active Producer or Consumer still depends on it (`feature_sovereignty_mandate`) and enforce `SUNSET_PHASE_PARITY_GATE` (every sunset item MUST map to an explicit `[MODIFY]` or `[DELETE]` target in `## 3. Phased Execution Plan`).
+        3. Whenever backend response DTOs or domain models serialized to the client are modified, verify 1:1 field parity against the corresponding Dart 3 Freezed models (`disallowUnrecognizedKeys: true`) in `client_app_v2/lib/`.
+        4. When modifying persistence schemas or adding `min_length=1`, `NOT NULL`, or foreign-key constraints, inspect the corresponding collection in `@[backend_v2/seed/seed_data.json]` with bounded `view_file` to guarantee 100% seed hydration compatibility.</mandatory_pattern>
+      <catastrophic_reason>Hallucinated `[DELETE]` paths, amputated active fields, unmapped Freezed DTO fields, and unverified seed constraints force massive rewrites during `/tier0-research-epic` or cause immediate runtime crashes in `/tier2-execute`.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_create_epic">
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; STATE VERIFICATION">
       <action>Gather all requirements and the explicit target Epic number (specifically: EPIC 110) from the user.</action>
       <constraint>Epic numbers MUST ALWAYS be manually assigned by the user; NEVER attempt to automatically guess or auto-increment Epic numbers.</constraint>
-      <action>Search affected backend/frontend directories using native MCP tools (`grep_search`, `view_file`) to verify current codebase state before drafting.</action>
-      <action name="TECHNICAL DEBT &amp; 1-HOP CALLER SWEEP">Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` on the identified target files/directories and schedule all discovered technical debt into `Phase 1: Pre-Implementation Cleanups`.</action>
+      <action>Search affected backend/frontend directories using native MCP tools (`grep_search`, `view_file`) to verify current codebase state and physical paths for all candidate `[MODIFY]` and `[DELETE]` files before drafting.</action>
+      <action name="TECHNICAL DEBT &amp; 1-HOP CALLER SWEEP">Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` directly via `run_command` on the identified target files/directories (plus `scripts/audit_flutter_theme_sovereignty.py` when touching Flutter UI) and schedule all discovered technical debt into `Phase 1: Pre-Implementation Cleanups`. If deep scouting across more than 3 files is needed, pass this pre-computed CLI output into a scoped `research` subagent (`Model="inherit"`).</action>
     </step>
 
     <step id="2" name="SYSTEM 2 DESIGN &amp; CHAIN-OF-THOUGHT">
@@ -130,15 +147,15 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
 
     <step id="5" name="EPIC DOCUMENT PERSISTENCE">
       <action>Save the Epic document to `docs/epic/EPIC_[num]_[descriptive_name].md` using `write_to_file` (resolve the absolute path dynamically based on the workspace).</action>
-      <constraint>Wrap all referenced file paths in `@-reference` syntax.</constraint>
+      <constraint>Wrap all referenced file paths in `@-reference` syntax and author symbolic `@[path/to/file.py#SymbolName]` anchors for Python classes and functions.</constraint>
       <action>IF updating an existing Epic, use `multi_replace_file_content` for surgical edits.</action>
-      <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic> --fix`. If it fails, you MUST correct the Epic and re-run. If it fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it with `--fix` to bind exact AST line spans, followed by a read-only verification pass: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic> --fix` and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run. If it fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`.</action>
       <action name="EPIC_COVERAGE_AUDIT">After creating or updating the Epic document, you MUST physically run the epic coverage audit script: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_epic_coverage.py --epic <path_to_epic>`. Verify that all required sections, headings, compliance matrices, and DoD elements are fully populated without gaps.</action>
     </step>
 
     <step id="6" name="USER GUIDANCE &amp; NEXT STEPS">
       <action>Present the newly created Epic document link (using `@-reference` syntax).</action>
-      <action>Instruct the user: "Step 1 (Drafting) complete. To perform System 2 Red-Teaming and falsification on this Epic before planning, open a fresh chat session and run `/tier0-research-epic` pointing to this Epic document. Alternatively, if the Epic is already fully approved, run `/tier1-planner`."</action>
+      <action>Instruct the user: "Step 1 (Drafting) complete. To perform System 2 Red-Teaming and falsification on this Epic before planning, open a fresh chat session and run `/tier0-research-epic` pointing to this `@-referenced` Epic document (use `/tier0-research-epic` for multi-phase Epics and `/tier0-research-plan` for single-phase implementation plans). Alternatively, if the Epic is already fully approved, run `/tier1-planner`."</action>
     </step>
   </execution_protocol>
 </system_prompt>

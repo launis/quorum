@@ -67,6 +67,25 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <mandatory_pattern>Execute the deterministic technical debt auditor via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop`. Itemize all discovered technical debt and mandate its resolution in Phase 1.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="subagent_context_offloading">
+      <mandatory_pattern>To preserve the primary System 2 architectural context window while maintaining 100% reasoning depth:
+        1. ALWAYS execute the deterministic pre-flight CLI tools (`scripts/audit_markdown_boundaries.py`, `scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop`, and `scripts/audit_flutter_theme_sovereignty.py` when touching Flutter) directly in the primary agent via `run_command` FIRST (since read-only `research` subagents lack shell execution tools).
+        2. When falsifying large multi-phase Epics touching more than 8 files, delegate bounded domain verification to parallel read-only `research` subagents via `invoke_subagent` (`TypeName="research"`, `Model="inherit"` to preserve full System 2 reasoning depth), passing the pre-computed CLI audit outputs and an explicit, non-overlapping list of target files and falsification questions so each subagent focuses 100% on deep contract and invariant verification rather than blind repository-wide `grep` loops.
+        3. When adding or correcting Python class/function references in the Epic, author symbolic `@[path/to/file.py#SymbolName]` anchors and auto-bind exact AST `#Lnn-mm` spans in Step 5 via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file &lt;path_to_epic&gt; --fix`.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="preflight_metatest_and_exemption_mapping_mandate">
+      <mandatory_pattern>Whenever an Epic includes `[DELETE]` targets, adds new scripts to `scripts/`, or tightens AST guardrails, verify that physical `[DELETE]` and `[MODIFY]` paths exist on disk and execute `grep_search` across `scripts/` and `backend_v2/tests/unit/scripts/` (specifically and exhaustively: `BOUNDARY_EXEMPTION_FILES`, `OPEN_JSON_EXEMPTION_FILES`, `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`, `RESIDUAL_FUTURE_PHASE_QGR028_FILES`, `EXEMPT_FILES`, `test_ast_guardrails.py`, and `test_scripts_cli_help.py`) so all affected exemption tuples and metatests are included in phase `[MODIFY]` targets.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="schema_blast_radius_and_factory_mandate">
+      <mandatory_pattern>Whenever an Epic phase modifies a Pydantic V2 model in `backend_v2/models/`, verify via `grep_search` for `ModelName(` across `backend_v2/`, `backend_v2/tests/fakes/`, and `scripts/` that all direct constructor call sites, `@[backend_v2/tests/factories/model_factories.py]`, and `@[backend_v2/tests/fakes/in_memory_repositories.py]` are included in `[MODIFY]` targets, that unit tests mandate `ModelFactory.build(...)` or `.model_validate()`, and that phase verification gates pass modified test and fake paths explicitly to `scripts/backend_audit_loop.py`.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="pairwise_rule_and_guardrail_orthogonality_mandate">
+      <mandatory_pattern>Whenever an Epic introduces or modifies any `&lt;rule_block&gt;` or static checker (`@[scripts/_ast_guardrails.py]`, `@[scripts/audit_dict_eradication.py]`, `@[scripts/audit_technical_debt.py]`, `@[scripts/audit_skills_architecture.py]`), verify pairwise one-by-one orthogonality against all other rules and static checkers via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_skills_architecture.py` and canonical syntax probes across `_ast_guardrails.py`, `audit_dict_eradication.py`, and `mypy --strict`.</mandatory_pattern>
+    </rule_block>
+
     <rule_block id="audit_persistence_mandate">
       <mandatory_pattern>After completing the System 2 analysis, persist the comprehensive audit findings by creating an audit report file in `docs/epic/` (`docs/epic/EPIC_[num]_audit_report.md`).</mandatory_pattern>
     </rule_block>
@@ -76,8 +95,8 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; STATE VERIFICATION">
       <action>Read and internalize the provided `[epic_document]`. Extract its canonical `<required_context_rules>` XML block.</action>
       <action>Physically run the boundary audit script on the Epic: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic>`.</action>
-      <action name="TECHNICAL DEBT &amp; 1-HOP CALLER SWEEP">Physically run the deterministic technical debt and 1-hop caller scanner on the Epic's target files: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop`.</action>
-      <action>Use bounded `grep_search` and `view_file` (`StartLine`/`EndLine`) to check the current state of referenced files.</action>
+      <action name="TECHNICAL DEBT &amp; 1-HOP CALLER SWEEP">Physically run the deterministic technical debt and 1-hop caller scanner on the Epic's target files: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` (plus `scripts/audit_flutter_theme_sovereignty.py` when touching Flutter UI).</action>
+      <action>Use bounded `grep_search` and `view_file` (`StartLine`/`EndLine`) to check the current state of referenced files, or pass the pre-computed CLI outputs to scoped `research` subagents (`Model="inherit"`) when falsifying across >8 files.</action>
     </step>
     
     <step id="2" name="SYSTEM 2 DEEP DECONSTRUCTION &amp; FIVE-AXIS ANALYSIS">
@@ -95,7 +114,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
 
     <step id="5" name="EPIC MUTATION &amp; AUDIT ARTIFACT PERSISTENCE (WRITE SAFETY)">
       <action>If defects were identified, surgically update `[epic_document]` using `multi_replace_file_content` and save the full audit report to `docs/epic/EPIC_[num]_audit_report.md`.</action>
-      <action name="SELF_HEALING_BOUNDARY_AUDIT">Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic>` and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_epic_coverage.py --epic <path_to_epic>`.</action>
+      <action name="SELF_HEALING_BOUNDARY_AUDIT">Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic> --fix`, `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic>`, `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_audit_report>`, and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_epic_coverage.py --epic <path_to_epic>`.</action>
     </step>
 
     <step id="6" name="USER GUIDANCE &amp; NEXT STEPS">

@@ -8,7 +8,12 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
 
 #### Headless CLI Autonomous Execution (Recommended)
 ```powershell
+# 1. Generate Phased Implementation Plans & Tracker (Tier 1):
 agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-planner @[docs/epic/EPIC_XXX.md] --full-auto. PERMISSION GRANTED for continuous full-auto planning across all phases. Proceed autonomously without intermediate confirmations."
+
+# 2. Pre-Flight Commit of Generated Plans & Tracker + Full Start-to-Finish Unattended Execution (Tier 0 -> Tier 2 -> Hardening -> Seed/Parity/Audits -> Tier 7 -> Tier 8):
+git add docs/epic/EPIC_XXX.md docs/epic/EPIC_XXX_audit_report.md docs/epic/EPIC_XXX_tracker.md docs/epic/tasks_EPIC_XXX/ ; git commit -m "docs(epic-XXX): add tier 1 phased implementation plans and tracker"
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_XXX_tracker.md --full-lifecycle --timeout 14400
 ```
 
 ```xml
@@ -59,7 +64,7 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-planne
     </rule_block>
 
     <rule_block id="tracker_auto_synchronization_mandate">
-      <mandatory_pattern>At the conclusion of EVERY Tier 1 run, automatically create or surgically update the Epic Tracker (`docs/epic/EPIC_XXX_tracker.md`) with streamlined `### Phase N` blocks (`Red-Teaming` and `Execution` with indented step checkboxes, omitting per-phase `Test Coverage Assertions` and per-phase `Audit: /tier8-audit-plan` lines), `# Session Handover Context` (`## Achieved`, `## Learned`, `## Remaining`, `## Resume Command`), mandatory unified `--gate all` commands (`$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_XXX_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`) on `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` headers (never `--no-agent`, and strictly excluding `[DELETE]` files), and parameterized `/tier7-describe-architecture` directives.</mandatory_pattern>
+      <mandatory_pattern>At the conclusion of EVERY Tier 1 run, automatically create or surgically update the Epic Tracker (`docs/epic/EPIC_XXX_tracker.md`) with streamlined `### Phase N` blocks (`Red-Teaming` and `Execution` with indented step checkboxes, omitting per-phase `Test Coverage Assertions` and per-phase `Audit: /tier8-audit-plan` lines), `# Session Handover Context` (`## Achieved`, `## Learned`, `## Remaining`, `## Resume Command`), mandatory unified `--gate all` commands (`$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_XXX_tracker.md]" --gate all --model gemini-4-argon-medium --timeout 3600 --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`) on `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` headers (never `--no-agent`, and strictly excluding `[DELETE]` files), parameterized `/tier7-describe-architecture` directives, and the unattended start-to-finish batch command (`$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_XXX_tracker.md --full-lifecycle --timeout 14400` preceded by committing the newly generated plans and tracker).</mandatory_pattern>
     </rule_block>
 
     <rule_block id="ban_verification_only_phases">
@@ -99,7 +104,7 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-planne
     <step id="4" name="SELF-HEALING FIDELITY AUDIT &amp; TRACKER SYNCHRONIZATION">
       <action>Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_planner_output.py --epic [path_to_epic.md] --plan-dir [task_directory_path]` and `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_plan>` on every generated plan file.</action>
       <action name="MANDATORY TRACKER AUTO-UPDATE">Create or surgically update `docs/epic/EPIC_XXX_tracker.md` following the canonical structure in `@[.agents/skills/tier1-tracker-generator/resources/epic_tracker_template.md]` (emitting streamlined `### Phase N` blocks with `Red-Teaming` and `Execution` + indented step checkboxes, omitting per-phase `Test Coverage Assertions` and per-phase `Audit: /tier8-audit-plan` lines, and preserving `Tier 2 Hardening (Backend &amp; Frontend)` with `--agent-cmd`) and verify it via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_tracker_output.py --tracker docs/epic/EPIC_XXX_tracker.md --plan-dir docs/epic/tasks_EPIC_XXX/`.</action>
-      <action>Output a clear summary pointing the user to the updated Tracker and provide the copy-pasteable Resume Command: `/tier0-research-plan @[docs/epic/tasks_EPIC_XXX/01_phase1_plan.md] @[docs/epic/EPIC_XXX_tracker.md]`.</action>
+      <action>Output a clear summary pointing the user to the updated Tracker and provide BOTH execution options: 1) Interactive Step-by-Step Resume Command (`/tier0-research-plan @[docs/epic/tasks_EPIC_XXX/01_phase1_plan.md] @[docs/epic/EPIC_XXX_tracker.md]`), and 2) Unattended Full Start-to-Finish Batch Pipeline Command (`git add ... ; git commit ...` pre-flight checkpoint followed by `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_XXX_tracker.md --full-lifecycle --timeout 14400`).</action>
     </step>
   </execution_protocol>
 </system_prompt>

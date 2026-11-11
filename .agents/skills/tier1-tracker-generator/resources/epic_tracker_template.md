@@ -23,9 +23,9 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_XXX_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_XXX_tracker.md]" --gate all --model gemini-4-argon-medium --timeout 3600 --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[backend_v2/path/to/target.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_XXX_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_XXX_tracker.md]" --gate all --model gemini-4-argon-medium --timeout 3600 --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
 
 ### Documentation & Knowledge Item Update
 
@@ -51,6 +51,7 @@
 - **Atomic CommitMandate**: Commit each verified logical step with explicit relative paths in English.
 - **Database Seeding**: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python backend_v2/seed/run_seed.py local`
 - **Workflow Loop**: `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute --full-auto -> Integration Checkpoint & Post-Implementation Gates -> parameterized /tier7-describe-architecture -> /tier8-audit-epic`. Always pass BOTH the plan and the tracker file in all commands.
+- **Unattended Full-Lifecycle Batch Pipeline**: Commit newly generated plans and tracker first, then run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_XXX_tracker.md --full-lifecycle --timeout 14400`.
 
 ## Requirements Traceability Matrix
 
@@ -71,6 +72,10 @@
 
 ## Resume Command
 ```powershell
+# Interactive Step-by-Step Next Action (Tier 0 Red-Teaming):
 /tier0-research-plan @[docs/epic/tasks_EPIC_XXX/01_phase1_plan.md] @[docs/epic/EPIC_XXX_tracker.md]
+
+# Unattended Start-to-Finish Full-Lifecycle Batch Pipeline (Tier 0 -> Tier 2 -> Hardening -> Seed/Parity/Audits -> Tier 7 -> Tier 8):
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_XXX_tracker.md --full-lifecycle --timeout 14400
 ```
 

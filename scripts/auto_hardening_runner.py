@@ -76,10 +76,10 @@ from scripts._script_base import ANSIColors, get_repo_root, setup_script_environ
 from scripts.backend_audit_loop import discover_companion_test_targets
 from scripts.flutter_audit_loop import resolve_flutter_unit_test_files
 
-GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
-TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
-FORMATTER_TIMEOUT_SECONDS: Final[int] = 60
-DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 1800
+GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 120
+TASKKILL_TIMEOUT_SECONDS: Final[int] = 30
+FORMATTER_TIMEOUT_SECONDS: Final[int] = 180
+DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 3600
 DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
 DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
 RETRY_ERROR_FEEDBACK_MAX_CHARS: Final[int] = 1500

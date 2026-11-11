@@ -11,13 +11,18 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from scripts.audit_skills_architecture import SkillsArchitectureAuditor
 from scripts.auto_hardening_runner import (
+    DEFAULT_AUDIT_TIMEOUT_SECONDS,
     DEFAULT_BACKEND_AGENT_TEMPLATE,
     DEFAULT_FRONTEND_AGENT_TEMPLATE,
     DEFAULT_HARDENING_CACHE_PATH,
+    FORMATTER_TIMEOUT_SECONDS,
+    GIT_SUBPROCESS_TIMEOUT_SECONDS,
     HISTORICAL_COMPLETED_TRACKERS,
+    TASKKILL_TIMEOUT_SECONDS,
     HardeningCacheManifestDTO,
     HardeningGate,
     HardeningIterationResultDTO,
@@ -2058,3 +2063,26 @@ def test_transient_dns_lookup_error_retries_and_rollback_preserves_cache(
     baseline = WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="oldsha111")
     execute_circuit_breaker_rollback(baseline, "backend_v2/b.py", repo_root=tmp_path)
     assert cache_path.read_text(encoding="utf-8") == preserved_payload
+
+
+def test_hardening_runner_generous_timeout_defaults_and_boundaries() -> None:
+    """Verify generous timeout defaults and ISTQB boundary validation on HardeningRunnerArgsDTO."""
+    assert DEFAULT_AUDIT_TIMEOUT_SECONDS == 3600
+    assert FORMATTER_TIMEOUT_SECONDS == 180
+    assert GIT_SUBPROCESS_TIMEOUT_SECONDS == 120
+    assert TASKKILL_TIMEOUT_SECONDS == 30
+
+    default_dto = HardeningRunnerArgsDTO(targets=["backend_v2/main.py"])
+    assert default_dto.timeout_seconds == 3600
+
+    # Boundary: min valid timeout_seconds = 1
+    min_dto = HardeningRunnerArgsDTO(targets=["backend_v2/main.py"], timeout_seconds=1)
+    assert min_dto.timeout_seconds == 1
+
+    # Negative: timeout_seconds = 0 (min - 1) raises ValidationError
+    with pytest.raises(ValidationError):
+        HardeningRunnerArgsDTO(targets=["backend_v2/main.py"], timeout_seconds=0)
+
+    # Negative: max_retries = -1 (min - 1) raises ValidationError
+    with pytest.raises(ValidationError):
+        HardeningRunnerArgsDTO(targets=["backend_v2/main.py"], max_retries=-1)

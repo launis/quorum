@@ -12,24 +12,36 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from scripts.auto_phase_runner import (
+    DEFAULT_AUDIT_TIMEOUT_SECONDS,
+    DEFAULT_SUBAGENT_TIMEOUT_SECONDS,
+    GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    TASKKILL_TIMEOUT_SECONDS,
     AutoPhaseRunnerArgsDTO,
     AutoPhaseRunSummaryDTO,
     PhaseItemDTO,
     QualityGateResultDTO,
     SubagentExecutionResultDTO,
     clean_path_arg,
+    commit_lifecycle_stage_checkpoint,
     commit_phase_checkpoint,
     execute_phase_subagent,
     filter_phases,
     main,
     mark_phase_completed_in_tracker,
+    mark_red_teaming_completed_in_tracker,
+    mark_section_completed_in_tracker,
     parse_tracker_phases,
+    parse_tracker_post_stage,
     resolve_agy_binary,
+    run_integration_checkpoint_gate,
     run_phase_pipeline,
     run_phase_quality_gate,
     run_post_hardening_gate,
+    run_tier7_documentation_gate,
+    run_tier8_final_audit_gate,
     unquote_git_path,
 )
 
@@ -1008,3 +1020,293 @@ def test_execute_subagent_no_retry_on_domain_failure(tmp_path: Path) -> None:
         assert "AssertionError" in res.output
         assert mock_popen.call_count == 1
         mock_sleep.assert_not_called()
+
+
+def test_phase_runner_generous_timeout_defaults_and_boundaries(tmp_path: Path) -> None:
+    """TC-APR-037: Verify generous timeout constants and strict boundary validation."""
+    assert DEFAULT_SUBAGENT_TIMEOUT_SECONDS == 14400
+    assert DEFAULT_AUDIT_TIMEOUT_SECONDS == 3600
+    assert GIT_SUBPROCESS_TIMEOUT_SECONDS == 120
+    assert TASKKILL_TIMEOUT_SECONDS == 30
+
+    default_args = AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md")
+    assert default_args.timeout == 14400
+    assert default_args.full_lifecycle is False
+    assert default_args.with_live_e2e is False
+
+    min_args = AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md", timeout=1, max_retries=1)
+    assert min_args.timeout == 1
+    assert min_args.max_retries == 1
+
+    with pytest.raises(ValidationError):
+        AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md", timeout=0)
+
+    with pytest.raises(ValidationError):
+        AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md", max_retries=0)
+
+
+def test_parse_and_mark_red_teaming_in_tracker(tmp_path: Path) -> None:
+    """TC-APR-038: Verify extraction and in-place completion marking of Tier 0 Red-Teaming lines."""
+    p1 = tmp_path / "01_phase1_plan.md"
+    p2 = tmp_path / "02_phase2_plan.md"
+    p1.write_text("# Plan 1", encoding="utf-8")
+    p2.write_text("# Plan 2", encoding="utf-8")
+
+    tracker = tmp_path / "EPIC_165_tracker.md"
+    tracker.write_text(
+        f"""# Epic Tracker
+### Phase 1: Technical Debt
+- **Plan:** @[{p1.name}]
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[{p1.name}] @[EPIC_165_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[{p1.name}] @[EPIC_165_tracker.md]`
+  - [ ] Step 1: Cleanup
+
+### Phase 2: Normalization
+- **Plan:** @[{p2.name}]
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[{p2.name}] @[EPIC_165_tracker.md]` (`abc1234`)
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[{p2.name}] @[EPIC_165_tracker.md]`
+  - [ ] Step 1: Normalize
+""",
+        encoding="utf-8",
+    )
+
+    phases = parse_tracker_phases(tracker, repo_root=tmp_path)
+    assert len(phases) == 2
+    assert phases[0].is_red_teamed is False
+    assert phases[0].red_team_command == f"/tier0-research-plan @[{p1.name}] @[EPIC_165_tracker.md]"
+    assert phases[1].is_red_teamed is True
+    assert phases[1].red_team_command == f"/tier0-research-plan @[{p2.name}] @[EPIC_165_tracker.md]"
+
+    mark_red_teaming_completed_in_tracker(tracker, 1, commit_hash="deadbeef")
+    updated = tracker.read_text(encoding="utf-8")
+    assert (
+        f"- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[{p1.name}] @[EPIC_165_tracker.md]` (`deadbeef`)"
+        in updated
+    )
+
+    # Edge cases: non-existent tracker or missing phase_num should no-op safely
+    mark_red_teaming_completed_in_tracker(tmp_path / "missing.md", 1)
+    mark_red_teaming_completed_in_tracker(tracker, 99)
+
+
+def test_parse_and_mark_post_lifecycle_sections(tmp_path: Path) -> None:
+    """TC-APR-039: Verify parsing and in-place marking of Integration, Tier 7, and Tier 8 sections."""
+    tracker = tmp_path / "EPIC_165_tracker.md"
+    tracker.write_text(
+        """# Epic Tracker
+### Integration Checkpoint: Full-Stack Validation (Seed Vault & Live E2E)
+- [ ] **[NOK] Seed Vault Dry-Run:** `uv run python backend_v2/seed/run_seed.py local --dry-run`
+- [ ] **[NOK] Zero-ORM Strictness Gate:** `uv run python scripts/audit_zero_orm_strictness.py`
+
+### Documentation & Knowledge Item Update (Mandatory Final Gate)
+- [ ] **[NOK] Architecture & KI Sync:** Execute `/tier7-describe-architecture @[docs/epic/EPIC_165_tracker.md] @[docs/epic/EPIC_165.md]`
+
+### Final Epic Audit (Mandatory Verification Gate)
+- [ ] **[NOK] Reverse Epic Verification:** Execute `/tier8-audit-epic @[docs/epic/EPIC_165.md] @[docs/epic/EPIC_165_tracker.md]`
+""",
+        encoding="utf-8",
+    )
+
+    content = tracker.read_text(encoding="utf-8")
+    t7 = parse_tracker_post_stage(
+        content,
+        r"^###\s+Documentation\s*&\s*Knowledge\s+Item\s+Update",
+        "/tier7-describe-architecture",
+    )
+    assert t7.is_completed is False
+    assert t7.command == "/tier7-describe-architecture @[docs/epic/EPIC_165_tracker.md] @[docs/epic/EPIC_165.md]"
+
+    t8 = parse_tracker_post_stage(
+        content,
+        r"^###\s+Final\s+Epic\s+Audit",
+        "/tier8-audit-epic",
+    )
+    assert t8.is_completed is False
+    assert t8.command == "/tier8-audit-epic @[docs/epic/EPIC_165.md] @[docs/epic/EPIC_165_tracker.md]"
+
+    missing_sec = parse_tracker_post_stage(content, r"^###\s+NonExistent", "/tier9")
+    assert missing_sec.is_completed is True
+    assert missing_sec.command is None
+
+    mark_section_completed_in_tracker(tracker, r"^###\s+Integration\s+Checkpoint")
+    mark_section_completed_in_tracker(tracker, r"^###\s+Documentation\s*&\s*Knowledge\s+Item\s+Update")
+    mark_section_completed_in_tracker(tracker, r"^###\s+Final\s+Epic\s+Audit")
+
+    updated = tracker.read_text(encoding="utf-8")
+    assert "- [x] **[OK] Seed Vault Dry-Run:**" in updated
+    assert "- [x] **[OK] Architecture & KI Sync:**" in updated
+    assert "- [x] **[OK] Reverse Epic Verification:**" in updated
+
+    t7_after = parse_tracker_post_stage(
+        updated,
+        r"^###\s+Documentation\s*&\s*Knowledge\s+Item\s+Update",
+        "/tier7-describe-architecture",
+    )
+    assert t7_after.is_completed is True
+
+
+def test_commit_lifecycle_stage_checkpoint(tmp_path: Path) -> None:
+    """TC-APR-040: Verify commit_lifecycle_stage_checkpoint stages valid files and returns commit hash."""
+    tracker = tmp_path / "tracker.md"
+    tracker.write_text("# Tracker", encoding="utf-8")
+    doc_file = tmp_path / "arch.md"
+    doc_file.write_text("# Arch", encoding="utf-8")
+
+    status_out = MagicMock(returncode=0, stdout=" M arch.md\n M .gemini/scratch.txt\n")
+    add_out = MagicMock(returncode=0, stdout="")
+    commit_out = MagicMock(returncode=0, stdout="")
+    rev_out = MagicMock(returncode=0, stdout="cafe123\n")
+
+    with patch(
+        "scripts.auto_phase_runner.subprocess.run",
+        side_effect=[status_out, add_out, commit_out, rev_out],
+    ) as mock_run:
+        res_hash = commit_lifecycle_stage_checkpoint("docs(arch): sync", tracker, tmp_path)
+        assert res_hash == "cafe123"
+        assert mock_run.call_count == 4
+
+    # Clean working tree returns None
+    with patch(
+        "scripts.auto_phase_runner.subprocess.run",
+        return_value=MagicMock(returncode=0, stdout=""),
+    ):
+        assert commit_lifecycle_stage_checkpoint("docs(arch): sync", tracker, tmp_path) is None
+
+
+def test_run_integration_checkpoint_gate_and_post_gates(tmp_path: Path) -> None:
+    """TC-APR-041: Verify Integration Checkpoint, Tier 7, and Tier 8 gate execution and failure handling."""
+    tracker = tmp_path / "EPIC_165_tracker.md"
+    tracker.write_text(
+        """# Epic Tracker
+### Integration Checkpoint: Full-Stack Validation
+- [ ] **[NOK] Seed Vault Dry-Run:** `uv run python backend_v2/seed/run_seed.py local --dry-run`
+
+### Documentation & Knowledge Item Update (Mandatory Final Gate)
+- [ ] **[NOK] Architecture & KI Sync:** Execute `/tier7-describe-architecture @[EPIC_165_tracker.md]`
+
+### Final Plan Audit (Mandatory Verification Gate)
+- [ ] **[NOK] Plan Audit:** Execute `/tier8-audit-plan @[plan.md] @[EPIC_165_tracker.md]`
+""",
+        encoding="utf-8",
+    )
+    args = AutoPhaseRunnerArgsDTO(
+        tracker=tracker,
+        full_lifecycle=True,
+        with_live_e2e=True,
+        skip_commit=True,
+    )
+
+    with patch(
+        "scripts.auto_phase_runner.subprocess.run",
+        return_value=MagicMock(returncode=0),
+    ) as mock_run:
+        assert run_integration_checkpoint_gate(tracker, args, tmp_path) == 0
+        # 8 standard integration gates + 1 live E2E gate = 9
+        assert mock_run.call_count == 9
+
+    # Failure in one integration gate halts immediately and returns non-zero
+    with patch(
+        "scripts.auto_phase_runner.subprocess.run",
+        return_value=MagicMock(returncode=2),
+    ):
+        assert run_integration_checkpoint_gate(tracker, args, tmp_path) == 2
+
+    # Tier 7 & Tier 8 execution via execute_lifecycle_prompt_subagent
+    ok_subagent = SubagentExecutionResultDTO(exit_code=0, output="Done", duration_seconds=5.0, is_timeout=False)
+    with patch(
+        "scripts.auto_phase_runner.execute_lifecycle_prompt_subagent",
+        return_value=ok_subagent,
+    ) as mock_sub:
+        assert run_tier7_documentation_gate(tracker, args, tmp_path) == 0
+        assert run_tier8_final_audit_gate(tracker, args, tmp_path) == 0
+        assert mock_sub.call_count == 2
+
+    # Second call should see sections marked [x] and return 0 without invoking subagent
+    with patch(
+        "scripts.auto_phase_runner.execute_lifecycle_prompt_subagent",
+    ) as mock_sub_skip:
+        assert run_tier7_documentation_gate(tracker, args, tmp_path) == 0
+        assert run_tier8_final_audit_gate(tracker, args, tmp_path) == 0
+        mock_sub_skip.assert_not_called()
+
+
+def test_run_phase_pipeline_full_lifecycle_and_dry_run(tmp_path: Path) -> None:
+    """TC-APR-042: Verify full-lifecycle pipeline orchestrates Tier 0, Tier 2, Hardening, Integration, Tier 7, and Tier 8."""
+    plan1 = tmp_path / "01_phase1_plan.md"
+    plan1.write_text("# Plan 1", encoding="utf-8")
+    tracker = tmp_path / "EPIC_165_tracker.md"
+    tracker.write_text(
+        f"""# Epic Tracker
+### Phase 1: Foundation
+- **Plan:** @[{plan1.name}]
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[{plan1.name}] @[EPIC_165_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[{plan1.name}] @[EPIC_165_tracker.md]`
+  - [ ] Step 1: Implement
+
+### Integration Checkpoint: Full-Stack Validation
+- [ ] **[NOK] Seed Vault Dry-Run:** `uv run python backend_v2/seed/run_seed.py local --dry-run`
+
+### Documentation & Knowledge Item Update (Mandatory Final Gate)
+- [ ] **[NOK] Architecture & KI Sync:** Execute `/tier7-describe-architecture @[EPIC_165_tracker.md]`
+
+### Final Epic Audit (Mandatory Verification Gate)
+- [ ] **[NOK] Reverse Epic Verification:** Execute `/tier8-audit-epic @[EPIC_165.md] @[EPIC_165_tracker.md]`
+""",
+        encoding="utf-8",
+    )
+
+    # 1. Dry-run with full_lifecycle=True
+    dry_args = AutoPhaseRunnerArgsDTO(tracker=tracker, full_lifecycle=True, dry_run=True)
+    dry_summary = run_phase_pipeline(dry_args, repo_root=tmp_path)
+    assert dry_summary.total_phases == 1
+    assert dry_summary.executed_phases == 0
+    assert dry_summary.failed_phases == 0
+
+    # 2. Full execution with full_lifecycle=True
+    live_args = AutoPhaseRunnerArgsDTO(tracker=tracker, full_lifecycle=True, skip_commit=True)
+    ok_sub = SubagentExecutionResultDTO(exit_code=0, output="OK", duration_seconds=2.0, is_timeout=False)
+    ok_qg = QualityGateResultDTO(success=True, output="All Passed", exit_code=0)
+
+    with (
+        patch("scripts.auto_phase_runner.acquire_windows_wake_lock", return_value=1),
+        patch("scripts.auto_phase_runner.release_windows_wake_lock"),
+        patch("scripts.auto_phase_runner.execute_lifecycle_prompt_subagent", return_value=ok_sub),
+        patch("scripts.auto_phase_runner.execute_phase_subagent", return_value=ok_sub),
+        patch("scripts.auto_phase_runner.run_phase_quality_gate", return_value=ok_qg),
+        patch("scripts.auto_phase_runner.run_post_hardening_gate", return_value=0) as mock_hardening,
+        patch("scripts.auto_phase_runner.run_integration_checkpoint_gate", return_value=0) as mock_ic,
+        patch("scripts.auto_phase_runner.run_tier7_documentation_gate", return_value=0) as mock_t7,
+        patch("scripts.auto_phase_runner.run_tier8_final_audit_gate", return_value=0) as mock_t8,
+    ):
+        summary = run_phase_pipeline(live_args, repo_root=tmp_path)
+        assert summary.succeeded_phases == 1
+        assert summary.failed_phases == 0
+        mock_hardening.assert_called_once()
+        mock_ic.assert_called_once()
+        mock_t7.assert_called_once()
+        mock_t8.assert_called_once()
+
+    # 3. Negative path: Tier 0 Red-Teaming failure halts pipeline before phase execution
+    tracker2 = tmp_path / "EPIC_165_tracker_fail.md"
+    tracker2.write_text(
+        f"""# Epic Tracker
+### Phase 1: Foundation
+- **Plan:** @[{plan1.name}]
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[{plan1.name}] @[EPIC_165_tracker_fail.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[{plan1.name}] @[EPIC_165_tracker_fail.md]`
+  - [ ] Step 1: Implement
+""",
+        encoding="utf-8",
+    )
+    fail_sub = SubagentExecutionResultDTO(exit_code=1, output="Red-team failed", duration_seconds=1.5, is_timeout=False)
+    fail_args = AutoPhaseRunnerArgsDTO(tracker=tracker2, full_lifecycle=True, skip_commit=True)
+    with (
+        patch("scripts.auto_phase_runner.acquire_windows_wake_lock", return_value=1),
+        patch("scripts.auto_phase_runner.release_windows_wake_lock"),
+        patch("scripts.auto_phase_runner.execute_lifecycle_prompt_subagent", return_value=fail_sub),
+        patch("scripts.auto_phase_runner.execute_phase_subagent") as mock_phase_exec,
+    ):
+        fail_summary = run_phase_pipeline(fail_args, repo_root=tmp_path)
+        assert fail_summary.failed_phases == 1
+        assert fail_summary.succeeded_phases == 0
+        mock_phase_exec.assert_not_called()
