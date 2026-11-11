@@ -43,7 +43,7 @@
   - [x] @[backend_v2/models/domain/prompt_blocks.py]
   - [x] @[backend_v2/models/domain/task_brief.py]
   - [x] @[backend_v2/models/dtos/studio.py]
-  - [ ] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/seed/seed_registry.py]
   - [ ] @[backend_v2/services/execution/assignment_service.py]
   - [ ] @[backend_v2/services/studio/__init__.py]
