@@ -27,6 +27,7 @@ from backend_v2.tests.factories.model_factories import (
     ReportViewFactory,
     StepPanelDTOFactory,
     SystemRulePromptBlockFactory,
+    TaskBriefFactory,
     TenantSecretDTOFactory,
     WorkflowFactory,
 )
@@ -47,6 +48,7 @@ type RegisteredFactoryType = (
     type[I18nTextFactory]
     | type[WorkflowFactory]
     | type[SystemRulePromptBlockFactory]
+    | type[TaskBriefFactory]
     | type[OutputProfileFactory]
     | type[MatrixPromptBlockFactory]
     | type[ExecutionStepFactory]
@@ -64,6 +66,7 @@ ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
     I18nTextFactory,
     WorkflowFactory,
     SystemRulePromptBlockFactory,
+    TaskBriefFactory,
     OutputProfileFactory,
     MatrixPromptBlockFactory,
     ExecutionStepFactory,

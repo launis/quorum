@@ -550,7 +550,7 @@ class ExecutionAssignment(V2CoreBase):
         invited_role: Permission role granted when auto-onboarding a new user.
         workflow_id: Target Workflow ID (wf_<hex32>).
         output_profile_id: Optional Output Profile ID (prf_<hex32>).
-        task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).
+        task_brief_id: Optional TaskBrief ID (tbr_<hex32>).
         target_locale: Target execution locale.
         locked_inputs: Immutable manager-locked workflow inputs.
         assignee_input_keys: ExpectedInput keys unlocked for assignee completion.
@@ -598,7 +598,7 @@ class ExecutionAssignment(V2CoreBase):
     ] = None
     task_brief_id: Annotated[
         PrefixedUUID7 | None,
-        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
+        Field(default=None, description="Optional TaskBrief ID (tbr_<hex32>)"),
     ] = None
     target_locale: Annotated[
         LaxSystemLocale,

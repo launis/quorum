@@ -131,14 +131,13 @@ class MatrixPromptBlock(PromptBlockBase):
 
 
 class SystemRulePromptBlock(PromptBlockBase):
-    """System rule, runtime variables, or task definition prompt block."""
+    """System rule or runtime variables prompt block."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     category_id: Literal[
         PromptBlockCategory.SYSTEM_RULE,
         PromptBlockCategory.RUNTIME_VARIABLES,
-        PromptBlockCategory.TASK_DEFINITION,
     ] = PromptBlockCategory.SYSTEM_RULE
     type: Literal[
         BlockDataType.INSTRUCTION,
@@ -196,7 +195,6 @@ PROMPT_BLOCK_REGISTRY: dict[PromptBlockCategory, type[PromptBlockBase]] = {
     PromptBlockCategory.MATRIX: MatrixPromptBlock,
     PromptBlockCategory.SYSTEM_RULE: SystemRulePromptBlock,
     PromptBlockCategory.RUNTIME_VARIABLES: SystemRulePromptBlock,
-    PromptBlockCategory.TASK_DEFINITION: SystemRulePromptBlock,
     PromptBlockCategory.EXECUTION_PERSONA: PersonaPromptBlock,
     PromptBlockCategory.AGENT_ROLE: PersonaPromptBlock,
     PromptBlockCategory.PROTOCOL: ProtocolPromptBlock,

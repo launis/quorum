@@ -252,6 +252,7 @@ class EntityPrefix(StrEnum):
     OUTPUT_PROFILE = "prf"
     SYNTHESIS_GROUP = "grp"
     PROMPT_BLOCK = "blk"
+    TASK_BRIEF = "tbr"
     SYSTEM_CONFIG = "sys"
     EXECUTION = "exe"
     USER = "usr"
@@ -370,7 +371,6 @@ class PromptBlockCategory(StrEnum):
 
     MATRIX = "matrix"
     AGENT_ROLE = "agent_role"
-    TASK_DEFINITION = "task_definition"
     SYSTEM_RULE = "system_rule"
     PROTOCOL = "protocol"
     RUNTIME_VARIABLES = "runtime_variables"

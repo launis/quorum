@@ -408,12 +408,12 @@ def test_execution_assignment_instantiation_and_iso_coercion() -> None:
         '"assigned_email": "candidate@example.com", '
         '"workflow_id": "wor_0195f3a0000070018234567890abcdef", '
         '"token_hash": "' + ("a" * 64) + '", '
-        '"task_brief_id": "blk_0195f3a0000070018234567890abcdef", '
+        '"task_brief_id": "tbr_0195f3a0000070018234567890abcdef", '
         '"hard_deadline_at": "2026-12-31T23:59:59Z", '
         '"created_by": "usr_0195f3a0000070018234567890abcdef"}'
     )
     assert assignment.id.startswith("tsk_")
-    assert assignment.task_brief_id == "blk_0195f3a0000070018234567890abcdef"
+    assert assignment.task_brief_id == "tbr_0195f3a0000070018234567890abcdef"
     assert assignment.hard_deadline_at == datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC)
     assert assignment.activated_at is None
 
@@ -426,7 +426,7 @@ def test_execution_assignment_negative_boundaries() -> None:
                 "organization_id": "org_0195f3a0000070018234567890abcdef",
                 "assigned_email": "candidate@example.com",
                 "workflow_id": "wor_0195f3a0000070018234567890abcdef",
-                "task_brief_id": "blk_not_a_uuidv7",
+                "task_brief_id": "tbr_not_a_uuidv7",
                 "token_hash": "a" * 64,
                 "hard_deadline_at": datetime.now(UTC),
                 "created_by": "usr_0195f3a0000070018234567890abcdef",

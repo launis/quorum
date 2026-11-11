@@ -40,6 +40,7 @@ from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.scoring import StepPanelDTO
 from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.causal_discovery import (
     CausalEdgeDTO,
@@ -89,6 +90,7 @@ __all__ = [
     "ReportViewFactory",
     "StepPanelDTOFactory",
     "SystemRulePromptBlockFactory",
+    "TaskBriefFactory",
     "TenantSecretDTOFactory",
     "WorkflowFactory",
 ]
@@ -280,6 +282,61 @@ class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
         return I18nText(translations={"en": "Test Block Description", "fi": "Testilohkon Kuvaus"})
 
 
+class TaskBriefFactory(ModelFactory[TaskBrief]):
+    """Polyfactory model factory for TaskBrief domain models."""
+
+    __model__ = TaskBrief
+    __set_as_default_factory_for_type__ = True
+
+    instruction_text: str = "Complete the task brief deliverables according to the instructions."
+    source_url: str | None = "https://docs.example.com/task-brief.pdf"
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid Opaque Stripe ID with 'tbr_' prefix.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'tbr_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.TASK_BRIEF)
+
+    @classmethod
+    def slug(cls) -> str:
+        """Generate a unique task brief slug.
+
+        Returns:
+            Unique task brief slug string.
+        """
+        return f"task_brief_{generate_uuid7().hex}"
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a valid organization Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'org_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
+    def label(cls) -> I18nText:
+        """Generate a localized task brief label.
+
+        Returns:
+            I18nText instance containing localized task brief labels.
+        """
+        return I18nText(translations={"en": "Test Task Brief", "fi": "Testitehtävänanto"})
+
+    @classmethod
+    def description(cls) -> I18nText:
+        """Generate a localized task brief description.
+
+        Returns:
+            I18nText instance containing localized task brief descriptions.
+        """
+        return I18nText(translations={"en": "Test Task Brief Description", "fi": "Testitehtävänannon kuvaus"})
+
+
 class OutputProfileFactory(ModelFactory[OutputProfile]):
     """Polyfactory model factory for OutputProfile presentation configuration models."""
 
@@ -322,6 +379,15 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
     @classmethod
     def layout(cls) -> list[AnySduiBlock]:
         """Generate a deterministic empty SDUI layout block list.
+
+        Returns:
+            Empty list of AnySduiBlock models.
+        """
+        return []
+
+    @classmethod
+    def content_blocks(cls) -> list[AnySduiBlock]:
+        """Generate a deterministic empty SDUI content blocks list.
 
         Returns:
             Empty list of AnySduiBlock models.
@@ -421,6 +487,8 @@ class MatrixPromptBlockFactory(ModelFactory[MatrixPromptBlock]):
     is_lightweight_protocol: bool = False
     ai_description: str | None = "Evaluate target dimension against BARS criteria."
     columns: list[I18nText] | None = None
+    computed_min: int | None = None
+    computed_max: int | None = None
 
     @classmethod
     def organization_id(cls) -> str:

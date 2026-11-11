@@ -146,6 +146,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.domain.xai import (
     ReportResult,
@@ -316,6 +317,7 @@ __all__ = [
     "SystemConfigMCPGateways",
     "SystemConfigModelRegistry",
     "TDAAssertion",
+    "TaskBrief",
     "TheoryGrounding",
     "Workflow",
 ]

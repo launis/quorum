@@ -133,8 +133,6 @@ def test_ast_non_matrix_prompt_blocks_have_no_ai_description() -> None:
         "PersonaPromptBlock",
         "SystemRulePromptBlock",
         "ProtocolPromptBlock",
-        "TaskDefinitionPromptBlock",
-        "RuntimeVariablesPromptBlock",
     ]
     for cls_name in non_matrix_classes:
         assert not scan_class_for_field(tree, cls_name, "ai_description"), f"{cls_name} must NOT define ai_description"

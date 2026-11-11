@@ -39,7 +39,7 @@ from backend_v2.models.enums import (
 VALID_ORG_ID = "org_0195f3a0000070008000000000000001"
 VALID_USER_ID = "usr_0195f3a0000070008000000000000002"
 VALID_WF_ID = "wf_0195f3a0000070008000000000000003"
-VALID_BLK_ID = "blk_0195f3a0000070008000000000000004"
+VALID_TBR_ID = "tbr_0195f3a0000070008000000000000004"
 VALID_TSK_ID = "tsk_0195f3a0000070008000000000000005"
 VALID_INV_ID = "inv_0195f3a0000070008000000000000006"
 VALID_SEC_ID = "sec_0195f3a0000070008000000000000007"
@@ -387,23 +387,23 @@ def test_invitation_and_tenant_secret_datetime_parsing() -> None:
 def test_task_assignment_brief_and_ingress_dtos_positive_and_negative() -> None:
     """Verify TaskAssignmentBriefDTO, ExecutionAssignmentDraftDTO, and ExecutionAssignmentSubmitDTO schemas."""
     brief = TaskAssignmentBriefDTO(
-        id=VALID_BLK_ID,
+        id=VALID_TBR_ID,
         label=I18nText(translations={"en": "Strategic Brief", "fi": "Strateginen tehtävänanto"}),
         instruction_text="Evaluate the target acquisition proposal.",
         source_url="https://docs.example.com/brief.pdf",
     )
-    assert brief.id == VALID_BLK_ID
+    assert brief.id == VALID_TBR_ID
     assert brief.source_url == "https://docs.example.com/brief.pdf"
 
     create_dto = ExecutionAssignmentCreateDTO(
         assigned_email="candidate@example.com",
         workflow_id=VALID_WF_ID,
-        task_brief_id=VALID_BLK_ID,
+        task_brief_id=VALID_TBR_ID,
         locked_inputs=WorkflowInputs(dynamic_inputs={}),
         assignee_input_keys=["essay"],
         hard_deadline_at=datetime(2027, 1, 1, tzinfo=UTC),
     )
-    assert create_dto.task_brief_id == VALID_BLK_ID
+    assert create_dto.task_brief_id == VALID_TBR_ID
 
     preview_dto = ExecutionAssignmentPreviewDTO(
         id=VALID_TSK_ID,
@@ -411,7 +411,7 @@ def test_task_assignment_brief_and_ingress_dtos_positive_and_negative() -> None:
         organization_name="Acme Corp",
         assigned_email_masked="c***@example.com",
         workflow_id=VALID_WF_ID,
-        task_brief_id=VALID_BLK_ID,
+        task_brief_id=VALID_TBR_ID,
         task_brief=brief,
         target_locale=SystemLocale.FI,
         status=AssignmentStatus.PENDING,
@@ -432,7 +432,7 @@ def test_task_assignment_brief_and_ingress_dtos_positive_and_negative() -> None:
     # Negative 1: Invalid UUIDv7 on TaskAssignmentBriefDTO.id
     with pytest.raises(ValidationError):
         TaskAssignmentBriefDTO(
-            id="blk_invalid",
+            id="tbr_invalid",
             label=I18nText(translations={"en": "Bad"}),
         )
 
@@ -440,7 +440,7 @@ def test_task_assignment_brief_and_ingress_dtos_positive_and_negative() -> None:
     with pytest.raises(ValidationError):
         TaskAssignmentBriefDTO.model_validate(
             {
-                "id": VALID_BLK_ID,
+                "id": VALID_TBR_ID,
                 "label": {"en": "Brief"},
                 "unexpected_key": "forbidden",
             }

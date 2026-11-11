@@ -12,6 +12,7 @@ from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.matrix import MatrixRow, MatrixScale, TheoryGrounding
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.dtos.mcp import MCPToolParamOverrides
@@ -34,6 +35,8 @@ __all__ = [
     "WorkflowResponseDTO",
     "StepResponseDTO",
     "PromptBlockResponseDTO",
+    "TaskBriefResponseDTO",
+    "TaskBriefDeleteResponse",
     "MCPGatewayDeleteResponse",
     "ModelRegistryDeleteResponse",
     "PromptBlockSimulationResponse",
@@ -328,6 +331,34 @@ class StepResponseDTO(BaseResponseDTO, Step):
 
 # PromptBlockResponseDTO alias to AnyPromptBlock discriminated union
 PromptBlockResponseDTO = PromptBlock
+
+
+class TaskBriefResponseDTO(BaseResponseDTO, TaskBrief):
+    """API Response boundary for TaskBrief ensuring Data Sovereignty.
+
+    Attributes:
+        organization_id: Explicitly exposed for Admin Studio UI routing.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    organization_id: Annotated[
+        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+    ] = None
+
+
+class TaskBriefDeleteResponse(BaseResponseDTO):
+    """API Response schema for deleting a TaskBrief.
+
+    Attributes:
+        status: Action outcome status message.
+        deleted_id: Opaque ID of the deleted task brief.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    status: Annotated[str, Field(description="Action outcome status message.")]
+    deleted_id: Annotated[str, Field(description="Opaque ID of the deleted task brief.")]
 
 
 class MCPGatewayDeleteResponse(BaseResponseDTO):

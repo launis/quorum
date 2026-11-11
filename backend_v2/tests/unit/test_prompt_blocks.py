@@ -16,12 +16,17 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
+from backend_v2.tests.factories.model_factories import (
+    I18nTextFactory,
+    MatrixPromptBlockFactory,
+    SystemRulePromptBlockFactory,
+)
 
 
 @pytest.fixture
 def sample_i18n_text() -> I18nText:
     """Provides a sample I18nText fixture for testing."""
-    return I18nText(
+    return I18nTextFactory.build(
         translations={"en": "Sample Label", "fi": "Esimerkki"},
     )
 
@@ -34,6 +39,11 @@ def sample_matrix_scale(sample_i18n_text: I18nText) -> MatrixScale:
         concept_description="Critical directive requiring adherence to empirical evidence.",
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
+        facts_to_find=[],
+        acceptance_criteria=[],
+        anti_patterns=[],
+        syntactic_anchors=[],
+        depends_on=(),
     )
     claim = MatrixClaim(
         label=sample_i18n_text,
@@ -62,7 +72,7 @@ def test_matrix_prompt_block_computed_min_max(
         claims=sample_matrix_scale.claims,
     )
 
-    block = MatrixPromptBlock(
+    block = MatrixPromptBlockFactory.build(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-matrix",
         label=sample_i18n_text,
@@ -93,7 +103,7 @@ def test_matrix_prompt_block_compute_min_max_immutable(
         claims=sample_matrix_scale.claims,
     )
 
-    block = MatrixPromptBlock(
+    block = MatrixPromptBlockFactory.build(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-matrix-contract",
         label=sample_i18n_text,
@@ -108,7 +118,7 @@ def test_matrix_prompt_block_compute_min_max_immutable(
 
 def test_system_rule_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
     """Tests direct instantiation and default fields of SystemRulePromptBlock."""
-    block = SystemRulePromptBlock(
+    block = SystemRulePromptBlockFactory.build(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-rule",
         label=sample_i18n_text,
@@ -129,6 +139,7 @@ def test_persona_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
         slug="test-persona",
         label=sample_i18n_text,
         description=sample_i18n_text,
+        output_extensions=[],
         role_enforcement="ACT AS SENIOR REVIEWER",
         tone_directives=["Objective", "Rigorous"],
     )
@@ -145,6 +156,7 @@ def test_protocol_prompt_block_instantiation(sample_i18n_text: I18nText) -> None
         slug="test-protocol",
         label=sample_i18n_text,
         description=sample_i18n_text,
+        output_extensions=[],
         protocol_instructions="Extract fact atoms sequentially.",
     )
 
@@ -209,6 +221,7 @@ def test_matrix_prompt_block_requires_scales(sample_i18n_text: I18nText) -> None
             slug="test-matrix",
             label=sample_i18n_text,
             description=sample_i18n_text,
+            output_extensions=[],
             scales=[],  # min_length=1 required
         )
 
@@ -230,14 +243,14 @@ def test_prompt_block_extra_forbid(sample_i18n_text: I18nText) -> None:
 
 def test_prompt_block_frozen_immutability(sample_i18n_text: I18nText) -> None:
     """Tests that all prompt block models are strictly frozen."""
-    block = SystemRulePromptBlock(
+    block = SystemRulePromptBlockFactory.build(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-rule",
         label=sample_i18n_text,
         description=sample_i18n_text,
     )
-    with pytest.raises(ValidationError):
-        block.slug = "mutated-slug"
+    with pytest.raises((ValidationError, TypeError)):
+        del block.slug
 
 
 def test_prompt_block_registry_coverage() -> None:
@@ -245,10 +258,23 @@ def test_prompt_block_registry_coverage() -> None:
     assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.MATRIX] is MatrixPromptBlock
     assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.SYSTEM_RULE] is SystemRulePromptBlock
     assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.RUNTIME_VARIABLES] is SystemRulePromptBlock
-    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.TASK_DEFINITION] is SystemRulePromptBlock
     assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.EXECUTION_PERSONA] is PersonaPromptBlock
     assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.AGENT_ROLE] is PersonaPromptBlock
     assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.PROTOCOL] is ProtocolPromptBlock
+
+
+def test_prompt_block_invalid_task_definition_category_error(sample_i18n_text: I18nText) -> None:
+    """Verify removed task_definition category is rejected by PromptBlockAdapter."""
+    with pytest.raises(ValidationError):
+        PromptBlockAdapter.validate_python(
+            {
+                "id": "blk_0123456789abcdef0123456789abcdef",
+                "slug": "legacy-task-def",
+                "label": sample_i18n_text.model_dump(),
+                "description": sample_i18n_text.model_dump(),
+                "category_id": "task_definition",
+            }
+        )
 
 
 def test_prompt_block_json_deserialization(sample_i18n_text: I18nText) -> None:

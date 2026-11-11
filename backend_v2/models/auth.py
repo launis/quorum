@@ -1015,10 +1015,10 @@ class InvitationBatchResponseDTO(BaseResponseDTO):
 
 
 class TaskAssignmentBriefDTO(BaseResponseDTO):
-    """Hydrated Task Definition PromptBlock summary embedded in task assignment responses.
+    """Hydrated TaskBrief summary embedded in task assignment responses.
 
     Attributes:
-        id: Canonical PromptBlock Opaque Stripe ID (blk_<hex32>).
+        id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).
         label: Localized title of the task brief.
         instruction_text: Optional plain-text or markdown task instructions.
         source_url: Optional reference document or external resource URL.
@@ -1026,7 +1026,7 @@ class TaskAssignmentBriefDTO(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    id: Annotated[PrefixedUUID7, Field(description="Canonical PromptBlock ID (blk_<hex32>)")]
+    id: Annotated[PrefixedUUID7, Field(description="Canonical TaskBrief ID (tbr_<hex32>)")]
     label: Annotated[I18nText, Field(description="Localized title of the task brief")]
     instruction_text: Annotated[
         str | None,
@@ -1034,7 +1034,7 @@ class TaskAssignmentBriefDTO(BaseResponseDTO):
     ] = None
     source_url: Annotated[
         str | None,
-        Field(default=None, description="Optional reference URL from theory_grounding.source_url"),
+        Field(default=None, description="Optional reference document or external resource URL"),
     ] = None
 
 
@@ -1046,7 +1046,7 @@ class ExecutionAssignmentCreateDTO(BaseDTO):
         invited_role: Role granted upon auto-onboarding.
         workflow_id: Target Workflow ID (wf_<hex32>).
         output_profile_id: Optional Output Profile ID (prf_<hex32>).
-        task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).
+        task_brief_id: Optional TaskBrief ID (tbr_<hex32>).
         target_locale: Target execution locale.
         locked_inputs: Immutable manager-locked workflow inputs.
         assignee_input_keys: ExpectedInput keys unlocked for assignee completion.
@@ -1069,7 +1069,7 @@ class ExecutionAssignmentCreateDTO(BaseDTO):
     ] = None
     task_brief_id: Annotated[
         PrefixedUUID7 | None,
-        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
+        Field(default=None, description="Optional TaskBrief ID (tbr_<hex32>)"),
     ] = None
     target_locale: Annotated[
         LaxSystemLocale,
@@ -1130,7 +1130,7 @@ class ExecutionAssignmentBatchCreateDTO(BaseDTO):
         invited_role: Role granted upon auto-onboarding.
         workflow_id: Shared target Workflow ID (wf_<hex32>).
         output_profile_id: Optional shared Output Profile ID (prf_<hex32>).
-        task_brief_id: Optional shared Task Definition PromptBlock ID (blk_<hex32>).
+        task_brief_id: Optional shared TaskBrief ID (tbr_<hex32>).
         target_locale: Default target execution locale.
         locked_inputs: Shared manager-locked workflow inputs.
         assignee_input_keys: Shared ExpectedInput keys unlocked for assignee completion.
@@ -1156,7 +1156,7 @@ class ExecutionAssignmentBatchCreateDTO(BaseDTO):
     ] = None
     task_brief_id: Annotated[
         PrefixedUUID7 | None,
-        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
+        Field(default=None, description="Optional TaskBrief ID (tbr_<hex32>)"),
     ] = None
     target_locale: Annotated[
         LaxSystemLocale,
@@ -1199,7 +1199,7 @@ class ExecutionAssignmentResponseDTO(BaseResponseDTO):
         invited_role: Role granted upon auto-onboarding.
         workflow_id: Target Workflow ID (wf_<hex32>).
         output_profile_id: Optional Output Profile ID (prf_<hex32>).
-        task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).
+        task_brief_id: Optional TaskBrief ID (tbr_<hex32>).
         task_brief: Optional hydrated TaskAssignmentBriefDTO.
         target_locale: Target execution locale.
         locked_inputs: Immutable manager-locked workflow inputs.
@@ -1229,11 +1229,11 @@ class ExecutionAssignmentResponseDTO(BaseResponseDTO):
     output_profile_id: Annotated[PrefixedUUID7 | None, Field(default=None, description="Output Profile ID")] = None
     task_brief_id: Annotated[
         PrefixedUUID7 | None,
-        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
+        Field(default=None, description="Optional TaskBrief ID (tbr_<hex32>)"),
     ] = None
     task_brief: Annotated[
         TaskAssignmentBriefDTO | None,
-        Field(default=None, description="Hydrated Task Definition PromptBlock metadata"),
+        Field(default=None, description="Hydrated TaskBrief metadata"),
     ] = None
     target_locale: Annotated[LaxSystemLocale, Field(description="Target execution locale")]
     locked_inputs: Annotated[WorkflowInputs, Field(description="Immutable manager-locked workflow inputs")]
@@ -1334,7 +1334,7 @@ class ExecutionAssignmentPreviewDTO(BaseResponseDTO):
         organization_name: Display name of the issuing organization.
         assigned_email_masked: Masked recipient email hint (e.g. 'j***@example.com').
         workflow_id: Target Workflow ID (wf_<hex32>).
-        task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).
+        task_brief_id: Optional TaskBrief ID (tbr_<hex32>).
         task_brief: Optional hydrated TaskAssignmentBriefDTO.
         target_locale: Target execution locale.
         status: Current assignment status.
@@ -1351,11 +1351,11 @@ class ExecutionAssignmentPreviewDTO(BaseResponseDTO):
     workflow_id: Annotated[PrefixedUUID7, Field(description="Target Workflow ID (wf_<hex32>)")]
     task_brief_id: Annotated[
         PrefixedUUID7 | None,
-        Field(default=None, description="Optional Task Definition PromptBlock ID (blk_<hex32>)"),
+        Field(default=None, description="Optional TaskBrief ID (tbr_<hex32>)"),
     ] = None
     task_brief: Annotated[
         TaskAssignmentBriefDTO | None,
-        Field(default=None, description="Hydrated Task Definition PromptBlock metadata"),
+        Field(default=None, description="Hydrated TaskBrief metadata"),
     ] = None
     target_locale: Annotated[LaxSystemLocale, Field(description="Target execution locale")]
     status: Annotated[LaxAssignmentStatus, Field(description="Current assignment status")]
