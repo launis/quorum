@@ -37,9 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 class JudgeInput(V2CoreBase):
-    """Strict Input Schema for Judge Agent (Phase 8).
+    """Strict input schema for the Judge Agent.
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
+    Encapsulates mandatory conversation history alongside preceding critic
+    step outputs and dynamic inputs.
 
     Attributes:
         chat_log: The mandatory conversation history to evaluate.
