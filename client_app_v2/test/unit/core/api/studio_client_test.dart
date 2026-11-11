@@ -477,6 +477,43 @@ void main() {
         );
         expect(stepSim.valid, isTrue);
 
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            'studio/steps/$testStepId/clone',
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/steps/$testStepId/clone',
+            ),
+            data: validStepJson,
+            statusCode: 201,
+          ),
+        );
+        expect((await client.cloneStep(testStepId)).id, equals(testStepId));
+
+        when(
+          () => mockDio.post<Map<String, Object?>>('studio/steps/'),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: 'studio/steps/'),
+            data: validStepJson,
+            statusCode: 201,
+          ),
+        );
+        expect((await client.createStepDraft()).id, equals(testStepId));
+
+        when(
+          () => mockDio.delete<void>('studio/steps/$testStepId'),
+        ).thenAnswer(
+          (_) async => Response<void>(
+            requestOptions: RequestOptions(path: 'studio/steps/$testStepId'),
+            statusCode: 204,
+          ),
+        );
+        await client.deleteStep(testStepId);
+        verify(() => mockDio.delete<void>('studio/steps/$testStepId')).called(1);
+
         // Model Registry
         when(
           () => mockDio.get<List<Object?>>(
@@ -541,6 +578,20 @@ void main() {
         expect(platforms.single.id, equals('vertex_ai'));
 
         when(
+          () => mockDio.get<List<Object?>>('studio/model-registry/'),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(path: 'studio/model-registry/'),
+            data: <Object?>[validConfigJson],
+            statusCode: 200,
+          ),
+        );
+        expect(
+          (await client.getSystemConfigs()).single.id,
+          equals(testRegistryId),
+        );
+
+        when(
           () => mockDio.get<Map<String, Object?>>(
             'studio/model-registry/$testRegistryId',
           ),
@@ -556,7 +607,87 @@ void main() {
         final sysConfig = await client.getSystemConfig(testRegistryId);
         expect(sysConfig.id, equals(testRegistryId));
 
+        when(
+          () => mockDio.put<Map<String, Object?>>(
+            'studio/model-registry/$testRegistryId',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/model-registry/$testRegistryId',
+            ),
+            data: validConfigJson,
+            statusCode: 200,
+          ),
+        );
+        expect(
+          (await client.saveSystemConfig(testRegistryId, sysConfig)).id,
+          equals(testRegistryId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            'studio/model-registry/$testRegistryId/clone',
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/model-registry/$testRegistryId/clone',
+            ),
+            data: validConfigJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.cloneSystemConfig(testRegistryId)).id,
+          equals(testRegistryId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>('studio/model-registry/'),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: 'studio/model-registry/'),
+            data: validConfigJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.createSystemConfigDraft()).id,
+          equals(testRegistryId),
+        );
+
+        when(
+          () => mockDio.delete<void>('studio/model-registry/$testRegistryId'),
+        ).thenAnswer(
+          (_) async => Response<void>(
+            requestOptions: RequestOptions(
+              path: 'studio/model-registry/$testRegistryId',
+            ),
+            statusCode: 204,
+          ),
+        );
+        await client.deleteSystemConfig(testRegistryId);
+        verify(
+          () => mockDio.delete<void>('studio/model-registry/$testRegistryId'),
+        ).called(1);
+
         // MCP Gateways
+        when(
+          () => mockDio.get<List<Object?>>('studio/mcp-gateways/'),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(path: 'studio/mcp-gateways/'),
+            data: <Object?>[validGatewayJson],
+            statusCode: 200,
+          ),
+        );
+        expect(
+          (await client.getMcpGateways()).single.id,
+          equals(testGatewayId),
+        );
+
         when(
           () => mockDio.get<Map<String, Object?>>(
             'studio/mcp-gateways/$testGatewayId',
@@ -572,6 +703,72 @@ void main() {
         );
         final gateway = await client.getMcpGateway(testGatewayId);
         expect(gateway.id, equals(testGatewayId));
+
+        when(
+          () => mockDio.put<Map<String, Object?>>(
+            'studio/mcp-gateways/$testGatewayId',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/mcp-gateways/$testGatewayId',
+            ),
+            data: validGatewayJson,
+            statusCode: 200,
+          ),
+        );
+        expect(
+          (await client.saveMcpGateway(testGatewayId, gateway)).id,
+          equals(testGatewayId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            'studio/mcp-gateways/$testGatewayId/clone',
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/mcp-gateways/$testGatewayId/clone',
+            ),
+            data: validGatewayJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.cloneMcpGateway(testGatewayId)).id,
+          equals(testGatewayId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>('studio/mcp-gateways/'),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: 'studio/mcp-gateways/'),
+            data: validGatewayJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.createMcpGatewayDraft()).id,
+          equals(testGatewayId),
+        );
+
+        when(
+          () => mockDio.delete<void>('studio/mcp-gateways/$testGatewayId'),
+        ).thenAnswer(
+          (_) async => Response<void>(
+            requestOptions: RequestOptions(
+              path: 'studio/mcp-gateways/$testGatewayId',
+            ),
+            statusCode: 204,
+          ),
+        );
+        await client.deleteMcpGateway(testGatewayId);
+        verify(
+          () => mockDio.delete<void>('studio/mcp-gateways/$testGatewayId'),
+        ).called(1);
 
         when(
           () => mockDio.post<Map<String, Object?>>(
@@ -593,6 +790,20 @@ void main() {
 
         // Output Profiles
         when(
+          () => mockDio.get<List<Object?>>('output-profiles/'),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(path: 'output-profiles/'),
+            data: <Object?>[validProfileJson],
+            statusCode: 200,
+          ),
+        );
+        expect(
+          (await client.getOutputProfiles()).single.id,
+          equals(testProfileId),
+        );
+
+        when(
           () => mockDio.get<Map<String, Object?>>(
             'output-profiles/$testProfileId',
           ),
@@ -607,6 +818,72 @@ void main() {
         );
         final profile = await client.getOutputProfile(testProfileId);
         expect(profile.id, equals(testProfileId));
+
+        when(
+          () => mockDio.put<Map<String, Object?>>(
+            'output-profiles/$testProfileId',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'output-profiles/$testProfileId',
+            ),
+            data: validProfileJson,
+            statusCode: 200,
+          ),
+        );
+        expect(
+          (await client.saveOutputProfile(testProfileId, profile)).id,
+          equals(testProfileId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            'output-profiles/$testProfileId/clone',
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'output-profiles/$testProfileId/clone',
+            ),
+            data: validProfileJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.cloneOutputProfile(testProfileId)).id,
+          equals(testProfileId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>('output-profiles/'),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: 'output-profiles/'),
+            data: validProfileJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.createOutputProfileDraft()).id,
+          equals(testProfileId),
+        );
+
+        when(
+          () => mockDio.delete<void>('output-profiles/$testProfileId'),
+        ).thenAnswer(
+          (_) async => Response<void>(
+            requestOptions: RequestOptions(
+              path: 'output-profiles/$testProfileId',
+            ),
+            statusCode: 204,
+          ),
+        );
+        await client.deleteOutputProfile(testProfileId);
+        verify(
+          () => mockDio.delete<void>('output-profiles/$testProfileId'),
+        ).called(1);
 
         // Task Briefs
         when(
@@ -881,6 +1158,72 @@ void main() {
               equals('VALIDATION_FAILED'),
             ),
           ),
+        );
+
+        // 5. Null list response in getPromptBlocks, getAvailableModels, and getSupportedLocations
+        when(
+          () => mockDio.get<List<Object?>>('studio/prompt-blocks'),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(path: 'studio/prompt-blocks'),
+            data: null,
+            statusCode: 200,
+          ),
+        );
+        expect(
+          () => client.getPromptBlocks(),
+          throwsA(isA<AppException>()),
+        );
+
+        when(
+          () => mockDio.get<List<Object?>>(
+            'studio/model-registry/available-models',
+          ),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/model-registry/available-models',
+            ),
+            data: null,
+            statusCode: 200,
+          ),
+        );
+        expect(
+          () => client.getAvailableModels(),
+          throwsA(isA<AppException>()),
+        );
+
+        when(
+          () => mockDio.get<List<Object?>>('studio/model-registry/locations'),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/model-registry/locations',
+            ),
+            data: null,
+            statusCode: 200,
+          ),
+        );
+        expect(
+          () => client.getSupportedLocations(),
+          throwsA(isA<AppException>()),
+        );
+
+        // 6. Malformed element in getSupportedLocations
+        when(
+          () => mockDio.get<List<Object?>>('studio/model-registry/locations'),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/model-registry/locations',
+            ),
+            data: <Object?>['invalid_location_item'],
+            statusCode: 200,
+          ),
+        );
+        expect(
+          () => client.getSupportedLocations(),
+          throwsA(isA<AppException>()),
         );
       },
     );
