@@ -1025,13 +1025,13 @@ def test_execute_subagent_no_retry_on_domain_failure(tmp_path: Path) -> None:
 
 def test_phase_runner_generous_timeout_defaults_and_boundaries(tmp_path: Path) -> None:
     """TC-APR-037: Verify generous timeout constants and strict boundary validation."""
-    assert DEFAULT_SUBAGENT_TIMEOUT_SECONDS == 14400
-    assert DEFAULT_AUDIT_TIMEOUT_SECONDS == 3600
+    assert DEFAULT_SUBAGENT_TIMEOUT_SECONDS == 86400
+    assert DEFAULT_AUDIT_TIMEOUT_SECONDS == 14400
     assert GIT_SUBPROCESS_TIMEOUT_SECONDS == 120
     assert TASKKILL_TIMEOUT_SECONDS == 30
 
     default_args = AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md")
-    assert default_args.timeout == 14400
+    assert default_args.timeout == 86400
     assert default_args.full_lifecycle is False
     assert default_args.with_live_e2e is False
 

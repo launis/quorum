@@ -17,7 +17,7 @@ Architectural Workflow & Lifecycle:
    - Provides each phase with a pristine context window, eliminating token budget exhaustion,
      cognitive drift, and context amnesia across long multi-hour implementations.
 3. Windows Process Tree Watchdog:
-   - Monitored by a watchdog timer (`--timeout`, default: 3600s).
+   - Monitored by a watchdog timer (`--timeout`, default: 86400s).
    - In case of timeout or abort, uses Windows `taskkill /F /T /PID` to terminate the entire
      process tree, preventing orphaned node/python background processes.
 4. Universal Quality Gate Audit:
@@ -80,8 +80,8 @@ from scripts.auto_hardening_runner import (
 
 GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 120
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 30
-DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 3600
-DEFAULT_SUBAGENT_TIMEOUT_SECONDS: Final[int] = 14400
+DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 14400
+DEFAULT_SUBAGENT_TIMEOUT_SECONDS: Final[int] = 86400
 DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
 DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
 SUBAGENT_STARTUP_GRACE_SECONDS: Final[float] = 45.0
@@ -1965,7 +1965,7 @@ Autonomous AI Subagent Execution Examples:
    uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md
 
 2. Execute FULL start-to-finish lifecycle (Tier 0 Red-Teaming -> Phases -> Hardening -> Seed/Parity/Audits -> Tier 7 -> Tier 8):
-   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --full-lifecycle --timeout 14400
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --full-lifecycle --timeout 86400
 
 3. Resume pipeline starting from Phase 3:
    uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --from-phase 3

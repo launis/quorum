@@ -2067,13 +2067,13 @@ def test_transient_dns_lookup_error_retries_and_rollback_preserves_cache(
 
 def test_hardening_runner_generous_timeout_defaults_and_boundaries() -> None:
     """Verify generous timeout defaults and ISTQB boundary validation on HardeningRunnerArgsDTO."""
-    assert DEFAULT_AUDIT_TIMEOUT_SECONDS == 3600
+    assert DEFAULT_AUDIT_TIMEOUT_SECONDS == 14400
     assert FORMATTER_TIMEOUT_SECONDS == 180
     assert GIT_SUBPROCESS_TIMEOUT_SECONDS == 120
     assert TASKKILL_TIMEOUT_SECONDS == 30
 
     default_dto = HardeningRunnerArgsDTO(targets=["backend_v2/main.py"])
-    assert default_dto.timeout_seconds == 3600
+    assert default_dto.timeout_seconds == 14400
 
     # Boundary: min valid timeout_seconds = 1
     min_dto = HardeningRunnerArgsDTO(targets=["backend_v2/main.py"], timeout_seconds=1)
