@@ -20,6 +20,7 @@ from pydantic import SecretStr
 from backend_v2.database.interfaces import (
     EntityPersistencePort,
     IPromptBlockRepository,
+    ITaskBriefRepository,
     IWorkflowRepository,
     UnitOfWorkFactory,
     get_registered_uow_factory,
@@ -66,7 +67,6 @@ from backend_v2.models.domain.execution import (
     FrozenContext,
 )
 from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputs, WorkflowInputsIngress
-from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import (
@@ -74,7 +74,6 @@ from backend_v2.models.enums import (
     AssignmentStatus,
     EmailDeliveryStatus,
     EntityPrefix,
-    PromptBlockCategory,
     SystemLocale,
 )
 from backend_v2.services.auth.email_service import (
@@ -156,7 +155,8 @@ class ExecutionAssignmentService:
         org_repo: Organization repository wrapper.
         user_repo: User repository wrapper.
         workflow_repo: Optional workflow repository for workflow verification.
-        prompt_block_repo: Optional prompt block repository for Task Brief lookup.
+        prompt_block_repo: Optional prompt block repository.
+        task_brief_repo: Optional task brief repository for TaskBrief lookup.
         token_service: Optional TokenService for Firebase 2FA verification and JWT issuance.
         email_service: Transactional email dispatch service.
         audit_service: Optional audit event logging service.
@@ -169,6 +169,7 @@ class ExecutionAssignmentService:
         user_repo: UserRepository,
         workflow_repo: IWorkflowRepository | None = None,
         prompt_block_repo: IPromptBlockRepository | None = None,
+        task_brief_repo: ITaskBriefRepository | None = None,
         token_service: TokenService | None = None,
         email_service: EmailService | None = None,
         audit_service: AuditEventLoggerProtocol | None = None,
@@ -183,6 +184,7 @@ class ExecutionAssignmentService:
             user_repo: UserRepository wrapper.
             workflow_repo: Optional IWorkflowRepository instance.
             prompt_block_repo: Optional IPromptBlockRepository instance.
+            task_brief_repo: Optional ITaskBriefRepository instance.
             token_service: Optional TokenService instance.
             email_service: Optional EmailService instance.
             audit_service: Optional structured audit event logger implementing AuditEventLoggerProtocol.
@@ -196,6 +198,7 @@ class ExecutionAssignmentService:
         self.prompt_block_repo: IPromptBlockRepository | None = (
             prompt_block_repo if prompt_block_repo is not None else ingress_service.prompt_block_repo
         )
+        self.task_brief_repo: ITaskBriefRepository | None = task_brief_repo
         self.token_service = token_service
         self.email_service: EmailService = email_service if email_service is not None else EmailService()
         self.audit_service: AuditEventLoggerProtocol | None = audit_service
@@ -1784,62 +1787,60 @@ class ExecutionAssignmentService:
         *,
         strict: bool = True,
     ) -> TaskAssignmentBriefDTO | None:
-        """Validate and resolve a Task Definition PromptBlock into a TaskAssignmentBriefDTO.
+        """Validate and resolve a TaskBrief into a TaskAssignmentBriefDTO.
 
         Args:
-            task_brief_id: Optional PromptBlock identifier (blk_<hex32>).
+            task_brief_id: Optional TaskBrief identifier (tbr_<hex32>).
             organization_id: Owning organization identifier of the assignment.
-            strict: Whether to fail fast with AppException if the block is missing or invalid.
+            strict: Whether to fail fast with AppException if the brief is missing or unauthorized.
 
         Returns:
             Hydrated TaskAssignmentBriefDTO or None.
 
         Raises:
-            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if block is missing and strict is True.
-            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if block belongs to another tenant.
-            AppException: With ErrorCodes.SERVICE_DEPENDENCY_MISSING if repository is missing or
-                ErrorCodes.VALIDATION_FAILED if category_id is not TASK_DEFINITION.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if brief is missing and strict is True.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if brief belongs to another tenant.
+            AppException: With ErrorCodes.SERVICE_DEPENDENCY_MISSING if repository is missing.
         """
         if task_brief_id is None:
             return None
-        if self.prompt_block_repo is None:
+        if self.task_brief_repo is None:
             if not strict:
                 return None
             logger.error(
-                "[ExecutionAssignmentService] %s: PromptBlock repository is required to resolve task_brief_id '%s'.",
+                "[ExecutionAssignmentService] %s: TaskBrief repository is required to resolve task_brief_id '%s'.",
                 ErrorCodes.SERVICE_DEPENDENCY_MISSING.name,
                 task_brief_id,
                 exc_info=True,
                 extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
             )
             raise AppException(
-                message="PromptBlock repository is required to resolve task_brief_id.",
+                message="TaskBrief repository is required to resolve task_brief_id.",
                 status_code=500,
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
             )
 
-        block = await self.prompt_block_repo.get_prompt_block_by_id(task_brief_id)
-        if block is None:
+        brief = await self.task_brief_repo.get_task_brief_by_id(task_brief_id)
+        if brief is None:
             if not strict:
                 return None
             logger.error(
-                "[ExecutionAssignmentService] %s: Task brief PromptBlock '%s' not found.",
+                "[ExecutionAssignmentService] %s: TaskBrief '%s' not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 task_brief_id,
                 exc_info=True,
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
-            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=task_brief_id)
+            raise ResourceNotFoundError(resource_type="task_brief", resource_id=task_brief_id)
 
-        allowed_orgs = {None, SystemOrganizations.ROOT_SYSTEM.value, organization_id}
-        if block.organization_id not in allowed_orgs:
+        if not SystemOrganizations.is_system(brief.organization_id) and brief.organization_id != organization_id:
             if not strict:
                 return None
             logger.error(
                 "[ExecutionAssignmentService] %s: Task brief '%s' org '%s' not accessible to org '%s'.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 task_brief_id,
-                block.organization_id,
+                brief.organization_id,
                 organization_id,
                 exc_info=True,
                 extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
@@ -1848,31 +1849,11 @@ class ExecutionAssignmentService:
                 f"Task brief '{task_brief_id}' does not belong to organization '{organization_id}'."
             )
 
-        if not isinstance(block, SystemRulePromptBlock) or block.category_id != PromptBlockCategory.TASK_DEFINITION:
-            if not strict:
-                return None
-            logger.error(
-                "[ExecutionAssignmentService] %s: PromptBlock '%s' category '%s' != TASK_DEFINITION.",
-                ErrorCodes.VALIDATION_FAILED.name,
-                task_brief_id,
-                block.category_id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(
-                message=f"PromptBlock '{task_brief_id}' must have category 'task_definition'.",
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-
-        source_url: str | None = None
-        if block.theory_grounding is not None:
-            source_url = block.theory_grounding.source_url
         return TaskAssignmentBriefDTO(
-            id=block.id,
-            label=block.label,
-            instruction_text=block.instruction_text,
-            source_url=source_url,
+            id=brief.id,
+            label=brief.label,
+            instruction_text=brief.instruction_text,
+            source_url=brief.source_url,
         )
 
     @staticmethod

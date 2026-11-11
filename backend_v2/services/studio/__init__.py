@@ -8,6 +8,7 @@ from backend_v2.services.studio.output_profile_service import StudioOutputProfil
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.services.studio.simulation_service import StudioSimulationService
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
+from backend_v2.services.studio.task_brief_service import StudioTaskBriefService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "enforce_modification_rights",
     "StudioWorkflowService",
     "StudioPromptBlockService",
+    "StudioTaskBriefService",
     "StudioOutputProfileService",
     "StudioSystemConfigService",
     "StudioSimulationService",

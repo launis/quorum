@@ -61,6 +61,13 @@ BLUEPRINT_ROUTERS: list[dict[str, str]] = [
         "clone": "/api/v2/studio/mcp-gateways/{gateway_id}/clone",
         "param_name": "gateway_id",
     },
+    {
+        "name": "task_briefs",
+        "root": "/api/v2/studio/task-briefs/",
+        "item": "/api/v2/studio/task-briefs/{id}",
+        "clone": "/api/v2/studio/task-briefs/{id}/clone",
+        "param_name": "id",
+    },
 ]
 
 
@@ -186,7 +193,7 @@ async def test_non_cloneable_routers_reject_clone_partition() -> None:
 
 
 @pytest.mark.asyncio
-async def test_eradicated_shadow_routes_return_404_partition() -> None:
+async def test_eradicated_shadow_routes_return_404_error() -> None:
     """Verify that all eradicated legacy and shadow routes strictly return 404 Not Found."""
     client = TestClient(app)
 

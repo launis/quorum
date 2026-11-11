@@ -158,6 +158,7 @@ async def _validate_database_preflight(
                     "system_configs": 1,
                     "workflows": 1,
                     "prompt_blocks": 1,
+                    "task_briefs": 1,
                     "steps": 1,
                     "output_profiles": 1,
                 }

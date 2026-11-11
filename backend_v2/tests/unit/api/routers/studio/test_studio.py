@@ -6,6 +6,7 @@ deprecated or dead routers (system_configs).
 """
 
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from backend_v2.api.routers.studio import router
 
@@ -36,6 +37,9 @@ def test_studio_router_includes_all_active_domain_routers() -> None:
     # MCP gateways routes
     assert any(p.startswith("/studio/mcp-gateways") for p in route_paths)
 
+    # Task briefs routes
+    assert any(p.startswith("/studio/task-briefs") for p in route_paths)
+
 
 def test_studio_router_excludes_dead_system_configs() -> None:
     """Verifies that the studio parent router does NOT mount dead system-configs."""
@@ -43,3 +47,12 @@ def test_studio_router_excludes_dead_system_configs() -> None:
     app.include_router(router)
     route_paths = list(app.openapi()["paths"].keys())
     assert not any("/studio/system-configs" in p for p in route_paths)
+
+
+def test_studio_router_unregistered_route_returns_404_error() -> None:
+    """Verify requesting a removed or unknown studio route returns 404 Not Found."""
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+    resp = client.get("/studio/system-configs/")
+    assert resp.status_code == 404

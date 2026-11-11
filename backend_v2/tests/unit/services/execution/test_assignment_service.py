@@ -54,8 +54,6 @@ from backend_v2.models.domain.inputs import (
     WorkflowInputs,
     WorkflowInputsIngress,
 )
-from backend_v2.models.domain.matrix import TheoryGrounding
-from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
@@ -68,7 +66,6 @@ from backend_v2.models.enums import (
     EntityPrefix,
     ExecutionStatus,
     HistoricalContextMode,
-    PromptBlockCategory,
     StepType,
     SystemLocale,
     VisualIntent,
@@ -90,6 +87,7 @@ from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
     ExecutionStepFactory,
     OutputProfileFactory,
+    TaskBriefFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_repositories import (
@@ -307,11 +305,13 @@ async def _setup_assignment_harness(
         email_service=email_service,
         entity_adapter=entity_adapter,
         prompt_block_repo=wf_repo,
+        task_brief_repo=wf_repo,
     )
     execution_service = ExecutionService(
         exec_repo=wf_repo,
         workflow_repo=wf_repo,
         prompt_block_repo=wf_repo,
+        task_brief_repo=wf_repo,
         output_profile_repo=wf_repo,
         identity_repo=identity_repo,
         system_repo=system_repo,
@@ -1378,20 +1378,18 @@ async def test_assignment_hard_deadline_bva_cross_org_onboarding_and_root_org_re
 async def test_assignment_task_brief_lifecycle_and_rbac_validation(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Verify task_brief_id persistence, TaskAssignmentBriefDTO projection, and negative RBAC/category guards."""
+    """Verify task_brief_id persistence, TaskAssignmentBriefDTO projection, and negative RBAC guards."""
     assignment_service, _, wf_repo, identity_repo, _, _ = await _setup_assignment_harness()
 
-    alpha_brief_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
-    await wf_repo.create_prompt_block(
-        SystemRulePromptBlock(
+    alpha_brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    await wf_repo.create_task_brief(
+        TaskBriefFactory.build(
             id=alpha_brief_id,
             slug="alpha-task-brief",
-            category_id=PromptBlockCategory.TASK_DEFINITION,
             label=I18nText(translations={"en": "Alpha Case Study", "fi": "Alpha-tapaustutkimus"}),
             description=I18nText(translations={"en": "Case description", "fi": "Tapauksen kuvaus"}),
-            output_extensions=[],
             instruction_text="Review section 4 and summarize key risks.",
-            theory_grounding=TheoryGrounding(source_url="https://docs.qrum.ai/cases/alpha-4"),
+            source_url="https://docs.qrum.ai/cases/alpha-4",
             organization_id=ORG_ALPHA_ID,
         )
     )
@@ -1471,13 +1469,13 @@ async def test_assignment_task_brief_lifecycle_and_rbac_validation(
     assert len(listed) == 2
     assert all(item.task_brief is not None and item.task_brief.id == alpha_brief_id for item in listed)
 
-    # 2. Boundary (strict=False): If prompt_block_repo is detached or block is deleted after creation, read paths return task_brief=None gracefully
-    await wf_repo.delete_prompt_block(alpha_brief_id)
+    # 2. Boundary (strict=False): If task_brief_repo is detached or brief is deleted after creation, read paths return task_brief=None gracefully
+    await wf_repo.delete_task_brief(alpha_brief_id)
     listed_after_delete = await assignment_service.list_assignments(_manager_token())
     assert all(item.task_brief_id == alpha_brief_id and item.task_brief is None for item in listed_after_delete)
 
-    # 3. Negative 1: Missing prompt_block_repo on create_assignment with task_brief_id raises SERVICE_DEPENDENCY_MISSING
-    assignment_service.prompt_block_repo = None
+    # 3. Negative 1: Missing task_brief_repo on create_assignment with task_brief_id raises SERVICE_DEPENDENCY_MISSING
+    assignment_service.task_brief_repo = None
     with caplog.at_level(logging.ERROR), pytest.raises(AppException) as missing_repo_exc:
         await assignment_service.create_assignment(
             initiator=_manager_token(),
@@ -1491,10 +1489,10 @@ async def test_assignment_task_brief_lifecycle_and_rbac_validation(
             ),
         )
     assert missing_repo_exc.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
-    assignment_service.prompt_block_repo = wf_repo
+    assignment_service.task_brief_repo = wf_repo
 
     # 4. Negative 2: Unknown task_brief_id raises ResourceNotFoundError
-    unknown_brief_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    unknown_brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
     with caplog.at_level(logging.ERROR), pytest.raises(ResourceNotFoundError) as not_found_exc:
         await assignment_service.create_assignment(
             initiator=_manager_token(),
@@ -1509,45 +1507,16 @@ async def test_assignment_task_brief_lifecycle_and_rbac_validation(
         )
     assert not_found_exc.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
-    # 5. Negative 3: Non-TASK_DEFINITION prompt block raises AppException (VALIDATION_FAILED)
-    sys_rule_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
-    await wf_repo.create_prompt_block(
-        SystemRulePromptBlock(
-            id=sys_rule_id,
-            slug="not-a-task-brief",
-            category_id=PromptBlockCategory.SYSTEM_RULE,
-            label=I18nText(translations={"en": "System Rule", "fi": "Järjestelmäsääntö"}),
-            description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
-            output_extensions=[],
-            instruction_text="Internal rule.",
-            organization_id=ORG_ALPHA_ID,
-        )
-    )
-    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as wrong_cat_exc:
-        await assignment_service.create_assignment(
-            initiator=_manager_token(),
-            payload=ExecutionAssignmentCreateDTO(
-                assigned_email="wrong.cat@alpha.fi",
-                workflow_id=WORKFLOW_ID,
-                task_brief_id=sys_rule_id,
-                locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
-                assignee_input_keys=["candidate_answer"],
-                hard_deadline_at=datetime.now(UTC) + timedelta(hours=4),
-            ),
-        )
-    assert wrong_cat_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-
-    # 6. Negative 4: Another tenant's private TASK_DEFINITION block raises PermissionDeniedError
-    beta_brief_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
-    await wf_repo.create_prompt_block(
-        SystemRulePromptBlock(
+    # 5. Negative 3: Another tenant's private TaskBrief raises PermissionDeniedError
+    beta_brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    await wf_repo.create_task_brief(
+        TaskBriefFactory.build(
             id=beta_brief_id,
             slug="beta-private-brief",
-            category_id=PromptBlockCategory.TASK_DEFINITION,
             label=I18nText(translations={"en": "Beta Brief", "fi": "Beta-ohje"}),
             description=I18nText(translations={"en": "Beta Desc", "fi": "Beta-kuvaus"}),
-            output_extensions=[],
             instruction_text="Confidential Beta brief.",
+            source_url=None,
             organization_id=ORG_BETA_ID,
         )
     )

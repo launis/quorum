@@ -32,6 +32,7 @@ from backend_v2.database.interfaces import (
     IRoleRepository,
     ISystemRepository,
     ITaskBlueprintRepository,
+    ITaskBriefRepository,
     IWorkflowRepository,
 )
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
@@ -40,6 +41,7 @@ from backend_v2.database.repositories.components.agent import AgentRepositoryImp
 from backend_v2.database.repositories.components.output_profile import OutputProfileRepositoryImpl
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
+from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
@@ -64,6 +66,7 @@ from backend_v2.services.studio import (
     StudioPromptBlockService,
     StudioSimulationService,
     StudioSystemConfigService,
+    StudioTaskBriefService,
     StudioWorkflowService,
 )
 from backend_v2.services.usage_service import UsageService
@@ -98,9 +101,11 @@ __all__ = [
     "StudioPromptBlockServiceDep",
     "StudioSimulationServiceDep",
     "StudioSystemConfigServiceDep",
+    "StudioTaskBriefServiceDep",
     "StudioWorkflowServiceDep",
     "SystemRepoDep",
     "TaskBlueprintRepoDep",
+    "TaskBriefRepoDep",
     "TenantRateLimitServiceDep",
     "UsageServiceDep",
     "UserDep",
@@ -132,9 +137,11 @@ __all__ = [
     "get_studio_prompt_block_service",
     "get_studio_simulation_service",
     "get_studio_system_config_service",
+    "get_studio_task_brief_service",
     "get_studio_workflow_service",
     "get_system_repo",
     "get_task_blueprint_repo",
+    "get_task_brief_repo",
     "get_tenant_rate_limit_service",
     "get_usage_service",
     "get_workflow_repo",
@@ -255,6 +262,21 @@ async def get_prompt_block_repo(driver: DriverDep) -> IPromptBlockRepository:
 
 
 PromptBlockRepoDep = Annotated[IPromptBlockRepository, Depends(get_prompt_block_repo)]
+
+
+async def get_task_brief_repo(driver: DriverDep) -> ITaskBriefRepository:
+    """Instantiate the task brief repository.
+
+    Args:
+        driver: Storage driver.
+
+    Returns:
+        Task brief repository instance.
+    """
+    return TaskBriefRepositoryImpl(driver)
+
+
+TaskBriefRepoDep = Annotated[ITaskBriefRepository, Depends(get_task_brief_repo)]
 
 
 async def get_agent_repo(driver: DriverDep) -> IAgentRepository:
@@ -620,6 +642,7 @@ async def get_execution_service(
     usage_service: UsageServiceDep,
     executor: Annotated[DAGExecutor, Depends(get_dag_executor)],
     prompt_block_repo: PromptBlockRepoDep,
+    task_brief_repo: TaskBriefRepoDep,
     output_profile_repo: OutputProfileRepoDep,
 ) -> ExecutionService:
     """Instantiate the high-level execution service.
@@ -633,6 +656,7 @@ async def get_execution_service(
         usage_service: Usage service.
         executor: DAG executor.
         prompt_block_repo: Prompt block repository.
+        task_brief_repo: Task brief repository.
         output_profile_repo: Output profile repository.
 
     Returns:
@@ -643,6 +667,7 @@ async def get_execution_service(
         workflow_repo=workflow_repo,
         comp_repo=comp_repo,
         prompt_block_repo=prompt_block_repo,
+        task_brief_repo=task_brief_repo,
         output_profile_repo=output_profile_repo,
         identity_repo=identity_repo,
         system_repo=system_repo,
@@ -740,6 +765,25 @@ async def get_studio_prompt_block_service(
 
 
 StudioPromptBlockServiceDep = Annotated[StudioPromptBlockService, Depends(get_studio_prompt_block_service)]
+
+
+async def get_studio_task_brief_service(
+    task_brief_repo: TaskBriefRepoDep,
+) -> StudioTaskBriefService:
+    """Instantiate the studio task brief service.
+
+    Args:
+        task_brief_repo: Task brief repository.
+
+    Returns:
+        Studio task brief service instance.
+    """
+    return StudioTaskBriefService(
+        task_brief_repo=task_brief_repo,
+    )
+
+
+StudioTaskBriefServiceDep = Annotated[StudioTaskBriefService, Depends(get_studio_task_brief_service)]
 
 
 async def get_studio_output_profile_service(

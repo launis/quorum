@@ -20,6 +20,7 @@ from backend_v2.database.interfaces import (
     IPromptBlockRepository,
     IReportArtifactRepository,
     ISystemRepository,
+    ITaskBriefRepository,
     IWorkflowRepository,
 )
 from backend_v2.exceptions import (
@@ -74,6 +75,7 @@ class ExecutionService:
         workflow_repo: Repository for workflow blueprints.
         comp_repo: Optional repository for workflow components.
         prompt_block_repo: Optional repository for prompt blocks.
+        task_brief_repo: Optional repository for task briefs.
         output_profile_repo: Optional repository for output profiles.
         identity_repo: Optional repository for user and organization identities.
         system_repo: Optional repository for system configuration and model registries.
@@ -88,6 +90,7 @@ class ExecutionService:
         workflow_repo: IWorkflowRepository,
         comp_repo: IComponentRepository | None = None,
         prompt_block_repo: IPromptBlockRepository | None = None,
+        task_brief_repo: ITaskBriefRepository | None = None,
         output_profile_repo: IOutputProfileRepository | None = None,
         identity_repo: IIdentityRepository | None = None,
         system_repo: ISystemRepository | None = None,
@@ -106,6 +109,7 @@ class ExecutionService:
             workflow_repo: Repository for workflows.
             comp_repo: Optional repository for components.
             prompt_block_repo: Optional repository for prompt blocks.
+            task_brief_repo: Optional repository for task briefs.
             output_profile_repo: Optional repository for output profiles.
             identity_repo: Optional repository for identities.
             system_repo: Optional repository for system settings.
@@ -123,6 +127,7 @@ class ExecutionService:
         """
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
+        self.task_brief_repo = task_brief_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
         self.usage_service = usage_service
         self.executor = executor
@@ -136,6 +141,7 @@ class ExecutionService:
             identity_repo=identity_repo,
             workflow_repo=workflow_repo,
             prompt_block_repo=prompt_block_repo,
+            task_brief_repo=task_brief_repo,
             email_service=email_service,
             entity_adapter=entity_adapter,
         )
@@ -179,6 +185,7 @@ class ExecutionService:
         identity_repo: IIdentityRepository | None,
         workflow_repo: IWorkflowRepository,
         prompt_block_repo: IPromptBlockRepository | None,
+        task_brief_repo: ITaskBriefRepository | None,
         email_service: EmailService | None,
         entity_adapter: EntityPersistencePort | None,
     ) -> ExecutionAssignmentService | None:
@@ -188,7 +195,8 @@ class ExecutionService:
             assignment_service: Explicit ExecutionAssignmentService override if injected.
             identity_repo: Optional identity repository backing user and organization lookups.
             workflow_repo: Workflow repository passed to assignment orchestration.
-            prompt_block_repo: Optional prompt block repository for Task Brief resolution.
+            prompt_block_repo: Optional prompt block repository.
+            task_brief_repo: Optional task brief repository for TaskBrief resolution.
             email_service: Optional transactional email dispatch service.
             entity_adapter: Optional hexagonal EntityPersistencePort for assignments.
 
@@ -206,6 +214,7 @@ class ExecutionService:
                 user_repo=user_repo,
                 workflow_repo=workflow_repo,
                 prompt_block_repo=prompt_block_repo,
+                task_brief_repo=task_brief_repo,
                 token_service=TokenService(repo=user_repo),
                 email_service=email_service,
                 entity_adapter=entity_adapter,

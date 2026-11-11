@@ -36,9 +36,11 @@ from backend_v2.api.dependencies import (
     get_studio_prompt_block_service,
     get_studio_simulation_service,
     get_studio_system_config_service,
+    get_studio_task_brief_service,
     get_studio_workflow_service,
     get_system_repo,
     get_task_blueprint_repo,
+    get_task_brief_repo,
     get_tenant_rate_limit_service,
     get_usage_service,
     get_workflow_repo,
@@ -51,6 +53,7 @@ from backend_v2.database.repositories.components.agent import AgentRepositoryImp
 from backend_v2.database.repositories.components.output_profile import OutputProfileRepositoryImpl
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
+from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
@@ -330,6 +333,7 @@ async def test_repository_factory_dependencies() -> None:
     assert isinstance(await get_workflow_repo(driver=mock_driver), WorkflowRepositoryImpl)
     assert isinstance(await get_component_repo(driver=mock_driver), ComponentRepositoryImpl)
     assert isinstance(await get_prompt_block_repo(driver=mock_driver), PromptBlockRepositoryImpl)
+    assert isinstance(await get_task_brief_repo(driver=mock_driver), TaskBriefRepositoryImpl)
     assert isinstance(await get_agent_repo(driver=mock_driver), AgentRepositoryImpl)
     assert isinstance(await get_task_blueprint_repo(driver=mock_driver), TaskBlueprintRepositoryImpl)
     assert isinstance(await get_output_profile_repo(driver=mock_driver), OutputProfileRepositoryImpl)
@@ -366,6 +370,11 @@ async def test_service_factory_dependencies(fake_repo: InMemoryUnifiedWorkflowRe
         system_repo=fake_repo,
     )
     assert pb_svc.prompt_block_repo is fake_repo
+
+    tb_svc = await get_studio_task_brief_service(
+        task_brief_repo=fake_repo,
+    )
+    assert tb_svc.task_brief_repo is fake_repo
 
     op_svc = await get_studio_output_profile_service(
         output_profile_repo=fake_repo,
@@ -408,6 +417,7 @@ async def test_service_factory_dependencies(fake_repo: InMemoryUnifiedWorkflowRe
         usage_service=usage_svc,
         executor=dag_executor,
         prompt_block_repo=fake_repo,
+        task_brief_repo=fake_repo,
         output_profile_repo=fake_repo,
     )
     assert exec_service.exec_repo is fake_repo

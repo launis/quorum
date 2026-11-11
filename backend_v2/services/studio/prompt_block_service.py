@@ -232,11 +232,8 @@ class StudioPromptBlockService:
             resolved_rule_category: Literal[
                 PromptBlockCategory.SYSTEM_RULE,
                 PromptBlockCategory.RUNTIME_VARIABLES,
-                PromptBlockCategory.TASK_DEFINITION,
             ] = PromptBlockCategory.SYSTEM_RULE
-            if category_id == PromptBlockCategory.TASK_DEFINITION:
-                resolved_rule_category = PromptBlockCategory.TASK_DEFINITION
-            elif category_id == PromptBlockCategory.RUNTIME_VARIABLES:
+            if category_id == PromptBlockCategory.RUNTIME_VARIABLES:
                 resolved_rule_category = PromptBlockCategory.RUNTIME_VARIABLES
             draft = SystemRulePromptBlock(
                 id=new_id,

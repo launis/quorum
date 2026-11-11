@@ -58,7 +58,7 @@ async def test_validate_database_preflight_success() -> None:
     """Test that pre-flight check passes when core PostgreSQL seed tables are populated."""
     logger = MagicMock(spec=logging.Logger)
     uow = InMemoryUnitOfWork()
-    for table in ("system_configs", "workflows", "prompt_blocks", "steps", "output_profiles"):
+    for table in ("system_configs", "workflows", "prompt_blocks", "task_briefs", "steps", "output_profiles"):
         uow.store.seed_tables[table][f"{table[:3]}_1234567890abcdef"] = (f"{table[:3]}_1234567890abcdef",)
 
     await _validate_database_preflight(logger, uow=uow)
