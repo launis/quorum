@@ -516,7 +516,7 @@ classDiagram
         +StrictStr protocol_instructions
     }
     class SystemRulePromptBlock {
-        +category_id: "system_rule" | "runtime_variables" | "task_definition"
+        +category_id: "system_rule" | "runtime_variables"
         +type: "instruction" | "string" | "panel" | ...
         +is_evaluative = False
         +StrictStr instruction_text
@@ -536,7 +536,6 @@ classDiagram
 | `execution_persona` | `PersonaPromptBlock` | `Step.execution_persona_block_id` | Layer 1 (Static Prefix) | System Persona Base Prefix |
 | `protocol` | `ProtocolPromptBlock` | `Step.extraction_protocol_block_id` | Layer 1 (Static Prefix) | `<EXTRACTION_PROTOCOL>` |
 | `system_rule` | `SystemRulePromptBlock` | `Step.criteria_block_ids` | Layer 1 (Static Prefix) | `<CRITERIA_GUIDELINES><STATIC_INSTRUCTION>` |
-| `task_definition` | `SystemRulePromptBlock` | `Step.criteria_block_ids` | Layer 1 (Static Prefix) | `<CRITERIA_GUIDELINES><STATIC_INSTRUCTION>` |
 | `runtime_variables` | `SystemRulePromptBlock` | `Step.criteria_block_ids` | Layer 4 (Dynamic Tail) | `<RUNTIME_AWARENESS><DYNAMIC_INSTRUCTION>` |
 
 ---
@@ -587,11 +586,10 @@ Every prompt block possesses seven core attributes guaranteed by the `PromptBloc
 
 #### 4.3.1 Category Taxonomy (`category_id`)
 Defines the functional classification in `PromptBlockCategory`:
-* **`agent_role`:** Establishes judicial authority, legalistic stance, and cognitive domain expertise (e.g., Critical Adversarial Prosecutor, Senior Executive Coach, Red Team Saboteur).
-* **`execution_persona`:** Sets baseline stylistic posture, conversational skepticism, and tolerance boundaries (e.g., Deterministic Parser, XAI Forensic Reporter).
+* **`agent_role`:** Establishes judicial authority, legalistic stance, and cognitive domain expertise (`Critical Adversarial Prosecutor`, `Senior Executive Coach`, `Red Team Saboteur`).
+* **`execution_persona`:** Sets baseline stylistic posture, conversational skepticism, and tolerance boundaries (`Deterministic Parser`, `XAI Forensic Reporter`).
 * **`protocol`:** Establishes mechanical extraction standards, scanning scopes, and null-output gates.
-* **`system_rule`:** Mandates universal epistemological invariants (e.g., Zero-Trust verification, Request For Information [RFI] protocol enforcement, anti-speculation locks).
-* **`task_definition`:** Governs non-matrix synthesis and reasoning directives (e.g., executive summary distillation, graph synthesis, row score explanations).
+* **`system_rule`:** Mandates universal epistemological invariants (`Zero-Trust verification`, `Request For Information [RFI] protocol enforcement`, `anti-speculation locks`) and non-matrix specialist reasoning directives. Human-facing candidate assessment briefings are strictly decoupled from `PromptBlock` and persisted as independent `TaskBrief` domain entities (`EntityPrefix.TASK_BRIEF = "tbr"`) in the `task_briefs` table.
 * **`runtime_variables`:** Isolates dynamic instructions that require real-time temporal and environmental substitutions.
 
 ---
@@ -666,11 +664,11 @@ Defines the structural content format in `BlockDataType`:
 #### 4.3.7 Instruction Text & Template Substitutions (`instruction_text`)
 * **Model:** Defined on `SystemRulePromptBlock`.
 * **Type:** `StrictStr | None`.
-* **Role:** Primary directive text for system rules, task definitions, and runtime variables.
+* **Role:** Primary directive text for system rules and runtime variables.
 * **Template Placeholders Supported:**
-  * `{TARGET_LANGUAGE}`: Dynamically substituted with the resolved human-readable target language name (e.g., `"Finnish"` or `"English"`).
-  * `{CURRENT_DATE}`: Dynamically substituted with the ISO-8601 UTC date (e.g., `"YYYY-MM-DD"`).
-  * `{DYNAMIC_TIME}`: Dynamically substituted with the UTC execution timestamp (e.g., `"HH:MM:SS UTC"`).
+  * `{TARGET_LANGUAGE}`: Dynamically substituted with the resolved human-readable target language name (`"Finnish"` or `"English"`).
+  * `{CURRENT_DATE}`: Dynamically substituted with the ISO-8601 UTC date (`"YYYY-MM-DD"`).
+  * `{DYNAMIC_TIME}`: Dynamically substituted with the UTC execution timestamp (`"HH:MM:SS UTC"`).
 * **Compilation Branching:**
   * For `category_id != RUNTIME_VARIABLES`: Compiled via `LocalizationCompiler.compile_static_instructions()` into Layer 1 static cache prefix:
     ```xml
@@ -723,7 +721,7 @@ graph TD
         R2["Execution Persona (execution_persona_block_id)"]
         R3["Role Directive: <ROLE_DIRECTIVE> (role_block_id)"]
         R4["Extraction Protocol: <EXTRACTION_PROTOCOL> (extraction_protocol_block_id)"]
-        R5["System Rules & Task Definitions: <CRITERIA_GUIDELINES> (criteria_block_ids)"]
+        R5["System Rules: <CRITERIA_GUIDELINES> (criteria_block_ids)"]
         R6["Academic Grounding: <theory_context>"]
     end
 

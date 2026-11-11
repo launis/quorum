@@ -57,7 +57,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_api_router_ssot_governance.md] @[ki_zero_permissive_typing.md] @[ki_god_code_prevention.md]
   ```
@@ -123,12 +123,13 @@
   - **Step 4 (`c021d4b8e`)**: Registered `SeedCollectionName.TASK_BRIEFS = "task_briefs"`, updated `sanitize_seed_vault.py` and `audit_database_atoms.py` (8 collections), reclassified 11 active DAG instruction blocks in `@[backend_v2/seed/seed_data.json#L13965-L19274]` to `"system_rule"` with 100% prompt preservation, deleted the 2 unreferenced synthesis blocks, seeded 2 bilingual `task_briefs` (`tbr_0195f3a00000700d8a1b2c3d4e5f6001`, `tbr_0195f3a00000700d8a1b2c3d4e5f6002`), and re-seeded local PostgreSQL 19 (`90` `prompt_blocks`, `2` `task_briefs`).
   - **Step 5 (`d21fab3a6`)**: Created Flutter `TaskBrief` Freezed model (`@[client_app_v2/lib/features/studio/models/task_brief.dart]`), added 6 CRUD+Clone `studio/task-briefs` methods in `@[client_app_v2/lib/core/api/studio_client.dart]`, migrated `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]` and `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`, purged `TaskDefinitionPromptBlock` and `PromptBlockCategory.taskDefinition`, updated `@[.agents/rules/04_directory_reference.md]`, and verified `flutter_audit_loop.py` (0 violations), `audit_dto_parity.py` (93/93 shared models aligned), `backend_audit_loop.py` (7,187 passed, 97.50% coverage), and live E2E `test_integration_real_llm.py` (7/7 passed).
 - Completed Tier 8 System 2 Post-Implementation Plan Audit (`/tier8-audit-plan`): verified 22/22 requirements (`REQ-001` through `REQ-022`), 0 ZORM violations across 415 files, 0 technical debt findings across 33 targets and 207 1-hop callers, and 100% plan-tracker parity (`audit_plan_tracker_parity.py` & `audit_tracker_output.py`).
+- Completed Tier 7 As-Built Architectural Sync (`/tier7-describe-architecture`): synchronized `@[docs/architecture/01_system_context_and_invariants.md]`, `@[docs/architecture/02_data_seeding_and_ontology.md]`, `@[docs/architecture/04_server_driven_ui_and_presentation.md]`, `@[docs/architecture/05_resilience_and_observability.md]`, and `@[docs/architecture/09_llm_prompt_orchestration_and_matrix_evaluation.md]` with the 16-table PostgreSQL 19 schema, 12 `CANONICAL_SEED_TABLES`, 8 seeded entity collections (`task_briefs`), `TaskBrief` (`EntityPrefix.TASK_BRIEF = "tbr"`), `StudioTaskBriefService` (`/api/v2/studio/task-briefs`) 5-operation CRUD+Clone lifecycle, `execution_assignments.task_brief_id REFERENCES task_briefs(id) ON DELETE SET NULL`, and removal of `PromptBlockCategory.TASK_DEFINITION`.
 
 ## Learned
 - On persistent PostgreSQL 19 volumes previously seeded before `PromptBlockCategory.TASK_DEFINITION` removal, `ON CONFLICT (id) DO UPDATE` in `run_seed.py` updates existing IDs but leaves deleted seed rows (`blk_0195f3a0000070018a2b3c4d5e6f7a8b`, `blk_0195f3a0000070088b7a6f5e4d3c2b1a`) in `prompt_blocks`. Adding idempotent `DELETE FROM prompt_blocks WHERE category_id NOT IN ('matrix', 'system_rule', 'runtime_variables', 'persona', 'protocol');` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L472-L473]` deterministically purges retired categories during `apply_migrations()`.
 
 ## Remaining
-- Execute Tier 2 Hardening (`scripts/auto_hardening_runner.py` with `--gate all`) and As-Built Architectural Sync (`/tier7-describe-architecture`).
+- Execute Tier 2 Hardening (`scripts/auto_hardening_runner.py` with `--gate all`).
 
 ## Resume Command
 ```powershell
