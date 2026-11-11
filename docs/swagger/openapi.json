@@ -4261,7 +4261,6 @@
                         "matrix": "#/components/schemas/MatrixPromptBlock",
                         "system_rule": "#/components/schemas/SystemRulePromptBlock",
                         "runtime_variables": "#/components/schemas/SystemRulePromptBlock",
-                        "task_definition": "#/components/schemas/SystemRulePromptBlock",
                         "execution_persona": "#/components/schemas/PersonaPromptBlock",
                         "agent_role": "#/components/schemas/PersonaPromptBlock",
                         "protocol": "#/components/schemas/ProtocolPromptBlock"
@@ -4352,7 +4351,6 @@
                       "matrix": "#/components/schemas/MatrixPromptBlock",
                       "system_rule": "#/components/schemas/SystemRulePromptBlock",
                       "runtime_variables": "#/components/schemas/SystemRulePromptBlock",
-                      "task_definition": "#/components/schemas/SystemRulePromptBlock",
                       "execution_persona": "#/components/schemas/PersonaPromptBlock",
                       "agent_role": "#/components/schemas/PersonaPromptBlock",
                       "protocol": "#/components/schemas/ProtocolPromptBlock"
@@ -4443,7 +4441,6 @@
                       "matrix": "#/components/schemas/MatrixPromptBlock",
                       "system_rule": "#/components/schemas/SystemRulePromptBlock",
                       "runtime_variables": "#/components/schemas/SystemRulePromptBlock",
-                      "task_definition": "#/components/schemas/SystemRulePromptBlock",
                       "execution_persona": "#/components/schemas/PersonaPromptBlock",
                       "agent_role": "#/components/schemas/PersonaPromptBlock",
                       "protocol": "#/components/schemas/ProtocolPromptBlock"
@@ -4531,7 +4528,6 @@
                     "matrix": "#/components/schemas/MatrixPromptBlock",
                     "system_rule": "#/components/schemas/SystemRulePromptBlock",
                     "runtime_variables": "#/components/schemas/SystemRulePromptBlock",
-                    "task_definition": "#/components/schemas/SystemRulePromptBlock",
                     "execution_persona": "#/components/schemas/PersonaPromptBlock",
                     "agent_role": "#/components/schemas/PersonaPromptBlock",
                     "protocol": "#/components/schemas/ProtocolPromptBlock"
@@ -4568,7 +4564,6 @@
                       "matrix": "#/components/schemas/MatrixPromptBlock",
                       "system_rule": "#/components/schemas/SystemRulePromptBlock",
                       "runtime_variables": "#/components/schemas/SystemRulePromptBlock",
-                      "task_definition": "#/components/schemas/SystemRulePromptBlock",
                       "execution_persona": "#/components/schemas/PersonaPromptBlock",
                       "agent_role": "#/components/schemas/PersonaPromptBlock",
                       "protocol": "#/components/schemas/ProtocolPromptBlock"
@@ -4732,13 +4727,390 @@
                       "matrix": "#/components/schemas/MatrixPromptBlock",
                       "system_rule": "#/components/schemas/SystemRulePromptBlock",
                       "runtime_variables": "#/components/schemas/SystemRulePromptBlock",
-                      "task_definition": "#/components/schemas/SystemRulePromptBlock",
                       "execution_persona": "#/components/schemas/PersonaPromptBlock",
                       "agent_role": "#/components/schemas/PersonaPromptBlock",
                       "protocol": "#/components/schemas/ProtocolPromptBlock"
                     }
                   },
                   "title": "Response Clone Prompt Block Api V2 Studio Prompt Blocks  Id  Clone Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/task-briefs/": {
+      "get": {
+        "tags": [
+          "Admin Studio V2 - Task Briefs"
+        ],
+        "summary": "Get Task Briefs",
+        "description": "Retrieve all TaskBrief records accessible to the authenticated tenant.\n\nArgs:\n    current_user: The authenticated user making the request.\n    task_brief_service: The task brief service dependency.\n\nReturns:\n    A list of accessible TaskBrief domain models.\n\nRaises:\n    AppException: With ErrorCodes.VALIDATION_FAILED if persisted records fail validation.",
+        "operationId": "get_task_briefs_api_v2_studio_task_briefs__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskBriefResponseDTO"
+                  },
+                  "title": "Response Get Task Briefs Api V2 Studio Task Briefs  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Task Briefs"
+        ],
+        "summary": "Create Task Brief",
+        "description": "Create a new TaskBrief draft securely via the SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    task_brief_service: The task brief service dependency.\n\nReturns:\n    The newly created TaskBrief draft.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the created draft cannot be reloaded.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.",
+        "operationId": "create_task_brief_api_v2_studio_task_briefs__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBriefResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/task-briefs/{id}": {
+      "get": {
+        "tags": [
+          "Admin Studio V2 - Task Briefs"
+        ],
+        "summary": "Get Task Brief",
+        "description": "Retrieve a specific TaskBrief by its unique Opaque Stripe ID.\n\nArgs:\n    id: The unique tbr_<32_hex> identifier of the task brief.\n    current_user: The authenticated user making the request.\n    task_brief_service: The task brief service dependency.\n\nReturns:\n    The requested TaskBrief domain model.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the task brief is not found.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant access isolation is violated.",
+        "operationId": "get_task_brief_api_v2_studio_task_briefs__id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBriefResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Studio V2 - Task Briefs"
+        ],
+        "summary": "Save Task Brief",
+        "description": "Create or update a TaskBrief in-place under its authoritative ID.\n\nArgs:\n    id: The unique tbr_<32_hex> identifier of the task brief.\n    data: The updated TaskBrief domain model payload.\n    current_user: The authenticated user making the request.\n    task_brief_service: The task brief service dependency.\n\nReturns:\n    The saved TaskBrief domain model.\n\nRaises:\n    AppException: With ErrorCodes.ID_MISMATCH if path id does not match payload id.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the task brief is not found after save.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.",
+        "operationId": "save_task_brief_api_v2_studio_task_briefs__id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskBrief"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBriefResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Studio V2 - Task Briefs"
+        ],
+        "summary": "Delete Task Brief",
+        "description": "Delete a TaskBrief by its unique Opaque Stripe ID.\n\nArgs:\n    id: The unique tbr_<32_hex> identifier of the task brief to delete.\n    current_user: The authenticated user making the request.\n    task_brief_service: The task brief service dependency.\n\nReturns:\n    TaskBriefDeleteResponse confirming the deleted ID.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the task brief does not exist.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.\n    AppException: With ErrorCodes.DELETE_BLOCKED_BY_USAGE if referenced by an assignment.",
+        "operationId": "delete_task_brief_api_v2_studio_task_briefs__id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBriefDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/task-briefs/{id}/clone": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Task Briefs"
+        ],
+        "summary": "Clone Task Brief",
+        "description": "Deep clone an existing TaskBrief under a newly generated Opaque Stripe ID.\n\nArgs:\n    id: The unique tbr_<32_hex> identifier of the source task brief to clone.\n    current_user: The authenticated user making the request.\n    task_brief_service: The task brief service dependency.\n\nReturns:\n    The newly cloned TaskBrief domain model.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the source task brief is not found.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant access or modification rights are violated.",
+        "operationId": "clone_task_brief_api_v2_studio_task_briefs__id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskBriefResponseDTO"
                 }
               }
             }
@@ -10013,7 +10385,7 @@
                 "type": "null"
               }
             ],
-            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+            "description": "Optional TaskBrief ID (tbr_<hex32>)"
           },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
@@ -10065,7 +10437,7 @@
           "hard_deadline_at"
         ],
         "title": "ExecutionAssignmentBatchCreateDTO",
-        "description": "Payload for bulk-creating 1 to 500 single-use workflow execution assignments.\n\nAttributes:\n    recipients: List of 1 to 500 task assignment recipients.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Shared target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional shared Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional shared Task Definition PromptBlock ID (blk_<hex32>).\n    target_locale: Default target execution locale.\n    locked_inputs: Shared manager-locked workflow inputs.\n    assignee_input_keys: Shared ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Shared post-submission result visibility policy.\n    hard_deadline_at: Shared absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional shared countdown timer in seconds from activation."
+        "description": "Payload for bulk-creating 1 to 500 single-use workflow execution assignments.\n\nAttributes:\n    recipients: List of 1 to 500 task assignment recipients.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Shared target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional shared Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional shared TaskBrief ID (tbr_<hex32>).\n    target_locale: Default target execution locale.\n    locked_inputs: Shared manager-locked workflow inputs.\n    assignee_input_keys: Shared ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Shared post-submission result visibility policy.\n    hard_deadline_at: Shared absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional shared countdown timer in seconds from activation."
       },
       "ExecutionAssignmentBatchResponseDTO": {
         "properties": {
@@ -10135,7 +10507,7 @@
                 "type": "null"
               }
             ],
-            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+            "description": "Optional TaskBrief ID (tbr_<hex32>)"
           },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
@@ -10187,7 +10559,7 @@
           "hard_deadline_at"
         ],
         "title": "ExecutionAssignmentCreateDTO",
-        "description": "Payload for creating a single-use workflow execution assignment.\n\nAttributes:\n    assigned_email: Recipient email address.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
+        "description": "Payload for creating a single-use workflow execution assignment.\n\nAttributes:\n    assigned_email: Recipient email address.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional TaskBrief ID (tbr_<hex32>).\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
       },
       "ExecutionAssignmentDraftDTO": {
         "properties": {
@@ -10282,7 +10654,7 @@
                 "type": "null"
               }
             ],
-            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+            "description": "Optional TaskBrief ID (tbr_<hex32>)"
           },
           "task_brief": {
             "anyOf": [
@@ -10293,7 +10665,7 @@
                 "type": "null"
               }
             ],
-            "description": "Hydrated Task Definition PromptBlock metadata"
+            "description": "Hydrated TaskBrief metadata"
           },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
@@ -10335,7 +10707,7 @@
           "hard_deadline_at"
         ],
         "title": "ExecutionAssignmentPreviewDTO",
-        "description": "Public pre-activation preview of a single-use workflow execution assignment.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    organization_name: Display name of the issuing organization.\n    assigned_email_masked: Masked recipient email hint (e.g. 'j***@example.com').\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).\n    task_brief: Optional hydrated TaskAssignmentBriefDTO.\n    target_locale: Target execution locale.\n    status: Current assignment status.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
+        "description": "Public pre-activation preview of a single-use workflow execution assignment.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    organization_name: Display name of the issuing organization.\n    assigned_email_masked: Masked recipient email hint (e.g. 'j***@example.com').\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    task_brief_id: Optional TaskBrief ID (tbr_<hex32>).\n    task_brief: Optional hydrated TaskAssignmentBriefDTO.\n    target_locale: Target execution locale.\n    status: Current assignment status.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
       },
       "ExecutionAssignmentRecipientDTO": {
         "properties": {
@@ -10445,7 +10817,7 @@
                 "type": "null"
               }
             ],
-            "description": "Optional Task Definition PromptBlock ID (blk_<hex32>)"
+            "description": "Optional TaskBrief ID (tbr_<hex32>)"
           },
           "task_brief": {
             "anyOf": [
@@ -10456,7 +10828,7 @@
                 "type": "null"
               }
             ],
-            "description": "Hydrated Task Definition PromptBlock metadata"
+            "description": "Hydrated TaskBrief metadata"
           },
           "target_locale": {
             "$ref": "#/components/schemas/SystemLocale",
@@ -10576,7 +10948,7 @@
           "created_at"
         ],
         "title": "ExecutionAssignmentResponseDTO",
-        "description": "API response DTO representing a task assignment without exposing token_hash.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    batch_id: Optional cohort batch ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    assigned_email: Recipient email address.\n    assigned_user_id: Bound User ID once activated (usr_<hex32>).\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional Task Definition PromptBlock ID (blk_<hex32>).\n    task_brief: Optional hydrated TaskAssignmentBriefDTO.\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    draft_inputs: Server-side auto-saved draft inputs.\n    status: Lifecycle status of the task assignment.\n    email_delivery_status: Transactional email delivery status.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation.\n    activated_at: UTC activation timestamp.\n    submitted_at: UTC submission timestamp.\n    execution_id: Triggered ExecutionRecord ID (exe_<hex32>).\n    created_by: Creator User ID (usr_<hex32>).\n    created_at: UTC creation timestamp."
+        "description": "API response DTO representing a task assignment without exposing token_hash.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    batch_id: Optional cohort batch ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    assigned_email: Recipient email address.\n    assigned_user_id: Bound User ID once activated (usr_<hex32>).\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    task_brief_id: Optional TaskBrief ID (tbr_<hex32>).\n    task_brief: Optional hydrated TaskAssignmentBriefDTO.\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    draft_inputs: Server-side auto-saved draft inputs.\n    status: Lifecycle status of the task assignment.\n    email_delivery_status: Transactional email delivery status.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation.\n    activated_at: UTC activation timestamp.\n    submitted_at: UTC submission timestamp.\n    execution_id: Triggered ExecutionRecord ID (exe_<hex32>).\n    created_by: Creator User ID (usr_<hex32>).\n    created_at: UTC creation timestamp."
       },
       "ExecutionAssignmentSubmitDTO": {
         "properties": {
@@ -19509,7 +19881,6 @@
         "enum": [
           "matrix",
           "agent_role",
-          "task_definition",
           "system_rule",
           "protocol",
           "runtime_variables",
@@ -19567,8 +19938,7 @@
                 "matrix": "#/components/schemas/MatrixPromptBlock",
                 "protocol": "#/components/schemas/ProtocolPromptBlock",
                 "runtime_variables": "#/components/schemas/SystemRulePromptBlock",
-                "system_rule": "#/components/schemas/SystemRulePromptBlock",
-                "task_definition": "#/components/schemas/SystemRulePromptBlock"
+                "system_rule": "#/components/schemas/SystemRulePromptBlock"
               }
             }
           },
@@ -24737,8 +25107,7 @@
             "type": "string",
             "enum": [
               "system_rule",
-              "runtime_variables",
-              "task_definition"
+              "runtime_variables"
             ],
             "title": "Category Id",
             "default": "system_rule"
@@ -24793,7 +25162,7 @@
           "description"
         ],
         "title": "SystemRulePromptBlock",
-        "description": "System rule, runtime variables, or task definition prompt block."
+        "description": "System rule or runtime variables prompt block."
       },
       "SystemValidationRulesDTO": {
         "properties": {
@@ -25131,7 +25500,7 @@
         "properties": {
           "id": {
             "$ref": "#/components/schemas/PrefixedUUID7",
-            "description": "Canonical PromptBlock ID (blk_<hex32>)"
+            "description": "Canonical TaskBrief ID (tbr_<hex32>)"
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -25159,7 +25528,7 @@
               }
             ],
             "title": "Source Url",
-            "description": "Optional reference URL from theory_grounding.source_url"
+            "description": "Optional reference document or external resource URL"
           }
         },
         "additionalProperties": false,
@@ -25169,7 +25538,161 @@
           "label"
         ],
         "title": "TaskAssignmentBriefDTO",
-        "description": "Hydrated Task Definition PromptBlock summary embedded in task assignment responses.\n\nAttributes:\n    id: Canonical PromptBlock Opaque Stripe ID (blk_<hex32>).\n    label: Localized title of the task brief.\n    instruction_text: Optional plain-text or markdown task instructions.\n    source_url: Optional reference document or external resource URL."
+        "description": "Hydrated TaskBrief summary embedded in task assignment responses.\n\nAttributes:\n    id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).\n    label: Localized title of the task brief.\n    instruction_text: Optional plain-text or markdown task instructions.\n    source_url: Optional reference document or external resource URL."
+      },
+      "TaskBrief": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Id",
+            "description": "Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>)."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Slug",
+            "description": "Human-readable routing helper field with zero data relation role."
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Tenant organization ID or None for system briefs."
+          },
+          "label": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized title for the UI."
+          },
+          "description": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized summary description for the UI."
+          },
+          "instruction_text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Instruction Text",
+            "description": "Reusable human-facing task brief and case description text."
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Optional reference document or external resource URL."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "label",
+          "description",
+          "instruction_text"
+        ],
+        "title": "TaskBrief",
+        "description": "Immutable domain model for a reusable human-facing task brief and case description.\n\nAttributes:\n    id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).\n    slug: Human-readable routing helper identifier with zero data relation role.\n    organization_id: Owning Organization Opaque Stripe ID or None for system-wide briefs.\n    label: Localized title of the task brief.\n    description: Localized summary description of the task brief.\n    instruction_text: Detailed plain-text or markdown task instructions shown to assignees.\n    source_url: Optional external reference document or resource URL."
+      },
+      "TaskBriefDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Action outcome status message."
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id",
+            "description": "Opaque ID of the deleted task brief."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "TaskBriefDeleteResponse",
+        "description": "API Response schema for deleting a TaskBrief.\n\nAttributes:\n    status: Action outcome status message.\n    deleted_id: Opaque ID of the deleted task brief."
+      },
+      "TaskBriefResponseDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Id",
+            "description": "Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>)."
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Slug",
+            "description": "Human-readable routing helper field with zero data relation role."
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Explicitly exposed for Admin Studio UI routing."
+          },
+          "label": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized title for the UI."
+          },
+          "description": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized summary description for the UI."
+          },
+          "instruction_text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Instruction Text",
+            "description": "Reusable human-facing task brief and case description text."
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Optional reference document or external resource URL."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "label",
+          "description",
+          "instruction_text"
+        ],
+        "title": "TaskBriefResponseDTO",
+        "description": "API Response boundary for TaskBrief ensuring Data Sovereignty.\n\nAttributes:\n    organization_id: Explicitly exposed for Admin Studio UI routing."
       },
       "TenantSecretCreateDTO": {
         "properties": {
