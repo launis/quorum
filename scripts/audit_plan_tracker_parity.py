@@ -40,6 +40,25 @@ CYAN = ANSIColors.CYAN
 BOLD = ANSIColors.BOLD
 RESET = ANSIColors.RESET
 
+__all__ = [
+    "GuardrailSeverity",
+    "ParityAuditFindingDTO",
+    "ParityAuditReportDTO",
+    "ParityRuleCode",
+    "PlanDocumentAST",
+    "PlanStepDTO",
+    "PlanTargetFileDTO",
+    "TraceabilityRowDTO",
+    "TrackerDocumentAST",
+    "TrackerHardeningChecklistDTO",
+    "TrackerStepCheckboxDTO",
+    "audit_plan_tracker_parity",
+    "main",
+    "parse_plan_document",
+    "parse_tracker_document",
+    "print_audit_report",
+]
+
 
 class ParityRuleCode(StrEnum):
     """Deterministic rule codes for plan vs. tracker parity audits."""
@@ -211,7 +230,15 @@ def _is_frontend_path(posix_path: str) -> bool:
 
 
 def parse_plan_document(content: str, plan_path: Path) -> PlanDocumentAST:
-    """Parse an implementation plan markdown document into a strongly typed PlanDocumentAST."""
+    """Parse an implementation plan markdown document into a strongly typed PlanDocumentAST.
+
+    Args:
+        content: Raw markdown text of the implementation plan.
+        plan_path: Filesystem path to the plan document.
+
+    Returns:
+        Parsed structural AST representation of the implementation plan.
+    """
     # 1. Title
     title_match = re.search(r"^#\s+([^\n]+)", content, re.MULTILINE)
     title = title_match.group(1).strip() if title_match else plan_path.name
@@ -289,7 +316,15 @@ def parse_plan_document(content: str, plan_path: Path) -> PlanDocumentAST:
 
 
 def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentAST:
-    """Parse an execution tracker markdown document into a strongly typed TrackerDocumentAST."""
+    """Parse an execution tracker markdown document into a strongly typed TrackerDocumentAST.
+
+    Args:
+        content: Raw markdown text of the execution tracker.
+        tracker_path: Filesystem path to the tracker document.
+
+    Returns:
+        Parsed structural AST representation of the execution tracker.
+    """
     # 1. Title
     title_match = re.search(r"^#\s+([^\n]+)", content, re.MULTILINE)
     title = title_match.group(1).strip() if title_match else tracker_path.name
@@ -446,8 +481,112 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
     )
 
 
+def _audit_domain_hardening_files(
+    *,
+    domain_label: str,
+    expected_ext: str,
+    ext_name: str,
+    tracker_files: set[str],
+    prod_targets: set[str],
+    deleted_targets: set[str],
+    all_plan_target_paths: set[str],
+) -> list[ParityAuditFindingDTO]:
+    """Validate hardening checklist entries for a specific domain (Backend or Frontend).
+
+    Args:
+        domain_label: Human-readable domain label ('Backend' or 'Frontend').
+        expected_ext: Required file extension ('.py' or '.dart').
+        ext_name: Human-readable language name ('Python' or 'Dart').
+        tracker_files: Set of file paths listed under the domain's hardening checklist.
+        prod_targets: Set of surviving production target file paths from the plan.
+        deleted_targets: Set of target file paths marked for deletion in the plan.
+        all_plan_target_paths: Set of all target file paths declared in the plan.
+
+    Returns:
+        List of parity audit findings for the domain's hardening checklist.
+    """
+    domain_findings: list[ParityAuditFindingDTO] = []
+    gate_title = f"Tier 2 Hardening ({domain_label})"
+
+    for fpath in sorted(tracker_files):
+        if not fpath.lower().endswith(expected_ext):
+            domain_findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Non-{ext_name} file `{fpath}` in {gate_title} checklist is invalid; "
+                        f"hardening only runs on `{expected_ext}` files."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `{gate_title}` in tracker.",
+                )
+            )
+        elif _is_test_path(fpath):
+            test_desc = "unit/integration tests" if domain_label == "Backend" else "tests"
+            domain_findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Test file `{fpath}` in {gate_title} checklist is invalid; "
+                        f"{test_desc} are verification evidence, not hardening targets."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `{gate_title}` in tracker.",
+                )
+            )
+        elif fpath in deleted_targets:
+            domain_findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Deleted file `{fpath}` in {gate_title} checklist is invalid; "
+                        "hardening applies exclusively to surviving production files."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `{gate_title}` in tracker.",
+                )
+            )
+
+    for fpath in sorted(prod_targets - tracker_files):
+        domain_findings.append(
+            ParityAuditFindingDTO(
+                rule_code=ParityRuleCode.TPR004,
+                category="Hardening Checklist",
+                severity=GuardrailSeverity.FATAL,
+                message=f"Production {domain_label.lower()} target `{fpath}` missing from {gate_title} checklist.",
+                remediation=f"Add `  - [ ] @[{fpath}]` under `{gate_title}` in tracker.",
+            )
+        )
+
+    for fpath in sorted(tracker_files - all_plan_target_paths):
+        domain_findings.append(
+            ParityAuditFindingDTO(
+                rule_code=ParityRuleCode.TPR005,
+                category="Orphan Targets",
+                severity=GuardrailSeverity.WARNING,
+                message=(
+                    f"Tracker lists {domain_label.lower()} hardening file `{fpath}`, not declared in plan target files."
+                ),
+                remediation="Declare target file in plan or remove from tracker hardening checklist.",
+            )
+        )
+
+    return domain_findings
+
+
 def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDocumentAST) -> ParityAuditReportDTO:
-    """Perform deterministic neuro-symbolic parity audit between plan AST and tracker AST."""
+    """Perform deterministic neuro-symbolic parity audit between plan AST and tracker AST.
+
+    Args:
+        plan_ast: Parsed implementation plan AST.
+        tracker_ast: Parsed execution tracker AST.
+
+    Returns:
+        Comprehensive parity audit report containing all findings and pass/fail status.
+    """
     findings: list[ParityAuditFindingDTO] = []
 
     plan_step_ids = {s.step_id for s in plan_ast.steps}
@@ -530,133 +669,30 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
 
     tracker_backend_files = set(tracker_ast.hardening_checklist.backend_files)
     tracker_frontend_files = set(tracker_ast.hardening_checklist.frontend_files)
-
-    for fpath in sorted(tracker_backend_files):
-        if not fpath.lower().endswith(".py"):
-            findings.append(
-                ParityAuditFindingDTO(
-                    rule_code=ParityRuleCode.TPR004,
-                    category="Hardening Checklist",
-                    severity=GuardrailSeverity.FATAL,
-                    message=(
-                        f"Non-Python file `{fpath}` in Tier 2 Hardening (Backend) checklist is invalid; "
-                        "hardening only runs on `.py` files."
-                    ),
-                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Backend)` in tracker.",
-                )
-            )
-        elif _is_test_path(fpath):
-            findings.append(
-                ParityAuditFindingDTO(
-                    rule_code=ParityRuleCode.TPR004,
-                    category="Hardening Checklist",
-                    severity=GuardrailSeverity.FATAL,
-                    message=(
-                        f"Test file `{fpath}` in Tier 2 Hardening (Backend) checklist is invalid; "
-                        "unit/integration tests are verification evidence, not hardening targets."
-                    ),
-                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Backend)` in tracker.",
-                )
-            )
-        elif fpath in deleted_targets:
-            findings.append(
-                ParityAuditFindingDTO(
-                    rule_code=ParityRuleCode.TPR004,
-                    category="Hardening Checklist",
-                    severity=GuardrailSeverity.FATAL,
-                    message=(
-                        f"Deleted file `{fpath}` in Tier 2 Hardening (Backend) checklist is invalid; "
-                        "hardening applies exclusively to surviving production files."
-                    ),
-                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Backend)` in tracker.",
-                )
-            )
-
-    for fpath in sorted(tracker_frontend_files):
-        if not fpath.lower().endswith(".dart"):
-            findings.append(
-                ParityAuditFindingDTO(
-                    rule_code=ParityRuleCode.TPR004,
-                    category="Hardening Checklist",
-                    severity=GuardrailSeverity.FATAL,
-                    message=(
-                        f"Non-Dart file `{fpath}` in Tier 2 Hardening (Frontend) checklist is invalid; "
-                        "hardening only runs on `.dart` files."
-                    ),
-                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Frontend)` in tracker.",
-                )
-            )
-        elif _is_test_path(fpath):
-            findings.append(
-                ParityAuditFindingDTO(
-                    rule_code=ParityRuleCode.TPR004,
-                    category="Hardening Checklist",
-                    severity=GuardrailSeverity.FATAL,
-                    message=(
-                        f"Test file `{fpath}` in Tier 2 Hardening (Frontend) checklist is invalid; "
-                        "tests are verification evidence, not hardening targets."
-                    ),
-                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Frontend)` in tracker.",
-                )
-            )
-        elif fpath in deleted_targets:
-            findings.append(
-                ParityAuditFindingDTO(
-                    rule_code=ParityRuleCode.TPR004,
-                    category="Hardening Checklist",
-                    severity=GuardrailSeverity.FATAL,
-                    message=(
-                        f"Deleted file `{fpath}` in Tier 2 Hardening (Frontend) checklist is invalid; "
-                        "hardening applies exclusively to surviving production files."
-                    ),
-                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Frontend)` in tracker.",
-                )
-            )
-
-    for fpath in sorted(backend_prod_targets - tracker_backend_files):
-        findings.append(
-            ParityAuditFindingDTO(
-                rule_code=ParityRuleCode.TPR004,
-                category="Hardening Checklist",
-                severity=GuardrailSeverity.FATAL,
-                message=f"Production backend target `{fpath}` missing from Tier 2 Hardening (Backend) checklist.",
-                remediation=f"Add `  - [ ] @[{fpath}]` under `Tier 2 Hardening (Backend)` in tracker.",
-            )
-        )
-
-    for fpath in sorted(frontend_prod_targets - tracker_frontend_files):
-        findings.append(
-            ParityAuditFindingDTO(
-                rule_code=ParityRuleCode.TPR004,
-                category="Hardening Checklist",
-                severity=GuardrailSeverity.FATAL,
-                message=f"Production frontend target `{fpath}` missing from Tier 2 Hardening (Frontend) checklist.",
-                remediation=f"Add `  - [ ] @[{fpath}]` under `Tier 2 Hardening (Frontend)` in tracker.",
-            )
-        )
-
-    # Check TPR005: Orphan Hardening Target
     all_plan_target_paths = {t.file_path for t in plan_ast.target_files}
-    for fpath in sorted(tracker_backend_files - all_plan_target_paths):
-        findings.append(
-            ParityAuditFindingDTO(
-                rule_code=ParityRuleCode.TPR005,
-                category="Orphan Targets",
-                severity=GuardrailSeverity.WARNING,
-                message=f"Tracker lists backend hardening file `{fpath}`, not declared in plan target files.",
-                remediation="Declare target file in plan or remove from tracker hardening checklist.",
-            )
+
+    findings.extend(
+        _audit_domain_hardening_files(
+            domain_label="Backend",
+            expected_ext=".py",
+            ext_name="Python",
+            tracker_files=tracker_backend_files,
+            prod_targets=backend_prod_targets,
+            deleted_targets=deleted_targets,
+            all_plan_target_paths=all_plan_target_paths,
         )
-    for fpath in sorted(tracker_frontend_files - all_plan_target_paths):
-        findings.append(
-            ParityAuditFindingDTO(
-                rule_code=ParityRuleCode.TPR005,
-                category="Orphan Targets",
-                severity=GuardrailSeverity.WARNING,
-                message=f"Tracker lists frontend hardening file `{fpath}`, not declared in plan target files.",
-                remediation="Declare target file in plan or remove from tracker hardening checklist.",
-            )
+    )
+    findings.extend(
+        _audit_domain_hardening_files(
+            domain_label="Frontend",
+            expected_ext=".dart",
+            ext_name="Dart",
+            tracker_files=tracker_frontend_files,
+            prod_targets=frontend_prod_targets,
+            deleted_targets=deleted_targets,
+            all_plan_target_paths=all_plan_target_paths,
         )
+    )
 
     # Check TPR006: Context Rules & Knowledge Items Parity
     plan_rules_set = set(plan_ast.rules)
@@ -798,7 +834,11 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
 
 
 def print_audit_report(report: ParityAuditReportDTO) -> None:
-    """Print beautifully formatted console output for the audit report."""
+    """Print formatted console output for the audit report.
+
+    Args:
+        report: Computed parity audit report to render to stdout.
+    """
     plan_name = Path(report.plan_file).name
     tracker_name = Path(report.tracker_file).name
 
@@ -838,7 +878,14 @@ def print_audit_report(report: ParityAuditReportDTO) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entrypoint for plan vs tracker parity audit."""
+    """CLI entrypoint for plan vs tracker parity audit.
+
+    Args:
+        argv: Optional list of CLI arguments. Defaults to sys.argv[1:] when None.
+
+    Raises:
+        SystemExit: Always exits with status code 0 (pass), 1 (failure), or 2 (usage error).
+    """
     parser = argparse.ArgumentParser(
         description="""Bidirectional Plan-Tracker Parity AST Auditor (TPR001-TPR010).
 

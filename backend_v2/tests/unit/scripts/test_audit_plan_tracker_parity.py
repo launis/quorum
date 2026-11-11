@@ -619,3 +619,102 @@ def test_deleted_target_included_in_hardening_checklist_triggers_fatal_tpr004(tm
     messages = " ".join(f.message for f in fatal_findings)
     assert "Deleted file `backend_v2/services/dead_router.py` in Tier 2 Hardening (Backend)" in messages
     assert "Deleted file `client_app_v2/lib/dead_view.dart` in Tier 2 Hardening (Frontend)" in messages
+
+
+def test_negative_parity_violations_and_strict_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify negative parity findings (TPR001-TPR009), markdown step headings, and --strict CLI exit."""
+    plan_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+</required_context_rules>
+# Plan: Markdown Steps
+## Target Scope
+- `[MODIFY]` @[backend_v2/services/missing_target.py]
+- `[MODIFY]` @[client_app_v2/lib/missing_view.dart]
+
+### Step 1: First Markdown Step
+### Step 2: Second Markdown Step
+"""
+    tracker_text = """@[docs/implementationplans/other_plan.md]
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Tracker: Negative Violations
+## Step Execution Status
+- [ ] **[NOK] Execution:** `/tier2-execute`
+  - [ ] Step 1: First Markdown Step
+  - [ ] Step 99: Orphan Execution Step
+
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+  - [ ] @[backend_v2/services/orphan_target.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
+  - [ ] @[client_app_v2/test/widget_test.dart]
+
+### Documentation & Knowledge Item Update
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+
+### Final Plan Audit
+- [ ] **[NOK]** System 2 Red-Team Audit: Run:
+
+## Requirements Traceability Matrix
+| Req | Desc | Plan Step | Status |
+|---|---|---|---|
+| R1 | Short | 1 | [ ] Pending |
+| R99 | Orphan matrix row description | 88 | [ ] Pending |
+"""
+    p_file = tmp_path / "plan_md.md"
+    p_file.write_text(plan_text, encoding="utf-8")
+    t_file = tmp_path / "tracker_neg.md"
+    t_file.write_text(tracker_text, encoding="utf-8")
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--tracker", str(t_file), "--plan", str(p_file)])
+    assert exc_info.value.code == 1
+
+    captured = capsys.readouterr()
+    assert "[FAILED] PARITY AUDIT FAILED" in captured.out
+    assert "TPR001" in captured.out
+    assert "TPR002" in captured.out
+    assert "TPR003" in captured.out
+    assert "TPR004" in captured.out
+    assert "TPR005" in captured.out
+    assert "TPR006" in captured.out
+    assert "TPR007" in captured.out
+    assert "TPR008" in captured.out
+    assert "TPR009" in captured.out
+
+
+def test_warnings_only_strict_flag_and_empty_all(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verify --strict fails on warning-only findings and --all fails when no trackers exist."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "docs" / "implementationplans").mkdir(parents=True)
+    with pytest.raises(SystemExit) as empty_exc:
+        main(["--all"])
+    assert empty_exc.value.code == 1
+
+    plan_file = tmp_path / "plan.md"
+    plan_file.write_text(SAMPLE_PLAN, encoding="utf-8")
+
+    # Add a short description in RTM to trigger TPR009 WARNING while keeping 0 FATAL errors
+    warn_tracker = (
+        SAMPLE_TRACKER.replace(r"@\[plan.md]", f"@[{plan_file.as_posix()}]")
+        .replace("Initialize baseline tooling and verification gates", "Short")
+        .replace("@[plan.md]", f"@[{plan_file.as_posix()}]")
+    )
+    tracker_file = tmp_path / "tracker.md"
+    tracker_file.write_text(warn_tracker, encoding="utf-8")
+
+    # Without --strict, passes with exit code 0 and prints PASSED WITH WARNINGS
+    with pytest.raises(SystemExit) as pass_exc:
+        main(["--tracker", str(tracker_file), "--plan", str(plan_file)])
+    assert pass_exc.value.code == 0
+    assert "[PASSED WITH WARNINGS]" in capsys.readouterr().out
+
+    # With --strict, exits with 1 on warnings
+    with pytest.raises(SystemExit) as strict_exc:
+        main(["--tracker", str(tracker_file), "--plan", str(plan_file), "--strict"])
+    assert strict_exc.value.code == 1
