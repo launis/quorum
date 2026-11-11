@@ -37,9 +37,32 @@ try:
 except ImportError:
     from scripts._script_base import GuardrailSeverity as GuardrailSeverity
 
+__all__ = [
+    "GuardrailSeverity",
+    "TrackerAuditFinding",
+    "TrackerMode",
+    "check_hardening_targets",
+    "check_mandatory_sections",
+    "check_phase_format",
+    "check_required_context_rules",
+    "check_session_handover",
+    "check_step_format",
+    "check_traceability_mapping",
+    "check_traceability_mapping_plan",
+    "main",
+]
+
 
 class TrackerAuditFinding(BaseModel):
-    """Pydantic V2 DTO representing an architectural tracker structure violation."""
+    """Pydantic V2 DTO representing an architectural tracker structure violation.
+
+    Attributes:
+        section: Markdown section header where the violation occurred.
+        rule_code: Rule code identifier conforming to TRK001-TRK008.
+        message: Human-readable violation description.
+        severity: Guardrail severity classification.
+        remediation: Actionable remediation instruction.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -97,7 +120,14 @@ def check_mandatory_sections(content: str, mode: TrackerMode = TrackerMode.EPIC)
 
 
 def check_phase_format(content: str) -> list[TrackerAuditFinding]:
-    """Validate format compliance for all Phase sections in the tracker."""
+    """Validate format compliance for all Phase sections in the tracker.
+
+    Args:
+        content: Raw markdown text of the tracker file.
+
+    Returns:
+        List of audit findings for phase format violations.
+    """
     phase_pattern = re.compile(
         r"###\s+Phase\s+(\d+)[^\n]*\n([\s\S]*?)(?=(?:###\s+Phase\s+\d+|###\s+Integration Checkpoint|###\s+Post-Implementation|\Z))",
         re.IGNORECASE,
@@ -226,7 +256,14 @@ def check_step_format(content: str) -> list[TrackerAuditFinding]:
 
 
 def check_required_context_rules(content: str) -> list[TrackerAuditFinding]:
-    """Verify presence of <required_context_rules> block referencing 00-antigravity-core.md."""
+    """Verify presence of <required_context_rules> block referencing 00-antigravity-core.md.
+
+    Args:
+        content: Raw markdown text of the tracker file.
+
+    Returns:
+        List of audit findings for missing or incomplete context rule blocks.
+    """
     match = re.search(r"<required_context_rules>([\s\S]*?)</required_context_rules>", content)
     if not match:
         return [
@@ -337,7 +374,14 @@ def check_hardening_targets(content: str) -> list[TrackerAuditFinding]:
 
 
 def check_session_handover(content: str) -> list[TrackerAuditFinding]:
-    """Verify Session Handover Context sub-headings (tolerating Status for completed trackers)."""
+    """Verify Session Handover Context sub-headings (tolerating Status for completed trackers).
+
+    Args:
+        content: Raw markdown text of the tracker file.
+
+    Returns:
+        List of audit findings for missing Session Handover Context sections or sub-headings.
+    """
     match = re.search(r"#\s+Session Handover Context([\s\S]*?)(?=\Z)", content, re.IGNORECASE)
     if not match:
         return [
@@ -378,7 +422,15 @@ def check_session_handover(content: str) -> list[TrackerAuditFinding]:
 def check_traceability_mapping(
     content: str, plan_dir: Path
 ) -> tuple[list[TrackerAuditFinding], list[TrackerAuditFinding]]:
-    """Bidirectional verification between Requirements Traceability Matrix and Plan Steps."""
+    """Bidirectional verification between Requirements Traceability Matrix and Plan Steps.
+
+    Args:
+        content: Raw markdown text of the tracker file.
+        plan_dir: Directory containing phased Markdown implementation plans.
+
+    Returns:
+        Tuple of (errors, warnings) representing untracked or orphan steps.
+    """
     plan_files = sorted(plan_dir.glob("*.md"))
     if not plan_files:
         return [], [
@@ -516,8 +568,45 @@ def check_traceability_mapping_plan(
     return errors, warnings
 
 
+def _report_traceability_results(
+    t_errs: list[TrackerAuditFinding],
+    t_warns: list[TrackerAuditFinding],
+) -> bool:
+    """Print forward and reverse traceability matrix findings and return whether fatal errors occurred.
+
+    Args:
+        t_errs: Fatal forward-mapping findings for untracked steps.
+        t_warns: Advisory reverse-mapping findings for orphan matrix entries.
+
+    Returns:
+        True if fatal forward-mapping errors were found, False otherwise.
+    """
+    has_errors = False
+    if t_errs:
+        print("[FAIL] Traceability Matrix Forward Map:")
+        for e in t_errs:
+            print(f"  - [{e.rule_code}] {e.message}")
+            print(f"    Remediation: {e.remediation}")
+        has_errors = True
+    else:
+        print("[PASS] Traceability Matrix: All plan steps tracked in matrix.")
+    if t_warns:
+        print("[WARN] Traceability Matrix Reverse Map:")
+        for w in t_warns:
+            print(f"  - [{w.rule_code}] {w.message}")
+            print(f"    Remediation: {w.remediation}")
+    return has_errors
+
+
 def main(argv: list[str] | None = None) -> None:
-    """Execute structural audit for tracker file."""
+    """Execute structural audit for tracker file.
+
+    Args:
+        argv: Optional list of CLI arguments; defaults to sys.argv when None.
+
+    Raises:
+        SystemExit: Exits with status code 0 on compliance or 1 on audit failure.
+    """
     parser = argparse.ArgumentParser(
         description="""Tracker Output Structural & Invariant Compliance Auditor.
 
@@ -617,38 +706,16 @@ Statically validates Epic Trackers and Standalone Plan Trackers against system f
         p_file = Path(args.plan_file)
         if p_file.exists() and p_file.is_file():
             t_errs, t_warns = check_traceability_mapping_plan(content, p_file)
-            if t_errs:
-                print("[FAIL] Traceability Matrix Forward Map:")
-                for e in t_errs:
-                    print(f"  - [{e.rule_code}] {e.message}")
-                    print(f"    Remediation: {e.remediation}")
+            if _report_traceability_results(t_errs, t_warns):
                 failed = True
-            else:
-                print("[PASS] Traceability Matrix: All plan steps tracked in matrix.")
-            if t_warns:
-                print("[WARN] Traceability Matrix Reverse Map:")
-                for w in t_warns:
-                    print(f"  - [{w.rule_code}] {w.message}")
-                    print(f"    Remediation: {w.remediation}")
         else:
             print(f"[WARN] Plan file `{args.plan_file}` does not exist, skipping mapping check.")
     elif args.plan_dir:
         p_dir = Path(args.plan_dir)
         if p_dir.exists() and p_dir.is_dir():
             t_errs, t_warns = check_traceability_mapping(content, p_dir)
-            if t_errs:
-                print("[FAIL] Traceability Matrix Forward Map:")
-                for e in t_errs:
-                    print(f"  - [{e.rule_code}] {e.message}")
-                    print(f"    Remediation: {e.remediation}")
+            if _report_traceability_results(t_errs, t_warns):
                 failed = True
-            else:
-                print("[PASS] Traceability Matrix: All plan steps tracked in matrix.")
-            if t_warns:
-                print("[WARN] Traceability Matrix Reverse Map:")
-                for w in t_warns:
-                    print(f"  - [{w.rule_code}] {w.message}")
-                    print(f"    Remediation: {w.remediation}")
         else:
             print(f"[WARN] Plan directory `{args.plan_dir}` does not exist, skipping mapping check.")
 

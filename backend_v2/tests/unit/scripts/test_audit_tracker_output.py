@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from scripts.audit_tracker_output import (
     GuardrailSeverity,
@@ -60,6 +61,27 @@ def test_tracker_audit_dto_structure() -> None:
     assert finding.rule_code == "TRK001"
     assert finding.severity == GuardrailSeverity.FATAL
     assert finding.remediation == "Add section header."
+
+    with pytest.raises(ValidationError):
+        TrackerAuditFinding(
+            section="Mandatory Sections",
+            rule_code="INVALID_CODE",
+            message="Invalid rule code format.",
+            severity=GuardrailSeverity.FATAL,
+            remediation="Fix rule code.",
+        )
+
+    with pytest.raises(ValidationError):
+        TrackerAuditFinding.model_validate(
+            {
+                "section": "Mandatory Sections",
+                "rule_code": "TRK001",
+                "message": "Extra field test.",
+                "severity": GuardrailSeverity.FATAL,
+                "remediation": "Remove extra field.",
+                "unexpected_extra": "forbidden",
+            }
+        )
 
 
 def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
@@ -816,6 +838,18 @@ def test_plan_mode_cli_execution_valid_and_failing(tmp_path: Path, monkeypatch: 
     sub_res = _run_tracker_audit(valid_plan_tracker, plan_file=plan_file)
     assert sub_res.returncode == 0
     assert "AUDIT PASSED" in sub_res.stdout
+
+    # 7. Reverse-map warning (orphan step in tracker matrix) exits 0 with warning output
+    empty_step_plan = tmp_path / "empty_step_plan.md"
+    empty_step_plan.write_text("<execution_protocol></execution_protocol>", encoding="utf-8")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["audit_tracker_output.py", "--tracker", str(valid_plan_tracker), "--plan-file", str(empty_step_plan)],
+    )
+    with pytest.raises(SystemExit) as exc_orphan_warn:
+        main()
+    assert exc_orphan_warn.value.code == 0
 
 
 def test_tracker_audit_zero_reflection_compliance() -> None:
