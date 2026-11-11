@@ -1036,9 +1036,9 @@ def test_main_cli_default_subagent_template_resolution(tmp_path: Path, monkeypat
 
 
 def test_default_model_selection_medium_and_cli_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """TC-AHR-039: Verify default model='gemini-4-argon-medium' and --model CLI override in execute_subagent_pass."""
+    """TC-AHR-039: Verify default model='gemini-4-carbon-medium' and --model CLI override in execute_subagent_pass."""
     default_dto = HardeningRunnerArgsDTO(targets=["backend_v2/test.py"])
-    assert default_dto.model == "gemini-4-argon-medium"
+    assert default_dto.model == "gemini-4-carbon-medium"
     assert default_dto.micro_audit is True
     assert "{model}" in DEFAULT_BACKEND_AGENT_TEMPLATE
     assert "{model}" in DEFAULT_FRONTEND_AGENT_TEMPLATE
@@ -1065,7 +1065,7 @@ def test_default_model_selection_medium_and_cli_override(tmp_path: Path, monkeyp
         no_auto_fix=True,
     )
     assert execute_subagent_pass("backend_v2/test.py", args_default, repo_root=tmp_path) is True
-    assert "gemini-4-argon-medium" in executed_cmds[-1]
+    assert "gemini-4-carbon-medium" in executed_cmds[-1]
 
     # CLI override --model gemini-3.8-flash-high
     captured_dtos: list[HardeningRunnerArgsDTO] = []

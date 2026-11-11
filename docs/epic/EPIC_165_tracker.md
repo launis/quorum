@@ -66,7 +66,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_165_tracker.md]" --gate all --model gemini-4-argon-medium --timeout 3600 --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_165_tracker.md]" --gate all --model gemini-4-carbon-medium --timeout 3600 --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[backend_v2/api/dependencies.py]
   - [ ] @[backend_v2/core/hook_registry.py]
   - [ ] @[backend_v2/database/__init__.py]
@@ -166,7 +166,7 @@
   - [ ] @[scripts/reconcile_storage.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
   - [ ] @[scripts/sanitize_seed_vault.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_165_tracker.md]" --gate all --model gemini-4-argon-medium --timeout 3600 --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_165_tracker.md]" --gate all --model gemini-4-carbon-medium --timeout 3600 --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_record.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_step.dart]

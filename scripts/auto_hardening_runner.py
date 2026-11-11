@@ -229,8 +229,8 @@ class HardeningRunnerArgsDTO(BaseModel):
     verbose: Annotated[bool, Field(default=False, description="Enable verbose log output.")] = False
     model: Annotated[
         str,
-        Field(default="gemini-4-argon-medium", description="AI model identifier for subagent hardening iterations."),
-    ] = "gemini-4-argon-medium"
+        Field(default="gemini-4-carbon-medium", description="AI model identifier for subagent hardening iterations."),
+    ] = "gemini-4-carbon-medium"
     micro_audit: Annotated[
         bool,
         Field(
@@ -2165,9 +2165,18 @@ Key Behavioral Invariants for Autonomous AI Agents:
     parser.add_argument(
         "--model",
         type=str,
-        choices=["gemini-4-argon-medium", "gemini-4-argon-high", "gemini-3.8-flash-high", "gemini-3.8-flash"],
-        default="gemini-4-argon-medium",
-        help="AI model identifier for subagent hardening iterations (default: gemini-4-argon-medium).",
+        choices=[
+            "gemini-4-carbon-medium",
+            "gemini-4-carbon-high",
+            "gemini-4-carbon-low",
+            "gemini-4-argon-medium",
+            "gemini-4-argon-high",
+            "gemini-4-argon-low",
+            "gemini-3.8-flash-high",
+            "gemini-3.8-flash",
+        ],
+        default="gemini-4-carbon-medium",
+        help="AI model identifier for subagent hardening iterations (default: gemini-4-carbon-medium).",
     )
     parser.add_argument(
         "--no-micro",

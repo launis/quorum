@@ -160,7 +160,7 @@ class AutoPhaseRunnerArgsDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     tracker: Annotated[Path, Field(description="Path to target tracker file.")]
-    model: Annotated[str, Field(default="gemini-4-argon-high", description="CLI model name.")] = "gemini-4-argon-high"
+    model: Annotated[str, Field(default="gemini-4-carbon-high", description="CLI model name.")] = "gemini-4-carbon-high"
     from_phase: Annotated[int | None, Field(default=None, description="Start execution from phase N.")] = None
     only_phase: Annotated[int | None, Field(default=None, description="Execute only phase N.")] = None
     skip_commit: Annotated[bool, Field(default=False, description="Skip automated git commit after phase.")] = False
@@ -180,10 +180,10 @@ class AutoPhaseRunnerArgsDTO(BaseModel):
     hardening_model: Annotated[
         str | None,
         Field(
-            default="gemini-4-argon-medium",
-            description="LLM model for hardening subagent; defaults to gemini-4-argon-medium.",
+            default="gemini-4-carbon-medium",
+            description="LLM model for hardening subagent; defaults to gemini-4-carbon-medium.",
         ),
-    ] = "gemini-4-argon-medium"
+    ] = "gemini-4-carbon-medium"
     max_retries: Annotated[
         int,
         Field(
@@ -1367,7 +1367,7 @@ def run_post_hardening_gate(
         )
         return 0
 
-    h_model = args.hardening_model or "gemini-4-argon-medium"
+    h_model = args.hardening_model or "gemini-4-carbon-medium"
 
     # 1. Backend Hardening Gate
     if backend_targets:
@@ -1385,6 +1385,8 @@ def run_post_hardening_gate(
             str(cleaned_tracker),
             "--gate",
             "backend",
+            "--model",
+            h_model,
         ]
         if args.hardening_agent:
             agent_cmd_template = (
@@ -1423,6 +1425,8 @@ def run_post_hardening_gate(
             str(cleaned_tracker),
             "--gate",
             "frontend",
+            "--model",
+            h_model,
         ]
         if args.hardening_agent:
             agent_cmd_template = f'agy --model {h_model} --dangerously-skip-permissions --print "/tier2-hardening-frontend @[{{target}}]"'
@@ -1989,8 +1993,8 @@ Key Behavioral Invariants for Autonomous AI Agents:
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-4-argon-high",
-        help="Model name for agy subagent execution (default: gemini-4-argon-high).",
+        default="gemini-4-carbon-high",
+        help="Model name for agy subagent execution (default: gemini-4-carbon-high).",
     )
     parser.add_argument(
         "--from-phase",
@@ -2028,8 +2032,8 @@ Key Behavioral Invariants for Autonomous AI Agents:
     parser.add_argument(
         "--hardening-model",
         type=str,
-        default="gemini-4-argon-medium",
-        help="LLM model override for hardening subagent (default: gemini-4-argon-medium).",
+        default="gemini-4-carbon-medium",
+        help="LLM model override for hardening subagent (default: gemini-4-carbon-medium).",
     )
     parser.add_argument(
         "--timeout",
