@@ -156,10 +156,10 @@ class InputProcessingOutputDTO(ReasoningTraceDTO):
             The validated InputProcessingOutputDTO instance.
 
         Raises:
-            ValueError: If is_safe is False and rejection_reason is missing.
+            AppException: If is_safe is False and rejection_reason is missing (VALIDATION_FAILED).
         """
         if not self.is_safe and not self.rejection_reason:
             msg = "rejection_reason must be provided if is_safe is False"
             logger.error("[SecurityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise ValueError(msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return self

@@ -1,7 +1,12 @@
+"""Unit tests for SecurityCheck and InputProcessingOutputDTO domain models."""
+
+from __future__ import annotations
+
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.security import (
     InputProcessingOutputDTO,
     SecurityCheck,
@@ -9,106 +14,132 @@ from backend_v2.models.domain.security import (
 from backend_v2.models.enums import LaxRiskLevel
 
 
+class SecurityCheckFactory(ModelFactory[SecurityCheck]):
+    """Polyfactory model factory for SecurityCheck domain model."""
+
+    __model__ = SecurityCheck
+    threat_detected: bool = False
+    risk_level: LaxRiskLevel = LaxRiskLevel.LOW
+    risk_score: float = 1.0
+    simulation_score: float = 1.0
+    anonymized: bool = False
+
+
+class InputProcessingOutputDTOFactory(ModelFactory[InputProcessingOutputDTO]):
+    """Polyfactory model factory for InputProcessingOutputDTO domain model."""
+
+    __model__ = InputProcessingOutputDTO
+    thought_process: str = "Checking the inputs for safety..."
+    conclusion: str = "No threats found."
+    confidence_score: float = 0.99
+    is_safe: bool = True
+    rejection_reason: str | None = None
+    security_check: SecurityCheck | None = None
+
+
 def test_security_check_valid() -> None:
     """Test that a valid SecurityCheck model instantiates properly."""
-    data = {
-        "threat_detected": False,
-        "risk_level": LaxRiskLevel.LOW,
-        "risk_score": 1.0,
-        "simulation_score": 1.0,
-        "anonymized": False,
-        "pii_findings": [],
-    }
-    model = SecurityCheck.model_validate(data)
+    model = SecurityCheckFactory.build(
+        threat_detected=False,
+        risk_level=LaxRiskLevel.LOW,
+        risk_score=1.0,
+        simulation_score=1.0,
+        anonymized=False,
+        pii_findings=[],
+    )
     assert model.threat_detected is False
     assert model.risk_score == 1.0
 
 
 def test_security_check_exact_boundaries() -> None:
     """Test SecurityCheck accepts exact 1.0 and 3.0 boundary scores."""
-    data = {
-        "threat_detected": False,
-        "risk_level": LaxRiskLevel.LOW,
-        "risk_score": 3.0,
-        "simulation_score": 1.0,
-        "anonymized": False,
-    }
-    model = SecurityCheck.model_validate(data)
+    model = SecurityCheckFactory.build(
+        threat_detected=False,
+        risk_level=LaxRiskLevel.LOW,
+        risk_score=3.0,
+        simulation_score=1.0,
+        anonymized=False,
+    )
     assert model.risk_score == 3.0
+    assert model.simulation_score == 1.0
 
 
 def test_security_check_lower_boundary_score() -> None:
     """Test that SecurityCheck fails on score lower than 1.0."""
-    data = {
-        "threat_detected": True,
-        "risk_level": LaxRiskLevel.HIGH,
-        "risk_score": 0.9,
-        "simulation_score": 1.0,
-        "anonymized": False,
-    }
     with pytest.raises(AppException) as exc:
-        SecurityCheck.model_validate(data)
+        SecurityCheck.model_validate(
+            {
+                "threat_detected": True,
+                "risk_level": LaxRiskLevel.HIGH,
+                "risk_score": 0.9,
+                "simulation_score": 1.0,
+                "anonymized": False,
+            }
+        )
 
     assert "Score must be between 1.0 and 3.0 inclusive." in exc.value.message
+    assert exc.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
 def test_security_check_invalid_score() -> None:
     """Test that SecurityCheck fails on out of bounds scores."""
-    data = {
-        "threat_detected": True,
-        "risk_level": LaxRiskLevel.HIGH,
-        "risk_score": 5.0,  # Invalid
-        "simulation_score": 1.0,
-        "anonymized": False,
-        "pii_findings": [],
-    }
     with pytest.raises(AppException) as exc:
-        SecurityCheck.model_validate(data)
+        SecurityCheck.model_validate(
+            {
+                "threat_detected": True,
+                "risk_level": LaxRiskLevel.HIGH,
+                "risk_score": 5.0,
+                "simulation_score": 1.0,
+                "anonymized": False,
+                "pii_findings": [],
+            }
+        )
 
     assert "Score must be between 1.0 and 3.0 inclusive." in exc.value.message
+    assert exc.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
 def test_input_processing_output_valid_safe() -> None:
     """Test that a safe InputProcessingOutputDTO instantiates properly."""
-    data = {
-        "thought_process": "Checking the inputs for safety...",
-        "conclusion": "No threats found.",
-        "confidence_score": 0.99,
-        "is_safe": True,
-        "rejection_reason": None,
-    }
-    model = InputProcessingOutputDTO.model_validate(data)
+    model = InputProcessingOutputDTOFactory.build(
+        thought_process="Checking the inputs for safety...",
+        conclusion="No threats found.",
+        confidence_score=0.99,
+        is_safe=True,
+        rejection_reason=None,
+    )
     assert model.is_safe is True
     assert model.rejection_reason is None
 
 
 def test_input_processing_output_valid_unsafe() -> None:
     """Test that an unsafe InputProcessingOutputDTO instantiates properly with a reason."""
-    data = {
-        "thought_process": "Checking the inputs...",
-        "conclusion": "Threat found.",
-        "confidence_score": 0.95,
-        "is_safe": False,
-        "rejection_reason": "Contains malware.",
-    }
-    model = InputProcessingOutputDTO.model_validate(data)
+    model = InputProcessingOutputDTOFactory.build(
+        thought_process="Checking the inputs...",
+        conclusion="Threat found.",
+        confidence_score=0.95,
+        is_safe=False,
+        rejection_reason="Contains malware.",
+    )
     assert model.is_safe is False
     assert model.rejection_reason == "Contains malware."
 
 
 def test_input_processing_output_invalid_unsafe_no_reason() -> None:
-    """Test that an unsafe InputProcessingOutputDTO without a reason raises ValidationError."""
-    data = {
-        "thought_process": "Checking inputs...",
-        "conclusion": "Threat found.",
-        "confidence_score": 0.99,
-        "is_safe": False,
-        "rejection_reason": None,
-    }
-    with pytest.raises(ValidationError) as exc:
-        InputProcessingOutputDTO.model_validate(data)
+    """Test that an unsafe InputProcessingOutputDTO without a reason raises AppException."""
+    with pytest.raises(AppException) as exc:
+        InputProcessingOutputDTO.model_validate(
+            {
+                "thought_process": "Checking inputs...",
+                "conclusion": "Threat found.",
+                "confidence_score": 0.99,
+                "is_safe": False,
+                "rejection_reason": None,
+            }
+        )
 
-    assert "rejection_reason must be provided if is_safe is False" in str(exc.value)
+    assert "rejection_reason must be provided if is_safe is False" in exc.value.message
+    assert exc.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
 def test_security_extra_fields_forbidden() -> None:
