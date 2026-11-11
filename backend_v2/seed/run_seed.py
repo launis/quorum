@@ -49,10 +49,11 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode, UserRole
 from backend_v2.models.state import StateProjector as _StateProjector
-from backend_v2.seed.seed_registry import SystemConfigUnion
+from backend_v2.seed.seed_registry import SeedCollectionName, SystemConfigUnion
 from backend_v2.services.auth.secret_service import SecretService
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.settings import get_settings
@@ -63,14 +64,15 @@ SEED_PATH = Path(get_settings().seed_data_path)
 DEFAULT_MCP_GATEWAY_ID: str = "sys_0195f3a00000700080008172bda70c86"
 
 TOPOLOGICAL_SEED_ORDER: tuple[str, ...] = (
-    "organizations",
-    "users",
-    "system_config",
-    "prompt_blocks",
-    "steps",
-    "workflows",
-    "output_profiles",
-    "executions",
+    SeedCollectionName.ORGANIZATIONS.value,
+    SeedCollectionName.USERS.value,
+    SeedCollectionName.SYSTEM_CONFIG.value,
+    SeedCollectionName.PROMPT_BLOCKS.value,
+    SeedCollectionName.TASK_BRIEFS.value,
+    SeedCollectionName.STEPS.value,
+    SeedCollectionName.WORKFLOWS.value,
+    SeedCollectionName.OUTPUT_PROFILES.value,
+    SeedCollectionName.EXECUTIONS.value,
 )
 
 # Configure Logging
@@ -287,6 +289,7 @@ class ValidatedSeedBufferDTO(BaseModel):
         system_config: Validated system configuration entities.
         workflows: Validated workflow blueprint entities.
         prompt_blocks: Validated polymorphic prompt block entities.
+        task_briefs: Validated reusable task brief entities.
         steps: Validated workflow step entities.
         output_profiles: Validated output profile entities.
         executions: Validated historical execution records.
@@ -307,6 +310,10 @@ class ValidatedSeedBufferDTO(BaseModel):
     prompt_blocks: Annotated[
         list[AnyPromptBlock],
         Field(default_factory=list, description="Validated polymorphic prompt block entities."),
+    ]
+    task_briefs: Annotated[
+        list[TaskBrief],
+        Field(default_factory=list, description="Validated reusable task brief entities."),
     ]
     steps: Annotated[
         list[Step],
@@ -348,6 +355,8 @@ class ValidatedSeedBufferDTO(BaseModel):
                 return self.workflows
             case "prompt_blocks":
                 return self.prompt_blocks
+            case "task_briefs":
+                return self.task_briefs
             case "steps":
                 return self.steps
             case "output_profiles":
@@ -389,6 +398,7 @@ class ValidatedSeedBufferDTO(BaseModel):
             "system_configs",
             "workflows",
             "prompt_blocks",
+            "task_briefs",
             "steps",
             "output_profiles",
             "executions",
@@ -696,6 +706,7 @@ async def _seed_postgres(
         "tenant_secrets": len(resolved_secrets.iter_secret_entries()),
         "system_configs": max(1, len(validated_buffers.system_config)),
         "prompt_blocks": max(1, len(validated_buffers.prompt_blocks)),
+        "task_briefs": max(1, len(validated_buffers.task_briefs)),
         "steps": max(1, len(validated_buffers.steps)),
         "workflows": max(1, len(validated_buffers.workflows)),
         "output_profiles": max(1, len(validated_buffers.output_profiles)),

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
@@ -18,6 +18,7 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 
 SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
@@ -28,7 +29,9 @@ def test_prompt_blocks_do_not_contain_ui_logic() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    blocks = [PromptBlockAdapter.validate_python(b) for b in data["prompt_blocks"]] if "prompt_blocks" in data else []
+    raw_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
+    assert all(b["category_id"] != "task_definition" for b in raw_blocks if "category_id" in b)
+    blocks = [PromptBlockAdapter.validate_python(b) for b in raw_blocks]
 
     for block in blocks:
         desc_text = ""
@@ -44,9 +47,17 @@ def test_prompt_blocks_do_not_contain_ui_logic() -> None:
 
         if desc_text:
             ai_desc = desc_text.upper()
-            if block.id != "blk_0195f3a0000070018a2b3c4d5e6f7a8b":
-                assert "0-100" not in ai_desc, f"Block {block.id} contains 0-100 UI scale logic in prompt text"
+            assert "0-100" not in ai_desc, f"Block {block.id} contains 0-100 UI scale logic in prompt text"
             assert "PUNCHY SENTENCE" not in ai_desc, f"Block {block.id} contains UI formatting in prompt text"
+
+    raw_task_briefs = data["task_briefs"] if "task_briefs" in data else []
+    assert len(raw_task_briefs) >= 2, "Expected at least 2 seeded TaskBrief records in seed_data.json"
+    for raw_tb in raw_task_briefs:
+        tb = TaskBrief.model_validate(raw_tb)
+        assert "en" in tb.label.translations and tb.label.translations["en"].strip()
+        assert "fi" in tb.label.translations and tb.label.translations["fi"].strip()
+        assert "en" in tb.description.translations and tb.description.translations["en"].strip()
+        assert "fi" in tb.description.translations and tb.description.translations["fi"].strip()
 
 
 def test_output_profiles_do_not_contain_execution_logic() -> None:
@@ -508,3 +519,29 @@ def test_spacy_language_models_installed() -> None:
     # Anti-Happy-Path Negative Verification: Missing models must raise OSError (Fail-Fast)
     with pytest.raises(OSError):
         spacy.load("non_existent_language_model_fail_fast")
+
+
+def test_task_brief_seed_validation_error() -> None:
+    """Negative test: TaskBrief and PromptBlockAdapter reject obsolete task_definition and wrong prefixes."""
+    with pytest.raises(ValidationError):
+        PromptBlockAdapter.validate_python(
+            {
+                "id": "blk_0195f3a000007000833180746a954415",
+                "slug": "legacy_task_def",
+                "label": {"translations": {"en": "Legacy", "fi": "Vanha"}},
+                "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+                "category_id": "task_definition",
+                "type": "instruction",
+                "instruction_text": "Legacy task definition.",
+            }
+        )
+
+    wrong_prefix_payload: dict[str, JsonValue] = {
+        "id": "blk_0195f3a000007000833180746a954415",
+        "slug": "wrong_prefix_brief",
+        "label": {"translations": {"en": "Brief", "fi": "Tehtava"}},
+        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+        "instruction_text": "Wrong prefix.",
+    }
+    with pytest.raises(ValidationError):
+        TaskBrief.model_validate(wrong_prefix_payload)

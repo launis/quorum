@@ -21,6 +21,7 @@ from scripts.audit_database_atoms import (
     audit_output_profiles,
     audit_prompt_blocks,
     audit_steps,
+    audit_task_briefs,
     audit_workflows,
     main,
     run_full_database_audit,
@@ -930,3 +931,34 @@ def test_run_full_database_audit_negative_and_boundary_partitions(tmp_path: Path
     b_max_plus_1["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "A" * 181
     issues_above, _, _ = audit_prompt_blocks([b_max_plus_1])
     assert any(i.issue_type == "BLOATED_CONCEPT" for i in issues_above)
+
+    # TaskBrief positive and negative audit boundaries
+    clean_tb = {
+        "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6001",
+        "slug": "clean_task_brief",
+        "label": {"translations": {"en": "Clean Brief", "fi": "Puhdas tehtava"}},
+        "description": {"translations": {"en": "Clean desc", "fi": "Puhdas kuvaus"}},
+        "instruction_text": "Provide product, chat log, and reflection.",
+    }
+    tb_issues_clean, tb_count = audit_task_briefs([clean_tb])
+    assert tb_count == 1
+    assert tb_issues_clean == []
+
+    bad_tb_xml_and_i18n = {
+        "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6002",
+        "slug": "bad_task_brief",
+        "label": {"translations": {"en": "Only EN"}},
+        "description": {"translations": {"en": "Only EN desc", "fi": "   "}},
+        "instruction_text": "<directive>Raw XML brief</directive>",
+    }
+    tb_issues_bad, _ = audit_task_briefs([bad_tb_xml_and_i18n, {"id": "blk_wrong_prefix"}])
+    tb_issue_types = {i.issue_type for i in tb_issues_bad}
+    assert "RAW_XML" in tb_issue_types
+    assert "MISSING_BILINGUAL_TRANSLATION" in tb_issue_types
+    assert "SCHEMA_VALIDATION_ERROR" in tb_issue_types
+
+    # Obsolete task_definition in prompt_blocks triggers SCHEMA_VALIDATION_ERROR
+    obsolete_blk_issues, _, _ = audit_prompt_blocks(
+        [{"id": "blk_0195f3a0000070008123456789abcdef", "category_id": "task_definition"}]
+    )
+    assert any(i.issue_type == "SCHEMA_VALIDATION_ERROR" for i in obsolete_blk_issues)

@@ -25,6 +25,7 @@ from scripts.sanitize_seed_vault import (
     sanitize_output_profiles,
     sanitize_prompt_blocks,
     sanitize_steps,
+    sanitize_task_briefs,
     sanitize_workflows,
     strip_raw_xml,
 )
@@ -109,8 +110,9 @@ def test_upgrade_or_generate_opaque_id_variants() -> None:
 
 def test_sanitize_dto_structure() -> None:
     """Test SanitizeResult structure, strictness, and default values."""
-    res = SanitizeResult()
+    res = SanitizeResult.model_validate({})
     assert res.total_blocks_sanitized == 0
+    assert res.total_task_briefs_sanitized == 0
     assert res.total_atoms_mutated == 0
     assert res.is_dry_run is False
     assert res.success is True
@@ -155,7 +157,7 @@ def test_create_vault_backup(tmp_path: Path) -> None:
 def test_atomic_save_seed_data(tmp_path: Path) -> None:
     """Test atomic file persistence with json dry-run validation."""
     target_file = tmp_path / "seed_data.json"
-    data = {"prompt_blocks": [], "steps": [], "workflows": [], "output_profiles": []}
+    data: dict[str, JsonValue] = {"prompt_blocks": [], "steps": [], "workflows": [], "output_profiles": []}
 
     atomic_save_seed_data(data, target_file)
     assert target_file.exists()
@@ -307,6 +309,29 @@ def test_negative_boundaries_and_schema_failures(tmp_path: Path) -> None:
         sanitize_output_profiles([{"id": "prf_1234567890abcdef", "unknown_extra_key": "rejected"}])
     assert exc_prf.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
+    # 9. sanitize_task_briefs positive & negative boundaries
+    sanitized_tbs = sanitize_task_briefs(
+        [
+            {
+                "id": "tbr_1234567890abcdef",
+                "slug": "test_brief",
+                "organization_id": "SYSTEM",
+                "label": {"translations": {"en": "Brief", "fi": "Tehtava"}},
+                "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+                "instruction_text": "<directive>Write a report.</directive>",
+            }
+        ]
+    )
+    assert len(sanitized_tbs) == 1
+    tb_dict = sanitized_tbs[0]
+    assert isinstance(tb_dict, dict)
+    assert "organization_id" not in tb_dict
+    assert "<directive>" not in str(tb_dict["instruction_text"])
+
+    with pytest.raises(AppException) as exc_tb:
+        sanitize_task_briefs([{"id": "tbr_1234567890abcdef", "unknown_extra_key": "rejected"}])
+    assert exc_tb.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
 
 def test_sanitize_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test CLI main() behavior with --dry-run and file path arguments."""
@@ -358,6 +383,7 @@ def test_sanitize_full_seed_vault_dry_run() -> None:
     assert result.success is True
     assert result.is_dry_run is True
     assert result.total_blocks_sanitized >= 90
+    assert result.total_task_briefs_sanitized >= 2
     assert result.total_steps_sanitized >= 19
     assert result.total_workflows_sanitized >= 1
     assert result.total_profiles_sanitized >= 1

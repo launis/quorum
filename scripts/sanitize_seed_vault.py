@@ -45,6 +45,7 @@ from backend_v2.models.core_base import (
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     EntityPrefix,
@@ -57,6 +58,7 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 _STEP_ADAPTER: TypeAdapter[Step] = TypeAdapter(Step)
+_TASK_BRIEF_ADAPTER: TypeAdapter[TaskBrief] = TypeAdapter(TaskBrief)
 _WORKFLOW_ADAPTER: TypeAdapter[Workflow] = TypeAdapter(Workflow)
 _OUTPUT_PROFILE_ADAPTER: TypeAdapter[OutputProfile] = TypeAdapter(OutputProfile)
 
@@ -77,6 +79,7 @@ __all__ = [
     "sanitize_output_profiles",
     "sanitize_prompt_blocks",
     "sanitize_steps",
+    "sanitize_task_briefs",
     "sanitize_workflows",
     "strip_raw_xml",
 ]
@@ -130,6 +133,7 @@ class SanitizeResult(BaseModel):
 
     Attributes:
         total_blocks_sanitized: Total prompt blocks inspected and sanitized.
+        total_task_briefs_sanitized: Total task briefs inspected and sanitized.
         total_atoms_mutated: Total matrix atoms modified.
         total_steps_sanitized: Total steps validated and cleaned.
         total_workflows_sanitized: Total workflows validated.
@@ -142,6 +146,9 @@ class SanitizeResult(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     total_blocks_sanitized: Annotated[int, Field(default=0, description="Total prompt blocks inspected and sanitized.")]
+    total_task_briefs_sanitized: Annotated[
+        int, Field(default=0, description="Total task briefs inspected and sanitized.")
+    ]
     total_atoms_mutated: Annotated[int, Field(default=0, description="Total matrix atoms modified.")]
     total_steps_sanitized: Annotated[int, Field(default=0, description="Total steps validated and cleaned.")]
     total_workflows_sanitized: Annotated[int, Field(default=0, description="Total workflows validated.")]
@@ -1035,6 +1042,52 @@ def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
     return sanitized_profiles
 
 
+def sanitize_task_briefs(task_briefs: Sequence[Any]) -> list[JsonValue]:
+    """Sanitizes task_briefs collection and validates with Pydantic V2.
+
+    Args:
+        task_briefs: Raw task brief dictionaries.
+
+    Returns:
+        Sanitized and validated task brief dictionaries.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if any task brief fails strict Pydantic V2 validation.
+    """
+    sanitized_briefs: list[JsonValue] = []
+
+    for brief in task_briefs:
+        tb: dict[str, JsonValue] = {
+            k: v for k, v in brief.items() if not (k == "organization_id" and v in (None, "SYSTEM"))
+        }
+        raw_tb_id = tb["id"] if "id" in tb else None
+        tb_id = _upgrade_or_generate_opaque_id(raw_tb_id, EntityPrefix.TASK_BRIEF)
+        tb["id"] = tb_id
+        if "organization_id" in tb and tb["organization_id"] is not None:
+            tb["organization_id"] = _upgrade_or_generate_opaque_id(tb["organization_id"], EntityPrefix.ORGANIZATION)
+        if "instruction_text" in tb and isinstance(tb["instruction_text"], str):
+            tb["instruction_text"] = strip_raw_xml(tb["instruction_text"])
+        try:
+            validated_model = _TASK_BRIEF_ADAPTER.validate_python(tb)
+        except ValidationError as exc:
+            logger.error(
+                "[Sanitizer] %s: TaskBrief '%s' failed Pydantic V2 validation: %s",
+                ErrorCodes.VALIDATION_FAILED.value,
+                tb_id,
+                exc,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"TaskBrief '{tb_id}' failed validation: {exc}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": tb_id},
+            ) from exc
+        serialized_brief = validated_model.model_dump(mode="json", exclude_none=True)
+        sanitized_briefs.append(serialized_brief)
+
+    return sanitized_briefs
+
+
 def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
     """Upgrades IDs in system_config, organizations, and users collections in-place.
 
@@ -1150,6 +1203,12 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
     sanitized_blocks, mutated_atoms = sanitize_prompt_blocks(prompt_blocks)
     data["prompt_blocks"] = sanitized_blocks
 
+    # 1b. Sanitize task_briefs
+    task_briefs = data["task_briefs"] if "task_briefs" in data and isinstance(data["task_briefs"], list) else []
+    sanitized_task_briefs = sanitize_task_briefs(task_briefs)
+    if "task_briefs" in data or sanitized_task_briefs:
+        data["task_briefs"] = sanitized_task_briefs
+
     # 2. Sanitize steps
     steps = data["steps"] if "steps" in data and isinstance(data["steps"], list) else []
     sanitized_steps = sanitize_steps(steps)
@@ -1173,6 +1232,7 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
 
     return SanitizeResult(
         total_blocks_sanitized=len(sanitized_blocks),
+        total_task_briefs_sanitized=len(sanitized_task_briefs),
         total_atoms_mutated=mutated_atoms,
         total_steps_sanitized=len(sanitized_steps),
         total_workflows_sanitized=len(sanitized_workflows),

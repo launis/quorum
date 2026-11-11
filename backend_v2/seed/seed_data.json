@@ -13981,7 +13981,7 @@
         "source_url": "https://www.wiley.com/en-us/Educative+Assessment%3A+Designing+Assessments+to+Inform+and+Improve+Student+Performance-p-9780787908488",
         "citation_reference": "Wiggins, Grant 1998."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -14008,7 +14008,7 @@
         "source_url": "https://apps.dtic.mil/sti/pdfs/ADA084551.pdf",
         "citation_reference": "Dreyfus, Stuart E. & Dreyfus, Hubert L. 1980."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -14035,7 +14035,7 @@
         "source_url": "https://doi.org/10.1017/CBO9780511802034",
         "citation_reference": "Toulmin, Stephen E. 2003."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -14062,7 +14062,7 @@
         "source_url": "https://plato.stanford.edu/entries/popper/",
         "citation_reference": "Popper, Karl 1934."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -14089,7 +14089,7 @@
         "source_url": "https://us.macmillan.com/books/9780374533557/thinkingfastandslow",
         "citation_reference": "Kahneman, Daniel 2011."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -15648,7 +15648,7 @@
         "source_url": "https://doi.org/10.1017/CBO9780511803161",
         "citation_reference": "Pearl, Judea 2009."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -15675,7 +15675,7 @@
         "source_url": "https://plato.stanford.edu/entries/legal-positivism/",
         "citation_reference": "Dworkin, Ronald 1986."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -15702,7 +15702,7 @@
         "source_url": "https://us.macmillan.com/books/9780374533557/thinkingfastandslow",
         "citation_reference": "Kahneman, Daniel 2011."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -15729,7 +15729,7 @@
         "source_url": "https://doi.org/10.1037/0003-066X.34.10.906",
         "citation_reference": "Flavell, John H. 1979."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -17421,7 +17421,7 @@
         "source_url": "https://doi.org/10.1037/0022-3514.32.2.311",
         "citation_reference": "Langer, Ellen J. (1975). The Illusion of Control; Strathern, Marilyn (1997). 'Improving ratings': audit in the British University system; Shneiderman, Ben (2022). Human-Centered AI."
       },
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
@@ -19213,63 +19213,12 @@
         }
       },
       "output_extensions": [],
-      "category_id": "task_definition",
+      "category_id": "system_rule",
       "type": "instruction",
       "is_evaluative": false,
       "allow_decimals": false,
       "is_lightweight_protocol": false,
       "instruction_text": "Generate a high-level executive summary and an urgency level based on the evaluation results."
-    },
-    {
-      "id": "blk_0195f3a0000070018a2b3c4d5e6f7a8b",
-      "slug": "exec_coach_synthesis",
-      "label": {
-        "translations": {
-          "en": "Executive Coach Synthesis",
-          "fi": "Johdon valmennussynteesi"
-        }
-      },
-      "description": {
-        "translations": {
-          "en": "Executive Coach Synthesis Block",
-          "fi": "Johdon valmentajan synteesilohko"
-        }
-      },
-      "output_extensions": [
-        "coaching",
-        "falsification",
-        "risk_flag",
-        "remediation_steps"
-      ],
-      "category_id": "task_definition",
-      "type": "instruction",
-      "is_evaluative": false,
-      "allow_decimals": false,
-      "is_lightweight_protocol": false,
-      "instruction_text": "## Role\nSenior Executive Coach\n\n## Objective\nProduce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives. Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings.\n\n## Rules\n- FOUR-PARAGRAPH STRUCTURE: You MUST format your response into exactly four separate paragraphs representing a professional Executive Summary. Do not use bullet points or markdown headers.\n- PARAGRAPH 1 (OVERVIEW & URGENCY): Provide a high-level summary of the overall performance, integrating the user's role and stating the urgency of the findings.\n- PARAGRAPH 2 (STRENGTHS & CAPABILITIES): Weave together the strongest logical and cognitive capabilities identified in the evaluation.\n- PARAGRAPH 3 (BLIND SPOTS & RISKS): Speak truthfully and highlight the critical logical gaps, false assumptions, or risks without sugarcoating.\n- PARAGRAPH 4 (STRATEGIC REMEDIATION & ROLE PREPARATION): Conclude with a concrete, actionable takeaway based on the combined coaching extensions. Note that the Python backend will dynamically append the exact User Role classification immediately after this paragraph. Ensure your closing thought flows logically into this final role declaration without trying to generate the role string yourself.\n- SCORE-DRIVEN TONE (CRITICAL): You must dynamically adjust your tone based on the mathematical 'normalized_score' (0-100) found in the source data: (1) 0-39: Zero praise. (2) 40-69: Firm and clinical. (3) 70-89: Constructive coaching. (4) 90-100: Highly validating and visionary.\n- CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws.\n- NO ACADEMIC JARGON: Translate complex theory into punchy, plain business language.\n- ENUM TRANSLATION: Do NOT translate the user role enums yourself. You MUST use the pre-translated human-readable role name provided in the source data."
-    },
-    {
-      "id": "blk_0195f3a0000070088b7a6f5e4d3c2b1a",
-      "slug": "analytical_synthesis",
-      "label": {
-        "translations": {
-          "en": "Analytical Graph Synthesis",
-          "fi": "Analyyttinen graafisynteesi"
-        }
-      },
-      "description": {
-        "translations": {
-          "en": "Analytical Graph Synthesis Block",
-          "fi": "Analyyttisen graafin synteesilohko"
-        }
-      },
-      "output_extensions": [],
-      "category_id": "task_definition",
-      "type": "instruction",
-      "is_evaluative": false,
-      "allow_decimals": false,
-      "is_lightweight_protocol": false,
-      "instruction_text": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text. CRITICAL: When evaluations data contains exact_quote fields, you MUST weave these real user quotes into your narrative to ground every claim in concrete evidence. NEVER use academic framework names (Kahneman, Toulmin, Pearl, Goodhart, Popper) — translate all theoretical findings into plain business language about the user's actual content.\n- BILINGUAL OUTPUT MANDATE: Any structural headings or titles you generate within your output MUST be bilingual in Finnish and English (e.g., 'Yhteenveto / Summary')."
     },
     {
       "id": "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
@@ -23134,6 +23083,42 @@
       "sources_display_mode": "verified_evidence",
       "variance_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
       "user_role_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e"
+    }
+  ],
+  "task_briefs": [
+    {
+      "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6001",
+      "slug": "task_brief_ai_steering_and_argumentation_audit",
+      "label": {
+        "translations": {
+          "fi": "Tekoälyohjauksen ja argumentaation täsmäauditointi – Tehtävänanto",
+          "en": "Targeted Audit of AI Steering and Argumentation – Task Brief"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Uudelleenkäytettävä tehtävänanto tekoälyavusteisen asiantuntijatuotoksen, keskustelulokin ja reflektion arviointiin.",
+          "en": "Reusable task brief for evaluating an AI-assisted expert deliverable, chat log, and reflection document."
+        }
+      },
+      "instruction_text": "TEHTÄVÄNANTO: Laadi tekoälyä hyödyntäen perusteltu asiantuntija-analyysi tai päätösesitys valitsemastasi tapauksesta ja palauta kolme syötettä:\n1. Lopputuote (product_text): Valmis kirjallinen asiantuntijatuotos, jossa esität keskeiset väitteet, kausaaliset perustelut sekä lähdeviitteet.\n2. Keskusteluhistoria (chat_log): Koko muokkaamaton vuorovaikutusloki käyttämäsi tekoälymallin kanssa. Lokista tulee käydä ilmi, miten ohjasit mallia, haastoit sen oletuksia ja varmistit väitteiden paikkansapitävyyden.\n3. Reflektiodokumentti (reflection_text): Kriittinen itsearviointi siitä, missä kohdin tekoälyn tuottamia ehdotuksia jouduttiin korjaamaan tai hylkäämään sekä miten varmistit lopputuotteen sisällöllisen ja eettisen kestävyyden."
+    },
+    {
+      "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6002",
+      "slug": "task_brief_strategic_case_decision_memo",
+      "label": {
+        "translations": {
+          "fi": "Strateginen päätösmuistio ja tekoälyvuorovaikutuksen todentaminen",
+          "en": "Strategic Decision Memo and AI Interaction Verification"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Tapauskuvaus vaativaan ongelmanratkaisuun, jossa arvioidaan lopputuotteen argumentaatiota, tekoälyohjauksen kurinalaisuutta ja kriittistä reflektiota.",
+          "en": "Case brief for complex problem-solving evaluating deliverable argumentation, AI steering discipline, and critical reflection."
+        }
+      },
+      "instruction_text": "TAPAUSKUVAUS JA OHJEET: Toimit johtavana asiantuntijana monimutkaisessa muutos- tai investointitilanteessa, johon liittyy ristiriitaisia sidosryhmätavoitteita ja epävarmuustekijöitä.\n\nTehtäväsi on tuottaa tekoälyä sparrauskumppanina käyttäen johdon päätösmuistio ja palauttaa:\n- Lopputuote (product_text): Strukturoitu päätösmuistio, joka sisältää tilannekuvan, vaihtoehtojen vertailun, valitun toimenpidesuosituksen, kausaaliset vaikutusketjut ja riskienhallintasuunnitelman.\n- Keskusteluhistoria (chat_log): Täydellinen keskusteluhistoria tekoälyn kanssa. Osoita ohjauksessasi aktiivista kriittistä ajattelua: vaadi tekoälyltä vastaväitteitä, testaa reunaoletuksia äläkä hyväksy geneeristä tai lähteetöntä tekstiä.\n- Reflektiodokumentti (reflection_text): Erittele, mitkä päätösmuistion osat syntyivät omasta asiantuntijuudestasi, miten rajasit tekoälyn roolia ja mitä riskejä tai virhepäätelmiä tunnistit tekoälyn vastauksissa prosessin aikana."
     }
   ]
 }

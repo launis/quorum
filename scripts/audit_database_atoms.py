@@ -52,6 +52,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
 
@@ -67,18 +68,20 @@ __all__ = [
     "audit_output_profiles",
     "audit_prompt_blocks",
     "audit_steps",
+    "audit_task_briefs",
     "audit_workflows",
     "main",
     "print_audit_report",
     "run_full_database_audit",
 ]
 
-# 7-collection canonical Opaque Stripe ID prefix and display field contracts
+# 8-collection canonical Opaque Stripe ID prefix and display field contracts
 SEED_COLLECTION_ALLOWED_PREFIXES: dict[str, frozenset[str]] = {
     "organizations": frozenset({EntityPrefix.ORGANIZATION}),
     "users": frozenset({EntityPrefix.USER}),
     "system_config": frozenset({EntityPrefix.SYSTEM_CONFIG}),
     "prompt_blocks": frozenset({EntityPrefix.PROMPT_BLOCK, EntityPrefix.STEP_REFERENCE}),
+    "task_briefs": frozenset({EntityPrefix.TASK_BRIEF}),
     "steps": frozenset({EntityPrefix.STEP}),
     "workflows": frozenset({EntityPrefix.WORKFLOW}),
     "output_profiles": frozenset({EntityPrefix.OUTPUT_PROFILE}),
@@ -89,6 +92,7 @@ SEED_COLLECTION_REQUIRED_DISPLAY_FIELD: dict[str, str] = {
     "users": "name",
     "system_config": "name",
     "prompt_blocks": "label",
+    "task_briefs": "label",
     "steps": "name",
     "workflows": "name",
     "output_profiles": "name",
@@ -144,6 +148,7 @@ class FullDatabaseAuditReport(V2CoreBase):
         total_steps: Total count of inspected step blueprints.
         total_workflows: Total count of inspected workflow DAGs.
         total_profiles: Total count of inspected output profiles.
+        total_task_briefs: Total count of inspected task briefs.
         issues: List of all detected AuditIssue items.
         all_passed: True if zero ERROR-severity issues exist.
     """
@@ -155,6 +160,7 @@ class FullDatabaseAuditReport(V2CoreBase):
     total_steps: Annotated[int, Field(description="Total step blueprints checked.")]
     total_workflows: Annotated[int, Field(description="Total workflow DAGs checked.")]
     total_profiles: Annotated[int, Field(description="Total output profiles checked.")]
+    total_task_briefs: Annotated[int, Field(default=0, description="Total task briefs checked.")] = 0
     issues: Annotated[list[AuditIssue], Field(default_factory=list, description="List of issues.")]
     all_passed: Annotated[bool, Field(description="Whether the full audit passed cleanly.")]
 
@@ -714,6 +720,19 @@ def audit_prompt_blocks(
                                 )
 
         else:
+            if category_id == "task_definition":
+                issues.append(
+                    AuditIssue(
+                        collection="prompt_blocks",
+                        entity_id=block_id,
+                        field_path="category_id",
+                        issue_type="SCHEMA_VALIDATION_ERROR",
+                        message=(
+                            f"Prompt block '{block_id}' uses obsolete category_id 'task_definition'; "
+                            "human task briefs must reside in 'task_briefs' and DAG step instructions must use 'system_rule'."
+                        ),
+                    )
+                )
             # Non-matrix blocks inspection
             for field_name in ["role_enforcement", "instruction_text", "protocol_instructions"]:
                 if field_name in block:
@@ -1085,6 +1104,67 @@ def audit_output_profiles(
     return issues, total_profiles
 
 
+def audit_task_briefs(
+    task_briefs: Sequence[Any],
+) -> tuple[list[AuditIssue], int]:
+    """Audits the task_briefs collection for Pydantic V2 schema conformance, XML hygiene, and bilingual parity.
+
+    Args:
+        task_briefs: List of raw task brief dictionaries.
+
+    Returns:
+        A tuple of (issues list, total_task_briefs count).
+    """
+    issues: list[AuditIssue] = []
+    total_task_briefs = len(task_briefs)
+
+    for brief in task_briefs:
+        brief_id = str(brief["id"]) if "id" in brief else "UNKNOWN_TASK_BRIEF"
+        try:
+            brief_model = TaskBrief.model_validate(brief)
+        except (ValidationError, AppException) as err:
+            issues.append(
+                AuditIssue(
+                    collection="task_briefs",
+                    entity_id=brief_id,
+                    field_path="",
+                    issue_type="SCHEMA_VALIDATION_ERROR",
+                    message=f"TaskBrief '{brief_id}' failed schema validation: {err}",
+                )
+            )
+            continue
+
+        if _contains_raw_xml(brief_model.instruction_text):
+            issues.append(
+                AuditIssue(
+                    collection="task_briefs",
+                    entity_id=brief_id,
+                    field_path="instruction_text",
+                    issue_type="RAW_XML",
+                    message=f"TaskBrief '{brief_id}' contains raw XML in 'instruction_text'.",
+                )
+            )
+
+        for i18n_field, i18n_val in (
+            ("label", brief_model.label),
+            ("description", brief_model.description),
+        ):
+            en_text = i18n_val.translations["en"].strip() if "en" in i18n_val.translations else ""
+            fi_text = i18n_val.translations["fi"].strip() if "fi" in i18n_val.translations else ""
+            if not en_text or not fi_text:
+                issues.append(
+                    AuditIssue(
+                        collection="task_briefs",
+                        entity_id=brief_id,
+                        field_path=i18n_field,
+                        issue_type="MISSING_BILINGUAL_TRANSLATION",
+                        message=f"TaskBrief '{brief_id}' requires non-empty 'en' and 'fi' translations in '{i18n_field}'.",
+                    )
+                )
+
+    return issues, total_task_briefs
+
+
 def _has_valid_display_value(collection: str, display_val: Any) -> bool:
     """Verify whether a seed record provides a non-empty canonical human-readable display field.
 
@@ -1307,11 +1387,26 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
                     )
                 )
 
+    task_briefs = data["task_briefs"] if "task_briefs" in data else []
+    for idx, tb in enumerate(task_briefs):
+        tb_id = str(tb["id"]) if "id" in tb else f"task_briefs[{idx}]"
+        org_id = tb["organization_id"] if "organization_id" in tb else None
+        if org_id is not None and str(org_id) not in organization_ids:
+            issues.append(
+                AuditIssue(
+                    collection="task_briefs",
+                    entity_id=tb_id,
+                    field_path="organization_id",
+                    issue_type="ORPHAN_ORGANIZATION_ID",
+                    message=f"TaskBrief '{tb_id}' references unknown organization_id '{org_id}'.",
+                )
+            )
+
     return issues
 
 
 def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
-    """Executes the full database prompt audit across all 7 collections.
+    """Executes the full database prompt audit across all 8 collections.
 
     Args:
         seed_data_path: Absolute or relative Path to seed_data.json.
@@ -1349,6 +1444,7 @@ def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
         )
 
     prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
+    task_briefs = data["task_briefs"] if "task_briefs" in data else []
     steps = data["steps"] if "steps" in data else []
     workflows = data["workflows"] if "workflows" in data else []
     output_profiles = data["output_profiles"] if "output_profiles" in data else []
@@ -1358,12 +1454,16 @@ def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
 
     all_issues: list[AuditIssue] = []
 
-    # Gate 0: 7-collection canonical ID, display name, and cross-collection FK integrity
+    # Gate 0: 8-collection canonical ID, display name, and cross-collection FK integrity
     all_issues.extend(audit_canonical_entity_ids(data))
 
     # Gate 1: prompt_blocks
     block_issues, total_matrices, total_atoms = audit_prompt_blocks(prompt_blocks)
     all_issues.extend(block_issues)
+
+    # Gate 1b: task_briefs
+    tb_issues, total_task_briefs = audit_task_briefs(task_briefs)
+    all_issues.extend(tb_issues)
 
     # Gate 2: steps
     step_issues, total_steps = audit_steps(steps, prompt_block_ids)
@@ -1386,6 +1486,7 @@ def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
         total_steps=total_steps,
         total_workflows=total_workflows,
         total_profiles=total_profiles,
+        total_task_briefs=total_task_briefs,
         issues=all_issues,
         all_passed=all_passed,
     )
@@ -1402,6 +1503,7 @@ def print_audit_report(report: FullDatabaseAuditReport) -> None:
     print("=" * 80)
     print(f"Total Matrices Inspected:  {report.total_matrices}")
     print(f"Total TDA Atoms Inspected: {report.total_atoms}")
+    print(f"Total Task Briefs Inspected: {report.total_task_briefs}")
     print(f"Total Steps Inspected:     {report.total_steps}")
     print(f"Total Workflows Inspected: {report.total_workflows}")
     print(f"Total Profiles Inspected:  {report.total_profiles}")

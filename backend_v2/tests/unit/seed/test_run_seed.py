@@ -93,14 +93,23 @@ VALID_OUTPUT_PROFILE: dict[str, JsonValue] = {
     "target_block_order": ["executive_summary_block"],
 }
 
+VALID_TASK_BRIEF: dict[str, JsonValue] = {
+    "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6001",
+    "slug": "test_task_brief",
+    "label": {"translations": {"en": "Task Brief", "fi": "Tehtavananto"}},
+    "description": {"translations": {"en": "Brief desc", "fi": "Kuvaus"}},
+    "instruction_text": "Complete the assignment.",
+}
+
 
 def _build_full_valid_seed_payload() -> run_seed.ValidatedSeedBufferDTO:
-    """Return a minimal valid 8-collection seed payload as ValidatedSeedBufferDTO."""
+    """Return a minimal valid 9-collection seed payload as ValidatedSeedBufferDTO."""
     raw_seed_payload: dict[str, JsonValue] = {
         "organizations": [VALID_ORGANIZATION],
         "users": [VALID_USER],
         "system_config": [VALID_SYSTEM_CONFIG],
         "prompt_blocks": [VALID_PROMPT_BLOCK],
+        "task_briefs": [VALID_TASK_BRIEF],
         "steps": [VALID_STEP],
         "workflows": [VALID_WORKFLOW],
         "output_profiles": [VALID_OUTPUT_PROFILE],
@@ -210,6 +219,7 @@ async def test_seed_postgres_full_materialization_and_count_verification() -> No
     assert counts["tenant_secrets"] == 0
     assert counts["system_configs"] == 1
     assert counts["prompt_blocks"] == 1
+    assert counts["task_briefs"] == 1
     assert counts["steps"] == 1
     assert counts["workflows"] == 1
     assert counts["output_profiles"] == 1
@@ -419,7 +429,7 @@ def test_seeder_preflight_validates_all_standard_collections() -> None:
     assert "workflows" in buffers
     assert len(buffers["workflows"]) == 1
     assert buffers.workflows[0].id == VALID_WORKFLOW["id"]
-    for col in ["users", "system_config", "prompt_blocks", "steps", "output_profiles", "executions"]:
+    for col in ["users", "system_config", "prompt_blocks", "task_briefs", "steps", "output_profiles", "executions"]:
         assert col in buffers
         assert buffers[col] == []
     with pytest.raises(KeyError):
