@@ -3,6 +3,8 @@
 Single Source of Truth for language mandates and dynamic parameter injection.
 """
 
+from __future__ import annotations
+
 import functools
 
 __all__ = [
@@ -28,7 +30,15 @@ def build_linguistic_parameters(
     target_locale: str,
     source_language: str = "Unknown/Original",
 ) -> str:
-    """Return strictly the lightweight dynamic XML parameter block."""
+    """Return strictly the lightweight dynamic XML parameter block.
+
+    Args:
+        target_locale: Target output locale code for user-facing fields.
+        source_language: Detected or declared language of the source data.
+
+    Returns:
+        Formatted XML string containing the `<linguistic_parameters>` block.
+    """
     return (
         "<linguistic_parameters>\n"
         f"  <source_data_language>{source_language.strip()}</source_data_language>\n"

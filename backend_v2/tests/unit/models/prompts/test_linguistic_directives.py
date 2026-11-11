@@ -1,9 +1,12 @@
 """Unit tests for the Linguistic Directives module.
 
-Note: The core functionality is tested extensively via `test_translation_service.py`
-and `test_prompt_integration_epic90.py`. This file exists to satisfy the strict
-1:1 File-to-Test matching mandate of the Universal Quality Gate (backend_audit_loop.py).
+Verifies static linguistic protocol constants, dynamic XML parameter block
+construction, whitespace/case boundary normalization, and invalid input handling.
 """
+
+from __future__ import annotations
+
+import pytest
 
 from backend_v2.models.prompts.common.linguistic_directives import (
     DESC_TRANSLATION_MANDATE,
@@ -27,6 +30,28 @@ def test_build_linguistic_parameters_with_custom_source() -> None:
     assert "<linguistic_parameters>" in result
     assert "<required_output_language>fi</required_output_language>" in result
     assert "<source_data_language>sv</source_data_language>" in result
+
+
+def test_build_linguistic_parameters_boundary_whitespace_and_case() -> None:
+    """Verify boundary whitespace stripping and lowercase normalization on target_locale."""
+    result = build_linguistic_parameters(
+        target_locale="  FI  ",
+        source_language="  Finnish / Suomi  ",
+    )
+    assert "<required_output_language>fi</required_output_language>" in result
+    assert "<source_data_language>Finnish / Suomi</source_data_language>" in result
+
+
+def test_build_linguistic_parameters_invalid_target_locale_error() -> None:
+    """Verify negative type boundary when target_locale is invalid."""
+    with pytest.raises(AttributeError):
+        build_linguistic_parameters(target_locale=None)
+
+
+def test_build_linguistic_parameters_invalid_source_language_error() -> None:
+    """Verify negative type boundary when source_language is invalid."""
+    with pytest.raises(AttributeError):
+        build_linguistic_parameters(target_locale="en", source_language=123)
 
 
 def test_static_linguistic_protocol_structure() -> None:
