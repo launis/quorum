@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 
-from fastapi import status
-from pydantic import ValidationError
 from pydantic_core import to_json
 
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
@@ -19,16 +16,16 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_org_uuid7,
     execute_entity_upsert,
     resolve_effective_timeout,
+    translate_postgres_exception,
+    validate_hydrated_row,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException
 from backend_v2.models.auth import Invitation, Organization, TenantSecretDTO, User
 from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
 from backend_v2.models.domain.execution import ExecutionAssignment
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.enums import EntityPrefix
-
-logger = logging.getLogger(__name__)
 
 __all__ = [
     "_GET_EXECUTION_ASSIGNMENT_SQL",
@@ -206,7 +203,13 @@ _LIST_SYSTEM_CONFIGS_SQL: str = """SELECT id, name, type, slug, default_provider
 
 
 async def _fetch_row(
-    conn: AsyncPgConnectionProtocol, timeout: float | None, sql: str, entity_uuid: object, entity_id: str
+    conn: AsyncPgConnectionProtocol,
+    timeout: float | None,
+    sql: str,
+    entity_uuid: object,
+    entity_id: str,
+    *,
+    table_name: str = "iam_entities",
 ) -> AsyncPgRecordProtocol | None:
     """Execute fetchrow with timeout and translate driver errors to AppException.
 
@@ -216,6 +219,7 @@ async def _fetch_row(
         sql: Parameterized SELECT SQL statement.
         entity_uuid: Parsed 16-byte UUID primary key parameter.
         entity_id: Canonical Opaque Stripe ID of the target entity for error reporting.
+        table_name: Canonical PostgreSQL table name for structured diagnostics.
 
     Returns:
         Database record if found, or None.
@@ -226,21 +230,14 @@ async def _fetch_row(
     effective_timeout = resolve_effective_timeout(timeout)
     try:
         return await conn.fetchrow(sql, entity_uuid, timeout=effective_timeout)
+    except AppException:
+        raise
     except Exception as exc:
-        if isinstance(exc, AppException):
-            raise
-        msg = f"Failed to fetch entity '{entity_id}': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.STORAGE_ACCESS_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name=table_name,
+            entity_id=entity_id,
         ) from exc
 
 
@@ -269,21 +266,14 @@ async def _fetch_list_rows(
     effective_timeout = resolve_effective_timeout(timeout)
     try:
         return await conn.fetch(sql, *args, timeout=effective_timeout)
+    except AppException:
+        raise
     except Exception as exc:
-        if isinstance(exc, AppException):
-            raise
-        msg = f"Failed to list rows from '{table_label}': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.STORAGE_ACCESS_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "table": table_label},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name=table_label,
+            entity_id="*",
         ) from exc
 
 
@@ -297,11 +287,13 @@ def hydrate_organization_row(row: AsyncPgRecordProtocol) -> Organization:
         Validated Organization domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the organization UUID cannot be formatted.
+        AppException: With VALIDATION_FAILED if the organization UUID or row schema is invalid.
     """
-    return Organization.model_validate(
+    org_id = str(_format_org_uuid7(row["id"]))
+    return validate_hydrated_row(
+        Organization,
         {
-            "id": str(_format_org_uuid7(row["id"])),
+            "id": org_id,
             "slug": row["slug"],
             "name": row["name"],
             "created_at": row["created_at"],
@@ -315,7 +307,8 @@ def hydrate_organization_row(row: AsyncPgRecordProtocol) -> Organization:
             "rpm_limit": int(str(row["rpm_limit"])),
             "allowed_email_domains": _decode_jsonb_column(row["allowed_email_domains"]),
         },
-        strict=False,
+        table_name="organizations",
+        entity_id=org_id,
     )
 
 
@@ -401,11 +394,13 @@ def hydrate_user_row(row: AsyncPgRecordProtocol) -> User:
         Validated User domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the user or organization UUID cannot be formatted.
+        AppException: With VALIDATION_FAILED if the user UUID or row schema is invalid.
     """
-    return User.model_validate(
+    user_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.USER)
+    return validate_hydrated_row(
+        User,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.USER),
+            "id": user_id,
             "slug": row["slug"],
             "firebase_uid": row["firebase_uid"],
             "email": row["email"],
@@ -419,7 +414,8 @@ def hydrate_user_row(row: AsyncPgRecordProtocol) -> User:
             "created_by": row["created_by"],
             "deleted_at": row["deleted_at"],
         },
-        strict=False,
+        table_name="users",
+        entity_id=user_id,
     )
 
 
@@ -515,11 +511,13 @@ def hydrate_invitation_row(row: AsyncPgRecordProtocol) -> Invitation:
         Validated Invitation domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if UUID columns cannot be formatted.
+        AppException: With VALIDATION_FAILED if UUID columns or row schema are invalid.
     """
-    return Invitation.model_validate(
+    inv_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.INVITATION)
+    return validate_hydrated_row(
+        Invitation,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.INVITATION),
+            "id": inv_id,
             "organization_id": format_prefixed_uuid7(
                 _coerce_uuid_or_str(row["organization_id"]), EntityPrefix.ORGANIZATION
             ),
@@ -532,7 +530,8 @@ def hydrate_invitation_row(row: AsyncPgRecordProtocol) -> Invitation:
             "expires_at": row["expires_at"],
             "created_at": row["created_at"],
         },
-        strict=False,
+        table_name="invitations",
+        entity_id=inv_id,
     )
 
 
@@ -641,11 +640,13 @@ def hydrate_tenant_secret_row(row: AsyncPgRecordProtocol) -> TenantSecretDTO:
         Validated TenantSecretDTO model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if UUID columns cannot be formatted.
+        AppException: With VALIDATION_FAILED if UUID columns or row schema are invalid.
     """
-    return TenantSecretDTO.model_validate(
+    sec_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.TENANT_SECRET)
+    return validate_hydrated_row(
+        TenantSecretDTO,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.TENANT_SECRET),
+            "id": sec_id,
             "organization_id": format_prefixed_uuid7(
                 _coerce_uuid_or_str(row["organization_id"]), EntityPrefix.ORGANIZATION
             ),
@@ -661,7 +662,8 @@ def hydrate_tenant_secret_row(row: AsyncPgRecordProtocol) -> TenantSecretDTO:
             "updated_by": format_prefixed_uuid7(_coerce_uuid_or_str(row["updated_by"]), EntityPrefix.USER),
             "updated_at": row["updated_at"],
         },
-        strict=False,
+        table_name="tenant_secrets",
+        entity_id=sec_id,
     )
 
 
@@ -768,11 +770,13 @@ def hydrate_execution_assignment_row(row: AsyncPgRecordProtocol) -> ExecutionAss
         Validated ExecutionAssignment domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if UUID columns cannot be formatted.
+        AppException: With VALIDATION_FAILED if UUID columns or row schema are invalid.
     """
-    return ExecutionAssignment.model_validate(
+    asg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.ASSIGNMENT)
+    return validate_hydrated_row(
+        ExecutionAssignment,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.ASSIGNMENT),
+            "id": asg_id,
             "batch_id": _format_optional_uuid7(row["batch_id"], EntityPrefix.ASSIGNMENT),
             "organization_id": format_prefixed_uuid7(
                 _coerce_uuid_or_str(row["organization_id"]), EntityPrefix.ORGANIZATION
@@ -799,7 +803,8 @@ def hydrate_execution_assignment_row(row: AsyncPgRecordProtocol) -> ExecutionAss
             "created_by": format_prefixed_uuid7(_coerce_uuid_or_str(row["created_by"]), EntityPrefix.USER),
             "created_at": row["created_at"],
         },
-        strict=False,
+        table_name="execution_assignments",
+        entity_id=asg_id,
     )
 
 
@@ -927,25 +932,29 @@ def hydrate_system_config_row(
         AppException: With VALIDATION_FAILED if the system_config UUID cannot be formatted or row validation fails.
     """
     cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
-    try:
-        if row["type"] == "mcp_gateways":
-            return SystemConfigMCPGateways.model_validate(
-                {
-                    "id": cfg_id,
-                    "name": row["name"],
-                    "type": "mcp_gateways",
-                    "slug": row["slug"],
-                    "endpoint_url": row["endpoint_url"],
-                    "transport_type": row["transport_type"],
-                    "auth_type": row["auth_type"],
-                    "auth_header_name": row["auth_header_name"],
-                    "auth_env_var": row["auth_env_var"],
-                    "timeout_seconds": row["timeout_seconds"],
-                    "tools": _decode_jsonb_column(row["tools"]),
-                },
-                strict=False,
-            )
-        return SystemConfigModelRegistry.model_validate(
+    cfg_type = row["type"]
+    if cfg_type == "mcp_gateways":
+        return validate_hydrated_row(
+            SystemConfigMCPGateways,
+            {
+                "id": cfg_id,
+                "name": row["name"],
+                "type": "mcp_gateways",
+                "slug": row["slug"],
+                "endpoint_url": row["endpoint_url"],
+                "transport_type": row["transport_type"],
+                "auth_type": row["auth_type"],
+                "auth_header_name": row["auth_header_name"],
+                "auth_env_var": row["auth_env_var"],
+                "timeout_seconds": row["timeout_seconds"],
+                "tools": _decode_jsonb_column(row["tools"]),
+            },
+            table_name="system_configs",
+            entity_id=cfg_id,
+        )
+    if cfg_type == "model_registry":
+        return validate_hydrated_row(
+            SystemConfigModelRegistry,
             {
                 "id": cfg_id,
                 "name": row["name"],
@@ -953,22 +962,19 @@ def hydrate_system_config_row(
                 "default_provider": row["default_provider"],
                 "tier_definitions": _decode_jsonb_column(row["tier_definitions"]),
             },
-            strict=False,
+            table_name="system_configs",
+            entity_id=cfg_id,
         )
-    except ValidationError as exc:
-        msg = f"Failed to hydrate system_config '{cfg_id}': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.VALIDATION_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": cfg_id},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": cfg_id},
-        ) from exc
+    return validate_hydrated_row(
+        SystemConfigModelRegistry,
+        {
+            "id": cfg_id,
+            "name": row["name"],
+            "type": cfg_type,
+        },
+        table_name="system_configs",
+        entity_id=cfg_id,
+    )
 
 
 async def upsert_system_config_row(

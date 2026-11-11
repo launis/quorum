@@ -665,3 +665,26 @@ async def test_hydrate_system_config_null_name_and_preflight_verification_raises
         assert preflight_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     finally:
         await pool.release(conn)
+
+    unknown_type_row = InMemoryAsyncPgRecord(
+        {
+            "id": cfg_uuid,
+            "name": "Unknown Config",
+            "type": "unsupported_config_type",
+            "slug": "unknown_cfg",
+            "default_provider": None,
+            "tier_definitions": None,
+            "endpoint_url": None,
+            "transport_type": None,
+            "auth_type": None,
+            "auth_header_name": None,
+            "auth_env_var": None,
+            "timeout_seconds": None,
+            "tools": None,
+        }
+    )
+    with pytest.raises(AppException) as unknown_type_exc:
+        hydrate_system_config_row(unknown_type_row)
+    assert unknown_type_exc.value.status_code == 500
+    assert unknown_type_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert unknown_type_exc.value.details["entity_id"] == cfg_id

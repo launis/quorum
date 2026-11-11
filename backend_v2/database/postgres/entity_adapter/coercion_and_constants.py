@@ -6,10 +6,10 @@ import logging
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Self
+from typing import Annotated, Protocol, Self, overload, runtime_checkable
 
 from fastapi import status
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
 from pydantic_core import from_json, to_json
 
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol
@@ -31,6 +31,7 @@ __all__ = [
     "_ROOT_SYSTEM_ORG_UUID7",
     "_ReportBinaryRowDTO",
     "_SYSTEM_ORG_UUID7",
+    "_SqlStateCarrier",
     "_TABLE_TO_ENTITY_PREFIX",
     "_coerce_float",
     "_coerce_uuid_or_str",
@@ -42,6 +43,8 @@ __all__ = [
     "_parse_org_uuid7",
     "execute_entity_upsert",
     "resolve_effective_timeout",
+    "translate_postgres_exception",
+    "validate_hydrated_row",
 ]
 
 CANONICAL_SEED_TABLES: tuple[str, ...] = (
@@ -286,6 +289,204 @@ def resolve_effective_timeout(command_timeout_seconds: float | None = None) -> f
     return get_settings().postgres_command_timeout_seconds
 
 
+@runtime_checkable
+class _SqlStateCarrier(Protocol):
+    """Structural protocol for database exceptions exposing a PostgreSQL SQLSTATE code.
+
+    Attributes:
+        sqlstate: Five-character PostgreSQL SQLSTATE error code string.
+    """
+
+    sqlstate: str
+
+
+@overload
+def validate_hydrated_row[BM: BaseModel](
+    validator: type[BM],
+    payload: object,
+    *,
+    table_name: str,
+    entity_id: str,
+) -> BM: ...
+
+
+@overload
+def validate_hydrated_row[M](
+    validator: TypeAdapter[M],
+    payload: object,
+    *,
+    table_name: str,
+    entity_id: str,
+) -> M: ...
+
+
+def validate_hydrated_row[M](
+    validator: type[BaseModel] | TypeAdapter[M],
+    payload: object,
+    *,
+    table_name: str,
+    entity_id: str,
+) -> BaseModel | M:
+    """Validate a hydrated PostgreSQL row payload Fail-Fast into a frozen domain model or typed collection.
+
+    Args:
+        validator: Target Pydantic V2 BaseModel class or TypeAdapter instance.
+        payload: Raw decoded row mapping or JSONB value from PostgreSQL.
+        table_name: Canonical PostgreSQL table name for RFC 7807 diagnostics.
+        entity_id: Canonical Opaque Stripe ID of the hydrated entity.
+
+    Returns:
+        Validated domain model or TypeAdapter output value.
+
+    Raises:
+        AppException: With VALIDATION_FAILED (HTTP 500) if row validation fails.
+    """
+    try:
+        if isinstance(validator, TypeAdapter):
+            return validator.validate_python(payload, strict=False)
+        return validator.model_validate(payload, strict=False)
+    except ValidationError as exc:
+        msg = f"Failed to hydrate row from '{table_name}' for '{entity_id}': {exc}"
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+            },
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+            },
+        ) from exc
+
+
+def translate_postgres_exception(
+    exc: Exception,
+    *,
+    operation: str,
+    table_name: str,
+    entity_id: str,
+) -> AppException:
+    """Translate PostgreSQL SQLSTATE and transport exceptions into RFC 7807 AppException instances.
+
+    Args:
+        exc: Underlying database driver or transport exception.
+        operation: SQL operation verb ('DELETE', 'INSERT', 'UPDATE', 'UPSERT', 'SELECT').
+        table_name: Canonical PostgreSQL table name targeted by the operation.
+        entity_id: Canonical Opaque Stripe ID or wildcard target identifier.
+
+    Returns:
+        Structured AppException mapped to the appropriate HTTP status and ErrorCodes member.
+    """
+    sqlstate: str = ""
+    if isinstance(exc, _SqlStateCarrier) and isinstance(exc.sqlstate, str):
+        sqlstate = exc.sqlstate
+    norm_op = operation.strip().upper()
+
+    if sqlstate == "23503" and norm_op == "DELETE":
+        msg = f"Cannot delete '{entity_id}' from '{table_name}' because it is referenced by dependent records: {exc}"
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+            msg,
+            exc_info=True,
+            extra={
+                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+                "sqlstate": sqlstate,
+            },
+        )
+        return AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={
+                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+            },
+        )
+
+    if sqlstate == "23503":
+        msg = f"Foreign key constraint violation during {norm_op} on '{table_name}' for '{entity_id}': {exc}"
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+                "sqlstate": sqlstate,
+            },
+        )
+        return AppException(
+            message=msg,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            details={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+            },
+        )
+
+    if sqlstate == "23505":
+        msg = f"Unique constraint conflict during {norm_op} on '{table_name}' for '{entity_id}': {exc}"
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.CONFLICT.name,
+            msg,
+            exc_info=True,
+            extra={
+                "error_code": ErrorCodes.CONFLICT.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+                "sqlstate": sqlstate,
+            },
+        )
+        return AppException(
+            message=msg,
+            status_code=status.HTTP_409_CONFLICT,
+            details={
+                "error_code": ErrorCodes.CONFLICT.value,
+                "table_name": table_name,
+                "entity_id": entity_id,
+            },
+        )
+
+    msg = f"Database {norm_op} failed on '{table_name}' for '{entity_id}': {exc}"
+    logger.error(
+        "[PostgresEntityAdapter] %s: %s",
+        ErrorCodes.STORAGE_ACCESS_FAILED.name,
+        msg,
+        exc_info=True,
+        extra={
+            "error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value,
+            "table_name": table_name,
+            "entity_id": entity_id,
+        },
+    )
+    return AppException(
+        message=msg,
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        details={
+            "error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value,
+            "table_name": table_name,
+            "entity_id": entity_id,
+        },
+    )
+
+
 async def execute_entity_upsert(
     conn: AsyncPgConnectionProtocol,
     timeout: float,
@@ -295,7 +496,7 @@ async def execute_entity_upsert(
     table: str = "",
     entity_label: str = "entity",
 ) -> str:
-    """Execute a parameterized upsert statement and translate transport errors to AppException.
+    """Execute a parameterized upsert statement and translate SQLSTATE/transport errors to AppException.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
@@ -310,25 +511,18 @@ async def execute_entity_upsert(
         Canonical entity_id persisted into PostgreSQL 19.
 
     Raises:
-        AppException: With STORAGE_ACCESS_FAILED if the database command fails.
+        AppException: With CONFLICT, VALIDATION_FAILED, or STORAGE_ACCESS_FAILED if the command fails.
     """
     label = table if table else entity_label
     try:
         await conn.execute(sql, *args, timeout=timeout)
+    except AppException:
+        raise
     except Exception as exc:
-        if isinstance(exc, AppException):
-            raise
-        msg = f"Failed to upsert {label} '{entity_id}': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.STORAGE_ACCESS_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        raise translate_postgres_exception(
+            exc,
+            operation="UPSERT",
+            table_name=label,
+            entity_id=entity_id,
         ) from exc
     return entity_id

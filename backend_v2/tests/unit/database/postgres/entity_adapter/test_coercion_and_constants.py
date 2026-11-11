@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.database.postgres.entity_adapter import coercion_and_constants as coercion_mod
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
@@ -27,10 +27,15 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _ReportBinaryRowDTO,
     execute_entity_upsert,
     resolve_effective_timeout,
+    translate_postgres_exception,
+    validate_hydrated_row,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id, generate_uuid7, parse_prefixed_uuid7
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import EntityPrefix
+from backend_v2.tests.factories.model_factories import WorkflowFactory
 from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
 
 
@@ -231,3 +236,115 @@ def test_coercion_helpers_negative_boundary_cases(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(coercion_mod, "get_settings", lambda: _DummySettings())
     assert resolve_effective_timeout(None) == 42.0
+
+
+class _SimulatedSqlStateError(Exception):
+    """Simulated database driver exception carrying a PostgreSQL SQLSTATE code."""
+
+    def __init__(self, message: str, sqlstate: str) -> None:
+        super().__init__(message)
+        self.sqlstate: str = sqlstate
+
+
+def test_validate_hydrated_row_valid_model_returns_frozen_domain_instance() -> None:
+    """Verify validate_hydrated_row validates both BaseModel classes and TypeAdapter instances."""
+    wf = WorkflowFactory.build()
+    payload = wf.model_dump(mode="json")
+    hydrated = validate_hydrated_row(Workflow, payload, table_name="workflows", entity_id=wf.id)
+    assert isinstance(hydrated, Workflow)
+    assert hydrated == wf
+
+    step_adapter: TypeAdapter[list[StepRule]] = TypeAdapter(list[StepRule])
+    steps_payload = [rule.model_dump(mode="json") for rule in wf.steps]
+    hydrated_steps = validate_hydrated_row(
+        step_adapter,
+        steps_payload,
+        table_name="workflows",
+        entity_id=wf.id,
+    )
+    assert hydrated_steps == wf.steps
+
+
+def test_validate_hydrated_row_corrupt_payload_logs_and_raises_validation_failed(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify validate_hydrated_row logs ErrorCodes.VALIDATION_FAILED and raises HTTP 500 AppException."""
+    wf = WorkflowFactory.build()
+    corrupt_payload = wf.model_dump(mode="json")
+    corrupt_payload["unexpected_rogue_column"] = "corrupt"
+
+    with caplog.at_level("ERROR"), pytest.raises(AppException) as exc_info:
+        validate_hydrated_row(Workflow, corrupt_payload, table_name="workflows", entity_id=wf.id)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["table_name"] == "workflows"
+    assert exc_info.value.details["entity_id"] == wf.id
+    assert ErrorCodes.VALIDATION_FAILED.name in caplog.text
+
+
+def test_translate_postgres_exception_maps_23503_delete_to_delete_blocked_by_usage(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify SQLSTATE 23503 on DELETE maps to HTTP 400 DELETE_BLOCKED_BY_USAGE."""
+    blk_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    fk_exc = _SimulatedSqlStateError("update or delete on table violates foreign key constraint", "23503")
+
+    with caplog.at_level("ERROR"):
+        translated = translate_postgres_exception(
+            fk_exc,
+            operation="DELETE",
+            table_name="prompt_blocks",
+            entity_id=blk_id,
+        )
+
+    assert translated.status_code == 400
+    assert translated.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+    assert translated.details["table_name"] == "prompt_blocks"
+    assert translated.details["entity_id"] == blk_id
+    assert ErrorCodes.DELETE_BLOCKED_BY_USAGE.name in caplog.text
+
+
+def test_translate_postgres_exception_maps_23505_unique_to_conflict_and_23503_insert_to_422(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify SQLSTATE 23505 maps to 409 CONFLICT, 23503 on INSERT/UPDATE maps to 422, and generic error maps to 500."""
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    unique_exc = _SimulatedSqlStateError("duplicate key value violates unique constraint", "23505")
+    fk_update_exc = _SimulatedSqlStateError("insert or update on table violates foreign key constraint", "23503")
+    transport_exc = RuntimeError("socket closed unexpectedly")
+
+    with caplog.at_level("ERROR"):
+        conflict_app_exc = translate_postgres_exception(
+            unique_exc,
+            operation="INSERT",
+            table_name="workflows",
+            entity_id=wf_id,
+        )
+        fk_insert_app_exc = translate_postgres_exception(
+            fk_update_exc,
+            operation="UPDATE",
+            table_name="workflows",
+            entity_id=wf_id,
+        )
+        storage_app_exc = translate_postgres_exception(
+            transport_exc,
+            operation="SELECT",
+            table_name="workflows",
+            entity_id=wf_id,
+        )
+
+    assert conflict_app_exc.status_code == 409
+    assert conflict_app_exc.details["error_code"] == ErrorCodes.CONFLICT.value
+    assert conflict_app_exc.details["table_name"] == "workflows"
+    assert conflict_app_exc.details["entity_id"] == wf_id
+
+    assert fk_insert_app_exc.status_code == 422
+    assert fk_insert_app_exc.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert fk_insert_app_exc.details["table_name"] == "workflows"
+    assert fk_insert_app_exc.details["entity_id"] == wf_id
+
+    assert storage_app_exc.status_code == 500
+    assert storage_app_exc.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    assert storage_app_exc.details["table_name"] == "workflows"
+    assert storage_app_exc.details["entity_id"] == wf_id

@@ -519,14 +519,21 @@ class InMemoryGraphAdapter:
         for edge_draft in edge_drafts:
             src_node = resolved_by_key[edge_draft.source_key]
             tgt_node = resolved_by_key[edge_draft.target_key]
-            already_exists = any(
-                existing.run_id == run_id
-                and existing.source_id == src_node.node_id
-                and existing.target_id == tgt_node.node_id
-                and existing.relation_type == edge_draft.relation_type
-                for existing in self._store.edges.values()
-            )
-            if not already_exists:
+            matched_edge: DependencyEdge | None = None
+            for existing in self._store.edges.values():
+                if (
+                    existing.run_id == run_id
+                    and existing.source_id == src_node.node_id
+                    and existing.target_id == tgt_node.node_id
+                    and existing.relation_type == edge_draft.relation_type
+                ):
+                    matched_edge = existing
+                    break
+            if matched_edge is not None:
+                self._store.edges[matched_edge.edge_id] = matched_edge.model_copy(
+                    update={"causal_weight": edge_draft.causal_weight}
+                )
+            else:
                 new_edge_id = generate_uuid7_opaque_id(EntityPrefix.EDGE)
                 edge_created_at = _extract_uuid7_timestamp(new_edge_id, EntityPrefix.EDGE)
                 persisted_edge = DependencyEdge(

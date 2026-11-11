@@ -31,7 +31,7 @@ from backend_v2.database.postgres.pool import (
     encode_jsonb_binary,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.domain.execution import ExecutionSummarySnapshot
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
@@ -41,7 +41,7 @@ from backend_v2.tests.factories.model_factories import (
     ExecutionRecordFactory,
     ReportArtifactFactory,
 )
-from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
+from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryAsyncPgRecord
 
 _TIMEOUT: float = 5.0
 
@@ -365,3 +365,31 @@ async def test_save_execution_row_excludes_none_in_metadata_and_encode_jsonb_bin
         assert "jsonb_typeof(metadata) = 'string'" in ddl_sql
     finally:
         await pool.release(conn)
+
+
+def test_hydrate_report_artifact_row_corrupt_status_raises_validation_failed() -> None:
+    """Verify hydrate_report_artifact_row translates ValidationError to AppException(VALIDATION_FAILED, 500)."""
+    art = ReportArtifactFactory.build()
+    corrupt_row = InMemoryAsyncPgRecord(
+        {
+            "id": parse_prefixed_uuid7(art.id, EntityPrefix.REPORT),
+            "execution_id": parse_prefixed_uuid7(art.execution_id, EntityPrefix.EXECUTION),
+            "workflow_id": parse_prefixed_uuid7(art.workflow_id, EntityPrefix.WORKFLOW),
+            "profile_id": parse_prefixed_uuid7(art.profile_id, EntityPrefix.OUTPUT_PROFILE),
+            "locale": art.locale,
+            "title": art.title,
+            "status": "INVALID_CORRUPT_STATUS",
+            "storage_paths": "{}",
+            "metadata": "{}",
+            "custom_preface_md": None,
+            "error_message": None,
+            "created_at": art.created_at,
+            "updated_at": art.updated_at,
+        }
+    )
+    with pytest.raises(AppException) as exc_info:
+        hydrate_report_artifact_row(corrupt_row)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["table_name"] == "report_artifacts"
+    assert exc_info.value.details["entity_id"] == art.id

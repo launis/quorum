@@ -13,6 +13,7 @@ from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage impo
     get_output_profile_row,
     get_task_brief_row,
     get_workflow_row,
+    hydrate_workflow_row,
     list_task_brief_rows,
     upsert_output_profile_row,
     upsert_task_brief_row,
@@ -21,14 +22,14 @@ from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage impo
 from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.tests.factories.model_factories import (
     OutputProfileFactory,
     TaskBriefFactory,
     WorkflowFactory,
 )
-from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
+from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryAsyncPgRecord
 
 _TIMEOUT: float = 5.0
 
@@ -269,3 +270,43 @@ async def test_task_brief_stage_and_repository_crud_and_negative_boundaries() ->
     assert await repo.delete_task_brief(brief.id) is True
     assert await repo.delete_task_brief(brief.id) is False
     assert await repo.get_task_brief_by_id(brief.id) is None
+
+
+def test_hydrate_workflow_row_corrupt_steps_raises_validation_failed() -> None:
+    """Verify hydrate_workflow_row validates steps via _STEP_RULE_LIST_ADAPTER and raises VALIDATION_FAILED on corruption."""
+    wf = WorkflowFactory.build()
+    wf_uuid = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
+    reg_uuid = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG)
+    corrupt_row = InMemoryAsyncPgRecord(
+        {
+            "id": wf_uuid,
+            "slug": wf.slug,
+            "name": '{"translations":{"en":"WF","fi":"WF"}}',
+            "description": '{"translations":{"en":"Desc","fi":"Kuvaus"}}',
+            "status": wf.status,
+            "version": wf.version,
+            "is_public": wf.is_public,
+            "organization_id": None,
+            "default_profile_id": None,
+            "mcp_gateway_id": None,
+            "model_registry_id": reg_uuid,
+            "default_strictness_level": wf.default_strictness_level,
+            "default_lexical_strictness_level": wf.default_lexical_strictness_level,
+            "security_penalty": wf.security_penalty,
+            "post_hoc_penalty": wf.post_hoc_penalty,
+            "passivity_penalty": wf.passivity_penalty,
+            "enable_contextual_overrides": wf.enable_contextual_overrides,
+            "enable_semantic_smoothing": wf.enable_semantic_smoothing,
+            "enable_eager_anonymization": wf.enable_eager_anonymization,
+            "system_audit_trail": wf.system_audit_trail,
+            "expected_inputs": "[]",
+            "steps": '[{"invalid_step_key": "corrupt"}]',
+            "historical_context_mode": wf.historical_context_mode.value,
+        }
+    )
+    with pytest.raises(AppException) as exc_info:
+        hydrate_workflow_row(corrupt_row)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["table_name"] == "workflows"
+    assert exc_info.value.details["entity_id"] == wf.id

@@ -43,11 +43,12 @@ from backend_v2.database.postgres.entity_adapter import (
     _decode_jsonb_column,
 )
 from backend_v2.database.postgres.graph_adapter import (
-    _coerce_uuid_or_str as _graph_coerce_uuid_or_str,
-)
-from backend_v2.database.postgres.graph_adapter import (
+    _MATERIALIZE_WAVE_SQL,
     _extract_cycle_node_ids,
     _hydrate_payload_dto,
+)
+from backend_v2.database.postgres.graph_adapter import (
+    _coerce_uuid_or_str as _graph_coerce_uuid_or_str,
 )
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -2137,3 +2138,58 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
     assert resolved_org.id == org_id
     mock_driver.get.assert_any_await("organizations", org_id)
     mock_driver.query.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_materialize_wave_sql_updates_existing_edge_causal_weight_idempotently(
+    uow: QuorumUnitOfWork,
+) -> None:
+    """Verify _MATERIALIZE_WAVE_SQL and materialize_wave update causal_weight on conflicting edges."""
+    normalized_sql = " ".join(_MATERIALIZE_WAVE_SQL.split())
+    assert (
+        "ON CONFLICT (run_id, source_id, target_id, relation_type) DO UPDATE SET causal_weight = EXCLUDED.causal_weight RETURNING edge_id"
+        in normalized_sql
+    )
+
+    run_id = generate_uuid7_opaque_id(EntityPrefix.EXECUTION)
+    drafts = (
+        NodeDraft(
+            local_key="claim_1",
+            node_type=PropositionNodeType.CLAIM,
+            confidence=0.9,
+            payload=PropositionPayloadDTO(statement="Claim 1", metadata={}),
+        ),
+        NodeDraft(
+            local_key="ground_1",
+            node_type=PropositionNodeType.GROUND,
+            confidence=0.85,
+            payload=PropositionPayloadDTO(statement="Ground 1", metadata={}),
+        ),
+    )
+    initial_edges = (
+        EdgeDraft(
+            source_key="ground_1",
+            target_key="claim_1",
+            relation_type=DependencyRelationType.SUPPORTS,
+            causal_weight=0.45,
+        ),
+    )
+    updated_edges = (
+        EdgeDraft(
+            source_key="ground_1",
+            target_key="claim_1",
+            relation_type=DependencyRelationType.SUPPORTS,
+            causal_weight=0.92,
+        ),
+    )
+
+    async with uow:
+        first_nodes = await uow.graph.materialize_wave(run_id, drafts, initial_edges)
+        second_nodes = await uow.graph.materialize_wave(run_id, drafts, updated_edges)
+        await uow.commit()
+
+    assert [n.node_id for n in first_nodes] == [n.node_id for n in second_nodes]
+    if isinstance(uow, InMemoryUnitOfWork):
+        matching_edges = [e for e in uow.store.edges.values() if e.run_id == run_id]
+        assert len(matching_edges) == 1
+        assert matching_edges[0].causal_weight == pytest.approx(0.92)

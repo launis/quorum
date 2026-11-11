@@ -35,6 +35,8 @@ from .coercion_and_constants import _parse_optional_uuid7 as _parse_optional_uui
 from .coercion_and_constants import _parse_org_uuid7 as _parse_org_uuid7
 from .coercion_and_constants import _ReportBinaryRowDTO as _ReportBinaryRowDTO
 from .coercion_and_constants import execute_entity_upsert as execute_entity_upsert
+from .coercion_and_constants import translate_postgres_exception as translate_postgres_exception
+from .coercion_and_constants import validate_hydrated_row as validate_hydrated_row
 from .execution_and_report_stage import _GET_EXECUTION_SQL as _GET_EXECUTION_SQL
 from .execution_and_report_stage import _GET_REPORT_ARTIFACT_SQL as _GET_REPORT_ARTIFACT_SQL
 from .execution_and_report_stage import _GET_REPORT_BINARY_SQL as _GET_REPORT_BINARY_SQL

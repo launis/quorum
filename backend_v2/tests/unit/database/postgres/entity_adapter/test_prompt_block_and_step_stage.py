@@ -19,7 +19,7 @@ from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage imp
     upsert_step_row,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.core_base import I18nText, generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
@@ -40,7 +40,7 @@ from backend_v2.tests.factories.model_factories import (
     MatrixPromptBlockFactory,
     SystemRulePromptBlockFactory,
 )
-from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
+from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryAsyncPgRecord
 
 _TIMEOUT: float = 5.0
 
@@ -140,6 +140,11 @@ def _build_step(
         cognitive_tier=cognitive_tier,
         engine_type=EngineType.PROMPT,
         zone=StepZone.ZONE_B,
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
     )
 
 
@@ -306,3 +311,48 @@ async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() ->
         await pool.release(conn)
     assert callable(hydrate_prompt_block_row)
     assert callable(hydrate_step_row)
+
+
+def test_hydrate_prompt_block_row_unknown_category_raises_validation_failed_without_fallback(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify hydrate_prompt_block_row rejects unrecognized category_id via PromptBlockAdapter with HTTP 500."""
+    blk_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    blk_uuid = parse_prefixed_uuid7(blk_id, EntityPrefix.PROMPT_BLOCK)
+    corrupt_row = InMemoryAsyncPgRecord(
+        {
+            "id": blk_uuid,
+            "slug": "corrupt_block",
+            "organization_id": None,
+            "label": '{"translations":{"en":"Label","fi":"Nimike"}}',
+            "description": '{"translations":{"en":"Desc","fi":"Kuvaus"}}',
+            "output_extensions": "[]",
+            "theory_grounding": None,
+            "category_id": "corrupt_unknown",
+            "type": "instruction",
+            "is_evaluative": False,
+            "allow_decimals": False,
+            "allow_contextual_override": False,
+            "is_lightweight_protocol": False,
+            "target_input_key": None,
+            "ai_description": None,
+            "scales": None,
+            "rows": None,
+            "columns": None,
+            "computed_min": None,
+            "computed_max": None,
+            "instruction_text": "Should never hydrate as SystemRulePromptBlock",
+            "role_enforcement": None,
+            "tone_directives": None,
+            "protocol_instructions": None,
+        }
+    )
+
+    with caplog.at_level("ERROR"), pytest.raises(AppException) as exc_info:
+        hydrate_prompt_block_row(corrupt_row)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["table_name"] == "prompt_blocks"
+    assert exc_info.value.details["entity_id"] == blk_id
+    assert ErrorCodes.VALIDATION_FAILED.name in caplog.text

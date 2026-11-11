@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import logging
-
-from fastapi import status
 from pydantic_core import to_json
 
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
@@ -17,21 +14,22 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_org_uuid7,
     execute_entity_upsert,
     resolve_effective_timeout,
+    translate_postgres_exception,
+    validate_hydrated_row,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
 from backend_v2.models.domain.prompt_blocks import (
     AnyPromptBlock,
     MatrixPromptBlock,
     PersonaPromptBlock,
+    PromptBlockAdapter,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
 from backend_v2.models.domain.step import Step
 from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
-
-logger = logging.getLogger(__name__)
 
 __all__ = [
     "_GET_PROMPT_BLOCK_SQL",
@@ -102,7 +100,13 @@ _LIST_STEPS_SQL: str = """SELECT id, slug, organization_id, name, description, t
 
 
 async def _fetch_row(
-    conn: AsyncPgConnectionProtocol, timeout: float | None, sql: str, entity_uuid: object, entity_id: str
+    conn: AsyncPgConnectionProtocol,
+    timeout: float | None,
+    sql: str,
+    entity_uuid: object,
+    entity_id: str,
+    *,
+    table_name: str = "prompt_blocks",
 ) -> AsyncPgRecordProtocol | None:
     """Execute fetchrow with timeout and translate driver errors to AppException.
 
@@ -112,6 +116,7 @@ async def _fetch_row(
         sql: Parameterized SELECT SQL statement.
         entity_uuid: Parsed 16-byte UUID primary key parameter.
         entity_id: Canonical Opaque Stripe ID of the target entity for error reporting.
+        table_name: Canonical PostgreSQL table name for structured diagnostics.
 
     Returns:
         Database record if found, or None.
@@ -122,26 +127,19 @@ async def _fetch_row(
     effective_timeout = resolve_effective_timeout(timeout)
     try:
         return await conn.fetchrow(sql, entity_uuid, timeout=effective_timeout)
+    except AppException:
+        raise
     except Exception as exc:
-        if isinstance(exc, AppException):
-            raise
-        msg = f"Failed to fetch entity '{entity_id}': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.STORAGE_ACCESS_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name=table_name,
+            entity_id=entity_id,
         ) from exc
 
 
 def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
-    """Hydrate a polymorphic AnyPromptBlock from a database row.
+    """Hydrate a polymorphic AnyPromptBlock from a database row via PromptBlockAdapter.
 
     Args:
         row: Database record from the prompt_blocks table.
@@ -150,13 +148,14 @@ def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
         Validated MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, or SystemRulePromptBlock.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the prompt_block or organization UUID cannot be formatted.
+        AppException: With VALIDATION_FAILED if UUID formatting or variant schema validation fails.
     """
     blk_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.PROMPT_BLOCK)
     org_id = _format_org_uuid7(row["organization_id"])
     cat = str(row["category_id"])
     if cat == PromptBlockCategory.MATRIX.value:
-        return MatrixPromptBlock.model_validate(
+        return validate_hydrated_row(
+            PromptBlockAdapter,
             {
                 "id": blk_id,
                 "slug": row["slug"],
@@ -179,10 +178,12 @@ def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
                 "computed_min": row["computed_min"],
                 "computed_max": row["computed_max"],
             },
-            strict=False,
+            table_name="prompt_blocks",
+            entity_id=blk_id,
         )
     if cat in (PromptBlockCategory.EXECUTION_PERSONA.value, PromptBlockCategory.AGENT_ROLE.value):
-        return PersonaPromptBlock.model_validate(
+        return validate_hydrated_row(
+            PromptBlockAdapter,
             {
                 "id": blk_id,
                 "slug": row["slug"],
@@ -199,10 +200,12 @@ def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
                 "role_enforcement": row["role_enforcement"],
                 "tone_directives": _decode_jsonb_column(row["tone_directives"]),
             },
-            strict=False,
+            table_name="prompt_blocks",
+            entity_id=blk_id,
         )
     if cat == PromptBlockCategory.PROTOCOL.value:
-        return ProtocolPromptBlock.model_validate(
+        return validate_hydrated_row(
+            PromptBlockAdapter,
             {
                 "id": blk_id,
                 "slug": row["slug"],
@@ -218,25 +221,41 @@ def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
                 "is_lightweight_protocol": row["is_lightweight_protocol"],
                 "protocol_instructions": row["protocol_instructions"],
             },
-            strict=False,
+            table_name="prompt_blocks",
+            entity_id=blk_id,
         )
-    return SystemRulePromptBlock.model_validate(
+    if cat in (PromptBlockCategory.SYSTEM_RULE.value, PromptBlockCategory.RUNTIME_VARIABLES.value):
+        return validate_hydrated_row(
+            PromptBlockAdapter,
+            {
+                "id": blk_id,
+                "slug": row["slug"],
+                "organization_id": org_id,
+                "label": _decode_jsonb_column(row["label"]),
+                "description": _decode_jsonb_column(row["description"]),
+                "output_extensions": _decode_jsonb_column(row["output_extensions"]),
+                "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
+                "category_id": cat,
+                "type": row["type"],
+                "is_evaluative": row["is_evaluative"],
+                "allow_decimals": row["allow_decimals"],
+                "is_lightweight_protocol": row["is_lightweight_protocol"],
+                "instruction_text": row["instruction_text"],
+            },
+            table_name="prompt_blocks",
+            entity_id=blk_id,
+        )
+    return validate_hydrated_row(
+        PromptBlockAdapter,
         {
             "id": blk_id,
             "slug": row["slug"],
             "organization_id": org_id,
-            "label": _decode_jsonb_column(row["label"]),
-            "description": _decode_jsonb_column(row["description"]),
-            "output_extensions": _decode_jsonb_column(row["output_extensions"]),
-            "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
             "category_id": cat,
             "type": row["type"],
-            "is_evaluative": row["is_evaluative"],
-            "allow_decimals": row["allow_decimals"],
-            "is_lightweight_protocol": row["is_lightweight_protocol"],
-            "instruction_text": row["instruction_text"],
         },
-        strict=False,
+        table_name="prompt_blocks",
+        entity_id=blk_id,
     )
 
 
@@ -339,12 +358,14 @@ def hydrate_step_row(row: AsyncPgRecordProtocol) -> Step:
         Validated Step domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the step, organization, or block UUID cannot be formatted.
+        AppException: With VALIDATION_FAILED if UUID formatting or Step schema validation fails.
     """
     blk_p = EntityPrefix.PROMPT_BLOCK
-    return Step.model_validate(
+    stp_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.STEP)
+    return validate_hydrated_row(
+        Step,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.STEP),
+            "id": stp_id,
             "slug": row["slug"],
             "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
             "name": _decode_jsonb_column(row["name"]),
@@ -366,7 +387,8 @@ def hydrate_step_row(row: AsyncPgRecordProtocol) -> Step:
             "engine_type": row["engine_type"],
             "zone": row["zone"],
         },
-        strict=False,
+        table_name="steps",
+        entity_id=stp_id,
     )
 
 

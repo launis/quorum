@@ -19,6 +19,8 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _ReportBinaryRowDTO,
     execute_entity_upsert,
     resolve_effective_timeout,
+    translate_postgres_exception,
+    validate_hydrated_row,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -123,7 +125,7 @@ _GET_REPORT_ARTIFACT_SQL: str = f"{_LIST_REPORT_ARTIFACTS_SQL} WHERE id = $1::uu
 
 
 async def _fetch_row(
-    conn: _Conn, timeout: float | None, sql: str, uid: object, eid: str
+    conn: _Conn, timeout: float | None, sql: str, uid: object, eid: str, table_name: str = "executions"
 ) -> AsyncPgRecordProtocol | None:
     """Execute fetchrow with timeout and translate driver errors to AppException.
 
@@ -133,6 +135,7 @@ async def _fetch_row(
         sql: Parameterized SELECT SQL statement.
         uid: Parsed 16-byte UUID primary key parameter.
         eid: Canonical Opaque Stripe ID of the target entity for error reporting.
+        table_name: Canonical PostgreSQL table name for error reporting.
 
     Returns:
         Database record if found, or None.
@@ -143,21 +146,14 @@ async def _fetch_row(
     effective_timeout = resolve_effective_timeout(timeout)
     try:
         return await conn.fetchrow(sql, uid, timeout=effective_timeout)
+    except AppException:
+        raise
     except Exception as exc:
-        if isinstance(exc, AppException):
-            raise
-        msg = f"Failed to fetch entity '{eid}': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.STORAGE_ACCESS_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": eid},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name=table_name,
+            entity_id=eid,
         ) from exc
 
 
@@ -221,21 +217,29 @@ async def get_report_binary_row(conn: _Conn, timeout: float | None, report_id: s
             or STORAGE_ACCESS_FAILED on query error.
     """
     report_uuid = parse_prefixed_uuid7(report_id, EntityPrefix.REPORT)
-    row = await _fetch_row(conn, timeout, _GET_REPORT_BINARY_SQL, report_uuid, report_id)
+    row = await _fetch_row(conn, timeout, _GET_REPORT_BINARY_SQL, report_uuid, report_id, "report_binaries")
     if row is None:
         return None
 
-    row_dto = _ReportBinaryRowDTO.model_validate(
+    formatted_rep_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["report_id"]), EntityPrefix.REPORT)
+    row_dto = validate_hydrated_row(
+        _ReportBinaryRowDTO,
         {
-            "report_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["report_id"]), EntityPrefix.REPORT),
+            "report_id": formatted_rep_id,
             "mime_type": row["mime_type"],
             "pdf_bytes": row["pdf_bytes"],
             "size_bytes": row["size_bytes"],
             "created_at": row["created_at"],
         },
-        strict=False,
+        table_name="report_binaries",
+        entity_id=formatted_rep_id,
     )
-    return ReportBinaryPayloadDTO.model_validate(row_dto.model_dump())
+    return validate_hydrated_row(
+        ReportBinaryPayloadDTO,
+        row_dto.model_dump(),
+        table_name="report_binaries",
+        entity_id=row_dto.report_id,
+    )
 
 
 def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
@@ -248,11 +252,13 @@ def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
         Validated ExecutionRecord domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if UUID identifiers cannot be formatted.
+        AppException: With VALIDATION_FAILED if UUID identifiers or row fields are invalid.
     """
-    return ExecutionRecord.model_validate(
+    exe_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.EXECUTION)
+    return validate_hydrated_row(
+        ExecutionRecord,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.EXECUTION),
+            "id": exe_id,
             "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
             "workflow_version": row["workflow_version"],
             "active_profile_id": _format_optional_uuid7(row["active_profile_id"], EntityPrefix.OUTPUT_PROFILE),
@@ -294,7 +300,8 @@ def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
             "organization_id": _format_org_uuid7(row["organization_id"]),
             "state_version": int(str(row["state_version"])),
         },
-        strict=False,
+        table_name="executions",
+        entity_id=exe_id,
     )
 
 
@@ -451,11 +458,13 @@ def hydrate_report_artifact_row(row: AsyncPgRecordProtocol) -> ReportArtifact:
         Validated ReportArtifact domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if UUID identifiers cannot be formatted.
+        AppException: With VALIDATION_FAILED if UUID identifiers or row fields are invalid.
     """
-    return ReportArtifact.model_validate(
+    rep_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.REPORT)
+    return validate_hydrated_row(
+        ReportArtifact,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.REPORT),
+            "id": rep_id,
             "execution_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["execution_id"]), EntityPrefix.EXECUTION),
             "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
             "profile_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["profile_id"]), EntityPrefix.OUTPUT_PROFILE),
@@ -469,7 +478,8 @@ def hydrate_report_artifact_row(row: AsyncPgRecordProtocol) -> ReportArtifact:
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         },
-        strict=False,
+        table_name="report_artifacts",
+        entity_id=rep_id,
     )
 
 
@@ -530,7 +540,7 @@ async def get_report_artifact_row(conn: _Conn, timeout: float, rep_id: str) -> R
         AppException: With VALIDATION_FAILED on invalid report_id or STORAGE_ACCESS_FAILED on query error.
     """
     report_uuid = parse_prefixed_uuid7(rep_id, EntityPrefix.REPORT)
-    row = await _fetch_row(conn, timeout, _GET_REPORT_ARTIFACT_SQL, report_uuid, rep_id)
+    row = await _fetch_row(conn, timeout, _GET_REPORT_ARTIFACT_SQL, report_uuid, rep_id, "report_artifacts")
     if row is None:
         return None
     return hydrate_report_artifact_row(row)

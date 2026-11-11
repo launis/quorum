@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import logging
-
-from fastapi import status
+from pydantic import TypeAdapter
 from pydantic_core import to_json
 
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
@@ -18,16 +16,19 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_org_uuid7,
     execute_entity_upsert,
     resolve_effective_timeout,
+    translate_postgres_exception,
+    validate_hydrated_row,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import EntityPrefix
 
-logger = logging.getLogger(__name__)
+_STEP_RULE_LIST_ADAPTER: TypeAdapter[list[StepRule]] = TypeAdapter(list[StepRule])
 
 __all__ = [
     "_GET_OUTPUT_PROFILE_SQL",
@@ -168,7 +169,13 @@ FROM task_briefs"""
 
 
 async def _fetch_row(
-    conn: AsyncPgConnectionProtocol, timeout: float | None, sql: str, entity_uuid: object, entity_id: str
+    conn: AsyncPgConnectionProtocol,
+    timeout: float | None,
+    sql: str,
+    entity_uuid: object,
+    entity_id: str,
+    *,
+    table_name: str = "workflows",
 ) -> AsyncPgRecordProtocol | None:
     """Execute fetchrow with timeout and translate driver errors to AppException.
 
@@ -178,6 +185,7 @@ async def _fetch_row(
         sql: Parameterized SELECT SQL statement.
         entity_uuid: Parsed 16-byte UUID primary key parameter.
         entity_id: Canonical Opaque Stripe ID of the target entity for error reporting.
+        table_name: Canonical PostgreSQL table name for structured diagnostics.
 
     Returns:
         Database record if found, or None.
@@ -188,21 +196,14 @@ async def _fetch_row(
     effective_timeout = resolve_effective_timeout(timeout)
     try:
         return await conn.fetchrow(sql, entity_uuid, timeout=effective_timeout)
+    except AppException:
+        raise
     except Exception as exc:
-        if isinstance(exc, AppException):
-            raise
-        msg = f"Failed to fetch entity '{entity_id}': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.STORAGE_ACCESS_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name=table_name,
+            entity_id=entity_id,
         ) from exc
 
 
@@ -216,11 +217,19 @@ def hydrate_workflow_row(row: AsyncPgRecordProtocol) -> Workflow:
         Validated Workflow domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the workflow, organization, profile, or system_config UUID is invalid.
+        AppException: With VALIDATION_FAILED if UUID formatting or Workflow schema validation fails.
     """
-    return Workflow.model_validate(
+    wf_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.WORKFLOW)
+    steps_list = validate_hydrated_row(
+        _STEP_RULE_LIST_ADAPTER,
+        _decode_jsonb_column(row["steps"]),
+        table_name="workflows",
+        entity_id=wf_id,
+    )
+    return validate_hydrated_row(
+        Workflow,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.WORKFLOW),
+            "id": wf_id,
             "slug": row["slug"],
             "name": _decode_jsonb_column(row["name"]),
             "description": _decode_jsonb_column(row["description"]),
@@ -243,10 +252,11 @@ def hydrate_workflow_row(row: AsyncPgRecordProtocol) -> Workflow:
             "enable_eager_anonymization": row["enable_eager_anonymization"],
             "system_audit_trail": row["system_audit_trail"],
             "expected_inputs": _decode_jsonb_column(row["expected_inputs"]),
-            "steps": _decode_jsonb_column(row["steps"]),
+            "steps": steps_list,
             "historical_context_mode": row["historical_context_mode"],
         },
-        strict=False,
+        table_name="workflows",
+        entity_id=wf_id,
     )
 
 
@@ -328,11 +338,13 @@ def hydrate_output_profile_row(row: AsyncPgRecordProtocol) -> OutputProfile:
         Validated OutputProfile domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the output_profile, workflow, or organization UUID is invalid.
+        AppException: With VALIDATION_FAILED if UUID formatting or OutputProfile schema validation fails.
     """
-    return OutputProfile.model_validate(
+    prf_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.OUTPUT_PROFILE)
+    return validate_hydrated_row(
+        OutputProfile,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.OUTPUT_PROFILE),
+            "id": prf_id,
             "slug": row["slug"],
             "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
             "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
@@ -373,7 +385,8 @@ def hydrate_output_profile_row(row: AsyncPgRecordProtocol) -> OutputProfile:
             "variance_target_block": row["variance_target_block"],
             "user_role_target_block": row["user_role_target_block"],
         },
-        strict=False,
+        table_name="output_profiles",
+        entity_id=prf_id,
     )
 
 
@@ -477,11 +490,13 @@ def hydrate_task_brief_row(row: AsyncPgRecordProtocol) -> TaskBrief:
         Validated TaskBrief domain model.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the task_brief or organization UUID is invalid.
+        AppException: With VALIDATION_FAILED if UUID formatting or TaskBrief schema validation fails.
     """
-    return TaskBrief.model_validate(
+    tbr_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.TASK_BRIEF)
+    return validate_hydrated_row(
+        TaskBrief,
         {
-            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.TASK_BRIEF),
+            "id": tbr_id,
             "slug": row["slug"],
             "organization_id": _format_org_uuid7(row["organization_id"], default_system=False),
             "label": _decode_jsonb_column(row["label"]),
@@ -489,7 +504,8 @@ def hydrate_task_brief_row(row: AsyncPgRecordProtocol) -> TaskBrief:
             "instruction_text": row["instruction_text"],
             "source_url": row["source_url"],
         },
-        strict=False,
+        table_name="task_briefs",
+        entity_id=tbr_id,
     )
 
 
@@ -561,20 +577,13 @@ async def list_task_brief_rows(conn: AsyncPgConnectionProtocol, timeout: float) 
     effective_timeout = resolve_effective_timeout(timeout)
     try:
         rows = await conn.fetch(_LIST_TASK_BRIEFS_SQL, timeout=effective_timeout)
+    except AppException:
+        raise
     except Exception as exc:
-        if isinstance(exc, AppException):
-            raise
-        msg = f"Failed to list rows from table 'task_briefs': {exc}"
-        logger.error(
-            "[PostgresEntityAdapter] %s: %s",
-            ErrorCodes.STORAGE_ACCESS_FAILED.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "table": "task_briefs"},
-        )
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="task_briefs",
+            entity_id="*",
         ) from exc
     return [hydrate_task_brief_row(row) for row in rows]

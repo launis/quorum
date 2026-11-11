@@ -16,8 +16,13 @@ from typing import Annotated
 
 from fastapi import status
 from pydantic import ConfigDict, Field
-from pydantic_core import from_json, to_json
+from pydantic_core import to_json
 
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _decode_jsonb_column,
+    translate_postgres_exception,
+    validate_hydrated_row,
+)
 from backend_v2.database.postgres.pool import (
     AsyncPgConnectionProtocol,
     AsyncPgRecordProtocol,
@@ -94,7 +99,8 @@ inserted_edges AS (
     INSERT INTO quorum_edges (edge_id, run_id, source_id, target_id, relation_type, causal_weight)
     SELECT generated_edge_id, $1::uuid, source_id, target_id, relation_type, causal_weight
     FROM input_edges
-    ON CONFLICT (run_id, source_id, target_id, relation_type) DO NOTHING
+    ON CONFLICT (run_id, source_id, target_id, relation_type) DO UPDATE
+    SET causal_weight = EXCLUDED.causal_weight
     RETURNING edge_id
 )
 SELECT node_id, run_id, node_type, confidence, payload, created_at
@@ -244,22 +250,51 @@ def _coerce_uuid_or_str(raw: object) -> uuid.UUID | str:
     return str(raw)
 
 
-def _hydrate_payload_dto(raw_payload: object) -> PropositionPayloadDTO:
+def _hydrate_payload_dto(raw_payload: object, *, entity_id: str = "*") -> PropositionPayloadDTO:
     """Hydrate a raw JSONB column value into an immutable PropositionPayloadDTO.
 
     Args:
         raw_payload: Decoded JSONB object, UTF-8 JSON string/bytes, or PropositionPayloadDTO.
+        entity_id: Canonical Opaque Stripe ID of the parent node for error reporting.
 
     Returns:
         Validated PropositionPayloadDTO instance.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if JSON decoding or schema validation fails.
     """
     if isinstance(raw_payload, PropositionPayloadDTO):
         return raw_payload
-    if isinstance(raw_payload, (str, bytes, bytearray)):
-        return PropositionPayloadDTO.model_validate_json(raw_payload)
-    if isinstance(raw_payload, memoryview):
-        return PropositionPayloadDTO.model_validate(from_json(bytes(raw_payload)), strict=False)
-    return PropositionPayloadDTO.model_validate(raw_payload, strict=False)
+    try:
+        decoded = _decode_jsonb_column(raw_payload)
+    except ValueError as exc:
+        msg = f"Failed to decode PropositionPayloadDTO JSON for node '{entity_id}': {exc}"
+        logger.error(
+            "[PostgresGraphAdapter] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "table_name": "quorum_nodes",
+                "entity_id": entity_id,
+            },
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "table_name": "quorum_nodes",
+                "entity_id": entity_id,
+            },
+        ) from exc
+    return validate_hydrated_row(
+        PropositionPayloadDTO,
+        decoded,
+        table_name="quorum_nodes",
+        entity_id=entity_id,
+    )
 
 
 def _hydrate_proposition_node(row: AsyncPgRecordProtocol) -> PropositionNode:
@@ -270,12 +305,16 @@ def _hydrate_proposition_node(row: AsyncPgRecordProtocol) -> PropositionNode:
 
     Returns:
         Strictly validated PropositionNode domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if node identifiers or payload fields are invalid.
     """
     node_id_str = format_prefixed_uuid7(_coerce_uuid_or_str(row["node_id"]), EntityPrefix.NODE)
     run_id_str = format_prefixed_uuid7(_coerce_uuid_or_str(row["run_id"]), EntityPrefix.EXECUTION)
-    payload_dto = _hydrate_payload_dto(row["payload"])
+    payload_dto = _hydrate_payload_dto(row["payload"], entity_id=node_id_str)
 
-    row_dto = _PropositionNodeRowDTO.model_validate(
+    row_dto = validate_hydrated_row(
+        _PropositionNodeRowDTO,
         {
             "node_id": node_id_str,
             "run_id": run_id_str,
@@ -284,7 +323,8 @@ def _hydrate_proposition_node(row: AsyncPgRecordProtocol) -> PropositionNode:
             "payload": payload_dto,
             "created_at": row["created_at"],
         },
-        strict=False,
+        table_name="quorum_nodes",
+        entity_id=node_id_str,
     )
     return PropositionNode(
         node_id=row_dto.node_id,
@@ -383,28 +423,23 @@ class CteReasoningStrategy:
                 float(min_confidence),
                 timeout=self.command_timeout_seconds,
             )
+        except AppException:
+            raise
         except Exception as exc:
-            if isinstance(exc, AppException):
-                raise
-            msg = f"Failed to execute Toulmin falsification query for run '{run_id}': {exc}"
-            logger.error(
-                "[CteReasoningStrategy] %s: %s",
-                ErrorCodes.STORAGE_ACCESS_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            raise translate_postgres_exception(
+                exc,
+                operation="SELECT",
+                table_name="quorum_nodes",
+                entity_id=run_id,
             ) from exc
 
         matches: list[FalsifiedClaimMatch] = []
         for row in rows:
-            row_dto = _FalsifiedClaimRowDTO.model_validate(
+            rebuttal_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["rebuttal_id"]), EntityPrefix.NODE)
+            row_dto = validate_hydrated_row(
+                _FalsifiedClaimRowDTO,
                 {
-                    "rebuttal_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["rebuttal_id"]), EntityPrefix.NODE),
+                    "rebuttal_id": rebuttal_id,
                     "invalidated_warrant_id": format_prefixed_uuid7(
                         _coerce_uuid_or_str(row["invalidated_warrant_id"]),
                         EntityPrefix.NODE,
@@ -416,15 +451,15 @@ class CteReasoningStrategy:
                     "rebuttal_confidence": row["rebuttal_confidence"],
                     "claim_statement": row["claim_statement"],
                 },
-                strict=False,
+                table_name="quorum_nodes",
+                entity_id=rebuttal_id,
             )
             matches.append(
-                FalsifiedClaimMatch(
-                    rebuttal_id=row_dto.rebuttal_id,
-                    invalidated_warrant_id=row_dto.invalidated_warrant_id,
-                    falsified_claim_id=row_dto.falsified_claim_id,
-                    rebuttal_confidence=row_dto.rebuttal_confidence,
-                    claim_statement=row_dto.claim_statement,
+                validate_hydrated_row(
+                    FalsifiedClaimMatch,
+                    row_dto.model_dump(),
+                    table_name="quorum_nodes",
+                    entity_id=rebuttal_id,
                 )
             )
         return tuple(matches)
@@ -547,21 +582,14 @@ class PostgresGraphAdapter:
                 edges_json,
                 timeout=self.command_timeout_seconds,
             )
+        except AppException:
+            raise
         except Exception as exc:
-            if isinstance(exc, AppException):
-                raise
-            msg = f"Failed to materialize wave in PostgreSQL for run '{run_id}': {exc}"
-            logger.error(
-                "[PostgresGraphAdapter] %s: %s",
-                ErrorCodes.STORAGE_ACCESS_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            raise translate_postgres_exception(
+                exc,
+                operation="UPSERT",
+                table_name="quorum_nodes",
+                entity_id=run_id,
             ) from exc
 
         return tuple(_hydrate_proposition_node(row) for row in rows)
@@ -627,21 +655,14 @@ class PostgresGraphAdapter:
                     edge_params,
                     timeout=self.command_timeout_seconds,
                 )
+        except AppException:
+            raise
         except Exception as exc:
-            if isinstance(exc, AppException):
-                raise
-            msg = f"Failed to upsert wave batch in PostgreSQL: {exc}"
-            logger.error(
-                "[PostgresGraphAdapter] %s: %s",
-                ErrorCodes.STORAGE_ACCESS_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            raise translate_postgres_exception(
+                exc,
+                operation="UPSERT",
+                table_name="quorum_nodes",
+                entity_id="*",
             ) from exc
 
     async def assert_acyclic(self, run_id: str) -> None:
@@ -664,21 +685,14 @@ class PostgresGraphAdapter:
                 run_uuid,
                 timeout=self.command_timeout_seconds,
             )
+        except AppException:
+            raise
         except Exception as exc:
-            if isinstance(exc, AppException):
-                raise
-            msg = f"Failed to execute cycle detection query for run '{run_id}': {exc}"
-            logger.error(
-                "[PostgresGraphAdapter] %s: %s",
-                ErrorCodes.STORAGE_ACCESS_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            raise translate_postgres_exception(
+                exc,
+                operation="SELECT",
+                table_name="quorum_edges",
+                entity_id=run_id,
             ) from exc
 
         if row is not None and bool(row["is_cycle"]):
@@ -715,21 +729,14 @@ class PostgresGraphAdapter:
                 run_uuid,
                 timeout=self.command_timeout_seconds,
             )
+        except AppException:
+            raise
         except Exception as exc:
-            if isinstance(exc, AppException):
-                raise
-            msg = f"Failed to fetch next Kahn wave for run '{run_id}': {exc}"
-            logger.error(
-                "[PostgresGraphAdapter] %s: %s",
-                ErrorCodes.STORAGE_ACCESS_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            raise translate_postgres_exception(
+                exc,
+                operation="SELECT",
+                table_name="quorum_nodes",
+                entity_id=run_id,
             ) from exc
 
         return tuple(_hydrate_proposition_node(row) for row in rows)
