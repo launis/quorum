@@ -36,7 +36,7 @@
   - [x] @[backend_v2/api/routers/studio/task_briefs.py]
   - [x] @[backend_v2/database/interfaces.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
-  - [ ] @[backend_v2/database/repositories/components/task_brief.py]
+  - [x] @[backend_v2/database/repositories/components/task_brief.py]
   - [ ] @[backend_v2/database/repository.py]
   - [ ] @[backend_v2/main.py]
   - [ ] @[backend_v2/models/domain/__init__.py]
