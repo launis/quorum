@@ -46,7 +46,7 @@
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/seed/seed_registry.py]
   - [x] @[backend_v2/services/execution/assignment_service.py]
-  - [ ] @[backend_v2/services/studio/__init__.py]
+  - [x] @[backend_v2/services/studio/__init__.py]
   - [ ] @[backend_v2/services/studio/prompt_block_service.py]
   - [ ] @[backend_v2/services/studio/task_brief_service.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
