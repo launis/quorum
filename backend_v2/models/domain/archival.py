@@ -24,7 +24,7 @@ class ArchivalPrecedentDTO(V2CoreBase):
         verdict: Truncated verdict from the execution.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: Annotated[str, Field(min_length=1, description="Opaque Stripe ID of the past execution.")]
     date: Annotated[str, Field(min_length=1, description="ISO formatted completion date.")]
