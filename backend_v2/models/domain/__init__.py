@@ -1,10 +1,7 @@
-"""Domain Models Package.
+"""Domain models package re-exporting strict Pydantic schemas for domain entities and agent outputs."""
 
-This package contains the strict Pydantic models for all agent outputs and domain entities.
-It replaces the monolithic `domain.py`.
-"""
+from __future__ import annotations
 
-# 0. Base
 from backend_v2.models.domain.analyst import (
     AnalystDTO,
     AnalystInput,
@@ -30,8 +27,6 @@ from backend_v2.models.domain.coach import (
     CoachingPlanDTO,
     CoachInput,
 )
-
-# 1. Models moved to Workflow (for Evaluation/Validation)
 from backend_v2.models.domain.evaluation import (
     EvaluationCriterion,
     EvaluationMatrixConfig,
@@ -118,8 +113,6 @@ from backend_v2.models.domain.prompt_blocks import (
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, RetrievalOutput, RetrievedFact
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
-
-# 2. Agent Modules
 from backend_v2.models.domain.security import (
     InputProcessingOutputDTO,
     SecurityCheck,
@@ -272,7 +265,6 @@ __all__ = [
     "RetrievedFact",
     "RetrievalDTO",
     "InteractionInput",
-    "CoachInput",
     "XAIReporterInput",
     "AnyPromptBlock",
     "PromptBlock",
