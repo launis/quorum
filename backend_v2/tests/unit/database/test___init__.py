@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 import pytest
 
 import backend_v2.database as db_pkg
+import backend_v2.database.repositories.components as components_pkg
 from backend_v2.database import (
     CausalReasoningPort,
     EntityPersistencePort,
@@ -95,6 +96,16 @@ def test_database_package_exports_and_uow_factory_registration() -> None:
         "register_default_uow_factory",
     }
     assert set(db_pkg.__all__) == expected_exports
+    assert set(components_pkg.__all__) == {
+        "AgentRepositoryImpl",
+        "ExecutionPersonaRepositoryImpl",
+        "ExtractionProtocolRepositoryImpl",
+        "MatrixRepositoryImpl",
+        "OutputProfileRepositoryImpl",
+        "PromptBlockRepositoryImpl",
+        "RoleRepositoryImpl",
+        "TaskBlueprintRepositoryImpl",
+    }
 
     flt = Filter(field="organization_id", operator="==", value=generate_opaque_id(EntityPrefix.ORGANIZATION))
     assert flt.field == "organization_id"
