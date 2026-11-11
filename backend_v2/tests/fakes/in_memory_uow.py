@@ -72,6 +72,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     DependencyRelationType,
@@ -173,6 +174,7 @@ class _InMemoryPostgresStore:
             "execution_assignments": {},
             "system_configs": {},
             "prompt_blocks": {},
+            "task_briefs": {},
             "steps": {},
             "workflows": {},
             "output_profiles": {},
@@ -941,6 +943,47 @@ class InMemoryEntityAdapter:
         assignments.sort(key=lambda a: a.id)
         return assignments
 
+    async def upsert_task_brief(self, brief: TaskBrief) -> str:
+        """Upsert a TaskBrief entity in memory.
+
+        Args:
+            brief: Validated TaskBrief domain model.
+
+        Returns:
+            Canonical tbr_<uuid7_hex> task brief identifier.
+        """
+        _ = parse_prefixed_uuid7(brief.id, EntityPrefix.TASK_BRIEF)
+        if brief.organization_id is not None and brief.organization_id != "SYSTEM":
+            _ = parse_prefixed_uuid7(brief.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["task_briefs"][brief.id] = brief
+        return brief.id
+
+    async def get_task_brief(self, brief_id: str) -> TaskBrief | None:
+        """Retrieve a TaskBrief by brief_id.
+
+        Args:
+            brief_id: Canonical tbr_<uuid7_hex> task brief identifier.
+
+        Returns:
+            Stored TaskBrief or None if not found.
+        """
+        _ = parse_prefixed_uuid7(brief_id, EntityPrefix.TASK_BRIEF)
+        if brief_id in self._store.seed_tables["task_briefs"]:
+            item = self._store.seed_tables["task_briefs"][brief_id]
+            if isinstance(item, TaskBrief):
+                return item
+        return None
+
+    async def list_task_briefs(self) -> list[TaskBrief]:
+        """List all persisted TaskBrief entities.
+
+        Returns:
+            List of TaskBrief domain models.
+        """
+        briefs = [item for item in self._store.seed_tables["task_briefs"].values() if isinstance(item, TaskBrief)]
+        briefs.sort(key=lambda b: b.id)
+        return briefs
+
     async def save_report_binary(self, payload: ReportBinaryPayloadDTO) -> None:
         """Persist a ReportBinaryPayloadDTO in memory and mark report_has_pdf.
 
@@ -1082,6 +1125,7 @@ class InMemoryEntityAdapter:
             "execution_assignments",
             "system_configs",
             "prompt_blocks",
+            "task_briefs",
             "steps",
             "workflows",
             "output_profiles",
@@ -1116,6 +1160,7 @@ class InMemoryEntityAdapter:
                 PersonaPromptBlock,
                 ProtocolPromptBlock,
             ),
+            "task_briefs": (TaskBrief,),
             "steps": (Step,),
             "workflows": (Workflow,),
             "output_profiles": (OutputProfile,),
@@ -1176,6 +1221,7 @@ class InMemoryEntityAdapter:
             "system_config": "system_configs",
             "system_configs": "system_configs",
             "prompt_blocks": "prompt_blocks",
+            "task_briefs": "task_briefs",
             "components": "prompt_blocks",
             "agents": "prompt_blocks",
             "steps": "steps",
@@ -1197,6 +1243,7 @@ class InMemoryEntityAdapter:
             "execution_assignments": EntityPrefix.ASSIGNMENT,
             "system_configs": EntityPrefix.SYSTEM_CONFIG,
             "prompt_blocks": EntityPrefix.PROMPT_BLOCK,
+            "task_briefs": EntityPrefix.TASK_BRIEF,
             "steps": EntityPrefix.STEP,
             "workflows": EntityPrefix.WORKFLOW,
             "output_profiles": EntityPrefix.OUTPUT_PROFILE,
@@ -1249,6 +1296,7 @@ class InMemoryEntityAdapter:
             "tenant_secrets": len(self._store.seed_tables["tenant_secrets"]),
             "system_configs": len(self._store.seed_tables["system_configs"]),
             "prompt_blocks": len(self._store.seed_tables["prompt_blocks"]),
+            "task_briefs": len(self._store.seed_tables["task_briefs"]),
             "steps": len(self._store.seed_tables["steps"]),
             "workflows": len(self._store.seed_tables["workflows"]),
             "output_profiles": len(self._store.seed_tables["output_profiles"]),
@@ -1489,6 +1537,7 @@ class InMemoryAsyncPgConnection:
             "execution_assignments",
             "system_configs",
             "prompt_blocks",
+            "task_briefs",
             "steps",
             "workflows",
             "output_profiles",
@@ -1572,6 +1621,7 @@ class InMemoryAsyncPgConnection:
                 "execution_assignments",
                 "system_configs",
                 "prompt_blocks",
+                "task_briefs",
                 "steps",
                 "workflows",
                 "output_profiles",
@@ -1673,6 +1723,7 @@ class InMemoryAsyncPgConnection:
             "execution_assignments",
             "system_configs",
             "prompt_blocks",
+            "task_briefs",
             "steps",
             "workflows",
             "output_profiles",
@@ -1817,6 +1868,7 @@ class InMemoryAsyncPgConnection:
                 "execution_assignments",
                 "system_configs",
                 "prompt_blocks",
+                "task_briefs",
                 "steps",
                 "workflows",
                 "output_profiles",
@@ -1874,6 +1926,7 @@ class InMemoryAsyncPgConnection:
             "execution_assignments",
             "system_configs",
             "prompt_blocks",
+            "task_briefs",
             "steps",
             "workflows",
             "output_profiles",

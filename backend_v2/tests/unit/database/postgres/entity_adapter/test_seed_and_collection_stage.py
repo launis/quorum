@@ -66,6 +66,7 @@ from backend_v2.tests.factories.model_factories import (
     OutputProfileFactory,
     ReportArtifactFactory,
     SystemRulePromptBlockFactory,
+    TaskBriefFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
@@ -304,6 +305,7 @@ async def test_collection_crud_across_all_canonical_tables(monkeypatch: pytest.M
         reg_cfg = _build_registry_config()
         mcp_cfg = _build_mcp_config()
         blk = SystemRulePromptBlockFactory.build(organization_id=org.id)
+        tbr = TaskBriefFactory.build(organization_id=org.id)
         step = _build_step(blk.id, org.id)
         wf = WorkflowFactory.build(organization_id=org.id, model_registry_id=reg_cfg.id)
         prf = OutputProfileFactory.build(workflow_id=wf.id, organization_id=org.id, content_blocks=[])
@@ -322,6 +324,7 @@ async def test_collection_crud_across_all_canonical_tables(monkeypatch: pytest.M
             ("system_configs", reg_cfg.id, reg_cfg.model_dump(mode="json")),
             ("system_configs", mcp_cfg.id, mcp_cfg.model_dump(mode="json")),
             ("prompt_blocks", blk.id, blk.model_dump(mode="json")),
+            ("task_briefs", tbr.id, tbr.model_dump(mode="json")),
             ("steps", step.id, step.model_dump(mode="json")),
             ("workflows", wf.id, wf.model_dump(mode="json")),
             ("output_profiles", prf.id, prf.model_dump(mode="json")),

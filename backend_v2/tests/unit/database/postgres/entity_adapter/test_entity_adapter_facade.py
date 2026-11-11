@@ -113,6 +113,7 @@ from backend_v2.tests.factories.model_factories import (
     OutputProfileFactory,
     ReportArtifactFactory,
     SystemRulePromptBlockFactory,
+    TaskBriefFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
@@ -309,6 +310,7 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         user = _build_user(org.id)
         cfg = _build_registry_config()
         blk = SystemRulePromptBlockFactory.build(organization_id=org.id)
+        tbr = TaskBriefFactory.build(organization_id=org.id, source_url="https://quorum.ai/brief")
         step = _build_step(blk.id, org.id)
         wf = WorkflowFactory.build(organization_id=org.id, model_registry_id=cfg.id)
         prf = OutputProfileFactory.build(workflow_id=wf.id, organization_id=org.id, content_blocks=[])
@@ -334,6 +336,9 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         assert await adapter.get_system_config(cfg.id) == cfg
         assert await adapter.upsert_prompt_block(blk) == blk.id
         assert await adapter.get_prompt_block(blk.id) == blk
+        assert await adapter.upsert_task_brief(tbr) == tbr.id
+        assert await adapter.get_task_brief(tbr.id) == tbr
+        assert await adapter.list_task_briefs() == [tbr]
         assert await adapter.upsert_step(step) == step.id
         assert await adapter.get_step(step.id) == step
         assert await adapter.upsert_workflow(wf) == wf.id

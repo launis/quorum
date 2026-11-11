@@ -11,15 +11,21 @@ import pytest
 
 from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
     get_output_profile_row,
+    get_task_brief_row,
     get_workflow_row,
+    list_task_brief_rows,
     upsert_output_profile_row,
+    upsert_task_brief_row,
     upsert_workflow_row,
 )
+from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
+from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.tests.factories.model_factories import (
     OutputProfileFactory,
+    TaskBriefFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
@@ -53,6 +59,20 @@ async def test_iam_system_and_studio_entities_roundtrip_parity() -> None:
         assert fetched_prf is not None
         assert fetched_prf == profile_with_lang
         assert fetched_prf.language == "fi"
+
+        brief_system = TaskBriefFactory.build(organization_id=None, source_url=None)
+        brief_tenant = TaskBriefFactory.build(
+            organization_id=generate_opaque_id(EntityPrefix.ORGANIZATION),
+            source_url="https://quorum.ai/briefs/1",
+        )
+        assert await upsert_task_brief_row(conn, _TIMEOUT, brief_system) == brief_system.id
+        assert await upsert_task_brief_row(conn, _TIMEOUT, brief_tenant) == brief_tenant.id
+        fetched_sys_brief = await get_task_brief_row(conn, _TIMEOUT, brief_system.id)
+        fetched_ten_brief = await get_task_brief_row(conn, _TIMEOUT, brief_tenant.id)
+        assert fetched_sys_brief == brief_system
+        assert fetched_ten_brief == brief_tenant
+        all_briefs = await list_task_brief_rows(conn, _TIMEOUT)
+        assert len(all_briefs) == 2
     finally:
         await pool.release(conn)
 
@@ -175,3 +195,77 @@ async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() ->
     finally:
         pool.clear_faults()
         await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_task_brief_stage_and_repository_crud_and_negative_boundaries() -> None:
+    """Verify TaskBrief stage faults and TaskBriefRepositoryImpl positive and negative boundaries."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        missing_tbr_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+        assert await get_task_brief_row(conn, _TIMEOUT, missing_tbr_id) is None
+
+        # Negative 1: Wrong entity prefix on get_task_brief_row raises VALIDATION_FAILED
+        with pytest.raises(AppException) as bad_prefix_exc:
+            await get_task_brief_row(conn, _TIMEOUT, generate_opaque_id(EntityPrefix.PROMPT_BLOCK))
+        assert bad_prefix_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        # Negative 2: Driver fault during list_task_brief_rows translates to STORAGE_ACCESS_FAILED
+        pool.inject_fault("fetch", RuntimeError("simulated fetch failure"))
+        with pytest.raises(AppException) as fetch_exc:
+            await list_task_brief_rows(conn, _TIMEOUT)
+        assert fetch_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+        pool.clear_faults()
+
+        pool.inject_fault(
+            "fetch",
+            AppException(
+                message="pre-existing app exception",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ),
+        )
+        with pytest.raises(AppException) as direct_fetch_exc:
+            await list_task_brief_rows(conn, _TIMEOUT)
+        assert direct_fetch_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+        pool.clear_faults()
+    finally:
+        pool.clear_faults()
+        await pool.release(conn)
+
+    # TaskBriefRepositoryImpl end-to-end over PostgresStorageDriver + InMemoryAsyncPgPool
+    from backend_v2.database.postgres.pool import PostgresPoolManager
+    from backend_v2.models.enums import StorageBackend
+    from backend_v2.settings import Settings
+
+    settings = Settings(
+        storage_backend=StorageBackend.POSTGRES,
+        postgres_host="db.internal",
+        postgres_port=5432,
+        postgres_user="quorum",
+        postgres_db="quorum",
+        postgres_command_timeout_seconds=5.0,
+    )
+    pool_mgr = PostgresPoolManager(settings=settings, pool=pool)
+    driver = PostgresStorageDriver(pool_manager=pool_mgr, settings=settings)
+    repo = TaskBriefRepositoryImpl(driver)
+
+    brief = TaskBriefFactory.build(organization_id=None, source_url="https://example.com/brief")
+    created_id = await repo.create_task_brief(brief)
+    assert created_id == brief.id
+
+    fetched = await repo.get_task_brief_by_id(brief.id)
+    assert fetched == brief
+
+    updated_brief = brief.model_copy(update={"instruction_text": "Updated instruction text"})
+    assert await repo.update_task_brief(brief.id, updated_brief) is True
+    assert await repo.update_task_brief(generate_opaque_id(EntityPrefix.TASK_BRIEF), updated_brief) is False
+
+    all_items = await repo.get_all_task_briefs()
+    assert len(all_items) == 1
+    assert all_items[0].instruction_text == "Updated instruction text"
+
+    assert await repo.delete_task_brief(brief.id) is True
+    assert await repo.delete_task_brief(brief.id) is False
+    assert await repo.get_task_brief_by_id(brief.id) is None

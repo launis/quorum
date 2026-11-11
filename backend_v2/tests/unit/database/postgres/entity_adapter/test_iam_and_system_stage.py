@@ -212,7 +212,7 @@ def _build_execution_assignment(organization_id: str, created_by: str) -> Execut
         invited_role=UserRole.MEMBER,
         workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
         output_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
-        task_brief_id=generate_opaque_id(EntityPrefix.PROMPT_BLOCK),
+        task_brief_id=generate_opaque_id(EntityPrefix.TASK_BRIEF),
         target_locale=SystemLocale.FI,
         locked_inputs=WorkflowInputs(dynamic_inputs={"role_context": "Senior Architect"}),
         assignee_input_keys=["candidate_essay"],

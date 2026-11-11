@@ -68,6 +68,7 @@ CANONICAL_ENTITY_PK_TABLES: frozenset[str] = frozenset(
         "workflows",
         "steps",
         "prompt_blocks",
+        "task_briefs",
         "output_profiles",
         "system_configs",
         "executions",
@@ -80,13 +81,14 @@ CANONICAL_NAMED_ENTITY_TABLES: dict[str, str] = {
     "users": "name",
     "system_configs": "name",
     "prompt_blocks": "label",
+    "task_briefs": "label",
     "steps": "name",
     "workflows": "name",
     "output_profiles": "name",
     "report_artifacts": "title",
 }
 
-# Define closed 15-table topology and banned symbol sets
+# Define closed 16-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -97,6 +99,7 @@ CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
         "workflows",
         "steps",
         "prompt_blocks",
+        "task_briefs",
         "output_profiles",
         "system_configs",
         "executions",
@@ -264,6 +267,7 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "computed_min",
         "computed_max",
         "instruction_text",
+        "source_url",
         "role_enforcement",
         "tone_directives",
         "protocol_instructions",

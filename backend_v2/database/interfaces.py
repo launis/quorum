@@ -55,6 +55,7 @@ from backend_v2.models.domain.proposition_graph import (
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Role, Step
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import (
@@ -95,6 +96,7 @@ __all__ = [
     "IRoleRepository",
     "ISystemRepository",
     "ITaskBlueprintRepository",
+    "ITaskBriefRepository",
     "IUnifiedWorkflowRepository",
     "IWorkflowRepository",
     "QuorumUnitOfWork",
@@ -335,6 +337,16 @@ class IReportArtifactRepository(Protocol):
     async def delete_report_artifact(self, report_id: str) -> bool: ...
 
 
+class ITaskBriefRepository(Protocol):
+    """Protocol for TaskBrief persistence operations."""
+
+    async def get_all_task_briefs(self) -> list[TaskBrief]: ...
+    async def get_task_brief_by_id(self, brief_id: str) -> TaskBrief | None: ...
+    async def create_task_brief(self, brief_data: TaskBrief) -> str: ...
+    async def update_task_brief(self, brief_id: str, updates: TaskBrief) -> bool: ...
+    async def delete_task_brief(self, brief_id: str) -> bool: ...
+
+
 class IUnifiedWorkflowRepository(
     IWorkflowRepository,
     IExecutionRepository,
@@ -345,6 +357,7 @@ class IUnifiedWorkflowRepository(
     IExecutionPersonaRepository,
     IExtractionProtocolRepository,
     IPromptBlockRepository,
+    ITaskBriefRepository,
     IAgentRepository,
     ITaskBlueprintRepository,
     IOutputProfileRepository,
@@ -426,6 +439,9 @@ class EntityPersistencePort(Protocol):
     async def upsert_execution_assignment(self, assignment: ExecutionAssignment) -> str: ...
     async def get_execution_assignment(self, assignment_id: str) -> ExecutionAssignment | None: ...
     async def list_execution_assignments(self, organization_id: str | None = None) -> list[ExecutionAssignment]: ...
+    async def upsert_task_brief(self, brief: TaskBrief) -> str: ...
+    async def get_task_brief(self, brief_id: str) -> TaskBrief | None: ...
+    async def list_task_briefs(self) -> list[TaskBrief]: ...
     async def delete_collection_document(self, collection_name: str, doc_id: str) -> bool: ...
     async def seed_collection_batch(self, collection_name: str, items: Sequence[BaseModel]) -> int: ...
     async def verify_seed_table_counts(self, expected_counts: Mapping[str, int]) -> dict[str, int]: ...

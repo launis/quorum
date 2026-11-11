@@ -11,6 +11,7 @@ from backend_v2.database.repositories.components.output_profile import OutputPro
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.database.repositories.components.role import RoleRepositoryImpl
 from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
+from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
@@ -31,6 +32,7 @@ class UnifiedWorkflowRepository(
     ExecutionPersonaRepositoryImpl,
     ExtractionProtocolRepositoryImpl,
     PromptBlockRepositoryImpl,
+    TaskBriefRepositoryImpl,
     AgentRepositoryImpl,
     TaskBlueprintRepositoryImpl,
     OutputProfileRepositoryImpl,

@@ -18,6 +18,7 @@ BEGIN
     ) THEN
         DROP TABLE IF EXISTS
             execution_assignments,
+            task_briefs,
             tenant_secrets,
             invitations,
             dependency_edges,
@@ -396,7 +397,21 @@ CREATE TABLE IF NOT EXISTS tenant_secrets (
     CONSTRAINT uq_tenant_secrets_org_scope_target UNIQUE (organization_id, scope, target_identifier)
 );
 
--- 15. Execution Assignments (Pre-Configured Task Assignments & Cohort Batches)
+-- 15. Task Briefs (Reusable Human-Facing Task Briefs & Case Descriptions)
+CREATE TABLE IF NOT EXISTS task_briefs (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    slug TEXT NOT NULL,
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    label JSONB NOT NULL,
+    description JSONB NOT NULL,
+    instruction_text TEXT NOT NULL,
+    source_url TEXT,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_task_brief_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_task_brief_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
+);
+
+-- 16. Execution Assignments (Pre-Configured Task Assignments & Cohort Batches)
 CREATE TABLE IF NOT EXISTS execution_assignments (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     batch_id UUID,
@@ -406,7 +421,7 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     invited_role TEXT NOT NULL DEFAULT 'MEMBER',
     workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
     output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
-    task_brief_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL,
+    task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL,
     target_locale TEXT NOT NULL,
     locked_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
     assignee_input_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -432,7 +447,42 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     CONSTRAINT enforce_assignment_execution_uuidv7 CHECK (execution_id IS NULL OR uuid_extract_version(execution_id) = 7),
     CONSTRAINT enforce_assignment_created_by_uuidv7 CHECK (uuid_extract_version(created_by) = 7)
 );
-ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL;
+ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL;
+DO $$
+DECLARE
+    fk_name TEXT;
+BEGIN
+    UPDATE execution_assignments
+    SET task_brief_id = NULL
+    WHERE task_brief_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM task_briefs tb WHERE tb.id = execution_assignments.task_brief_id);
+
+    FOR fk_name IN
+        SELECT con.conname
+        FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_class confrel ON confrel.oid = con.confrelid
+        WHERE rel.relname = 'execution_assignments'
+          AND con.contype = 'f'
+          AND confrel.relname = 'prompt_blocks'
+    LOOP
+        EXECUTE format('ALTER TABLE execution_assignments DROP CONSTRAINT IF EXISTS %I', fk_name);
+    END LOOP;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_class confrel ON confrel.oid = con.confrelid
+        WHERE rel.relname = 'execution_assignments'
+          AND con.contype = 'f'
+          AND confrel.relname = 'task_briefs'
+    ) THEN
+        ALTER TABLE execution_assignments
+            ADD CONSTRAINT execution_assignments_task_brief_id_fkey
+            FOREIGN KEY (task_brief_id) REFERENCES task_briefs(id) ON DELETE SET NULL;
+    END IF;
+END $$;
 
 -- Dynamic PG 18+/19 VIRTUAL vs PG 17 STORED Timestamp Guard
 DO $$
@@ -449,6 +499,8 @@ BEGIN
         ALTER TABLE system_configs ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE prompt_blocks DROP COLUMN IF EXISTS created_at;
         ALTER TABLE prompt_blocks ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE task_briefs DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE task_briefs ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE steps DROP COLUMN IF EXISTS created_at;
         ALTER TABLE steps ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE workflows DROP COLUMN IF EXISTS created_at;
@@ -461,6 +513,8 @@ BEGIN
         ALTER TABLE quorum_edges ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(edge_id)) STORED;
     END IF;
 END $$;
+
+CREATE INDEX IF NOT EXISTS idx_task_briefs_organization_id ON task_briefs (organization_id);
 
 -- PostgreSQL 19 Extended Multi-Column Statistics on VIRTUAL Generated Columns
 DO $$

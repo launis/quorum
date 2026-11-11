@@ -92,6 +92,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.mcp import (
     MCPIconDTO,
@@ -587,7 +588,7 @@ def test_schema_dto_naming_parity() -> None:
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_edges_run_created" in sql_text
 
     parsed_tables = _extract_sql_table_columns(sql_text)
-    expected_15_tables = {
+    expected_16_tables = {
         "organizations",
         "users",
         "invitations",
@@ -595,6 +596,7 @@ def test_schema_dto_naming_parity() -> None:
         "execution_assignments",
         "system_configs",
         "prompt_blocks",
+        "task_briefs",
         "steps",
         "workflows",
         "output_profiles",
@@ -604,7 +606,7 @@ def test_schema_dto_naming_parity() -> None:
         "quorum_nodes",
         "quorum_edges",
     }
-    assert set(parsed_tables.keys()) == expected_15_tables
+    assert set(parsed_tables.keys()) == expected_16_tables
 
     # 1. quorum_nodes <-> PropositionNode + NodeDraft.local_key
     assert parsed_tables["quorum_nodes"] == set(PropositionNode.model_fields.keys()) | {"local_key"}
@@ -659,6 +661,9 @@ def test_schema_dto_naming_parity() -> None:
 
     # 15. execution_assignments <-> ExecutionAssignment
     assert parsed_tables["execution_assignments"] == set(ExecutionAssignment.model_fields.keys())
+
+    # 16. task_briefs <-> TaskBrief + VIRTUAL created_at
+    assert parsed_tables["task_briefs"] == set(TaskBrief.model_fields.keys()) | {"created_at"}
 
     # Verify lossless binary JSONB roundtrip of MCP schemas (AllowedMCPTool, MCPServerInfoDTO, Step.mcp_tool_params)
     server_info = MCPServerInfoDTO(

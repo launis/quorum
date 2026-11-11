@@ -32,6 +32,7 @@ from backend_v2.database.interfaces import (
     IRoleRepository,
     ISystemRepository,
     ITaskBlueprintRepository,
+    ITaskBriefRepository,
     IUnifiedWorkflowRepository,
     IWorkflowRepository,
 )
@@ -76,6 +77,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
@@ -880,6 +882,37 @@ class InMemoryOutputProfileRepository(BaseInMemoryRepository[OutputProfile], IOu
         return False
 
 
+class InMemoryTaskBriefRepository(BaseInMemoryRepository[TaskBrief], ITaskBriefRepository):
+    """In-memory fake implementation of ITaskBriefRepository."""
+
+    async def get_all_task_briefs(self) -> list[TaskBrief]:
+        self._check_fault("get_all_task_briefs")
+        return self._list_isolated()
+
+    async def get_task_brief_by_id(self, brief_id: str) -> TaskBrief | None:
+        self._check_fault("get_task_brief_by_id")
+        return self._get_isolated(brief_id)
+
+    async def create_task_brief(self, brief_data: TaskBrief) -> str:
+        self._check_fault("create_task_brief")
+        self._save_isolated(brief_data.id, brief_data)
+        return brief_data.id
+
+    async def update_task_brief(self, brief_id: str, updates: TaskBrief) -> bool:
+        self._check_fault("update_task_brief")
+        if brief_id not in self._storage:
+            return False
+        self._save_isolated(brief_id, updates)
+        return True
+
+    async def delete_task_brief(self, brief_id: str) -> bool:
+        self._check_fault("delete_task_brief")
+        if brief_id in self._storage:
+            del self._storage[brief_id]
+            return True
+        return False
+
+
 # ==============================================================================
 # 9. Knowledge Repository Fake
 # ==============================================================================
@@ -1490,6 +1523,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         identities: InMemoryIdentityRepository | None = None,
         components: InMemoryComponentRepository | None = None,
         prompt_blocks: InMemoryPromptBlockRepository | None = None,
+        task_briefs: InMemoryTaskBriefRepository | None = None,
         agents: InMemoryAgentRepository | None = None,
         task_blueprints: InMemoryTaskBlueprintRepository | None = None,
         output_profiles: InMemoryOutputProfileRepository | None = None,
@@ -1507,6 +1541,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         self._identities = identities or InMemoryIdentityRepository()
         self._components = components or InMemoryComponentRepository()
         self._prompt_blocks = prompt_blocks or InMemoryPromptBlockRepository()
+        self._task_briefs = task_briefs or InMemoryTaskBriefRepository()
         self._agents = agents or InMemoryAgentRepository()
         self._task_blueprints = task_blueprints or InMemoryTaskBlueprintRepository()
         self._output_profiles = output_profiles or InMemoryOutputProfileRepository()
@@ -1526,6 +1561,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
             self._identities,
             self._components,
             self._prompt_blocks,
+            self._task_briefs,
             self._agents,
             self._task_blueprints,
             self._output_profiles,
@@ -1766,6 +1802,28 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
         return await self._prompt_blocks.delete_prompt_block(block_id, force_delete)
+
+    # 5.5 TaskBrief
+    async def get_all_task_briefs(self) -> list[TaskBrief]:
+        return await self._task_briefs.get_all_task_briefs()
+
+    async def get_task_brief_by_id(self, brief_id: str) -> TaskBrief | None:
+        return await self._task_briefs.get_task_brief_by_id(brief_id)
+
+    async def create_task_brief(self, brief_data: TaskBrief) -> str:
+        return await self._task_briefs.create_task_brief(brief_data)
+
+    async def update_task_brief(self, brief_id: str, updates: TaskBrief) -> bool:
+        return await self._task_briefs.update_task_brief(brief_id, updates)
+
+    async def delete_task_brief(self, brief_id: str) -> bool:
+        return await self._task_briefs.delete_task_brief(brief_id)
+
+    def set_task_briefs(self, briefs: list[TaskBrief]) -> None:
+        """Helper to seed task briefs for tests."""
+        self._task_briefs._storage.clear()
+        for brief in briefs:
+            self._task_briefs._save_isolated(brief.id, brief)
 
     # 6. Agent
     async def get_all_agents(self) -> list[PromptBlock]:

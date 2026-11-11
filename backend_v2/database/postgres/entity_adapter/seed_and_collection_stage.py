@@ -35,6 +35,7 @@ from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ _LIST_SPECS: dict[str, tuple[str, _HydrateFn]] = {
     "execution_assignments": (_iam._LIST_EXECUTION_ASSIGNMENTS_SQL, _iam.hydrate_execution_assignment_row),
     "system_configs": (_iam._LIST_SYSTEM_CONFIGS_SQL, _iam.hydrate_system_config_row),
     "prompt_blocks": (_pbs._LIST_PROMPT_BLOCKS_SQL, _pbs.hydrate_prompt_block_row),
+    "task_briefs": (_wp._LIST_TASK_BRIEFS_SQL, _wp.hydrate_task_brief_row),
     "steps": (_pbs._LIST_STEPS_SQL, _pbs.hydrate_step_row),
     "workflows": (_wp._LIST_WORKFLOWS_SQL, _wp.hydrate_workflow_row),
     "output_profiles": (_wp._LIST_OUTPUT_PROFILES_SQL, _wp.hydrate_output_profile_row),
@@ -76,6 +78,7 @@ _GET_HANDLERS: dict[str, _GetRowFn] = {
     "execution_assignments": _iam.get_execution_assignment_row,
     "system_configs": _iam.get_system_config_row,
     "prompt_blocks": _pbs.get_prompt_block_row,
+    "task_briefs": _wp.get_task_brief_row,
     "steps": _pbs.get_step_row,
     "workflows": _wp.get_workflow_row,
     "output_profiles": _wp.get_output_profile_row,
@@ -89,6 +92,7 @@ _MODEL_CLASSES: dict[str, type[BaseModel]] = {
     "invitations": Invitation,
     "tenant_secrets": TenantSecretDTO,
     "execution_assignments": ExecutionAssignment,
+    "task_briefs": TaskBrief,
     "steps": Step,
     "workflows": Workflow,
     "output_profiles": OutputProfile,
@@ -199,6 +203,8 @@ async def seed_collection_batch_rows(conn: _Conn, timeout: float, col_name: str,
             item, (MatrixPromptBlock, SystemRulePromptBlock, PersonaPromptBlock, ProtocolPromptBlock)
         ):
             await _pbs.upsert_prompt_block_row(conn, timeout, item)
+        elif table_name == "task_briefs" and isinstance(item, TaskBrief):
+            await _wp.upsert_task_brief_row(conn, timeout, item)
         elif table_name == "steps" and isinstance(item, Step):
             await _pbs.upsert_step_row(conn, timeout, item)
         elif table_name == "workflows" and isinstance(item, Workflow):

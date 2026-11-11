@@ -36,6 +36,7 @@ def test_interfaces_are_protocols() -> None:
         interfaces.IRoleRepository,
         interfaces.ISystemRepository,
         interfaces.ITaskBlueprintRepository,
+        interfaces.ITaskBriefRepository,
         interfaces.IUnifiedWorkflowRepository,
         interfaces.IWorkflowRepository,
         interfaces.QuorumUnitOfWork,

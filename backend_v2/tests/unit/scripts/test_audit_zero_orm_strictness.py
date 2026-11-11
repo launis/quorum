@@ -237,9 +237,13 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
         "    state_version INTEGER NOT NULL DEFAULT 1\n"
         ");\n"
+        "CREATE TABLE IF NOT EXISTS task_briefs (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    label JSONB NOT NULL\n"
+        ");\n"
         "CREATE TABLE IF NOT EXISTS execution_assignments (\n"
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
-        "    task_brief_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL\n"
+        "    task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL\n"
         ");\n",
         encoding="utf-8",
     )
@@ -252,7 +256,9 @@ def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(
     """Verify ZORM004 and ZORM007 enforce canonical UUIDv7 PK, display columns, FK REFERENCES (id), SQL DEFAULT bans, and slug query bans."""
     # Positive path on compliant SQL migration and canonical id SELECT query
     assert "workflows" in CANONICAL_ENTITY_PK_TABLES
+    assert "task_briefs" in CANONICAL_ENTITY_PK_TABLES
     assert CANONICAL_NAMED_ENTITY_TABLES["workflows"] == "name"
+    assert CANONICAL_NAMED_ENTITY_TABLES["task_briefs"] == "label"
     assert CANONICAL_NAMED_ENTITY_TABLES["prompt_blocks"] == "label"
     assert CANONICAL_NAMED_ENTITY_TABLES["report_artifacts"] == "title"
 

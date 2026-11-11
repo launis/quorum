@@ -32,6 +32,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
     StepUpdateDTO,
@@ -359,6 +360,20 @@ async def test_all_passthrough_methods() -> None:
         ),
     )
     await repo.delete_output_profile("1")
+    sample_brief = TaskBrief(
+        id="tbr_0195f3a0000070008123456789abcdef",
+        slug="tbr_1",
+        label=I18nText(translations={"en": "Brief", "fi": "Ohje"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+        instruction_text="Instructions",
+    )
+    await repo.get_all_task_briefs()
+    mock_driver.get.return_value = None
+    await repo.get_task_brief_by_id("1")
+    await repo.create_task_brief(sample_brief)
+    mock_driver.get.return_value = sample_brief.model_dump(mode="json")
+    await repo.update_task_brief("1", sample_brief)
+    await repo.delete_task_brief("1")
 
 
 @pytest.mark.asyncio

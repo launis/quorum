@@ -23,6 +23,7 @@ from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPg
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import EntityPrefix
 
@@ -30,16 +31,23 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "_GET_OUTPUT_PROFILE_SQL",
+    "_GET_TASK_BRIEF_SQL",
     "_GET_WORKFLOW_SQL",
     "_LIST_OUTPUT_PROFILES_SQL",
+    "_LIST_TASK_BRIEFS_SQL",
     "_LIST_WORKFLOWS_SQL",
     "_UPSERT_OUTPUT_PROFILE_SQL",
+    "_UPSERT_TASK_BRIEF_SQL",
     "_UPSERT_WORKFLOW_SQL",
     "get_output_profile_row",
+    "get_task_brief_row",
     "get_workflow_row",
     "hydrate_output_profile_row",
+    "hydrate_task_brief_row",
     "hydrate_workflow_row",
+    "list_task_brief_rows",
     "upsert_output_profile_row",
+    "upsert_task_brief_row",
     "upsert_workflow_row",
 ]
 
@@ -144,6 +152,19 @@ _LIST_OUTPUT_PROFILES_SQL: str = """SELECT id, slug, workflow_id, organization_i
        max_unmet_criteria, target_block_order, matrix_synthesis_groups, content_blocks,
        show_sources_summary_box, sources_display_mode, variance_target_block, user_role_target_block
 FROM output_profiles"""
+
+_UPSERT_TASK_BRIEF_SQL: str = """INSERT INTO task_briefs (id, slug, organization_id, label, description,
+    instruction_text, source_url)
+VALUES ($1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6, $7)
+ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, organization_id = EXCLUDED.organization_id,
+    label = EXCLUDED.label, description = EXCLUDED.description,
+    instruction_text = EXCLUDED.instruction_text, source_url = EXCLUDED.source_url"""
+
+_GET_TASK_BRIEF_SQL: str = """SELECT id, slug, organization_id, label, description, instruction_text, source_url
+FROM task_briefs WHERE id = $1::uuid"""
+
+_LIST_TASK_BRIEFS_SQL: str = """SELECT id, slug, organization_id, label, description, instruction_text, source_url
+FROM task_briefs"""
 
 
 async def _fetch_row(
@@ -444,3 +465,116 @@ async def get_output_profile_row(
     if row is None:
         return None
     return hydrate_output_profile_row(row)
+
+
+def hydrate_task_brief_row(row: AsyncPgRecordProtocol) -> TaskBrief:
+    """Hydrate a TaskBrief from a database row.
+
+    Args:
+        row: Database record from the task_briefs table.
+
+    Returns:
+        Validated TaskBrief domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the task_brief or organization UUID is invalid.
+    """
+    return TaskBrief.model_validate(
+        {
+            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.TASK_BRIEF),
+            "slug": row["slug"],
+            "organization_id": _format_org_uuid7(row["organization_id"], default_system=False),
+            "label": _decode_jsonb_column(row["label"]),
+            "description": _decode_jsonb_column(row["description"]),
+            "instruction_text": row["instruction_text"],
+            "source_url": row["source_url"],
+        },
+        strict=False,
+    )
+
+
+async def upsert_task_brief_row(conn: AsyncPgConnectionProtocol, timeout: float, brief: TaskBrief) -> str:
+    """Persist a TaskBrief into task_briefs.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        brief: Validated TaskBrief domain model.
+
+    Returns:
+        Canonical tbr_<hex> task brief identifier.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+    """
+    dumped = brief.model_dump(mode="json")
+    return await execute_entity_upsert(
+        conn,
+        timeout,
+        _UPSERT_TASK_BRIEF_SQL,
+        parse_prefixed_uuid7(brief.id, EntityPrefix.TASK_BRIEF),
+        brief.slug,
+        _parse_org_uuid7(brief.organization_id),
+        to_json(dumped["label"]).decode("utf-8"),
+        to_json(dumped["description"]).decode("utf-8"),
+        brief.instruction_text,
+        brief.source_url,
+        entity_id=brief.id,
+        entity_label="task_brief",
+    )
+
+
+async def get_task_brief_row(conn: AsyncPgConnectionProtocol, timeout: float, brief_id: str) -> TaskBrief | None:
+    """Fetch a TaskBrief by ID.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        brief_id: Canonical tbr_<hex> task brief identifier.
+
+    Returns:
+        Hydrated TaskBrief instance if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    tbr_uuid = parse_prefixed_uuid7(brief_id, EntityPrefix.TASK_BRIEF)
+    row = await _fetch_row(conn, timeout, _GET_TASK_BRIEF_SQL, tbr_uuid, brief_id)
+    if row is None:
+        return None
+    return hydrate_task_brief_row(row)
+
+
+async def list_task_brief_rows(conn: AsyncPgConnectionProtocol, timeout: float) -> list[TaskBrief]:
+    """List all TaskBrief rows from task_briefs.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated TaskBrief domain models.
+
+    Raises:
+        AppException: With STORAGE_ACCESS_FAILED if the database query fails.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(_LIST_TASK_BRIEFS_SQL, timeout=effective_timeout)
+    except Exception as exc:
+        if isinstance(exc, AppException):
+            raise
+        msg = f"Failed to list rows from table 'task_briefs': {exc}"
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.STORAGE_ACCESS_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "table": "task_briefs"},
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        ) from exc
+    return [hydrate_task_brief_row(row) for row in rows]

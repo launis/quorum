@@ -15,6 +15,7 @@ from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.settings import get_settings
 
@@ -118,16 +119,23 @@ from .seed_and_collection_stage import seed_collection_batch_rows as seed_collec
 from .seed_and_collection_stage import upsert_collection_document_row as upsert_collection_document_row
 from .seed_and_collection_stage import verify_seed_table_counts_rows as verify_seed_table_counts_rows
 from .workflow_and_profile_stage import _GET_OUTPUT_PROFILE_SQL as _GET_OUTPUT_PROFILE_SQL
+from .workflow_and_profile_stage import _GET_TASK_BRIEF_SQL as _GET_TASK_BRIEF_SQL
 from .workflow_and_profile_stage import _GET_WORKFLOW_SQL as _GET_WORKFLOW_SQL
 from .workflow_and_profile_stage import _LIST_OUTPUT_PROFILES_SQL as _LIST_OUTPUT_PROFILES_SQL
+from .workflow_and_profile_stage import _LIST_TASK_BRIEFS_SQL as _LIST_TASK_BRIEFS_SQL
 from .workflow_and_profile_stage import _LIST_WORKFLOWS_SQL as _LIST_WORKFLOWS_SQL
 from .workflow_and_profile_stage import _UPSERT_OUTPUT_PROFILE_SQL as _UPSERT_OUTPUT_PROFILE_SQL
+from .workflow_and_profile_stage import _UPSERT_TASK_BRIEF_SQL as _UPSERT_TASK_BRIEF_SQL
 from .workflow_and_profile_stage import _UPSERT_WORKFLOW_SQL as _UPSERT_WORKFLOW_SQL
 from .workflow_and_profile_stage import get_output_profile_row as get_output_profile_row
+from .workflow_and_profile_stage import get_task_brief_row as get_task_brief_row
 from .workflow_and_profile_stage import get_workflow_row as get_workflow_row
 from .workflow_and_profile_stage import hydrate_output_profile_row as hydrate_output_profile_row
+from .workflow_and_profile_stage import hydrate_task_brief_row as hydrate_task_brief_row
 from .workflow_and_profile_stage import hydrate_workflow_row as hydrate_workflow_row
+from .workflow_and_profile_stage import list_task_brief_rows as list_task_brief_rows
 from .workflow_and_profile_stage import upsert_output_profile_row as upsert_output_profile_row
+from .workflow_and_profile_stage import upsert_task_brief_row as upsert_task_brief_row
 from .workflow_and_profile_stage import upsert_workflow_row as upsert_workflow_row
 
 type AnySystemConfig = SystemConfigModelRegistry | SystemConfigMCPGateways
@@ -150,6 +158,7 @@ class PostgresEntityAdapter:
     _hydrate_execution_assignment_row = staticmethod(hydrate_execution_assignment_row)
     _hydrate_system_config_row = staticmethod(hydrate_system_config_row)
     _hydrate_prompt_block_row = staticmethod(hydrate_prompt_block_row)
+    _hydrate_task_brief_row = staticmethod(hydrate_task_brief_row)
     _hydrate_step_row = staticmethod(hydrate_step_row)
     _hydrate_workflow_row = staticmethod(hydrate_workflow_row)
     _hydrate_output_profile_row = staticmethod(hydrate_output_profile_row)
@@ -599,6 +608,45 @@ class PostgresEntityAdapter:
             AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
         """
         return await get_output_profile_row(self._conn, self.command_timeout_seconds, profile_id)
+
+    async def upsert_task_brief(self, brief: TaskBrief) -> str:
+        """Persist a TaskBrief into task_briefs.
+
+        Args:
+            brief: Validated TaskBrief domain model.
+
+        Returns:
+            Canonical tbr_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
+        return await upsert_task_brief_row(self._conn, self.command_timeout_seconds, brief)
+
+    async def get_task_brief(self, brief_id: str) -> TaskBrief | None:
+        """Fetch a TaskBrief by ID.
+
+        Args:
+            brief_id: Canonical tbr_<32_hex> identifier.
+
+        Returns:
+            Hydrated TaskBrief instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await get_task_brief_row(self._conn, self.command_timeout_seconds, brief_id)
+
+    async def list_task_briefs(self) -> list[TaskBrief]:
+        """List all TaskBrief records from task_briefs.
+
+        Returns:
+            List of hydrated TaskBrief domain models.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_task_brief_rows(self._conn, self.command_timeout_seconds)
 
     async def upsert_report_artifact(self, artifact: ReportArtifact) -> str:
         """Persist a ReportArtifact into report_artifacts.

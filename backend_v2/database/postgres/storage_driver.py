@@ -32,6 +32,7 @@ _CANONICAL_COLLECTION_ALIASES: dict[str, str] = {
     "organizations": "organizations",
     "users": "users",
     "prompt_blocks": "prompt_blocks",
+    "task_briefs": "task_briefs",
     "components": "prompt_blocks",
     "agents": "prompt_blocks",
     "steps": "steps",
