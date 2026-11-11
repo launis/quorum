@@ -10,6 +10,11 @@ from backend_v2.api.routers.system import telemetry as telemetry_module
 from backend_v2.api.routers.system.telemetry import report_client_error
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.system import ClientErrorPayload
+from backend_v2.models.dtos.telemetry import (
+    SpanSnapshotDTO,
+    TraceContextCarrierDTO,
+    TraceSnapshotDTO,
+)
 
 
 @pytest.mark.asyncio
@@ -117,3 +122,77 @@ def test_client_error_payload_rejects_invalid_boundary_inputs() -> None:
 
     with pytest.raises(ValidationError):
         ClientErrorPayload.model_validate({"severity": "error"})
+
+
+def test_telemetry_dtos_valid_instantiation() -> None:
+    """Verify TraceContextCarrierDTO, SpanSnapshotDTO, and TraceSnapshotDTO validate valid inputs."""
+    carrier = TraceContextCarrierDTO(
+        traceparent="00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+        tracestate="congo=t61rcWkgMzE",
+    )
+    assert carrier.traceparent == "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+
+    span = SpanSnapshotDTO(
+        span_id="00f067aa0ba902b7",
+        name="execute_step",
+        duration_ms=12.5,
+        status="OK",
+        attributes={"step_count": 1, "cached": True},
+    )
+    assert span.duration_ms == 12.5
+    assert span.parent_id is None
+
+    trace = TraceSnapshotDTO(
+        trace_id="4bf92f3577b34da6a3ce929d0e0e4736",
+        service_name="quorum-backend",
+        root_span="workflow_execution",
+        status="OK",
+        duration_ms=125.0,
+        timestamp="2026-11-11T04:00:00Z",
+        span_tree=[span],
+        total_input_tokens=100,
+        total_output_tokens=50,
+        cache_hit=True,
+    )
+    assert len(trace.span_tree) == 1
+    assert trace.total_input_tokens == 100
+
+
+def test_trace_context_carrier_dto_rejects_invalid_traceparent_and_extra_fields() -> None:
+    """Verify TraceContextCarrierDTO rejects malformed W3C traceparent and unknown fields."""
+    with pytest.raises(ValidationError):
+        TraceContextCarrierDTO.model_validate({"traceparent": "invalid-traceparent-header"})
+
+    with pytest.raises(ValidationError):
+        TraceContextCarrierDTO.model_validate(
+            {
+                "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+                "unknown_field": "forbidden",
+            }
+        )
+
+
+def test_span_and_trace_snapshot_dto_reject_negative_boundaries() -> None:
+    """Verify SpanSnapshotDTO and TraceSnapshotDTO reject negative duration and token counts."""
+    with pytest.raises(ValidationError):
+        SpanSnapshotDTO.model_validate(
+            {
+                "span_id": "00f067aa0ba902b7",
+                "name": "execute_step",
+                "duration_ms": -0.01,
+                "status": "ERROR",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        TraceSnapshotDTO.model_validate(
+            {
+                "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+                "service_name": "quorum-backend",
+                "root_span": "workflow_execution",
+                "status": "OK",
+                "duration_ms": 10.0,
+                "timestamp": "2026-11-11T04:00:00Z",
+                "total_input_tokens": -1,
+            }
+        )
