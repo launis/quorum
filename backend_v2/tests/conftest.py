@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from backend_v2.database.interfaces import register_default_uow_factory
+from backend_v2.database.interfaces import get_registered_uow_factory, register_default_uow_factory
 from backend_v2.models.auth import SystemOrganizations, TenantSecretDTO
 from backend_v2.models.dtos.export import ExportPayloadDTO as _ExportPayloadDTO
 from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode
@@ -226,7 +226,7 @@ def isolate_default_uow_and_secret_service() -> Generator[None]:
     )
     for sec in default_secrets:
         uow.store.seed_tables["tenant_secrets"][sec.id] = sec
-    register_default_uow_factory(lambda: uow)
+    register_default_uow_factory(lambda: InMemoryUnitOfWork(uow.store))
     reset_secret_service()
     yield
     reset_secret_service()
@@ -313,6 +313,7 @@ def studio_workflow_service(
         output_profile_repo=fake_output_profile_repo,
         prompt_block_repo=fake_prompt_block_repo,
         system_repo=fake_system_repo,
+        uow_factory=get_registered_uow_factory(),
     )
 
 

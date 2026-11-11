@@ -9,6 +9,8 @@ from backend_v2.database.interfaces import (
     IPromptBlockRepository,
     ISystemRepository,
     IWorkflowRepository,
+    UnitOfWorkFactory,
+    open_uow_session,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
@@ -53,6 +55,7 @@ class StudioWorkflowService:
         output_profile_repo: IOutputProfileRepository,
         prompt_block_repo: IPromptBlockRepository,
         system_repo: ISystemRepository,
+        uow_factory: UnitOfWorkFactory | None = None,
     ) -> None:
         """Initialize the service.
 
@@ -61,11 +64,71 @@ class StudioWorkflowService:
             output_profile_repo: Output profile repository instance.
             prompt_block_repo: Prompt block repository instance.
             system_repo: System repository instance.
+            uow_factory: Optional UnitOfWork factory for multi-entity transactions.
         """
         self.workflow_repo = workflow_repo
         self.output_profile_repo = output_profile_repo
         self.prompt_block_repo = prompt_block_repo
         self.system_repo = system_repo
+        self._uow_factory = uow_factory
+
+    async def _require_workflow(self, initiator: TokenData, id: str, *, after_save: bool = False) -> Workflow:
+        """Fetch a workflow by ID or raise ResourceNotFoundError.
+
+        Args:
+            initiator: The authenticated user requesting the workflow.
+            id: Canonical workflow identifier.
+            after_save: Whether the lookup occurs during post-save roundtrip verification.
+
+        Returns:
+            Hydrated Workflow domain model.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the workflow does not exist.
+        """
+        wf = await self.workflow_repo.get_workflow_by_id(id)
+        if not wf:
+            context_suffix = " after save" if after_save else ""
+            logger.error(
+                "[StudioService] %s: Workflow %s not found%s (Initiator: %s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                id,
+                context_suffix,
+                initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": id},
+            )
+            raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
+        return wf
+
+    async def _require_step(self, initiator: TokenData, id: str, *, after_save: bool = False) -> Step:
+        """Fetch a step by ID or raise ResourceNotFoundError.
+
+        Args:
+            initiator: The authenticated user requesting the step.
+            id: Canonical step identifier.
+            after_save: Whether the lookup occurs during post-save roundtrip verification.
+
+        Returns:
+            Hydrated Step domain model.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the step does not exist.
+        """
+        step = await self.workflow_repo.get_step_by_id(id)
+        if not step:
+            context_suffix = " after save" if after_save else ""
+            logger.error(
+                "[StudioService] %s: Step %s not found%s (Initiator: %s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                id,
+                context_suffix,
+                initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "step_id": id},
+            )
+            raise ResourceNotFoundError(resource_type="step", resource_id=id)
+        return step
 
     def _to_output_profile_dto(self, profile: OutputProfile) -> OutputProfileResponseDTO:
         """Project a domain OutputProfile into an OutputProfileResponseDTO.
@@ -218,18 +281,7 @@ class StudioWorkflowService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation is violated.
         """
-        wf = await self.workflow_repo.get_workflow_by_id(id)
-        if not wf:
-            logger.error(
-                "[StudioService] %s: Workflow %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
-
+        wf = await self._require_workflow(initiator, id)
         enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id, is_public=wf.is_public)
 
         stitched = await self._stitch_profiles_to_workflows([wf])
@@ -284,8 +336,55 @@ class StudioWorkflowService:
 
         return sorted(list(extensions))
 
+    async def _persist_and_stitch_workflow(
+        self, initiator: TokenData, id: str, normalized: Workflow
+    ) -> WorkflowResponseDTO:
+        """Validate DAG topology, persist a Workflow, synchronize linked profiles, and stitch DTO.
+
+        Args:
+            initiator: The authenticated user performing the write.
+            id: Authoritative workflow identifier.
+            normalized: Validated Workflow domain model bound to id.
+
+        Returns:
+            Hydrated WorkflowResponseDTO with stitched output profiles.
+
+        Raises:
+            AppException (ErrorCodes.WORKFLOW_COMPILATION_ERROR): If DAG validation fails.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the workflow cannot be reloaded after save.
+        """
+        DAGCompilerService.validate_workflow(normalized)
+        await self.workflow_repo.save_workflow(normalized)
+        saved = await self._require_workflow(initiator, id, after_save=True)
+        await self._sync_output_profiles_for_workflow(saved)
+        stitched = await self._stitch_profiles_to_workflows([saved])
+        return stitched[0]
+
+    async def _insert_validated_workflow(self, initiator: TokenData, id: str, data: Workflow) -> WorkflowResponseDTO:
+        """Insert a newly drafted Workflow inside an atomic Unit of Work session.
+
+        Args:
+            initiator: The authenticated user creating the workflow.
+            id: Server-issued workflow identifier.
+            data: Newly constructed Workflow domain model.
+
+        Returns:
+            Persisted WorkflowResponseDTO reloaded from the repository.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
+            AppException (ErrorCodes.WORKFLOW_COMPILATION_ERROR): If DAG validation fails.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the workflow is missing after save.
+        """
+        enforce_modification_rights(initiator, data.organization_id)
+        normalized = data
+        if normalized.id != id:
+            normalized = normalized.model_copy(update={"id": id})
+        async with open_uow_session(self._uow_factory):
+            return await self._persist_and_stitch_workflow(initiator, id, normalized)
+
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> WorkflowResponseDTO:
-        """Save a workflow definition in-place.
+        """Update an existing workflow definition in-place inside an atomic Unit of Work session.
 
         Args:
             initiator: The user token data.
@@ -296,36 +395,21 @@ class StudioWorkflowService:
             The saved workflow response DTO.
 
         Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the target workflow does not exist.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
             AppException (ErrorCodes.WORKFLOW_COMPILATION_ERROR): If DAG validation fails.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
         """
-        enforce_modification_rights(initiator, data.organization_id)
+        async with open_uow_session(self._uow_factory):
+            existing = await self._require_workflow(initiator, id)
+            enforce_modification_rights(initiator, existing.organization_id)
 
-        DAGCompilerService.validate_workflow(data)
+            target_org: str | None = existing.organization_id
+            if initiator.role == UserRole.ROOT:
+                target_org = data.organization_id
+                enforce_modification_rights(initiator, target_org)
 
-        if data.id != id:
-            data = data.model_copy(update={"id": id})
-
-        await self.workflow_repo.save_workflow(data)
-
-        saved = await self.workflow_repo.get_workflow_by_id(id)
-        if not saved:
-            logger.error(
-                "[StudioService] %s: Workflow %s not found after save (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
-
-        # Automatically prune stale block references from linked OutputProfile entities.
-        await self._sync_output_profiles_for_workflow(saved)
-
-        stitched = await self._stitch_profiles_to_workflows([saved])
-        return stitched[0]
+            normalized = data.model_copy(update={"id": id, "organization_id": target_org})
+            return await self._persist_and_stitch_workflow(initiator, id, normalized)
 
     def _prune_stale_profile_targets(
         self,
@@ -431,7 +515,7 @@ class StudioWorkflowService:
                 await self.output_profile_repo.create_output_profile(updated_profile)
 
     async def delete_workflow(self, initiator: TokenData, id: str) -> None:
-        """Delete a workflow by ID.
+        """Delete a workflow by ID inside an atomic Unit of Work session.
 
         Args:
             initiator: The user token data.
@@ -441,20 +525,10 @@ class StudioWorkflowService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
         """
-        wf = await self.workflow_repo.get_workflow_by_id(id)
-        if not wf:
-            logger.error(
-                "[StudioService] %s: Workflow %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
-
-        enforce_modification_rights(initiator, wf.organization_id)
-        await self.workflow_repo.delete_workflow(id)
+        async with open_uow_session(self._uow_factory):
+            wf = await self._require_workflow(initiator, id)
+            enforce_modification_rights(initiator, wf.organization_id)
+            await self.workflow_repo.delete_workflow(id)
 
     async def create_workflow_draft(self, initiator: TokenData) -> WorkflowResponseDTO:
         """Create a new workflow draft.
@@ -488,7 +562,7 @@ class StudioWorkflowService:
         draft = Workflow(
             id=new_id,
             slug=new_id,
-            name=I18nText(translations={"en": "New Työnkulku", "fi": "Uusi työnkulku"}),
+            name=I18nText(translations={"en": "New Workflow", "fi": "Uusi työnkulku"}),
             description=I18nText(translations={"en": "Draft workflow", "fi": "Luonnos"}),
             status="draft",
             version=1,
@@ -503,7 +577,7 @@ class StudioWorkflowService:
             model_registry_id=chosen_registry_id,
             default_lexical_strictness_level=50,
         )
-        return await self.save_workflow(initiator, new_id, draft)
+        return await self._insert_validated_workflow(initiator, new_id, draft)
 
     def _clone_workflow_steps(self, steps: list[StepRule], sr_mapping: dict[str, str]) -> list[StepRule]:
         """Remap step rule IDs, dependencies, input mappings, and causal source step references.
@@ -581,7 +655,12 @@ class StudioWorkflowService:
         return profile_mapping
 
     async def clone_workflow(self, initiator: TokenData, id: str) -> WorkflowResponseDTO:
-        """Clone an existing workflow along with its step rules and output profiles.
+        """Clone an existing workflow and its output profiles inside one atomic Unit of Work session.
+
+        Executes parent-before-child foreign-key ordering:
+        1. Insert cloned Workflow with default_profile_id=None (preserving original slug).
+        2. Insert cloned OutputProfile rows referencing workflow_id=new_id (preserving original slugs).
+        3. Bind Workflow.default_profile_id to the cloned default profile UUID when present.
 
         Args:
             initiator: The user token data.
@@ -592,51 +671,53 @@ class StudioWorkflowService:
 
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation is violated.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation or modification rights fail.
             AppException (ErrorCodes.VALIDATION_FAILED): If a corrupted output profile is encountered.
+            AppException (ErrorCodes.WORKFLOW_COMPILATION_ERROR): If cloned DAG validation fails.
         """
-        wf = await self.workflow_repo.get_workflow_by_id(id)
-        if not wf:
-            logger.error(
-                "[StudioService] %s: Workflow %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": id},
+        async with open_uow_session(self._uow_factory):
+            wf = await self._require_workflow(initiator, id)
+            enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id, is_public=wf.is_public)
+
+            target_org_id = wf.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+            enforce_modification_rights(initiator, target_org_id)
+
+            new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+            cloned_name: I18nText | str = (
+                wf.name.with_copy_suffix() if isinstance(wf.name, I18nText) else f"{wf.name} (Copy)"
             )
-            raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
-
-        enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id, is_public=wf.is_public)
-
-        new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
-        target_org_id = wf.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
-        cloned_name: I18nText | str = (
-            wf.name.with_copy_suffix() if isinstance(wf.name, I18nText) else f"{wf.name} (Copy)"
-        )
-
-        sr_mapping: dict[str, str] = {
-            step_cfg.id: generate_opaque_id(EntityPrefix.STEP_REFERENCE) for step_cfg in wf.steps
-        }
-        new_steps = self._clone_workflow_steps(wf.steps, sr_mapping)
-        profile_mapping = await self._clone_workflow_profiles(initiator, id, new_id)
-
-        new_default_profile_id = (
-            profile_mapping[wf.default_profile_id]
-            if wf.default_profile_id and wf.default_profile_id in profile_mapping
-            else wf.default_profile_id
-        )
-
-        cloned_workflow = wf.model_copy(
-            update={
-                "id": new_id,
-                "name": cloned_name,
-                "organization_id": target_org_id,
-                "steps": new_steps,
-                "default_profile_id": new_default_profile_id,
+            sr_mapping: dict[str, str] = {
+                step_cfg.id: generate_opaque_id(EntityPrefix.STEP_REFERENCE) for step_cfg in wf.steps
             }
-        )
-        return await self.save_workflow(initiator, new_id, cloned_workflow)
+            new_steps = self._clone_workflow_steps(wf.steps, sr_mapping)
+
+            initial_cloned_workflow = wf.model_copy(
+                update={
+                    "id": new_id,
+                    "name": cloned_name,
+                    "organization_id": target_org_id,
+                    "steps": new_steps,
+                    "default_profile_id": None,
+                }
+            )
+            DAGCompilerService.validate_workflow(initial_cloned_workflow)
+            await self.workflow_repo.save_workflow(initial_cloned_workflow)
+
+            profile_mapping = await self._clone_workflow_profiles(initiator, id, new_id)
+
+            resolved_default_profile_id: str | None = None
+            if wf.default_profile_id is not None and wf.default_profile_id in profile_mapping:
+                resolved_default_profile_id = profile_mapping[wf.default_profile_id]
+            if resolved_default_profile_id is not None:
+                bound_cloned_workflow = initial_cloned_workflow.model_copy(
+                    update={"default_profile_id": resolved_default_profile_id}
+                )
+                await self.workflow_repo.save_workflow(bound_cloned_workflow)
+
+            saved = await self._require_workflow(initiator, new_id, after_save=True)
+            await self._sync_output_profiles_for_workflow(saved)
+            stitched = await self._stitch_profiles_to_workflows([saved])
+            return stitched[0]
 
     async def list_steps(
         self, initiator: TokenData, scope: StepFilterScope = StepFilterScope.SPECIALISTS
@@ -677,23 +758,34 @@ class StudioWorkflowService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the step is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation is violated.
         """
-        step = await self.workflow_repo.get_step_by_id(id)
-        if not step:
-            logger.error(
-                "[StudioService] %s: Step %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "step_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="step", resource_id=id)
-
+        step = await self._require_step(initiator, id)
         enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
         return step
 
+    async def _insert_validated_step(self, initiator: TokenData, id: str, data: Step) -> Step:
+        """Insert a newly drafted or cloned Step after RBAC verification.
+
+        Args:
+            initiator: The user token data.
+            id: Server-issued step identifier.
+            data: Newly constructed Step domain model.
+
+        Returns:
+            Persisted Step reloaded from the repository.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the step cannot be reloaded after save.
+        """
+        enforce_modification_rights(initiator, data.organization_id)
+        normalized = data
+        if normalized.id != id:
+            normalized = normalized.model_copy(update={"id": id})
+        await self.workflow_repo.save_step(normalized)
+        return await self._require_step(initiator, id, after_save=True)
+
     async def save_step(self, initiator: TokenData, id: str, data: Step) -> Step:
-        """Save a step definition in-place.
+        """Update an existing step definition in-place under its authoritative ID.
 
         Args:
             initiator: The user token data.
@@ -704,14 +796,14 @@ class StudioWorkflowService:
             The saved step.
 
         Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the target step does not exist.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
             AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to mutate system core step.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
         """
-        enforce_modification_rights(initiator, data.organization_id)
+        existing_step = await self._require_step(initiator, id)
+        enforce_modification_rights(initiator, existing_step.organization_id)
 
-        existing_step = await self.workflow_repo.get_step_by_id(id)
-        if existing_step and existing_step.is_system_core:
+        if existing_step.is_system_core:
             if data.slug != existing_step.slug or data.is_system_core != existing_step.is_system_core:
                 logger.error(
                     "[StudioService] %s: Cannot mutate protected system core step %s.",
@@ -726,23 +818,14 @@ class StudioWorkflowService:
                     details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
                 )
 
-        if data.id != id:
-            data = data.model_copy(update={"id": id})
+        target_org: str | None = existing_step.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = data.organization_id
+            enforce_modification_rights(initiator, target_org)
 
-        await self.workflow_repo.save_step(data)
-
-        saved = await self.workflow_repo.get_step_by_id(id)
-        if not saved:
-            logger.error(
-                "[StudioService] %s: Step %s not found after save (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "step_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="step", resource_id=id)
-        return saved
+        normalized = data.model_copy(update={"id": id, "organization_id": target_org})
+        await self.workflow_repo.save_step(normalized)
+        return await self._require_step(initiator, id, after_save=True)
 
     async def delete_step(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         """Delete a step by ID.
@@ -758,18 +841,7 @@ class StudioWorkflowService:
             AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete a system core step.
             AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If the step is referenced by a workflow.
         """
-        step = await self.workflow_repo.get_step_by_id(id)
-        if not step:
-            logger.error(
-                "[StudioService] %s: Step %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "step_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="step", resource_id=id)
-
+        step = await self._require_step(initiator, id)
         enforce_modification_rights(initiator, step.organization_id)
 
         if step.is_system_core:
@@ -869,7 +941,7 @@ class StudioWorkflowService:
         draft = Step(
             id=new_id,
             slug=new_id,
-            name=I18nText(translations={"en": "New Askel", "fi": "Uusi askel"}),
+            name=I18nText(translations={"en": "New Step", "fi": "Uusi askel"}),
             description=I18nText(translations={"en": "Draft step", "fi": "Luonnos"}),
             type=StepType.LLM,
             role_block_id=None,
@@ -884,7 +956,7 @@ class StudioWorkflowService:
             cognitive_tier=CognitiveTier.FAST,
             organization_id=target_org,
         )
-        return await self.save_step(initiator, new_id, draft)
+        return await self._insert_validated_step(initiator, new_id, draft)
 
     async def clone_step(self, initiator: TokenData, id: str) -> Step:
         """Clone an existing step by ID.
@@ -898,20 +970,9 @@ class StudioWorkflowService:
 
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation is violated.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation or modification rights fail.
         """
-        step = await self.workflow_repo.get_step_by_id(id)
-        if not step:
-            logger.error(
-                "[StudioService] %s: Step %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "step_id": id},
-            )
-            raise ResourceNotFoundError(resource_type="step", resource_id=id)
-
+        step = await self._require_step(initiator, id)
         enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
 
         new_id = generate_opaque_id(EntityPrefix.STEP)
@@ -926,4 +987,4 @@ class StudioWorkflowService:
                 "is_system_core": False,
             }
         )
-        return await self.save_step(initiator, new_id, cloned_obj)
+        return await self._insert_validated_step(initiator, new_id, cloned_obj)

@@ -201,20 +201,28 @@ def test_get_supported_platforms_permission_denied(service: StudioSystemConfigSe
 
 @pytest.mark.asyncio
 async def test_get_system_config_success(
-    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    admin_token: TokenData,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Return hydrated SystemConfigModelRegistry from repository."""
+    """Return hydrated SystemConfigModelRegistry for ROOT and ADMIN callers."""
     current = (await system_repo.get_all_model_registries())[0]
     res = await service.get_system_config(root_token, current.id)
     assert res.id == current.id
     assert res.type == "model_registry"
 
+    admin_res = await service.get_system_config(admin_token, current.id)
+    assert admin_res.id == current.id
+
 
 @pytest.mark.asyncio
 async def test_get_system_config_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Assert member role raises PermissionDeniedError."""
-    with pytest.raises(PermissionDeniedError):
-        await service.get_system_config(member_token, "sys_0195f3a0000070008123456789abcdef")
+    """Assert MANAGER, MEMBER, and VIEWER roles raise PermissionDeniedError."""
+    for denied_role in (UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER):
+        caller = member_token.model_copy(update={"role": denied_role})
+        with pytest.raises(PermissionDeniedError):
+            await service.get_system_config(caller, "sys_0195f3a0000070008123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -232,25 +240,38 @@ async def test_get_system_config_not_found(
 async def test_save_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Save model registry and verify true stateful roundtrip persistence."""
+    """Save existing model registry in-place and verify stateful roundtrip persistence."""
     reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
-    res = await service.save_system_config(root_token, "sys_0195f3a0000070008123456789abcdef", reg)
-    assert res.id == "sys_0195f3a0000070008123456789abcdef"
+    await system_repo.update_model_registry(reg)
+    updated_reg = reg.model_copy(update={"name": "Updated Registry Name"})
+    res = await service.save_system_config(root_token, reg.id, updated_reg)
+    assert res.id == reg.id
+    assert res.name == "Updated Registry Name"
 
-    # Stateful Roundtrip Verification via repository
-    persisted = await system_repo.get_model_registry("sys_0195f3a0000070008123456789abcdef")
-    assert persisted.id == "sys_0195f3a0000070008123456789abcdef"
+    persisted = await system_repo.get_model_registry(reg.id)
+    assert persisted.id == reg.id
+    assert persisted.name == "Updated Registry Name"
     assert persisted.type == "model_registry"
 
 
 @pytest.mark.asyncio
 async def test_save_system_config_permission_denied(
-    service: StudioSystemConfigService, member_token: TokenData
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    admin_token: TokenData,
+    member_token: TokenData,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Assert non-root user cannot save model registry."""
-    reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
+    """Assert non-root callers cannot save an existing model registry and missing IDs raise 404."""
+    existing = (await system_repo.get_all_model_registries())[0]
     with pytest.raises(PermissionDeniedError):
-        await service.save_system_config(member_token, "sys_0195f3a0000070008123456789abcdef", reg)
+        await service.save_system_config(member_token, existing.id, existing)
+    with pytest.raises(PermissionDeniedError):
+        await service.save_system_config(admin_token, existing.id, existing)
+
+    missing_reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
+    with pytest.raises(ResourceNotFoundError):
+        await service.save_system_config(root_token, missing_reg.id, missing_reg)
 
 
 def test_save_system_config_corrupted_id_fails_fast() -> None:
@@ -276,18 +297,25 @@ async def test_create_model_registry_draft(
 
 @pytest.mark.asyncio
 async def test_create_model_registry_draft_permission_denied(
-    service: StudioSystemConfigService, member_token: TokenData
+    service: StudioSystemConfigService,
+    admin_token: TokenData,
+    member_token: TokenData,
 ) -> None:
-    """Assert non-authorized member raises PermissionDeniedError when creating model registry draft."""
+    """Assert non-ROOT users (including ADMIN in ROOT_SYSTEM) raise PermissionDeniedError on draft creation."""
     with pytest.raises(PermissionDeniedError):
         await service.create_system_config_draft(member_token)
+    with pytest.raises(PermissionDeniedError):
+        await service.create_system_config_draft(admin_token)
+    root_org_admin = admin_token.model_copy(update={"organization_id": SystemOrganizations.ROOT_SYSTEM.value})
+    with pytest.raises(PermissionDeniedError):
+        await service.create_system_config_draft(root_org_admin)
 
 
 @pytest.mark.asyncio
 async def test_clone_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Clone existing model registry (both with and without slug) and verify stateful roundtrip."""
+    """Clone existing model registry (both with and without slug) and verify preserved slug."""
     original = (await system_repo.get_all_model_registries())[0]
     res = await service.clone_system_config(root_token, original.id)
     assert res.id != original.id
@@ -296,15 +324,13 @@ async def test_clone_system_config_success(
     assert res.slug is None
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
 
-    # Stateful Roundtrip:
     persisted = await system_repo.get_model_registry(res.id)
     assert persisted.id == res.id
 
-    # Clone a registry that has an explicit slug defined
     with_slug = original.model_copy(update={"slug": "custom_registry"})
     await service.save_system_config(root_token, original.id, with_slug)
     res_with_slug = await service.clone_system_config(root_token, original.id)
-    assert res_with_slug.slug == "custom_registry-copy"
+    assert res_with_slug.slug == "custom_registry"
 
 
 @pytest.mark.asyncio
@@ -324,7 +350,7 @@ async def test_save_system_config_not_found_after_save(
     root_token: TokenData,
     system_repo: InMemorySystemRepository,
 ) -> None:
-    """Assert ResourceNotFoundError if registry not found after save with deterministic fault cleanup."""
+    """Assert ResourceNotFoundError if registry not found on fetch or after draft creation."""
     reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
     system_repo.inject_fault(
         "get_model_registry",
@@ -333,6 +359,8 @@ async def test_save_system_config_not_found_after_save(
     try:
         with pytest.raises(ResourceNotFoundError):
             await service.save_system_config(root_token, "sys_0195f3a0000070008123456789abcdef", reg)
+        with pytest.raises(ResourceNotFoundError):
+            await service.create_system_config_draft(root_token)
     finally:
         system_repo.clear_faults()
 
@@ -344,13 +372,7 @@ async def test_delete_system_config_success(
     """Assert ROOT user deletes system config successfully when multiple exist."""
     registries = await system_repo.get_all_model_registries()
     assert len(registries) >= 1
-    second_reg = registries[0].model_copy(
-        update={
-            "id": "sys_0195f3a0000070008000000000000099",
-            "slug": "model_registry_second",
-        }
-    )
-    await service.save_system_config(root_token, second_reg.id, second_reg)
+    second_reg = await service.create_system_config_draft(root_token)
     await service.delete_system_config(root_token, second_reg.id)
     remaining = await system_repo.get_all_model_registries()
     assert not any(r.id == second_reg.id for r in remaining)
@@ -393,17 +415,24 @@ async def test_delete_system_config_not_found(
 async def test_list_system_configs(
     service: StudioSystemConfigService,
     root_token: TokenData,
+    admin_token: TokenData,
     member_token: TokenData,
     system_repo: InMemorySystemRepository,
 ) -> None:
-    """List configs for ROOT and assert empty list for non-ROOT."""
+    """List configs for ROOT and ADMIN and reject MANAGER, MEMBER, and VIEWER with 403."""
     configs = await service.list_system_configs(root_token)
     assert len(configs) == 1
     current = (await system_repo.get_all_model_registries())[0]
     assert configs[0].id == current.id
 
-    configs_member = await service.list_system_configs(member_token)
-    assert configs_member == []
+    configs_admin = await service.get_all_system_configs(admin_token)
+    assert len(configs_admin) == 1
+    assert configs_admin[0].id == current.id
+
+    for denied_role in (UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER):
+        caller = member_token.model_copy(update={"role": denied_role})
+        with pytest.raises(PermissionDeniedError):
+            await service.list_system_configs(caller)
 
 
 # ============================================================================
@@ -419,7 +448,7 @@ async def test_list_mcp_gateways(
     member_token: TokenData,
     system_repo: InMemorySystemRepository,
 ) -> None:
-    """Return list of MCP gateways for ROOT and ADMIN, empty for MEMBER."""
+    """Return list of MCP gateways for ROOT and ADMIN and reject MANAGER, MEMBER, and VIEWER with 403."""
     res = await service.list_mcp_gateways(root_token)
     assert len(res) == 1
     current = await system_repo.get_mcp_gateways()
@@ -430,21 +459,25 @@ async def test_list_mcp_gateways(
     assert len(res_admin) == 1
     assert res_admin[0].id == current.id
 
-    res_member = await service.list_mcp_gateways(member_token)
-    assert res_member == []
+    for denied_role in (UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER):
+        caller = member_token.model_copy(update={"role": denied_role})
+        with pytest.raises(PermissionDeniedError):
+            await service.list_mcp_gateways(caller)
 
 
 @pytest.mark.asyncio
 async def test_get_mcp_gateways_success_and_cache_hit(
-    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    admin_token: TokenData,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Retrieve specific MCP gateway by id and verify subsequent cache hit."""
+    """Retrieve specific MCP gateway by id for ROOT and ADMIN and verify cache hit."""
     current = await system_repo.get_mcp_gateways()
     res = await service.get_mcp_gateways(root_token, current.id)
     assert res.id == current.id
 
-    # Second call hits MCPGatewayCache
-    cached_res = await service.get_mcp_gateways(root_token, current.id)
+    cached_res = await service.get_mcp_gateways(admin_token, current.id)
     assert cached_res.id == current.id
 
 
@@ -457,9 +490,11 @@ async def test_get_mcp_gateways_not_found(service: StudioSystemConfigService, ro
 
 @pytest.mark.asyncio
 async def test_get_mcp_gateways_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Assert non-ROOT user raises PermissionDeniedError."""
-    with pytest.raises(PermissionDeniedError):
-        await service.get_mcp_gateways(member_token, "sys_0195f3a00000700080008172bda70c86")
+    """Assert MANAGER, MEMBER, and VIEWER roles raise PermissionDeniedError."""
+    for denied_role in (UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER):
+        caller = member_token.model_copy(update={"role": denied_role})
+        with pytest.raises(PermissionDeniedError):
+            await service.get_mcp_gateways(caller, "sys_0195f3a00000700080008172bda70c86")
 
 
 @pytest.mark.asyncio
@@ -467,8 +502,9 @@ async def test_save_mcp_gateways_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Save MCP gateways and verify true stateful roundtrip."""
+    current = await system_repo.get_mcp_gateways()
     gw = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id=current.id,
         name="Tavily Search Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
@@ -481,16 +517,16 @@ async def test_save_mcp_gateways_success(
             )
         ],
     )
-    res = await service.save_mcp_gateways(root_token, "sys_0195f3a00000700080008172bda70c86", gw)
-    assert res.id == "sys_0195f3a00000700080008172bda70c86"
+    res = await service.save_mcp_gateways(root_token, current.id, gw)
+    assert res.id == current.id
     assert res.name == "Tavily Search Gateway"
     assert res.slug == "tavily_gateway"
     assert len(res.tools) == 1
     assert res.tools[0].tool_id == "mcp_tavily_search"
 
     # Stateful Roundtrip Verification via repository
-    persisted = await system_repo.get_mcp_gateways(id="sys_0195f3a00000700080008172bda70c86")
-    assert persisted.id == "sys_0195f3a00000700080008172bda70c86"
+    persisted = await system_repo.get_mcp_gateways(id=current.id)
+    assert persisted.id == current.id
     assert len(persisted.tools) == 1
     assert persisted.tools[0].tool_id == "mcp_tavily_search"
 
@@ -500,47 +536,56 @@ async def test_save_mcp_gateways_duplicate_slug_raises_validation_error(
     service: StudioSystemConfigService, root_token: TokenData
 ) -> None:
     """Assert saving a gateway with a slug already in use by another gateway raises AppException."""
-    gw = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
-        name="Duplicate Slug Gateway",
-        slug="default_mcp_gateway",
-        type="mcp_gateways",
-        tools=[],
+    draft = await service.create_mcp_gateway_draft(root_token)
+    gw = draft.model_copy(
+        update={
+            "name": "Duplicate Slug Gateway",
+            "slug": "default_mcp_gateway",
+        }
     )
     with pytest.raises(AppException) as exc_info:
-        await service.save_mcp_gateways(root_token, "sys_0195f3a00000700080008172bda70c86", gw)
+        await service.save_mcp_gateways(root_token, draft.id, gw)
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
 async def test_save_mcp_gateways_invalid_slug_format_raises_validation_error(
-    service: StudioSystemConfigService, root_token: TokenData
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Assert saving a gateway with malformed double-underscore slug raises AppException."""
+    current = await system_repo.get_mcp_gateways()
     malformed = SystemConfigMCPGateways.model_construct(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id=current.id,
         name="Malformed Slug Gateway",
         slug="bad__slug",
         type="mcp_gateways",
         tools=[],
     )
     with pytest.raises(AppException) as exc_info:
-        await service.save_mcp_gateways(root_token, "sys_0195f3a00000700080008172bda70c86", malformed)
+        await service.save_mcp_gateways(root_token, current.id, malformed)
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
-async def test_save_mcp_gateways_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Assert non-ROOT user raises PermissionDeniedError on save."""
+async def test_save_mcp_gateways_permission_denied(
+    service: StudioSystemConfigService,
+    admin_token: TokenData,
+    member_token: TokenData,
+    system_repo: InMemorySystemRepository,
+) -> None:
+    """Assert non-ROOT users raise PermissionDeniedError on save."""
+    current = await system_repo.get_mcp_gateways()
     gw = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id=current.id,
         name="Tavily Search Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],
     )
     with pytest.raises(PermissionDeniedError):
-        await service.save_mcp_gateways(member_token, "sys_0195f3a00000700080008172bda70c86", gw)
+        await service.save_mcp_gateways(member_token, current.id, gw)
+    with pytest.raises(PermissionDeniedError):
+        await service.save_mcp_gateways(admin_token, current.id, gw)
 
 
 @pytest.mark.asyncio
@@ -702,8 +747,9 @@ async def test_discover_mcp_gateway_tools_preserves_existing_settings(
     gw_cache = MCPGatewayCache()
     svc = StudioSystemConfigService(system_repo=system_repo, mcp_client=mcp_client, gateway_cache=gw_cache)
 
+    current = await system_repo.get_mcp_gateways()
     gw = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id=current.id,
         name="Tavily Search Gateway",
         slug="tavily_gateway",
         type="mcp_gateways",
@@ -764,9 +810,10 @@ async def test_clone_system_config_permission_denied(
 async def test_save_system_config_id_mismatch_updates_id(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Assert saving with mismatched ID updates ID to target ID parameter."""
-    reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
+    """Assert saving an existing registry with mismatched payload ID normalizes to target ID."""
     target_id = "sys_0195f3a00000700f8edcba9876543210"
+    await system_repo.update_model_registry(_make_dummy_registry(target_id))
+    reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
     res = await service.save_system_config(root_token, target_id, reg)
     assert res.id == target_id
 
@@ -775,7 +822,8 @@ async def test_save_system_config_id_mismatch_updates_id(
 async def test_save_mcp_gateways_id_mismatch_updates_id(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Assert saving MCP gateways with mismatched ID updates to target ID parameter."""
+    """Assert saving an existing MCP gateway with mismatched payload ID normalizes to target ID."""
+    draft = await service.create_mcp_gateway_draft(root_token)
     gw = SystemConfigMCPGateways(
         id="sys_0195f3a00000700080008172bda70c86",
         name="Tavily Search Gateway",
@@ -783,9 +831,12 @@ async def test_save_mcp_gateways_id_mismatch_updates_id(
         type="mcp_gateways",
         tools=[],
     )
-    target_id = "sys_0195f3a0000070018122334455667788"
-    res = await service.save_mcp_gateways(root_token, target_id, gw)
-    assert res.id == target_id
+    res = await service.save_mcp_gateways(root_token, draft.id, gw)
+    assert res.id == draft.id
+
+    missing_id = "sys_0195f3a0000070018122334455667788"
+    with pytest.raises(ResourceNotFoundError):
+        await service.save_mcp_gateways(root_token, missing_id, gw.model_copy(update={"id": missing_id}))
 
 
 @pytest.mark.asyncio
@@ -819,8 +870,9 @@ async def test_discover_mcp_gateway_tools_forwards_initiator_organization_id(
         mcp_client=_CapturingMCPClient(),
         gateway_cache=MCPGatewayCache(),
     )
+    current = await system_repo.get_mcp_gateways()
     gw = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id=current.id,
         name="Custom Enterprise MCP",
         slug="custom_enterprise_mcp",
         type="mcp_gateways",

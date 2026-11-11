@@ -10,6 +10,7 @@ import re
 
 import pytest
 
+from backend_v2.database.interfaces import get_active_uow
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, generate_opaque_id
@@ -18,6 +19,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, ProtocolPromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     BlockDataType,
@@ -31,13 +33,25 @@ from backend_v2.models.enums import (
     TargetBlockType,
     XaiExtensionType,
 )
+from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
+from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
+from backend_v2.services.studio.system_config_service import StudioSystemConfigService
+from backend_v2.services.studio.task_brief_service import StudioTaskBriefService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
+from backend_v2.tests.factories.model_factories import (
+    OutputProfileFactory,
+    SystemRulePromptBlockFactory,
+    TaskBriefFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryOutputProfileRepository,
     InMemoryPromptBlockRepository,
     InMemorySystemRepository,
+    InMemoryTaskBriefRepository,
     InMemoryWorkflowRepository,
 )
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 pytestmark = pytest.mark.asyncio
 
@@ -275,8 +289,13 @@ async def test_save_workflow_missing_after_save_raises(
         "get_workflow_by_id",
         ResourceNotFoundError(resource_type="workflow", resource_id=wf.id),
     )
-    with pytest.raises(ResourceNotFoundError):
-        await workflow_service.save_workflow(admin_token, wf.id, wf)
+    try:
+        with pytest.raises(ResourceNotFoundError):
+            await workflow_service.save_workflow(admin_token, wf.id, wf)
+        with pytest.raises(ResourceNotFoundError):
+            await workflow_service.create_workflow_draft(admin_token)
+    finally:
+        mock_workflow_repo.clear_faults()
 
 
 async def test_save_workflow_success(
@@ -286,6 +305,7 @@ async def test_save_workflow_success(
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf = _valid_workflow(org_id="org_0195f3a0000070008000000000000123")
+    await mock_workflow_repo.save_workflow(wf)
     res = await workflow_service.save_workflow(admin_token, wf.id, wf)
     assert res.id == wf.id
     persisted = await mock_workflow_repo.get_workflow_by_id(wf.id)
@@ -333,7 +353,7 @@ async def test_create_workflow_draft_root(root_token: TokenData) -> None:
     assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
     assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
     assert isinstance(res.name, I18nText)
-    assert res.name.translations["en"] == "New Työnkulku"
+    assert res.name.translations["en"] == "New Workflow"
 
     persisted = await wf_repo.get_workflow_by_id(res.id)
     assert persisted is not None
@@ -365,7 +385,7 @@ async def test_create_workflow_draft_admin(admin_token: TokenData) -> None:
     assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
     assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
     assert isinstance(res.name, I18nText)
-    assert res.name.translations["en"] == "New Työnkulku"
+    assert res.name.translations["en"] == "New Workflow"
     assert res.name.translations["fi"] == "Uusi työnkulku"
 
     persisted = await wf_repo.get_workflow_by_id(res.id)
@@ -516,14 +536,18 @@ async def test_save_step_missing_after_save_raises(
         "get_step_by_id",
         ResourceNotFoundError(resource_type="step", resource_id=step.id),
     )
-    with pytest.raises(ResourceNotFoundError):
-        await workflow_service.save_step(admin_token, step.id, step)
+    try:
+        with pytest.raises(ResourceNotFoundError):
+            await workflow_service.save_step(admin_token, step.id, step)
+    finally:
+        mock_workflow_repo.clear_faults()
 
 
 async def test_save_step_success(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     step = _valid_step(org_id="org_0195f3a0000070008000000000000123")
+    await mock_workflow_repo.save_step(step)
     res = await workflow_service.save_step(admin_token, step.id, step)
     assert res.id == step.id
     persisted = await mock_workflow_repo.get_step_by_id(step.id)
@@ -667,6 +691,7 @@ async def test_clone_step_success(admin_token: TokenData) -> None:
     assert res.id != step_data.id
     assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
     assert res.id.startswith(f"{EntityPrefix.STEP}_")
+    assert res.slug == step_data.slug
     assert res.name.translations["en"] == "Test Step (Copy)"
     assert res.organization_id == "org_0195f3a0000070008000000000000123"
 
@@ -683,6 +708,9 @@ async def test_save_workflow_aligns_mismatched_id(
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     target_id = "wf_0195f3a00000700080000123456789ab"
+    await mock_workflow_repo.save_workflow(
+        _valid_workflow(wf_id=target_id, org_id="org_0195f3a0000070008000000000000123")
+    )
     wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_0195f3a0000070008000000000000123")
 
     res = await workflow_service.save_workflow(admin_token, target_id, wf)
@@ -696,6 +724,7 @@ async def test_save_step_aligns_mismatched_id(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     target_id = "stp_0195f3a00000700080000123456789ab"
+    await mock_workflow_repo.save_step(_valid_step(step_id=target_id, org_id="org_0195f3a0000070008000000000000123"))
     step = _valid_step(step_id="stp_0195f3a0000070008000aabbccddeeff", org_id="org_0195f3a0000070008000000000000123")
 
     res = await workflow_service.save_step(admin_token, target_id, step)
@@ -838,11 +867,13 @@ async def test_get_workflow_available_extensions_handles_exception(
         "get_prompt_block_by_id",
         AppException(message="Block corrupted", status_code=500),
     )
-
-    with pytest.raises(AppException) as exc_info:
-        await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+    try:
+        with pytest.raises(AppException) as exc_info:
+            await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+    finally:
+        mock_prompt_block_repo.clear_faults()
 
 
 async def test_list_workflows_corrupted_record_raises_app_exception(
@@ -858,10 +889,13 @@ async def test_list_workflows_corrupted_record_raises_app_exception(
             details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
         ),
     )
-    with pytest.raises(AppException) as exc_info:
-        await workflow_service.list_workflows(admin_token)
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
+    try:
+        with pytest.raises(AppException) as exc_info:
+            await workflow_service.list_workflows(admin_token)
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
+    finally:
+        mock_workflow_repo.clear_faults()
 
 
 async def test_stitch_profiles_corrupted_profile_raises_app_exception(
@@ -880,10 +914,13 @@ async def test_stitch_profiles_corrupted_profile_raises_app_exception(
             details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
         ),
     )
-    with pytest.raises(AppException) as exc_info:
-        await workflow_service.list_workflows(admin_token)
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
+    try:
+        with pytest.raises(AppException) as exc_info:
+            await workflow_service.list_workflows(admin_token)
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
+    finally:
+        mock_output_profile_repo.clear_faults()
 
 
 async def test_in_memory_save_workflow_roundtrip(admin_token: TokenData) -> None:
@@ -958,6 +995,7 @@ async def test_in_memory_save_step_roundtrip(admin_token: TokenData) -> None:
 
 async def test_save_workflow_unauthorized_token_raises_permission_denied(
     workflow_service: StudioWorkflowService,
+    mock_workflow_repo: InMemoryWorkflowRepository,
 ) -> None:
     """Tests that a non-admin token from another org cannot save a workflow."""
     unauthorized_token = TokenData(
@@ -967,12 +1005,14 @@ async def test_save_workflow_unauthorized_token_raises_permission_denied(
         role=UserRole.MEMBER,
     )
     wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_0195f3a0000070008000000000000123")
+    await mock_workflow_repo.save_workflow(wf)
     with pytest.raises(PermissionDeniedError):
         await workflow_service.save_workflow(unauthorized_token, wf.id, wf)
 
 
 async def test_save_step_unauthorized_token_raises_permission_denied(
     workflow_service: StudioWorkflowService,
+    mock_workflow_repo: InMemoryWorkflowRepository,
 ) -> None:
     """Tests that a non-admin token from another org cannot save a step."""
     unauthorized_token = TokenData(
@@ -982,12 +1022,15 @@ async def test_save_step_unauthorized_token_raises_permission_denied(
         role=UserRole.MEMBER,
     )
     step = _valid_step("stp_0195f3a0000070008000aabbccddeeff", org_id="org_0195f3a0000070008000000000000123")
+    await mock_workflow_repo.save_step(step)
     with pytest.raises(PermissionDeniedError):
         await workflow_service.save_step(unauthorized_token, step.id, step)
 
 
 async def test_save_workflow_malformed_dag_raises_validation_failed(
-    workflow_service: StudioWorkflowService, admin_token: TokenData
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
 ) -> None:
     """Tests that saving a workflow with a cyclic DAG dependency raises 422 AppException."""
     step1 = StepRule(
@@ -1002,9 +1045,11 @@ async def test_save_workflow_malformed_dag_raises_validation_failed(
         depends_on=["sr_0195f3a0000070008000111122223333"],
         input_mappings={},
     )
-    cyclic_wf = _valid_workflow(
+    base_wf = _valid_workflow(
         wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_0195f3a0000070008000000000000123"
-    ).model_copy(update={"steps": [step1, step2]})
+    )
+    await mock_workflow_repo.save_workflow(base_wf)
+    cyclic_wf = base_wf.model_copy(update={"steps": [step1, step2]})
     with pytest.raises(AppException) as exc_info:
         await workflow_service.save_workflow(admin_token, cyclic_wf.id, cyclic_wf)
 
@@ -1044,12 +1089,14 @@ async def test_clone_workflow_corrupted_profile_raises_validation_failed(
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         ),
     )
+    try:
+        with pytest.raises(AppException) as exc_info:
+            await workflow_service.clone_workflow(admin_token, wf.id)
 
-    with pytest.raises(AppException) as exc_info:
-        await workflow_service.clone_workflow(admin_token, wf.id)
-
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    finally:
+        mock_output_profile_repo.clear_faults()
 
 
 async def test_clone_workflow_remaps_causal_source_step_id(
@@ -1182,7 +1229,7 @@ async def test_save_workflow_prunes_stale_target_blocks_and_coerces_view_type_on
     mock_workflow_repo: InMemoryWorkflowRepository,
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    """Phase 2, Step 2.1: Saving workflow prunes stale target_blocks, variance_target_block, and user_role_target_block and coerces view_type."""
+    """Saving workflow prunes stale target_blocks, variance_target_block, and user_role_target_block and coerces view_type."""
     blk_1 = "blk_0195f3a0000070008000012345678901"
     blk_2 = "blk_0195f3a0000070008000012345678902"
     blk_3_deleted = "blk_0195f3a0000070008000012345678903"
@@ -1201,6 +1248,7 @@ async def test_save_workflow_prunes_stale_target_blocks_and_coerces_view_type_on
     await mock_workflow_repo.save_step(step_3)
 
     wf_id = "wf_0195f3a00000700080000123456789ab"
+    await mock_workflow_repo.save_workflow(_valid_workflow(wf_id=wf_id, org_id="org_0195f3a0000070008000000000000123"))
     prf_id = "prf_0195f3a00000700080000123456789ab"
     linked_profile = OutputProfile(
         id=prf_id,
@@ -1264,7 +1312,7 @@ async def test_save_workflow_removes_empty_matrix_synthesis_group_and_matrix_gra
     mock_workflow_repo: InMemoryWorkflowRepository,
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    """Phase 2, Step 2.1 Boundary: Removing all matrix blocks removes empty groups and MATRIX_GRAPHS_BLOCK from target_block_order."""
+    """Removing all matrix blocks removes empty groups and MATRIX_GRAPHS_BLOCK from target_block_order."""
     blk_deleted = "blk_0195f3a0000070008000012345678999"
     wf_id = "wf_0195f3a00000700080000123456789ab"
     prf_id = "prf_0195f3a00000700080000123456789ab"
@@ -1293,6 +1341,7 @@ async def test_save_workflow_removes_empty_matrix_synthesis_group_and_matrix_gra
     wf_empty = _valid_workflow(wf_id=wf_id, org_id="org_0195f3a0000070008000000000000123").model_copy(
         update={"steps": []}
     )
+    await mock_workflow_repo.save_workflow(wf_empty)
     await workflow_service.save_workflow(admin_token, wf_id, wf_empty)
 
     persisted_profile = await mock_output_profile_repo.get_output_profile_by_id(prf_id)
@@ -1300,3 +1349,223 @@ async def test_save_workflow_removes_empty_matrix_synthesis_group_and_matrix_gra
     assert persisted_profile.matrix_synthesis_groups == []
     assert TargetBlockType.MATRIX_GRAPHS_BLOCK not in persisted_profile.target_block_order
     assert TargetBlockType.GLOBAL_SCORE_BLOCK in persisted_profile.target_block_order
+
+
+async def test_studio_save_workflow_cross_tenant_put_idor_raises_permission_denied() -> None:
+    """Verify cross-tenant PUT IDOR on save_workflow and save_step is blocked and non-ROOT org_id is preserved."""
+    org_a = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    org_b = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    initiator_a = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        organization_id=org_a,
+        email="admin-a@example.com",
+        role=UserRole.ADMIN,
+    )
+
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
+    )
+
+    wf_b = WorkflowFactory.build(
+        organization_id=org_b,
+        steps=[],
+        default_profile_id=None,
+    )
+    await wf_repo.save_workflow(wf_b)
+
+    forged_wf_payload = wf_b.model_copy(
+        update={
+            "organization_id": org_a,
+            "name": I18nText(translations={"en": "Hijacked Workflow"}),
+        }
+    )
+    with pytest.raises(PermissionDeniedError):
+        await service.save_workflow(initiator_a, wf_b.id, forged_wf_payload)
+
+    persisted_b = await wf_repo.get_workflow_by_id(wf_b.id)
+    assert persisted_b is not None
+    assert persisted_b.organization_id == org_b
+    assert persisted_b.name == wf_b.name
+
+    wf_a = WorkflowFactory.build(
+        organization_id=org_a,
+        steps=[],
+        default_profile_id=None,
+    )
+    await wf_repo.save_workflow(wf_a)
+    reassigned_wf = wf_a.model_copy(update={"organization_id": org_b})
+    saved_wf_a = await service.save_workflow(initiator_a, wf_a.id, reassigned_wf)
+    assert saved_wf_a.organization_id == org_a
+
+
+async def test_studio_save_methods_reject_client_invented_id_when_missing_with_404(
+    root_token: TokenData,
+    admin_token: TokenData,
+) -> None:
+    """Verify all 7 Studio save_* methods reject non-existent client-invented UUIDv7 IDs with 404."""
+    root_uow = InMemoryUnitOfWork()
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    tb_repo = InMemoryTaskBriefRepository()
+    sys_repo = InMemorySystemRepository()
+
+    wf_service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
+        uow_factory=lambda: InMemoryUnitOfWork(root_uow.store),
+    )
+    op_service = StudioOutputProfileService(output_profile_repo=op_repo, workflow_service=wf_service)
+    pb_service = StudioPromptBlockService(prompt_block_repo=pb_repo, system_repo=sys_repo)
+    tb_service = StudioTaskBriefService(task_brief_repo=tb_repo)
+    sys_service = StudioSystemConfigService(system_repo=sys_repo, workflow_repo=wf_repo)
+
+    missing_block = SystemRulePromptBlockFactory.build(organization_id=admin_token.organization_id)
+    with pytest.raises(ResourceNotFoundError):
+        await pb_service.save_prompt_block(admin_token, missing_block.id, missing_block)
+    assert await pb_repo.get_prompt_block_by_id(missing_block.id) is None
+
+    missing_wf = WorkflowFactory.build(
+        organization_id=admin_token.organization_id,
+        steps=[],
+        default_profile_id=None,
+    )
+    with pytest.raises(ResourceNotFoundError):
+        await wf_service.save_workflow(admin_token, missing_wf.id, missing_wf)
+    assert await wf_repo.get_workflow_by_id(missing_wf.id) is None
+
+    missing_step = _valid_step(
+        step_id=generate_opaque_id(EntityPrefix.STEP),
+        org_id="org_0195f3a0000070008000000000000123",
+    )
+    with pytest.raises(ResourceNotFoundError):
+        await wf_service.save_step(admin_token, missing_step.id, missing_step)
+    assert await wf_repo.get_step_by_id(missing_step.id) is None
+
+    missing_profile = OutputProfileFactory.build(
+        workflow_id=missing_wf.id,
+        organization_id=admin_token.organization_id,
+        target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
+        matrix_synthesis_groups=[],
+        variance_target_block=None,
+        user_role_target_block=None,
+    )
+    with pytest.raises(ResourceNotFoundError):
+        await op_service.save_output_profile(admin_token, missing_profile.id, missing_profile)
+    assert await op_repo.get_output_profile_by_id(missing_profile.id) is None
+
+    missing_brief = TaskBriefFactory.build(organization_id=admin_token.organization_id)
+    with pytest.raises(ResourceNotFoundError):
+        await tb_service.save_task_brief(admin_token, missing_brief.id, missing_brief)
+    assert await tb_repo.get_task_brief_by_id(missing_brief.id) is None
+
+    existing_reg = (await sys_repo.get_all_model_registries())[0]
+    missing_reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    missing_reg: SystemConfigModelRegistry = existing_reg.model_copy(update={"id": missing_reg_id})
+    with pytest.raises(ResourceNotFoundError):
+        await sys_service.save_system_config(root_token, missing_reg_id, missing_reg)
+
+    missing_gw_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    missing_gw = SystemConfigMCPGateways(
+        id=missing_gw_id,
+        name="Missing Gateway",
+        slug="missing_gateway",
+        type="mcp_gateways",
+        tools=[],
+    )
+    with pytest.raises(ResourceNotFoundError):
+        await sys_service.save_mcp_gateways(root_token, missing_gw_id, missing_gw)
+
+
+async def test_clone_workflow_executes_parent_before_child_atomically_in_single_uow(
+    admin_token: TokenData,
+) -> None:
+    """Verify clone_workflow executes parent-before-child writes inside a single active UoW transaction."""
+    root_uow = InMemoryUnitOfWork()
+    opened_uows: list[InMemoryUnitOfWork] = []
+
+    def tracking_uow_factory() -> InMemoryUnitOfWork:
+        created = InMemoryUnitOfWork(root_uow.store)
+        opened_uows.append(created)
+        return created
+
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
+        uow_factory=tracking_uow_factory,
+    )
+
+    source_wf = WorkflowFactory.build(
+        slug="strategic_board_audit",
+        organization_id=admin_token.organization_id,
+        steps=[],
+        default_profile_id=None,
+    )
+    source_profile = OutputProfileFactory.build(
+        slug="executive_summary_profile",
+        workflow_id=source_wf.id,
+        organization_id=admin_token.organization_id,
+        target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
+        matrix_synthesis_groups=[],
+        variance_target_block=None,
+        user_role_target_block=None,
+    )
+    source_wf = source_wf.model_copy(update={"default_profile_id": source_profile.id})
+    await wf_repo.save_workflow(source_wf)
+    await op_repo.create_output_profile(source_profile)
+
+    # 1. Verify parent Workflow (default_profile_id=None) is written BEFORE child OutputProfile and rolls back UoW on fault
+    op_repo.inject_fault("create_output_profile", AppException(message="Child insert aborted", status_code=500))
+    try:
+        with pytest.raises(AppException):
+            await service.clone_workflow(admin_token, source_wf.id)
+    finally:
+        op_repo.clear_faults()
+
+    assert len(opened_uows) == 1
+    aborted_uow = opened_uows[0]
+    assert aborted_uow._finalized is True
+    assert root_uow.store.current_org_reset_count == 1
+    all_wfs_at_child_step = await wf_repo.get_all_workflows(organization_id=admin_token.organization_id, role="ADMIN")
+    aborted_clones = [w for w in all_wfs_at_child_step if w.id != source_wf.id]
+    assert len(aborted_clones) == 1
+    assert aborted_clones[0].default_profile_id is None
+    await wf_repo.delete_workflow(aborted_clones[0].id)
+    opened_uows.clear()
+
+    # 2. Verify full parent -> child -> default_profile_id binding executes in a single committed UoW
+    saves_before = wf_repo.get_call_count("save_workflow")
+    creates_before = op_repo.get_call_count("create_output_profile")
+
+    cloned = await service.clone_workflow(admin_token, source_wf.id)
+
+    assert len(opened_uows) == 1
+    single_uow = opened_uows[0]
+    assert single_uow._finalized is True
+    assert root_uow.store.current_org_reset_count == 2
+    assert get_active_uow() is None
+    assert wf_repo.get_call_count("save_workflow") - saves_before == 2
+    assert op_repo.get_call_count("create_output_profile") - creates_before == 1
+    assert cloned.slug == "strategic_board_audit"
+    assert cloned.default_profile_id is not None
+    assert cloned.default_profile_id != source_profile.id
+
+    cloned_profile = await op_repo.get_output_profile_by_id(cloned.default_profile_id)
+    assert cloned_profile is not None
+    assert cloned_profile.slug == "executive_summary_profile"
+    assert cloned_profile.workflow_id == cloned.id

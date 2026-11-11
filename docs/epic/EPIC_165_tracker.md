@@ -27,7 +27,7 @@
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/01_phase1_plan.md] @[docs/epic/EPIC_165_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/01_phase1_plan.md] @[docs/epic/EPIC_165_tracker.md]`
   - [x] Step 1.1: Unified Fail-Fast Hydrator (validate_hydrated_row) & SQLSTATE Exception Translation Gate (translate_postgres_exception)
-  - [ ] Step 1.2: Studio Multi-Tenant IDOR Closure, 4-Phase In-Place Upsert, Single-UoW clone_workflow & RBAC Symmetry
+  - [x] Step 1.2: Studio Multi-Tenant IDOR Closure, 4-Phase In-Place Upsert, Single-UoW clone_workflow & RBAC Symmetry
   - [ ] Step 1.3: Append-Only PostgreSQL 19 audit_logs & usage_records Ledgers, SQL FinOps Rollups & delete_tenant_secret
   - [ ] Step 1.4: Direct EntityPersistencePort Repository Cutover, StorageDriver & Dead V1 Ghost Repository Eradication
 

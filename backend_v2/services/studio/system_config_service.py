@@ -263,24 +263,51 @@ class StudioSystemConfigService:
             ),
         ]
 
+    async def _require_mcp_gateway(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
+        """Resolve an MCP gateway by ID from the repository or raise ResourceNotFoundError.
+
+        Args:
+            initiator: The authenticated user requesting the gateway.
+            id: Canonical MCP gateway identifier.
+
+        Returns:
+            Matching SystemConfigMCPGateways domain model.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If no gateway matches id.
+        """
+        all_gateways = await self.system_repo.get_all_mcp_gateways()
+        for gw in all_gateways:
+            if gw.id == id:
+                return gw
+        logger.error(
+            "[StudioSystemConfigService] %s: MCP gateway %s not found (Initiator: %s).",
+            ErrorCodes.RESOURCE_NOT_FOUND.name,
+            id,
+            initiator.id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "gateway_id": id},
+        )
+        raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
+
     async def get_all_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
-        """Get all system configs.
+        """List all model registry configurations for ROOT and ADMIN callers.
 
         Args:
             initiator: The authenticated user.
 
         Returns:
-            A list containing all SystemConfigModelRegistry documents if accessible.
+            List containing all SystemConfigModelRegistry documents.
 
         Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller lacks ROOT or ADMIN role.
             AppException (ErrorCodes.STORAGE_ACCESS_FAILED): If repository retrieval fails.
         """
-        if initiator.role == UserRole.ROOT:
-            return await self.system_repo.get_all_model_registries()
-        return []
+        self._require_root_or_admin(initiator, "list system configs")
+        return await self.system_repo.get_all_model_registries()
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
-        """Get system config.
+        """Retrieve a specific model registry configuration by ID for ROOT and ADMIN callers.
 
         Args:
             initiator: The authenticated user.
@@ -290,16 +317,40 @@ class StudioSystemConfigService:
             The loaded SystemConfigModelRegistry.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller lacks ROOT or ADMIN role.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
-        self._require_root(initiator, "view system configs")
+        self._require_root_or_admin(initiator, "view system configs")
+        return await self.system_repo.get_model_registry(registry_id=id)
+
+    async def _insert_validated_system_config(
+        self, initiator: TokenData, id: str, data: SystemConfigModelRegistry
+    ) -> SystemConfigModelRegistry:
+        """Insert or persist a ROOT-authorized SystemConfigModelRegistry and reload by ID.
+
+        Args:
+            initiator: The authenticated ROOT user.
+            id: Authoritative model registry identifier.
+            data: Validated SystemConfigModelRegistry payload.
+
+        Returns:
+            Reloaded SystemConfigModelRegistry persisted under id.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the registry cannot be reloaded after save.
+        """
+        self._require_root(initiator, "modify system configs")
+        normalized = data
+        if normalized.id != id:
+            normalized = normalized.model_copy(update={"id": id})
+        await self.system_repo.update_model_registry(normalized)
         return await self.system_repo.get_model_registry(registry_id=id)
 
     async def save_system_config(
         self, initiator: TokenData, id: str, data: SystemConfigModelRegistry
     ) -> SystemConfigModelRegistry:
-        """Save system config.
+        """Update an existing model registry configuration in-place under its authoritative ID.
 
         Args:
             initiator: The authenticated user.
@@ -310,16 +361,11 @@ class StudioSystemConfigService:
             The saved SystemConfigModelRegistry.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the target registry does not exist.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
         """
-        self._require_root(initiator, "modify system configs")
-
-        if data.id != id:
-            data = data.model_copy(update={"id": id})
-        await self.system_repo.update_model_registry(data)
-
-        return await self.system_repo.get_model_registry(registry_id=id)
+        await self.system_repo.get_model_registry(registry_id=id)
+        return await self._insert_validated_system_config(initiator, id, data)
 
     async def create_system_config_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
         """Create system config draft.
@@ -331,10 +377,10 @@ class StudioSystemConfigService:
             The drafted SystemConfigModelRegistry.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the drafted resource is missing after save.
         """
-        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
+        self._require_root(initiator, "create system config drafts")
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         draft = SystemConfigModelRegistry(
@@ -375,10 +421,10 @@ class StudioSystemConfigService:
                 ),
             },
         )
-        return await self.save_system_config(initiator, new_id, draft)
+        return await self._insert_validated_system_config(initiator, new_id, draft)
 
     async def clone_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
-        """Clone system config.
+        """Clone an existing model registry configuration while preserving informational slug metadata.
 
         Args:
             initiator: The authenticated user.
@@ -388,7 +434,7 @@ class StudioSystemConfigService:
             The cloned SystemConfigModelRegistry.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
         self._require_root(initiator, "clone system configs")
@@ -396,17 +442,14 @@ class StudioSystemConfigService:
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         cloned_name = f"{data.name} (Copy)"
-        cloned_slug: str | None = None
-        if data.slug:
-            cloned_slug = f"{data.slug}-copy"
         cloned_obj = data.model_copy(
             update={
                 "id": new_id,
                 "name": cloned_name,
-                "slug": cloned_slug,
+                "slug": data.slug,
             }
         )
-        return await self.save_system_config(initiator, new_id, cloned_obj)
+        return await self._insert_validated_system_config(initiator, new_id, cloned_obj)
 
     async def delete_system_config(self, initiator: TokenData, id: str) -> None:
         """Delete system config.
@@ -455,17 +498,17 @@ class StudioSystemConfigService:
             initiator: The authenticated user.
 
         Returns:
-            A list containing all MCP gateway configurations if accessible.
+            List containing all MCP gateway configurations.
 
         Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller lacks ROOT or ADMIN role.
             AppException (ErrorCodes.STORAGE_ACCESS_FAILED): If repository retrieval fails.
         """
-        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
-            return []
+        self._require_root_or_admin(initiator, "list MCP gateways")
         return await self.system_repo.get_all_mcp_gateways()
 
     async def get_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
-        """Retrieve a specific MCP gateway configuration by ID.
+        """Retrieve a specific MCP gateway configuration by ID for ROOT and ADMIN users.
 
         Args:
             initiator: The authenticated user.
@@ -475,55 +518,41 @@ class StudioSystemConfigService:
             The loaded SystemConfigMCPGateways.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller lacks ROOT or ADMIN role.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
-        self._require_root(initiator, "view system configs")
+        self._require_root_or_admin(initiator, "view MCP gateways")
 
         cached = await self.gateway_cache.get_gateway(id)
         if cached is not None:
             return cached
 
-        all_gateways = await self.system_repo.get_all_mcp_gateways()
-        for gw in all_gateways:
-            if gw.id == id:
-                await self.gateway_cache.set_gateway(gw)
-                return gw
+        gw = await self._require_mcp_gateway(initiator, id)
+        await self.gateway_cache.set_gateway(gw)
+        return gw
 
-        logger.error(
-            "[StudioSystemConfigService] %s: MCP gateway %s not found (Initiator: %s).",
-            ErrorCodes.RESOURCE_NOT_FOUND.name,
-            id,
-            initiator.id,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "gateway_id": id},
-        )
-        raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
-
-    async def save_mcp_gateways(
+    async def _validate_and_persist_mcp_gateway(
         self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
     ) -> SystemConfigMCPGateways:
-        """Save an MCP gateway configuration with unique single-underscore slug validation.
+        """Validate single-underscore slug uniqueness, persist an MCP gateway, and reload by ID.
 
         Args:
-            initiator: The authenticated user.
-            id: The config identifier.
-            data: The gateway domain object.
+            initiator: The authenticated ROOT user.
+            id: Authoritative MCP gateway identifier.
+            data: SystemConfigMCPGateways payload to validate and persist.
 
         Returns:
-            The saved SystemConfigMCPGateways.
+            Reloaded SystemConfigMCPGateways persisted under id.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.VALIDATION_FAILED): If slug format is invalid or collides with another gateway.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after persistence.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the gateway is missing after persistence.
         """
-        self._require_root(initiator, "modify system configs")
+        normalized = data
+        if normalized.id != id:
+            normalized = normalized.model_copy(update={"id": id})
 
-        if data.id != id:
-            data = data.model_copy(update={"id": id})
-
-        if not _SINGLE_UNDERSCORE_SLUG_PATTERN.match(data.slug):
+        if not _SINGLE_UNDERSCORE_SLUG_PATTERN.match(normalized.slug):
             logger.error(
                 "[StudioSystemConfigService] %s: Invalid MCP gateway slug format for %s.",
                 ErrorCodes.VALIDATION_FAILED.name,
@@ -539,7 +568,7 @@ class StudioSystemConfigService:
 
         all_gateways = await self.system_repo.get_all_mcp_gateways()
         for existing_gw in all_gateways:
-            if existing_gw.id != id and existing_gw.slug == data.slug:
+            if existing_gw.id != id and existing_gw.slug == normalized.slug:
                 logger.error(
                     "[StudioSystemConfigService] %s: Duplicate MCP gateway slug collision between %s and %s.",
                     ErrorCodes.VALIDATION_FAILED.name,
@@ -554,9 +583,51 @@ class StudioSystemConfigService:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "gateway_id": id},
                 )
 
-        await self.system_repo.update_mcp_gateways(data)
+        await self.system_repo.update_mcp_gateways(normalized)
         await self.gateway_cache.invalidate(id)
         return await self.get_mcp_gateways(initiator, id)
+
+    async def _insert_validated_mcp_gateways(
+        self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
+    ) -> SystemConfigMCPGateways:
+        """Insert a newly drafted or cloned MCP gateway after ROOT RBAC verification.
+
+        Args:
+            initiator: The authenticated ROOT user.
+            id: Server-issued MCP gateway identifier.
+            data: Newly constructed SystemConfigMCPGateways payload.
+
+        Returns:
+            Reloaded SystemConfigMCPGateways persisted under id.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
+            AppException (ErrorCodes.VALIDATION_FAILED): If slug validation fails.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the gateway is missing after persistence.
+        """
+        self._require_root(initiator, "modify system configs")
+        return await self._validate_and_persist_mcp_gateway(initiator, id, data)
+
+    async def save_mcp_gateways(
+        self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
+    ) -> SystemConfigMCPGateways:
+        """Update an existing MCP gateway configuration in-place with single-underscore slug validation.
+
+        Args:
+            initiator: The authenticated user.
+            id: The config identifier.
+            data: The gateway domain object.
+
+        Returns:
+            The saved SystemConfigMCPGateways.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the target MCP gateway does not exist.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
+            AppException (ErrorCodes.VALIDATION_FAILED): If slug format is invalid or collides with another gateway.
+        """
+        await self._require_mcp_gateway(initiator, id)
+        return await self._insert_validated_mcp_gateways(initiator, id, data)
 
     async def create_mcp_gateway_draft(self, initiator: TokenData) -> SystemConfigMCPGateways:
         """Create a new MCP gateway draft with a deterministic single-underscore slug.
@@ -568,11 +639,11 @@ class StudioSystemConfigService:
             The drafted SystemConfigMCPGateways.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
             AppException (ErrorCodes.VALIDATION_FAILED): If draft slug validation fails.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the drafted resource is missing after save.
         """
-        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
+        self._require_root(initiator, "create MCP gateway drafts")
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         draft_slug = f"gateway_{new_id.removeprefix(f'{EntityPrefix.SYSTEM_CONFIG}_')}"
@@ -583,7 +654,7 @@ class StudioSystemConfigService:
             type="mcp_gateways",
             tools=[],
         )
-        return await self.save_mcp_gateways(initiator, new_id, draft)
+        return await self._insert_validated_mcp_gateways(initiator, new_id, draft)
 
     async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
         """Clone an existing MCP gateway with a unique single-underscore copy slug.
@@ -596,7 +667,7 @@ class StudioSystemConfigService:
             The cloned SystemConfigMCPGateways.
 
         Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If caller is not ROOT.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the source gateway is missing.
             AppException (ErrorCodes.VALIDATION_FAILED): If cloned slug validation fails.
         """
@@ -619,7 +690,7 @@ class StudioSystemConfigService:
             update={"id": new_id, "name": f"{existing.name} (Copy)", "slug": candidate_slug}
         )
 
-        return await self.save_mcp_gateways(initiator, new_id, cloned_obj)
+        return await self._insert_validated_mcp_gateways(initiator, new_id, cloned_obj)
 
     async def delete_mcp_gateways(self, initiator: TokenData, id: str) -> None:
         """Delete an MCP gateway configuration and invalidate its cache entry.

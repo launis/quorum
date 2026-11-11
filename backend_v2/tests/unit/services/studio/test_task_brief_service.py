@@ -173,6 +173,7 @@ async def test_create_draft_save_get_and_clone_task_brief_lifecycle(
     cloned = await task_brief_service.clone_task_brief(admin_token, draft.id)
     assert cloned.id != draft.id
     assert cloned.id.startswith("tbr_")
+    assert cloned.slug == draft.slug
     assert cloned.organization_id == ORG_ALPHA_ID
     assert cloned.label.translations["en"] == "Updated Brief (Copy)"
 
@@ -218,9 +219,32 @@ async def test_task_brief_rbac_and_tenant_isolation_failure(
     with pytest.raises(PermissionDeniedError):
         await task_brief_service.get_task_brief(other_admin_token, sample_brief.id)
 
-    # Cross-tenant save blocked
+    # Cross-tenant save blocked even when payload organization_id is forged to caller's tenant
+    forged_cross_tenant = TaskBriefFactory.build(
+        id=sample_brief.id,
+        organization_id=ORG_BETA_ID,
+        instruction_text="Forged cross-tenant overwrite",
+    )
     with pytest.raises(PermissionDeniedError):
-        await task_brief_service.save_task_brief(other_admin_token, sample_brief.id, sample_brief)
+        await task_brief_service.save_task_brief(other_admin_token, sample_brief.id, forged_cross_tenant)
+    persisted_alpha = await task_brief_repo.get_task_brief_by_id(sample_brief.id)
+    assert persisted_alpha is not None
+    assert persisted_alpha.organization_id == ORG_ALPHA_ID
+    assert persisted_alpha.instruction_text == sample_brief.instruction_text
+
+    # Non-ROOT caller saving own task brief preserves existing.organization_id
+    forged_org_attempt = sample_brief.model_copy(
+        update={"organization_id": ORG_BETA_ID, "instruction_text": "Authorized tenant update"}
+    )
+    saved_own = await task_brief_service.save_task_brief(admin_token, sample_brief.id, forged_org_attempt)
+    assert saved_own.organization_id == ORG_ALPHA_ID
+    assert saved_own.instruction_text == "Authorized tenant update"
+
+    # Unknown client-invented ID raises 404 ResourceNotFoundError without inserting
+    missing_brief = TaskBriefFactory.build(organization_id=ORG_ALPHA_ID)
+    with pytest.raises(ResourceNotFoundError):
+        await task_brief_service.save_task_brief(admin_token, missing_brief.id, missing_brief)
+    assert await task_brief_repo.get_task_brief_by_id(missing_brief.id) is None
 
     # Member cannot create draft
     with pytest.raises(PermissionDeniedError):

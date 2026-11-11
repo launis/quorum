@@ -157,8 +157,30 @@ class StudioTaskBriefService:
         enforce_tenant_isolation(initiator, brief.organization_id, "task_brief", brief.id)
         return brief
 
+    async def _insert_validated_task_brief(self, initiator: TokenData, id: str, data: TaskBrief) -> TaskBrief:
+        """Insert a newly drafted or cloned TaskBrief after RBAC verification.
+
+        Args:
+            initiator: The authenticated user creating the task brief.
+            id: Server-issued canonical tbr_<32_hex> identifier.
+            data: Newly constructed TaskBrief domain model payload.
+
+        Returns:
+            Persisted TaskBrief reloaded from the repository.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the task brief is missing after save.
+        """
+        enforce_modification_rights(initiator, data.organization_id)
+        normalized = data
+        if normalized.id != id:
+            normalized = normalized.model_copy(update={"id": id})
+        await self.task_brief_repo.create_task_brief(normalized)
+        return await self._require_task_brief(initiator, id, after_save=True)
+
     async def save_task_brief(self, initiator: TokenData, id: str, data: TaskBrief) -> TaskBrief:
-        """Create or update a TaskBrief in-place under its authoritative ID.
+        """Update an existing TaskBrief in-place under its authoritative ID.
 
         Args:
             initiator: The authenticated user.
@@ -169,17 +191,19 @@ class StudioTaskBriefService:
             The persisted TaskBrief domain model.
 
         Raises:
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the task brief is missing after save.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the target task brief does not exist.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are violated.
         """
-        existing = await self.task_brief_repo.get_task_brief_by_id(id)
-        if existing is not None:
-            enforce_modification_rights(initiator, existing.organization_id)
-        enforce_modification_rights(initiator, data.organization_id)
+        existing = await self._require_task_brief(initiator, id)
+        enforce_modification_rights(initiator, existing.organization_id)
 
-        if data.id != id:
-            data = data.model_copy(update={"id": id})
-        await self.task_brief_repo.create_task_brief(data)
+        target_org: str | None = existing.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = data.organization_id
+            enforce_modification_rights(initiator, target_org)
+
+        normalized = data.model_copy(update={"id": id, "organization_id": target_org})
+        await self.task_brief_repo.create_task_brief(normalized)
         return await self._require_task_brief(initiator, id, after_save=True)
 
     async def delete_task_brief(self, initiator: TokenData, id: str) -> None:
@@ -225,7 +249,7 @@ class StudioTaskBriefService:
             instruction_text="Initial task brief instructions.",
             source_url=None,
         )
-        return await self.save_task_brief(initiator, new_id, draft)
+        return await self._insert_validated_task_brief(initiator, new_id, draft)
 
     async def clone_task_brief(self, initiator: TokenData, id: str) -> TaskBrief:
         """Clone an existing TaskBrief under a newly generated tbr_<32_hex> UUIDv7 ID.
@@ -252,4 +276,4 @@ class StudioTaskBriefService:
                 "label": cloned_label,
             }
         )
-        return await self.save_task_brief(initiator, new_id, cloned_obj)
+        return await self._insert_validated_task_brief(initiator, new_id, cloned_obj)

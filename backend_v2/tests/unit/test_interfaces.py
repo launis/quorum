@@ -11,6 +11,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_uuid7_opaque_id
 from backend_v2.models.domain.proposition_graph import EdgeDraft, NodeDraft, PropositionPayloadDTO
 from backend_v2.models.enums import DependencyRelationType, EntityPrefix, PropositionNodeType
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
@@ -45,7 +46,9 @@ def test_interfaces_are_protocols() -> None:
 
     helper_exports = [
         interfaces.UnitOfWorkFactory,
+        interfaces.get_active_uow,
         interfaces.get_registered_uow_factory,
+        interfaces.open_uow_session,
         interfaces.register_default_uow_factory,
     ]
     assert len(protocol_classes) + len(helper_exports) == len(interfaces.__all__)
@@ -140,3 +143,51 @@ async def test_in_memory_entity_adapter_delete_collection_document_positive_and_
         await uow.entities.delete_collection_document("tenant_secrets", "usr_0195f3a0000070008000000000000001") is False
     )
     assert await uow.entities.delete_collection_document("unknown_collection", sec_id) is False
+
+
+@pytest.mark.asyncio
+async def test_open_uow_session_propagates_and_reuses_active_uow_and_handles_none_factory() -> None:
+    """Verify open_uow_session binds get_active_uow, reuses outer session re-entrantly, and handles None factory."""
+    assert interfaces.get_active_uow() is None
+
+    async with interfaces.open_uow_session(None) as none_uow:
+        assert none_uow is None
+        assert interfaces.get_active_uow() is None
+
+    root_uow = InMemoryUnitOfWork()
+    opened: list[InMemoryUnitOfWork] = []
+
+    def factory() -> InMemoryUnitOfWork:
+        inst = InMemoryUnitOfWork(root_uow.store)
+        opened.append(inst)
+        return inst
+
+    committed_execution = ExecutionRecordFactory.build()
+    async with interfaces.open_uow_session(factory) as outer_uow:
+        assert outer_uow is not None
+        assert interfaces.get_active_uow() is outer_uow
+        await outer_uow.entities.save_execution(committed_execution)
+        async with interfaces.open_uow_session(factory) as inner_uow:
+            assert inner_uow is outer_uow
+            assert len(opened) == 1
+        assert interfaces.get_active_uow() is outer_uow
+
+    assert interfaces.get_active_uow() is None
+    assert opened[0]._finalized is True
+    assert root_uow.store.current_org_reset_count == 1
+    assert await root_uow.entities.get_execution(committed_execution.id) is not None
+
+    aborted_execution = ExecutionRecordFactory.build()
+    with pytest.raises(AppException):
+        async with interfaces.open_uow_session(factory) as failing_uow:
+            assert failing_uow is not None
+            await failing_uow.entities.save_execution(aborted_execution)
+            raise AppException(
+                message="Simulated transactional failure",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            )
+    assert interfaces.get_active_uow() is None
+    assert opened[1]._finalized is True
+    assert root_uow.store.current_org_reset_count == 2
+    assert await root_uow.entities.get_execution(aborted_execution.id) is None

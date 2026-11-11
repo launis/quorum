@@ -21,7 +21,7 @@ from backend_v2.api.routers.studio.model_registry import (
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import ModelProfile, ProviderExtraParamsDTO, SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
@@ -136,8 +136,11 @@ async def test_model_registry_router_full_stateful_lifecycle(
     initial_count = len(initial_registries)
     assert initial_count >= 1
 
-    # Non-ROOT user receives an empty list on get_all_model_registries
-    assert await get_all_model_registries(current_user=member_user, studio_service=studio_service) == []
+    # Non-admin roles (MANAGER, MEMBER, VIEWER) are rejected with 403 PermissionDeniedError
+    for non_admin_role in (UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER):
+        caller = member_user.model_copy(update={"role": non_admin_role})
+        with pytest.raises(PermissionDeniedError):
+            await get_all_model_registries(current_user=caller, studio_service=studio_service)
 
     # 1. Create a new draft and verify persistence
     draft = await create_model_registry(current_user=root_user, studio_service=studio_service)
@@ -240,32 +243,51 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
             studio_service=studio_service,
         )
 
-    # Non-ROOT (ADMIN or MEMBER) cannot mutate or view individual system config registries
+    # ADMIN can read registries (symmetric ROOT/ADMIN read RBAC), while MANAGER/MEMBER/VIEWER receive 403
+    existing_for_admin = (await get_all_model_registries(current_user=admin_user, studio_service=studio_service))[0]
+    admin_fetched = await get_model_registry(
+        registry_id=existing_for_admin.id,
+        current_user=admin_user,
+        studio_service=studio_service,
+    )
+    assert admin_fetched.id == existing_for_admin.id
+
+    for non_admin_role in (UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER):
+        caller = member_user.model_copy(update={"role": non_admin_role})
+        with pytest.raises(PermissionDeniedError):
+            await get_model_registry(
+                registry_id=existing_for_admin.id,
+                current_user=caller,
+                studio_service=studio_service,
+            )
+
+    # Non-ROOT (ADMIN or MEMBER) cannot mutate system config registries
     with pytest.raises(PermissionDeniedError):
         await create_model_registry(current_user=admin_user, studio_service=studio_service)
 
     with pytest.raises(PermissionDeniedError):
-        await get_model_registry(
-            registry_id="sys_0195f3a0000070018234567890abcdef",
+        await save_model_registry(
+            registry_id=existing_for_admin.id,
+            data=existing_for_admin,
             current_user=admin_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(PermissionDeniedError):
         await clone_model_registry(
-            registry_id="sys_0195f3a0000070018234567890abcdef",
+            registry_id=existing_for_admin.id,
             current_user=admin_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(PermissionDeniedError):
         await delete_model_registry(
-            registry_id="sys_0195f3a0000070018234567890abcdef",
+            registry_id=existing_for_admin.id,
             current_user=admin_user,
             studio_service=studio_service,
         )
 
-    # Non-existent Opaque Stripe ID triggers ResourceNotFoundError for ROOT
+    # Non-existent Opaque Stripe ID triggers ResourceNotFoundError for ROOT (including save_model_registry)
     missing_id = "sys_0195f3a0000070098999999999999999"
     with pytest.raises(ResourceNotFoundError) as exc_not_found:
         await get_model_registry(
@@ -274,6 +296,14 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
             studio_service=studio_service,
         )
     assert exc_not_found.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND
+
+    with pytest.raises(ResourceNotFoundError):
+        await save_model_registry(
+            registry_id=missing_id,
+            data=existing_for_admin.model_copy(update={"id": missing_id}),
+            current_user=root_user,
+            studio_service=studio_service,
+        )
 
     with pytest.raises(ResourceNotFoundError):
         await clone_model_registry(
@@ -304,51 +334,54 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
 
 def test_model_profile_and_registry_accepts_reasoning_effort_in_additional_params() -> None:
     """Verifies that ModelProfile and SystemConfigModelRegistry accept reasoning_effort in additional_params."""
-    payload = {
-        "id": "sys_0195f3a00000700b81c2d3e4f5a60718",
-        "name": "Default Model Registry",
-        "type": "model_registry",
-        "default_provider": "ai_studio",
-        "tier_definitions": {
-            "fast": {
-                "provider": "google",
-                "model_name": "gemini-2.5-flash",
-                "temperature": 1.0,
-                "max_tokens": 8192,
-                "tpm_limit": 1000,
-                "rpm_limit": 10,
-                "additional_params": {},
-            },
-            "balanced": {
-                "provider": "google",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 1.0,
-                "max_tokens": 8192,
-                "tpm_limit": 1000,
-                "rpm_limit": 10,
-                "additional_params": {},
-            },
-            "deep": {
-                "provider": "openai",
-                "model_name": "openai/gpt-5.4",
-                "temperature": 1.0,
-                "max_tokens": 32768,
-                "tpm_limit": 1000,
-                "rpm_limit": 10,
-                "additional_params": {"reasoning_effort": "medium"},
-            },
-            "reasoning": {
-                "provider": "openai",
-                "model_name": "openai/gpt-5.4",
-                "temperature": 1.0,
-                "max_tokens": 32768,
-                "tpm_limit": 1000,
-                "rpm_limit": 10,
-                "additional_params": {"reasoning_effort": "high"},
-            },
+    source_registry = SystemConfigModelRegistry(
+        id="sys_0195f3a00000700b81c2d3e4f5a60718",
+        name="Default Model Registry",
+        default_provider=LLMProvider.AI_STUDIO,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(
+                provider=LLMProvider.AI_STUDIO,
+                model_name="gemini-2.5-flash",
+                temperature=1.0,
+                max_tokens=8192,
+                tpm_limit=1000,
+                rpm_limit=10,
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.BALANCED: ModelProfile(
+                provider=LLMProvider.AI_STUDIO,
+                model_name="gemini-2.5-pro",
+                temperature=1.0,
+                max_tokens=8192,
+                tpm_limit=1000,
+                rpm_limit=10,
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.DEEP: ModelProfile(
+                provider=LLMProvider.OPENAI,
+                model_name="openai/gpt-5.4",
+                temperature=1.0,
+                max_tokens=32768,
+                tpm_limit=1000,
+                rpm_limit=10,
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(reasoning_effort="medium"),
+            ),
+            CognitiveTier.REASONING: ModelProfile(
+                provider=LLMProvider.OPENAI,
+                model_name="openai/gpt-5.4",
+                temperature=1.0,
+                max_tokens=32768,
+                tpm_limit=1000,
+                rpm_limit=10,
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(reasoning_effort="high"),
+            ),
         },
-    }
-    registry = SystemConfigModelRegistry.model_validate(payload)
+    )
+    registry = SystemConfigModelRegistry.model_validate_json(source_registry.model_dump_json())
     assert registry.tier_definitions[CognitiveTier.FAST].additional_params.reasoning_effort is None
     assert registry.tier_definitions[CognitiveTier.DEEP].additional_params.reasoning_effort == "medium"
     assert registry.tier_definitions[CognitiveTier.REASONING].additional_params.reasoning_effort == "high"

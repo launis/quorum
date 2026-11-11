@@ -317,6 +317,11 @@ async def test_save_output_profile_invalid_target_component_fails_fast() -> None
 
     initial_wf = _create_sample_workflow(wf_id)
     await driver.upsert("workflows", initial_wf.model_dump(mode="json"), wf_id)
+    await driver.upsert(
+        "output_profiles",
+        _create_sample_output_profile(prof_id, wf_id).model_dump(mode="json"),
+        prof_id,
+    )
 
     invalid_prof = _create_sample_output_profile(prof_id, wf_id).model_copy(
         update={
@@ -362,9 +367,11 @@ async def test_save_output_profile_nonexistent_workflow_raises_resource_not_foun
     missing_wf_id = "wf_0195f3a0000070008000000000000000"
 
     prof = _create_sample_output_profile(prof_id, missing_wf_id)
+    await driver.upsert("output_profiles", prof.model_dump(mode="json"), prof_id)
 
-    with pytest.raises(ResourceNotFoundError):
+    with pytest.raises(ResourceNotFoundError) as exc_info:
         await output_profile_service.save_output_profile(root_token, prof_id, prof)
+    assert exc_info.value.details["resource_type"] == "workflow"
 
 
 async def test_save_prompt_block_updates_inplace_and_preserves_preflight() -> None:

@@ -7,7 +7,9 @@ All methods return strictly typed Pydantic Domain models (ConfigDict(frozen=True
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import AsyncIterator, Callable, Mapping, Sequence
+from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from types import TracebackType
 from typing import Protocol, Self, runtime_checkable
 
@@ -102,7 +104,9 @@ __all__ = [
     "QuorumUnitOfWork",
     "TopologyResolutionPort",
     "UnitOfWorkFactory",
+    "get_active_uow",
     "get_registered_uow_factory",
+    "open_uow_session",
     "register_default_uow_factory",
 ]
 
@@ -516,3 +520,45 @@ def get_registered_uow_factory() -> UnitOfWorkFactory | None:
         Registered UnitOfWorkFactory callable or None.
     """
     return _registered_uow_factory
+
+
+_ACTIVE_UOW_CONTEXT: ContextVar[QuorumUnitOfWork | None] = ContextVar("quorum_active_uow", default=None)
+
+
+def get_active_uow() -> QuorumUnitOfWork | None:
+    """Return the active QuorumUnitOfWork bound to the current async execution context.
+
+    Returns:
+        Active QuorumUnitOfWork instance when inside an open_uow_session scope, else None.
+    """
+    return _ACTIVE_UOW_CONTEXT.get()
+
+
+@asynccontextmanager
+async def open_uow_session(uow_factory: UnitOfWorkFactory | None) -> AsyncIterator[QuorumUnitOfWork | None]:
+    """Enter or reuse a context-propagated QuorumUnitOfWork transaction boundary.
+
+    When an active QuorumUnitOfWork already exists in the current ContextVar scope,
+    yields that instance directly without opening a nested database transaction.
+    Otherwise, instantiates and enters a new QuorumUnitOfWork via uow_factory when
+    configured and binds it for the duration of the async context block.
+
+    Args:
+        uow_factory: Optional callable creating a QuorumUnitOfWork instance.
+
+    Yields:
+        Active QuorumUnitOfWork instance, or None when no factory is configured.
+    """
+    existing_uow = get_active_uow()
+    if existing_uow is not None:
+        yield existing_uow
+        return
+    if uow_factory is None:
+        yield None
+        return
+    async with uow_factory() as uow:
+        token = _ACTIVE_UOW_CONTEXT.set(uow)
+        try:
+            yield uow
+        finally:
+            _ACTIVE_UOW_CONTEXT.reset(token)

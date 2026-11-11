@@ -6,15 +6,16 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, EntityPrefix, PromptBlockCategory
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
+from backend_v2.tests.factories.model_factories import SystemRulePromptBlockFactory
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryPromptBlockRepository,
     InMemorySystemRepository,
@@ -178,16 +179,21 @@ async def test_save_prompt_block_missing_after_save_raises(
             await prompt_block_service.save_prompt_block(
                 admin_token, "blk_0195f3a0000070018234567890abcdef", sample_block
             )
+        with pytest.raises(ResourceNotFoundError):
+            await prompt_block_service.create_prompt_block_draft(admin_token)
     finally:
         prompt_block_repo.clear_faults()
 
 
 async def test_save_prompt_block_atomization_failure_raises(
     prompt_block_service: StudioPromptBlockService,
+    prompt_block_repo: InMemoryPromptBlockRepository,
     admin_token: TokenData,
     sample_block: PersonaPromptBlock,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    await prompt_block_repo.create_prompt_block(sample_block)
+
     async def _fail_atomize(*_args: object, **_kwargs: object) -> PersonaPromptBlock:
         raise RuntimeError("Atomizer engine failure")
 
@@ -208,6 +214,7 @@ async def test_save_prompt_block_id_mismatch_normalizes_id(
     sample_block: PersonaPromptBlock,
 ) -> None:
     authoritative_id = "blk_0195f3a00000700a8bcdef1234567890"
+    await prompt_block_repo.create_prompt_block(sample_block.model_copy(update={"id": authoritative_id}))
     res = await prompt_block_service.save_prompt_block(admin_token, authoritative_id, sample_block)
     assert res.id == authoritative_id
     persisted = await prompt_block_repo.get_prompt_block_by_id(authoritative_id)
@@ -300,6 +307,7 @@ async def test_clone_prompt_block_success(
     cloned = await prompt_block_service.clone_prompt_block(admin_token, "blk_0195f3a0000070018234567890abcdef")
     assert cloned.id.startswith("blk_")
     assert cloned.id != "blk_0195f3a0000070018234567890abcdef"
+    assert cloned.slug == sample_block.slug
     assert cloned.label.translations["en"] == "Block (Copy)"
 
     persisted = await prompt_block_repo.get_prompt_block_by_id(cloned.id)
@@ -345,3 +353,37 @@ async def test_create_runtime_variables_and_system_rule_prompt_block_draft_and_c
     persisted_clone = await prompt_block_repo.get_prompt_block_by_id(cloned.id)
     assert isinstance(persisted_clone, SystemRulePromptBlock)
     assert persisted_clone.category_id == PromptBlockCategory.RUNTIME_VARIABLES
+
+
+async def test_save_prompt_block_cross_tenant_idor_org_preservation_and_unknown_id_404(
+    prompt_block_service: StudioPromptBlockService,
+    prompt_block_repo: InMemoryPromptBlockRepository,
+    admin_token: TokenData,
+) -> None:
+    """Verify cross-tenant PUT IDOR rejection, non-ROOT organization_id preservation, and missing ID 404."""
+    missing_block = SystemRulePromptBlockFactory.build(organization_id="org_123")
+    with pytest.raises(ResourceNotFoundError):
+        await prompt_block_service.save_prompt_block(admin_token, missing_block.id, missing_block)
+    assert await prompt_block_repo.get_prompt_block_by_id(missing_block.id) is None
+
+    other_org_block = SystemRulePromptBlockFactory.build(organization_id="org_other")
+    await prompt_block_repo.create_prompt_block(other_org_block)
+    forged_payload = other_org_block.model_copy(update={"organization_id": "org_123"})
+    with pytest.raises(PermissionDeniedError):
+        await prompt_block_service.save_prompt_block(admin_token, other_org_block.id, forged_payload)
+    unchanged = await prompt_block_repo.get_prompt_block_by_id(other_org_block.id)
+    assert unchanged is not None
+    assert unchanged.organization_id == "org_other"
+
+    own_block = SystemRulePromptBlockFactory.build(organization_id="org_123")
+    await prompt_block_repo.create_prompt_block(own_block)
+    reassigned_payload = own_block.model_copy(
+        update={
+            "organization_id": generate_opaque_id(EntityPrefix.ORGANIZATION),
+            "system_instructions": "Updated own instructions.",
+        }
+    )
+    saved = await prompt_block_service.save_prompt_block(admin_token, own_block.id, reassigned_payload)
+    assert saved.organization_id == "org_123"
+    assert isinstance(saved, SystemRulePromptBlock)
+    assert saved.system_instructions == "Updated own instructions."

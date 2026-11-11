@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -16,6 +16,7 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import CognitiveTier, HistoricalContextMode, StepType, TargetBlockType
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
+from backend_v2.tests.factories.model_factories import OutputProfileFactory
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryOutputProfileRepository,
     InMemoryPromptBlockRepository,
@@ -329,6 +330,7 @@ async def test_create_and_clone_output_profile(
 
     cloned = await service.clone_output_profile(initiator, "prf_0195f3a0000070008000111111111111")
     assert cloned.id.startswith("prf_")
+    assert cloned.slug == p1.slug
     saved_cloned = await service.output_profile_repo.get_output_profile_by_id(cloned.id)
     assert saved_cloned is not None
 
@@ -375,14 +377,15 @@ async def test_save_output_profile_invalid_target_component_raises_app_exception
         title=I18nText(translations={"en": "Invalid Group"}),
         target_blocks=["blk_0195f3a0000070008000000000000999"],
     )
-    profile = _make_valid_profile(
+    base_profile = _make_valid_profile(
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
         "org_0195f3a0000070008000000000000010",
         "Test",
     )
-    profile = profile.model_copy(update={"matrix_synthesis_groups": [group]})
+    await service.output_profile_repo.create_output_profile(base_profile)
+    profile = base_profile.model_copy(update={"matrix_synthesis_groups": [group]})
 
     with pytest.raises(AppException) as exc_info:
         await service.save_output_profile(initiator, profile.id, profile)
@@ -459,6 +462,7 @@ async def test_save_output_profile_normalizes_mismatched_id_in_place(
         "Mismatched",
     )
     target_id = "prf_0195f3a0000070008000bbbbbbbbbbbb"
+    await service.output_profile_repo.create_output_profile(payload.model_copy(update={"id": target_id}))
 
     saved = await service.save_output_profile(initiator, target_id, payload)
     assert saved.id == target_id
@@ -487,6 +491,7 @@ async def test_save_output_profile_raises_when_missing_after_save(
     workflow.get_allowed_prompt_block_targets = Mock(return_value=set())
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
+    mock_workflow_service.list_workflows.return_value = [workflow]
 
     payload = _make_valid_profile(
         "prf_0195f3a0000070008000111111111111",
@@ -504,6 +509,10 @@ async def test_save_output_profile_raises_when_missing_after_save(
             await service.save_output_profile(initiator, payload.id, payload)
         assert exc_info.value.status_code == 404
         assert exc_info.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+        with pytest.raises(ResourceNotFoundError) as draft_exc:
+            await service.create_output_profile_draft(initiator)
+        assert draft_exc.value.status_code == 404
     finally:
         mock_output_profile_repo.clear_faults()
 
@@ -593,6 +602,7 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         }
     )
 
+    await op_repo.create_output_profile(profile)
     saved = await real_op_service.save_output_profile(initiator, profile.id, profile)
     assert saved.id == profile.id
     assert saved.matrix_synthesis_groups[0].target_blocks == [cohesion_block_id]
@@ -623,13 +633,15 @@ async def test_save_output_profile_rejects_stale_variance_target_block_with_vali
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
-    profile = _make_valid_profile(
+    base_profile = _make_valid_profile(
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
         "org_0195f3a0000070008000000000000010",
         "Test",
-    ).model_copy(update={"variance_target_block": "blk_01960000000070008000000000000099"})
+    )
+    await service.output_profile_repo.create_output_profile(base_profile)
+    profile = base_profile.model_copy(update={"variance_target_block": "blk_01960000000070008000000000000099"})
 
     with pytest.raises(AppException) as exc_info:
         await service.save_output_profile(initiator, profile.id, profile)
@@ -657,16 +669,79 @@ async def test_save_output_profile_rejects_stale_user_role_target_block_with_val
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
-    profile = _make_valid_profile(
+    base_profile = _make_valid_profile(
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
         "org_0195f3a0000070008000000000000010",
         "Test",
-    ).model_copy(update={"user_role_target_block": "blk_01960000000070008000000000000098"})
+    )
+    await service.output_profile_repo.create_output_profile(base_profile)
+    profile = base_profile.model_copy(update={"user_role_target_block": "blk_01960000000070008000000000000098"})
 
     with pytest.raises(AppException) as exc_info:
         await service.save_output_profile(initiator, profile.id, profile)
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_save_output_profile_cross_tenant_idor_org_preservation_and_unknown_id_404(
+    service: StudioOutputProfileService,
+    mock_workflow_service: AsyncMock,
+) -> None:
+    """Verify 4-phase in-place upsert blocks cross-tenant IDOR, preserves organization_id, and rejects missing IDs."""
+    org_a = "org_0195f3a0000070008000000000000010"
+    org_b = "org_0195f3a0000070008000000000000020"
+    wf_id = "wf_0195f3a00000700080001234567890ab"
+    initiator_a = TokenData(id="usr_a", role=UserRole.ADMIN, organization_id=org_a)
+
+    workflow = AsyncMock()
+    workflow.id = wf_id
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value=set())
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    missing_profile = OutputProfileFactory.build(
+        workflow_id=wf_id,
+        organization_id=org_a,
+        target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
+        matrix_synthesis_groups=[],
+        variance_target_block=None,
+        user_role_target_block=None,
+    )
+    with pytest.raises(ResourceNotFoundError):
+        await service.save_output_profile(initiator_a, missing_profile.id, missing_profile)
+    assert await service.output_profile_repo.get_output_profile_by_id(missing_profile.id) is None
+
+    tenant_b_profile = OutputProfileFactory.build(
+        workflow_id=wf_id,
+        organization_id=org_b,
+        target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
+        matrix_synthesis_groups=[],
+        variance_target_block=None,
+        user_role_target_block=None,
+    )
+    await service.output_profile_repo.create_output_profile(tenant_b_profile)
+    forged_payload = tenant_b_profile.model_copy(update={"organization_id": org_a})
+    with pytest.raises(PermissionDeniedError):
+        await service.save_output_profile(initiator_a, tenant_b_profile.id, forged_payload)
+    unchanged = await service.output_profile_repo.get_output_profile_by_id(tenant_b_profile.id)
+    assert unchanged is not None
+    assert unchanged.organization_id == org_b
+
+    tenant_a_profile = OutputProfileFactory.build(
+        workflow_id=wf_id,
+        organization_id=org_a,
+        target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
+        matrix_synthesis_groups=[],
+        variance_target_block=None,
+        user_role_target_block=None,
+    )
+    await service.output_profile_repo.create_output_profile(tenant_a_profile)
+    reassigned_org_payload = tenant_a_profile.model_copy(update={"organization_id": org_b})
+    saved = await service.save_output_profile(initiator_a, tenant_a_profile.id, reassigned_org_payload)
+    assert saved.organization_id == org_a

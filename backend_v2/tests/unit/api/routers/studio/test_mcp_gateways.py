@@ -20,7 +20,6 @@ from backend_v2.api.routers.studio.mcp_gateways import (
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
-from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.mcp import (
     MCPDiscoveredToolWireDTO,
     MCPInitializeResultDTO,
@@ -167,14 +166,26 @@ async def test_mcp_gateways_router_negative_cases(
     studio_service: StudioSystemConfigService,
 ) -> None:
     """Verify negative RBAC, ResourceNotFoundError, and duplicate slug AppException across router endpoints."""
-    assert await get_all_mcp_gateways(current_user=member_user, studio_service=studio_service) == []
+    for non_admin_role in (UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER):
+        caller = member_user.model_copy(update={"role": non_admin_role})
+        with pytest.raises(PermissionDeniedError):
+            await get_all_mcp_gateways(current_user=caller, studio_service=studio_service)
+        with pytest.raises(PermissionDeniedError):
+            await get_mcp_gateway(
+                gateway_id="sys_abcdef1234567890abcdef1234567890",
+                current_user=caller,
+                studio_service=studio_service,
+            )
 
-    with pytest.raises(PermissionDeniedError):
-        await get_mcp_gateway(
-            gateway_id="sys_abcdef1234567890abcdef1234567890",
-            current_user=member_user,
-            studio_service=studio_service,
-        )
+    admin_caller = member_user.model_copy(update={"role": UserRole.ADMIN})
+    admin_gateways = await get_all_mcp_gateways(current_user=admin_caller, studio_service=studio_service)
+    assert len(admin_gateways) >= 1
+    admin_fetched = await get_mcp_gateway(
+        gateway_id=admin_gateways[0].id,
+        current_user=admin_caller,
+        studio_service=studio_service,
+    )
+    assert admin_fetched.id == admin_gateways[0].id
 
     with pytest.raises(ResourceNotFoundError):
         await get_mcp_gateway(
@@ -197,21 +208,30 @@ async def test_mcp_gateways_router_negative_cases(
             studio_service=studio_service,
         )
 
-    duplicate_gw = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
-        name="Duplicate Gateway",
-        slug="default_mcp_gateway",
-        type="mcp_gateways",
-        tools=[],
+    draft_gw = await create_mcp_gateways(current_user=root_user, studio_service=studio_service)
+    duplicate_gw = draft_gw.model_copy(
+        update={
+            "name": "Duplicate Gateway",
+            "slug": "default_mcp_gateway",
+        }
     )
     with pytest.raises(AppException) as exc_info:
         await save_mcp_gateway(
-            gateway_id="sys_0195f3a00000700080008172bda70c86",
+            gateway_id=draft_gw.id,
             data=duplicate_gw,
             current_user=root_user,
             studio_service=studio_service,
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    missing_gw_id = "sys_0195f3a0000070098999999999999999"
+    with pytest.raises(ResourceNotFoundError):
+        await save_mcp_gateway(
+            gateway_id=missing_gw_id,
+            data=duplicate_gw.model_copy(update={"id": missing_gw_id, "slug": "unique_missing_gw"}),
+            current_user=root_user,
+            studio_service=studio_service,
+        )
 
     with pytest.raises(AppException) as mismatch_exc_info:
         await save_mcp_gateway(

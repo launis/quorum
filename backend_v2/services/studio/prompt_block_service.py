@@ -112,27 +112,23 @@ class StudioPromptBlockService:
         enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
         return block
 
-    async def save_prompt_block(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
-        """Save prompt block.
+    async def _atomize_and_persist_prompt_block(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
+        """Atomize a validated prompt block payload, persist it, and reload by ID.
 
         Args:
-            initiator: The authenticated user.
-            id: The prompt block ID.
-            data: The PromptBlock data.
+            initiator: The authenticated user performing the write.
+            id: Authoritative prompt block identifier.
+            data: Validated PromptBlock domain instance.
 
         Returns:
-            The saved PromptBlock.
+            Reloaded PromptBlock persisted under id.
 
         Raises:
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the block cannot be reloaded after save.
+            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): If atomization fails prior to persistence.
         """
-        org_id = data.organization_id
-        enforce_modification_rights(initiator, org_id)
-
         try:
-            data = await PromptAtomizer.atomize_prompt_block(data, repository=self.system_repo)
+            atomized = await PromptAtomizer.atomize_prompt_block(data, repository=self.system_repo)
         except Exception as e:
             logger.error(
                 "[StudioPromptBlockService] %s: Atomization failed prior to save (Initiator: %s, Block: %s): %s",
@@ -148,11 +144,56 @@ class StudioPromptBlockService:
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
             ) from e
 
-        if data.id != id:
-            data = data.model_copy(update={"id": id})
-        await self.prompt_block_repo.create_prompt_block(data)
-
+        if atomized.id != id:
+            atomized = atomized.model_copy(update={"id": id})
+        await self.prompt_block_repo.create_prompt_block(atomized)
         return await self._require_prompt_block(initiator, id)
+
+    async def _insert_validated_prompt_block(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
+        """Insert a newly drafted or cloned prompt block after RBAC verification.
+
+        Args:
+            initiator: The authenticated user creating the block.
+            id: Server-issued prompt block identifier.
+            data: Newly constructed PromptBlock domain instance.
+
+        Returns:
+            Persisted PromptBlock reloaded from the repository.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the block cannot be reloaded after save.
+            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): If atomization fails prior to persistence.
+        """
+        enforce_modification_rights(initiator, data.organization_id)
+        return await self._atomize_and_persist_prompt_block(initiator, id, data)
+
+    async def save_prompt_block(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
+        """Update an existing prompt block in-place under its authoritative ID.
+
+        Args:
+            initiator: The authenticated user.
+            id: The prompt block ID.
+            data: The PromptBlock data.
+
+        Returns:
+            The saved PromptBlock.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the target prompt block does not exist.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant modification rights are violated.
+            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): If atomization fails prior to persistence.
+        """
+        existing = await self._require_prompt_block(initiator, id)
+        enforce_modification_rights(initiator, existing.organization_id)
+
+        target_org: str | None = existing.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = data.organization_id
+            enforce_modification_rights(initiator, target_org)
+
+        normalized = data.model_copy(update={"id": id, "organization_id": target_org})
+        return await self._atomize_and_persist_prompt_block(initiator, id, normalized)
 
     async def delete_prompt_block(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         """Delete prompt block.
@@ -246,7 +287,7 @@ class StudioPromptBlockService:
                 output_extensions=[],
                 organization_id=target_org,
             )
-        return await self.save_prompt_block(initiator, new_id, draft)
+        return await self._insert_validated_prompt_block(initiator, new_id, draft)
 
     async def clone_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
         """Clone prompt block.
@@ -276,4 +317,4 @@ class StudioPromptBlockService:
                 "label": cloned_label,
             }
         )
-        return await self.save_prompt_block(initiator, new_id, cloned_obj)
+        return await self._insert_validated_prompt_block(initiator, new_id, cloned_obj)

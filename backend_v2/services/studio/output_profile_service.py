@@ -148,25 +148,24 @@ class StudioOutputProfileService:
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
         return profile
 
-    async def save_output_profile(self, initiator: TokenData, id: str, data: OutputProfile) -> OutputProfile:
-        """Save output profile.
+    async def _validate_and_persist_output_profile(
+        self, initiator: TokenData, id: str, profile: OutputProfile
+    ) -> OutputProfile:
+        """Validate workflow layout targets for an OutputProfile, persist it, and reload by ID.
 
         Args:
-            initiator: The authenticated user.
-            id: The output profile ID.
-            data: The OutputProfile domain model.
+            initiator: The authenticated user performing the write.
+            id: Authoritative output profile identifier.
+            profile: OutputProfile domain model to validate and persist.
 
         Returns:
-            The saved OutputProfile.
+            Reloaded OutputProfile persisted under id.
 
         Raises:
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            AppException (ErrorCodes.VALIDATION_FAILED): On validation errors.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If parent workflow or saved profile is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If parent workflow tenant access is violated.
+            AppException (ErrorCodes.VALIDATION_FAILED): If referenced target blocks are invalid for the workflow.
         """
-        profile = data
-        enforce_modification_rights(initiator, profile.organization_id)
-
         workflow = await self.workflow_service.get_workflow(initiator, profile.workflow_id)
         all_steps = await self.workflow_service.list_steps(initiator, scope=StepFilterScope.ALL)
 
@@ -203,6 +202,54 @@ class StudioOutputProfileService:
 
         await self.output_profile_repo.create_output_profile(profile)
         return await self._require_output_profile(initiator, id, after_save=True)
+
+    async def _insert_validated_output_profile(
+        self, initiator: TokenData, id: str, data: OutputProfile
+    ) -> OutputProfile:
+        """Insert a newly drafted or cloned OutputProfile after RBAC and target validation.
+
+        Args:
+            initiator: The authenticated user creating the profile.
+            id: Server-issued output profile identifier.
+            data: Newly constructed OutputProfile domain model.
+
+        Returns:
+            Persisted OutputProfile reloaded from the repository.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If parent workflow or saved profile is missing.
+            AppException (ErrorCodes.VALIDATION_FAILED): If target block validation fails.
+        """
+        enforce_modification_rights(initiator, data.organization_id)
+        return await self._validate_and_persist_output_profile(initiator, id, data)
+
+    async def save_output_profile(self, initiator: TokenData, id: str, data: OutputProfile) -> OutputProfile:
+        """Update an existing OutputProfile in-place under its authoritative ID.
+
+        Args:
+            initiator: The authenticated user.
+            id: The output profile ID.
+            data: The OutputProfile domain model.
+
+        Returns:
+            The saved OutputProfile.
+
+        Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the target profile or parent workflow is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant modification rights are violated.
+            AppException (ErrorCodes.VALIDATION_FAILED): On target block validation errors.
+        """
+        existing = await self._require_output_profile(initiator, id)
+        enforce_modification_rights(initiator, existing.organization_id)
+
+        target_org: str | None = existing.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = data.organization_id
+            enforce_modification_rights(initiator, target_org)
+
+        normalized = data.model_copy(update={"id": id, "organization_id": target_org})
+        return await self._validate_and_persist_output_profile(initiator, id, normalized)
 
     async def delete_output_profile(self, initiator: TokenData, id: str) -> None:
         """Delete output profile.
@@ -288,7 +335,7 @@ class StudioOutputProfileService:
             organization_id=target_org,
             initial_target_block=matrix_block,
         )
-        return await self.save_output_profile(initiator, new_id, draft)
+        return await self._insert_validated_output_profile(initiator, new_id, draft)
 
     async def clone_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
         """Clone output profile.
@@ -319,4 +366,4 @@ class StudioOutputProfileService:
                 "name": cloned_name,
             }
         )
-        return await self.save_output_profile(initiator, new_id, cloned_obj)
+        return await self._insert_validated_output_profile(initiator, new_id, cloned_obj)

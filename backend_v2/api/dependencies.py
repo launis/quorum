@@ -34,6 +34,8 @@ from backend_v2.database.interfaces import (
     ITaskBlueprintRepository,
     ITaskBriefRepository,
     IWorkflowRepository,
+    UnitOfWorkFactory,
+    get_registered_uow_factory,
 )
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
 from backend_v2.database.repositories.component import ComponentRepositoryImpl
@@ -107,6 +109,7 @@ __all__ = [
     "TaskBlueprintRepoDep",
     "TaskBriefRepoDep",
     "TenantRateLimitServiceDep",
+    "UoWFactoryDep",
     "UsageServiceDep",
     "UserDep",
     "WorkflowRepoDep",
@@ -143,6 +146,7 @@ __all__ = [
     "get_task_blueprint_repo",
     "get_task_brief_repo",
     "get_tenant_rate_limit_service",
+    "get_uow_factory",
     "get_usage_service",
     "get_workflow_repo",
     "require_role",
@@ -717,11 +721,24 @@ async def get_report_service(
 ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
 
 
+def get_uow_factory() -> UnitOfWorkFactory | None:
+    """Return the process-scoped UnitOfWorkFactory registered for transactional boundaries.
+
+    Returns:
+        Registered UnitOfWorkFactory callable or None.
+    """
+    return get_registered_uow_factory()
+
+
+UoWFactoryDep = Annotated[UnitOfWorkFactory | None, Depends(get_uow_factory)]
+
+
 async def get_studio_workflow_service(
     workflow_repo: WorkflowRepoDep,
     output_profile_repo: OutputProfileRepoDep,
     prompt_block_repo: PromptBlockRepoDep,
     system_repo: SystemRepoDep,
+    uow_factory: UoWFactoryDep = None,
 ) -> StudioWorkflowService:
     """Instantiate the studio workflow service.
 
@@ -730,15 +747,20 @@ async def get_studio_workflow_service(
         output_profile_repo: Output profile repository.
         prompt_block_repo: Prompt block repository.
         system_repo: System repository.
+        uow_factory: Optional UnitOfWork factory for multi-entity transactions.
 
     Returns:
         Studio workflow service instance.
     """
+    resolved_uow_factory: UnitOfWorkFactory | None = get_registered_uow_factory()
+    if uow_factory is not None:
+        resolved_uow_factory = uow_factory
     return StudioWorkflowService(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
         system_repo=system_repo,
+        uow_factory=resolved_uow_factory,
     )
 
 
