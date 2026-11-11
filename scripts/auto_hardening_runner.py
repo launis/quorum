@@ -1251,6 +1251,11 @@ def _is_transient_subagent_startup_error(returncode: int, output: str) -> bool:
         "temporary failure in name resolution",
         "no such host",
         "dial tcp: lookup",
+        "there was a network issue connecting to the server",
+        '"retryable":true',
+        "connection reset",
+        "broken pipe",
+        "unexpected eof",
     )
     output_lower = output.lower()
     for indicator in transient_indicators:

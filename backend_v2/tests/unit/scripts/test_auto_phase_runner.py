@@ -945,22 +945,32 @@ def test_execute_subagent_retry_on_transient_model_glitch(tmp_path: Path) -> Non
         "",
     ]
 
-    # Attempt 2 succeeds
+    # Attempt 2 fails with transient DNS lookup / network issue (exit code 3)
     proc2 = MagicMock()
     proc2.pid = 1002
-    proc2.returncode = 0
-    proc2.stdout.readline.side_effect = ["Phase 3 completed successfully.\n", ""]
+    proc2.returncode = 3
+    proc2.stdout.readline.side_effect = [
+        "error: There was a network issue connecting to the server, please try again.\n",
+        'AGY_ERROR: {"short_error":"dial tcp: lookup daily-cloudcode-pa.googleapis.com: no such host","retryable":true}\n',
+        "",
+    ]
+
+    # Attempt 3 succeeds
+    proc3 = MagicMock()
+    proc3.pid = 1003
+    proc3.returncode = 0
+    proc3.stdout.readline.side_effect = ["Phase 3 completed successfully.\n", ""]
 
     with (
         patch("scripts.auto_phase_runner.resolve_agy_binary", return_value=Path("agy.exe")),
-        patch("subprocess.Popen", side_effect=[proc1, proc2]) as mock_popen,
+        patch("subprocess.Popen", side_effect=[proc1, proc2, proc3]) as mock_popen,
         patch("time.sleep") as mock_sleep,
     ):
         res = execute_phase_subagent(phase, args, tmp_path)
         assert res.exit_code == 0
         assert "Phase 3 completed successfully." in res.output
-        assert mock_popen.call_count == 2
-        mock_sleep.assert_called_once_with(3.0)
+        assert mock_popen.call_count == 3
+        assert mock_sleep.call_count == 2
 
 
 def test_execute_subagent_retry_exhaustion_on_persistent_failure(tmp_path: Path) -> None:
