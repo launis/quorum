@@ -19,7 +19,7 @@ from backend_v2.models.auth import (
     UserUpdate,
 )
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.base import AuditLogCreateDTO, UsageAggregateUpdateDTO, UsageRecord
+from backend_v2.models.domain.base import AuditLogCreateDTO
 from backend_v2.models.domain.knowledge import ClaimCreateDTO, ConceptCreateDTO, ReferenceCreateDTO
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
@@ -28,14 +28,11 @@ from backend_v2.models.domain.step import Role, Step
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
-from backend_v2.models.dtos.system import (
-    SystemConfigCreateDTO,
-    SystemConfigUpdateDTO,
-    SystemSettingsDTO,
-)
+from backend_v2.models.dtos.system import SystemConfigCreateDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, ReportStatus, StepType, SystemLocale
 from backend_v2.models.state import TraceEvent
+from backend_v2.tests.factories.model_factories import UsageRecordFactory
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryAgentRepository,
     InMemoryAuditRepository,
@@ -451,32 +448,43 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             tools=[],
         )
     )
-    settings_dto = SystemSettingsDTO(environment="production")
-    cfg_id = await sys_repo.create_system_config(SystemConfigCreateDTO(type="system_settings", content=settings_dto))
+    mcp_cfg = SystemConfigMCPGateways(
+        id="sys_0195f3a0000070018234567890abcde1",
+        name="Extra Gateway",
+        slug="extra_mcp_gateway",
+        tools=[],
+    )
+    cfg_id = await sys_repo.create_system_config(SystemConfigCreateDTO(type="mcp_gateways", content=mcp_cfg))
     assert await sys_repo.get_system_config(cfg_id) is not None
-    assert await sys_repo.get_system_settings() is None
-    await sys_repo.update_system_settings(SystemConfigUpdateDTO(system_settings=settings_dto))
-    assert await sys_repo.get_system_settings() is not None
 
     # 11. Audit
     aud_repo = InMemoryAuditRepository()
-    await aud_repo.log_audit_event(AuditLogCreateDTO(actor_id="u1", action="create"))
-    assert len(await aud_repo.get_audit_logs(actor_id="u1")) == 1
+    await aud_repo.log_audit_event(
+        AuditLogCreateDTO(
+            actor_id="usr_0195f3a0000070018234567890abcdef",
+            event_type="WORKFLOW_CREATED",
+            resource_type="workflow",
+            resource_id="wor_0195f3a0000070018234567890abcdef",
+        )
+    )
+    assert len(await aud_repo.get_audit_logs(actor_id="usr_0195f3a0000070018234567890abcdef")) == 1
     await aud_repo.log_usage(
-        UsageRecord(
-            org_id="org_1",
-            user_id="u_1",
-            model="gpt-4o",
+        UsageRecordFactory.build(
+            org_id="org_0195f3a0000070018234567890abcdef",
+            user_id="usr_0195f3a0000070018234567890abcdef",
+            model="gemini-2.5-flash",
             input_tokens=50,
             output_tokens=50,
             cost_usd=0.001,
             timestamp=datetime.now(UTC),
         )
     )
-    assert len(await aud_repo.get_usage_records("org", "org_1")) == 1
-    await aud_repo.upsert_usage_aggregate("org", "org_1", "2026-09", UsageAggregateUpdateDTO(input_tokens=100))
-    assert await aud_repo.get_usage_aggregate("org", "org_1", "2026-09") is not None
-    assert (await aud_repo.get_detailed_usage("org", "org_1")).organization_id == "org_1"
+    assert len(await aud_repo.get_usage_records("organization", "org_0195f3a0000070018234567890abcdef")) == 1
+    rollup = await aud_repo.aggregate_organization_usage(organization_id="org_0195f3a0000070018234567890abcdef")
+    assert rollup.total_prompt_tokens == 50
+    assert (
+        await aud_repo.get_detailed_usage("org", "org_0195f3a0000070018234567890abcdef")
+    ).organization_id == "org_0195f3a0000070018234567890abcdef"
 
     # 12. Matrix
     mx_repo = InMemoryMatrixRepository()
@@ -691,36 +699,46 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             tools=[],
         )
     )
-    assert await unified.get_system_settings() is None
-    await unified.update_system_settings(
-        SystemConfigUpdateDTO(system_settings=SystemSettingsDTO(environment="production"))
-    )
-    assert await unified.get_system_settings() is not None
     cfg_u = await unified.create_system_config(
         SystemConfigCreateDTO(
-            type="settings",
-            content=SystemSettingsDTO(environment="production"),
+            type="mcp_gateways",
+            content=SystemConfigMCPGateways(
+                id="sys_0195f3a0000070018234567890abcde2",
+                name="Unified Extra Gateway",
+                slug="unified_extra_gateway",
+                tools=[],
+            ),
         )
     )
     assert await unified.get_system_config(cfg_u) is not None
 
-    await unified.log_audit_event(AuditLogCreateDTO(actor_id="act_u", action="act"))
+    await unified.log_audit_event(
+        AuditLogCreateDTO(
+            actor_id="usr_0195f3a0000070018234567890abcdef",
+            event_type="WORKFLOW_UPDATED",
+            resource_type="workflow",
+            resource_id="wor_0195f3a0000070018234567890abcdef",
+        )
+    )
     assert len(await unified.get_audit_logs()) == 1
     await unified.log_usage(
-        UsageRecord(
-            org_id="o1",
-            user_id="u1",
-            model="gpt-4o",
+        UsageRecordFactory.build(
+            org_id="org_0195f3a0000070018234567890abcdef",
+            user_id="usr_0195f3a0000070018234567890abcdef",
+            model="gemini-2.5-flash",
             input_tokens=10,
             output_tokens=20,
             cost_usd=0.01,
             timestamp=datetime.now(UTC),
         )
     )
-    assert len(await unified.get_usage_records("org")) == 1
-    await unified.upsert_usage_aggregate("org", "o1", "2026-09", UsageAggregateUpdateDTO(input_tokens=100))
-    assert await unified.get_usage_aggregate("org", "o1", "2026-09") is not None
-    assert (await unified.get_detailed_usage("org", "o1")).organization_id == "o1"
+    assert len(await unified.get_usage_records("organization", "org_0195f3a0000070018234567890abcdef")) == 1
+    assert (
+        await unified.aggregate_organization_usage(organization_id="org_0195f3a0000070018234567890abcdef")
+    ).record_count == 1
+    assert (
+        await unified.get_detailed_usage("org", "org_0195f3a0000070018234567890abcdef")
+    ).organization_id == "org_0195f3a0000070018234567890abcdef"
 
     await unified.create_matrix(u_block)
     assert await unified.get_matrix_by_id(u_b_id) is not None

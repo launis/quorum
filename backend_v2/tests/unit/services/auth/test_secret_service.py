@@ -1319,3 +1319,22 @@ async def test_secret_service_decryption_and_secret_manager_boundary_failures_ne
     with pytest.raises(ConfigurationError) as ws_exc:
         await empty_sm_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.ANTHROPIC)
     assert ws_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+    # 5. delete_tenant_secret delegates directly to entity_adapter.delete_tenant_secret and rejects missing IDs
+    assert (
+        await empty_sm_service.delete_tenant_secret(
+            initiator=admin_token,
+            organization_id=org_id,
+            secret_id=whitespace_record.id,
+        )
+        is True
+    )
+    assert await uow.entities.get_tenant_secret(whitespace_record.id) is None
+    with pytest.raises(AppException) as missing_del_exc:
+        await empty_sm_service.delete_tenant_secret(
+            initiator=admin_token,
+            organization_id=org_id,
+            secret_id=whitespace_record.id,
+        )
+    assert missing_del_exc.value.status_code == 404
+    assert missing_del_exc.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value

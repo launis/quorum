@@ -239,11 +239,6 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
         assert await adapter.get_report_binary(rep.id) == bin_dto
         assert await adapter.seed_collection_batch("organizations", [org]) == 1
         assert (await adapter.verify_seed_table_counts({"organizations": 1}))["organizations"] == 1
-        assert await adapter.upsert_collection_document("organizations", org.id, org.model_dump(mode="json")) is True
-        assert (await adapter.get_collection_document("organizations", org.id)) is not None
-        assert len(await adapter.list_collection_documents("organizations")) == 1
-        assert await adapter.delete_collection_document("organizations", org.id) is True
-        await adapter.clear_collection_documents("users")
     finally:
         await pool.release(conn)
 

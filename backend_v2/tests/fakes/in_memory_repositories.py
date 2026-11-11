@@ -12,7 +12,7 @@ import inspect
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -50,11 +50,10 @@ from backend_v2.models.auth import (
 from backend_v2.models.core_base import generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
-    AuditLogEntry,
+    AuditLogRecord,
     DetailedUsageDTO,
-    UsageAggregateDTO,
-    UsageAggregateUpdateDTO,
     UsageRecord,
+    UsageRollupSummaryDTO,
 )
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.knowledge import (
@@ -84,8 +83,6 @@ from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, Workflow
 from backend_v2.models.dtos.system import (
     AnySystemConfig,
     SystemConfigCreateDTO,
-    SystemConfigUpdateDTO,
-    SystemSettingsDTO,
 )
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import CognitiveTier, EntityPrefix, LLMProvider
@@ -1057,7 +1054,6 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         self._mcp_gateways_map: dict[str, SystemConfigMCPGateways] = {
             self._mcp_gateways.id: self._mcp_gateways,
         }
-        self._system_settings: SystemSettingsDTO | None = None
         self._raw_system_configs: dict[str, JsonValue] = {}
 
     def seed_raw_system_config(self, key: str, item: JsonValue) -> None:
@@ -1146,21 +1142,6 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         )
         return True
 
-    async def get_system_settings(self) -> SystemSettingsDTO | None:
-        self._check_fault("get_system_settings")
-        if self._system_settings is None:
-            return None
-        return SystemSettingsDTO.model_validate(self._system_settings.model_dump(mode="python"), strict=False)
-
-    async def update_system_settings(self, updates: SystemConfigUpdateDTO) -> bool:
-        self._check_fault("update_system_settings")
-        if updates.system_settings is not None:
-            self._system_settings = SystemSettingsDTO.model_validate(
-                updates.system_settings.model_dump(mode="python"), strict=False
-            )
-            return True
-        return False
-
     async def get_system_config(self, config_id: str) -> Any:
         self._check_fault("get_system_config")
         if config_id in self._raw_system_configs:
@@ -1179,123 +1160,128 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 # ==============================================================================
 
 
-class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepository):
+class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogRecord], IAuditRepository):
     """In-memory fake implementation of IAuditRepository."""
 
     def __init__(self) -> None:
         super().__init__()
-        self._audit_logs: list[AuditLogEntry] = []
+        self._audit_logs: list[AuditLogRecord] = []
         self._usage_records: list[UsageRecord] = []
-        self._usage_aggregates: dict[str, UsageAggregateDTO] = {}
 
     async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:
         self._check_fault("log_audit_event")
-        ts = event_data.timestamp or datetime.now(UTC)
-        ctx: dict[str, JsonValue] = {
-            "actor_id": event_data.actor_id,
-            "action": event_data.action,
-        }
-        if event_data.organization_id is not None:
-            ctx["organization_id"] = event_data.organization_id
-        if event_data.details is not None:
-            ctx["details"] = cast(JsonValue, event_data.details)
-        entry = AuditLogEntry(
-            timestamp=ts,
-            level="INFO",
-            message=f"{event_data.actor_id}: {event_data.action}",
-            context=ctx,
+        record = AuditLogRecord(
+            id=f"aud_{generate_uuid7().hex}",
+            organization_id=event_data.organization_id,
+            actor_id=event_data.actor_id,
+            execution_id=event_data.execution_id,
+            event_type=event_data.event_type,
+            resource_type=event_data.resource_type,
+            resource_id=event_data.resource_id,
+            details=dict(event_data.details),
+            created_at=datetime.now(UTC),
         )
-        self._audit_logs.append(entry)
+        self._audit_logs.append(record)
 
     async def get_audit_logs(
         self,
         organization_id: str | None = None,
         actor_id: str | None = None,
-        action: str | None = None,
+        event_type: str | None = None,
         limit: int = 100,
-    ) -> list[AuditLogEntry]:
+    ) -> list[AuditLogRecord]:
         self._check_fault("get_audit_logs")
-        logs = [AuditLogEntry.model_validate(e.model_dump(mode="python"), strict=False) for e in self._audit_logs]
+        if limit <= 0:
+            return []
+        logs = [AuditLogRecord.model_validate(e.model_dump(mode="python"), strict=False) for e in self._audit_logs]
         if organization_id is not None:
-            logs = [
-                entry
-                for entry in logs
-                if entry.context is not None
-                and "organization_id" in entry.context
-                and entry.context["organization_id"] == organization_id
-            ]
+            logs = [entry for entry in logs if entry.organization_id == organization_id]
         if actor_id is not None:
-            logs = [
-                entry
-                for entry in logs
-                if entry.context is not None and "actor_id" in entry.context and entry.context["actor_id"] == actor_id
-            ]
-        if action is not None:
-            logs = [
-                entry
-                for entry in logs
-                if entry.context is not None and "action" in entry.context and entry.context["action"] == action
-            ]
+            logs = [entry for entry in logs if entry.actor_id == actor_id]
+        if event_type is not None:
+            logs = [entry for entry in logs if entry.event_type == event_type]
+        logs.reverse()
         return logs[:limit]
 
     async def log_usage(self, record: UsageRecord) -> None:
         self._check_fault("log_usage")
         self._usage_records.append(UsageRecord.model_validate(record.model_dump(mode="python"), strict=False))
 
+    @staticmethod
+    def _parse_optional_since(since: datetime | str | None) -> datetime | None:
+        if since is None:
+            return None
+        if isinstance(since, datetime):
+            return since if since.tzinfo is not None else since.replace(tzinfo=UTC)
+        parsed = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
     async def get_usage_records(
         self, scope: str, entity_id: str | None = None, since: str | None = None
     ) -> list[UsageRecord]:
         self._check_fault("get_usage_records")
-        return [UsageRecord.model_validate(r.model_dump(mode="python"), strict=False) for r in self._usage_records]
+        since_dt = self._parse_optional_since(since)
+        records = [UsageRecord.model_validate(r.model_dump(mode="python"), strict=False) for r in self._usage_records]
+        if scope == "organization" and entity_id is not None:
+            records = [r for r in records if r.org_id == entity_id]
+        elif scope == "user" and entity_id is not None:
+            records = [r for r in records if r.user_id == entity_id]
+        if since_dt is not None:
+            records = [
+                r
+                for r in records
+                if (r.timestamp if r.timestamp.tzinfo is not None else r.timestamp.replace(tzinfo=UTC)) >= since_dt
+            ]
+        return records
 
-    async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> UsageAggregateDTO | None:
-        self._check_fault("get_usage_aggregate")
-        key = f"{scope}:{entity_id}:{period}"
-        agg = self._usage_aggregates[key] if key in self._usage_aggregates else None
-        return UsageAggregateDTO.model_validate(agg.model_dump(mode="python"), strict=False) if agg else None
-
-    def set_usage_aggregate(self, scope: str, entity_id: str | None, period: str, agg: UsageAggregateDTO) -> None:
-        """Helper to seed usage aggregate for test scenarios."""
-        key = f"{scope}:{entity_id}:{period}"
-        self._usage_aggregates[key] = agg
-
-    async def upsert_usage_aggregate(
-        self, scope: str, entity_id: str | None, period: str, update_data: UsageAggregateUpdateDTO
-    ) -> None:
-        self._check_fault("upsert_usage_aggregate")
-        key = f"{scope}:{entity_id}:{period}"
-        existing = self._usage_aggregates[key] if key in self._usage_aggregates else None
-        org_id = entity_id or "system"
-        if existing:
-            self._usage_aggregates[key] = UsageAggregateDTO(
-                organization_id=org_id,
-                period=period,
-                total_input_tokens=existing.total_input_tokens + update_data.input_tokens,
-                total_output_tokens=existing.total_output_tokens + update_data.output_tokens,
-                total_cached_tokens=existing.total_cached_tokens + update_data.cached_tokens,
-                total_cost_usd=existing.total_cost_usd + update_data.cost_usd,
-                execution_count=existing.execution_count + update_data.execution_count,
-            )
-        else:
-            self._usage_aggregates[key] = UsageAggregateDTO(
-                organization_id=org_id,
-                period=period,
-                total_input_tokens=update_data.input_tokens,
-                total_output_tokens=update_data.output_tokens,
-                total_cached_tokens=update_data.cached_tokens,
-                total_cost_usd=update_data.cost_usd,
-                execution_count=update_data.execution_count,
-            )
+    async def aggregate_organization_usage(
+        self,
+        organization_id: str | None = None,
+        since: datetime | None = None,
+    ) -> UsageRollupSummaryDTO:
+        self._check_fault("aggregate_organization_usage")
+        since_dt = self._parse_optional_since(since)
+        records = list(self._usage_records)
+        if organization_id is not None:
+            records = [r for r in records if r.org_id == organization_id]
+        if since_dt is not None:
+            records = [
+                r
+                for r in records
+                if (r.timestamp if r.timestamp.tzinfo is not None else r.timestamp.replace(tzinfo=UTC)) >= since_dt
+            ]
+        return UsageRollupSummaryDTO(
+            organization_id=organization_id,
+            total_prompt_tokens=sum(r.input_tokens for r in records),
+            total_completion_tokens=sum(r.output_tokens for r in records),
+            total_cached_tokens=sum(r.cached_tokens for r in records),
+            total_reasoning_tokens=sum(r.reasoning_tokens for r in records),
+            total_cache_creation_input_tokens=sum(r.cache_creation_input_tokens for r in records),
+            total_cost_usd=sum(r.cost_usd for r in records),
+            total_estimated_savings_usd=sum(r.estimated_savings_usd for r in records),
+            record_count=len(records),
+        )
 
     async def get_detailed_usage(
         self, scope: str, target_id: str | None = None, since: str | None = None
     ) -> DetailedUsageDTO:
         self._check_fault("get_detailed_usage")
+        records = await self.get_usage_records(scope=scope, entity_id=target_id, since=since)
+        by_model: dict[str, int] = {}
+        total_tokens = 0
+        total_cost = 0.0
+        for rec in records:
+            tokens = rec.input_tokens + rec.output_tokens + rec.reasoning_tokens
+            total_tokens += tokens
+            total_cost += rec.cost_usd
+            prev = by_model[rec.model] if rec.model in by_model else 0
+            by_model[rec.model] = prev + tokens
+        resolved_org = target_id if target_id is not None else "system"
         return DetailedUsageDTO(
-            organization_id=target_id or "system",
-            total_cost_usd=0.0,
-            total_tokens=0,
-            by_model={},
+            organization_id=resolved_org,
+            total_cost_usd=total_cost,
+            total_tokens=total_tokens,
+            by_model=by_model,
             by_workflow={},
         )
 
@@ -1942,14 +1928,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         return await self._system.get_all_mcp_gateways()
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
-
         return await self._system.update_mcp_gateways(gateways_data)
-
-    async def get_system_settings(self) -> SystemSettingsDTO | None:
-        return await self._system.get_system_settings()
-
-    async def update_system_settings(self, updates: SystemConfigUpdateDTO) -> bool:
-        return await self._system.update_system_settings(updates)
 
     async def get_system_config(self, config_id: str) -> Any:
         return await self._system.get_system_config(config_id)
@@ -2087,10 +2066,10 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         self,
         organization_id: str | None = None,
         actor_id: str | None = None,
-        action: str | None = None,
+        event_type: str | None = None,
         limit: int = 100,
-    ) -> list[AuditLogEntry]:
-        return await self._audit.get_audit_logs(organization_id, actor_id, action, limit)
+    ) -> list[AuditLogRecord]:
+        return await self._audit.get_audit_logs(organization_id, actor_id, event_type, limit)
 
     async def log_usage(self, record: UsageRecord) -> None:
         await self._audit.log_usage(record)
@@ -2100,17 +2079,12 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     ) -> list[UsageRecord]:
         return await self._audit.get_usage_records(scope, entity_id, since)
 
-    async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> UsageAggregateDTO | None:
-        return await self._audit.get_usage_aggregate(scope, entity_id, period)
-
-    def set_usage_aggregate(self, scope: str, entity_id: str | None, period: str, agg: UsageAggregateDTO) -> None:
-        """Helper to seed usage aggregate for test scenarios."""
-        self._audit.set_usage_aggregate(scope, entity_id, period, agg)
-
-    async def upsert_usage_aggregate(
-        self, scope: str, entity_id: str | None, period: str, update_data: UsageAggregateUpdateDTO
-    ) -> None:
-        await self._audit.upsert_usage_aggregate(scope, entity_id, period, update_data)
+    async def aggregate_organization_usage(
+        self,
+        organization_id: str | None = None,
+        since: datetime | None = None,
+    ) -> UsageRollupSummaryDTO:
+        return await self._audit.aggregate_organization_usage(organization_id, since)
 
     async def get_detailed_usage(
         self, scope: str, target_id: str | None = None, since: str | None = None

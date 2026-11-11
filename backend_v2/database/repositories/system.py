@@ -12,8 +12,6 @@ from backend_v2.models.dtos.system import (
     AnySystemConfig,
     AnySystemConfigAdapter,
     SystemConfigCreateDTO,
-    SystemConfigUpdateDTO,
-    SystemSettingsDTO,
 )
 from backend_v2.models.enums import SystemConfigID
 
@@ -140,43 +138,6 @@ class SystemRepositoryImpl(BaseRepository):
         doc_id = gateways_data.id if gateways_data.id else SystemConfigID.MCP_GATEWAYS.value
         payload["id"] = doc_id
         payload["type"] = "mcp_gateways"
-        await self.driver.upsert("system_config", payload, doc_id)
-        return True
-
-    async def get_system_settings(self) -> SystemSettingsDTO | None:
-        """Retrieves global system settings.
-
-        Returns:
-            The SystemSettingsDTO if found.
-
-        Raises:
-            ResourceNotFoundError: If the global_settings document is missing.
-        """
-        res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
-        if not res_list:
-            logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: 'global_settings' document is missing.")
-            raise ResourceNotFoundError(resource_type="system_config", resource_id="global_settings")
-        return SystemSettingsDTO.model_validate(res_list[0], strict=False)
-
-    async def update_system_settings(self, updates: SystemConfigUpdateDTO) -> bool:
-        """Updates global system settings.
-
-        Args:
-            updates: SystemConfigUpdateDTO containing settings updates.
-
-        Returns:
-            True if updated successfully.
-        """
-        res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
-        payload = updates.model_dump(mode="json", exclude_unset=True)
-        if res_list:
-            doc_id = str(res_list[0]["id"])
-        elif "id" in payload:
-            doc_id = str(payload["id"])
-        else:
-            doc_id = "global_settings"
-        payload["id"] = doc_id
-        payload["type"] = "global_settings"
         await self.driver.upsert("system_config", payload, doc_id)
         return True
 

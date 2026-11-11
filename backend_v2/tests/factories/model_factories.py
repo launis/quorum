@@ -8,6 +8,7 @@ from backend_v2.models.auth import TenantSecretDTO
 from backend_v2.models.core_base import I18nText, generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archival import PrecedentDTO
+from backend_v2.models.domain.base import AuditLogRecord, UsageRecord
 from backend_v2.models.domain.causal import CausalAnalysis
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.execution import (
@@ -78,6 +79,7 @@ from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import AnySduiBlock, ReportView
 
 __all__ = [
+    "AuditLogRecordFactory",
     "CausalGraphPayloadDTOFactory",
     "CausalNodeDTOFactory",
     "ExecutionRecordFactory",
@@ -92,6 +94,7 @@ __all__ = [
     "SystemRulePromptBlockFactory",
     "TaskBriefFactory",
     "TenantSecretDTOFactory",
+    "UsageRecordFactory",
     "WorkflowFactory",
 ]
 
@@ -1079,3 +1082,114 @@ class ReportViewFactory(ModelFactory[ReportView]):
             Empty list of AnySduiBlock instances.
         """
         return []
+
+
+class AuditLogRecordFactory(ModelFactory[AuditLogRecord]):
+    """Polyfactory model factory for immutable AuditLogRecord compliance entries."""
+
+    __model__ = AuditLogRecord
+    __set_as_default_factory_for_type__ = True
+
+    event_type: str = "EXECUTION_STARTED"
+    resource_type: str = "execution"
+    resource_id: str = "exe_0195f3a0000070008000000000000001"
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid AuditLogRecord Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'aud_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.AUDIT_LOG)
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a valid Organization Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'org_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
+    def actor_id(cls) -> str:
+        """Generate a valid User Opaque Stripe ID for actor_id.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'usr_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.USER)
+
+    @classmethod
+    def execution_id(cls) -> str:
+        """Generate a valid Execution Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'exe_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.EXECUTION)
+
+    @classmethod
+    def details(cls) -> dict[str, str | int | float | bool | list[str]]:
+        """Generate typed scalar audit details metadata.
+
+        Returns:
+            Typed scalar audit metadata dictionary.
+        """
+        return {"source": "unit_test"}
+
+
+class UsageRecordFactory(ModelFactory[UsageRecord]):
+    """Polyfactory model factory for immutable FinOps UsageRecord entries."""
+
+    __model__ = UsageRecord
+    __set_as_default_factory_for_type__ = True
+
+    model: str = "gemini-2.5-pro"
+    input_tokens: int = 1200
+    output_tokens: int = 450
+    cached_tokens: int = 300
+    cache_creation_input_tokens: int = 100
+    reasoning_tokens: int = 50
+    latency_ms: int = 420
+    finish_reason: str = "stop"
+    system_fingerprint: str = "fp_quorum_v2"
+    cost_usd: float = 0.05
+    estimated_savings_usd: float = 0.01
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid UsageRecord Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'usg_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.USAGE_RECORD)
+
+    @classmethod
+    def org_id(cls) -> str:
+        """Generate a valid Organization Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'org_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
+    def user_id(cls) -> str:
+        """Generate a valid User Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'usr_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.USER)
+
+    @classmethod
+    def execution_id(cls) -> str:
+        """Generate a valid Execution Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'exe_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.EXECUTION)

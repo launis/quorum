@@ -2,17 +2,18 @@
 
 import logging
 import uuid
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.caching_service import LLMCachingService
-from backend_v2.models.domain.base import UsageRecord
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.usage_service import UsageService
+from backend_v2.tests.factories.model_factories import UsageRecordFactory
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryAuditRepository,
     InMemoryIdentityRepository,
@@ -21,14 +22,14 @@ from backend_v2.tests.fakes.in_memory_repositories import (
 
 @pytest.fixture
 def usage_service() -> UsageService:
-    """Fixture providing a UsageService instance with in-memory repositories."""
+    """Provide a UsageService instance with in-memory repositories."""
     identity_repo = InMemoryIdentityRepository()
     audit_repo = InMemoryAuditRepository()
     return UsageService(identity_repo=identity_repo, audit_repo=audit_repo)
 
 
 def test_token_usage_addition() -> None:
-    """Phase 6: Test TokenUsage __add__ operator correctness with FinOps fields."""
+    """Verify TokenUsage __add__ operator correctness with FinOps fields."""
     usage1 = TokenUsage(
         prompt_tokens=100,
         completion_tokens=50,
@@ -58,14 +59,14 @@ def test_token_usage_addition() -> None:
 
 @pytest.mark.asyncio
 async def test_track_usage_accumulates_finops(usage_service: UsageService, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Phase 6: Test track_usage correctly logs and aggregates FinOps usage."""
-    monkeypatch.setattr(usage_service.audit_repo, "log_usage", AsyncMock())
-    monkeypatch.setattr(usage_service.audit_repo, "upsert_usage_aggregate", AsyncMock())
+    """Verify track_usage persists FinOps usage telemetry to the append-only ledger."""
+    log_usage_mock = AsyncMock()
+    monkeypatch.setattr(usage_service.audit_repo, "log_usage", log_usage_mock)
 
     record = await usage_service.track_usage(
-        org_id="tenant_123",
-        user_id="user_abc",
-        model="test-model",
+        org_id="org_0195f3a0000070018234567890abcdef",
+        user_id="usr_0195f3a0000070018234567890abcdef",
+        model="gemini-2.5-flash",
         input_tokens=500,
         output_tokens=100,
         cost_usd=0.004,
@@ -73,19 +74,19 @@ async def test_track_usage_accumulates_finops(usage_service: UsageService, monke
         estimated_savings_usd=0.001,
     )
 
+    assert record.id.startswith("usg_")
     assert record.input_tokens == 500
     assert record.output_tokens == 100
     assert record.cached_tokens == 200
     assert record.cost_usd == 0.004
     assert record.estimated_savings_usd == 0.001
 
-    usage_service.audit_repo.log_usage.assert_called_once()
-    assert usage_service.audit_repo.upsert_usage_aggregate.call_count >= 2
+    log_usage_mock.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_purity_scanner_clean_static_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Phase 6: Test Purity Scanner passes clean static prompts without warnings."""
+    """Verify Purity Scanner passes clean static prompts without warnings."""
     compiled = CompiledPrompt(
         static_messages=[
             LLMMessageDTO(role="system", content="This is an invariant static rule."),
@@ -99,14 +100,13 @@ async def test_purity_scanner_clean_static_prompt(monkeypatch: pytest.MonkeyPatc
         lambda *args, **kwargs: mock_adapter,
     )
 
-    # Should not raise or log violations
     res = await LLMCachingService.prepare_caching_payload("mock_provider", compiled, "mock-model")
     assert res is not None
 
 
 @pytest.mark.asyncio
-async def test_purity_scanner_uuid_violation(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Phase 6: Test Purity Scanner detects dynamic UUIDs in static system instructions."""
+async def test_purity_scanner_uuid_violation_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify Purity Scanner detects dynamic UUIDs in static system instructions."""
     compiled = CompiledPrompt(
         static_messages=[
             LLMMessageDTO(role="system", content=f"System context trace: {uuid.uuid4()}"),
@@ -128,8 +128,8 @@ async def test_purity_scanner_uuid_violation(monkeypatch: pytest.MonkeyPatch) ->
 
 
 @pytest.mark.asyncio
-async def test_purity_scanner_timestamp_violation(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Phase 6: Test Purity Scanner detects dynamic timestamps in static system instructions."""
+async def test_purity_scanner_timestamp_violation_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify Purity Scanner detects dynamic timestamps in static system instructions."""
     compiled = CompiledPrompt(
         static_messages=[
             LLMMessageDTO(role="system", content="System execution time: 2026-05-31T06:22:07Z"),
@@ -154,7 +154,7 @@ async def test_purity_scanner_timestamp_violation(monkeypatch: pytest.MonkeyPatc
 async def test_purity_scanner_ignores_user_role(
     caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Phase 6: Test Purity Scanner ignores dynamic patterns in user messages."""
+    """Verify Purity Scanner ignores dynamic patterns in user messages."""
     compiled = CompiledPrompt(
         static_messages=[],
         dynamic_messages=[
@@ -176,18 +176,15 @@ async def test_purity_scanner_ignores_user_role(
 
 @pytest.mark.asyncio
 async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: pytest.LogCaptureFixture) -> None:
-    """Phase 6: Test PROMPT_CACHING_DRIFT_ALERT triggers when hit rate drops below 80% over 5 calls."""
-    from datetime import UTC, datetime
-
-    # Provide 4 prior records from DB where hit rate is 0
-    prior_records = []
+    """Verify PROMPT_CACHING_DRIFT_ALERT triggers when hit rate drops below 70% over 5 calls."""
+    org_id = "org_0195f3a0000070018234567890abcdef"
+    user_id = "usr_0195f3a0000070018234567890abcdef"
     for _ in range(4):
-        prior_records.append(
-            UsageRecord(
-                id=str(uuid.uuid4()),
-                org_id="org_123",
-                user_id="user_123",
-                model="test-model",
+        await usage_service.audit_repo.log_usage(
+            UsageRecordFactory.build(
+                org_id=org_id,
+                user_id=user_id,
+                model="gemini-2.5-flash",
                 input_tokens=100,
                 output_tokens=50,
                 cached_tokens=0,
@@ -196,9 +193,6 @@ async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: p
             )
         )
 
-    for r in prior_records:
-        await usage_service.audit_repo.log_usage(r)
-
     pricing_config = PricingConfig(
         input_token_price=0.00001,
         output_token_price=0.00003,
@@ -206,11 +200,10 @@ async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: p
     )
 
     with caplog.at_level(logging.ERROR):
-        # 5th execution also has 0 cache hits. Total cached_tokens = 0, total_tokens = 750 (150 * 5). Hit rate = 0%.
         await usage_service.track_usage(
-            org_id="org_123",
-            user_id="user_123",
-            model="test-model",
+            org_id=org_id,
+            user_id=user_id,
+            model="gemini-2.5-flash",
             input_tokens=100,
             output_tokens=50,
             cost_usd=0.01,

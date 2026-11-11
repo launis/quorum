@@ -15,6 +15,7 @@ from backend_v2.models.domain.scoring import StepPanelDTO
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.causal_discovery import CausalEdgeDTO, CausalGraphPayloadDTO
 from backend_v2.tests.factories.model_factories import (
+    AuditLogRecordFactory,
     CausalGraphPayloadDTOFactory,
     CausalNodeDTOFactory,
     ExecutionRecordFactory,
@@ -29,6 +30,7 @@ from backend_v2.tests.factories.model_factories import (
     SystemRulePromptBlockFactory,
     TaskBriefFactory,
     TenantSecretDTOFactory,
+    UsageRecordFactory,
     WorkflowFactory,
 )
 
@@ -45,7 +47,8 @@ __all__ = [
 ]
 
 type RegisteredFactoryType = (
-    type[I18nTextFactory]
+    type[AuditLogRecordFactory]
+    | type[I18nTextFactory]
     | type[WorkflowFactory]
     | type[SystemRulePromptBlockFactory]
     | type[TaskBriefFactory]
@@ -59,10 +62,12 @@ type RegisteredFactoryType = (
     | type[CausalNodeDTOFactory]
     | type[CausalGraphPayloadDTOFactory]
     | type[TenantSecretDTOFactory]
+    | type[UsageRecordFactory]
     | type[ReportViewFactory]
 )
 
 ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
+    AuditLogRecordFactory,
     I18nTextFactory,
     WorkflowFactory,
     SystemRulePromptBlockFactory,
@@ -77,6 +82,7 @@ ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
     CausalNodeDTOFactory,
     CausalGraphPayloadDTOFactory,
     TenantSecretDTOFactory,
+    UsageRecordFactory,
     ReportViewFactory,
 )
 

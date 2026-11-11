@@ -49,6 +49,7 @@ from backend_v2.models.enums import (
     SystemLocale,
     TargetBlockType,
 )
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.mark.asyncio
@@ -182,12 +183,16 @@ async def test_all_passthrough_methods() -> None:
     await repo.delete_execution("1")
     await repo.get_all_executions()
     await repo.get_recent_completed_executions()
+    uow = InMemoryUnitOfWork()
+    repo._uow_factory = lambda: uow
     await repo.log_audit_event(
         AuditLogCreateDTO(
-            organization_id="org_1234abcd",
-            actor_id="usr_1234abcd",
-            action="test",
-            details={"resource_type": "workflow", "resource_id": "wor_1234"},
+            organization_id="org_0195f3a0000070008123456789abcdef",
+            actor_id="usr_0195f3a0000070008123456789abcdef",
+            event_type="WORKFLOW_TESTED",
+            resource_type="workflow",
+            resource_id="wor_0195f3a0000070008123456789abcdef",
+            details={},
         )
     )
     await repo.get_audit_logs()

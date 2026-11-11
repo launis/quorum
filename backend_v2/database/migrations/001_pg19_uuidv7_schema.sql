@@ -1,11 +1,11 @@
--- Step 3: PostgreSQL 19 Sovereign Zero-ORM Schema (Closed 12-Table Topology)
+-- PostgreSQL 19 Sovereign Zero-ORM Schema (Closed 18-Table Topology)
 -- Enforces RFC 9562 native uuidv7(), VIRTUAL generated timestamps, extended statistics,
 -- lz4 TOAST compression, Flat FinOps columns, and 1:1 Pydantic V2 Domain DTO parity.
 
 SET default_toast_compression = 'lz4';
 
 -- Automatic One-Way Cutover: If legacy TEXT primary key schema exists on organizations,
--- drop the 12 tables so they are recreated with native 16-byte UUIDv7 primary keys.
+-- drop the tables so they are recreated with native 16-byte UUIDv7 primary keys.
 DO $$
 BEGIN
     IF EXISTS (
@@ -17,6 +17,8 @@ BEGIN
           AND data_type = 'text'
     ) THEN
         DROP TABLE IF EXISTS
+            audit_logs,
+            usage_records,
             execution_assignments,
             task_briefs,
             tenant_secrets,
@@ -486,6 +488,43 @@ BEGIN
     END IF;
 END $$;
 
+-- 17. Audit Logs (Append-Only Compliance Ledger)
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuidv7() CHECK (uuid_extract_version(id) = 7),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    execution_id UUID REFERENCES executions(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    details JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_org_created ON audit_logs(organization_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_execution_id ON audit_logs(execution_id);
+
+-- 18. Usage Records (Append-Only FinOps Ledger)
+CREATE TABLE IF NOT EXISTS usage_records (
+    id UUID PRIMARY KEY DEFAULT uuidv7() CHECK (uuid_extract_version(id) = 7),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    execution_id UUID REFERENCES executions(id) ON DELETE SET NULL,
+    model_name TEXT NOT NULL,
+    prompt_tokens BIGINT NOT NULL DEFAULT 0 CHECK (prompt_tokens >= 0),
+    completion_tokens BIGINT NOT NULL DEFAULT 0 CHECK (completion_tokens >= 0),
+    cached_tokens BIGINT NOT NULL DEFAULT 0 CHECK (cached_tokens >= 0),
+    reasoning_tokens BIGINT NOT NULL DEFAULT 0 CHECK (reasoning_tokens >= 0),
+    cache_creation_input_tokens BIGINT NOT NULL DEFAULT 0 CHECK (cache_creation_input_tokens >= 0),
+    latency_ms INTEGER CHECK (latency_ms IS NULL OR latency_ms >= 0),
+    finish_reason TEXT,
+    system_fingerprint TEXT,
+    cost_usd NUMERIC(14, 6) NOT NULL DEFAULT 0 CHECK (cost_usd >= 0),
+    estimated_savings_usd NUMERIC(14, 6) NOT NULL DEFAULT 0 CHECK (estimated_savings_usd >= 0),
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL
+);
+CREATE INDEX IF NOT EXISTS idx_usage_records_org_created ON usage_records(organization_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_records_execution_id ON usage_records(execution_id);
+
 -- Dynamic PG 18+/19 VIRTUAL vs PG 17 STORED Timestamp Guard
 DO $$
 BEGIN
@@ -509,6 +548,10 @@ BEGIN
         ALTER TABLE workflows ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE output_profiles DROP COLUMN IF EXISTS created_at;
         ALTER TABLE output_profiles ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE audit_logs DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE audit_logs ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE usage_records DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE usage_records ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE quorum_nodes DROP COLUMN IF EXISTS created_at;
         ALTER TABLE quorum_nodes ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(node_id)) STORED;
         ALTER TABLE quorum_edges DROP COLUMN IF EXISTS created_at;

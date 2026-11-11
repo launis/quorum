@@ -21,7 +21,6 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
     DetailedUsageDTO,
-    UsageAggregateUpdateDTO,
     UsageRecord,
 )
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
@@ -37,6 +36,7 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
     StepType,
 )
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.fixture
@@ -235,26 +235,31 @@ async def test_system_repo(driver: StorageDriver) -> None:
 
 
 @pytest.mark.asyncio
-async def test_audit_repo(driver: StorageDriver) -> None:
-    repo = AuditRepositoryImpl(driver)
-    res = await repo.get_audit_logs(organization_id="org1", actor_id="user1", action="run")
+async def test_audit_repo() -> None:
+    base_uow = InMemoryUnitOfWork()
+    repo = AuditRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
+    org_id = "org_0195f3a0000070008123456789abcdef"
+    user_id = "usr_0195f3a0000070008123456789abcdef"
+    res = await repo.get_audit_logs(organization_id=org_id, actor_id=user_id, event_type="run")
     assert res == []
 
     await repo.log_audit_event(
         AuditLogCreateDTO(
-            action="test",
-            actor_id="user1",
-            organization_id="org1",
+            event_type="test",
+            actor_id=user_id,
+            organization_id=org_id,
+            resource_type="workflow",
+            resource_id="wor_0195f3a0000070008123456789abcdef",
         )
     )
-    raw_logs = await driver.query("audit_logs")
-    assert any("action" in r and r["action"] == "test" for r in raw_logs)
+    stored_logs = await repo.get_audit_logs(organization_id=org_id, event_type="test")
+    assert len(stored_logs) == 1
 
     record = UsageRecord(
         id="usg_0195f3a0000070008123456789abcdef",
-        org_id="org1",
-        user_id="user1",
-        model="gpt-4o",
+        org_id=org_id,
+        user_id=user_id,
+        model="gemini-2.5-pro",
         input_tokens=10,
         output_tokens=0,
         cached_tokens=0,
@@ -262,18 +267,9 @@ async def test_audit_repo(driver: StorageDriver) -> None:
         timestamp=datetime.now(UTC),
     )
     await repo.log_usage(record)
-    usage_records = await repo.get_usage_records("organization", "org1")
+    usage_records = await repo.get_usage_records("organization", org_id)
     assert len(usage_records) == 1
-    assert usage_records[0].model == "gpt-4o"
+    assert usage_records[0].model == "gemini-2.5-pro"
 
-    rep = await repo.get_detailed_usage("org", "org1")
+    rep = await repo.get_detailed_usage("org", org_id)
     assert isinstance(rep, DetailedUsageDTO)
-
-    agg = UsageAggregateUpdateDTO(
-        input_tokens=10,
-        output_tokens=0,
-        cached_tokens=0,
-        cost_usd=0.0,
-        execution_count=1,
-    )
-    await repo.upsert_usage_aggregate("org", "org1", "2026-04", agg)

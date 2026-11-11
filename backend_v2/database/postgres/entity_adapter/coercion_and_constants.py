@@ -41,6 +41,9 @@ __all__ = [
     "_format_org_uuid7",
     "_parse_optional_uuid7",
     "_parse_org_uuid7",
+    "_parse_system_safe_org_uuid7",
+    "_parse_system_safe_user_uuid7",
+    "execute_entity_delete",
     "execute_entity_upsert",
     "resolve_effective_timeout",
     "translate_postgres_exception",
@@ -81,6 +84,8 @@ _COLLECTION_TO_TABLE_MAP: dict[str, str] = {
     "executions": "executions",
     "report_artifacts": "report_artifacts",
     "report_binaries": "report_binaries",
+    "audit_logs": "audit_logs",
+    "usage_records": "usage_records",
 }
 
 _TABLE_TO_ENTITY_PREFIX: dict[str, EntityPrefix] = {
@@ -98,6 +103,8 @@ _TABLE_TO_ENTITY_PREFIX: dict[str, EntityPrefix] = {
     "executions": EntityPrefix.EXECUTION,
     "report_artifacts": EntityPrefix.REPORT,
     "report_binaries": EntityPrefix.REPORT,
+    "audit_logs": EntityPrefix.AUDIT_LOG,
+    "usage_records": EntityPrefix.USAGE_RECORD,
 }
 
 _SYSTEM_ORG_UUID7: uuid.UUID = uuid.UUID("0195f3a0-0000-7000-8000-000000000000")
@@ -203,6 +210,40 @@ def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
     if raw is None or raw == "SYSTEM":
         return None
     return parse_prefixed_uuid7(raw, EntityPrefix.ORGANIZATION)
+
+
+def _parse_system_safe_org_uuid7(raw: str | None) -> uuid.UUID | None:
+    """Parse an optional organization_id into a 16-byte UUIDv7, coercing system sentinels to None.
+
+    Args:
+        raw: Optional organization identifier ('org_<32_hex>', 'SYSTEM', 'system', or None).
+
+    Returns:
+        Parsed 16-byte uuid.UUID instance, or None when raw is None or a system sentinel.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw is non-sentinel and invalid.
+    """
+    if raw is None or raw.strip().upper() == "SYSTEM":
+        return None
+    return parse_prefixed_uuid7(raw, EntityPrefix.ORGANIZATION)
+
+
+def _parse_system_safe_user_uuid7(raw: str | None) -> uuid.UUID | None:
+    """Parse an optional user_id/actor_id into a 16-byte UUIDv7, coercing system sentinels to None.
+
+    Args:
+        raw: Optional user identifier ('usr_<32_hex>', 'system', 'SYSTEM', or None).
+
+    Returns:
+        Parsed 16-byte uuid.UUID instance, or None when raw is None or a system sentinel.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw is non-sentinel and invalid.
+    """
+    if raw is None or raw.strip().lower() == "system":
+        return None
+    return parse_prefixed_uuid7(raw, EntityPrefix.USER)
 
 
 def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | None:
@@ -526,3 +567,42 @@ async def execute_entity_upsert(
             entity_id=entity_id,
         ) from exc
     return entity_id
+
+
+async def execute_entity_delete(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    sql: str,
+    *args: object,
+    entity_id: str,
+    table: str,
+) -> bool:
+    """Execute a parameterized DELETE statement and translate SQLSTATE/transport errors to AppException.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        sql: Parameterized DELETE FROM ... WHERE id = $1::uuid statement.
+        *args: Positional SQL bind arguments.
+        entity_id: Canonical Opaque Stripe ID of the entity being deleted.
+        table: Canonical PostgreSQL table name for structured error logging.
+
+    Returns:
+        True if a matching row was deleted, False if no row matched.
+
+    Raises:
+        AppException: With DELETE_BLOCKED_BY_USAGE or STORAGE_ACCESS_FAILED if the command fails.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        status_str = await conn.execute(sql, *args, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="DELETE",
+            table_name=table,
+            entity_id=entity_id,
+        ) from exc
+    return status_str.endswith(" 1")

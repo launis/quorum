@@ -1,270 +1,206 @@
-"""Unit tests for AuditRepositoryImpl."""
+"""Unit tests for AuditRepositoryImpl backed by EntityPersistencePort."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.base import (
-    AuditLogCreateDTO,
-    AuditLogEntry,
-    UsageAggregateDTO,
-    UsageAggregateUpdateDTO,
-    UsageRecord,
-)
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.domain.base import AuditLogCreateDTO
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory, UsageRecordFactory
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.fixture
-def mock_driver() -> AsyncMock:
-    """Mock storage driver."""
-    driver = AsyncMock(spec=StorageDriver)
-    driver.query.return_value = []
-    driver.get.return_value = None
-    driver.upsert.return_value = "aud_0195f3a0000070018234567890abcdef"
-    driver.update.return_value = True
-    driver.delete.return_value = True
-    return driver
+def base_uow() -> InMemoryUnitOfWork:
+    """Provide a shared InMemoryUnitOfWork backing store for repository unit tests."""
+    return InMemoryUnitOfWork()
 
 
 @pytest.fixture
-def repo(mock_driver: AsyncMock) -> AuditRepositoryImpl:
-    """Audit repository fixture."""
-    return AuditRepositoryImpl(mock_driver)
+def repo(base_uow: InMemoryUnitOfWork) -> AuditRepositoryImpl:
+    """Provide an AuditRepositoryImpl bound to the shared InMemoryUnitOfWork store."""
+    return AuditRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
 
 @pytest.mark.asyncio
-async def test_audit_logs_filters_and_corruption(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests audit logging with multiple filters and skipping corrupted records."""
+async def test_audit_logs_insert_and_filters(repo: AuditRepositoryImpl) -> None:
+    """Verify log_audit_event and get_audit_logs filter by organization, actor, and event_type."""
     org_id = "org_0195f3a0000070018234567890abcdef"
     usr_id = "usr_0195f3a0000070018234567890abcdef"
-    valid_audit = AuditLogEntry(
-        timestamp=datetime.now(UTC),
-        level="INFO",
-        message="Workflow started",
-        context={"org_id": org_id},
-    ).model_dump(mode="json")
-    mock_driver.query.return_value = [valid_audit]
+    exe_id = "exe_0195f3a0000070018234567890abcdef"
+
+    await repo.log_audit_event(
+        AuditLogCreateDTO(
+            event_type="WORKFLOW_EXECUTED",
+            actor_id=usr_id,
+            organization_id=org_id,
+            execution_id=exe_id,
+            resource_type="execution",
+            resource_id=exe_id,
+            details={"zone": "eu-north-1"},
+        )
+    )
+    await repo.log_audit_event(
+        AuditLogCreateDTO(
+            event_type="SYSTEM_SYNC",
+            actor_id="system",
+            organization_id="system",
+            resource_type="system",
+            resource_id="seed",
+            details={},
+        )
+    )
 
     logs = await repo.get_audit_logs(
         organization_id=org_id,
         actor_id=usr_id,
-        action="execute",
+        event_type="WORKFLOW_EXECUTED",
         limit=50,
     )
     assert len(logs) == 1
-    assert logs[0].level == "INFO"
-    assert logs[0].message == "Workflow started"
-
-    await repo.log_audit_event(AuditLogCreateDTO(action="create", actor_id=usr_id, organization_id=org_id))
-    mock_driver.upsert.assert_called()
-
-
-@pytest.mark.asyncio
-async def test_audit_logs_corruption_fail_fast(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted audit log raises AppException."""
-    mock_driver.query.return_value = [{"id": "aud_corrupted", "timestamp": "invalid_date"}]
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_audit_logs()
-    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert logs[0].event_type == "WORKFLOW_EXECUTED"
+    assert logs[0].organization_id == org_id
+    assert logs[0].actor_id == usr_id
+    assert logs[0].execution_id == exe_id
+    assert logs[0].details == {"zone": "eu-north-1"}
 
 
 @pytest.mark.asyncio
-async def test_log_usage_model_and_dict(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests log_usage with UsageRecord model instance."""
-    model_usage = UsageRecord(
-        id="usg_0195f3a0000070018234567890abcdef",
-        org_id="org_0195f3a0000070018234567890abcdef",
-        user_id="usr_0195f3a0000070018234567890abcdef",
-        model="gpt-4o",
-        input_tokens=10,
-        output_tokens=5,
-        cost_usd=0.001,
-        timestamp=datetime.now(UTC),
-    )
-    await repo.log_usage(model_usage)
-    assert mock_driver.upsert.call_count == 1
-
-
-@pytest.mark.asyncio
-async def test_get_usage_records_scopes_and_corruption(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests get_usage_records across scopes and handles corruption gracefully."""
+async def test_log_usage_get_usage_records_and_rollup(repo: AuditRepositoryImpl) -> None:
+    """Verify log_usage, get_usage_records across scopes, and aggregate_organization_usage."""
     org_id = "org_0195f3a0000070018234567890abcdef"
     usr_id = "usr_0195f3a0000070018234567890abcdef"
-    valid_usage = UsageRecord(
-        id="usg_0195f3a0000070018234567890abcdef",
+    rec1 = UsageRecordFactory.build(
         org_id=org_id,
         user_id=usr_id,
-        model="gpt-4o",
+        model="gemini-2.5-pro",
         input_tokens=100,
         output_tokens=50,
+        cached_tokens=20,
         cost_usd=0.005,
-        timestamp=datetime.now(UTC),
-    ).model_dump(mode="json")
-    mock_driver.query.return_value = [valid_usage]
+        timestamp=datetime(2026, 8, 15, 12, 0, 0, tzinfo=UTC),
+    )
+    rec2 = UsageRecordFactory.build(
+        org_id=org_id,
+        user_id="system",
+        model="gemini-2.5-flash",
+        input_tokens=40,
+        output_tokens=10,
+        cached_tokens=5,
+        cost_usd=0.001,
+        timestamp=datetime(2026, 8, 16, 12, 0, 0, tzinfo=UTC),
+    )
+    await repo.log_usage(rec1)
+    await repo.log_usage(rec2)
 
     org_records = await repo.get_usage_records("organization", org_id, since="2026-08-01T00:00:00Z")
-    assert len(org_records) == 1
-    assert org_records[0].input_tokens == 100
+    assert len(org_records) == 2
 
     user_records = await repo.get_usage_records("user", usr_id)
     assert len(user_records) == 1
+    assert user_records[0].id == rec1.id
 
+    sys_records = await repo.get_usage_records("system")
+    assert len(sys_records) == 2
 
-@pytest.mark.asyncio
-async def test_usage_records_corruption_fail_fast(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted usage record raises AppException."""
-    mock_driver.query.return_value = [{"id": "usg_bad", "input_tokens": "not_an_int"}]
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_usage_records("organization", "org_0195f3a0000070018234567890abcdef")
-    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
-
-
-@pytest.mark.asyncio
-async def test_usage_aggregate_corruption_fail_fast(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted usage aggregate document raises AppException."""
-    mock_driver.get.return_value = {
-        "organization_id": "org_0195f3a0000070018234567890abcdef",
-        "total_input_tokens": -10,
-    }
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_usage_aggregate("organization", "org_0195f3a0000070018234567890abcdef", "2026-08")
-    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
-
-
-@pytest.mark.asyncio
-async def test_get_detailed_usage_invalid_date_fail_fast(repo: AuditRepositoryImpl) -> None:
-    """Negative: tests that invalid date in since parameter raises AppException."""
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_detailed_usage("org_0195f3a0000070018234567890abcdef", since="invalid_date_format")
-    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
-
-
-@pytest.mark.asyncio
-async def test_usage_aggregates_upsert_and_merge(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests usage aggregate initial creation and subsequent merge updates."""
-    org_id = "org_0195f3a0000070018234567890abcdef"
-    # 1. Initial creation (not existing)
-    mock_driver.get.return_value = None
-    update_data = UsageAggregateUpdateDTO(
-        input_tokens=500,
-        output_tokens=200,
-        cached_tokens=100,
-        cost_usd=0.02,
-        execution_count=5,
-    )
-    await repo.upsert_usage_aggregate("organization", org_id, "2026-08", update_data)
-    mock_driver.upsert.assert_called()
-
-    # 2. Existing aggregate merge
-    existing_agg = UsageAggregateDTO(
+    rollup = await repo.aggregate_organization_usage(
         organization_id=org_id,
-        period="2026-08",
-        total_input_tokens=500,
-        total_output_tokens=200,
-        total_cached_tokens=100,
-        total_cost_usd=0.02,
-        execution_count=5,
-    ).model_dump(mode="json")
-    mock_driver.get.return_value = existing_agg
-    await repo.upsert_usage_aggregate(
-        "organization",
-        org_id,
-        "2026-08",
-        UsageAggregateUpdateDTO(
-            input_tokens=200,
-            output_tokens=100,
-            cached_tokens=50,
-            cost_usd=0.01,
-            execution_count=2,
-        ),
+        since=datetime(2026, 8, 1, 0, 0, 0, tzinfo=UTC),
     )
-    mock_driver.upsert.assert_called()
+    assert rollup.record_count == 2
+    assert rollup.total_prompt_tokens == 140
+    assert rollup.total_completion_tokens == 60
+    assert rollup.total_cached_tokens == 25
+    assert rollup.total_cost_usd == pytest.approx(0.006)
 
 
 @pytest.mark.asyncio
-async def test_get_detailed_usage_calculation(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests detailed multi-dimensional usage calculations."""
+async def test_get_detailed_usage_org_and_user_scopes(
+    repo: AuditRepositoryImpl,
+    base_uow: InMemoryUnitOfWork,
+) -> None:
+    """Verify get_detailed_usage combines SQL rollup totals with execution model and workflow breakdowns."""
     org_id = "org_0195f3a0000070018234567890abcdef"
-    wf_id = "wf_0195f3a0000070018234567890abcdef"
-    mock_execs = [
-        {
-            "id": "exe_0195f3a0000070018234567890abcdef",
-            "cost_estimate": 0.05,
-            "duration_ms": 1200,
-            "workflow_id": wf_id,
-            "models_used": {"gpt-4o": 2},
-            "completed_at": "2026-08-15T12:00:00Z",
-        },
-        {
-            "id": "exe_0195f3a0000070028234567890abcdef",
-            "cost_estimate": 0.03,
-            "duration_ms": 800,
-            "workflow_id": wf_id,
-            "models_used": {"claude-3-5-sonnet": 1},
-            "completed_at": "2026-08-16T12:00:00Z",
-        },
-    ]
-    mock_agg = UsageAggregateDTO(
+    usr_id = "usr_0195f3a0000070028234567890abcdef"
+    wf_id = "wor_0195f3a0000070018234567890abcdef"
+    completed_1 = datetime(2026, 8, 15, 12, 0, 0, tzinfo=UTC)
+    completed_2 = datetime(2026, 8, 16, 12, 0, 0, tzinfo=UTC)
+
+    exe_1 = ExecutionRecordFactory.build(
         organization_id=org_id,
-        period="2026-08",
-        total_input_tokens=1000,
-        total_output_tokens=400,
-        total_cached_tokens=300,
-        total_cost_usd=0.08,
-        execution_count=2,
-    ).model_dump(mode="json")
+        created_by=usr_id,
+        workflow_id=wf_id,
+        cost_estimate=0.05,
+        models_used={"gemini-2.5-pro": 2},
+        completed_at=completed_1,
+        created_at=completed_1,
+    )
+    exe_2 = ExecutionRecordFactory.build(
+        organization_id=org_id,
+        created_by=usr_id,
+        workflow_id=wf_id,
+        cost_estimate=0.03,
+        models_used={"gemini-2.5-flash": 1, "gemini-2.5-pro": 1},
+        completed_at=completed_2,
+        created_at=completed_2,
+    )
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.save_execution(exe_1)
+        await uow.entities.save_execution(exe_2)
+        await uow.commit()
 
-    mock_driver.query.return_value = mock_execs
-    mock_driver.get.return_value = mock_agg
+    await repo.log_usage(
+        UsageRecordFactory.build(
+            org_id=org_id,
+            user_id=usr_id,
+            execution_id=exe_1.id,
+            input_tokens=1000,
+            output_tokens=400,
+            cost_usd=0.08,
+            timestamp=completed_1,
+        )
+    )
 
-    usage = await repo.get_detailed_usage(
+    org_usage = await repo.get_detailed_usage(
         scope="org",
         target_id=org_id,
         since="2026-08-01T00:00:00Z",
     )
-    assert usage.total_cost_usd == pytest.approx(0.08)
-    assert usage.total_tokens == 1400
-    assert usage.by_model == {"gpt-4o": 2, "claude-3-5-sonnet": 1}
-    assert usage.by_workflow == {wf_id: 2}
+    assert org_usage.total_cost_usd == pytest.approx(0.08)
+    assert org_usage.total_tokens == 1400
+    assert org_usage.by_model == {"gemini-2.5-pro": 3, "gemini-2.5-flash": 1}
+    assert org_usage.by_workflow == {wf_id: 2}
 
-
-@pytest.mark.asyncio
-async def test_get_detailed_usage_user_scope(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests detailed usage calculation for user scope with accumulating model counts."""
-    usr_id = "usr_0195f3a0000070028234567890abcdef"
-    wf_id = "wf_0195f3a0000070018234567890abcdef"
-    mock_execs = [
-        {
-            "id": "exe_0195f3a0000070018234567890abcdef",
-            "cost_estimate": 0.02,
-            "duration_ms": 500,
-            "workflow_id": wf_id,
-            "models_used": {"gpt-4o": 1},
-            "completed_at": "2026-08-15T12:00:00Z",
-        },
-        {
-            "id": "exe_0195f3a0000070028234567890abcdef",
-            "cost_estimate": 0.03,
-            "duration_ms": 600,
-            "workflow_id": wf_id,
-            "models_used": {"gpt-4o": 2},
-            "completed_at": "2026-08-16T12:00:00Z",
-        },
-    ]
-    mock_driver.query.return_value = mock_execs
-    mock_driver.get.return_value = None
-
-    usage = await repo.get_detailed_usage(
+    user_usage = await repo.get_detailed_usage(
         scope="user",
         target_id=usr_id,
         since="2026-08-01T00:00:00Z",
     )
-    assert usage.organization_id == usr_id
-    assert usage.total_cost_usd == pytest.approx(0.05)
-    assert usage.by_model == {"gpt-4o": 3}
-    assert usage.by_workflow == {wf_id: 2}
+    assert user_usage.total_cost_usd == pytest.approx(0.08)
+    assert user_usage.total_tokens == 1400
+    assert user_usage.by_model == {"gemini-2.5-pro": 3, "gemini-2.5-flash": 1}
+    assert user_usage.by_workflow == {wf_id: 2}
+
+
+@pytest.mark.asyncio
+async def test_audit_repository_invalid_since_and_missing_uow_failure(
+    repo: AuditRepositoryImpl,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify invalid ISO timestamps raise VALIDATION_FAILED and unconfigured UoW raises ConfigurationError."""
+    with pytest.raises(AppException) as exc_since:
+        await repo.get_usage_records("organization", "org_0195f3a0000070018234567890abcdef", since="not-a-date")
+    assert exc_since.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises(AppException) as exc_detailed:
+        await repo.get_detailed_usage("org", "org_0195f3a0000070018234567890abcdef", since="invalid_date_format")
+    assert exc_detailed.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    monkeypatch.setattr("backend_v2.database.repositories.audit.get_registered_uow_factory", lambda: None)
+    unconfigured_repo = AuditRepositoryImpl(uow_factory=None)
+    with pytest.raises(ConfigurationError) as cfg_exc:
+        await unconfigured_repo.get_audit_logs()
+    assert cfg_exc.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value

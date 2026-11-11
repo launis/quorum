@@ -53,6 +53,7 @@ __all__ = [
     "get_report_binary_row",
     "hydrate_execution_row",
     "hydrate_report_artifact_row",
+    "list_execution_rows",
     "save_execution_row",
     "save_report_binary_row",
     "upsert_report_artifact_row",
@@ -105,8 +106,9 @@ _SAVE_EXECUTION_SQL: str = f"""INSERT INTO executions ({_EXECUTION_COLS}) VALUES
     created_by = EXCLUDED.created_by, organization_id = EXCLUDED.organization_id,
     state_version = EXCLUDED.state_version"""
 
-_LIST_EXECUTIONS_SQL: str = f"SELECT {_EXECUTION_COLS} FROM executions"
-_GET_EXECUTION_SQL: str = f"{_LIST_EXECUTIONS_SQL} WHERE id = $1::uuid"
+_SELECT_EXECUTIONS_BASE_SQL: str = f"SELECT {_EXECUTION_COLS} FROM executions"
+_LIST_EXECUTIONS_SQL: str = f"{_SELECT_EXECUTIONS_BASE_SQL} ORDER BY created_at DESC"
+_GET_EXECUTION_SQL: str = f"{_SELECT_EXECUTIONS_BASE_SQL} WHERE id = $1::uuid"
 
 _REPORT_ARTIFACT_COLS: str = """id, execution_id, workflow_id, profile_id, locale, title, status,
     storage_paths, metadata, custom_preface_md, error_message, has_pdf, created_at, updated_at"""
@@ -544,3 +546,31 @@ async def get_report_artifact_row(conn: _Conn, timeout: float, rep_id: str) -> R
     if row is None:
         return None
     return hydrate_report_artifact_row(row)
+
+
+async def list_execution_rows(conn: _Conn, timeout: float) -> list[ExecutionRecord]:
+    """List all ExecutionRecord rows ordered by created_at DESC.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated ExecutionRecord models ordered newest-first.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(_LIST_EXECUTIONS_SQL, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="executions",
+            entity_id="*",
+        ) from exc
+    return [hydrate_execution_row(r) for r in rows]

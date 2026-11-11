@@ -263,6 +263,8 @@ class EntityPrefix(StrEnum):
     ASSIGNMENT = "tsk"
     TDA = "tda"
     REPORT = "rep"
+    AUDIT_LOG = "aud"
+    USAGE_RECORD = "usg"
     # Proposition graph node, edge, and scale Opaque Stripe ID prefixes
     NODE = "nod"
     EDGE = "edg"
@@ -272,8 +274,6 @@ class EntityPrefix(StrEnum):
 class StorageBackend(StrEnum):
     """Supported storage backend engines for Quorum persistence."""
 
-    FIRESTORE = "FIRESTORE"
-    LOCAL = "LOCAL"
     POSTGRES = "POSTGRES"
 
 

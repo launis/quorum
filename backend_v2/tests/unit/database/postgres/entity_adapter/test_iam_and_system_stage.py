@@ -15,22 +15,32 @@ from pydantic import ValidationError
 
 from backend_v2.database.postgres.entity_adapter import PostgresEntityAdapter
 from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    aggregate_organization_usage_row,
+    delete_tenant_secret_row,
     get_execution_assignment_row,
     get_invitation_row,
     get_organization_row,
     get_system_config_row,
     get_tenant_secret_row,
     get_user_row,
+    hydrate_audit_log_row,
     hydrate_execution_assignment_row,
     hydrate_invitation_row,
     hydrate_organization_row,
     hydrate_system_config_row,
     hydrate_tenant_secret_row,
+    hydrate_usage_record_row,
     hydrate_user_row,
+    insert_audit_log_row,
+    insert_usage_record_row,
+    list_audit_log_rows,
     list_execution_assignment_rows,
     list_invitation_rows,
     list_organization_rows,
+    list_system_config_rows,
+    list_system_configs_rows,
     list_tenant_secret_rows,
+    list_usage_record_rows,
     list_user_rows,
     upsert_execution_assignment_row,
     upsert_invitation_row,
@@ -81,6 +91,7 @@ from backend_v2.models.enums import (
     SystemLocale,
 )
 from backend_v2.settings import get_settings
+from backend_v2.tests.factories.model_factories import AuditLogRecordFactory, UsageRecordFactory
 from backend_v2.tests.fakes.in_memory_uow import (
     InMemoryAsyncPgPool,
     InMemoryAsyncPgRecord,
@@ -688,3 +699,206 @@ async def test_hydrate_system_config_null_name_and_preflight_verification_raises
     assert unknown_type_exc.value.status_code == 500
     assert unknown_type_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert unknown_type_exc.value.details["entity_id"] == cfg_id
+
+
+@pytest.mark.asyncio
+async def test_audit_and_usage_ledgers_system_configs_and_delete_secret_roundtrip() -> None:
+    """Verify audit_logs, usage_records, SQL FinOps rollups, list_system_configs, and delete_tenant_secret."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        org = _build_org()
+        await upsert_organization_row(conn, _TIMEOUT, org)
+        user = _build_user(organization_id=org.id)
+        await upsert_user_row(conn, _TIMEOUT, user)
+
+        secret = _build_tenant_secret(organization_id=org.id)
+        await upsert_tenant_secret_row(conn, _TIMEOUT, secret)
+        assert await delete_tenant_secret_row(conn, _TIMEOUT, secret.id) is True
+        assert await delete_tenant_secret_row(conn, _TIMEOUT, secret.id) is False
+        assert await get_tenant_secret_row(conn, _TIMEOUT, secret.id) is None
+
+        reg_cfg = _build_model_registry()
+        mcp_cfg = _build_mcp_gateway()
+        await upsert_system_config_row(conn, _TIMEOUT, reg_cfg)
+        await upsert_system_config_row(conn, _TIMEOUT, mcp_cfg)
+        listed_cfgs = await list_system_config_rows(conn, _TIMEOUT)
+        assert len(listed_cfgs) == 2
+        assert await list_system_configs_rows(conn, _TIMEOUT) == listed_cfgs
+
+        exec_id = generate_opaque_id(EntityPrefix.EXECUTION)
+        aud_tenant = AuditLogRecordFactory.build(
+            organization_id=org.id,
+            actor_id=user.id,
+            execution_id=exec_id,
+            event_type="SECRET_ROTATED",
+            resource_type="tenant_secret",
+            resource_id=secret.id,
+            details={"scope": "llm_provider"},
+        )
+        aud_system = AuditLogRecordFactory.build(
+            organization_id=None,
+            actor_id=None,
+            execution_id=None,
+            event_type="STARTUP_CHECK",
+            resource_type="system",
+            resource_id="global",
+            details={"ok": True},
+        )
+        assert await insert_audit_log_row(conn, _TIMEOUT, aud_tenant) == aud_tenant.id
+        assert await insert_audit_log_row(conn, _TIMEOUT, aud_system) == aud_system.id
+
+        assert await list_audit_log_rows(conn, _TIMEOUT, limit=0) == []
+        all_auds = await list_audit_log_rows(conn, _TIMEOUT, limit=10)
+        assert len(all_auds) == 2
+        org_auds = await list_audit_log_rows(
+            conn,
+            _TIMEOUT,
+            organization_id=org.id,
+            actor_id=user.id,
+            event_type="SECRET_ROTATED",
+        )
+        assert len(org_auds) == 1
+        assert org_auds[0].id == aud_tenant.id
+        sys_auds = await list_audit_log_rows(
+            conn,
+            _TIMEOUT,
+            organization_id="SYSTEM",
+            actor_id="system",
+        )
+        assert len(sys_auds) == 1
+        assert sys_auds[0].id == aud_system.id
+
+        now = datetime.now(UTC)
+        usg_tenant = UsageRecordFactory.build(
+            org_id=org.id,
+            user_id=user.id,
+            execution_id=exec_id,
+            input_tokens=120,
+            output_tokens=60,
+            cached_tokens=20,
+            reasoning_tokens=10,
+            cache_creation_input_tokens=5,
+            latency_ms=340,
+            cost_usd=0.25,
+            estimated_savings_usd=0.05,
+        )
+        usg_system = UsageRecordFactory.build(
+            org_id="system",
+            user_id="system",
+            execution_id=None,
+            input_tokens=50,
+            output_tokens=25,
+            cached_tokens=0,
+            reasoning_tokens=0,
+            cache_creation_input_tokens=0,
+            latency_ms=None,
+            cost_usd=0.10,
+            estimated_savings_usd=0.0,
+        )
+        assert await insert_usage_record_row(conn, _TIMEOUT, usg_tenant) == usg_tenant.id
+        assert await insert_usage_record_row(conn, _TIMEOUT, usg_system) == usg_system.id
+
+        tenant_usage = await list_usage_record_rows(
+            conn,
+            _TIMEOUT,
+            organization_id=org.id,
+            user_id=user.id,
+            since=now - timedelta(hours=1),
+        )
+        assert len(tenant_usage) == 1
+        assert tenant_usage[0].latency_ms == 340
+
+        sys_usage = await list_usage_record_rows(
+            conn,
+            _TIMEOUT,
+            organization_id="system",
+            user_id="system",
+        )
+        assert len(sys_usage) == 1
+        assert sys_usage[0].org_id == "system"
+        assert sys_usage[0].user_id == "system"
+        assert sys_usage[0].latency_ms is None
+
+        rollup_tenant = await aggregate_organization_usage_row(
+            conn,
+            _TIMEOUT,
+            organization_id=org.id,
+            since=now - timedelta(hours=1),
+        )
+        assert rollup_tenant.organization_id == org.id
+        assert rollup_tenant.total_prompt_tokens == 120
+        assert rollup_tenant.total_completion_tokens == 60
+        assert rollup_tenant.record_count == 1
+        assert rollup_tenant.total_cost_usd == pytest.approx(0.25)
+
+        rollup_sys = await aggregate_organization_usage_row(
+            conn,
+            _TIMEOUT,
+            organization_id="system",
+        )
+        assert rollup_sys.record_count == 1
+        assert rollup_sys.total_prompt_tokens == 50
+
+        rollup_all = await aggregate_organization_usage_row(conn, _TIMEOUT)
+        assert rollup_all.record_count == 2
+        assert rollup_all.total_prompt_tokens == 170
+        assert callable(hydrate_audit_log_row)
+        assert callable(hydrate_usage_record_row)
+    finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_audit_and_usage_ledger_fault_and_invalid_id_failure() -> None:
+    """Verify insert/aggregate fault translation and AppException pass-through on audit_logs and usage_records."""
+    pool = InMemoryAsyncPgPool()
+    aud = AuditLogRecordFactory.build()
+    usg = UsageRecordFactory.build()
+    conn = await pool.acquire()
+    try:
+        pool.inject_fault("execute", RuntimeError("simulated ledger insert fault"))
+        with pytest.raises(AppException) as aud_err:
+            await insert_audit_log_row(conn, _TIMEOUT, aud)
+        assert aud_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as usg_err:
+            await insert_usage_record_row(conn, _TIMEOUT, usg)
+        assert usg_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault(
+            "execute",
+            AppException(
+                message="pre-existing app exception",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ),
+        )
+        with pytest.raises(AppException) as aud_app_err:
+            await insert_audit_log_row(conn, _TIMEOUT, aud)
+        assert aud_app_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as usg_app_err:
+            await insert_usage_record_row(conn, _TIMEOUT, usg)
+        assert usg_app_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        pool.clear_faults()
+        pool.inject_fault("fetchrow", RuntimeError("simulated rollup fault"))
+        with pytest.raises(AppException) as rollup_err:
+            await aggregate_organization_usage_row(conn, _TIMEOUT, organization_id=aud.organization_id)
+        assert rollup_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault(
+            "fetchrow",
+            AppException(
+                message="pre-existing rollup app exception",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ),
+        )
+        with pytest.raises(AppException) as rollup_app_err:
+            await aggregate_organization_usage_row(conn, _TIMEOUT)
+        assert rollup_app_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    finally:
+        pool.clear_faults()
+        await pool.release(conn)

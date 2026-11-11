@@ -9,7 +9,9 @@ import pytest
 import backend_v2.database.postgres.entity_adapter as entity_adapter_mod
 from backend_v2.database.interfaces import EntityPersistencePort
 from backend_v2.database.postgres.entity_adapter import (
+    _AGGREGATE_USAGE_BASE_SQL,
     _COLLECTION_TO_TABLE_MAP,
+    _DELETE_TENANT_SECRET_SQL,
     _GET_EXECUTION_SQL,
     _GET_ORGANIZATION_SQL,
     _GET_OUTPUT_PROFILE_SQL,
@@ -20,6 +22,9 @@ from backend_v2.database.postgres.entity_adapter import (
     _GET_SYSTEM_CONFIG_SQL,
     _GET_USER_SQL,
     _GET_WORKFLOW_SQL,
+    _INSERT_AUDIT_LOG_SQL,
+    _INSERT_USAGE_RECORD_SQL,
+    _LIST_AUDIT_LOGS_SQL,
     _LIST_EXECUTIONS_SQL,
     _LIST_ORGANIZATIONS_SQL,
     _LIST_OUTPUT_PROFILES_SQL,
@@ -27,6 +32,7 @@ from backend_v2.database.postgres.entity_adapter import (
     _LIST_REPORT_ARTIFACTS_SQL,
     _LIST_STEPS_SQL,
     _LIST_SYSTEM_CONFIGS_SQL,
+    _LIST_USAGE_RECORDS_SQL,
     _LIST_USERS_SQL,
     _LIST_WORKFLOWS_SQL,
     _MARK_REPORT_ARTIFACT_PDF_SQL,
@@ -54,10 +60,10 @@ from backend_v2.database.postgres.entity_adapter import (
     _parse_optional_uuid7,
     _parse_org_uuid7,
     _ReportBinaryRowDTO,
-    clear_collection_documents_rows,
-    delete_collection_document_row,
+    aggregate_organization_usage_row,
+    delete_tenant_secret_row,
+    execute_entity_delete,
     execute_entity_upsert,
-    get_collection_document_row,
     get_execution_row,
     get_organization_row,
     get_output_profile_row,
@@ -68,6 +74,7 @@ from backend_v2.database.postgres.entity_adapter import (
     get_system_config_row,
     get_user_row,
     get_workflow_row,
+    hydrate_audit_log_row,
     hydrate_execution_row,
     hydrate_organization_row,
     hydrate_output_profile_row,
@@ -75,13 +82,14 @@ from backend_v2.database.postgres.entity_adapter import (
     hydrate_report_artifact_row,
     hydrate_step_row,
     hydrate_system_config_row,
+    hydrate_usage_record_row,
     hydrate_user_row,
     hydrate_workflow_row,
-    list_collection_documents_rows,
+    insert_audit_log_row,
+    insert_usage_record_row,
     save_execution_row,
     save_report_binary_row,
     seed_collection_batch_rows,
-    upsert_collection_document_row,
     upsert_organization_row,
     upsert_output_profile_row,
     upsert_prompt_block_row,
@@ -93,7 +101,7 @@ from backend_v2.database.postgres.entity_adapter import (
     verify_seed_table_counts_rows,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, SubscriptionStatus, User, UserRole
+from backend_v2.models.auth import Organization, SubscriptionStatus, TenantSecretDTO, User, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.step import Step
@@ -103,17 +111,21 @@ from backend_v2.models.enums import (
     EngineType,
     EntityPrefix,
     LLMProvider,
+    SecretScope,
+    SecretStorageMode,
     StepType,
     StepZone,
     SystemLocale,
 )
 from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
+    AuditLogRecordFactory,
     ExecutionRecordFactory,
     OutputProfileFactory,
     ReportArtifactFactory,
     SystemRulePromptBlockFactory,
     TaskBriefFactory,
+    UsageRecordFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
@@ -148,13 +160,13 @@ def _build_user(org_id: str) -> User:
         language=SystemLocale.EN,
         theme_mode="dark",
         created_at=datetime.now(UTC),
-        created_by="usr_system",
+        created_by="usr_0195f3a00000700a83fd6b3d77c748f4",
     )
 
 
 def _build_registry_config() -> SystemConfigModelRegistry:
     """Build a valid SystemConfigModelRegistry for facade testing."""
-    profile = ModelProfile(provider="google", model_name="gemini-2.5-flash")
+    profile = ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash")
     return SystemConfigModelRegistry(
         id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
         name="Facade Registry",
@@ -183,11 +195,17 @@ def _build_step(block_id: str, org_id: str) -> Step:
 
 
 def test_entity_adapter_package_facade_reexports_all_symbols() -> None:
-    """Verifies that importing symbols from backend_v2.database.postgres.entity_adapter works identically."""
+    """Verify that importing symbols from backend_v2.database.postgres.entity_adapter works identically."""
     reexported_symbols = (
         CANONICAL_SEED_TABLES,
         PostgresEntityAdapter,
+        _AGGREGATE_USAGE_BASE_SQL,
         _COLLECTION_TO_TABLE_MAP,
+        _DELETE_TENANT_SECRET_SQL,
+        _INSERT_AUDIT_LOG_SQL,
+        _INSERT_USAGE_RECORD_SQL,
+        _LIST_AUDIT_LOGS_SQL,
+        _LIST_USAGE_RECORDS_SQL,
         _ROOT_SYSTEM_ORG_UUID7,
         _SYSTEM_ORG_UUID7,
         _TABLE_TO_ENTITY_PREFIX,
@@ -200,6 +218,7 @@ def test_entity_adapter_package_facade_reexports_all_symbols() -> None:
         _format_org_uuid7,
         _parse_optional_uuid7,
         _parse_org_uuid7,
+        execute_entity_delete,
         execute_entity_upsert,
         _GET_EXECUTION_SQL,
         _GET_REPORT_ARTIFACT_SQL,
@@ -227,12 +246,18 @@ def test_entity_adapter_package_facade_reexports_all_symbols() -> None:
         _UPSERT_ORGANIZATION_SQL,
         _UPSERT_SYSTEM_CONFIG_SQL,
         _UPSERT_USER_SQL,
+        aggregate_organization_usage_row,
+        delete_tenant_secret_row,
         get_organization_row,
         get_system_config_row,
         get_user_row,
+        hydrate_audit_log_row,
         hydrate_organization_row,
         hydrate_system_config_row,
+        hydrate_usage_record_row,
         hydrate_user_row,
+        insert_audit_log_row,
+        insert_usage_record_row,
         upsert_organization_row,
         upsert_system_config_row,
         upsert_user_row,
@@ -260,12 +285,7 @@ def test_entity_adapter_package_facade_reexports_all_symbols() -> None:
         hydrate_workflow_row,
         upsert_output_profile_row,
         upsert_workflow_row,
-        clear_collection_documents_rows,
-        delete_collection_document_row,
-        get_collection_document_row,
-        list_collection_documents_rows,
         seed_collection_batch_rows,
-        upsert_collection_document_row,
         verify_seed_table_counts_rows,
     )
     for sym in reexported_symbols:
@@ -301,7 +321,7 @@ async def test_entity_adapter_protocol_and_settings_propagation(monkeypatch: pyt
 
 @pytest.mark.asyncio
 async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
-    """Verify end-to-end delegation across all 26 PostgresEntityAdapter methods."""
+    """Verify end-to-end delegation across all typed PostgresEntityAdapter methods including ledgers."""
     pool = InMemoryAsyncPgPool()
     conn = await pool.acquire()
     try:
@@ -325,6 +345,33 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
             size_bytes=15,
             created_at=datetime.now(UTC),
         )
+        sec = TenantSecretDTO(
+            id=generate_opaque_id(EntityPrefix.TENANT_SECRET),
+            organization_id=org.id,
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier="ai_studio",
+            storage_mode=SecretStorageMode.ENVELOPE_KMS,
+            kek_version="kek-v1",
+            masked_hint="****1234",
+            updated_by=user.id,
+            updated_at=datetime.now(UTC),
+        )
+        aud = AuditLogRecordFactory.build(
+            organization_id=org.id,
+            actor_id=user.id,
+            execution_id=exec_rec.id,
+            event_type="EXECUTION_CREATED",
+            resource_type="execution",
+            resource_id=exec_rec.id,
+        )
+        usg = UsageRecordFactory.build(
+            org_id=org.id,
+            user_id=user.id,
+            execution_id=exec_rec.id,
+            input_tokens=150,
+            output_tokens=50,
+            cost_usd=0.04,
+        )
 
         assert await adapter.upsert_organization(org) == org.id
         fetched_org = await adapter.get_organization(org.id)
@@ -332,8 +379,12 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         assert await adapter.upsert_user(user) == user.id
         fetched_user = await adapter.get_user(user.id)
         assert fetched_user is not None and fetched_user.id == user.id and fetched_user.organization_id == org.id
+        assert await adapter.upsert_tenant_secret(sec) == sec.id
+        assert await adapter.delete_tenant_secret(sec.id) is True
+        assert await adapter.delete_tenant_secret(sec.id) is False
         assert await adapter.upsert_system_config(cfg) == cfg.id
         assert await adapter.get_system_config(cfg.id) == cfg
+        assert await adapter.list_system_configs() == [cfg]
         assert await adapter.upsert_prompt_block(blk) == blk.id
         assert await adapter.get_prompt_block(blk.id) == blk
         assert await adapter.upsert_task_brief(tbr) == tbr.id
@@ -348,10 +399,20 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         assert await adapter.save_execution(exec_rec) == exec_rec.id
         fetched_exec = await adapter.get_execution(exec_rec.id)
         assert fetched_exec is not None and fetched_exec.id == exec_rec.id
+        assert len(await adapter.list_executions()) == 1
         assert await adapter.upsert_report_artifact(rep) == rep.id
         assert await adapter.get_report_artifact(rep.id) == rep
         await adapter.save_report_binary(bin_dto)
         assert await adapter.get_report_binary(rep.id) == bin_dto
+
+        assert await adapter.insert_audit_log(aud) == aud.id
+        assert len(await adapter.list_audit_logs(organization_id=org.id)) == 1
+        assert await adapter.insert_usage_record(usg) == usg.id
+        assert len(await adapter.list_usage_records(organization_id=org.id)) == 1
+        rollup = await adapter.aggregate_organization_usage(organization_id=org.id)
+        assert rollup.record_count == 1
+        assert rollup.total_prompt_tokens == 150
+        assert rollup.total_cost_usd == pytest.approx(0.04)
 
         raw_org_uuid = parse_prefixed_uuid7(org.id, EntityPrefix.ORGANIZATION)
         upserted_id = await adapter._execute_upsert(
@@ -373,13 +434,6 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         assert upserted_id == org.id
         assert await adapter.seed_collection_batch("organizations", [org]) == 1
         assert (await adapter.verify_seed_table_counts({"organizations": 1}))["organizations"] == 1
-        assert await adapter.upsert_collection_document("organizations", org.id, org.model_dump(mode="json")) is True
-        fetched_doc = await adapter.get_collection_document("organizations", org.id)
-        assert fetched_doc is not None and fetched_doc["id"] == org.id
-        assert len(await adapter.list_collection_documents("organizations")) == 1
-        assert await adapter.delete_collection_document("organizations", org.id) is True
-        await adapter.clear_collection_documents("users")
-        assert await adapter.list_collection_documents("users") == []
     finally:
         await pool.release(conn)
 
@@ -398,6 +452,10 @@ async def test_entity_adapter_facade_negative_invalid_inputs_and_missing_entitie
         with pytest.raises(AppException) as bad_prefix_err:
             await adapter.get_organization("usr_0195f3a0000070008000000000000001")
         assert bad_prefix_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_sec_err:
+            await adapter.delete_tenant_secret("usr_0195f3a0000070008000000000000001")
+        assert bad_sec_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
         pdf_payload = b"%PDF-1.7"
         for invalid_size in (len(pdf_payload) - 1, len(pdf_payload) + 1):

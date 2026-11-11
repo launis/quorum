@@ -126,23 +126,18 @@ async def test_graph_mutation_port_rejects_dangling_edge_draft() -> None:
 
 
 @pytest.mark.asyncio
-async def test_in_memory_entity_adapter_delete_collection_document_positive_and_negative() -> None:
-    """Verify InMemoryEntityAdapter.delete_collection_document deletes records and rejects invalid prefixes."""
+async def test_in_memory_entity_adapter_delete_tenant_secret_positive_and_invalid() -> None:
+    """Verify InMemoryEntityAdapter.delete_tenant_secret deletes records and rejects invalid prefixes."""
     uow = InMemoryUnitOfWork()
     sec_id = generate_uuid7_opaque_id(EntityPrefix.TENANT_SECRET)
-    sys_id = generate_uuid7_opaque_id(EntityPrefix.SYSTEM_CONFIG)
     uow.store.seed_tables["tenant_secrets"][sec_id] = (sec_id,)
-    uow.store.seed_tables["system_configs"][sys_id] = (sys_id,)
 
-    assert await uow.entities.delete_collection_document("tenant_secrets", sec_id) is True
-    assert await uow.entities.delete_collection_document("tenant_secrets", sec_id) is False
-    assert await uow.entities.delete_collection_document("system_config", sys_id) is True
-    assert await uow.entities.delete_collection_document("system_config", sys_id) is False
+    assert await uow.entities.delete_tenant_secret(sec_id) is True
+    assert await uow.entities.delete_tenant_secret(sec_id) is False
 
-    assert (
-        await uow.entities.delete_collection_document("tenant_secrets", "usr_0195f3a0000070008000000000000001") is False
-    )
-    assert await uow.entities.delete_collection_document("unknown_collection", sec_id) is False
+    with pytest.raises(AppException) as bad_prefix_exc:
+        await uow.entities.delete_tenant_secret("usr_0195f3a0000070008000000000000001")
+    assert bad_prefix_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

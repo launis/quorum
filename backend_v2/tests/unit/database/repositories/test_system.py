@@ -9,7 +9,7 @@ import pytest
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.domain.system_config import ModelProfile, SystemConfigMCPGateways, SystemConfigModelRegistry
-from backend_v2.models.dtos.system import SystemConfigCreateDTO, SystemConfigUpdateDTO, SystemSettingsDTO
+from backend_v2.models.dtos.system import SystemConfigCreateDTO
 from backend_v2.models.enums import CognitiveTier, LLMProvider
 
 
@@ -187,66 +187,6 @@ async def test_update_mcp_gateways_new(sample_mcp_gateways: SystemConfigMCPGatew
 
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.update_mcp_gateways(sample_mcp_gateways)
-
-    assert res is True
-    mock_driver.upsert.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_get_system_settings_success() -> None:
-    """Positive: retrieves global_settings document."""
-    mock_driver = AsyncMock()
-    settings_dto = SystemSettingsDTO(environment="development", maintenance_mode=False)
-    mock_driver.query.return_value = [settings_dto.model_dump(mode="json")]
-
-    repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.get_system_settings()
-
-    assert res is not None
-    assert res.environment == "development"
-
-
-@pytest.mark.asyncio
-async def test_get_system_settings_not_found_raises() -> None:
-    """Negative: raises ResourceNotFoundError when global_settings is missing."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
-
-    repo = SystemRepositoryImpl(driver=mock_driver)
-    with pytest.raises(ResourceNotFoundError) as exc_info:
-        await repo.get_system_settings()
-
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.details["resource_id"] == "global_settings"
-
-
-@pytest.mark.asyncio
-async def test_update_system_settings_existing() -> None:
-    """Positive: updates existing global_settings document."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"id": "cfg_settings111111", "type": "global_settings"}]
-    mock_driver.upsert.return_value = "cfg_settings111111"
-
-    repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.update_system_settings(
-        SystemConfigUpdateDTO(system_settings=SystemSettingsDTO(maintenance_mode=True))
-    )
-
-    assert res is True
-    mock_driver.upsert.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_update_system_settings_new() -> None:
-    """Positive: creates new global_settings document when none exists."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
-    mock_driver.upsert.return_value = "global_settings"
-
-    repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.update_system_settings(
-        SystemConfigUpdateDTO(system_settings=SystemSettingsDTO(maintenance_mode=True))
-    )
 
     assert res is True
     mock_driver.upsert.assert_called_once()

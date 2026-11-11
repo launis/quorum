@@ -5,27 +5,28 @@ It includes Metadata, ReasoningTrace, and UsageRecord.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import V2CoreBase, generate_uuid7
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase, generate_uuid7, parse_prefixed_uuid7
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.llm import ProviderMetadataDTO
 
 __all__ = [
     "AuditLogCreateDTO",
     "AuditLogEntry",
+    "AuditLogRecord",
     "DetailedUsageDTO",
     "Metadata",
     "ReasoningTrace",
     "ReasoningTraceDTO",
-    "UsageAggregateDTO",
-    "UsageAggregateUpdateDTO",
     "UsageRecord",
+    "UsageRollupSummaryDTO",
 ]
 
 logger = logging.getLogger(__name__)
@@ -260,9 +261,10 @@ class UsageRecord(V2CoreBase):
     """Immutable record of LLM token usage and cost.
 
     Attributes:
-        id: Unique ID for the usage event.
+        id: Canonical UsageRecord Opaque Stripe ID (usg_<hex32>).
         org_id: Organization ID.
         user_id: User ID.
+        execution_id: Optional associated Execution Opaque Stripe ID.
         model: Model name.
         input_tokens: Input token count.
         output_tokens: Output token count.
@@ -277,14 +279,14 @@ class UsageRecord(V2CoreBase):
         timestamp: Timestamp of usage.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: Annotated[
         str,
         Field(
             default_factory=lambda: f"usg_{generate_uuid7().hex}",
-            min_length=1,
-            description="Unique ID for the usage event.",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Canonical UsageRecord Opaque Stripe ID (usg_<hex32>).",
             json_schema_extra={"x-ui-label": "ID"},
         ),
     ]
@@ -293,6 +295,10 @@ class UsageRecord(V2CoreBase):
         Field(min_length=1, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}),
     ]
     user_id: Annotated[str, Field(min_length=1, description="User ID.", json_schema_extra={"x-ui-label": "User ID"})]
+    execution_id: Annotated[
+        str | None,
+        Field(default=None, description="Optional associated execution ID."),
+    ] = None
     model: Annotated[str, Field(min_length=1, description="Model name.", json_schema_extra={"x-ui-label": "Model"})]
     input_tokens: Annotated[
         int,
@@ -327,6 +333,23 @@ class UsageRecord(V2CoreBase):
     timestamp: Annotated[
         datetime, Field(description="Timestamp of usage.", json_schema_extra={"x-ui-label": "Timestamp"})
     ]
+
+    @field_validator("id")
+    @classmethod
+    def _validate_usage_record_id(cls, v: str) -> str:
+        """Validate that the identifier uses the canonical usg_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate UsageRecord identifier string.
+
+        Returns:
+            Validated UsageRecord identifier string.
+
+        Raises:
+            AppException: With VALIDATION_FAILED if the prefix or UUIDv7 structure is invalid.
+        """
+        _ = parse_prefixed_uuid7(v, EntityPrefix.USAGE_RECORD)
+        return v
 
     @field_validator("timestamp", mode="before")
     @classmethod
@@ -368,71 +391,150 @@ class UsageRecord(V2CoreBase):
         return v
 
 
-class AuditLogCreateDTO(BaseDTO):
-    """DTO for creating a new audit log entry.
+class AuditLogRecord(V2CoreBase):
+    """Immutable compliance record stored in the append-only audit_logs table.
 
     Attributes:
-        action: Audit action identifier.
-        actor_id: Actor user or system ID.
-        organization_id: Associated organization ID.
-        details: Typed scalar details dictionary.
-        timestamp: Creation timestamp.
+        id: Canonical AuditLogRecord Opaque Stripe ID (aud_<hex32>).
+        organization_id: Optional owning Organization Opaque Stripe ID.
+        actor_id: Optional actor User Opaque Stripe ID (None for system events).
+        execution_id: Optional associated Execution Opaque Stripe ID.
+        event_type: Audit event type identifier.
+        resource_type: Audited resource type identifier.
+        resource_id: Audited resource identifier.
+        details: Typed scalar audit metadata dictionary.
+        created_at: UTC timestamp extracted from the UUIDv7 primary key.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    action: Annotated[str, Field(min_length=1, description="Audit action identifier")]
-    actor_id: Annotated[str, Field(min_length=1, description="Actor user or system ID")]
-    organization_id: Annotated[str | None, Field(default=None, description="Associated organization ID")] = None
-    details: Annotated[
-        dict[str, str | int | float | bool | list[str]] | None,
-        Field(default=None, description="Typed scalar details dictionary"),
+    id: Annotated[
+        str,
+        Field(
+            default_factory=lambda: f"aud_{generate_uuid7().hex}",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Canonical AuditLogRecord Opaque Stripe ID (aud_<hex32>).",
+        ),
+    ]
+    organization_id: Annotated[
+        str | None,
+        Field(default=None, description="Owning Organization Opaque Stripe ID."),
     ] = None
-    timestamp: Annotated[datetime | None, Field(default=None, description="Creation timestamp")] = None
+    actor_id: Annotated[
+        str | None,
+        Field(default=None, description="Actor User Opaque Stripe ID or None for system events."),
+    ] = None
+    execution_id: Annotated[
+        str | None,
+        Field(default=None, description="Associated Execution Opaque Stripe ID."),
+    ] = None
+    event_type: Annotated[str, Field(min_length=1, description="Audit event type identifier.")]
+    resource_type: Annotated[str, Field(min_length=1, description="Audited resource type identifier.")]
+    resource_id: Annotated[str, Field(min_length=1, description="Audited resource identifier.")]
+    details: Annotated[
+        dict[str, str | int | float | bool | list[str]],
+        Field(default_factory=dict, description="Typed scalar audit metadata dictionary."),
+    ]
+    created_at: Annotated[
+        datetime,
+        Field(default_factory=lambda: datetime.now(UTC), description="UTC creation timestamp."),
+    ]
+
+    @field_validator("id")
+    @classmethod
+    def _validate_audit_log_id(cls, v: str) -> str:
+        """Validate that the identifier uses the canonical aud_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate AuditLogRecord identifier string.
+
+        Returns:
+            Validated AuditLogRecord identifier string.
+
+        Raises:
+            AppException: With VALIDATION_FAILED if the prefix or UUIDv7 structure is invalid.
+        """
+        _ = parse_prefixed_uuid7(v, EntityPrefix.AUDIT_LOG)
+        return v
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def _parse_created_at(cls, v: Any) -> Any:
+        """Parse ISO 8601 string timestamps into timezone-aware datetime objects.
+
+        Args:
+            v: Candidate timestamp value.
+
+        Returns:
+            Parsed datetime instance or original value.
+
+        Raises:
+            ValueError: If a string value is not valid ISO 8601 format.
+        """
+        if isinstance(v, str):
+            return datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return v
 
 
-class UsageAggregateUpdateDTO(BaseDTO):
-    """DTO for incrementing usage aggregates.
+class AuditLogCreateDTO(BaseDTO):
+    """DTO for inserting a new compliance event into the append-only audit_logs ledger.
 
     Attributes:
-        input_tokens: Input tokens consumed.
-        output_tokens: Output tokens consumed.
-        cached_tokens: Cached tokens read.
-        cost_usd: Total cost incurred in USD.
-        execution_count: Number of executions.
+        event_type: Audit event type identifier.
+        actor_id: Optional actor user or system identifier.
+        organization_id: Optional associated organization identifier.
+        execution_id: Optional associated execution identifier.
+        resource_type: Audited resource type identifier.
+        resource_id: Audited resource identifier.
+        details: Typed scalar details dictionary.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    input_tokens: Annotated[int, Field(ge=0, description="Input tokens consumed")] = 0
-    output_tokens: Annotated[int, Field(ge=0, description="Output tokens consumed")] = 0
-    cached_tokens: Annotated[int, Field(ge=0, description="Cached tokens read")] = 0
-    cost_usd: Annotated[float, Field(ge=0.0, description="Total cost incurred in USD")] = 0.0
-    execution_count: Annotated[int, Field(ge=0, description="Number of executions")] = 1
+    event_type: Annotated[str, Field(min_length=1, description="Audit event type identifier")]
+    actor_id: Annotated[str | None, Field(default=None, description="Actor user or system identifier")] = None
+    organization_id: Annotated[str | None, Field(default=None, description="Associated organization ID")] = None
+    execution_id: Annotated[str | None, Field(default=None, description="Associated execution ID")] = None
+    resource_type: Annotated[str, Field(min_length=1, description="Audited resource type identifier")]
+    resource_id: Annotated[str, Field(min_length=1, description="Audited resource identifier")]
+    details: Annotated[
+        dict[str, str | int | float | bool | list[str]],
+        Field(default_factory=dict, description="Typed scalar details dictionary"),
+    ]
 
 
-class UsageAggregateDTO(BaseDTO):
-    """DTO for representing an aggregated usage summary.
+class UsageRollupSummaryDTO(BaseDTO):
+    """Immutable SQL SUM/COUNT FinOps rollup computed directly over append-only usage_records.
 
     Attributes:
-        organization_id: Organization ID.
-        period: Usage period (e.g. YYYY-MM).
-        total_input_tokens: Total input tokens.
-        total_output_tokens: Total output tokens.
-        total_cached_tokens: Total cached tokens.
-        total_cost_usd: Total cost in USD.
-        execution_count: Total execution count.
+        organization_id: Scoped organization identifier or None for global rollup.
+        total_prompt_tokens: Aggregated prompt input tokens.
+        total_completion_tokens: Aggregated completion output tokens.
+        total_cached_tokens: Aggregated cached prompt tokens.
+        total_reasoning_tokens: Aggregated reasoning tokens.
+        total_cache_creation_input_tokens: Aggregated cache creation input tokens.
+        total_cost_usd: Aggregated monetary cost in USD.
+        total_estimated_savings_usd: Aggregated estimated cache savings in USD.
+        record_count: Total matching usage_records count.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    organization_id: Annotated[str, Field(description="Organization ID")]
-    period: Annotated[str, Field(description="Usage period (e.g. YYYY-MM)")]
-    total_input_tokens: Annotated[int, Field(ge=0, description="Total input tokens")]
-    total_output_tokens: Annotated[int, Field(ge=0, description="Total output tokens")]
-    total_cached_tokens: Annotated[int, Field(ge=0, description="Total cached tokens")]
-    total_cost_usd: Annotated[float, Field(ge=0.0, description="Total cost in USD")]
-    execution_count: Annotated[int, Field(ge=0, description="Total execution count")]
+    organization_id: Annotated[
+        str | None, Field(default=None, description="Scoped organization ID or None for system rollup")
+    ] = None
+    total_prompt_tokens: Annotated[int, Field(ge=0, description="Aggregated prompt input tokens")] = 0
+    total_completion_tokens: Annotated[int, Field(ge=0, description="Aggregated completion output tokens")] = 0
+    total_cached_tokens: Annotated[int, Field(ge=0, description="Aggregated cached prompt tokens")] = 0
+    total_reasoning_tokens: Annotated[int, Field(ge=0, description="Aggregated reasoning tokens")] = 0
+    total_cache_creation_input_tokens: Annotated[
+        int, Field(ge=0, description="Aggregated cache creation input tokens")
+    ] = 0
+    total_cost_usd: Annotated[float, Field(ge=0.0, description="Aggregated monetary cost in USD")] = 0.0
+    total_estimated_savings_usd: Annotated[
+        float, Field(ge=0.0, description="Aggregated estimated cache savings in USD")
+    ] = 0.0
+    record_count: Annotated[int, Field(ge=0, description="Total matching usage record count")] = 0
 
 
 class DetailedUsageDTO(BaseDTO):

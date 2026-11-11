@@ -1046,7 +1046,7 @@ class SecretService:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if persistence is unconfigured.
         """
         async with self._acquire_entity_port(commit=True) as entities:
-            await entities.delete_collection_document("tenant_secrets", secret_id)
+            await entities.delete_tenant_secret(secret_id)
 
     async def _list_org_secret_records(self, organization_id: str) -> list[TenantSecretDTO]:
         """List active TenantSecretDTO records for an organization from persistent storage.

@@ -1,21 +1,28 @@
-"""Database repository implementation module for Audit Logs and Usage Data."""
+"""Database repository implementation module for append-only Audit Logs and FinOps Usage Data."""
 
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
-from backend_v2.database.driver import Filter
+from backend_v2.database.driver import StorageDriver
+from backend_v2.database.interfaces import (
+    EntityPersistencePort,
+    UnitOfWorkFactory,
+    get_registered_uow_factory,
+    open_uow_session,
+)
 from backend_v2.database.repositories.base import BaseRepository
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
-    AuditLogEntry,
+    AuditLogRecord,
     DetailedUsageDTO,
-    UsageAggregateDTO,
-    UsageAggregateUpdateDTO,
     UsageRecord,
+    UsageRollupSummaryDTO,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,298 +31,281 @@ __all__ = ["AuditRepositoryImpl"]
 
 
 class AuditRepositoryImpl(BaseRepository):
-    """Repository implementation for Audit Logs and Usage Data."""
+    """Repository implementation routing AuditLogRecord and UsageRecord operations through EntityPersistencePort."""
 
-    async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:
-        """Logs an audit event into storage.
+    _uow_factory: UnitOfWorkFactory | None = None
+
+    def __init__(
+        self,
+        driver: StorageDriver | None = None,
+        *,
+        uow_factory: UnitOfWorkFactory | None = None,
+    ) -> None:
+        """Initialize the repository with an optional StorageDriver or UnitOfWorkFactory.
 
         Args:
-            event_data: AuditLogCreateDTO containing audit event fields.
+            driver: Optional legacy StorageDriver instance for MRO composition.
+            uow_factory: Optional explicit UnitOfWorkFactory keyword override.
         """
-        payload = event_data.model_dump(mode="json")
-        # Generate RFC 9562 UUIDv7 audit event ID
-        doc_id = str(generate_uuid7())
-        payload["id"] = doc_id
-        if "timestamp" not in payload or not payload["timestamp"]:
-            payload["timestamp"] = datetime.now(UTC).isoformat()
-        await self.driver.upsert("audit_logs", payload, doc_id)
+        if driver is not None:
+            super().__init__(driver)
+        self._uow_factory: UnitOfWorkFactory | None = uow_factory
+
+    def _resolve_uow_factory(self) -> UnitOfWorkFactory | None:
+        """Resolve the configured or process-registered UnitOfWorkFactory.
+
+        Returns:
+            Callable UnitOfWorkFactory if available, otherwise None.
+        """
+        if self._uow_factory is not None:
+            return self._uow_factory
+        return get_registered_uow_factory()
+
+    @asynccontextmanager
+    async def _acquire_entities(self) -> AsyncIterator[EntityPersistencePort]:
+        """Enter or reuse the active QuorumUnitOfWork session and yield its EntityPersistencePort.
+
+        Yields:
+            Active EntityPersistencePort bound to the current transaction.
+
+        Raises:
+            ConfigurationError: With CONFIGURATION_ERROR if no UnitOfWorkFactory is registered.
+        """
+        async with open_uow_session(self._resolve_uow_factory()) as uow:
+            if uow is None:
+                msg = "QuorumUnitOfWork factory is not configured for AuditRepositoryImpl."
+                logger.error(
+                    "[AuditRepository] %s: %s",
+                    ErrorCodes.CONFIGURATION_ERROR.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+                raise ConfigurationError(message=msg)
+            yield uow.entities
+
+    @staticmethod
+    def _parse_since_iso(since: str | None) -> datetime | None:
+        """Parse an optional ISO 8601 timestamp string into a UTC-aware datetime.
+
+        Args:
+            since: Optional ISO 8601 timestamp string.
+
+        Returns:
+            Parsed UTC-aware datetime instance, or None when since is omitted.
+
+        Raises:
+            AppException: With VALIDATION_FAILED (HTTP 400) if since is malformed.
+        """
+        if not since:
+            return None
+        try:
+            parsed = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        except ValueError as exc:
+            msg = f"Invalid date format '{since}': {exc}"
+            logger.error(
+                "[AuditRepository] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "since": since},
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "since": since},
+            ) from exc
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed
+
+    async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:
+        """Insert a compliance audit event into the append-only audit_logs table.
+
+        Args:
+            event_data: Validated AuditLogCreateDTO describing the compliance event.
+
+        Raises:
+            AppException: With VALIDATION_FAILED, CONFIGURATION_ERROR, or STORAGE_ACCESS_FAILED.
+        """
+        record = AuditLogRecord(
+            id=f"aud_{generate_uuid7().hex}",
+            organization_id=event_data.organization_id,
+            actor_id=event_data.actor_id,
+            execution_id=event_data.execution_id,
+            event_type=event_data.event_type,
+            resource_type=event_data.resource_type,
+            resource_id=event_data.resource_id,
+            details=event_data.details,
+            created_at=datetime.now(UTC),
+        )
+        async with self._acquire_entities() as entities:
+            await entities.insert_audit_log(record)
 
     async def get_audit_logs(
         self,
         organization_id: str | None = None,
         actor_id: str | None = None,
-        action: str | None = None,
+        event_type: str | None = None,
         limit: int = 100,
-    ) -> list[AuditLogEntry]:
-        """Retrieves audit logs filtered by organization, actor, or action.
+    ) -> list[AuditLogRecord]:
+        """List compliance audit logs filtered by organization, actor, or event_type.
 
         Args:
             organization_id: Optional organization filter.
             actor_id: Optional actor ID filter.
-            action: Optional action filter.
+            event_type: Optional event type filter.
             limit: Maximum number of records to return.
 
         Returns:
-            List of validated AuditLogEntry domain models.
+            List of validated AuditLogRecord domain models ordered newest-first.
 
         Raises:
-            AppException: If an audit log entry fails model validation
-                (ErrorCodes.VALIDATION_FAILED).
+            AppException: With VALIDATION_FAILED, CONFIGURATION_ERROR, or STORAGE_ACCESS_FAILED.
         """
-        filters = []
-        if organization_id:
-            filters.append(Filter("organization_id", "==", organization_id))
-        if actor_id:
-            filters.append(Filter("actor_id", "==", actor_id))
-        if action:
-            filters.append(Filter("action", "==", action))
-
-        raw_logs = await self.driver.query(
-            "audit_logs", filters=filters, limit=limit, order_by="timestamp", descending=True
-        )
-        logs: list[AuditLogEntry] = []
-        for entry in raw_logs:
-            try:
-                logs.append(AuditLogEntry.model_validate(entry, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in entry:
-                    item_id = str(entry["id"])
-                logger.error(
-                    "[AuditRepository] %s: Corrupted audit log %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted audit log {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return logs
+        async with self._acquire_entities() as entities:
+            return await entities.list_audit_logs(
+                organization_id=organization_id,
+                actor_id=actor_id,
+                event_type=event_type,
+                limit=limit,
+            )
 
     async def log_usage(self, record: UsageRecord) -> None:
-        """Logs a resource usage record.
+        """Insert an immutable FinOps UsageRecord into the append-only usage_records table.
 
         Args:
-            record: UsageRecord model.
+            record: Validated UsageRecord model with canonical usg_<hex32> ID.
+
+        Raises:
+            AppException: With VALIDATION_FAILED, CONFIGURATION_ERROR, or STORAGE_ACCESS_FAILED.
         """
-        data = record.model_dump(mode="json")
-        doc_id = data["id"] if "id" in data and data["id"] else f"usg_{generate_uuid7().hex}"
-        data["id"] = doc_id
-        await self.driver.upsert("usage", data, doc_id)
+        async with self._acquire_entities() as entities:
+            await entities.insert_usage_record(record)
 
     async def get_usage_records(
         self, scope: str, entity_id: str | None = None, since: str | None = None
     ) -> list[UsageRecord]:
-        """Retrieves usage records for a specific scope and entity.
+        """Retrieve UsageRecord rows for a target scope and entity.
 
         Args:
-            scope: Scope type (e.g. 'organization' or 'user').
-            entity_id: Optional entity ID.
-            since: Optional ISO timestamp filter.
+            scope: Scope identifier ('org', 'organization', 'user', or 'system').
+            entity_id: Optional target organization or user ID.
+            since: Optional ISO 8601 lower-bound timestamp filter.
 
         Returns:
-            List of validated UsageRecord domain models.
+            List of validated UsageRecord domain models ordered chronologically.
 
         Raises:
-            AppException: If a usage record fails model validation
-                (ErrorCodes.VALIDATION_FAILED).
+            AppException: With VALIDATION_FAILED, CONFIGURATION_ERROR, or STORAGE_ACCESS_FAILED.
         """
-        filters = []
-        if scope == "organization" and entity_id:
-            filters.append(Filter("org_id", "==", entity_id))
+        since_dt = self._parse_since_iso(since)
+        org_filter: str | None = None
+        user_filter: str | None = None
+        if scope in ("org", "organization") and entity_id:
+            org_filter = entity_id
         elif scope == "user" and entity_id:
-            filters.append(Filter("user_id", "==", entity_id))
+            user_filter = entity_id
 
-        if since:
-            filters.append(Filter("timestamp", ">=", since))
+        async with self._acquire_entities() as entities:
+            return await entities.list_usage_records(
+                organization_id=org_filter,
+                user_id=user_filter,
+                since=since_dt,
+            )
 
-        raw_records = await self.driver.query("usage", filters)
-        records: list[UsageRecord] = []
-        for u in raw_records:
-            try:
-                records.append(UsageRecord.model_validate(u, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in u:
-                    item_id = str(u["id"])
-                logger.error(
-                    "[AuditRepository] %s: Corrupted usage record %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted usage record {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return records
-
-    async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> UsageAggregateDTO | None:
-        """Retrieves an aggregated usage summary document.
+    async def aggregate_organization_usage(
+        self,
+        organization_id: str | None = None,
+        since: datetime | None = None,
+    ) -> UsageRollupSummaryDTO:
+        """Aggregate FinOps token and USD metrics via SQL SUM/COUNT over usage_records.
 
         Args:
-            scope: Scope type.
-            entity_id: Optional entity ID.
-            period: Aggregation period (e.g. '2026-08' or 'all-time').
+            organization_id: Optional organization filter ('org_<hex32>' or None for global rollup).
+            since: Optional UTC timestamp lower bound.
 
         Returns:
-            The UsageAggregateDTO if found, otherwise None.
+            Validated UsageRollupSummaryDTO computed directly from usage_records.
 
         Raises:
-            AppException: If the usage aggregate document fails model validation
-                (ErrorCodes.VALIDATION_FAILED).
+            AppException: With VALIDATION_FAILED, CONFIGURATION_ERROR, or STORAGE_ACCESS_FAILED.
         """
-        entity_key = "system"
-        if entity_id:
-            entity_key = entity_id
-        agg_id = f"{scope}_{entity_key}_{period}"
-        driver = self.driver
-        doc = await driver.get("usage_aggregates", agg_id)
-        if not doc:
-            return None
-        try:
-            return UsageAggregateDTO.model_validate(doc, strict=False)
-        except Exception as e:
-            logger.error(
-                "[AuditRepository] %s: Corrupted usage aggregate %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                agg_id,
-                e,
-                exc_info=True,
+        async with self._acquire_entities() as entities:
+            return await entities.aggregate_organization_usage(
+                organization_id=organization_id,
+                since=since,
             )
-            raise AppException(
-                message=f"Corrupted usage aggregate {agg_id}: {e}",
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": agg_id},
-            ) from e
-
-    async def upsert_usage_aggregate(
-        self, scope: str, entity_id: str | None, period: str, update_data: UsageAggregateUpdateDTO
-    ) -> None:
-        """Upserts an aggregated usage record, merging token and execution totals.
-
-        Args:
-            scope: Scope type.
-            entity_id: Optional entity ID.
-            period: Aggregation period.
-            update_data: UsageAggregateUpdateDTO of usage increments.
-
-        Raises:
-            AppException: If an existing usage aggregate document fails model validation
-                (ErrorCodes.VALIDATION_FAILED).
-        """
-        entity_key = "system"
-        if entity_id:
-            entity_key = entity_id
-        agg_id = f"{scope}_{entity_key}_{period}"
-        existing = await self.get_usage_aggregate(scope, entity_id, period)
-
-        if existing:
-            new_input = existing.total_input_tokens + update_data.input_tokens
-            new_output = existing.total_output_tokens + update_data.output_tokens
-            new_cached = existing.total_cached_tokens + update_data.cached_tokens
-            new_cost = existing.total_cost_usd + update_data.cost_usd
-            new_execs = existing.execution_count + update_data.execution_count
-        else:
-            new_input = update_data.input_tokens
-            new_output = update_data.output_tokens
-            new_cached = update_data.cached_tokens
-            new_cost = update_data.cost_usd
-            new_execs = update_data.execution_count
-
-        merged = UsageAggregateDTO(
-            organization_id=entity_key,
-            period=period,
-            total_input_tokens=new_input,
-            total_output_tokens=new_output,
-            total_cached_tokens=new_cached,
-            total_cost_usd=new_cost,
-            execution_count=new_execs,
-        )
-        await self.driver.upsert("usage_aggregates", merged.model_dump(mode="json"), agg_id)
 
     async def get_detailed_usage(
         self, scope: str, target_id: str | None = None, since: str | None = None
     ) -> DetailedUsageDTO:
-        """Calculates detailed multi-dimensional usage metrics.
+        """Calculate multi-dimensional usage metrics across executions and usage_records.
 
         Args:
-            scope: Scope ('user', 'org', 'system').
-            target_id: Optional ID for the targeted scope.
-            since: Optional ISO timestamp filter.
+            scope: Scope ('user', 'org', 'organization', or 'system').
+            target_id: Optional target ID for the scope.
+            since: Optional ISO 8601 lower-bound timestamp filter.
 
         Returns:
-            DetailedUsageDTO containing calculated metrics.
+            DetailedUsageDTO containing cost, token, model, and workflow breakdowns.
 
         Raises:
-            AppException: If the since timestamp format is invalid
-                (ErrorCodes.VALIDATION_FAILED).
+            AppException: With VALIDATION_FAILED on malformed since timestamp, or STORAGE_ACCESS_FAILED.
         """
-        filters = []
-        if since:
-            filters.append(Filter("completed_at", ">=", since))
+        since_dt = self._parse_since_iso(since)
 
-        if scope == "user" and target_id:
-            filters.append(Filter("user_id", "==", target_id))
-        elif scope == "org" and target_id:
-            filters.append(Filter("organization_id", "==", target_id))
+        async with self._acquire_entities() as entities:
+            all_execs = await entities.list_executions()
+            filtered_execs = []
+            for item in all_execs:
+                if scope == "user" and target_id and item.created_by != target_id:
+                    continue
+                if scope in ("org", "organization") and target_id and item.organization_id != target_id:
+                    continue
+                if since_dt is not None:
+                    if item.completed_at is None:
+                        continue
+                    completed_utc = (
+                        item.completed_at
+                        if item.completed_at.tzinfo is not None
+                        else item.completed_at.replace(tzinfo=UTC)
+                    )
+                    if completed_utc < since_dt:
+                        continue
+                filtered_execs.append(item)
 
-        execs = await self.driver.query("executions", filters)
-
-        total_cost = 0.0
-        total_tokens = 0
-        models_used: dict[str, int] = {}
-        workflows_used: dict[str, int] = {}
-
-        for e in execs:
-            if "cost_estimate" in e and e["cost_estimate"] is not None:
-                total_cost += float(e["cost_estimate"])
-            if "workflow_id" in e and e["workflow_id"]:
-                wid_str = str(e["workflow_id"])
-                if wid_str in workflows_used:
-                    workflows_used[wid_str] += 1
-                else:
-                    workflows_used[wid_str] = 1
-            if "models_used" in e and e["models_used"]:
-                for m, count in e["models_used"].items():
-                    if m in models_used:
-                        models_used[m] += int(count)
+            total_cost = 0.0
+            models_used: dict[str, int] = {}
+            workflows_used: dict[str, int] = {}
+            for item in filtered_execs:
+                total_cost += float(item.cost_estimate)
+                if item.workflow_id:
+                    if item.workflow_id in workflows_used:
+                        workflows_used[item.workflow_id] += 1
                     else:
-                        models_used[m] = int(count)
+                        workflows_used[item.workflow_id] = 1
+                for model_key, token_count in item.models_used.items():
+                    if model_key in models_used:
+                        models_used[model_key] += int(token_count)
+                    else:
+                        models_used[model_key] = int(token_count)
 
-        period = "all-time"
-        if since:
-            try:
-                dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
-                period = dt.strftime("%Y-%m")
-            except Exception as e:
-                logger.error(
-                    "[AuditRepository] %s: Invalid date format '%s': %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    since,
-                    e,
-                    exc_info=True,
+            if scope == "user" and target_id:
+                user_records = await entities.list_usage_records(user_id=target_id, since=since_dt)
+                total_tokens = sum(r.input_tokens + r.output_tokens for r in user_records)
+            else:
+                org_filter: str | None = None
+                if scope in ("org", "organization") and target_id:
+                    org_filter = target_id
+                rollup = await entities.aggregate_organization_usage(
+                    organization_id=org_filter,
+                    since=since_dt,
                 )
-                raise AppException(
-                    message=f"Invalid date format '{since}': {e}",
-                    status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "since": since},
-                ) from e
-
-        mapped_scope = "organization" if scope == "org" else scope
-        agg = await self.get_usage_aggregate(mapped_scope, target_id, period)
-        if agg:
-            total_tokens = agg.total_input_tokens + agg.total_output_tokens
+                total_tokens = rollup.total_prompt_tokens + rollup.total_completion_tokens
 
         target_key = "system"
         if target_id:
             target_key = target_id
-
         return DetailedUsageDTO(
             organization_id=target_key,
             total_cost_usd=total_cost,

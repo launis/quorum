@@ -1,8 +1,9 @@
-"""PostgreSQL 19 SQL constants, hydration, upsert, and fetch stage for IAM, assignments, secrets, and system_configs."""
+"""PostgreSQL 19 SQL constants, hydration, upsert, and fetch stage for IAM, assignments, secrets, and ledgers."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from pydantic_core import to_json
 
@@ -14,6 +15,9 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _format_org_uuid7,
     _parse_optional_uuid7,
     _parse_org_uuid7,
+    _parse_system_safe_org_uuid7,
+    _parse_system_safe_user_uuid7,
+    execute_entity_delete,
     execute_entity_upsert,
     resolve_effective_timeout,
     translate_postgres_exception,
@@ -23,17 +27,23 @@ from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPg
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import Invitation, Organization, TenantSecretDTO, User
 from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
+from backend_v2.models.domain.base import AuditLogRecord, UsageRecord, UsageRollupSummaryDTO
 from backend_v2.models.domain.execution import ExecutionAssignment
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.enums import EntityPrefix
 
 __all__ = [
+    "_AGGREGATE_USAGE_BASE_SQL",
+    "_DELETE_TENANT_SECRET_SQL",
     "_GET_EXECUTION_ASSIGNMENT_SQL",
     "_GET_INVITATION_SQL",
     "_GET_ORGANIZATION_SQL",
     "_GET_SYSTEM_CONFIG_SQL",
     "_GET_TENANT_SECRET_SQL",
     "_GET_USER_SQL",
+    "_INSERT_AUDIT_LOG_SQL",
+    "_INSERT_USAGE_RECORD_SQL",
+    "_LIST_AUDIT_LOGS_SQL",
     "_LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL",
     "_LIST_EXECUTION_ASSIGNMENTS_SQL",
     "_LIST_INVITATIONS_BY_ORG_SQL",
@@ -42,6 +52,7 @@ __all__ = [
     "_LIST_SYSTEM_CONFIGS_SQL",
     "_LIST_TENANT_SECRETS_BY_ORG_SQL",
     "_LIST_TENANT_SECRETS_SQL",
+    "_LIST_USAGE_RECORDS_SQL",
     "_LIST_USERS_BY_ORG_SQL",
     "_LIST_USERS_SQL",
     "_UPSERT_EXECUTION_ASSIGNMENT_SQL",
@@ -50,22 +61,32 @@ __all__ = [
     "_UPSERT_SYSTEM_CONFIG_SQL",
     "_UPSERT_TENANT_SECRET_SQL",
     "_UPSERT_USER_SQL",
+    "aggregate_organization_usage_row",
+    "delete_tenant_secret_row",
     "get_execution_assignment_row",
     "get_invitation_row",
     "get_organization_row",
     "get_system_config_row",
     "get_tenant_secret_row",
     "get_user_row",
+    "hydrate_audit_log_row",
     "hydrate_execution_assignment_row",
     "hydrate_invitation_row",
     "hydrate_organization_row",
     "hydrate_system_config_row",
     "hydrate_tenant_secret_row",
+    "hydrate_usage_record_row",
     "hydrate_user_row",
+    "insert_audit_log_row",
+    "insert_usage_record_row",
+    "list_audit_log_rows",
     "list_execution_assignment_rows",
     "list_invitation_rows",
     "list_organization_rows",
+    "list_system_config_rows",
+    "list_system_configs_rows",
     "list_tenant_secret_rows",
+    "list_usage_record_rows",
     "list_user_rows",
     "upsert_execution_assignment_row",
     "upsert_invitation_row",
@@ -200,6 +221,40 @@ FROM system_configs WHERE id = $1::uuid"""
 
 _LIST_SYSTEM_CONFIGS_SQL: str = """SELECT id, name, type, slug, default_provider, tier_definitions, endpoint_url,
        transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools FROM system_configs"""
+
+_DELETE_TENANT_SECRET_SQL: str = "DELETE FROM tenant_secrets WHERE id = $1::uuid"
+
+_INSERT_AUDIT_LOG_SQL: str = """INSERT INTO audit_logs (id, organization_id, actor_id, execution_id,
+    event_type, resource_type, resource_id, details)
+VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8::jsonb)"""
+
+_AUDIT_LOG_COLS: str = """id, organization_id, actor_id, execution_id, event_type, resource_type,
+       resource_id, details, created_at"""
+
+_LIST_AUDIT_LOGS_SQL: str = f"SELECT {_AUDIT_LOG_COLS} FROM audit_logs"
+
+_INSERT_USAGE_RECORD_SQL: str = """INSERT INTO usage_records (id, organization_id, user_id, execution_id,
+    model_name, prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens,
+    cache_creation_input_tokens, latency_ms, finish_reason, system_fingerprint, cost_usd, estimated_savings_usd)
+VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6::bigint, $7::bigint, $8::bigint, $9::bigint,
+    $10::bigint, $11, $12, $13, $14::numeric, $15::numeric)"""
+
+_USAGE_RECORD_COLS: str = """id, organization_id, user_id, execution_id, model_name, prompt_tokens,
+       completion_tokens, cached_tokens, reasoning_tokens, cache_creation_input_tokens, latency_ms,
+       finish_reason, system_fingerprint, cost_usd, estimated_savings_usd, created_at"""
+
+_LIST_USAGE_RECORDS_SQL: str = f"SELECT {_USAGE_RECORD_COLS} FROM usage_records"
+
+_AGGREGATE_USAGE_BASE_SQL: str = """SELECT
+    COALESCE(SUM(prompt_tokens), 0)::bigint AS total_prompt_tokens,
+    COALESCE(SUM(completion_tokens), 0)::bigint AS total_completion_tokens,
+    COALESCE(SUM(cached_tokens), 0)::bigint AS total_cached_tokens,
+    COALESCE(SUM(reasoning_tokens), 0)::bigint AS total_reasoning_tokens,
+    COALESCE(SUM(cache_creation_input_tokens), 0)::bigint AS total_cache_creation_input_tokens,
+    COALESCE(SUM(cost_usd), 0)::numeric AS total_cost_usd,
+    COALESCE(SUM(estimated_savings_usd), 0)::numeric AS total_estimated_savings_usd,
+    COUNT(*)::bigint AS record_count
+FROM usage_records"""
 
 
 async def _fetch_row(
@@ -1057,3 +1112,417 @@ async def get_system_config_row(
     if row is None:
         return None
     return hydrate_system_config_row(row)
+
+
+async def list_system_config_rows(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+) -> list[SystemConfigModelRegistry | SystemConfigMCPGateways]:
+    """List all polymorphic SystemConfig rows from system_configs.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated SystemConfigModelRegistry and SystemConfigMCPGateways models.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    rows = await _fetch_list_rows(conn, timeout, _LIST_SYSTEM_CONFIGS_SQL, table_label="system_configs")
+    return [hydrate_system_config_row(r) for r in rows]
+
+
+list_system_configs_rows = list_system_config_rows
+
+
+async def delete_tenant_secret_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    secret_id: str,
+) -> bool:
+    """Delete a TenantSecretDTO row by primary key from tenant_secrets.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        secret_id: Canonical sec_<hex32> secret identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    sec_uuid = parse_prefixed_uuid7(secret_id, EntityPrefix.TENANT_SECRET)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_TENANT_SECRET_SQL,
+        sec_uuid,
+        entity_id=secret_id,
+        table="tenant_secrets",
+    )
+
+
+def hydrate_audit_log_row(row: AsyncPgRecordProtocol) -> AuditLogRecord:
+    """Hydrate an AuditLogRecord from a database row in audit_logs.
+
+    Args:
+        row: Database record from the audit_logs table.
+
+    Returns:
+        Validated immutable AuditLogRecord domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if UUID columns or row schema are invalid.
+    """
+    aud_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.AUDIT_LOG)
+    return validate_hydrated_row(
+        AuditLogRecord,
+        {
+            "id": aud_id,
+            "organization_id": _format_org_uuid7(row["organization_id"]),
+            "actor_id": _format_optional_uuid7(row["actor_id"], EntityPrefix.USER),
+            "execution_id": _format_optional_uuid7(row["execution_id"], EntityPrefix.EXECUTION),
+            "event_type": row["event_type"],
+            "resource_type": row["resource_type"],
+            "resource_id": row["resource_id"],
+            "details": _decode_jsonb_column(row["details"]),
+            "created_at": row["created_at"],
+        },
+        table_name="audit_logs",
+        entity_id=aud_id,
+    )
+
+
+async def insert_audit_log_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    record: AuditLogRecord,
+) -> str:
+    """Insert an immutable AuditLogRecord into the append-only audit_logs table.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        record: Validated AuditLogRecord domain model.
+
+    Returns:
+        Canonical aud_<hex32> identifier inserted.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, CONFLICT, or STORAGE_ACCESS_FAILED if insertion fails.
+    """
+    aud_uuid = parse_prefixed_uuid7(record.id, EntityPrefix.AUDIT_LOG)
+    org_uuid = _parse_system_safe_org_uuid7(record.organization_id)
+    actor_uuid = _parse_system_safe_user_uuid7(record.actor_id)
+    exec_uuid = _parse_optional_uuid7(record.execution_id, EntityPrefix.EXECUTION)
+    details_json = to_json(record.details).decode("utf-8")
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        await conn.execute(
+            _INSERT_AUDIT_LOG_SQL,
+            aud_uuid,
+            org_uuid,
+            actor_uuid,
+            exec_uuid,
+            record.event_type,
+            record.resource_type,
+            record.resource_id,
+            details_json,
+            timeout=effective_timeout,
+        )
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="INSERT",
+            table_name="audit_logs",
+            entity_id=record.id,
+        ) from exc
+    return record.id
+
+
+async def list_audit_log_rows(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    *,
+    organization_id: str | None = None,
+    actor_id: str | None = None,
+    event_type: str | None = None,
+    limit: int = 100,
+) -> list[AuditLogRecord]:
+    """List AuditLogRecord entries ordered by id DESC with optional parameterized filters.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        organization_id: Optional organization filter ('org_<hex32>' or 'SYSTEM').
+        actor_id: Optional actor filter ('usr_<hex32>' or 'system').
+        event_type: Optional event_type string filter.
+        limit: Maximum number of records to return.
+
+    Returns:
+        List of hydrated AuditLogRecord models ordered newest-first.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid filter ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    if limit <= 0:
+        return []
+    conditions: list[str] = []
+    params: list[object] = []
+    if organization_id is not None:
+        org_uuid = _parse_system_safe_org_uuid7(organization_id)
+        if org_uuid is not None:
+            params.append(org_uuid)
+            conditions.append(f"organization_id = ${len(params)}::uuid")
+        else:
+            conditions.append("organization_id IS NULL")
+    if actor_id is not None:
+        actor_uuid = _parse_system_safe_user_uuid7(actor_id)
+        if actor_uuid is not None:
+            params.append(actor_uuid)
+            conditions.append(f"actor_id = ${len(params)}::uuid")
+        else:
+            conditions.append("actor_id IS NULL")
+    if event_type is not None:
+        params.append(event_type)
+        conditions.append(f"event_type = ${len(params)}")
+    where_clause = ""
+    if conditions:
+        where_clause = f" WHERE {' AND '.join(conditions)}"
+    params.append(limit)
+    sql = f"{_LIST_AUDIT_LOGS_SQL}{where_clause} ORDER BY id DESC LIMIT ${len(params)}"
+    rows = await _fetch_list_rows(conn, timeout, sql, *params, table_label="audit_logs")
+    return [hydrate_audit_log_row(r) for r in rows]
+
+
+def hydrate_usage_record_row(row: AsyncPgRecordProtocol) -> UsageRecord:
+    """Hydrate a UsageRecord from a database row in usage_records.
+
+    Args:
+        row: Database record from the usage_records table.
+
+    Returns:
+        Validated immutable UsageRecord domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if UUID columns or row schema are invalid.
+    """
+    usg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.USAGE_RECORD)
+    formatted_org = _format_org_uuid7(row["organization_id"])
+    resolved_org = "system"
+    if formatted_org is not None:
+        resolved_org = formatted_org
+    formatted_usr = _format_optional_uuid7(row["user_id"], EntityPrefix.USER)
+    resolved_usr = "system"
+    if formatted_usr is not None:
+        resolved_usr = formatted_usr
+    latency_raw = row["latency_ms"]
+    latency_val: int | None = None
+    if latency_raw is not None:
+        latency_val = int(str(latency_raw))
+    return validate_hydrated_row(
+        UsageRecord,
+        {
+            "id": usg_id,
+            "org_id": resolved_org,
+            "user_id": resolved_usr,
+            "execution_id": _format_optional_uuid7(row["execution_id"], EntityPrefix.EXECUTION),
+            "model": row["model_name"],
+            "input_tokens": int(str(row["prompt_tokens"])),
+            "output_tokens": int(str(row["completion_tokens"])),
+            "cached_tokens": int(str(row["cached_tokens"])),
+            "reasoning_tokens": int(str(row["reasoning_tokens"])),
+            "cache_creation_input_tokens": int(str(row["cache_creation_input_tokens"])),
+            "latency_ms": latency_val,
+            "finish_reason": row["finish_reason"],
+            "system_fingerprint": row["system_fingerprint"],
+            "cost_usd": _coerce_float(row["cost_usd"]),
+            "estimated_savings_usd": _coerce_float(row["estimated_savings_usd"]),
+            "timestamp": row["created_at"],
+        },
+        table_name="usage_records",
+        entity_id=usg_id,
+    )
+
+
+async def insert_usage_record_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    record: UsageRecord,
+) -> str:
+    """Insert an immutable UsageRecord into the append-only usage_records table.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        record: Validated UsageRecord domain model.
+
+    Returns:
+        Canonical usg_<hex32> identifier inserted.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, CONFLICT, or STORAGE_ACCESS_FAILED if insertion fails.
+    """
+    usg_uuid = parse_prefixed_uuid7(record.id, EntityPrefix.USAGE_RECORD)
+    org_uuid = _parse_system_safe_org_uuid7(record.org_id)
+    usr_uuid = _parse_system_safe_user_uuid7(record.user_id)
+    exec_uuid = _parse_optional_uuid7(record.execution_id, EntityPrefix.EXECUTION)
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        await conn.execute(
+            _INSERT_USAGE_RECORD_SQL,
+            usg_uuid,
+            org_uuid,
+            usr_uuid,
+            exec_uuid,
+            record.model,
+            record.input_tokens,
+            record.output_tokens,
+            record.cached_tokens,
+            record.reasoning_tokens,
+            record.cache_creation_input_tokens,
+            record.latency_ms,
+            record.finish_reason,
+            record.system_fingerprint,
+            record.cost_usd,
+            record.estimated_savings_usd,
+            timeout=effective_timeout,
+        )
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="INSERT",
+            table_name="usage_records",
+            entity_id=record.id,
+        ) from exc
+    return record.id
+
+
+async def list_usage_record_rows(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    *,
+    organization_id: str | None = None,
+    user_id: str | None = None,
+    since: datetime | None = None,
+) -> list[UsageRecord]:
+    """List UsageRecord entries ordered chronologically by id ASC with parameterized filters.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        organization_id: Optional organization filter ('org_<hex32>' or 'system').
+        user_id: Optional user filter ('usr_<hex32>' or 'system').
+        since: Optional UTC timestamp lower bound.
+
+    Returns:
+        List of hydrated UsageRecord models ordered chronologically.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid filter ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    conditions: list[str] = []
+    params: list[object] = []
+    if organization_id is not None:
+        org_uuid = _parse_system_safe_org_uuid7(organization_id)
+        if org_uuid is not None:
+            params.append(org_uuid)
+            conditions.append(f"organization_id = ${len(params)}::uuid")
+        else:
+            conditions.append("organization_id IS NULL")
+    if user_id is not None:
+        usr_uuid = _parse_system_safe_user_uuid7(user_id)
+        if usr_uuid is not None:
+            params.append(usr_uuid)
+            conditions.append(f"user_id = ${len(params)}::uuid")
+        else:
+            conditions.append("user_id IS NULL")
+    if since is not None:
+        params.append(since)
+        conditions.append(f"created_at >= ${len(params)}::timestamptz")
+    where_clause = ""
+    if conditions:
+        where_clause = f" WHERE {' AND '.join(conditions)}"
+    sql = f"{_LIST_USAGE_RECORDS_SQL}{where_clause} ORDER BY id ASC"
+    rows = await _fetch_list_rows(conn, timeout, sql, *params, table_label="usage_records")
+    return [hydrate_usage_record_row(r) for r in rows]
+
+
+async def aggregate_organization_usage_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    *,
+    organization_id: str | None = None,
+    since: datetime | None = None,
+) -> UsageRollupSummaryDTO:
+    """Compute FinOps token and USD cost rollups via parameterized SQL SUM/COUNT over usage_records.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        organization_id: Optional organization filter ('org_<hex32>' or None for global system rollup).
+        since: Optional UTC timestamp lower bound.
+
+    Returns:
+        Validated UsageRollupSummaryDTO containing aggregated token and cost metrics.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid organization_id or STORAGE_ACCESS_FAILED on query error.
+    """
+    conditions: list[str] = []
+    params: list[object] = []
+    if organization_id is not None:
+        org_uuid = _parse_system_safe_org_uuid7(organization_id)
+        if org_uuid is not None:
+            params.append(org_uuid)
+            conditions.append(f"organization_id = ${len(params)}::uuid")
+        else:
+            conditions.append("organization_id IS NULL")
+    if since is not None:
+        params.append(since)
+        conditions.append(f"created_at >= ${len(params)}::timestamptz")
+    where_clause = ""
+    if conditions:
+        where_clause = f" WHERE {' AND '.join(conditions)}"
+    sql = f"{_AGGREGATE_USAGE_BASE_SQL}{where_clause}"
+    target_label = "system"
+    if organization_id is not None:
+        target_label = organization_id
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        row = await conn.fetchrow(sql, *params, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="usage_records",
+            entity_id=target_label,
+        ) from exc
+    if row is None:
+        return UsageRollupSummaryDTO(organization_id=organization_id)
+    return validate_hydrated_row(
+        UsageRollupSummaryDTO,
+        {
+            "organization_id": organization_id,
+            "total_prompt_tokens": int(str(row["total_prompt_tokens"])),
+            "total_completion_tokens": int(str(row["total_completion_tokens"])),
+            "total_cached_tokens": int(str(row["total_cached_tokens"])),
+            "total_reasoning_tokens": int(str(row["total_reasoning_tokens"])),
+            "total_cache_creation_input_tokens": int(str(row["total_cache_creation_input_tokens"])),
+            "total_cost_usd": _coerce_float(row["total_cost_usd"]),
+            "total_estimated_savings_usd": _coerce_float(row["total_estimated_savings_usd"]),
+            "record_count": int(str(row["record_count"])),
+        },
+        table_name="usage_records",
+        entity_id=target_label,
+    )

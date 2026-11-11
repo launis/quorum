@@ -11,7 +11,14 @@ from backend_v2.models.domain.analyst import (
     SearchResultItem,
 )
 from backend_v2.models.domain.archivist import ArchiveCase, ArchivistInput, ArchivistOutput, ArchivistOutputDTO
-from backend_v2.models.domain.base import Metadata, ReasoningTrace, UsageRecord
+from backend_v2.models.domain.base import (
+    AuditLogCreateDTO,
+    AuditLogRecord,
+    Metadata,
+    ReasoningTrace,
+    UsageRecord,
+    UsageRollupSummaryDTO,
+)
 from backend_v2.models.domain.causal import (
     CausalAnalysis,
     CausalAnalysisData,
@@ -279,6 +286,8 @@ __all__ = [
     "AcceptanceCriterion",
     "AllowedMCPTool",
     "AntiPattern",
+    "AuditLogCreateDTO",
+    "AuditLogRecord",
     "BaseMatrixXAI",
     "BaseTDAExtraction",
     "ChatHistoryDTO",
@@ -319,5 +328,6 @@ __all__ = [
     "TDAAssertion",
     "TaskBrief",
     "TheoryGrounding",
+    "UsageRollupSummaryDTO",
     "Workflow",
 ]

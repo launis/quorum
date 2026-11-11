@@ -8,14 +8,11 @@ from __future__ import annotations
 
 import copy
 import logging
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from typing import override
 
 from fastapi import status
 
 from backend_v2.database.driver import Filter, StorageDocument, StorageDriver, StorageValue
-from backend_v2.database.postgres.entity_adapter import PostgresEntityAdapter
 from backend_v2.database.postgres.pool import PostgresPoolManager
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import Settings, get_settings
@@ -215,37 +212,6 @@ class PostgresStorageDriver(StorageDriver):
         """
         return self._pool_manager
 
-    @asynccontextmanager
-    async def _optional_adapter(self, collection: str) -> AsyncIterator[PostgresEntityAdapter | None]:
-        """Yield a PostgresEntityAdapter if collection is a canonical table and pool is available.
-
-        Args:
-            collection: Normalized collection name.
-
-        Yields:
-            Connected PostgresEntityAdapter instance for canonical tables, or None.
-
-        Raises:
-            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if pool initialization
-                or connection acquisition fails.
-        """
-        if collection not in _CANONICAL_COLLECTION_ALIASES.values():
-            yield None
-            return
-
-        if not self._pool_manager.is_initialized and self._auto_initialize_pool:
-            await self._pool_manager.connect()
-
-        if not self._pool_manager.is_initialized:
-            yield None
-            return
-
-        async with self._pool_manager.acquire_connection() as conn:
-            yield PostgresEntityAdapter(
-                connection=conn,
-                command_timeout_seconds=self._settings.postgres_command_timeout_seconds,
-            )
-
     async def _get_document(self, norm_col: str, clean_id: str) -> StorageDocument | None:
         """Retrieve a document by normalized collection name and validated ID.
 
@@ -255,16 +221,7 @@ class PostgresStorageDriver(StorageDriver):
 
         Returns:
             Deep copy of the stored document dictionary, or None if not found.
-
-        Raises:
-            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if database retrieval fails.
         """
-        async with self._optional_adapter(norm_col) as adapter:
-            if adapter is not None:
-                pg_doc = await adapter.get_collection_document(norm_col, clean_id)
-                if pg_doc is not None:
-                    return copy.deepcopy(pg_doc)
-
         if norm_col in self._collections and clean_id in self._collections[norm_col]:
             return copy.deepcopy(self._collections[norm_col][clean_id])
         return None
@@ -309,14 +266,6 @@ class PostgresStorageDriver(StorageDriver):
 
         doc_copy: StorageDocument = copy.deepcopy(data)
         doc_copy["id"] = clean_id
-
-        async with self._optional_adapter(norm_col) as adapter:
-            if adapter is not None:
-                persisted = await adapter.upsert_collection_document(norm_col, clean_id, doc_copy)
-                if persisted:
-                    if norm_col in self._collections and clean_id in self._collections[norm_col]:
-                        del self._collections[norm_col][clean_id]
-                    return clean_id
 
         if norm_col not in self._collections:
             self._collections[norm_col] = {}
@@ -411,10 +360,6 @@ class PostgresStorageDriver(StorageDriver):
         clean_id = _validate_doc_id(doc_id)
 
         deleted = False
-        async with self._optional_adapter(norm_col) as adapter:
-            if adapter is not None:
-                deleted = await adapter.delete_collection_document(norm_col, clean_id)
-
         if norm_col in self._collections and clean_id in self._collections[norm_col]:
             del self._collections[norm_col][clean_id]
             deleted = True
@@ -448,13 +393,6 @@ class PostgresStorageDriver(StorageDriver):
         """
         norm_col = _normalize_collection_name(collection)
         merged_by_id: dict[str, StorageDocument] = {}
-
-        async with self._optional_adapter(norm_col) as adapter:
-            if adapter is not None:
-                pg_docs = await adapter.list_collection_documents(norm_col)
-                for doc in pg_docs:
-                    if "id" in doc and isinstance(doc["id"], str):
-                        merged_by_id[doc["id"]] = copy.deepcopy(doc)
 
         if norm_col in self._collections:
             for doc_id, doc in self._collections[norm_col].items():
@@ -540,9 +478,6 @@ class PostgresStorageDriver(StorageDriver):
                 or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
         """
         norm_col = _normalize_collection_name(collection)
-        async with self._optional_adapter(norm_col) as adapter:
-            if adapter is not None:
-                await adapter.clear_collection_documents(norm_col)
         if norm_col in self._collections:
             self._collections[norm_col].clear()
 

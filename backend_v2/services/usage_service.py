@@ -1,7 +1,7 @@
-"""Usage Service for tracking LLM token consumption and costs.
+"""Usage Service for tracking LLM token consumption, quota limits, and SQL FinOps rollups.
 
-This module persists immutable usage records to the repository, utilizing
-the cost calculated by LiteLLM (no local pricing logic).
+Persists immutable UsageRecord entries to the append-only usage_records ledger and
+computes FinOps totals exclusively via SQL SUM/COUNT rollups with zero shadow counter tables.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SubscriptionStatus, SystemOrganizations
 from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain import UsageRecord
-from backend_v2.models.domain.base import UsageAggregateUpdateDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage, UsageReport
 
 logger = logging.getLogger(__name__)
@@ -23,11 +22,11 @@ __all__ = ["UsageService"]
 
 
 class UsageService:
-    """Service for tracking and logging LLM usage (LiteLLM-compliant).
+    """Service for tracking LLM usage, enforcing monthly USD quotas, and compiling FinOps reports.
 
     Attributes:
         identity_repo: Repository for organization and user identity lookups.
-        audit_repo: Repository for usage and audit persistence.
+        audit_repo: Repository for append-only usage persistence and SQL rollups.
     """
 
     def __init__(self, identity_repo: IIdentityRepository, audit_repo: IAuditRepository) -> None:
@@ -40,45 +39,25 @@ class UsageService:
         self.identity_repo = identity_repo
         self.audit_repo = audit_repo
 
-    async def _upsert_usage_aggregates(
-        self,
-        org_id: str,
-        user_id: str,
-        input_tokens: int,
-        output_tokens: int,
-        cached_tokens: int,
-        cost_usd: float,
-    ) -> None:
-        """Upsert cumulative usage aggregates across system, organization, and user scopes.
+    @staticmethod
+    def _parse_since_timestamp(since: str | None) -> datetime | None:
+        """Parse an optional ISO 8601 timestamp string into a UTC-aware datetime.
 
         Args:
-            org_id: Organization identifier.
-            user_id: User identifier.
-            input_tokens: Number of prompt input tokens consumed.
-            output_tokens: Number of completion output tokens generated.
-            cached_tokens: Number of prompt tokens read from cache.
-            cost_usd: Monetary cost in USD for the execution.
+            since: Optional ISO 8601 timestamp string.
+
+        Returns:
+            Parsed UTC-aware datetime instance, or None when omitted.
+
+        Raises:
+            ValueError: If the string is not a valid ISO 8601 timestamp.
         """
-        period = datetime.now(UTC).strftime("%Y-%m")
-        update_dto = UsageAggregateUpdateDTO(
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            cached_tokens=cached_tokens,
-            cost_usd=cost_usd,
-            execution_count=1,
-        )
-
-        # System Level (All traffic)
-        await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_dto)
-        await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_dto)
-
-        # Organization & User Levels
-        if org_id:
-            await self.audit_repo.upsert_usage_aggregate("organization", org_id, period, update_dto)
-            await self.audit_repo.upsert_usage_aggregate("organization", org_id, "all-time", update_dto)
-        if user_id:
-            await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_dto)
-            await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_dto)
+        if not since:
+            return None
+        parsed = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed
 
     async def _evaluate_prompt_caching_drift(
         self,
@@ -100,9 +79,12 @@ class UsageService:
             return
 
         recent_records_data = await self.audit_repo.get_usage_records(scope="user", entity_id=user_id)
-        # Use last 4 from DB + current record
+        # Inspect rolling window of up to 5 records including the current record
         records = list(recent_records_data[-4:])
-        records.append(record)
+        if not recent_records_data or recent_records_data[-1].id != record.id:
+            records.append(record)
+        else:
+            records = list(recent_records_data[-5:])
 
         if len(records) >= 5:
             total_tokens = sum(r.input_tokens for r in records)
@@ -134,10 +116,9 @@ class UsageService:
         cost_usd: float = 0.0,
         estimated_savings_usd: float = 0.0,
         model_pricing_config: PricingConfig | None = None,
+        execution_id: str | None = None,
     ) -> UsageRecord:
-        """Track and log LLM usage securely to the audit repository.
-
-        Calculates no pricing internally; persists metadata and cost passed from LiteLLM.
+        """Track and persist immutable LLM usage to the append-only usage_records ledger.
 
         Args:
             org_id: Organization identifier.
@@ -154,19 +135,20 @@ class UsageService:
             cost_usd: Monetary cost in USD calculated by LiteLLM.
             estimated_savings_usd: Estimated monetary savings in USD from caching.
             model_pricing_config: Optional model pricing configuration for cache drift monitoring.
+            execution_id: Optional associated execution identifier.
 
         Returns:
             Persisted UsageRecord domain model instance.
 
         Raises:
-            AppException: If persisting or aggregating usage fails (ErrorCodes.USAGE_TRACKING_FAILED).
+            AppException: If persisting usage fails (ErrorCodes.USAGE_TRACKING_FAILED).
         """
         try:
             record = UsageRecord(
-                # Generate canonical 32-hex RFC 9562 UUIDv7 usage ID
                 id=f"usg_{generate_uuid7().hex}",
                 org_id=org_id,
                 user_id=user_id,
+                execution_id=execution_id,
                 model=model,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
@@ -182,14 +164,6 @@ class UsageService:
             )
 
             await self.audit_repo.log_usage(record)
-            await self._upsert_usage_aggregates(
-                org_id=org_id,
-                user_id=user_id,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                cached_tokens=cached_tokens,
-                cost_usd=cost_usd,
-            )
             await self._evaluate_prompt_caching_drift(
                 user_id=user_id,
                 record=record,
@@ -228,7 +202,6 @@ class UsageService:
                 is exhausted (ErrorCodes.QUOTA_EXCEEDED), or evaluation fails (ErrorCodes.QUOTA_CHECK_FAILED).
         """
         try:
-            # 1. Get Org Limits
             if not org_id:
                 msg = "Quota Check: Missing Organization ID (Orphan User). Execution denied."
                 logger.error("[UsageService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -237,11 +210,10 @@ class UsageService:
                 )
 
             if org_id == SystemOrganizations.ROOT_SYSTEM:
-                return True  # System internal tasks are exempt from hard quota ceilings
+                return True
 
             org = await self.identity_repo.get_organization(org_id)
-            if not org:
-                # Fail-Fast: Unknown orgs cannot consume LLM traffic
+            if org is None:
                 msg = f"Quota Check: Organization '{org_id}' not found. Execution denied."
                 logger.error("[UsageService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg, exc_info=True)
                 raise AppException(
@@ -270,12 +242,12 @@ class UsageService:
                 )
 
             limit = float(org.quota_limit)
-
-            # 2. Calculate Usage (Current Month)
-            now = datetime.now(UTC)
-            start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
-
-            used = await self.identity_repo.get_org_usage_total(org_id, since=start_of_month)
+            start_of_month_dt = datetime.now(UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            rollup = await self.audit_repo.aggregate_organization_usage(
+                organization_id=org_id,
+                since=start_of_month_dt,
+            )
+            used = float(rollup.total_cost_usd)
 
             if used >= limit:
                 msg = f"Quota Exceeded for {org_id}: Used ${used} >= Limit ${limit}"
@@ -295,13 +267,11 @@ class UsageService:
             return True
 
         except AppException:
-            # Re-raise explicit AppExceptions without double-wrapping
             raise
         except Exception as e:
             logger.error(
                 "[Usage] %s check failed for %s: %s", ErrorCodes.QUOTA_CHECK_FAILED.value, org_id, e, exc_info=True
             )
-            # Fail FAST. Do not swallow errors.
             raise AppException(
                 message=f"Quota check failed: {e}",
                 status_code=500,
@@ -309,7 +279,7 @@ class UsageService:
             ) from e
 
     def _compute_token_usage_from_records(self, records: list[UsageRecord]) -> TokenUsage:
-        """Compute aggregated TokenUsage statistics from raw usage records.
+        """Compute aggregated TokenUsage statistics from raw UsageRecord rows.
 
         Args:
             records: Sequence of UsageRecord domain models to sum.
@@ -322,7 +292,9 @@ class UsageService:
         total_tokens = sum((r.input_tokens + r.output_tokens) for r in records)
         cached_tokens = sum(r.cached_tokens for r in records)
         reasoning_tokens = sum(r.reasoning_tokens for r in records)
+        cache_creation_tokens = sum(r.cache_creation_input_tokens for r in records)
         cost_usd = sum(float(r.cost_usd) for r in records)
+        estimated_savings = sum(float(r.estimated_savings_usd) for r in records)
 
         return TokenUsage(
             prompt_tokens=prompt_tokens,
@@ -330,14 +302,16 @@ class UsageService:
             total_tokens=total_tokens,
             cached_tokens=cached_tokens,
             reasoning_tokens=reasoning_tokens,
+            cache_creation_input_tokens=cache_creation_tokens,
             cost_usd=cost_usd,
+            estimated_savings_usd=estimated_savings,
         )
 
     async def get_usage_report(self, scope: str, entity_id: str | None = None, since: str | None = None) -> UsageReport:
-        """Retrieve a consolidated usage report for a given scope.
+        """Retrieve a consolidated FinOps usage report computed via SQL rollups.
 
         Args:
-            scope: Reporting scope identifier ("org", "organization", "user", or "system").
+            scope: Reporting scope identifier ('org', 'organization', 'user', or 'system').
             entity_id: Optional target entity ID.
             since: Optional start date in ISO-8601 format.
 
@@ -345,40 +319,78 @@ class UsageService:
             Computed UsageReport containing token and cost aggregations.
 
         Raises:
-            AppException: If retrieval from the repository fails (ErrorCodes.USAGE_TRACKING_FAILED).
+            AppException: With RESOURCE_NOT_FOUND (HTTP 404) when the target organization does not exist,
+                or USAGE_TRACKING_FAILED (HTTP 500) on retrieval failure.
         """
         try:
-            period = "all-time"
-            if since:
-                now = datetime.now(UTC)
-                start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
-                if since >= start_of_month:
-                    period = now.strftime("%Y-%m")
-
-            # Map frontend scope 'org' to 'organization' exactly as aggregated
             mapped_scope = "organization" if scope == "org" else scope
-            agg_dto = await self.audit_repo.get_usage_aggregate(mapped_scope, entity_id, period)
+            since_dt = self._parse_since_timestamp(since)
 
-            if agg_dto:
+            quota_limit: float | None = None
+            percentage_used: float | None = None
+
+            if mapped_scope == "organization":
+                if entity_id:
+                    org = await self.identity_repo.get_organization(entity_id)
+                    if org is None:
+                        msg = f"Usage Report: Organization '{entity_id}' not found."
+                        logger.error(
+                            "[UsageService] %s: %s",
+                            ErrorCodes.RESOURCE_NOT_FOUND.name,
+                            msg,
+                            extra={
+                                "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                                "organization_id": entity_id,
+                            },
+                        )
+                        raise AppException(
+                            message=msg,
+                            status_code=404,
+                            details={
+                                "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                                "organization_id": entity_id,
+                            },
+                        )
+                    quota_limit = float(org.quota_limit)
+
+                rollup = await self.audit_repo.aggregate_organization_usage(
+                    organization_id=entity_id,
+                    since=since_dt,
+                )
                 token_usage = TokenUsage(
-                    prompt_tokens=agg_dto.total_input_tokens,
-                    completion_tokens=agg_dto.total_output_tokens,
-                    total_tokens=agg_dto.total_input_tokens + agg_dto.total_output_tokens,
-                    cached_tokens=agg_dto.total_cached_tokens,
-                    cost_usd=agg_dto.total_cost_usd,
+                    prompt_tokens=rollup.total_prompt_tokens,
+                    completion_tokens=rollup.total_completion_tokens,
+                    total_tokens=rollup.total_prompt_tokens + rollup.total_completion_tokens,
+                    cached_tokens=rollup.total_cached_tokens,
+                    reasoning_tokens=rollup.total_reasoning_tokens,
+                    cache_creation_input_tokens=rollup.total_cache_creation_input_tokens,
+                    cost_usd=rollup.total_cost_usd,
+                    estimated_savings_usd=rollup.total_estimated_savings_usd,
+                )
+                if quota_limit is not None and quota_limit > 0:
+                    percentage_used = min(100.0, (token_usage.cost_usd / quota_limit) * 100.0)
+            elif mapped_scope == "system":
+                rollup = await self.audit_repo.aggregate_organization_usage(
+                    organization_id=None,
+                    since=since_dt,
+                )
+                token_usage = TokenUsage(
+                    prompt_tokens=rollup.total_prompt_tokens,
+                    completion_tokens=rollup.total_completion_tokens,
+                    total_tokens=rollup.total_prompt_tokens + rollup.total_completion_tokens,
+                    cached_tokens=rollup.total_cached_tokens,
+                    reasoning_tokens=rollup.total_reasoning_tokens,
+                    cache_creation_input_tokens=rollup.total_cache_creation_input_tokens,
+                    cost_usd=rollup.total_cost_usd,
+                    estimated_savings_usd=rollup.total_estimated_savings_usd,
                 )
             else:
-                records = await self.audit_repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
+                records = await self.audit_repo.get_usage_records(
+                    scope=mapped_scope,
+                    entity_id=entity_id,
+                    since=since,
+                )
                 token_usage = self._compute_token_usage_from_records(records)
-
-            quota_limit = None
-            percentage_used = None
-            if mapped_scope == "organization" and entity_id:
-                org = await self.identity_repo.get_organization(entity_id)
-                if org:
-                    quota_limit = float(org.quota_limit)
-                    if quota_limit > 0:
-                        percentage_used = min(100.0, (token_usage.cost_usd / quota_limit) * 100.0)
 
             return UsageReport(
                 scope=scope,

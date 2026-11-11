@@ -1,4 +1,4 @@
-"""Unit tests for UsageService covering FinOps tracking, quota enforcement, and usage reporting."""
+"""Unit tests for UsageService covering FinOps tracking, quota enforcement, and SQL rollup reporting."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, SubscriptionStatus, SystemOrganizations
-from backend_v2.models.domain.base import UsageAggregateDTO, UsageRecord
 from backend_v2.models.domain.usage import PricingConfig
 from backend_v2.services.usage_service import UsageService
+from backend_v2.tests.factories.model_factories import UsageRecordFactory
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -27,13 +27,34 @@ def usage_service(fake_repo: InMemoryUnifiedWorkflowRepository) -> UsageService:
     return UsageService(audit_repo=fake_repo, identity_repo=fake_repo)
 
 
+async def _seed_monthly_org_spend(
+    fake_repo: InMemoryUnifiedWorkflowRepository,
+    org_id: str,
+    spend_usd: float,
+) -> None:
+    """Replace current-month organization usage records with a deterministic USD spend total."""
+    fake_repo._audit._usage_records.clear()
+    if spend_usd > 0.0:
+        await fake_repo.log_usage(
+            UsageRecordFactory.build(
+                org_id=org_id,
+                user_id="usr_0195f3a0000070018234abcd5678ef90",
+                model="gemini-2.5-flash",
+                input_tokens=100,
+                output_tokens=50,
+                cost_usd=spend_usd,
+                timestamp=datetime.now(UTC),
+            )
+        )
+
+
 @pytest.mark.asyncio
 async def test_track_usage(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
-    """Verify track_usage persists a UsageRecord and updates all 6 cumulative aggregates."""
+    """Verify track_usage persists an append-only UsageRecord without shadow counter tables."""
     record = await usage_service.track_usage(
         org_id="org_0195f3a0000070018234abcd5678ef90",
         user_id="usr_0195f3a0000070018234abcd5678ef90",
-        model="test-model",
+        model="gemini-2.5-flash",
         input_tokens=10,
         output_tokens=20,
         cost_usd=0.01,
@@ -44,7 +65,8 @@ async def test_track_usage(usage_service: UsageService, fake_repo: InMemoryUnifi
     assert record.output_tokens == 20
     assert record.cost_usd == 0.01
     assert fake_repo.get_call_count("log_usage") > 0
-    assert fake_repo.get_call_count("upsert_usage_aggregate") == 6
+    stored = await fake_repo.get_usage_records("organization", "org_0195f3a0000070018234abcd5678ef90")
+    assert len(stored) == 1
 
 
 @pytest.mark.asyncio
@@ -58,11 +80,11 @@ async def test_track_usage_prompt_caching_drift_alert(
     org_id = "org_0195f3a0000070018234abcd5678ef90"
     for idx in range(4):
         await fake_repo.log_usage(
-            UsageRecord(
+            UsageRecordFactory.build(
                 id=f"usg_0195f3a000007001800000000000000{idx}",
                 org_id=org_id,
                 user_id=user_id,
-                model="test-model",
+                model="gemini-2.5-flash",
                 input_tokens=100,
                 output_tokens=20,
                 cached_tokens=10,
@@ -81,7 +103,7 @@ async def test_track_usage_prompt_caching_drift_alert(
         await usage_service.track_usage(
             org_id=org_id,
             user_id=user_id,
-            model="test-model",
+            model="gemini-2.5-flash",
             input_tokens=100,
             output_tokens=20,
             cached_tokens=10,
@@ -103,7 +125,7 @@ async def test_track_usage_failure_raises_app_exception(
             await usage_service.track_usage(
                 org_id="org_0195f3a0000070018234abcd5678ef90",
                 user_id="usr_0195f3a0000070018234abcd5678ef90",
-                model="test-model",
+                model="gemini-2.5-flash",
                 input_tokens=10,
                 output_tokens=20,
                 cost_usd=0.01,
@@ -125,9 +147,10 @@ async def test_check_quota_system_root(
 
 @pytest.mark.asyncio
 async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
-    """Verify check_quota returns True when monthly usage is below organization quota_limit."""
+    """Verify check_quota returns True when monthly rollup usage is below organization quota_limit."""
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
     org = Organization(
-        id="org_0195f3a0000070018234abcd5678ef90",
+        id=org_id,
         name="Test Org",
         is_active=True,
         tier="basic",
@@ -138,11 +161,12 @@ async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemory
         allowed_email_domains=[],
     )
     await fake_repo.create_organization(org)
-    fake_repo.set_org_usage_total("org_0195f3a0000070018234abcd5678ef90", 5.0)
+    await _seed_monthly_org_spend(fake_repo, org_id, 5.0)
 
-    res = await usage_service.check_quota("org_0195f3a0000070018234abcd5678ef90")
+    res = await usage_service.check_quota(org_id)
     assert res is True
     assert fake_repo.get_call_count("get_organization") > 0
+    assert fake_repo.get_call_count("aggregate_organization_usage") > 0
 
 
 @pytest.mark.asyncio
@@ -151,9 +175,10 @@ async def test_check_quota_exceed(
     fake_repo: InMemoryUnifiedWorkflowRepository,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Verify check_quota logs QUOTA_EXCEEDED and raises AppException when monthly usage exceeds quota_limit."""
+    """Verify check_quota logs QUOTA_EXCEEDED and raises AppException when monthly rollup exceeds quota_limit."""
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
     org = Organization(
-        id="org_0195f3a0000070018234abcd5678ef90",
+        id=org_id,
         name="Test Org",
         is_active=True,
         tier="basic",
@@ -164,10 +189,10 @@ async def test_check_quota_exceed(
         allowed_email_domains=[],
     )
     await fake_repo.create_organization(org)
-    fake_repo.set_org_usage_total("org_0195f3a0000070018234abcd5678ef90", 15.0)
+    await _seed_monthly_org_spend(fake_repo, org_id, 15.0)
 
     with caplog.at_level(logging.ERROR), pytest.raises(AppException) as exc_info:
-        await usage_service.check_quota("org_0195f3a0000070018234abcd5678ef90")
+        await usage_service.check_quota(org_id)
 
     assert exc_info.value.status_code == 402
     assert exc_info.value.details == {"error_code": ErrorCodes.QUOTA_EXCEEDED.value}
@@ -184,7 +209,6 @@ async def test_usage_service_check_quota_bva_and_subscription_boundary(
     org_id = "org_0195f3a0000070018234abcd5678ef90"
     quota_limit = 100.0
 
-    # 1. ACTIVE and TRIAL with quota_limit - 0.01 pass
     for active_status in (SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL):
         org = Organization(
             id=org_id,
@@ -198,13 +222,12 @@ async def test_usage_service_check_quota_bva_and_subscription_boundary(
             allowed_email_domains=[],
         )
         await fake_repo.create_organization(org)
-        fake_repo.set_org_usage_total(org_id, quota_limit - 0.01)
+        await _seed_monthly_org_spend(fake_repo, org_id, quota_limit - 0.01)
 
         assert await usage_service.check_quota(org_id) is True
 
-    # 2. Exact quota_limit and quota_limit + 0.01 raise AppException with ErrorCodes.QUOTA_EXCEEDED
     for exhausted_spend in (quota_limit, quota_limit + 0.01):
-        fake_repo.set_org_usage_total(org_id, exhausted_spend)
+        await _seed_monthly_org_spend(fake_repo, org_id, exhausted_spend)
         caplog.clear()
         with caplog.at_level(logging.ERROR), pytest.raises(AppException) as budget_exc:
             await usage_service.check_quota(org_id)
@@ -212,8 +235,7 @@ async def test_usage_service_check_quota_bva_and_subscription_boundary(
         assert budget_exc.value.details == {"error_code": ErrorCodes.QUOTA_EXCEEDED.value}
         assert ErrorCodes.QUOTA_EXCEEDED.name in caplog.text
 
-    # 3. Inactive SubscriptionStatus (PAST_DUE, CANCELED) or is_active=False raises QUOTA_EXCEEDED even at $0 spend
-    fake_repo.set_org_usage_total(org_id, 0.0)
+    await _seed_monthly_org_spend(fake_repo, org_id, 0.0)
     for inactive_status in (
         SubscriptionStatus.PAST_DUE,
         SubscriptionStatus.CANCELED,
@@ -292,23 +314,13 @@ async def test_check_quota_repository_failure_raises_app_exception(
 
 
 @pytest.mark.asyncio
-async def test_get_usage_report_with_aggregate(
+async def test_get_usage_report_with_sql_rollup(
     usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository
 ) -> None:
-    """Verify get_usage_report uses pre-aggregated statistics and computes percentage_used."""
-    agg = UsageAggregateDTO(
-        organization_id="org_0195f3a0000070018234abcd5678ef90",
-        period="all-time",
-        total_input_tokens=100,
-        total_output_tokens=200,
-        total_cached_tokens=0,
-        total_cost_usd=0.5,
-        execution_count=5,
-    )
-    fake_repo.set_usage_aggregate("organization", "org_0195f3a0000070018234abcd5678ef90", "all-time", agg)
-
+    """Verify get_usage_report computes organization totals via aggregate_organization_usage and percentage_used."""
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
     org = Organization(
-        id="org_0195f3a0000070018234abcd5678ef90",
+        id=org_id,
         name="Test Org",
         is_active=True,
         tier="basic",
@@ -319,12 +331,24 @@ async def test_get_usage_report_with_aggregate(
         allowed_email_domains=[],
     )
     await fake_repo.create_organization(org)
+    await fake_repo.log_usage(
+        UsageRecordFactory.build(
+            org_id=org_id,
+            user_id="usr_0195f3a0000070018234abcd5678ef90",
+            model="gemini-2.5-pro",
+            input_tokens=100,
+            output_tokens=200,
+            cached_tokens=0,
+            cost_usd=0.5,
+            timestamp=datetime.now(UTC),
+        )
+    )
 
-    report = await usage_service.get_usage_report(scope="org", entity_id="org_0195f3a0000070018234abcd5678ef90")
+    report = await usage_service.get_usage_report(scope="org", entity_id=org_id)
 
     assert report.usage.total_tokens == 300
-    assert report.percentage_used == 5.0  # 0.5 / 10.0 * 100
-    assert fake_repo.get_call_count("get_usage_aggregate") > 0
+    assert report.percentage_used == pytest.approx(5.0)
+    assert fake_repo.get_call_count("aggregate_organization_usage") > 0
 
 
 @pytest.mark.asyncio
@@ -332,17 +356,32 @@ async def test_get_usage_report_from_records_with_since(
     usage_service: UsageService,
     fake_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """Verify get_usage_report computes usage from raw records when no aggregate exists for custom period."""
+    """Verify get_usage_report computes usage for custom since timestamp and user scope."""
     now = datetime.now(UTC)
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     org_id = "org_0195f3a0000070018234abcd5678ef90"
+    user_id = "usr_0195f3a0000070018234abcd5678ef90"
+
+    await fake_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="Scoped Org",
+            is_active=True,
+            tier="basic",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=10.0,
+            tpm_limit=1000,
+            rpm_limit=10,
+            allowed_email_domains=[],
+        )
+    )
 
     await fake_repo.log_usage(
-        UsageRecord(
+        UsageRecordFactory.build(
             id="usg_0195f3a0000070018111222233334444",
             org_id=org_id,
-            user_id="usr_0195f3a0000070018234abcd5678ef90",
-            model="test-model",
+            user_id=user_id,
+            model="gemini-2.5-flash",
             input_tokens=40,
             output_tokens=60,
             cached_tokens=10,
@@ -362,6 +401,24 @@ async def test_get_usage_report_from_records_with_since(
     assert report.usage.reasoning_tokens == 5
     assert report.usage.cost_usd == pytest.approx(0.25)
 
+    user_report = await usage_service.get_usage_report(scope="user", entity_id=user_id, since=start_of_month)
+    assert user_report.usage.total_tokens == 100
+
+
+@pytest.mark.asyncio
+async def test_usage_service_get_usage_report_unknown_org_raises_resource_not_found(
+    usage_service: UsageService,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify get_usage_report for a nonexistent organization logs error and raises 404 RESOURCE_NOT_FOUND."""
+    missing_org_id = "org_0195f3a0000070018999999999999999"
+    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as excinfo:
+        await usage_service.get_usage_report(scope="org", entity_id=missing_org_id)
+
+    assert excinfo.value.status_code == 404
+    assert excinfo.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+    assert ErrorCodes.RESOURCE_NOT_FOUND.value in caplog.text
+
 
 @pytest.mark.asyncio
 async def test_get_usage_report_failure_raises_app_exception(
@@ -369,9 +426,23 @@ async def test_get_usage_report_failure_raises_app_exception(
     fake_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Verify repository error during get_usage_report raises 500 AppException with USAGE_TRACKING_FAILED."""
-    async with fake_repo._audit.fault_context("get_usage_aggregate", RuntimeError("read error")):
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
+    await fake_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="Fault Org",
+            is_active=True,
+            tier="basic",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=10.0,
+            tpm_limit=1000,
+            rpm_limit=10,
+            allowed_email_domains=[],
+        )
+    )
+    async with fake_repo._audit.fault_context("aggregate_organization_usage", RuntimeError("read error")):
         with pytest.raises(AppException) as excinfo:
-            await usage_service.get_usage_report(scope="org", entity_id="org_0195f3a0000070018234abcd5678ef90")
+            await usage_service.get_usage_report(scope="org", entity_id=org_id)
 
     assert excinfo.value.status_code == 500
     assert excinfo.value.details == {"error_code": ErrorCodes.USAGE_TRACKING_FAILED.value}
@@ -383,14 +454,28 @@ async def test_get_usage_report_app_exception_passthrough(
     fake_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Verify explicit AppException raised during get_usage_report is re-raised without double-wrapping."""
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
+    await fake_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="Domain Error Org",
+            is_active=True,
+            tier="basic",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=10.0,
+            tpm_limit=1000,
+            rpm_limit=10,
+            allowed_email_domains=[],
+        )
+    )
     domain_err = AppException(
-        message="Invalid aggregate state",
+        message="Invalid rollup state",
         status_code=422,
         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
     )
-    async with fake_repo._audit.fault_context("get_usage_aggregate", domain_err):
+    async with fake_repo._audit.fault_context("aggregate_organization_usage", domain_err):
         with pytest.raises(AppException) as excinfo:
-            await usage_service.get_usage_report(scope="org", entity_id="org_0195f3a0000070018234abcd5678ef90")
+            await usage_service.get_usage_report(scope="org", entity_id=org_id)
 
     assert excinfo.value.status_code == 422
     assert excinfo.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
@@ -414,7 +499,7 @@ async def test_track_usage_negative_boundary_values_raise_app_exception(
         await usage_service.track_usage(
             org_id="org_0195f3a0000070018234abcd5678ef90",
             user_id="usr_0195f3a0000070018234abcd5678ef90",
-            model="test-model",
+            model="gemini-2.5-flash",
             input_tokens=input_tokens,
             output_tokens=20,
             cost_usd=cost_usd,

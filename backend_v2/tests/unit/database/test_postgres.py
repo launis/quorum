@@ -61,6 +61,7 @@ from backend_v2.models.core_base import (
     generate_uuid7_opaque_id,
     parse_prefixed_uuid7,
 )
+from backend_v2.models.domain.base import AuditLogRecord, UsageRecord
 from backend_v2.models.domain.execution import (
     ExecutionAssignment,
     ExecutionRecord,
@@ -623,6 +624,8 @@ def test_schema_dto_naming_parity() -> None:
         "report_binaries",
         "quorum_nodes",
         "quorum_edges",
+        "audit_logs",
+        "usage_records",
     }
     assert set(parsed_tables.keys()) == expected_16_tables
 
@@ -682,6 +685,15 @@ def test_schema_dto_naming_parity() -> None:
 
     # 16. task_briefs <-> TaskBrief + VIRTUAL created_at
     assert parsed_tables["task_briefs"] == set(TaskBrief.model_fields.keys()) | {"created_at"}
+
+    # 17. audit_logs <-> AuditLogRecord
+    assert parsed_tables["audit_logs"] == set(AuditLogRecord.model_fields.keys())
+
+    # 18. usage_records <-> UsageRecord (with canonical SQL column names mapped via AliasChoices)
+    expected_usage_sql_columns = (
+        set(UsageRecord.model_fields.keys()) - {"org_id", "model", "input_tokens", "output_tokens", "timestamp"}
+    ) | {"organization_id", "model_name", "prompt_tokens", "completion_tokens", "created_at"}
+    assert parsed_tables["usage_records"] == expected_usage_sql_columns
 
     # Verify lossless binary JSONB roundtrip of MCP schemas (AllowedMCPTool, MCPServerInfoDTO, Step.mcp_tool_params)
     server_info = MCPServerInfoDTO(
@@ -1681,8 +1693,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
         == 2
     )
 
-    # 3. Verify uninitialized pool fallback vs. auto_initialize_pool=True routing through PostgresEntityAdapter
-    uninit_pool = InMemoryAsyncPgPool()
+    # 3. Verify uninitialized pool driver operations
     uninit_pool_manager = PostgresPoolManager(settings=settings)
     uninit_driver = PostgresStorageDriver(
         pool_manager=uninit_pool_manager,
@@ -1691,19 +1702,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
     )
     await uninit_driver.upsert("organizations", org_payload, org_id_val)
     assert await uninit_driver.get("organizations", org_id_val) is not None
-
-    auto_pool_manager = PostgresPoolManager(settings=settings, pool=uninit_pool)
-    auto_driver = PostgresStorageDriver(
-        pool_manager=auto_pool_manager,
-        settings=settings,
-        auto_initialize_pool=True,
-    )
-    auto_driver._collections["organizations"] = {org_id_val: dict(org_payload)}
-    await auto_driver.upsert("organizations", org_payload, org_id_val)
-    queried_orgs = await auto_driver.query("organizations")
-    assert len(queried_orgs) == 1
-    assert queried_orgs[0]["id"] == org_id_val
-    await auto_driver.close()
+    await uninit_driver.close()
 
     # 4. Delete and Clear
     assert await driver.delete("custom_items", "itm_0195f3a0000070008000222222222222") is True
@@ -1968,40 +1967,53 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
                 await uow.entities.get_workflow("wor_invalid")
             assert exc_bad_wf_id.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
-            # Exercise list_collection_documents and get_collection_document across all seeded tables
-            for col_name in (
-                "organizations",
-                "users",
-                "system_configs",
-                "prompt_blocks",
-                "steps",
-                "workflows",
-                "output_profiles",
-                "executions",
-                "report_artifacts",
-            ):
-                docs = await uow.entities.list_collection_documents(col_name)
-                assert len(docs) >= 1
-                first_id = str(docs[0]["id"])
-                fetched_doc = await uow.entities.get_collection_document(col_name, first_id)
-                assert fetched_doc is not None
-                assert await uow.entities.upsert_collection_document(col_name, first_id, fetched_doc) is True
+            # Exercise delete_tenant_secret, audit_logs, usage_records, and SQL FinOps rollups
+            assert await uow.entities.delete_tenant_secret(secret_sample.id) is True
+            assert await uow.entities.delete_tenant_secret(secret_sample.id) is False
 
-            assert await uow.entities.list_collection_documents("unknown_col") == []
-            assert await uow.entities.get_collection_document("unknown_col", "id_1") is None
-            assert await uow.entities.get_collection_document("executions", "exe_invalid") is None
-            assert await uow.entities.get_collection_document("report_artifacts", "rep_invalid") is None
-            assert await uow.entities.upsert_collection_document("unknown_col", "id_1", {}) is False
-            assert await uow.entities.upsert_collection_document("organizations", "bad_id", {"bad": 1}) is False
+            audit_sample = AuditLogRecord(
+                id=generate_uuid7_opaque_id(EntityPrefix.AUDIT_LOG),
+                organization_id=org_sample.id,
+                actor_id=user_sample.id,
+                execution_id=sample_exec.id,
+                event_type="EXECUTION_AUDITED",
+                resource_type="execution",
+                resource_id=sample_exec.id,
+                details={"status": "verified"},
+                created_at=now,
+            )
+            assert await uow.entities.insert_audit_log(audit_sample) == audit_sample.id
+            listed_audits = await uow.entities.list_audit_logs(organization_id=org_sample.id)
+            assert len(listed_audits) == 1 and listed_audits[0].id == audit_sample.id
 
-            # Delete and clear helpers
-            assert await uow.entities.delete_collection_document("executions", sample_exec.id) is True
-            assert await uow.entities.delete_collection_document("executions", "exe_invalid") is False
-            assert await uow.entities.delete_collection_document("report_artifacts", sample_report.id) is True
-            assert await uow.entities.delete_collection_document("report_artifacts", "rep_invalid") is False
-            assert await uow.entities.delete_collection_document("unknown_col", "id_1") is False
-            await uow.entities.clear_collection_documents("organizations")
-            await uow.entities.clear_collection_documents("unknown_col")
+            with pytest.raises(AppException) as dup_audit_exc:
+                await uow.entities.insert_audit_log(audit_sample)
+            assert dup_audit_exc.value.error_code == ErrorCodes.CONFLICT.value
+
+            usage_sample = UsageRecord(
+                id=generate_uuid7_opaque_id(EntityPrefix.USAGE_RECORD),
+                org_id=org_sample.id,
+                user_id=user_sample.id,
+                execution_id=sample_exec.id,
+                model="gemini-2.5-pro",
+                input_tokens=200,
+                output_tokens=80,
+                cached_tokens=40,
+                reasoning_tokens=20,
+                cache_creation_input_tokens=10,
+                cost_usd=0.06,
+                estimated_savings_usd=0.02,
+                timestamp=now,
+            )
+            assert await uow.entities.insert_usage_record(usage_sample) == usage_sample.id
+            listed_usage = await uow.entities.list_usage_records(organization_id=org_sample.id)
+            assert len(listed_usage) == 1 and listed_usage[0].id == usage_sample.id
+
+            rollup_summary = await uow.entities.aggregate_organization_usage(organization_id=org_sample.id)
+            assert rollup_summary.record_count == 1
+            assert rollup_summary.total_prompt_tokens == 200
+            assert rollup_summary.total_completion_tokens == 80
+            assert rollup_summary.total_cost_usd == pytest.approx(0.06)
 
         # Negative boundary 1: unsupported collection name raises VALIDATION_FAILED
         with pytest.raises(AppException) as exc_bad_col:

@@ -26,7 +26,6 @@ __all__ = [
     "SystemConfigCreateDTO",
     "SystemConfigUpdateDTO",
     "SystemConfigUpsertDTO",
-    "SystemSettingsDTO",
 ]
 
 
@@ -133,34 +132,9 @@ class StrictnessConfigListResponse(BaseResponseDTO):
     configs: Annotated[list[StrictnessConfigDTO], Field(description="The list of configs")]
 
 
-class SystemSettingsDTO(BaseDTO):
-    """DTO representing global system settings and tuning flags.
-
-    Attributes:
-        type: Config type discriminator literal ('system_settings').
-        environment: Runtime environment stage ('development' or 'production').
-        maintenance_mode: Flag indicating whether maintenance mode is active.
-        debug_logging: Flag indicating whether verbose debug logging is enabled.
-        default_locale: Default system locale code.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="system_settings")
-
-    type: Annotated[
-        Literal["system_settings"], Field(default="system_settings", description="Config type discriminator")
-    ] = "system_settings"
-    environment: Annotated[
-        Literal["development", "production"],
-        Field(default="development", description="Runtime environment: development or production"),
-    ] = "development"
-    maintenance_mode: Annotated[bool, Field(default=False, description="Maintenance mode flag")] = False
-    debug_logging: Annotated[bool, Field(default=False, description="Debug logging flag")] = False
-    default_locale: Annotated[str, Field(default="fi", description="Default system locale")] = "fi"
-
-
-# Strict Discriminated Union for System Configurations ensuring O(1) deterministic resolution and zero silent coercion (RT-1)
+# Strict Discriminated Union for System Configurations ensuring O(1) deterministic resolution and zero silent coercion
 type AnySystemConfig = Annotated[
-    SystemConfigModelRegistry | SystemConfigMCPGateways | SystemSettingsDTO,
+    SystemConfigModelRegistry | SystemConfigMCPGateways,
     Field(discriminator="type"),
 ]
 
@@ -173,7 +147,6 @@ class SystemConfigUpdateDTO(BaseDTO):
     Attributes:
         model_registry: Optional updated model registry configuration.
         mcp_gateways: Optional updated MCP gateways configuration.
-        system_settings: Optional updated global system settings configuration.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -182,9 +155,6 @@ class SystemConfigUpdateDTO(BaseDTO):
         SystemConfigModelRegistry | None, Field(default=None, description="Updated model registry")
     ] = None
     mcp_gateways: Annotated[SystemConfigMCPGateways | None, Field(default=None, description="Updated MCP gateways")] = (
-        None
-    )
-    system_settings: Annotated[SystemSettingsDTO | None, Field(default=None, description="Updated system settings")] = (
         None
     )
 

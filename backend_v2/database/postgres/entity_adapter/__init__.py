@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol
 from backend_v2.models.auth import Invitation, Organization, TenantSecretDTO, User
+from backend_v2.models.domain.base import AuditLogRecord, UsageRecord, UsageRollupSummaryDTO
 from backend_v2.models.domain.execution import ExecutionAssignment, ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
@@ -33,7 +35,10 @@ from .coercion_and_constants import _format_optional_uuid7 as _format_optional_u
 from .coercion_and_constants import _format_org_uuid7 as _format_org_uuid7
 from .coercion_and_constants import _parse_optional_uuid7 as _parse_optional_uuid7
 from .coercion_and_constants import _parse_org_uuid7 as _parse_org_uuid7
+from .coercion_and_constants import _parse_system_safe_org_uuid7 as _parse_system_safe_org_uuid7
+from .coercion_and_constants import _parse_system_safe_user_uuid7 as _parse_system_safe_user_uuid7
 from .coercion_and_constants import _ReportBinaryRowDTO as _ReportBinaryRowDTO
+from .coercion_and_constants import execute_entity_delete as execute_entity_delete
 from .coercion_and_constants import execute_entity_upsert as execute_entity_upsert
 from .coercion_and_constants import translate_postgres_exception as translate_postgres_exception
 from .coercion_and_constants import validate_hydrated_row as validate_hydrated_row
@@ -51,15 +56,21 @@ from .execution_and_report_stage import get_report_artifact_row as get_report_ar
 from .execution_and_report_stage import get_report_binary_row as get_report_binary_row
 from .execution_and_report_stage import hydrate_execution_row as hydrate_execution_row
 from .execution_and_report_stage import hydrate_report_artifact_row as hydrate_report_artifact_row
+from .execution_and_report_stage import list_execution_rows as list_execution_rows
 from .execution_and_report_stage import save_execution_row as save_execution_row
 from .execution_and_report_stage import save_report_binary_row as save_report_binary_row
 from .execution_and_report_stage import upsert_report_artifact_row as upsert_report_artifact_row
+from .iam_and_system_stage import _AGGREGATE_USAGE_BASE_SQL as _AGGREGATE_USAGE_BASE_SQL
+from .iam_and_system_stage import _DELETE_TENANT_SECRET_SQL as _DELETE_TENANT_SECRET_SQL
 from .iam_and_system_stage import _GET_EXECUTION_ASSIGNMENT_SQL as _GET_EXECUTION_ASSIGNMENT_SQL
 from .iam_and_system_stage import _GET_INVITATION_SQL as _GET_INVITATION_SQL
 from .iam_and_system_stage import _GET_ORGANIZATION_SQL as _GET_ORGANIZATION_SQL
 from .iam_and_system_stage import _GET_SYSTEM_CONFIG_SQL as _GET_SYSTEM_CONFIG_SQL
 from .iam_and_system_stage import _GET_TENANT_SECRET_SQL as _GET_TENANT_SECRET_SQL
 from .iam_and_system_stage import _GET_USER_SQL as _GET_USER_SQL
+from .iam_and_system_stage import _INSERT_AUDIT_LOG_SQL as _INSERT_AUDIT_LOG_SQL
+from .iam_and_system_stage import _INSERT_USAGE_RECORD_SQL as _INSERT_USAGE_RECORD_SQL
+from .iam_and_system_stage import _LIST_AUDIT_LOGS_SQL as _LIST_AUDIT_LOGS_SQL
 from .iam_and_system_stage import (
     _LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL as _LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL,
 )
@@ -70,6 +81,7 @@ from .iam_and_system_stage import _LIST_ORGANIZATIONS_SQL as _LIST_ORGANIZATIONS
 from .iam_and_system_stage import _LIST_SYSTEM_CONFIGS_SQL as _LIST_SYSTEM_CONFIGS_SQL
 from .iam_and_system_stage import _LIST_TENANT_SECRETS_BY_ORG_SQL as _LIST_TENANT_SECRETS_BY_ORG_SQL
 from .iam_and_system_stage import _LIST_TENANT_SECRETS_SQL as _LIST_TENANT_SECRETS_SQL
+from .iam_and_system_stage import _LIST_USAGE_RECORDS_SQL as _LIST_USAGE_RECORDS_SQL
 from .iam_and_system_stage import _LIST_USERS_BY_ORG_SQL as _LIST_USERS_BY_ORG_SQL
 from .iam_and_system_stage import _LIST_USERS_SQL as _LIST_USERS_SQL
 from .iam_and_system_stage import _UPSERT_EXECUTION_ASSIGNMENT_SQL as _UPSERT_EXECUTION_ASSIGNMENT_SQL
@@ -78,22 +90,32 @@ from .iam_and_system_stage import _UPSERT_ORGANIZATION_SQL as _UPSERT_ORGANIZATI
 from .iam_and_system_stage import _UPSERT_SYSTEM_CONFIG_SQL as _UPSERT_SYSTEM_CONFIG_SQL
 from .iam_and_system_stage import _UPSERT_TENANT_SECRET_SQL as _UPSERT_TENANT_SECRET_SQL
 from .iam_and_system_stage import _UPSERT_USER_SQL as _UPSERT_USER_SQL
+from .iam_and_system_stage import aggregate_organization_usage_row as aggregate_organization_usage_row
+from .iam_and_system_stage import delete_tenant_secret_row as delete_tenant_secret_row
 from .iam_and_system_stage import get_execution_assignment_row as get_execution_assignment_row
 from .iam_and_system_stage import get_invitation_row as get_invitation_row
 from .iam_and_system_stage import get_organization_row as get_organization_row
 from .iam_and_system_stage import get_system_config_row as get_system_config_row
 from .iam_and_system_stage import get_tenant_secret_row as get_tenant_secret_row
 from .iam_and_system_stage import get_user_row as get_user_row
+from .iam_and_system_stage import hydrate_audit_log_row as hydrate_audit_log_row
 from .iam_and_system_stage import hydrate_execution_assignment_row as hydrate_execution_assignment_row
 from .iam_and_system_stage import hydrate_invitation_row as hydrate_invitation_row
 from .iam_and_system_stage import hydrate_organization_row as hydrate_organization_row
 from .iam_and_system_stage import hydrate_system_config_row as hydrate_system_config_row
 from .iam_and_system_stage import hydrate_tenant_secret_row as hydrate_tenant_secret_row
+from .iam_and_system_stage import hydrate_usage_record_row as hydrate_usage_record_row
 from .iam_and_system_stage import hydrate_user_row as hydrate_user_row
+from .iam_and_system_stage import insert_audit_log_row as insert_audit_log_row
+from .iam_and_system_stage import insert_usage_record_row as insert_usage_record_row
+from .iam_and_system_stage import list_audit_log_rows as list_audit_log_rows
 from .iam_and_system_stage import list_execution_assignment_rows as list_execution_assignment_rows
 from .iam_and_system_stage import list_invitation_rows as list_invitation_rows
 from .iam_and_system_stage import list_organization_rows as list_organization_rows
+from .iam_and_system_stage import list_system_config_rows as list_system_config_rows
+from .iam_and_system_stage import list_system_configs_rows as list_system_configs_rows
 from .iam_and_system_stage import list_tenant_secret_rows as list_tenant_secret_rows
+from .iam_and_system_stage import list_usage_record_rows as list_usage_record_rows
 from .iam_and_system_stage import list_user_rows as list_user_rows
 from .iam_and_system_stage import upsert_execution_assignment_row as upsert_execution_assignment_row
 from .iam_and_system_stage import upsert_invitation_row as upsert_invitation_row
@@ -113,12 +135,7 @@ from .prompt_block_and_step_stage import hydrate_prompt_block_row as hydrate_pro
 from .prompt_block_and_step_stage import hydrate_step_row as hydrate_step_row
 from .prompt_block_and_step_stage import upsert_prompt_block_row as upsert_prompt_block_row
 from .prompt_block_and_step_stage import upsert_step_row as upsert_step_row
-from .seed_and_collection_stage import clear_collection_documents_rows as clear_collection_documents_rows
-from .seed_and_collection_stage import delete_collection_document_row as delete_collection_document_row
-from .seed_and_collection_stage import get_collection_document_row as get_collection_document_row
-from .seed_and_collection_stage import list_collection_documents_rows as list_collection_documents_rows
 from .seed_and_collection_stage import seed_collection_batch_rows as seed_collection_batch_rows
-from .seed_and_collection_stage import upsert_collection_document_row as upsert_collection_document_row
 from .seed_and_collection_stage import verify_seed_table_counts_rows as verify_seed_table_counts_rows
 from .workflow_and_profile_stage import _GET_OUTPUT_PROFILE_SQL as _GET_OUTPUT_PROFILE_SQL
 from .workflow_and_profile_stage import _GET_TASK_BRIEF_SQL as _GET_TASK_BRIEF_SQL
@@ -165,6 +182,8 @@ class PostgresEntityAdapter:
     _hydrate_workflow_row = staticmethod(hydrate_workflow_row)
     _hydrate_output_profile_row = staticmethod(hydrate_output_profile_row)
     _hydrate_report_artifact_row = staticmethod(hydrate_report_artifact_row)
+    _hydrate_audit_log_row = staticmethod(hydrate_audit_log_row)
+    _hydrate_usage_record_row = staticmethod(hydrate_usage_record_row)
 
     def __init__(self, connection: AsyncPgConnectionProtocol, command_timeout_seconds: float | None = None) -> None:
         """Initialize the PostgreSQL entity adapter over an active connection.
@@ -694,7 +713,7 @@ class PostgresEntityAdapter:
         return await seed_collection_batch_rows(self._conn, self.command_timeout_seconds, collection_name, items)
 
     async def verify_seed_table_counts(self, expected_counts: Mapping[str, int]) -> dict[str, int]:
-        """Verify row counts across the 10 core PostgreSQL 19 tables via SELECT count(*).
+        """Verify row counts across the canonical PostgreSQL 19 seed tables via SELECT count(*).
 
         Args:
             expected_counts: Mapping of canonical table/collection names to minimum expected row counts.
@@ -707,73 +726,149 @@ class PostgresEntityAdapter:
         """
         return await verify_seed_table_counts_rows(self._conn, self.command_timeout_seconds, expected_counts)
 
-    async def list_collection_documents(self, collection_name: str) -> list[dict[str, JsonValue]]:
-        """List all documents from a canonical PostgreSQL 19 table as JSON-compatible dictionaries.
+    async def delete_tenant_secret(self, secret_id: str) -> bool:
+        """Delete a TenantSecretDTO row by primary key from tenant_secrets.
 
         Args:
-            collection_name: Canonical collection or table name.
-
-        Returns:
-            List of serialized JSON-compatible document dictionaries.
-
-        Raises:
-            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
-        """
-        return await list_collection_documents_rows(self._conn, self.command_timeout_seconds, collection_name)
-
-    async def get_collection_document(self, collection_name: str, doc_id: str) -> dict[str, JsonValue] | None:
-        """Fetch a single document by ID from a canonical PostgreSQL 19 table.
-
-        Args:
-            collection_name: Canonical collection or table name.
-            doc_id: Canonical Opaque Stripe ID of the target document.
-
-        Returns:
-            Serialized JSON-compatible document dictionary, or None if not found.
-
-        Raises:
-            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
-        """
-        return await get_collection_document_row(self._conn, self.command_timeout_seconds, collection_name, doc_id)
-
-    async def upsert_collection_document(self, col: str, doc_id: str, data: Mapping[str, JsonValue]) -> bool:
-        """Validate and upsert a document dictionary into its canonical PostgreSQL 19 table.
-
-        Args:
-            col: Canonical collection or table name.
-            doc_id: Canonical Opaque Stripe ID of the target document.
-            data: Raw JSON-compatible document mapping to validate and persist.
-
-        Returns:
-            True if the document was validated and persisted, False otherwise.
-
-        Raises:
-            AppException: With STORAGE_ACCESS_FAILED if the underlying SQL execution fails.
-        """
-        return await upsert_collection_document_row(self._conn, self.command_timeout_seconds, col, doc_id, data)
-
-    async def delete_collection_document(self, collection_name: str, doc_id: str) -> bool:
-        """Delete a row by ID from a canonical PostgreSQL 19 table.
-
-        Args:
-            collection_name: Canonical collection or table name.
-            doc_id: Canonical Opaque Stripe ID of the target document.
+            secret_id: Canonical sec_<32_hex> secret identifier.
 
         Returns:
             True if a matching row was deleted, False otherwise.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if the DELETE command fails.
+            AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
         """
-        return await delete_collection_document_row(self._conn, self.command_timeout_seconds, collection_name, doc_id)
+        return await delete_tenant_secret_row(self._conn, self.command_timeout_seconds, secret_id)
 
-    async def clear_collection_documents(self, collection_name: str) -> None:
-        """Delete all rows from a canonical PostgreSQL 19 table.
+    async def list_system_configs(self) -> list[AnySystemConfig]:
+        """List all polymorphic SystemConfig rows from system_configs.
 
-        Args:
-            collection_name: Canonical collection or table name.
+        Returns:
+            List of hydrated SystemConfigModelRegistry and SystemConfigMCPGateways models.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if the DELETE command fails.
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
         """
-        await clear_collection_documents_rows(self._conn, self.command_timeout_seconds, collection_name)
+        return await list_system_config_rows(self._conn, self.command_timeout_seconds)
+
+    async def list_executions(self) -> list[ExecutionRecord]:
+        """List all ExecutionRecord rows ordered by created_at DESC.
+
+        Returns:
+            List of hydrated ExecutionRecord models ordered newest-first.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_execution_rows(self._conn, self.command_timeout_seconds)
+
+    async def insert_audit_log(self, record: AuditLogRecord) -> str:
+        """Insert an immutable AuditLogRecord into the append-only audit_logs table.
+
+        Args:
+            record: Validated AuditLogRecord domain model.
+
+        Returns:
+            Canonical aud_<32_hex> identifier inserted.
+
+        Raises:
+            AppException: With VALIDATION_FAILED, CONFLICT, or STORAGE_ACCESS_FAILED on persistence failure.
+        """
+        return await insert_audit_log_row(self._conn, self.command_timeout_seconds, record)
+
+    async def list_audit_logs(
+        self,
+        *,
+        organization_id: str | None = None,
+        actor_id: str | None = None,
+        event_type: str | None = None,
+        limit: int = 100,
+    ) -> list[AuditLogRecord]:
+        """List AuditLogRecord entries ordered by id DESC with optional parameterized filters.
+
+        Args:
+            organization_id: Optional organization filter ('org_<32_hex>' or 'SYSTEM').
+            actor_id: Optional actor filter ('usr_<32_hex>' or 'system').
+            event_type: Optional event_type string filter.
+            limit: Maximum number of records to return.
+
+        Returns:
+            List of hydrated AuditLogRecord models ordered newest-first.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_audit_log_rows(
+            self._conn,
+            self.command_timeout_seconds,
+            organization_id=organization_id,
+            actor_id=actor_id,
+            event_type=event_type,
+            limit=limit,
+        )
+
+    async def insert_usage_record(self, record: UsageRecord) -> str:
+        """Insert an immutable UsageRecord into the append-only usage_records table.
+
+        Args:
+            record: Validated UsageRecord domain model.
+
+        Returns:
+            Canonical usg_<32_hex> identifier inserted.
+
+        Raises:
+            AppException: With VALIDATION_FAILED, CONFLICT, or STORAGE_ACCESS_FAILED on persistence failure.
+        """
+        return await insert_usage_record_row(self._conn, self.command_timeout_seconds, record)
+
+    async def list_usage_records(
+        self,
+        *,
+        organization_id: str | None = None,
+        user_id: str | None = None,
+        since: datetime | None = None,
+    ) -> list[UsageRecord]:
+        """List UsageRecord entries ordered chronologically by id ASC with parameterized filters.
+
+        Args:
+            organization_id: Optional organization filter ('org_<32_hex>' or 'system').
+            user_id: Optional user filter ('usr_<32_hex>' or 'system').
+            since: Optional UTC timestamp lower bound.
+
+        Returns:
+            List of hydrated UsageRecord models ordered chronologically.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_usage_record_rows(
+            self._conn,
+            self.command_timeout_seconds,
+            organization_id=organization_id,
+            user_id=user_id,
+            since=since,
+        )
+
+    async def aggregate_organization_usage(
+        self,
+        organization_id: str | None = None,
+        since: datetime | None = None,
+    ) -> UsageRollupSummaryDTO:
+        """Compute FinOps token and USD cost rollups via parameterized SQL SUM/COUNT over usage_records.
+
+        Args:
+            organization_id: Optional organization filter ('org_<32_hex>' or None for global rollup).
+            since: Optional UTC timestamp lower bound.
+
+        Returns:
+            Validated UsageRollupSummaryDTO containing aggregated token and cost metrics.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await aggregate_organization_usage_row(
+            self._conn,
+            self.command_timeout_seconds,
+            organization_id=organization_id,
+            since=since,
+        )

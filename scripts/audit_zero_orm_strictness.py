@@ -73,6 +73,8 @@ CANONICAL_ENTITY_PK_TABLES: frozenset[str] = frozenset(
         "system_configs",
         "executions",
         "report_artifacts",
+        "audit_logs",
+        "usage_records",
     }
 )
 
@@ -88,7 +90,7 @@ CANONICAL_NAMED_ENTITY_TABLES: dict[str, str] = {
     "report_artifacts": "title",
 }
 
-# Define closed 16-table topology and banned symbol sets
+# Define closed 18-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -105,6 +107,8 @@ CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
         "executions",
         "report_artifacts",
         "report_binaries",
+        "audit_logs",
+        "usage_records",
         "quorum_nodes",
         "quorum_edges",
     }
@@ -344,6 +348,27 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "storage_paths",
         "custom_preface_md",
         "error_message",
+        "actor_id",
+        "event_type",
+        "resource_type",
+        "resource_id",
+        "details",
+        "user_id",
+        "model_name",
+        "cache_creation_input_tokens",
+        "latency_ms",
+        "finish_reason",
+        "system_fingerprint",
+        "cost_usd",
+        "estimated_savings_usd",
+        "total_prompt_tokens",
+        "total_completion_tokens",
+        "total_cached_tokens",
+        "total_reasoning_tokens",
+        "total_cache_creation_input_tokens",
+        "total_cost_usd",
+        "total_estimated_savings_usd",
+        "record_count",
     }
 )
 

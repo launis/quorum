@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from scripts.audit_zero_orm_strictness import (
     CANONICAL_ENTITY_PK_TABLES,
     CANONICAL_NAMED_ENTITY_TABLES,
+    CLOSED_POSTGRES_TABLES,
     ZeroOrmAuditReportDTO,
     ZeroOrmFindingDTO,
     ZeroOrmRuleCode,
@@ -257,6 +258,9 @@ def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(
     # Positive path on compliant SQL migration and canonical id SELECT query
     assert "workflows" in CANONICAL_ENTITY_PK_TABLES
     assert "task_briefs" in CANONICAL_ENTITY_PK_TABLES
+    assert "audit_logs" in CANONICAL_ENTITY_PK_TABLES
+    assert "usage_records" in CANONICAL_ENTITY_PK_TABLES
+    assert len(CLOSED_POSTGRES_TABLES) == 18
     assert CANONICAL_NAMED_ENTITY_TABLES["workflows"] == "name"
     assert CANONICAL_NAMED_ENTITY_TABLES["task_briefs"] == "label"
     assert CANONICAL_NAMED_ENTITY_TABLES["prompt_blocks"] == "label"

@@ -27,6 +27,10 @@ from backend_v2.database.interfaces import (
     TopologyResolutionPort,
 )
 from backend_v2.database.postgres.entity_adapter import hydrate_execution_row
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    hydrate_audit_log_row,
+    hydrate_usage_record_row,
+)
 from backend_v2.database.postgres.pool import (
     AsyncPgConnectionProtocol,
     AsyncPgRecordProtocol,
@@ -45,6 +49,11 @@ from backend_v2.models.core_base import (
     format_prefixed_uuid7,
     generate_uuid7_opaque_id,
     parse_prefixed_uuid7,
+)
+from backend_v2.models.domain.base import (
+    AuditLogRecord,
+    UsageRecord,
+    UsageRollupSummaryDTO,
 )
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -141,8 +150,24 @@ class _StoreSnapshot(V2CoreBase):
     ]
     report_has_pdf: Annotated[dict[str, bool], Field(default_factory=dict, description="Report PDF flags.")]
     executions: Annotated[dict[str, ExecutionRecord], Field(default_factory=dict, description="Stored executions.")]
+    audit_logs: Annotated[dict[str, AuditLogRecord], Field(default_factory=dict, description="Stored audit logs.")]
+    usage_records: Annotated[dict[str, UsageRecord], Field(default_factory=dict, description="Stored usage records.")]
     seed_counts: Annotated[dict[str, int], Field(default_factory=dict, description="Seeded table counts.")]
     migrations_applied: Annotated[int, Field(default=0, ge=0, description="DDL migrations applied count.")]
+
+
+class _InMemorySqlStateError(Exception):
+    """Simulated PostgreSQL exception carrying an SQLSTATE code for translation tests."""
+
+    def __init__(self, message: str, *, sqlstate: str) -> None:
+        """Initialize the simulated SQLSTATE error.
+
+        Args:
+            message: Human-readable constraint error description.
+            sqlstate: Five-character PostgreSQL SQLSTATE code.
+        """
+        super().__init__(message)
+        self.sqlstate: str = sqlstate
 
 
 class _InMemoryPostgresStore:
@@ -154,6 +179,8 @@ class _InMemoryPostgresStore:
         report_binaries: Mapping of report_id to ReportBinaryPayloadDTO.
         report_has_pdf: Mapping of report_id to boolean has_pdf flag.
         executions: Mapping of execution_id to ExecutionRecord.
+        audit_logs: Mapping of audit_log_id to AuditLogRecord.
+        usage_records: Mapping of usage_record_id to UsageRecord.
         seed_tables: Mapping of canonical PostgreSQL table name to stored records keyed by id.
         migrations_applied: Number of times DDL migrations were executed.
         current_org_reset_count: Number of times RESET quorum.current_org was executed.
@@ -166,6 +193,8 @@ class _InMemoryPostgresStore:
         self.report_binaries: dict[str, ReportBinaryPayloadDTO] = {}
         self.report_has_pdf: dict[str, bool] = {}
         self.executions: dict[str, ExecutionRecord] = {}
+        self.audit_logs: dict[str, AuditLogRecord] = {}
+        self.usage_records: dict[str, UsageRecord] = {}
         self.seed_tables: dict[str, dict[str, _SeedRowEntry]] = {
             "organizations": {},
             "users": {},
@@ -196,6 +225,8 @@ class _InMemoryPostgresStore:
             report_binaries=dict(self.report_binaries),
             report_has_pdf=dict(self.report_has_pdf),
             executions=dict(self.executions),
+            audit_logs=dict(self.audit_logs),
+            usage_records=dict(self.usage_records),
             seed_counts={tbl: len(rows) for tbl, rows in self.seed_tables.items()},
             migrations_applied=self.migrations_applied,
         )
@@ -211,6 +242,8 @@ class _InMemoryPostgresStore:
         self.report_binaries = dict(snapshot.report_binaries)
         self.report_has_pdf = dict(snapshot.report_has_pdf)
         self.executions = dict(snapshot.executions)
+        self.audit_logs = dict(snapshot.audit_logs)
+        self.usage_records = dict(snapshot.usage_records)
         self.migrations_applied = snapshot.migrations_applied
 
 
@@ -897,6 +930,40 @@ class InMemoryEntityAdapter:
         secrets.sort(key=lambda s: s.id)
         return secrets
 
+    async def delete_tenant_secret(self, secret_id: str) -> bool:
+        """Delete a TenantSecretDTO by primary key in memory.
+
+        Args:
+            secret_id: Canonical sec_<uuid7_hex> tenant secret identifier.
+
+        Returns:
+            True if a matching secret was deleted, False otherwise.
+        """
+        sec_uuid = parse_prefixed_uuid7(secret_id, EntityPrefix.TENANT_SECRET)
+        raw_uuid_key = str(sec_uuid)
+        deleted = False
+        if secret_id in self._store.seed_tables["tenant_secrets"]:
+            del self._store.seed_tables["tenant_secrets"][secret_id]
+            deleted = True
+        if raw_uuid_key in self._store.seed_tables["tenant_secrets"]:
+            del self._store.seed_tables["tenant_secrets"][raw_uuid_key]
+            deleted = True
+        return deleted
+
+    async def list_system_configs(self) -> list[SystemConfigModelRegistry | SystemConfigMCPGateways]:
+        """List all persisted polymorphic SystemConfig models in memory.
+
+        Returns:
+            List of SystemConfigModelRegistry and SystemConfigMCPGateways models sorted by id.
+        """
+        configs = [
+            item
+            for item in self._store.seed_tables["system_configs"].values()
+            if isinstance(item, (SystemConfigModelRegistry, SystemConfigMCPGateways))
+        ]
+        configs.sort(key=lambda c: c.id)
+        return configs
+
     async def upsert_execution_assignment(self, assignment: ExecutionAssignment) -> str:
         """Upsert an ExecutionAssignment entity in memory.
 
@@ -1106,6 +1173,205 @@ class InMemoryEntityAdapter:
             return self._store.executions[execution_id]
         return None
 
+    async def list_executions(self) -> list[ExecutionRecord]:
+        """List all persisted ExecutionRecord entities ordered by created_at descending.
+
+        Returns:
+            List of ExecutionRecord domain models.
+        """
+        records = list(self._store.executions.values())
+        records.sort(key=lambda r: r.created_at, reverse=True)
+        return records
+
+    @staticmethod
+    def _normalize_optional_org_filter(organization_id: str | None) -> str | None:
+        """Normalize an optional organization identifier, coercing 'SYSTEM'/'system' sentinels to None."""
+        if organization_id is None:
+            return None
+        trimmed = organization_id.strip()
+        if not trimmed or trimmed.upper() == "SYSTEM":
+            return None
+        _ = parse_prefixed_uuid7(trimmed, EntityPrefix.ORG)
+        return trimmed
+
+    @staticmethod
+    def _normalize_optional_user_filter(user_id: str | None) -> str | None:
+        """Normalize an optional user identifier, coercing 'system' sentinels to None."""
+        if user_id is None:
+            return None
+        trimmed = user_id.strip()
+        if not trimmed or trimmed.lower() == "system":
+            return None
+        _ = parse_prefixed_uuid7(trimmed, EntityPrefix.USER)
+        return trimmed
+
+    async def insert_audit_log(self, record: AuditLogRecord) -> str:
+        """Insert an immutable AuditLogRecord into the append-only in-memory audit_logs table.
+
+        Args:
+            record: Validated AuditLogRecord domain model.
+
+        Returns:
+            Canonical aud_<uuid7_hex> identifier inserted.
+        """
+        _ = parse_prefixed_uuid7(record.id, EntityPrefix.AUDIT_LOG)
+        norm_org = self._normalize_optional_org_filter(record.organization_id)
+        norm_actor = self._normalize_optional_user_filter(record.actor_id)
+        if record.execution_id is not None:
+            _ = parse_prefixed_uuid7(record.execution_id, EntityPrefix.EXECUTION)
+        if record.id in self._store.audit_logs:
+            msg = f"AuditLogRecord '{record.id}' already exists in append-only audit_logs."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.CONFLICT.name,
+                msg,
+                extra={"error_code": ErrorCodes.CONFLICT.value, "entity_id": record.id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_409_CONFLICT,
+                details={"error_code": ErrorCodes.CONFLICT.value, "entity_id": record.id},
+            )
+        normalized_record = record.model_copy(
+            update={
+                "organization_id": norm_org,
+                "actor_id": norm_actor,
+                "created_at": _extract_uuid7_timestamp(record.id, EntityPrefix.AUDIT_LOG),
+            }
+        )
+        self._store.audit_logs[record.id] = normalized_record
+        return record.id
+
+    async def list_audit_logs(
+        self,
+        *,
+        organization_id: str | None = None,
+        actor_id: str | None = None,
+        event_type: str | None = None,
+        limit: int = 100,
+    ) -> list[AuditLogRecord]:
+        """List AuditLogRecord entries ordered newest-first with optional filters.
+
+        Args:
+            organization_id: Optional organization filter.
+            actor_id: Optional actor user filter.
+            event_type: Optional event_type string filter.
+            limit: Maximum number of rows to return.
+
+        Returns:
+            List of matching AuditLogRecord instances ordered by id DESC.
+        """
+        if limit <= 0:
+            return []
+        matched = list(self._store.audit_logs.values())
+        if organization_id is not None:
+            norm_org = self._normalize_optional_org_filter(organization_id)
+            matched = [r for r in matched if r.organization_id == norm_org]
+        if actor_id is not None:
+            norm_actor = self._normalize_optional_user_filter(actor_id)
+            matched = [r for r in matched if r.actor_id == norm_actor]
+        if event_type is not None:
+            matched = [r for r in matched if r.event_type == event_type]
+        matched.sort(key=lambda r: parse_prefixed_uuid7(r.id, EntityPrefix.AUDIT_LOG), reverse=True)
+        return matched[:limit]
+
+    async def insert_usage_record(self, record: UsageRecord) -> str:
+        """Insert an immutable UsageRecord into the append-only in-memory usage_records table.
+
+        Args:
+            record: Validated UsageRecord domain model.
+
+        Returns:
+            Canonical usg_<uuid7_hex> identifier inserted.
+        """
+        _ = parse_prefixed_uuid7(record.id, EntityPrefix.USAGE_RECORD)
+        norm_org = self._normalize_optional_org_filter(record.org_id)
+        norm_usr = self._normalize_optional_user_filter(record.user_id)
+        if record.execution_id is not None:
+            _ = parse_prefixed_uuid7(record.execution_id, EntityPrefix.EXECUTION)
+        if record.id in self._store.usage_records:
+            msg = f"UsageRecord '{record.id}' already exists in append-only usage_records."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.CONFLICT.name,
+                msg,
+                extra={"error_code": ErrorCodes.CONFLICT.value, "entity_id": record.id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_409_CONFLICT,
+                details={"error_code": ErrorCodes.CONFLICT.value, "entity_id": record.id},
+            )
+        resolved_org = norm_org if norm_org is not None else "system"
+        resolved_usr = norm_usr if norm_usr is not None else "system"
+        normalized_record = record.model_copy(
+            update={
+                "org_id": resolved_org,
+                "user_id": resolved_usr,
+                "timestamp": _extract_uuid7_timestamp(record.id, EntityPrefix.USAGE_RECORD),
+            }
+        )
+        self._store.usage_records[record.id] = normalized_record
+        return record.id
+
+    async def list_usage_records(
+        self,
+        *,
+        organization_id: str | None = None,
+        user_id: str | None = None,
+        since: datetime | None = None,
+    ) -> list[UsageRecord]:
+        """List UsageRecord entries ordered chronologically with optional filters.
+
+        Args:
+            organization_id: Optional organization filter.
+            user_id: Optional user filter.
+            since: Optional UTC timestamp lower bound.
+
+        Returns:
+            List of matching UsageRecord instances ordered by id ASC.
+        """
+        matched = list(self._store.usage_records.values())
+        if organization_id is not None:
+            norm_org = self._normalize_optional_org_filter(organization_id)
+            expected_org = norm_org if norm_org is not None else "system"
+            matched = [r for r in matched if r.org_id == expected_org]
+        if user_id is not None:
+            norm_usr = self._normalize_optional_user_filter(user_id)
+            expected_usr = norm_usr if norm_usr is not None else "system"
+            matched = [r for r in matched if r.user_id == expected_usr]
+        if since is not None:
+            matched = [r for r in matched if r.timestamp >= since]
+        matched.sort(key=lambda r: parse_prefixed_uuid7(r.id, EntityPrefix.USAGE_RECORD))
+        return matched
+
+    async def aggregate_organization_usage(
+        self,
+        organization_id: str | None = None,
+        since: datetime | None = None,
+    ) -> UsageRollupSummaryDTO:
+        """Compute FinOps token and USD rollups over in-memory usage_records.
+
+        Args:
+            organization_id: Optional organization filter or None for global system rollup.
+            since: Optional UTC timestamp lower bound.
+
+        Returns:
+            Aggregated UsageRollupSummaryDTO instance.
+        """
+        matched = await self.list_usage_records(organization_id=organization_id, since=since)
+        return UsageRollupSummaryDTO(
+            organization_id=organization_id,
+            total_prompt_tokens=sum(r.input_tokens for r in matched),
+            total_completion_tokens=sum(r.output_tokens for r in matched),
+            total_cached_tokens=sum(r.cached_tokens for r in matched),
+            total_reasoning_tokens=sum(r.reasoning_tokens for r in matched),
+            total_cache_creation_input_tokens=sum(r.cache_creation_input_tokens for r in matched),
+            total_cost_usd=sum(r.cost_usd for r in matched),
+            total_estimated_savings_usd=sum(r.estimated_savings_usd for r in matched),
+            record_count=len(matched),
+        )
+
     async def seed_collection_batch(
         self,
         collection_name: str,
@@ -1139,6 +1405,8 @@ class InMemoryEntityAdapter:
             "executions",
             "report_artifacts",
             "report_binaries",
+            "audit_logs",
+            "usage_records",
         }
         if canonical not in allowed:
             msg = f"Unsupported seed collection '{collection_name}'."
@@ -1174,6 +1442,8 @@ class InMemoryEntityAdapter:
             "executions": (ExecutionRecord,),
             "report_artifacts": (ReportArtifact,),
             "report_binaries": (ReportBinaryPayloadDTO,),
+            "audit_logs": (AuditLogRecord,),
+            "usage_records": (UsageRecord,),
         }
         for item in items:
             if not isinstance(item, expected_types[canonical]):
@@ -1202,85 +1472,24 @@ class InMemoryEntityAdapter:
                     await self.save_report_binary(item)
             return len(items)
 
+        if canonical == "audit_logs":
+            for item in items:
+                if isinstance(item, AuditLogRecord):
+                    await self.insert_audit_log(item)
+            return len(items)
+
+        if canonical == "usage_records":
+            for item in items:
+                if isinstance(item, UsageRecord):
+                    await self.insert_usage_record(item)
+            return len(items)
+
         table_bucket = self._store.seed_tables[canonical]
         for idx, item in enumerate(items):
             dumped = item.model_dump(mode="json")
             raw_id = dumped["id"] if "id" in dumped else f"{canonical}_{idx}"
             table_bucket[str(raw_id)] = item
         return len(items)
-
-    async def delete_collection_document(self, collection_name: str, doc_id: str) -> bool:
-        """Delete a stored document by ID from its canonical in-memory table.
-
-        Args:
-            collection_name: Canonical collection or table name.
-            doc_id: Primary Opaque Stripe ID of the document to delete.
-
-        Returns:
-            True if a matching document existed and was removed, else False.
-        """
-        collection_map: dict[str, str] = {
-            "organizations": "organizations",
-            "users": "users",
-            "invitations": "invitations",
-            "tenant_secrets": "tenant_secrets",
-            "execution_assignments": "execution_assignments",
-            "system_config": "system_configs",
-            "system_configs": "system_configs",
-            "prompt_blocks": "prompt_blocks",
-            "task_briefs": "task_briefs",
-            "components": "prompt_blocks",
-            "agents": "prompt_blocks",
-            "steps": "steps",
-            "task_blueprints": "steps",
-            "workflows": "workflows",
-            "output_profiles": "output_profiles",
-            "executions": "executions",
-            "report_artifacts": "report_artifacts",
-            "report_binaries": "report_binaries",
-        }
-        if collection_name not in collection_map:
-            return False
-        canonical = collection_map[collection_name]
-        prefix_map: dict[str, EntityPrefix] = {
-            "organizations": EntityPrefix.ORGANIZATION,
-            "users": EntityPrefix.USER,
-            "invitations": EntityPrefix.INVITATION,
-            "tenant_secrets": EntityPrefix.TENANT_SECRET,
-            "execution_assignments": EntityPrefix.ASSIGNMENT,
-            "system_configs": EntityPrefix.SYSTEM_CONFIG,
-            "prompt_blocks": EntityPrefix.PROMPT_BLOCK,
-            "task_briefs": EntityPrefix.TASK_BRIEF,
-            "steps": EntityPrefix.STEP,
-            "workflows": EntityPrefix.WORKFLOW,
-            "output_profiles": EntityPrefix.OUTPUT_PROFILE,
-            "executions": EntityPrefix.EXECUTION,
-            "report_artifacts": EntityPrefix.REPORT,
-            "report_binaries": EntityPrefix.REPORT,
-        }
-        if canonical not in prefix_map:
-            return False
-        try:
-            _ = parse_prefixed_uuid7(doc_id, prefix_map[canonical])
-        except AppException:
-            return False
-
-        if canonical == "executions":
-            if doc_id in self._store.executions:
-                del self._store.executions[doc_id]
-                return True
-            return False
-
-        if canonical == "report_binaries":
-            if doc_id in self._store.report_binaries:
-                del self._store.report_binaries[doc_id]
-                return True
-            return False
-
-        if canonical in self._store.seed_tables and doc_id in self._store.seed_tables[canonical]:
-            del self._store.seed_tables[canonical][doc_id]
-            return True
-        return False
 
     async def verify_seed_table_counts(
         self,
@@ -1505,7 +1714,70 @@ class InMemoryAsyncPgConnection:
             if "TRUNCATE TABLE REPORT_BINARIES" in normalized:
                 self._store.report_binaries.clear()
                 return "TRUNCATE TABLE"
+            if "TRUNCATE TABLE AUDIT_LOGS" in normalized:
+                self._store.audit_logs.clear()
+                return "TRUNCATE TABLE"
+            if "TRUNCATE TABLE USAGE_RECORDS" in normalized:
+                self._store.usage_records.clear()
+                return "TRUNCATE TABLE"
             return "TRUNCATE TABLE"
+
+        if "INSERT INTO AUDIT_LOGS" in normalized:
+            aud_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+            aud_id = format_prefixed_uuid7(aud_uuid, EntityPrefix.AUDIT_LOG)
+            if aud_id in self._store.audit_logs:
+                raise _InMemorySqlStateError(
+                    f"duplicate key value violates unique constraint 'audit_logs_pkey' ({aud_id})",
+                    sqlstate="23505",
+                )
+            audit_row = InMemoryAsyncPgRecord(
+                {
+                    "id": _to_column_value(args[0]),
+                    "organization_id": _to_column_value(args[1]),
+                    "actor_id": _to_column_value(args[2]),
+                    "execution_id": _to_column_value(args[3]),
+                    "event_type": _to_column_value(args[4]),
+                    "resource_type": _to_column_value(args[5]),
+                    "resource_id": _to_column_value(args[6]),
+                    "details": _to_column_value(args[7]),
+                    "created_at": _extract_uuid7_timestamp(aud_id, EntityPrefix.AUDIT_LOG),
+                }
+            )
+            hydrated_audit = hydrate_audit_log_row(audit_row)
+            self._store.audit_logs[hydrated_audit.id] = hydrated_audit
+            return "INSERT 0 1"
+
+        if "INSERT INTO USAGE_RECORDS" in normalized:
+            usg_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+            usg_id = format_prefixed_uuid7(usg_uuid, EntityPrefix.USAGE_RECORD)
+            if usg_id in self._store.usage_records:
+                raise _InMemorySqlStateError(
+                    f"duplicate key value violates unique constraint 'usage_records_pkey' ({usg_id})",
+                    sqlstate="23505",
+                )
+            usage_row = InMemoryAsyncPgRecord(
+                {
+                    "id": _to_column_value(args[0]),
+                    "organization_id": _to_column_value(args[1]),
+                    "user_id": _to_column_value(args[2]),
+                    "execution_id": _to_column_value(args[3]),
+                    "model_name": _to_column_value(args[4]),
+                    "prompt_tokens": _to_column_value(args[5]),
+                    "completion_tokens": _to_column_value(args[6]),
+                    "cached_tokens": _to_column_value(args[7]),
+                    "reasoning_tokens": _to_column_value(args[8]),
+                    "cache_creation_input_tokens": _to_column_value(args[9]),
+                    "latency_ms": _to_column_value(args[10]),
+                    "finish_reason": _to_column_value(args[11]),
+                    "system_fingerprint": _to_column_value(args[12]),
+                    "cost_usd": _to_column_value(args[13]),
+                    "estimated_savings_usd": _to_column_value(args[14]),
+                    "created_at": _extract_uuid7_timestamp(usg_id, EntityPrefix.USAGE_RECORD),
+                }
+            )
+            hydrated_usage = hydrate_usage_record_row(usage_row)
+            self._store.usage_records[hydrated_usage.id] = hydrated_usage
+            return "INSERT 0 1"
 
         if "INSERT INTO REPORT_BINARIES" in normalized:
             report_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
@@ -1562,6 +1834,11 @@ class InMemoryAsyncPgConnection:
                 if row_id in self._store.seed_tables[tbl]:
                     del self._store.seed_tables[tbl][row_id]
                     return "DELETE 1"
+                if tbl == "tenant_secrets" and isinstance(args[0], (uuid.UUID, str)):
+                    prefixed_sec = format_prefixed_uuid7(args[0], EntityPrefix.TENANT_SECRET)
+                    if prefixed_sec in self._store.seed_tables[tbl]:
+                        del self._store.seed_tables[tbl][prefixed_sec]
+                        return "DELETE 1"
                 return "DELETE 0"
 
         if "DELETE FROM EXECUTIONS" in normalized:
@@ -1719,8 +1996,15 @@ class InMemoryAsyncPgConnection:
                 for m in matches
             )
 
+        if "FROM AUDIT_LOGS" in normalized:
+            return self._fetch_audit_log_rows(normalized, args)
+
+        if "FROM USAGE_RECORDS" in normalized:
+            return self._fetch_usage_record_rows(normalized, args)
+
         if "FROM EXECUTIONS" in normalized:
-            return tuple(self._build_execution_record_row(rec) for rec in self._store.executions.values())
+            sorted_execs = sorted(self._store.executions.values(), key=lambda r: r.created_at, reverse=True)
+            return tuple(self._build_execution_record_row(rec) for rec in sorted_execs)
 
         for tbl in (
             "organizations",
@@ -1887,6 +2171,25 @@ class InMemoryAsyncPgConnection:
                 return InMemoryAsyncPgRecord({"row_count": len(self._store.executions)})
             if "FROM REPORT_BINARIES" in normalized:
                 return InMemoryAsyncPgRecord({"row_count": len(self._store.report_binaries)})
+            if "FROM AUDIT_LOGS" in normalized:
+                return InMemoryAsyncPgRecord({"row_count": len(self._store.audit_logs)})
+            if "FROM USAGE_RECORDS" in normalized:
+                return InMemoryAsyncPgRecord({"row_count": len(self._store.usage_records)})
+
+        if "COALESCE(SUM(PROMPT_TOKENS)" in normalized and "FROM USAGE_RECORDS" in normalized:
+            matched_usage = self._filter_usage_records(normalized, args)
+            return InMemoryAsyncPgRecord(
+                {
+                    "total_prompt_tokens": sum(r.input_tokens for r in matched_usage),
+                    "total_completion_tokens": sum(r.output_tokens for r in matched_usage),
+                    "total_cached_tokens": sum(r.cached_tokens for r in matched_usage),
+                    "total_reasoning_tokens": sum(r.reasoning_tokens for r in matched_usage),
+                    "total_cache_creation_input_tokens": sum(r.cache_creation_input_tokens for r in matched_usage),
+                    "total_cost_usd": sum(r.cost_usd for r in matched_usage),
+                    "total_estimated_savings_usd": sum(r.estimated_savings_usd for r in matched_usage),
+                    "record_count": len(matched_usage),
+                }
+            )
 
         if "CYCLE TARGET_ID SET IS_CYCLE" in normalized:
             run_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
@@ -1949,6 +2252,149 @@ class InMemoryAsyncPgConnection:
                     return InMemoryAsyncPgRecord(self._zip_select_row(cols, entry))
 
         return None
+
+    def _fetch_audit_log_rows(
+        self,
+        normalized: str,
+        args: Sequence[object],
+    ) -> tuple[AsyncPgRecordProtocol, ...]:
+        """Filter and serialize stored AuditLogRecord models into InMemoryAsyncPgRecord rows."""
+        param_idx = 0
+        matched = list(self._store.audit_logs.values())
+        if "ORGANIZATION_ID = $" in normalized:
+            target_org = args[param_idx]
+            param_idx += 1
+            matched = [
+                r
+                for r in matched
+                if r.organization_id is not None
+                and parse_prefixed_uuid7(r.organization_id, EntityPrefix.ORG) == target_org
+            ]
+        elif "ORGANIZATION_ID IS NULL" in normalized:
+            matched = [r for r in matched if r.organization_id is None]
+
+        if "ACTOR_ID = $" in normalized:
+            target_actor = args[param_idx]
+            param_idx += 1
+            matched = [
+                r
+                for r in matched
+                if r.actor_id is not None and parse_prefixed_uuid7(r.actor_id, EntityPrefix.USER) == target_actor
+            ]
+        elif "ACTOR_ID IS NULL" in normalized:
+            matched = [r for r in matched if r.actor_id is None]
+
+        if "EVENT_TYPE = $" in normalized:
+            target_event = str(args[param_idx])
+            param_idx += 1
+            matched = [r for r in matched if r.event_type == target_event]
+
+        matched.sort(key=lambda r: parse_prefixed_uuid7(r.id, EntityPrefix.AUDIT_LOG), reverse=True)
+        if "LIMIT $" in normalized and param_idx < len(args):
+            limit_val = int(str(args[param_idx]))
+            matched = matched[:limit_val]
+
+        rows: list[AsyncPgRecordProtocol] = []
+        for rec in matched:
+            org_uuid = (
+                parse_prefixed_uuid7(rec.organization_id, EntityPrefix.ORG) if rec.organization_id is not None else None
+            )
+            actor_uuid = parse_prefixed_uuid7(rec.actor_id, EntityPrefix.USER) if rec.actor_id is not None else None
+            exec_uuid = (
+                parse_prefixed_uuid7(rec.execution_id, EntityPrefix.EXECUTION) if rec.execution_id is not None else None
+            )
+            rows.append(
+                InMemoryAsyncPgRecord(
+                    {
+                        "id": parse_prefixed_uuid7(rec.id, EntityPrefix.AUDIT_LOG),
+                        "organization_id": org_uuid,
+                        "actor_id": actor_uuid,
+                        "execution_id": exec_uuid,
+                        "event_type": rec.event_type,
+                        "resource_type": rec.resource_type,
+                        "resource_id": rec.resource_id,
+                        "details": to_json(rec.details).decode("utf-8"),
+                        "created_at": rec.created_at,
+                    }
+                )
+            )
+        return tuple(rows)
+
+    def _filter_usage_records(
+        self,
+        normalized: str,
+        args: Sequence[object],
+    ) -> list[UsageRecord]:
+        """Filter stored UsageRecord models according to parameterized SQL predicates."""
+        param_idx = 0
+        matched = list(self._store.usage_records.values())
+        if "ORGANIZATION_ID = $" in normalized:
+            target_org = args[param_idx]
+            param_idx += 1
+            matched = [
+                r
+                for r in matched
+                if r.org_id != "system" and parse_prefixed_uuid7(r.org_id, EntityPrefix.ORG) == target_org
+            ]
+        elif "ORGANIZATION_ID IS NULL" in normalized:
+            matched = [r for r in matched if r.org_id == "system"]
+
+        if "USER_ID = $" in normalized:
+            target_usr = args[param_idx]
+            param_idx += 1
+            matched = [
+                r
+                for r in matched
+                if r.user_id != "system" and parse_prefixed_uuid7(r.user_id, EntityPrefix.USER) == target_usr
+            ]
+        elif "USER_ID IS NULL" in normalized:
+            matched = [r for r in matched if r.user_id == "system"]
+
+        if "CREATED_AT >= $" in normalized:
+            since_val = args[param_idx]
+            if isinstance(since_val, datetime):
+                matched = [r for r in matched if r.timestamp >= since_val]
+
+        matched.sort(key=lambda r: parse_prefixed_uuid7(r.id, EntityPrefix.USAGE_RECORD))
+        return matched
+
+    def _fetch_usage_record_rows(
+        self,
+        normalized: str,
+        args: Sequence[object],
+    ) -> tuple[AsyncPgRecordProtocol, ...]:
+        """Filter and serialize stored UsageRecord models into InMemoryAsyncPgRecord rows."""
+        matched = self._filter_usage_records(normalized, args)
+        rows: list[AsyncPgRecordProtocol] = []
+        for rec in matched:
+            org_uuid = None if rec.org_id == "system" else parse_prefixed_uuid7(rec.org_id, EntityPrefix.ORG)
+            usr_uuid = None if rec.user_id == "system" else parse_prefixed_uuid7(rec.user_id, EntityPrefix.USER)
+            exec_uuid = (
+                parse_prefixed_uuid7(rec.execution_id, EntityPrefix.EXECUTION) if rec.execution_id is not None else None
+            )
+            rows.append(
+                InMemoryAsyncPgRecord(
+                    {
+                        "id": parse_prefixed_uuid7(rec.id, EntityPrefix.USAGE_RECORD),
+                        "organization_id": org_uuid,
+                        "user_id": usr_uuid,
+                        "execution_id": exec_uuid,
+                        "model_name": rec.model,
+                        "prompt_tokens": rec.input_tokens,
+                        "completion_tokens": rec.output_tokens,
+                        "cached_tokens": rec.cached_tokens,
+                        "reasoning_tokens": rec.reasoning_tokens,
+                        "cache_creation_input_tokens": rec.cache_creation_input_tokens,
+                        "latency_ms": rec.latency_ms,
+                        "finish_reason": rec.finish_reason,
+                        "system_fingerprint": rec.system_fingerprint,
+                        "cost_usd": rec.cost_usd,
+                        "estimated_savings_usd": rec.estimated_savings_usd,
+                        "created_at": rec.timestamp,
+                    }
+                )
+            )
+        return tuple(rows)
 
 
 class InMemoryAsyncPgPool:
