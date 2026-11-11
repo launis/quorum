@@ -25,7 +25,7 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, read the artifact file before proceeding.</mandatory_pattern>
     </rule_block>
     <rule_block id="tracker_update_preservation">
-      <mandatory_pattern>If the tracker file ALREADY EXISTS, read the existing tracker first and perform a SURGICAL UPDATE: preserve existing `[x]` checked checkboxes on completed steps and hardening files, update step descriptions or new steps from the plan, and synchronize `# Session Handover Context`.</mandatory_pattern>
+      <mandatory_pattern>If the tracker file ALREADY EXISTS, read the existing tracker first and perform a SURGICAL UPDATE: preserve existing `[x]` checked checkboxes on completed steps and hardening files, strip obsolete duplicate `Audit:` rows under `## Step Execution Status` and legacy prose checkboxes (`Golden Master &amp; Test Restoration Audit`, `Pre-Delete Audit`, and `Semantic Coverage &amp; Zero-Loss Audit`) under `### Post-Implementation Gates`, update step descriptions or new steps from the plan, and synchronize `# Session Handover Context`.</mandatory_pattern>
     </rule_block>
     <rule_block id="parameterized_tier7_documentation_mandate">
       <mandatory_pattern>A bare `/tier7-describe-architecture` command is STRICTLY FORBIDDEN. Always generate a fully parameterized command (`@[docs/implementationplans/TRACKER_xxx.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[ki_1.md] ...`) followed immediately by `#### Directives for Tier 7 Agent:` (1. Target KIs to Synchronize, 2. Directory Reference Sync, 3. Pillar Documentation Sync).</mandatory_pattern>
@@ -43,7 +43,7 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
     </step>
     
     <step id="2" name="GENERATE OR UPDATE TRACKER">
-      <action>Create or surgically update `docs/implementationplans/TRACKER_[slug].md` adhering to [plan_tracker_template.md](./resources/plan_tracker_template.md). Ensure all `uv run` commands include `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline`.</action>
+      <action>Create or surgically update `docs/implementationplans/TRACKER_[slug].md` adhering to [plan_tracker_template.md](./resources/plan_tracker_template.md) (retaining `Execution:` + indented step checkboxes under `## Step Execution Status`, `Tier 2 Hardening (Backend &amp; Frontend)` with `--agent-cmd` under `### Post-Implementation Gates`, `### Documentation &amp; Knowledge Item Update`, and `### Final Plan Audit`, while stripping any duplicate `Audit:` rows under `## Step Execution Status` or removed prose checkboxes in UPDATE MODE). Ensure all `uv run` commands include `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline`.</action>
       <constraint name="GRANULAR_FILE_LEVEL_HARDENING_CHECKLIST">
         Under `### Post-Implementation Gates`, list each surviving `[MODIFY]` and `[NEW]` production `.py` file under `Tier 2 Hardening (Backend)` and each surviving production `.dart` file under `Tier 2 Hardening (Frontend)` (strictly excluding `/tests/`, `test_`, `_test.dart`, `.g.dart`, `.freezed.dart`, `[DELETE]` files, and non-code assets). Ensure both `Tier 2 Hardening` header lines include the mandatory `scripts/auto_hardening_runner.py ... --agent-cmd` command without `--no-agent`.
       </constraint>

@@ -148,11 +148,13 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
 
     <step id="8" name="PLAN WRAP-UP &amp; AUDIT ROUTING">
       <action name="DUAL_MODE_WRAPUP_SYNC">
-        1) If an Epic or Plan Tracker exists: Update the Tracker document, mark the phase as `[x]`, refresh `# Session Handover Context` (Achieved, Learned, Remaining), and set `Resume Command` to the next phase/audit command (ALWAYS passing BOTH the target plan and the tracker file).
+        1) If an Epic or Plan Tracker exists: Update the Tracker document, mark the executed phase/step block as `[x]`, refresh `# Session Handover Context` (Achieved, Learned, Remaining), and set `Resume Command` deterministically (ALWAYS passing BOTH the target plan and the tracker file):
+           - In Epic Tracker mode when subsequent implementation phases remain `[ ]`, set `Resume Command` directly to `/tier0-research-plan` targeting the next unexecuted phase plan and Epic tracker (never per-phase `/tier8-audit-plan`).
+           - When all implementation phases or standalone plan steps are `[x]`, route sequentially through `### Post-Implementation Gates` (`scripts/auto_hardening_runner.py ... --agent-cmd`), `### Documentation &amp; Knowledge Item Update` (`/tier7-describe-architecture`), and finally `### Final Epic Audit` (`/tier8-audit-epic`) for Epics or `### Final Plan Audit` (`/tier8-audit-plan`) for standalone Plans.
         2) If NO Tracker exists: Update `task.md` with complete status and `# Session Handover Context`.
       </action>
-      <constraint>When all steps of the current `implementation_plan.md` are completed, you MUST NOT declare the task fully finished without routing through the audit gate.</constraint>
-      <gate>You MUST enforce a mandatory System 2 Red-Team audit of your own work by instructing the user to run the `/tier8-audit-plan` skill in a fresh context window.</gate>
+      <constraint>When all steps of the current `implementation_plan.md` are completed, you MUST NOT declare the task fully finished without routing through the remaining post-implementation gates and the final audit gate.</constraint>
+      <gate>Once all implementation phases/steps, `Tier 2 Hardening` (`--agent-cmd`), and `/tier7-describe-architecture` are complete, enforce a mandatory System 2 Red-Team audit by instructing the user to run `/tier8-audit-epic` (for Epics) or `/tier8-audit-plan` (for standalone Plans) in a fresh context window.</gate>
     </step>
 
     <step id="9" name="CONTEXT BUDGET WATCHDOG &amp; MID-EXECUTION HANDOVER">
