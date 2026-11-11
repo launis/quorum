@@ -45,7 +45,7 @@
   - [x] @[backend_v2/models/dtos/studio.py]
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/seed/seed_registry.py]
-  - [ ] @[backend_v2/services/execution/assignment_service.py]
+  - [x] @[backend_v2/services/execution/assignment_service.py]
   - [ ] @[backend_v2/services/studio/__init__.py]
   - [ ] @[backend_v2/services/studio/prompt_block_service.py]
   - [ ] @[backend_v2/services/studio/task_brief_service.py]
