@@ -1946,3 +1946,115 @@ def test_keyboard_interrupt_triggers_circuit_breaker_rollback(tmp_path: Path, mo
         process_target_with_retries(target_rel, args, repo_root=tmp_path)
 
     assert rolled_back == [target_rel]
+
+
+def test_subagent_failure_prevents_quality_gate_and_false_cache_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Negative: Verify subagent startup failure skips quality gate, rolls back, and never writes SHA-256 cache."""
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    (rules_dir / "00-antigravity-core.md").write_text("# Core\n", encoding="utf-8")
+
+    target_rel = "backend_v2/models/domain/validation.py"
+    target_path = tmp_path / target_rel
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text('"""Validation model."""\n', encoding="utf-8")
+
+    cache_file = tmp_path / "data" / "hardening_cache.json"
+    gate_called = False
+    rollback_calls: list[str] = []
+
+    def _mock_gate(*_a: object, **_k: object) -> QualityGateResultDTO:
+        nonlocal gate_called
+        gate_called = True
+        return QualityGateResultDTO(success=True, output="Audit Pass", exit_code=0)
+
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.capture_workspace_snapshot",
+        lambda *_a, **_k: WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="abc1234"),
+    )
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subagent_pass", lambda *_a, **_k: False)
+    monkeypatch.setattr("scripts.auto_hardening_runner.run_quality_gate", _mock_gate)
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.execute_circuit_breaker_rollback",
+        lambda _snap, target, repo_root=None: rollback_calls.append(target),
+    )
+
+    args = HardeningRunnerArgsDTO(
+        targets=[target_rel],
+        gate=HardeningGate.BACKEND,
+        max_retries=1,
+        cache_file=cache_file,
+        no_cache=False,
+    )
+    res = process_target_with_retries(target_rel, args, repo_root=tmp_path)
+
+    assert res.success is False
+    assert res.attempts == 2
+    assert res.cache_hit is False
+    assert res.git_committed is False
+    assert res.tracker_marked is False
+    assert res.error_message == f"Subagent execution failed for {target_rel}."
+    assert gate_called is False
+    assert rollback_calls == [target_rel, target_rel]
+    if cache_file.is_file():
+        manifest = HardeningCacheManifestDTO.model_validate_json(cache_file.read_text(encoding="utf-8"))
+        assert target_rel not in manifest.entries
+
+
+def test_transient_dns_lookup_error_retries_and_rollback_preserves_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Positive/Boundary: Verify DNS 'no such host' triggers subagent retry and head_sha reset preserves cache."""
+    call_count = 0
+
+    def _mock_dns_glitch(cmd: list[str], timeout_seconds: int, cwd: Path) -> subprocess.CompletedProcess[str]:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=1,
+                stdout="",
+                stderr=(
+                    'Error: Post "https://daily-cloudcode-pa.googleapis.com/v1internal": '
+                    "dial tcp: lookup daily-cloudcode-pa.googleapis.com: no such host"
+                ),
+            )
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Hardened", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", _mock_dns_glitch)
+    monkeypatch.setattr("scripts.auto_hardening_runner.time.sleep", lambda _s: None)
+
+    args = HardeningRunnerArgsDTO(
+        agent_cmd="agy {target}",
+        targets=["backend_v2/models/domain/synthesis.py"],
+        gate=HardeningGate.BACKEND,
+        no_auto_fix=True,
+    )
+    assert execute_subagent_pass("backend_v2/models/domain/synthesis.py", args, repo_root=tmp_path) is True
+    assert call_count == 2
+
+    # Verify execute_circuit_breaker_rollback preserves data/hardening_cache.json across git reset --hard
+    cache_path = tmp_path / "data" / "hardening_cache.json"
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    preserved_payload = '{"entries": {"backend_v2/a.py": {}}}'
+    cache_path.write_text(preserved_payload, encoding="utf-8")
+
+    snapshots = [
+        WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="newsha999"),
+        WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="oldsha111"),
+    ]
+    monkeypatch.setattr("scripts.auto_hardening_runner.capture_workspace_snapshot", lambda _r=None: snapshots.pop(0))
+
+    def _sim_git_reset(cmd: list[str], *_a: object, **_k: object) -> subprocess.CompletedProcess[str]:
+        if cmd[:3] == ["git", "reset", "--hard"]:
+            # Simulate git reset --hard overwriting working tree cache file with older version
+            cache_path.write_text('{"entries": {}}', encoding="utf-8")
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.subprocess.run", _sim_git_reset)
+    baseline = WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="oldsha111")
+    execute_circuit_breaker_rollback(baseline, "backend_v2/b.py", repo_root=tmp_path)
+    assert cache_path.read_text(encoding="utf-8") == preserved_payload

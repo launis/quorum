@@ -2,11 +2,11 @@
   "entries": {
     "backend_v2/api/dependencies.py": {
       "target_file": "backend_v2/api/dependencies.py",
-      "target_sha256": "9f0247389f6fd8ca1d8a067abd434f94e26a980dac690a966c001199c4246c22",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "6c502f889bb4236043b9b64db390b69203c5de26de16b937590b015b414f27f0",
+      "unit_test_sha256": "c379ab4fd6d365baaf227446c38b96fe10a7676a85326ce8578f0486fb864fd3",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "87597a88530bc9a504eb6075423ba811bc341c928e3b0de7cf1a552a02b48657",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "composite_sha256": "7393adeef9ae18df9f34534f8672bd38b79149aae9d68632fe05fc11dcceb9b5",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/api/routers/execution/__init__.py": {
       "target_file": "backend_v2/api/routers/execution/__init__.py",
@@ -26,35 +26,35 @@
     },
     "backend_v2/api/routers/execution/reports.py": {
       "target_file": "backend_v2/api/routers/execution/reports.py",
-      "target_sha256": "6a35fabbd68c1c98e54aa7aaf31fac67d96e35c84b1646bd1ea8719a426a6193",
-      "unit_test_sha256": "3152de0ec7375512fd407541bdc6f8f8ab6518c13ab50c339795a3251f7a4e0d",
+      "target_sha256": "fceb4cc76773c28d065533623d33fc020c012a09a9765668382b8daa4d357da2",
+      "unit_test_sha256": "f34c3ccc3feb19b1ce69cdc7cf864fee79e782c11c26137bcbae9b6e8bd9a252",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "4e0a5b9d4daa384b9e2aeb9d48f4c4ff734a6a87ddbff43a7078ecac28cd1917",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "composite_sha256": "70e05035609be65d4b8640f291191ef13775d8723f31667fca27cd0b46f85c75",
+      "source_tracker": null
     },
     "backend_v2/api/routers/iam/auth.py": {
       "target_file": "backend_v2/api/routers/iam/auth.py",
-      "target_sha256": "06a5473be2119c596c4a418f9f6e3f473ed29928cc6f8179188c3eae67673bf0",
-      "unit_test_sha256": "35ee649388094a7a1d36bacc9bfe45550b162a1fd9110fdbbe0ab241483b1868",
+      "target_sha256": "e798c7162c19e961fe348e0e0764f24711e5b80dc0a9cbc186c9867c34f443b7",
+      "unit_test_sha256": "5e4e6ec9b5a9ca668d23410a8f5ae4a8114e7fdeccc30917971907789c807220",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "e3056c28645ecd17778057b7520e41a1ae33a6c99a7e47599a7f2b6b565510e8",
-      "source_tracker": "docs/implementationplans/TRACKER_SlowAPI_Removal_and_GenAI_Mock_Restoration.md"
+      "composite_sha256": "4647143e7f388a0db4d1f38282ba1abfc57f9f7ba1b6b95527d0c47e333ddd97",
+      "source_tracker": null
     },
     "backend_v2/api/routers/iam/organizations.py": {
       "target_file": "backend_v2/api/routers/iam/organizations.py",
       "target_sha256": "a48c250eb4e23b5d50824b5805cd01518cafc88d03ff2814dd698ce065b8e65d",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "5047cff0f24dd8fdd725bb93ed089cc0a1bdcc3689a0d179607d0e18aa6c0e2c",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "ae778091c9a2ad4053ab94dd4000c8467605f98d4ef6452110666f2d395a432c",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "composite_sha256": "7eda668d65d3e907689fd38ec1ee9172a12231797a290385d540f8cf541b76d8",
+      "source_tracker": null
     },
     "backend_v2/api/routers/iam/users.py": {
       "target_file": "backend_v2/api/routers/iam/users.py",
       "target_sha256": "53e066d550c362c6b93c0723132f971072596927e21bb1c8e992eac7fd347877",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "ac303d72660beae13360e78483c0a3d67504a7eb92a30477bb0e62fee8bf042d",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "afbfaefcf082c31b7696893b1dfcfa9de41cff98c10b03e57c18c852821ee99b",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "composite_sha256": "688b880f7989fce40dcf0bc88c2288ed8a03b32d7d9152dc4cde0518ab95693f",
+      "source_tracker": null
     },
     "backend_v2/api/routers/output_profiles.py": {
       "target_file": "backend_v2/api/routers/output_profiles.py",
@@ -66,19 +66,19 @@
     },
     "backend_v2/api/routers/studio/__init__.py": {
       "target_file": "backend_v2/api/routers/studio/__init__.py",
-      "target_sha256": "e0cc7313bbc150dbaa8428610ac4b83a078d36e4d430c1e635c186675ba4cc0a",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "322d921e8ce83667cf0d2766fa20335a03e359fbd71ecfb4ca03ed7d4d93c108",
+      "unit_test_sha256": "848f10829b8470fd0356bfaa4ac28a4ab99a58a1ef01ac4a0b747581a12ab1be",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "3561bb3bc4f4bae901021ccafae42820ee026059afc4479b0513ff32dd0828d5",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "composite_sha256": "93b2eef9bfff7670929c34a6cf525d23a8e8afffc22c4a966d952863cc8fd2bc",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/api/routers/studio/mcp_gateways.py": {
       "target_file": "backend_v2/api/routers/studio/mcp_gateways.py",
       "target_sha256": "361677d32f8f89caaf9077c77f46986fb87d5afcef29e8940b97554eff141ebc",
-      "unit_test_sha256": "d221e0ae2519d1b2c6780ee4da84bc93216a73b97ccd1b3d15554c91f55d7274",
+      "unit_test_sha256": "49a3a53e5365477cd8e2e51d8f56887f49775cd98066a804dee7dee4d24c079e",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "8a0d86bb182918a71bd1b85f896e11a3d88800175ccc01e44fc0c981457fa7e8",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "composite_sha256": "950af8f4dd006c079f842e18ef6eb07f90e877829d7809b78917088935321f61",
+      "source_tracker": null
     },
     "backend_v2/api/routers/studio/model_registry.py": {
       "target_file": "backend_v2/api/routers/studio/model_registry.py",
@@ -98,11 +98,11 @@
     },
     "backend_v2/api/routers/studio/steps.py": {
       "target_file": "backend_v2/api/routers/studio/steps.py",
-      "target_sha256": "b3ca306f6694bf1dd5864481d29ab5c8a64e346c2548d243c1b91d761f342390",
+      "target_sha256": "72ac50ccd5dce1c5fd7a44bf9aa8a8b5e59b02a8a5c1cba467bc3760fd385936",
       "unit_test_sha256": "99fc025d7ccef1f1927bc30adf9da90c9de273bfad6f006d69f4c0360378db78",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "2acf28d388e370fd0a19b96ced35591834e6f54cf809624eee782dc35c3bffce",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "composite_sha256": "af413bbb099e5b2f69817bca817a6a704b7c20fc9164e51f7a997ed41194a0ab",
+      "source_tracker": null
     },
     "backend_v2/api/routers/studio/workflows.py": {
       "target_file": "backend_v2/api/routers/studio/workflows.py",
@@ -122,11 +122,11 @@
     },
     "backend_v2/api/routers/system/health.py": {
       "target_file": "backend_v2/api/routers/system/health.py",
-      "target_sha256": "d00faed5bb24c24351b5694bbec4648c77191b8df24ddc159c00101696726622",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "d6a8dfa67567228f97fc929cfb86276d22f1fd482ee9881270a21b0d12e514b7",
+      "unit_test_sha256": "f725d332895b729c3557822527c899fc1e83d84d040687bfcf09e77ef4b40d82",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "ad69cb3ecda5e742ba9c611c8460bc5929bf589692e7bf7e5be47036f90b66ad",
-      "source_tracker": "docs/implementationplans/TRACKER_GCP_Production_Deployment.md"
+      "composite_sha256": "3b2cefda7e8016b2f0444067a91b9d28b8122094ba347aa391da8c649ff75dd7",
+      "source_tracker": null
     },
     "backend_v2/context.py": {
       "target_file": "backend_v2/context.py",
@@ -138,27 +138,27 @@
     },
     "backend_v2/core/hook_registry.py": {
       "target_file": "backend_v2/core/hook_registry.py",
-      "target_sha256": "ca6ecd65dc8fcd9941df1b62885f75b10cd18879cce3f292ff39917e74c403f9",
+      "target_sha256": "043143e2ae90745563413416aa2aa651070f5eb80b5b1c8745a4ecf1c12c871f",
       "unit_test_sha256": "e40d1d98f98e733a9ab6e4074b2772b0fd9321336835f996b07cf45f0fb48037",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "7a403c7ce45c4112282b3b4e539a7b48fed1ce3c1ecf0a0591428953c10871d9",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "1e2716f05800cf464f3c93bab4e8fd92580087da53ae4e78636778fd50ca86bc",
+      "source_tracker": null
     },
     "backend_v2/core/redis_security.py": {
       "target_file": "backend_v2/core/redis_security.py",
-      "target_sha256": "a9d5db5c5001621324fa6a7019b179790d0b9e31f6f0b99318dbeab716fef538",
-      "unit_test_sha256": "d35974a95aba3437be96ceac6e68b1e247901c9a895cb4dc6043c32c13417244",
+      "target_sha256": "a240c12e41b80b8605fad2afb3a11458d8883979120041df927375963ac410d3",
+      "unit_test_sha256": "98813bd1fc2929727a8fbf010225ed49d176b4b8afccb044228206bd4b44a0ce",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "a75eb13c2a7333c0979c9e06707ef20980d8848496b9751b2449b9838c20ce36",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "composite_sha256": "a6ccdd90dc66098ed07617086203ebd797f537d7ddc40263094233b117aa09c6",
+      "source_tracker": null
     },
     "backend_v2/core/registry.py": {
       "target_file": "backend_v2/core/registry.py",
-      "target_sha256": "ac62d12a4342f011e243d1e6f1332182399dfe566e3c6b6bbd082f96290a3699",
+      "target_sha256": "07f8b20be345d0de0d324ec1182b1f14a8a34d73a607f090f529e3fb772e0abb",
       "unit_test_sha256": "66cf6ec4283c8e4228fc510189b36a83f7fdf199ae211ede830114cb7a810f16",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "b4cdd708943c7055002d7d8e96772a5b3d396db656feadcae50ab66bb613efee",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "2e8a033621ccdfe37fd83ea45a7fd75cc426f6bf14e9e636b10981d28d8307a4",
+      "source_tracker": null
     },
     "backend_v2/core/telemetry.py": {
       "target_file": "backend_v2/core/telemetry.py",
@@ -170,35 +170,35 @@
     },
     "backend_v2/database/factory.py": {
       "target_file": "backend_v2/database/factory.py",
-      "target_sha256": "6de5f170eff509f1c0877d2325778abfca1b845a077540acab22de01e364a0be",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "1f61333680a732122eb7a1233dd91f604355269e9bd617d5e85037145621ac9b",
+      "unit_test_sha256": "f426098aa3f3028b2d78a5e5c86bba030836d794967b6355fda39f412b6c01d9",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "d2eb47a1a06bc763d233d0465c28a5a9b0290b8af418d77b5df7ae7bae168950",
-      "source_tracker": "docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md"
+      "composite_sha256": "3aab47245580695872415d75ea85f43c8271f007cb5760c62f8a245246a35eb6",
+      "source_tracker": null
     },
     "backend_v2/database/interfaces.py": {
       "target_file": "backend_v2/database/interfaces.py",
-      "target_sha256": "bcd095a85e8f8e4ebc657922e32925e348c608b1625b121f235fd8c60a4e0ccd",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "713e75b2525745a379c419d5ca2b6822302e54603972a89ea4ddb8f9f17ef080",
+      "unit_test_sha256": "a8efc0db67ca3002d204e073ffc82db178e28fe4d2a2b5342d9613bc13138cb4",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "52d5d5403a9d50e7e41e7d203a56212692526e054d685fb053402a10f5c68bb6",
-      "source_tracker": "docs/implementationplans/TRACKER_BYOK_SECRET_PERSISTENCE_AND_UI.md"
+      "composite_sha256": "0d11c072c669c453fb4fa4367c95d2e59e7e71890cda26c7d6311522a23612e4",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/database/postgres/entity_adapter/__init__.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/__init__.py",
       "target_sha256": "0643669abb729964b93d9ee98656521e67bd07ca99d7c68864b7d92a2f5584cf",
-      "unit_test_sha256": "763c744e943b3145a9262dc92ee929016f3bba20d125d1ef1c06259af3428aa8",
+      "unit_test_sha256": "93fbd8760283ae35fcd941024c54b85fdb4c3baa25a974714fcb576767c7d61f",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "85f8926d7a26d855d5754f6152bd597a7de54f3da64ecd1183c32273b84866bd",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "composite_sha256": "a3dbf82ebf1cbc5d396cd2809de10328a3e4797c82e335cde2299b38113c8352",
+      "source_tracker": null
     },
     "backend_v2/database/postgres/entity_adapter/coercion_and_constants.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/coercion_and_constants.py",
-      "target_sha256": "809534ecf3404586086a8ced72c1dda94d7a5b2843b07100e47056a3778f28b2",
-      "unit_test_sha256": "161201b496ecf1d958e217403bd5489619d615c019a4b0fcbf95393f23db291a",
+      "target_sha256": "bd7d0f1df1ff5f36092b3208bc5510b998689a97ac895bb9659658639f25346c",
+      "unit_test_sha256": "23d311abeb565194812646bd21e5387c08914c7ee7429925c7fdc10b6efe3f53",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "b5acd227b4bf8e2e3c9f13a01ec6cc979755099c9b99406c49451174a1a5478d",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "composite_sha256": "bdcb3b452b3f3503f1352cb7b3580329de99e54fbb98eacbd0a9f60f29e9a9e9",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py",
@@ -219,18 +219,18 @@
     "backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py",
       "target_sha256": "87083c583c0ce6d326070c95a00e24a217e2243b934ad6980aa2ca355fbf0f75",
-      "unit_test_sha256": "5f1315dd3feb339bc35415e0b2026bcab5256d35d6a7c87bcf74f3368e294860",
+      "unit_test_sha256": "b2a8473c473064c6a7d0ad577d85ed58e3681465d2855c784a13dc3a3dfec361",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "c0807600704f286ab5cf0f729b7f73dc29008e7111c4b7e811cd7d0d827360b1",
-      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+      "composite_sha256": "e08898d17874b17152f02ba509074e53501de79a4beb4d03d36082152429e83f",
+      "source_tracker": null
     },
     "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
       "target_sha256": "c6a46905bb96cd10212789bdac00d2e991632cdad80ece0836f3ec380ba1e56d",
-      "unit_test_sha256": "35f36672cf843f6a5f91da0f46ba60d4eac2c56a64935d06ba79d258e3cb11f1",
+      "unit_test_sha256": "c150da250af6db3c4d747ec230e85ff02e2af4227864b079af375dbffb570526",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "e8e6563763c0682c4ed467abbc5a6f657b4c8584b42290b647a2b2d4a231a20f",
-      "source_tracker": "docs/implementationplans/TRACKER_SYSTEM_CONFIG_HYDRATION_FIX.md"
+      "composite_sha256": "7bece9594aae38ce93f92a448a6330243b2d78327443f07edda4105745009916",
+      "source_tracker": null
     },
     "backend_v2/database/postgres/entity_adapter/workflow_and_profile_stage.py": {
       "target_file": "backend_v2/database/postgres/entity_adapter/workflow_and_profile_stage.py",
@@ -242,43 +242,43 @@
     },
     "backend_v2/database/postgres/graph_adapter.py": {
       "target_file": "backend_v2/database/postgres/graph_adapter.py",
-      "target_sha256": "714d8209494c329a19249f38ce107b1f4376f89a6e5eb144054bbd2ae99890bf",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "24e0acfceea142d52023b7918193471fc4d283512744c97b132e7aead1ac2962",
+      "unit_test_sha256": "93fbd8760283ae35fcd941024c54b85fdb4c3baa25a974714fcb576767c7d61f",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "7ad85d334914ff7719022adf5c0d1211615e2dd4363882fea50ca8c93532db1d",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "composite_sha256": "8788b87d957451760c13d5f7f7990ee364cebca78930c28a74742443fca50213",
+      "source_tracker": null
     },
     "backend_v2/database/postgres/pool.py": {
       "target_file": "backend_v2/database/postgres/pool.py",
       "target_sha256": "73d96db9b3b2fdaa27736b9df588489e00d30c4dceb797a0f88c8ac024238956",
       "unit_test_sha256": "93fbd8760283ae35fcd941024c54b85fdb4c3baa25a974714fcb576767c7d61f",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "6ec4bbbdbea6b8bfb86c394caf847e5000f20033a5bba9a47c82371ebf26b815",
-      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/68d44ee3-0c39-418a-b625-c70e3253c36b/task.md"
+      "composite_sha256": "1d637731e833749abf0bf93a7ca7da84c0360c0929750d8edcb21f49085bcfe0",
+      "source_tracker": null
     },
     "backend_v2/database/postgres/storage_driver.py": {
       "target_file": "backend_v2/database/postgres/storage_driver.py",
       "target_sha256": "23033ee3105a6126f9c846f37560b27809fe23315134073d62aebbc7a0d3a973",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "93fbd8760283ae35fcd941024c54b85fdb4c3baa25a974714fcb576767c7d61f",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "fbaa2fc1d8df62bcd217aebc3a6f68a5af726533f7cecdb8c14489a4bb2b2194",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "composite_sha256": "3c7bd542f3f4a5c0f709044b67ed0d1225cebf3a2c229559881298bb5d032ef5",
+      "source_tracker": null
     },
     "backend_v2/database/postgres/uow.py": {
       "target_file": "backend_v2/database/postgres/uow.py",
-      "target_sha256": "efbc49e65b51a8a687d3048e68ade3c1e8d016f97c71778d0f12e67e49c671cc",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "b5857177835fea64ef159576a1f8073fd07123702901ab553193f90898f34cb8",
+      "unit_test_sha256": "93fbd8760283ae35fcd941024c54b85fdb4c3baa25a974714fcb576767c7d61f",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "5a732a1baf53f1dcb0335f11f85fcfe1cfffde26b1d8a93814171e0bb462fe03",
-      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
+      "composite_sha256": "3e1c41627c551f045b2db02def9608b5211d0e284745320bee89c1e07bffaac5",
+      "source_tracker": null
     },
     "backend_v2/database/repositories/audit.py": {
       "target_file": "backend_v2/database/repositories/audit.py",
       "target_sha256": "2fdbe70dbf0ff9de5cb242a8a3fc1e88fce352e4212e441783a0c2d7af45d930",
-      "unit_test_sha256": "de0b9ab5ed37def9482393779c7d8e6df6c013298c0a59bf3c44f8cf82a264fc",
+      "unit_test_sha256": "429cabfa018e523cf97caf85521546c50c80accc52c97ca5dbd0d6d5c673460d",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "896f6e79c52f1f19c21810b0ca86f513f0dc185251074154fe9dc3a5f836ce3d",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "composite_sha256": "4d1c4c4cc7d61a32568937dc98b071b6e78e0fecf1afb8c6ef572f53286b81e5",
+      "source_tracker": null
     },
     "backend_v2/database/repositories/base.py": {
       "target_file": "backend_v2/database/repositories/base.py",
@@ -362,11 +362,11 @@
     },
     "backend_v2/database/repositories/execution.py": {
       "target_file": "backend_v2/database/repositories/execution.py",
-      "target_sha256": "fe3c9b8571572b9da8c85158c20879b239932e51ee6e0c0a1f3a70c221653204",
-      "unit_test_sha256": "b6d5db1e1f364dfba8c51653d25549c38ec329dfdcfdd6b8e71696bf94c6424d",
+      "target_sha256": "71f92b211eadcae547e964f5d0c445f8a0c71f83e91346af36bec9f65c475b01",
+      "unit_test_sha256": "8e8961316cba5ff097004eb3df5844c0327d327e1666f0416cf6623da6046d0c",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "ae4c6977dd3d2ce0a8bcabbc2e0a24db3b5b40bc2036ea4c3d05e109662ecd9f",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "composite_sha256": "84a66c133b88599ee784a1b4c11d2b74bff1817fb2c9e7a3634597614d11a021",
+      "source_tracker": null
     },
     "backend_v2/database/repositories/identity.py": {
       "target_file": "backend_v2/database/repositories/identity.py",
@@ -378,11 +378,11 @@
     },
     "backend_v2/database/repositories/knowledge.py": {
       "target_file": "backend_v2/database/repositories/knowledge.py",
-      "target_sha256": "37ad0b21b84ff7abc4094441f1ff5077fc681df37aaee7d23c67f076da310bc7",
-      "unit_test_sha256": "9e2dd3b21a359beee3bf026f1e3146691ad25367bc8a8ad0694f28f69e89039e",
+      "target_sha256": "e01952c95ec0b389d10c66b30d43e3f496433053fe9ad4f17591562c08564798",
+      "unit_test_sha256": "9f20b8ebcd0134bf5d93d1070609f465d5b1c2423f2417775027db69209b0908",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "098f6213ab734dc131bd50808d96e4445e6082a89ab6f9f7726437b82abfe969",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "composite_sha256": "b181b1e7b891fe1c37b2c484e8914272e59b9b317a3db5eea382bcb3d294898e",
+      "source_tracker": null
     },
     "backend_v2/database/repositories/report_artifact.py": {
       "target_file": "backend_v2/database/repositories/report_artifact.py",
@@ -394,19 +394,19 @@
     },
     "backend_v2/database/repositories/system.py": {
       "target_file": "backend_v2/database/repositories/system.py",
-      "target_sha256": "d7201dc02f28617d5620b27aaaa86b7082369ee1aeb79f5f16ee6c8a0233f535",
-      "unit_test_sha256": "e97db23ce9fc92414b08aada506ecc84337721c49e474b87a34f0fc765e55fd9",
+      "target_sha256": "d4feb5258eaf878a7484cce6f6475aab7edc8affcd103cd3b1bf7432b7a45426",
+      "unit_test_sha256": "0ef9716926b170ab09779a1db9518bfcb9c500b1ad15fc1590f3d5c97eab3a92",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "aea64c13549ba44d119aca5d2828e9e765fe3325ab8a7cc915b86261b55164a8",
-      "source_tracker": "docs/implementationplans/TRACKER_Sovereign_Dynamic_Model_Discovery_and_Google_Providers_Decoupling.md"
+      "composite_sha256": "0b9bd286cb05983b15028676d243d8b70eaa2a92d700bbe0f51d0466f23a486e",
+      "source_tracker": null
     },
     "backend_v2/database/repository.py": {
       "target_file": "backend_v2/database/repository.py",
-      "target_sha256": "16f5bf951b6f18a3217e12ae383837fa0bc3d86ca1a6e00cd6d4fea1de821d53",
-      "unit_test_sha256": "6cb5c17cd01bf3278b28be2beb5750994bdaecd331e173664373fd2141db39fa",
+      "target_sha256": "96e1389eea002f68024f7e541e857ea0ecc78177976784e8620703b4d232f2cd",
+      "unit_test_sha256": "6137c45b4df34d90b08992c2c0c2ab5a613eb2ebe309d2d0dca0c6534c1a936d",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "5e45abe9eec8f60363f62e750052e9d7ad7f093ab47d112b4c3f9f17f266c3a4",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md"
+      "composite_sha256": "d37485eb88fac93054a4ceb0513cebdf8ad87d6312d12df62243083af626f5ef",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/exceptions.py": {
       "target_file": "backend_v2/exceptions.py",
@@ -690,11 +690,11 @@
     },
     "backend_v2/main.py": {
       "target_file": "backend_v2/main.py",
-      "target_sha256": "334bb9760dd7b27daf5df761ebbb610a35d74012598524f5f3556392fdad9bc7",
-      "unit_test_sha256": "37952d6ec50145aca34fc31e67538c8490c9eb84fbda4b7dabb6cc5e69ded7da",
+      "target_sha256": "5f3d087fd6a633c81bd5e3a9e44fbeb6f604d1c6c898fd4ce644656d68eb24ba",
+      "unit_test_sha256": "a9a49965867adba16c93f53b453a8f2c4b627a2a4ef0822276136f3f2e5bc594",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "75bf600deb3c7a9f8f508e87a0652633eb1a3cd3e605d731b4f13683c31d08ec",
-      "source_tracker": "docs/epic/EPIC_164_tracker.md"
+      "composite_sha256": "b01d5130628cd0a60c3ae0a80c304687fb5a883d5a3be94f4ae8d335c258b70e",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/models/auth.py": {
       "target_file": "backend_v2/models/auth.py",
@@ -706,19 +706,19 @@
     },
     "backend_v2/models/chunking.py": {
       "target_file": "backend_v2/models/chunking.py",
-      "target_sha256": "2bbd4471ed2d15e0796b923f71088782d875fa5d1d842fe7b680ca82090d90e2",
+      "target_sha256": "0a400cf9820a37f0a32b4d313e879a201d713c791221814c17edd2ba34fb2106",
       "unit_test_sha256": "f2912e5fe2f4144f495245c86988b908045d2564349b998cda4694f3f7ceb35e",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "30b60dbcf19ce71c1a1760ffca4e4be0bb296e965b4abc49481056e75d29a64d",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "d227746e7f19ec2d8c02e4862801e6461307c4a3b5de0311c0e4e0713abddd51",
+      "source_tracker": null
     },
     "backend_v2/models/domain/__init__.py": {
       "target_file": "backend_v2/models/domain/__init__.py",
-      "target_sha256": "a8a4bbc2f136866d2bfd0b88a9cc8a3cc6714a7685e5d77957d2e02fa130137d",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "2c4060500e4029fc39c861e6663f1cb6340a196a74a2d3f3176dc5956347cc06",
+      "unit_test_sha256": "8eb2e624c86bdaaa1524388af0a2cdf908b71465807c3d6a083b5b702100c270",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "b1e34ef87e145da22715d1186e82b72ce06e177f15b7ef932ac8a93a0f8bfa6f",
-      "source_tracker": "docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md"
+      "composite_sha256": "6cf2c5f896bee9a1d556332b754676ca764f81e0435e6b7e484f35d88c99d4a1",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/models/domain/blackboard.py": {
       "target_file": "backend_v2/models/domain/blackboard.py",
@@ -778,11 +778,11 @@
     },
     "backend_v2/models/domain/inputs.py": {
       "target_file": "backend_v2/models/domain/inputs.py",
-      "target_sha256": "6e5815f2b1482c53abda24a2ddde0be1dd870d76fbe545d92475a08c6ea5f639",
+      "target_sha256": "397530eab986143941902e62847c622643f2fdf4517e7f04ba6ca37c2b1d2ca2",
       "unit_test_sha256": "a1bee45297f74a0d9f32b6d69b1226696a4c85015416565f55f038a38a048e63",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "e6e4d04653951d85f91ceb196bdd62fb9d30ba18c4204db420d566465e3e3ede",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "4c2d9e344ef0554369a03153bca066849fd50800bcf559c14b2248932eaa8dcf",
+      "source_tracker": null
     },
     "backend_v2/models/domain/interaction.py": {
       "target_file": "backend_v2/models/domain/interaction.py",
@@ -794,19 +794,19 @@
     },
     "backend_v2/models/domain/judge.py": {
       "target_file": "backend_v2/models/domain/judge.py",
-      "target_sha256": "5115df81af2a6ac5fe4b0518e8839838914510930abb14162add1e4c5c3e132b",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "6f89673be5cd4fc4d5953e20258b19bed52ee079df86e693fe8ac5299c0d751e",
+      "unit_test_sha256": "889a80d4c527c812fb23adc5b00e90a7d84ebef89dbc07a90360c5fe973063f4",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "00bb63618e5c235e54aa0facafb454545421228b92715cf1e027a00850d6a7d0",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "composite_sha256": "bcc1eab18ae42f41c6a1e8e55e8a73549f533ca700d8f3e8e96f767307158136",
+      "source_tracker": null
     },
     "backend_v2/models/domain/knowledge.py": {
       "target_file": "backend_v2/models/domain/knowledge.py",
       "target_sha256": "4bbf7f3d7c55df61cd95d11f31e0b8ad36dfcf0c815fd1f53f4e81a8be823757",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "21572c48c483333af36648a1ad28b247a4a4f183a40ad3595ee0899f65c69e6f",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "ebfc90cb07e87ec39fa796676c34c13e4600c4f3f56d5130588e1a5fefebbd30",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "composite_sha256": "76bb98318dcfc29ba93eee646ebdce38bf145fd55cf3df160c8ce44608465750",
+      "source_tracker": null
     },
     "backend_v2/models/domain/logician.py": {
       "target_file": "backend_v2/models/domain/logician.py",
@@ -818,11 +818,11 @@
     },
     "backend_v2/models/domain/matrix.py": {
       "target_file": "backend_v2/models/domain/matrix.py",
-      "target_sha256": "1d4ca307ad6cf6452d1b4b97945656afa3a28be2171ae91c3305739bfac59fc7",
+      "target_sha256": "eb2cce70b5b919363b52beb96cbf2d5a96cd15207099c2f9b8e826daac8f472a",
       "unit_test_sha256": "d5dbc12566eb960eaea89900fa32583ace09820c9a8ad687bf691c9ce480c11e",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "c7b101fb15249aa8a1e78b2b82c196d3381b7e4bf7f688bcee540f43229a2f55",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "e5bd3b4b08755de5ed906b645c58fe1e574111992227ea55030efbf2c9dfcfa7",
+      "source_tracker": null
     },
     "backend_v2/models/domain/mechanical_anchors.py": {
       "target_file": "backend_v2/models/domain/mechanical_anchors.py",
@@ -834,19 +834,19 @@
     },
     "backend_v2/models/domain/metadata.py": {
       "target_file": "backend_v2/models/domain/metadata.py",
-      "target_sha256": "88fc2b4fabc6c4090e3776a5ad94b23190523d8decd25c6f126e8e6edafdbf6f",
+      "target_sha256": "6ed8ff38507c6113c752703525db3fd6ab92a9fd07f35e813ef8434dee1de2b7",
       "unit_test_sha256": "5c072c257352f31f3501f0f1aa7bf68d84022f986cae86776540ed3908548c11",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "8eacf61c484bd78e75e70bb3f75ada1a72601f09a6b34113c7ea7a78d7e5215c",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "01fef880be085d63ff958ffc1c9989b4d17112a5543cf2cf0ba0bfce419234e9",
+      "source_tracker": null
     },
     "backend_v2/models/domain/output_profile.py": {
       "target_file": "backend_v2/models/domain/output_profile.py",
       "target_sha256": "87bb6eeaec334831a68e379fa591b68fc7273c4cb2bb68837745baac20477c78",
       "unit_test_sha256": "da46e8ce9a46950c9f0fa7ebd64c38e4be98f25bedc85ea31916df216ef762b2",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "cd19db7a2c014fe81f87f94b6343701e2c78605efc9e6e3956b28f2b58750618",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "08a749e7f5fa67667e46a1a019fd28a693a398d0aca8be0d839c9dbe24d341a7",
+      "source_tracker": null
     },
     "backend_v2/models/domain/overseer.py": {
       "target_file": "backend_v2/models/domain/overseer.py",
@@ -874,27 +874,27 @@
     },
     "backend_v2/models/domain/prompt_blocks.py": {
       "target_file": "backend_v2/models/domain/prompt_blocks.py",
-      "target_sha256": "9f6b2e81a4fca11e50cb6288bfac45677751fc4d4778b98e8fbc8d3b65c7ceb2",
-      "unit_test_sha256": "18884a53a0081ea16d407d8b4c76b6b944fd766f7055c998fecc7b28d8104eb8",
+      "target_sha256": "28d663ac5189456509d86766f8d1a518fb9c2375a970b7b539611580b3bb4f2d",
+      "unit_test_sha256": "b060931fda2d265e82e708b007e69eef8893e09976f3c8a5d189c53198157525",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "8b71117e8d823bef26611f2319fa4bbd13c2b850f20e94b2cccb2e0130bc4853",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "7f44204e817d5b8b4b38994b439d9564ca8c04073c3a60fbd2ec11ee88a7eb6f",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/models/domain/proposition_graph.py": {
       "target_file": "backend_v2/models/domain/proposition_graph.py",
-      "target_sha256": "fc088ae3643d105103ec6b7a54b91f42967c7fb41ba798e2316a632f60d8908e",
+      "target_sha256": "9c65d432a5c5ab1dd0df2140302d3c3b7dea377d8130257b2871b9d44ba0258c",
       "unit_test_sha256": "27174a59100e9fd3391e316e7a82e688306d660dad91aafd081b5d8f3ddacae7",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "9d194437e5b729ae06b21e8d90b6d9ea57df65af63f9572170c7dc6f3490e16d",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "composite_sha256": "584e90dc5afcd4d74cdf66050774a1500a817feb9847eaa0c60296b0b6ffb244",
+      "source_tracker": null
     },
     "backend_v2/models/domain/references.py": {
       "target_file": "backend_v2/models/domain/references.py",
       "target_sha256": "b123d169f97dbdfac37068cdfdaea3421ac7d5e8c5a775e6faa301f0c24fd696",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "07eb2a19250f609fe7fdc1b1bb5a5e3ebf495915482079dde3a3945c5dd24bc1",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "32fc56b8d65e11df11de82b9dbe5e06ed8c13dcafa3b1fa87b1f5d8bbb88bae3",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "composite_sha256": "05de98843c063b3154060ec90bab682a458159ff5477efba1d1a6fa093534fd9",
+      "source_tracker": null
     },
     "backend_v2/models/domain/report_artifact.py": {
       "target_file": "backend_v2/models/domain/report_artifact.py",
@@ -907,10 +907,10 @@
     "backend_v2/models/domain/retrieval.py": {
       "target_file": "backend_v2/models/domain/retrieval.py",
       "target_sha256": "032c86b72f99d5efd4c75ec5ec598c3ce1bd2b78bafa351c58e0e1f2457e8843",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "083275ee964e040f1926c2f50024f7fa6f948a6e311510c29c09d2178dee82fa",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "d571d4cb4ec6b1d0281211570ab88e126a973b34e0281975dd672efd01e9b4d9",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "composite_sha256": "ac049a690b12f5e3fd8019d4f3d3c1d4018cdfe98697d001d674b15dd2aa7217",
+      "source_tracker": null
     },
     "backend_v2/models/domain/scoring.py": {
       "target_file": "backend_v2/models/domain/scoring.py",
@@ -930,11 +930,11 @@
     },
     "backend_v2/models/domain/step.py": {
       "target_file": "backend_v2/models/domain/step.py",
-      "target_sha256": "201688c50cca55bebc95ee72c7b7c978baf8416a6e5a37a3045b71a6664ccb87",
+      "target_sha256": "8038ed2e636b33bde27fe77a20a2eeadb149ef81897f8b17b7555aa7c2774379",
       "unit_test_sha256": "a74d90d4cfd4309a39c796e1c0f56af763f39b0be4c84fbad199275d3d84b6b8",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "0a413e8f27f4c0d15aa2203ca2bb4a7a4b3800c99b1e71451f70a62412604a02",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "f198b562df6153eb33939bd49037acd3e75619e00e68ed4617325572478ca683",
+      "source_tracker": null
     },
     "backend_v2/models/domain/synthesis.py": {
       "target_file": "backend_v2/models/domain/synthesis.py",
@@ -960,37 +960,29 @@
       "composite_sha256": "4b18fca27c8573e3855c865ae4eef61ab5b0c0fba517c71d8e034a01d4b4d885",
       "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
     },
-    "backend_v2/models/domain/validation.py": {
-      "target_file": "backend_v2/models/domain/validation.py",
-      "target_sha256": "bd1cb5688046dec0901cd842fc61bd8f4f311d0bda8e81f0e3f3fcc4be79b8ee",
-      "unit_test_sha256": "a2ca7c28dfc60f220b559a041764d315b462257a50e621f7ff7c2b6d7e375efc",
-      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "8d6f0804768dce49ea0bbc2cecac6a90fa6cdf97e61563ebc66db7109c028607",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
-    },
     "backend_v2/models/domain/workflow.py": {
       "target_file": "backend_v2/models/domain/workflow.py",
-      "target_sha256": "0afba24fd82ad27a287e98db3a33dc5315082baf627f83939a2738628a7cd0db",
+      "target_sha256": "9f7c2573558c4d1ddfefc1c8aa268cf7e59e36e30780a76763d18e3f3da65816",
       "unit_test_sha256": "ac58605c64eed2fe46fc34df7ae574cf0f8d2bf8c996490c4a1769c525720d73",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "5b1972ba9c8593e340e488cc2db7f925912485fd665ad158e6479d9a9ae54891",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "736bb0d1c9127b13b8e6616f9ac13e3b26f275c0d0e0f3af1bd2997b1ed71ff5",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/__init__.py": {
       "target_file": "backend_v2/models/dtos/__init__.py",
       "target_sha256": "78f75b3b0f98c1fd78ab40e58b47b1a2a7a2452c95d686aaf4133ca1e844697c",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "2143f0c8d8334aa472ee4d94ff26f799570bfe84dda405b1383ccd1bd1699bbc",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "ef7d0e3f4704b62d9268d2722fde3280640d560c3f5af3a7027c5f96e91a39f1",
-      "source_tracker": "docs/implementationplans/TRACKER_Logic_Matrix_Excel_and_CSV_Parity_Architecture.md"
+      "composite_sha256": "9d2b26d420363b90472c3cd26a8544cb9c6dc58319f9b501b0bb7bffad5132e2",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/atom_evaluation.py": {
       "target_file": "backend_v2/models/dtos/atom_evaluation.py",
-      "target_sha256": "5d03fa6c6ac06e58e3b12e98bf391eb6ea6072c6c38806f5f42098576e5410f6",
+      "target_sha256": "7db3bf672e79c8c4dac9c24ead3586565a97df7d5c81896e348793b5466b2a1b",
       "unit_test_sha256": "28e739eeb259c028821b38b4796484599aad64de45ce65b11e96476ef06c2072",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "8ce02a49160a9216a4e89e56f24effab3484c2bee2ede1eaaf59dd106bc56767",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "2ff8d95abd176c70ca08887c594061e8a8319043452649cf576b8bc756513094",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/atom_result.py": {
       "target_file": "backend_v2/models/dtos/atom_result.py",
@@ -1010,11 +1002,11 @@
     },
     "backend_v2/models/dtos/causal_discovery.py": {
       "target_file": "backend_v2/models/dtos/causal_discovery.py",
-      "target_sha256": "5e5f0d7cab79d61892cccdd596001e04f7fdb0783c8748bada0403ef05a1117e",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_sha256": "32e851f9e7fb7fc4ed3899167028642f9a0a99bcdb8fd4e7a975b30a9b47f651",
+      "unit_test_sha256": "6623a8ac83a0c72bca445ad52066a071672d78c90482e874a2ed3749c9b62cc8",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "c71290e46f14b333daed0c2a6557aab14c7dddcda39ff01b59116c1da5635075",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "composite_sha256": "ff9c81cf7092ec0961cb910256bd6cd605829dfc2cbbc6b1bdd3dc5da2d0bca4",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/context_variables.py": {
       "target_file": "backend_v2/models/dtos/context_variables.py",
@@ -1026,19 +1018,19 @@
     },
     "backend_v2/models/dtos/dag_models.py": {
       "target_file": "backend_v2/models/dtos/dag_models.py",
-      "target_sha256": "86bd7959b96de5e470431ad8bf349cc402455dd30a5c062e0a66716f95afa4f0",
-      "unit_test_sha256": "f8720f31ed6533d76f36dabc5fa8d80a9e65370fd2ebd9c41e5d03ce13be1326",
+      "target_sha256": "b102b0f92a54df0bce00fbb4262f0971b5a3fd1371b87bf61df10b18eed39d13",
+      "unit_test_sha256": "c860f77392958af848272cceccd8842f5f9ed61037421097bd00e6857d5f636f",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "ccefab51bc53bb04ac2238242604c6ec01a5bf094f346fa0bde6981e617db56b",
-      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/b75f5510-8298-4174-9114-7f99446fddfe/task.md"
+      "composite_sha256": "974fa903059fda1e5f49921af317807192aac54c441f4fe8d97f20ef95064045",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/engine.py": {
       "target_file": "backend_v2/models/dtos/engine.py",
-      "target_sha256": "4e11ae7582f982b286ce93170fd6949423792947cc4e40668214c4cd74d6b01f",
+      "target_sha256": "44ced2050894f888a2beaae345a614984ff077ac603cb346802dfc3cc5ae9fd2",
       "unit_test_sha256": "4e53b0ab3114d298b389edb275a1216ec6bf0593f986211399c3a98577f8ed93",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "0f9a1a7786016bf20a3450059cfe7ac8fbba3756a2246519e59e831739db8f8d",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "e581a5b452c00b40627538584c59d14d1438091380132d92c970eff0dc436b64",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/evaluation_steps.py": {
       "target_file": "backend_v2/models/dtos/evaluation_steps.py",
@@ -1066,11 +1058,11 @@
     },
     "backend_v2/models/dtos/hook_delta.py": {
       "target_file": "backend_v2/models/dtos/hook_delta.py",
-      "target_sha256": "c88e458e5bfd28e04afc3b8cfd7a24622c047ea5966390459d50752a946fdacc",
+      "target_sha256": "df3e6784bfab23d2ad0e46374669c63b5b4d1db2ea10858222aa555a42289b0e",
       "unit_test_sha256": "af72c9719d2a0b24fbb6a52c08b598d92cbf24495c17d7f300c070192e84b4fa",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "71d9eeab8aae4463a8ba0ab3f012eeafbc2f358727594249752e8e9e8450074f",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "43c9f09190438901677bce227035553310945eb3207d2ee97b7826fb7f9bd3ea",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/hook_state.py": {
       "target_file": "backend_v2/models/dtos/hook_state.py",
@@ -1106,67 +1098,67 @@
     },
     "backend_v2/models/dtos/matrix_parser.py": {
       "target_file": "backend_v2/models/dtos/matrix_parser.py",
-      "target_sha256": "f02b4025bbaa09ceadae1ee22f96bff7be2987eaa9436223af68b6fc09e7eb2e",
+      "target_sha256": "34d0663386f290b85da2e436cc4faa714d97d8eed361c79d7ad7fab1a2cde324",
       "unit_test_sha256": "3a11348a114031dae7c0ce32cef0dded63b343ecc34b920dbf0991ecdc06aed6",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "126bfd91945847481831452a5e85c36131d6d0652dcaadef64caac00e7edfe13",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "composite_sha256": "32da9752fc3b4a97c17b4108cb0dd3c1c8f146277ea624750bda3394e3f54799",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/matrix_scorecard.py": {
       "target_file": "backend_v2/models/dtos/matrix_scorecard.py",
       "target_sha256": "4f3d7fd1f4cdca63a493de9de21b046421f29f9695c7a93a4da412ab081e1f5b",
-      "unit_test_sha256": "0c42246470806a92aa7fe6a2953588fe09ed45167bc7bb9331e8abe1ebc9e7cd",
+      "unit_test_sha256": "560590fd639f1c241226d614d2572f388f462da78c2c90f27bf5c67d95ef3ab3",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "8d356876141bbfa873c6c1acf35bfbae652342afc42712e0f33feb2d93435916",
-      "source_tracker": "docs/epic/EPIC_148_tracker.md"
+      "composite_sha256": "2a8b65787e309294a6e7348401fb87f79b42632cf1d7334e7eee2345ec2783f8",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/mcp.py": {
       "target_file": "backend_v2/models/dtos/mcp.py",
-      "target_sha256": "5214b528d73fc1a6cf75d5c9b58911d804fb8da290975d5655c0d8e2bb959ae0",
+      "target_sha256": "6cfe53bcae10f3a7b4e1e4c578c4ab38fe175a2dbc7c5fa97a9ea75a88c66d54",
       "unit_test_sha256": "631051c210984edcc10fca36854e313b31abb60b8bcda23ce6e5ca0996d69b15",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "378269782e73510bcd1b0f0d230eccb55a0e76a958868ea7aff05a9340d66fa9",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "1bde9b0db9a281ab0a1ce1191c422f36110fcbd19d60c05cfa9f38770c1df147",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/node_execution.py": {
       "target_file": "backend_v2/models/dtos/node_execution.py",
-      "target_sha256": "b74b9dee985d6b92899cc25aa1dcf9f514598f136281bfbea71385ebde269e03",
+      "target_sha256": "148134944ad559f93e69d7b5257fcdf70a09071893936ddbd7a18b6cfc1dec0c",
       "unit_test_sha256": "b19028c48441c5c63ecb436943e11077e331173d0745df704962422fb82b8d9e",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "9416521a3facf72c2de4aa014f4404f691ab32f9b6b0c28311d89f2eb9b6c575",
-      "source_tracker": "docs/epic/EPIC_162_tracker.md"
+      "composite_sha256": "5aa9a0733f1373cb1b2b6c9d3c0ee9ac407200516ec5d70c6d4119f3114dcf8d",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/prompt.py": {
       "target_file": "backend_v2/models/dtos/prompt.py",
       "target_sha256": "2df2400c952cc99f4668f263b7dd76b50791322cc5f607e1bf962b2f75575563",
-      "unit_test_sha256": "792fdf5bd57dad6887d9f5567e3e553af1c236109a55160a7ecec03144418eaa",
+      "unit_test_sha256": "ceb9381baf5f734a61c40ac4305cf57bfafea9fd292c680232f16fd5029aacb2",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "73c05d4272be5049a717e07416f18776b0d09f813ff329f8aee4f7838e25bb0e",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md"
+      "composite_sha256": "7ce13becb7e8cc0bc1eabaff4e629bb99193b60d1c0f5dc22c691bb83090c468",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/prompt_context.py": {
       "target_file": "backend_v2/models/dtos/prompt_context.py",
-      "target_sha256": "b8fd0bf69458a2647ffa9bb15f81a2a9f5aaa1883ed5ef2fd45f6f7de607403a",
+      "target_sha256": "fab13832a07e20f8a4e7b1e50c36447305cb31fdb93c0f92b45f3b010c6f1c53",
       "unit_test_sha256": "458e4729620069a80b11e8e173c31b56364366fb58c6268ef41713869198ed0c",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "71eb78e2fff82471e17144e8cf9205166796cb250cd2c47a068e531b03b78689",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "5e3cfb9affa5056309b0e1d1ef786435aa27fc1734c4a5d5f95f13129a28675c",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/quote_evidence.py": {
       "target_file": "backend_v2/models/dtos/quote_evidence.py",
-      "target_sha256": "22cda9c379ca5842bcde7cb89da49ded4a1b5aa8e41d4ed989cb9907328d3ff6",
+      "target_sha256": "3c627fc4f01b1b2c4e5e56b3a7536d001c31a21ef3208bd55b0f7e8a135c2467",
       "unit_test_sha256": "bd9926d0f1c6f0b4a69e3c36dd1d60c415a0da151f7a9d5c0e9529753a5b59e8",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "a321841f0bdf265f324e6455a31cace4d2b792b7e3f5389c5e34e054144885bd",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "e4cfdc476b66d297bdef10a5c4bb32cc0744b056a592ab79d4ff53709fad50a0",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/report_data.py": {
       "target_file": "backend_v2/models/dtos/report_data.py",
-      "target_sha256": "7194ce3249ce3e452e97d7a1e3db795d20dd9e2318b7506e99265adafd346df8",
+      "target_sha256": "0ab2c7a8263397be1a3d72b8772ea1ad534a459f859556f00e6cfe985f90848d",
       "unit_test_sha256": "d57344a737b9abae3301327dfe37f3210e1a425da47410c0c6a4bc5eca002021",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "f734853615ba7b2fcbc6e46a90f68874813c506d1f4216e690cbeabebca097b1",
-      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+      "composite_sha256": "87dc743e2776e6cd256de9863d2d9a734ef7e75b42073abff6975be942e0c213",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/retrieval.py": {
       "target_file": "backend_v2/models/dtos/retrieval.py",
@@ -1178,11 +1170,11 @@
     },
     "backend_v2/models/dtos/schema_manifest.py": {
       "target_file": "backend_v2/models/dtos/schema_manifest.py",
-      "target_sha256": "97f7081b77f89f37044c7cc23f5321484bd789631cac73a71ba9c7a84db95a4b",
+      "target_sha256": "f6032ef4f7977d827d7861e2b8bb73aa3d4ececfdd85b9ba6cc56558179f851d",
       "unit_test_sha256": "e36f3f817b2381de91c4dd29290986a56ee1a4e0373ce1866ab326593ce82082",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "e07782c1e67aa8f7fc94fbb78ccf4f395b00f143527b35fe469f0fd3f5b64a1b",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "e26197aec21cf24c921d639cd9118c6e8797d31e6e7414fbfb30bb1825a3847f",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/sdui_rules.py": {
       "target_file": "backend_v2/models/dtos/sdui_rules.py",
@@ -1234,43 +1226,43 @@
     },
     "backend_v2/models/dtos/studio.py": {
       "target_file": "backend_v2/models/dtos/studio.py",
-      "target_sha256": "771a76333ff51e089d2712898761e3defc07edb1d1a7eeddedcb19b993c25212",
+      "target_sha256": "8c302fe243060566b31fb8403e296636e85f0cf9b84a0a9bcb6bf07a2a3b76bf",
       "unit_test_sha256": "243a9a472a5ad1b2357ffa7abb757e36c475ad862bb2e484a152795b1a8b9432",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "62d3fc8109499f42a83bd752e9dc20881b226bb009044649270c9be59b3f477b",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "6b6fa9f2e28cf6f0caf1c8bdf622f7f7755cd258cf270d5aa3baae9656ad000a",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/models/dtos/synthesis.py": {
       "target_file": "backend_v2/models/dtos/synthesis.py",
-      "target_sha256": "7a2b0d4999a8825407adaf10fbd80ba2f7fc1153149a7550ba1698214f063fe8",
+      "target_sha256": "90e903c82325d96568530aef55c190e0b2a1a99be77ed87fc68a21d428080b3d",
       "unit_test_sha256": "df6dfce5df22c1bb9574605c293c6f407a0e06d033ee9f7f6ae479be90ed9a34",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "ef597279b175d0d541574735061d52ff961af75e7ac623298ab11bfcb3f1b7e6",
-      "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
+      "composite_sha256": "e797846607303499511b922b9801b6f0493351b2be80fc14de2a39083f6bbc8b",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/system.py": {
       "target_file": "backend_v2/models/dtos/system.py",
-      "target_sha256": "04ad09077be79cae27d00d4d9b9125848ce4c7da199bbeaa90b61d5a6119a5bc",
+      "target_sha256": "677b77d413d2647f24da5c398240a27928bf5a12e0f452a8c678d9c829771576",
       "unit_test_sha256": "4f5af703426cff6d2f15a7a695b9df1e9a5988ecbaeca2decabb01315b7f6029",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "f103bb0dd48074e44e342bd812a2e99de26122b6c26092f4f2a3bfd1aa2b2369",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "5c323fcded4955f3dffdb194ed8a2af7288915f3ac73d73cd56d29062ff8ccd4",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/theory_manifest.py": {
       "target_file": "backend_v2/models/dtos/theory_manifest.py",
-      "target_sha256": "a645c2b25aaddc71966d10e821f161b9ae495f26009217726aaf2cf65adb97bd",
+      "target_sha256": "778fee40306c78af8dced7d16943e6e9ab5d1a0faa4bed2ab39eaf646e7598c2",
       "unit_test_sha256": "954c15318f905f5531060e754b2d96db75bfede2aff2dbc76d277541303c1ce9",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "9736f0687a6ccb232424c2ea2ac8614676bdec25f2ab42847927549841a93b55",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "ca5d5223546cef5638bba8f67361bfb7227bb2b9d0724c87e0d61655af6fa522",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/trace.py": {
       "target_file": "backend_v2/models/dtos/trace.py",
-      "target_sha256": "b33eb87f5751257f48de736ab91fd19f64c56f6a1c80fba0ccb7a28d4bdbf8fc",
+      "target_sha256": "ca9ba66b2f1bc410061a4bd4c2f25406009814440a82d6e6aeb20d6e327c9b24",
       "unit_test_sha256": "a8fa26c418511716a7c68ca114944aa13b2bfb0a5aa24911e359037bade84315",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "cd4fce8e32cfb95551380d0e16ce23aa3173216c31fc5cb79301838f29a4617e",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "cf6e804e429b2466891b3450240f9b7b4c6de34780c47083c79a7c83a6583cca",
+      "source_tracker": null
     },
     "backend_v2/models/dtos/variance.py": {
       "target_file": "backend_v2/models/dtos/variance.py",
@@ -1282,35 +1274,35 @@
     },
     "backend_v2/models/dtos/workflow_schema.py": {
       "target_file": "backend_v2/models/dtos/workflow_schema.py",
-      "target_sha256": "ad0d1d3067f5e07368eeb3ccfdff4b519d11c38c7504c738a74c032812440339",
+      "target_sha256": "65adc699cc01d68214177573aa4dd1d844c34b0be0e1810e7e3d981932cfd02b",
       "unit_test_sha256": "7e47f3dcf621f4ee3b422f32db24b37fa837a2f1fe51daa8098cc9f933e2e64e",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "db94e8fddb6e5eb8814bcaaa3c5f45a8bd13339f5fb89f82527da6a73030ebb3",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "d073a0afeb1b090833867e6feaa765558a6f3b21194b0969dc17ce392d5aeb95",
+      "source_tracker": null
     },
     "backend_v2/models/enums.py": {
       "target_file": "backend_v2/models/enums.py",
-      "target_sha256": "e7e04e85ccb0379443fcd2abe927a0f459c33f147fdf3765ee3a731c514b348d",
+      "target_sha256": "b9a469511a608ab4a366c8d74ca4d31d94fe49d89b2d7d7e328767d7957254e8",
       "unit_test_sha256": "f7a180215c095ca202b3a35c8c4d4076c2805405f8512f2c1afd54ed2f9da547",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "68fc748056e22c12020c54486d5f470ce5efa291853a0b6dd1ef14ae3cacc5e2",
-      "source_tracker": "docs/epic/EPIC_164_tracker.md"
+      "composite_sha256": "b861debe33f54dd5229ebe934d8edd995f5e519cb0ac6a1bd2feef2c56d7655b",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/models/execution_core.py": {
       "target_file": "backend_v2/models/execution_core.py",
-      "target_sha256": "4db6f831b3720ea1f088767f45ee7c0e461a8b344563841226a6e4fa544b0c3a",
-      "unit_test_sha256": "5eb0b853d45db99c23d8e4a6eb4d1119556f250b91ee47090f6ed9101c363310",
+      "target_sha256": "a1770632c791e2894014fd5998269e2dfacfd28a68537afa5ded26b0560b3905",
+      "unit_test_sha256": "bae6eb24d30889d9bde38925086c5b938bf31eaf426c01656a41ea3629f3a2e1",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "5273149f3ea0442cc88bc39feaa1c095dc403c04eced3bbd8551e6e0fd1a83ae",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "aee753f6e035dc1129a69e49cb201a5c43c672960bf304de85c792b67195d565",
+      "source_tracker": null
     },
     "backend_v2/models/llm.py": {
       "target_file": "backend_v2/models/llm.py",
-      "target_sha256": "63deed4d5e81c8aa22c3e0146603dfab942ec66338932b5f7a84d9b3c766d5e1",
+      "target_sha256": "c0b5c1946a970642b1d7d4cd7f4c67eac50e8ebe67113bc8232ad281b98f7c2b",
       "unit_test_sha256": "a734a1e03c3c65937e90a9a55e991e2734266f76d09b0b9148692fea06aa96d2",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "aa32c46a65cf245bde9808585680ea9e584e6ab3d67ccbc24a9bc8ec87291e91",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "697ce0758e12c4928e1af5a671eeb1ca68a6ba4c58090d4887e82236fe811bd4",
+      "source_tracker": null
     },
     "backend_v2/models/prompt.py": {
       "target_file": "backend_v2/models/prompt.py",
@@ -1331,10 +1323,10 @@
     "backend_v2/models/prompts/execution/__init__.py": {
       "target_file": "backend_v2/models/prompts/execution/__init__.py",
       "target_sha256": "363cbac0ceebd96c3add58f0de82660065d522bcc930ce109d77f87ad32ccbe0",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "12e5d07f2292a59e809a50098cccbd6242943f27a6f1915987d84df85fdfc3b5",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "30cd366df9fb4edeca47e35043de775f1b342e7742600aa81179ee3b798a8316",
-      "source_tracker": "docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md"
+      "composite_sha256": "006f31648158f35bf1ca905dd59d92204950979c91c8cf40515ceb75efae2baf",
+      "source_tracker": null
     },
     "backend_v2/models/prompts/execution/field_prompts.py": {
       "target_file": "backend_v2/models/prompts/execution/field_prompts.py",
@@ -1368,45 +1360,37 @@
       "composite_sha256": "0448ed0eefea4993e8419d149e539bd6880621b6d38e7bc2c5d0435772cb8522",
       "source_tracker": "docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md"
     },
-    "backend_v2/models/prompts/synthesis/__init__.py": {
-      "target_file": "backend_v2/models/prompts/synthesis/__init__.py",
-      "target_sha256": "d960029fcab9928d82753ed9d1808f08fefe5a765a0cd35a34d07b0cc211baf7",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "de7e09a4af907baafb9134f096f138bd0c0d91638fdba3423d9e90b70d20bcc9",
-      "source_tracker": "docs/implementationplans/TRACKER_Dynamic_MCP_Gateway_Presentation.md"
-    },
     "backend_v2/models/prompts/synthesis/style_directives.py": {
       "target_file": "backend_v2/models/prompts/synthesis/style_directives.py",
       "target_sha256": "ca1ef23c5db2fd2ad2bf5a42ac085dd3946d8de96c3603b4ce84fcfe434b7926",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "1a94b20f0c493f46dd136eef74d15b70227609f07db29c522682563afe7695ab",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "78c48c5a38522803858bc0bafa020583271d3a145c3786033d95ac38df9d6221",
-      "source_tracker": "docs/implementationplans/TRACKER_Dynamic_MCP_Gateway_Presentation.md"
+      "composite_sha256": "50597b4b00e3362fe9e095362f4627d31b55e79a5fb0686a3f4b03ec37e3ec71",
+      "source_tracker": null
     },
     "backend_v2/models/prompts/synthesis/synthesis_directives.py": {
       "target_file": "backend_v2/models/prompts/synthesis/synthesis_directives.py",
       "target_sha256": "3b5f29be0fc32052b990c54a1f7cbea697b69753e6dc2d0c46360575a2fb8742",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unit_test_sha256": "b01d757ef910913758e3fdee64a0997e1310f7a61724aae572c739f980787f12",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "d0b08e2a6665629aa041e1e1c1eeffb0ea7b7276ee9d541c2f3b8800e8fefde5",
-      "source_tracker": "docs/implementationplans/TRACKER_Topological_Causal_Synthesis_Projection.md"
+      "composite_sha256": "e90866381be9e1a9efc409fd79526039dea7dba0d21893191bbec47dd5f48f0c",
+      "source_tracker": null
     },
     "backend_v2/models/state.py": {
       "target_file": "backend_v2/models/state.py",
-      "target_sha256": "9b9fe8cf797a78267e725e184586a4015ad805794d9dd462b83bd8eb24a644e9",
-      "unit_test_sha256": "8dc40df46af171a8d97cb66dd464ec639af46baaa870e3eb264406019ea7e154",
+      "target_sha256": "917057f098530da62378cd53731133fdeb0b8e4ec9f700bb436f5cd88395dac3",
+      "unit_test_sha256": "ee125d94a70de120b5dea5e003a36578e33af22092e2d3187e72004e0a2242c9",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "29923a6949d44d14201669545c63fae1757bef51d244965091aa073e3da3a436",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "949cb6dae74d58375116389c4295d1a1e2d5d5a92dc858635777b81b9229d422",
+      "source_tracker": null
     },
     "backend_v2/models/view/sdui.py": {
       "target_file": "backend_v2/models/view/sdui.py",
-      "target_sha256": "91aa55869757922daeaa66bf436f8122a75e249370182fbb1ac3ba41b5f12646",
+      "target_sha256": "739e6be3eb8d83419f228a51413cdea58bdf0a4ef35fce3c2670223f0ee97c77",
       "unit_test_sha256": "ec6758e3b5540e31b092db256228f169a33a76e3419221c2244ceb93fe530002",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "64f6e447e50274522c4a93cd8401c33b51a9dcf1397637093672a2fbd96a2bd4",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "a18dea21d0bae972c5ccb8814ae905de85e7d6f050ab4abef268b0c7296dcb78",
+      "source_tracker": null
     },
     "backend_v2/run_worker.py": {
       "target_file": "backend_v2/run_worker.py",
@@ -1426,11 +1410,11 @@
     },
     "backend_v2/seed/seed_registry.py": {
       "target_file": "backend_v2/seed/seed_registry.py",
-      "target_sha256": "dbe579a2b29aaf1ce70d09553a173f506957d82db9e3a7a0d53e2b2ef329c6a1",
-      "unit_test_sha256": "e861a9a06614d16ad06c277172bc701b20a0fe27911ac0b98711d0582cac94ae",
+      "target_sha256": "3f8bd3259625196e5c28db68750321187887c3793efd3bfc42a5c158b33e0988",
+      "unit_test_sha256": "efbd41db686afcea28b4bb33e7677c51348c310ea12056a617548f0cfa7e61e1",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "f7ff94dca760e8dfb05c8d09458fd8f8f8376080d2e6ec70044ba53b198e3416",
-      "source_tracker": "docs/epic/EPIC_146_tracker.md"
+      "composite_sha256": "74c8db43416c037ae10ba0918b3d216ee025a26971de8765734dd9b7b665ce6f",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/services/auth/__init__.py": {
       "target_file": "backend_v2/services/auth/__init__.py",
@@ -1578,11 +1562,11 @@
     },
     "backend_v2/services/execution/assignment_service.py": {
       "target_file": "backend_v2/services/execution/assignment_service.py",
-      "target_sha256": "31fae3afc064b69a1b53b3993d9989d79b3891a916d322b74931284e7361563f",
-      "unit_test_sha256": "ac2c8eee012f5797d594334599d00bb9755c3c2c5e75a3ede80630d0c5b195c1",
+      "target_sha256": "711260f8dfb32a8b3d271b14c6aef78a56b9ba4c2bc722f69edd1c55e5b6a319",
+      "unit_test_sha256": "0c32ef96dc7c34f16c25416f5cf84aa9faa9a89bb481817d05327907101cf1c9",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "4f476e778f674c4230992e9e7e5169e18b92673a58c8cccceecd6ff59cf15bf4",
-      "source_tracker": "docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md"
+      "composite_sha256": "d627084049ce481650386002eaedbe39dd8395269299e661e5445b41615d9e89",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/services/execution/context_service.py": {
       "target_file": "backend_v2/services/execution/context_service.py",
@@ -2386,11 +2370,11 @@
     },
     "backend_v2/services/studio/prompt_block_service.py": {
       "target_file": "backend_v2/services/studio/prompt_block_service.py",
-      "target_sha256": "08b136f88b5e2a259d5d6e3c4d4dc5176aadb66ea0579ae34b0889330616b63d",
-      "unit_test_sha256": "e603397a1b03e016e2303733a3a45e342379c53664bf4fe075114c8b26751d81",
+      "target_sha256": "eca0c6ffa68cdd266645daa6091995d034165a35195190e8eca93f1d425826ad",
+      "unit_test_sha256": "7562ec7953f19bd498707f18d93464858e007561bc02ccdce8a68f80e324458b",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "4fca88a8853c57d075789363952feedc7cc1cbfc62e4426a8faddcd47e40b9f2",
-      "source_tracker": "docs/implementationplans/TRACKER_Task_Assignment_Portal_Hardening.md"
+      "composite_sha256": "f328b674a9342e8dbfccb5b112abbe38c5bdec48c81ab9898d356fb909615ef4",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/services/studio/simulation_service.py": {
       "target_file": "backend_v2/services/studio/simulation_service.py",
@@ -2514,11 +2498,11 @@
     },
     "backend_v2/utils/finops_trace_analyzer.py": {
       "target_file": "backend_v2/utils/finops_trace_analyzer.py",
-      "target_sha256": "7555cd58ab5dff2f0caccaf7586be8d18e02fb2585848a3b822845881b806d90",
+      "target_sha256": "ed7f6c2d8ad2263c68de6a1a693f23a06aab9ca4316220944ddc43cefd387cfa",
       "unit_test_sha256": "f4542119a44113b9de084194776087c26cbe311137ff9f3896eaf0c6c3a6154d",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "97493c9b3088a6a072f847eae50091574e16fa9528b6b4cf0d740c73366830e7",
-      "source_tracker": "docs/epic/EPIC_163_tracker.md"
+      "composite_sha256": "10d7da9f3c90b1b3bd0dc1d745f599174f1ce3ef515f3592279f7f3235b03ca9",
+      "source_tracker": null
     },
     "backend_v2/utils/linguistics/stemmer.py": {
       "target_file": "backend_v2/utils/linguistics/stemmer.py",
@@ -2706,11 +2690,11 @@
     },
     "client_app_v2/lib/core/api/studio_client.dart": {
       "target_file": "client_app_v2/lib/core/api/studio_client.dart",
-      "target_sha256": "09e3762ccb8933a776bb2313aeb0dd8d367b5fa59f2ee4b9429a8b738b010d81",
-      "unit_test_sha256": "4313664f683308d638d4d4850c0bf4d2d87e946319fde9b824dcb685eebde599",
+      "target_sha256": "6a53a9c49eb415d3f319bc9716afc2f627fcec22f5bebbb51823882d2b5c20c7",
+      "unit_test_sha256": "fcfb1a633ef826f80afd3c67beb0733a96917f85119d667b71d04adc277251b1",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "69a4ce258c1cc790afdd92e68047d5f2df78a90dd19e03953831b078f1c94ab9",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+      "composite_sha256": "9c044b13057e7f1a9da9c9762ac844774ad47ede2be9632846f560d7e61d32e7",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "client_app_v2/lib/core/api/workflow_client.dart": {
       "target_file": "client_app_v2/lib/core/api/workflow_client.dart",
@@ -4666,11 +4650,11 @@
     },
     "backend_v2/services/studio/__init__.py": {
       "target_file": "backend_v2/services/studio/__init__.py",
-      "target_sha256": "37fb50092e1b52e0b1f5a87c8a65fc105b174ed1ee875f2ef04699e85315287e",
-      "unit_test_sha256": "2143f0c8d8334aa472ee4d94ff26f799570bfe84dda405b1383ccd1bd1699bbc",
+      "target_sha256": "3b5891303fda3253a1523f991313646fd38e62e0a90f5e0f92a192a3d796361d",
+      "unit_test_sha256": "8eb2e624c86bdaaa1524388af0a2cdf908b71465807c3d6a083b5b702100c270",
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
-      "composite_sha256": "3a88cb4f384c0895ad63b1e440a6aa1da83c96f0b891022dc558c39684b1fcc8",
-      "source_tracker": null
+      "composite_sha256": "1c8f8c4309261b14acc91afedcad91d3b86634c9cf35fe187ae445fd2c3a56ad",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     },
     "backend_v2/services/translation_service.py": {
       "target_file": "backend_v2/services/translation_service.py",
@@ -4783,6 +4767,366 @@
       "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
       "composite_sha256": "38b427c652931a3fd305ef87a0265996bfc1d2611bab0ad2e4adaebebb625ba6",
       "source_tracker": null
+    },
+    "backend_v2/models/core_base.py": {
+      "target_file": "backend_v2/models/core_base.py",
+      "target_sha256": "a0769e9e49e74f1d7fe7ddd9ebcad613738ed0309c6ff6318143a8c2587ce4a1",
+      "unit_test_sha256": "7b196181920208aa63680a52a9cd6725dbfb7f87c9c734dfbf183472c0693d8b",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "90810ffeb8ed3e38d230eda8eb707d9b660383ca07ca075639be02f9ff8ff09d",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/analyst.py": {
+      "target_file": "backend_v2/models/domain/analyst.py",
+      "target_sha256": "b8f92a527d366277b5c1a8463e087e533f7b93d99ba861c941c83544017f9f17",
+      "unit_test_sha256": "1716970989b031a69003890749eab63ab7412f14f28da3beab1bef5586279102",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "b511f4b3c073055d5650486143a655d9dd2b5b44f5a7ebe6ddf38982c522a194",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/archival.py": {
+      "target_file": "backend_v2/models/domain/archival.py",
+      "target_sha256": "fb93026c50d94d66fe3eef7960d1118d49c0053095b33c4b1c61dcf58aa5b2df",
+      "unit_test_sha256": "561bd3e31123cdf86a4be4f1bfa01c2c2a2eed2e542af4d0a5259a050284e86b",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "e7dcc9b71d1551ef23399e97e7703eaa670752040ffe22437e953fcc0fdcd2c2",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/archivist.py": {
+      "target_file": "backend_v2/models/domain/archivist.py",
+      "target_sha256": "33a329fcb98ee3c51b748cf867d4a802fd9c140a826bafe6644861a09d834e20",
+      "unit_test_sha256": "9c0e7bd26ca669c6eb412223455c9116a48c819ec3a3d503ac64c341f76d0592",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "729fdfc884aa213dedb75903467a9e0b3a765fd0ac4b933ae119e4d50c094745",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/base.py": {
+      "target_file": "backend_v2/models/domain/base.py",
+      "target_sha256": "7ed1801d6709f99d645570868a9333faeb3be5a7a63d7b6af5cb6bc575582c6f",
+      "unit_test_sha256": "162b203db512c245b6eeeaeed0752e9a77a5e3a24edaf57339b1959ebb80c134",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "ec0429e8f394259b4009ee8b77c2276fb05e57c597b542919b297f27e1bbdf3b",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/integrity.py": {
+      "target_file": "backend_v2/models/domain/integrity.py",
+      "target_sha256": "1d7cd0260524b5f29b17c7af645f000d2e0aca2f14368facca133efc449f91f2",
+      "unit_test_sha256": "2c5e34abb9e739ea53970a53cced70e30f35b1b1f8f39e029cf4fc7e539b80eb",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "05f4643c2b3adee6e65d6a59c1ee75f71e1a68901e3f204767ee50aec62288f3",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/linguistics.py": {
+      "target_file": "backend_v2/models/domain/linguistics.py",
+      "target_sha256": "30366601b2b060e17f996ac98d426a6fffd565a8e6cad54f8481e0870219005c",
+      "unit_test_sha256": "69137a0f1077ab7afc383812aa571db8638a52208194d7dc9cdbde360bb93a01",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "17860319ba9b6ea21a883a131f0b411807c1668ce19efa64393440cb90da5660",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/mcp.py": {
+      "target_file": "backend_v2/models/domain/mcp.py",
+      "target_sha256": "19608e26b9daf88dfe619933845f2d558160cc5c7f303491579f7aca272127c5",
+      "unit_test_sha256": "8170087ad7cd2e77d99e0ea25dc544025f2112c264645daa152b7062588ce412",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "684672ff152768adffc48aec9949dc681990c4dfe7e61f4a6354970ae388e302",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/metrics.py": {
+      "target_file": "backend_v2/models/domain/metrics.py",
+      "target_sha256": "b85b04f60d501222e16337306b36b5acdfc4e8275037c70cd7c55b1adde8a610",
+      "unit_test_sha256": "3e43301288c007999693568ee52d63185c472f7a2dcd3520a6eeec9dd6160f75",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "5d03dfe235f30e9c1f5cbab923a8bc310766a09a6c292097b249b1e910ed856d",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/security.py": {
+      "target_file": "backend_v2/models/domain/security.py",
+      "target_sha256": "f340cdc0451d7b7da53cdd2bb96741ead16a54d5ca3c00b8938259200534eb28",
+      "unit_test_sha256": "46a5ce1e8f71664b14b9c0239a8b3d0eee92b39b93558173bbe0fa2df84add5a",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "c60659a94b34198c5d799cada3e517d355483bbfb4749d8a0f85faffabbd6a07",
+      "source_tracker": null
+    },
+    "backend_v2/models/domain/xai.py": {
+      "target_file": "backend_v2/models/domain/xai.py",
+      "target_sha256": "1ce16c0e90994c2711f69b6b26d59659db1e664fb98e7235a31c30aaac12f416",
+      "unit_test_sha256": "5b59c232b65f8bc4dfa24abc6f02465d4c3f2c5ca2fcd2a93db0709b42977c13",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "e82087132f2e67c71d99af4e2421ea9bc9db69a8c3bf80cb1df8e8ad998e0813",
+      "source_tracker": null
+    },
+    "backend_v2/models/dtos/export.py": {
+      "target_file": "backend_v2/models/dtos/export.py",
+      "target_sha256": "4f232b23e4c014ce46c1551ef07afeae46a7c6db09a2c194b8d37903b2a2c25c",
+      "unit_test_sha256": "4cda06468781af476e724ff56b944508046f89276911240d83d8e3f3b5355437",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "3023c764e47f5667d137d61a31d0e02c639fd44b5b8704e3faff4b9274628d71",
+      "source_tracker": null
+    },
+    "backend_v2/models/dtos/flattened_atom.py": {
+      "target_file": "backend_v2/models/dtos/flattened_atom.py",
+      "target_sha256": "ff505a5e48523c6435b42f9e2e97473ee0690f11fbc6f2cc572631b68840d3ba",
+      "unit_test_sha256": "24ed93ef1799e435073b46adbddb4007f06aa5218a57fe39e2cec4b4638d42f5",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "6192ab937064f5afb7113f87bab5d549fb72b524f3d8c66a97d4d9922d5c66d1",
+      "source_tracker": null
+    },
+    "backend_v2/models/dtos/output_profile.py": {
+      "target_file": "backend_v2/models/dtos/output_profile.py",
+      "target_sha256": "c0e2590fba49aa4b86754a0e7818458ee5017cd9beea3c50060a23751cea2e88",
+      "unit_test_sha256": "e360dcc79cd766f103d7f63b775a2b3b1f041910ba96ee5eac048be460223784",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "cae20ecef9439eb791ee3ac68337dd813efc2009e680c0edb2f34f50f7f765de",
+      "source_tracker": null
+    },
+    "backend_v2/models/dtos/report_artifact.py": {
+      "target_file": "backend_v2/models/dtos/report_artifact.py",
+      "target_sha256": "e622f9b008b02cb8ea10b451e22c95a706f6d2b94a8bf6e1750fcd18dd137b15",
+      "unit_test_sha256": "77e002491cde8cc49c954fde7e99fc9ccb7deaddeed3846146be0d8a4308fb59",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "09df33f0b2f5862768e6a0232d3e4a4dd01c3530294d6284770675e65b9943bf",
+      "source_tracker": null
+    },
+    "backend_v2/models/dtos/telemetry.py": {
+      "target_file": "backend_v2/models/dtos/telemetry.py",
+      "target_sha256": "3387f45da067e7482d990ff00ca8064232df1226dbcbf57b7168112f58d8fd56",
+      "unit_test_sha256": "9f485d57e249de7598c593990af76b7d753064b63e69f442c16209412cb13475",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "9a52910e4e38c65f7d2a759f12f86faa274310b5abf7ebb285311d4e1e504dda",
+      "source_tracker": null
+    },
+    "backend_v2/models/execution_envelope.py": {
+      "target_file": "backend_v2/models/execution_envelope.py",
+      "target_sha256": "5bd7cd58413ffd02f95d1093322b4c7f432c225378c4c36e0c469d59476bf65d",
+      "unit_test_sha256": "69978581859f742e8b51e47afebe43e57f4157d616b97a8356a4cff065011580",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "5779b9ff744387942f5e06a6fc103e6b8fae5ebfacad16962fb2262537b730c6",
+      "source_tracker": null
+    },
+    "backend_v2/models/prompts/common/__init__.py": {
+      "target_file": "backend_v2/models/prompts/common/__init__.py",
+      "target_sha256": "506b7a6a47f8abdaaffb4c5c182e94a7cf08f1346c56af9a1dbf23e69d05be27",
+      "unit_test_sha256": "2143f0c8d8334aa472ee4d94ff26f799570bfe84dda405b1383ccd1bd1699bbc",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "f314577001cfb3e63dae2b903759431150a2bb47f713357669c9962241d9edad",
+      "source_tracker": null
+    },
+    "backend_v2/models/prompts/common/linguistic_directives.py": {
+      "target_file": "backend_v2/models/prompts/common/linguistic_directives.py",
+      "target_sha256": "1bf9c29681fd3c89953c78592b5cced7ab28bbec03db031554bb9b8256876f7a",
+      "unit_test_sha256": "e9900b64fccab3899a449d15e69e5396db1ece3030cb3cbc30fdbed3102db5d7",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "9c0a89578692842f93f1c5d6321dcfbb9a75d5ec296153fd219865d97e6847c5",
+      "source_tracker": null
+    },
+    "backend_v2/models/prompts/synthesis/sdui_directives.py": {
+      "target_file": "backend_v2/models/prompts/synthesis/sdui_directives.py",
+      "target_sha256": "fc8f898c027985a1e39b2a9197f3240958679ebbe5eab6b5cc7d6a623c3f3fe2",
+      "unit_test_sha256": "ada1dc7174f754613451df4da8b8a4af61fa3c4e56b9fee018e7b675617fa1f4",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "f25afd8266847dcd6b10ee40935cc1e7c7b26e30029a997227454d85ce564abb",
+      "source_tracker": null
+    },
+    "backend_v2/models/view/__init__.py": {
+      "target_file": "backend_v2/models/view/__init__.py",
+      "target_sha256": "b752915f11e90ed7bc0e9ebbab82ef8ae3e6214863bee6e1f670e302c437dc63",
+      "unit_test_sha256": "2143f0c8d8334aa472ee4d94ff26f799570bfe84dda405b1383ccd1bd1699bbc",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "c359f0bc4099b7e314bc6a44413d9f5be9879bde348f1eeb577e3f45064a2d9e",
+      "source_tracker": null
+    },
+    "backend_v2/api/routers/iam/__init__.py": {
+      "target_file": "backend_v2/api/routers/iam/__init__.py",
+      "target_sha256": "30792e760388b645d00653b897171d1a56cb44262a1c369dd42b9862c7537d6f",
+      "unit_test_sha256": "0865b821d324ac4e20bb2dfb7ed1e25d68e31682cd3eda24b295549ae2c90fc4",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "292232fc929677a6b0d2a3dd4416ed6f3b443733d3c9bd020e3fbfa65d6260b2",
+      "source_tracker": null
+    },
+    "backend_v2/api/routers/system/__init__.py": {
+      "target_file": "backend_v2/api/routers/system/__init__.py",
+      "target_sha256": "2d2d9a0ecacc07ca36a7b46bc2698ad58ec49162c4c8a6620f67ff237c762234",
+      "unit_test_sha256": "8eb2e624c86bdaaa1524388af0a2cdf908b71465807c3d6a083b5b702100c270",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "7a7ecfaccb964b0cef9c9e7b8f4cf931707308e8e4737da07d9680fc0f13f9cf",
+      "source_tracker": null
+    },
+    "backend_v2/api/routers/system/telemetry.py": {
+      "target_file": "backend_v2/api/routers/system/telemetry.py",
+      "target_sha256": "89d8011b99b09c3c547193b00ea3dea3442587c6d59da0f819199b57406b543a",
+      "unit_test_sha256": "9f485d57e249de7598c593990af76b7d753064b63e69f442c16209412cb13475",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "eeb7ca999fb254df38e6ef5a3516baf1b777766824354db2fd2190c6d69ff953",
+      "source_tracker": null
+    },
+    "backend_v2/database/__init__.py": {
+      "target_file": "backend_v2/database/__init__.py",
+      "target_sha256": "6e8e9a59ef7dfbc844b18327ee9210afbbaadcaba41e9c8593a53e5bf60abfe9",
+      "unit_test_sha256": "dc7d2e4f6ce22ba80a41c8169a93c4c4fcc71cbf3f508807c4d7558ede14ded2",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "a186e2a5293cce6210a67dd298b20c6b78a3b2dece4432a5236fa9632a85ddf6",
+      "source_tracker": null
+    },
+    "backend_v2/database/driver.py": {
+      "target_file": "backend_v2/database/driver.py",
+      "target_sha256": "65aa1980a01360c82db5a1e062f4eda16f3b1ff4a6b9a0e20e1cca2967c4c435",
+      "unit_test_sha256": "7f31d95d05f87423ab6ca47b7daf6b3c244d77b96670096b5c2943a799d69284",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "11fb61e73a093056559dd7e67abc5b391d52d37f18301fecece3ece18c6b2f11",
+      "source_tracker": null
+    },
+    "backend_v2/database/postgres/__init__.py": {
+      "target_file": "backend_v2/database/postgres/__init__.py",
+      "target_sha256": "d9d00216ba60597bd82c098fbb4c2980673681dd942e69d4c857b66fe412290d",
+      "unit_test_sha256": "93fbd8760283ae35fcd941024c54b85fdb4c3baa25a974714fcb576767c7d61f",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "7720ae144b94831c6d700d016b2d9a89d72ab4adce54522966050e4e12077137",
+      "source_tracker": null
+    },
+    "backend_v2/database/repositories/__init__.py": {
+      "target_file": "backend_v2/database/repositories/__init__.py",
+      "target_sha256": "d8ebecd92147e23193f46bfc44291dfb40383d9b3ff71813fe9f9b7aa906e284",
+      "unit_test_sha256": "db5dec45d9dd247916b36b586bb4cd7c513adf183ede25326d04fffaa9e5ec3e",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "032ff97f96fb37fcf33a346182bac3274a0731268f66f0dfa5f7fe04bc33e71f",
+      "source_tracker": null
+    },
+    "backend_v2/database/repositories/components/__init__.py": {
+      "target_file": "backend_v2/database/repositories/components/__init__.py",
+      "target_sha256": "2e1f9193dfa205ae59f0a83197546bf7ea114edf730dbc236243ceddf0a34a62",
+      "unit_test_sha256": "2a5da3dcf088fbb65d26220665b47eab63182720132531cd825cbf9b616b4576",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "d70c1141084446cf360a1595f73ef4d3d9f17d013de7b90ece7360a68a411762",
+      "source_tracker": null
+    },
+    "backend_v2/database/repositories/workflow.py": {
+      "target_file": "backend_v2/database/repositories/workflow.py",
+      "target_sha256": "d6757cfd5b3fa0a6f076c8637bbff7453e8f8807e87e354207061bc44f86d9e8",
+      "unit_test_sha256": "a335e7d1f1ea8d1c0a06216aa52ec23ed8697b04dbf67ac8f75abc57224b036b",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "0ee177bffcf7782c18e8d2bf1ea699e5d751ee6366a65bf081af546aeddb0347",
+      "source_tracker": null
+    },
+    "backend_v2/core/__init__.py": {
+      "target_file": "backend_v2/core/__init__.py",
+      "target_sha256": "0302a0ea51b2a45d1540f64085b60bb0f454d5d1fd25af175b9e028635d74e5c",
+      "unit_test_sha256": "7f8c579789dd403e9c6a1fe8a3dca1a758fe46bba4ba6d15f88ea558c9c462ed",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "836dc72d39d607b73ef082922f077c4fb7bde273b0b1b58943d23b3c40451da5",
+      "source_tracker": null
+    },
+    "backend_v2/core/template_processor.py": {
+      "target_file": "backend_v2/core/template_processor.py",
+      "target_sha256": "989d01df4acfc6c3a6c06800adab28d1d6a4f332b261bf578e1665250988d967",
+      "unit_test_sha256": "ffbcc3d39c5695586d27e67dfb0b2968438309be061e82e00fc5f60d7eab31a7",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "7a413b1666190dad9b78f68188cb1df325c825b078bd80bbcb237222d17a11be",
+      "source_tracker": null
+    },
+    "backend_v2/core/test_settings.py": {
+      "target_file": "backend_v2/core/test_settings.py",
+      "target_sha256": "b451ffaf93b33b312ae125d3632065d8f1f40d906256b2880ec0eb8ff1841d4b",
+      "unit_test_sha256": "b96544c623853b7ac1e6cbf8ba1bff62b6f40b6920f24d4356c550074c22c200",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "d7587bc14226015fe5d4d2f5b6419e4b1c11c992dec864832f807223f1c88015",
+      "source_tracker": null
+    },
+    "backend_v2/utils/__init__.py": {
+      "target_file": "backend_v2/utils/__init__.py",
+      "target_sha256": "b75b82e76133b9089a9b0cbd107dd81120e960c3730aaf536a101d45d06d790d",
+      "unit_test_sha256": "dc5cc78c7b96016fb0145856e6b78fa82c544a60f9fd167f144a11496e3f29dc",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "854db9e27f9deac56376e28b77307da1fbd8957b0652374ed14301f947b76841",
+      "source_tracker": null
+    },
+    "backend_v2/utils/linguistics/__init__.py": {
+      "target_file": "backend_v2/utils/linguistics/__init__.py",
+      "target_sha256": "24b1ec43aae1325f6e56e40ba8f28f53b351e021777b5e554c77eb7613f6a392",
+      "unit_test_sha256": "dc5cc78c7b96016fb0145856e6b78fa82c544a60f9fd167f144a11496e3f29dc",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "6415bafdefbb0bf19436eda35998e381b3a11c55da299a53544612aaedce4ee2",
+      "source_tracker": null
+    },
+    "backend_v2/utils/scoring/__init__.py": {
+      "target_file": "backend_v2/utils/scoring/__init__.py",
+      "target_sha256": "aefdfed19d130e78f5ceef8554e19a392d13ab9d593c05a4da0966506c51a733",
+      "unit_test_sha256": "baa56c32995f0e5bc23d3cd7c73a946666943032d76715b1185d1ebacb4f32fb",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "720a32bbeda6127aec094958626a9bf4531d391b2a28ec4eb65a5813593ed5fd",
+      "source_tracker": null
+    },
+    "backend_v2/utils/scoring/variance_engine.py": {
+      "target_file": "backend_v2/utils/scoring/variance_engine.py",
+      "target_sha256": "77333f98092ed4a99838e81191ad09772d28bf5f8092fea1649746fddc9291c1",
+      "unit_test_sha256": "8694cd446c11e2127f35992bfa8d4d21ef06427bbe44fa80a9af1b3061d43fda",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "6b6fba939012e7d9c3bf77f127cfea885e9c81996ea52eb7716c0b66f0dedd62",
+      "source_tracker": null
+    },
+    "backend_v2/models/prompts/synthesis/__init__.py": {
+      "target_file": "backend_v2/models/prompts/synthesis/__init__.py",
+      "target_sha256": "d960029fcab9928d82753ed9d1808f08fefe5a765a0cd35a34d07b0cc211baf7",
+      "unit_test_sha256": "ccf06de9427d327f990052ff6e85d29033f3a113b61bea474cc7539690ebacde",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "b2735969b733d7d4dae30dfcd29915129b3df36cb7e46e3e4a06a94505cc8752",
+      "source_tracker": "docs/implementationplans/TRACKER_Dynamic_MCP_Gateway_Presentation.md"
+    },
+    "scripts/audit_plan_tracker_parity.py": {
+      "target_file": "scripts/audit_plan_tracker_parity.py",
+      "target_sha256": "8148119a7149f3b832e4531c44049a01169037987064dfd644d226c6f784028c",
+      "unit_test_sha256": "52e36784b15f37b7489166255e852254c98257f1d70db106e7845a1aa952a372",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "ad46448e632c8cbeb140b7350fbf89bbd9ee717c40ea303cc3f4c579bd2e23ca",
+      "source_tracker": "docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md"
+    },
+    "scripts/audit_tracker_output.py": {
+      "target_file": "scripts/audit_tracker_output.py",
+      "target_sha256": "ccb58cda47e112b4d60b6927640c49e8b90fd276ded6a5ef81673f73dcf40163",
+      "unit_test_sha256": "e78347769fbb3a1cd405872e82017360c6dee1f9ed2850d68eaf007443f20c11",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "d18aaba269b6f6318cbb16ff978aaffc0cba5460a62d1478451be677ed66e283",
+      "source_tracker": "docs/implementationplans/TRACKER_Streamline_Epic_And_Tracker_Verification_Gates.md"
+    },
+    "backend_v2/api/routers/studio/task_briefs.py": {
+      "target_file": "backend_v2/api/routers/studio/task_briefs.py",
+      "target_sha256": "45aad4bdf2e91b249d62b1054286e1ea56b61acbf96b6421228882ffbca140d2",
+      "unit_test_sha256": "9b8d49d9a8492690faa69dd0d7b5bc2081131b7456ce4f0c9e2dad1c5a7ba1a0",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "64f9d5a860eb16600a4519dca8e5b18a7d85ed5f27cf7f11995d1b6fa5b589e1",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
+    },
+    "backend_v2/database/repositories/components/task_brief.py": {
+      "target_file": "backend_v2/database/repositories/components/task_brief.py",
+      "target_sha256": "c685ebacfdabd0a537be225c4c25e5af06c7cb692e08cd23ed5d5d3e562213a0",
+      "unit_test_sha256": "6b83168f9d5123beb027d9a8590a74521de1abd0cf6c32af94d0217988dcc17d",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "9bf421112f9d16c0f700326e74f036269002dde761bca38038f3ac6627fbf900",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
+    },
+    "backend_v2/models/domain/task_brief.py": {
+      "target_file": "backend_v2/models/domain/task_brief.py",
+      "target_sha256": "5835c20f709509ad3fad1d7eee6ed733d2a6acb6111dffd5819346ac2140bb58",
+      "unit_test_sha256": "e1762180a0c9f49f0ccdbeee4eb8db9f924c5e4ca985e91e58208fc3f7846961",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "1cd8330e653454f730bf0dc7db85b04dd8b97573f983114761cd4d601ac704c9",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
+    },
+    "backend_v2/services/studio/task_brief_service.py": {
+      "target_file": "backend_v2/services/studio/task_brief_service.py",
+      "target_sha256": "9b8b6651397c98a8cf32e1286a90e21e69e182223ba7525352f95631b7e4846f",
+      "unit_test_sha256": "7173db1e67219af6f08f7c4888b705c28e3808df9390a252e1517886d605485a",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "a0b813fbe2e5e88babab96b1354c5772a5b2f75f7443961da9bfd0706801eff2",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
+    },
+    "client_app_v2/lib/features/studio/models/task_brief.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/task_brief.dart",
+      "target_sha256": "bd5c1311b8041daefbbd401090bc34133f49fe83c46f99d863699548ba8ddad5",
+      "unit_test_sha256": "545b525de1b66f43d3009896f1d866a3bdb5f3f4d744ebfd65cb39e236edd26b",
+      "rules_sha256": "79ef622e79889c7f95923d30755896c2062559771cd14349558af3212718fd08",
+      "composite_sha256": "8c2cbba1e8e8efaadf96393d149c068d4dfddc08d7b096d380d0e079df952d95",
+      "source_tracker": "docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md"
     }
   }
 }

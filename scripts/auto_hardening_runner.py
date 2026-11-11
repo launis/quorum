@@ -1249,6 +1249,8 @@ def _is_transient_subagent_startup_error(returncode: int, output: str) -> bool:
         "service unavailable",
         "bad gateway",
         "temporary failure in name resolution",
+        "no such host",
+        "dial tcp: lookup",
     )
     output_lower = output.lower()
     for indicator in transient_indicators:
@@ -1579,6 +1581,38 @@ def capture_workspace_snapshot(repo_root: Path | None = None) -> WorkspaceSnapsh
     return WorkspaceSnapshotDTO(modified_files=modified, untracked_files=untracked, head_sha=head_sha)
 
 
+def _reset_head_preserving_excluded(
+    root: Path,
+    head_sha: str,
+    excluded: set[str],
+) -> WorkspaceSnapshotDTO:
+    """Reset git HEAD to head_sha while preserving excluded state/cache files on disk.
+
+    Args:
+        root: Workspace root directory.
+        head_sha: Target commit SHA to reset to.
+        excluded: Set of relative paths to preserve across hard reset.
+
+    Returns:
+        Refreshed WorkspaceSnapshotDTO after reset and state restoration.
+    """
+    preserved_bytes: dict[Path, bytes] = {
+        root / rel_excl: (root / rel_excl).read_bytes() for rel_excl in excluded if (root / rel_excl).is_file()
+    }
+    subprocess.run(
+        ["git", "reset", "--hard", head_sha],
+        cwd=root,
+        capture_output=True,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+        check=False,
+        shell=False,
+    )
+    for excl_path, raw_bytes in preserved_bytes.items():
+        excl_path.parent.mkdir(parents=True, exist_ok=True)
+        excl_path.write_bytes(raw_bytes)
+    return capture_workspace_snapshot(root)
+
+
 def execute_circuit_breaker_rollback(
     snapshot: WorkspaceSnapshotDTO,
     target_file: str,
@@ -1592,20 +1626,11 @@ def execute_circuit_breaker_rollback(
         repo_root: Workspace root directory.
     """
     root = repo_root or get_repo_root()
+    excluded = {"hardening_state.json", "hardening_cache.json", "data/hardening_cache.json"}
     current = capture_workspace_snapshot(root)
     if snapshot.head_sha and current.head_sha and current.head_sha != snapshot.head_sha:
-        subprocess.run(
-            ["git", "reset", "--hard", snapshot.head_sha],
-            cwd=root,
-            capture_output=True,
-            timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
-            check=False,
-            shell=False,
-        )
-        current = capture_workspace_snapshot(root)
+        current = _reset_head_preserving_excluded(root, snapshot.head_sha, excluded)
     norm_target = target_file.replace("\\", "/")
-
-    excluded = {"hardening_state.json", "hardening_cache.json", "data/hardening_cache.json"}
 
     to_restore: list[str] = []
     for f in current.modified_files:
@@ -1724,6 +1749,28 @@ def mark_tracker_and_checkpoint(
     )
 
 
+def _update_target_hardening_cache(
+    norm_target: str,
+    args: HardeningRunnerArgsDTO,
+    root: Path,
+) -> None:
+    """Persist the verified SHA-256 cache entry for a target that passed subagent and quality gate execution.
+
+    Args:
+        norm_target: Normalized POSIX relative path of the hardened target.
+        args: Hardening runner configuration parameters.
+        root: Workspace root directory.
+    """
+    if args.no_cache:
+        return
+    manifest = load_or_seed_hardening_cache(args.cache_file, root)
+    tracker_str = args.tracker.as_posix() if args.tracker is not None else None
+    updated_entry = compute_target_cache_entry(norm_target, root, source_tracker=tracker_str)
+    if updated_entry is not None:
+        updated_manifest = manifest.model_copy(update={"entries": {**manifest.entries, norm_target: updated_entry}})
+        save_hardening_cache(args.cache_file, updated_manifest, root)
+
+
 def process_target_with_retries(
     target_file: str,
     args: HardeningRunnerArgsDTO,
@@ -1779,7 +1826,11 @@ def process_target_with_retries(
         snapshot = capture_workspace_snapshot(root)
 
         try:
-            execute_subagent_pass(target_file, args, repo_root=root, previous_error=last_error)
+            subagent_ok = execute_subagent_pass(target_file, args, repo_root=root, previous_error=last_error)
+            if not subagent_ok:
+                last_error = f"Subagent execution failed for {target_file}."
+                execute_circuit_breaker_rollback(snapshot, target_file, repo_root=root)
+                continue
             gate_res = run_quality_gate(
                 target_file, args.gate, args.timeout_seconds, repo_root=root, micro_audit=args.micro_audit
             )
@@ -1788,15 +1839,7 @@ def process_target_with_retries(
             raise
 
         if gate_res.success:
-            if not args.no_cache:
-                manifest = load_or_seed_hardening_cache(args.cache_file, root)
-                tracker_str = args.tracker.as_posix() if args.tracker is not None else None
-                updated_entry = compute_target_cache_entry(norm_target, root, source_tracker=tracker_str)
-                if updated_entry is not None:
-                    updated_manifest = manifest.model_copy(
-                        update={"entries": {**manifest.entries, norm_target: updated_entry}}
-                    )
-                    save_hardening_cache(args.cache_file, updated_manifest, root)
+            _update_target_hardening_cache(norm_target, args, root)
             checkpoint = mark_tracker_and_checkpoint(target_file, args.tracker, args.state_file, repo_root=root)
             duration = time.monotonic() - start_time
             return HardeningIterationResultDTO(

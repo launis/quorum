@@ -503,16 +503,16 @@ void main() {
         );
         expect((await client.createStepDraft()).id, equals(testStepId));
 
-        when(
-          () => mockDio.delete<void>('studio/steps/$testStepId'),
-        ).thenAnswer(
+        when(() => mockDio.delete<void>('studio/steps/$testStepId')).thenAnswer(
           (_) async => Response<void>(
             requestOptions: RequestOptions(path: 'studio/steps/$testStepId'),
             statusCode: 204,
           ),
         );
         await client.deleteStep(testStepId);
-        verify(() => mockDio.delete<void>('studio/steps/$testStepId')).called(1);
+        verify(
+          () => mockDio.delete<void>('studio/steps/$testStepId'),
+        ).called(1);
 
         // Model Registry
         when(
@@ -789,9 +789,7 @@ void main() {
         );
 
         // Output Profiles
-        when(
-          () => mockDio.get<List<Object?>>('output-profiles/'),
-        ).thenAnswer(
+        when(() => mockDio.get<List<Object?>>('output-profiles/')).thenAnswer(
           (_) async => Response<List<Object?>>(
             requestOptions: RequestOptions(path: 'output-profiles/'),
             data: <Object?>[validProfileJson],
@@ -1170,10 +1168,7 @@ void main() {
             statusCode: 200,
           ),
         );
-        expect(
-          () => client.getPromptBlocks(),
-          throwsA(isA<AppException>()),
-        );
+        expect(() => client.getPromptBlocks(), throwsA(isA<AppException>()));
 
         when(
           () => mockDio.get<List<Object?>>(
@@ -1188,10 +1183,7 @@ void main() {
             statusCode: 200,
           ),
         );
-        expect(
-          () => client.getAvailableModels(),
-          throwsA(isA<AppException>()),
-        );
+        expect(() => client.getAvailableModels(), throwsA(isA<AppException>()));
 
         when(
           () => mockDio.get<List<Object?>>('studio/model-registry/locations'),
