@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 import backend_v2
+import backend_v2.api.routers.system
 import backend_v2.hooks
 import backend_v2.llm
 import backend_v2.models.domain
@@ -24,6 +25,8 @@ __all__ = [
 def test_init_import() -> None:
     """Verify that package __init__.py facades export their canonical public symbols."""
     assert backend_v2 is not None
+    assert backend_v2.api.routers.system.router.prefix == "/system"
+    assert len(backend_v2.api.routers.system.router.routes) == 3
     assert backend_v2.hooks is not None
     assert backend_v2.llm is not None
     assert backend_v2.models.domain is not None
