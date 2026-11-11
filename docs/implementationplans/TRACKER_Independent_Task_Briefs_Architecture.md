@@ -25,7 +25,7 @@
   - [x] Step 3: Phase 3: StudioTaskBriefService, ExecutionAssignmentService Wiring & FastAPI Router
   - [x] Step 4: Phase 4: Seed Vault Pipeline, Sanitizer, Atom Auditor & seed_data.json Migration
   - [x] Step 5: Phase 5: Flutter TaskBrief Freezed Model, StudioClient, IAM & Execution Views, Tests & Directory Index
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]`
 
 ### Post-Implementation Gates
 
@@ -75,7 +75,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -121,15 +121,16 @@
   - **Step 2 (`1898d754a`)**: Added `task_briefs` as the 16th PostgreSQL 19 table in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, registered in `@[scripts/audit_zero_orm_strictness.py]`, implemented `TaskBriefRepositoryImpl` (`@[backend_v2/database/repositories/components/task_brief.py]`), and wired across `PostgresEntityAdapter` and `InMemoryUnitOfWork`.
   - **Step 3 (`ac0bfbf19`)**: Implemented `StudioTaskBriefService` (`@[backend_v2/services/studio/task_brief_service.py]`), wired `ITaskBriefRepository` into `ExecutionAssignmentService` and `ExecutionService`, and mounted `/api/v2/studio/task-briefs` (`@[backend_v2/api/routers/studio/task_briefs.py]`).
   - **Step 4 (`c021d4b8e`)**: Registered `SeedCollectionName.TASK_BRIEFS = "task_briefs"`, updated `sanitize_seed_vault.py` and `audit_database_atoms.py` (8 collections), reclassified 11 active DAG instruction blocks in `@[backend_v2/seed/seed_data.json#L13965-L19274]` to `"system_rule"` with 100% prompt preservation, deleted the 2 unreferenced synthesis blocks, seeded 2 bilingual `task_briefs` (`tbr_0195f3a00000700d8a1b2c3d4e5f6001`, `tbr_0195f3a00000700d8a1b2c3d4e5f6002`), and re-seeded local PostgreSQL 19 (`90` `prompt_blocks`, `2` `task_briefs`).
-  - **Step 5**: Created Flutter `TaskBrief` Freezed model (`@[client_app_v2/lib/features/studio/models/task_brief.dart]`), added 6 CRUD+Clone `studio/task-briefs` methods in `@[client_app_v2/lib/core/api/studio_client.dart]`, migrated `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]` and `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`, purged `TaskDefinitionPromptBlock` and `PromptBlockCategory.taskDefinition`, updated `@[.agents/rules/04_directory_reference.md]`, and verified `flutter_audit_loop.py` (0 violations), `audit_dto_parity.py` (93/93 shared models aligned), `backend_audit_loop.py` (7,187 passed, 97.50% coverage), and live E2E `test_integration_real_llm.py` (7/7 passed).
+  - **Step 5 (`d21fab3a6`)**: Created Flutter `TaskBrief` Freezed model (`@[client_app_v2/lib/features/studio/models/task_brief.dart]`), added 6 CRUD+Clone `studio/task-briefs` methods in `@[client_app_v2/lib/core/api/studio_client.dart]`, migrated `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]` and `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`, purged `TaskDefinitionPromptBlock` and `PromptBlockCategory.taskDefinition`, updated `@[.agents/rules/04_directory_reference.md]`, and verified `flutter_audit_loop.py` (0 violations), `audit_dto_parity.py` (93/93 shared models aligned), `backend_audit_loop.py` (7,187 passed, 97.50% coverage), and live E2E `test_integration_real_llm.py` (7/7 passed).
+- Completed Tier 8 System 2 Post-Implementation Plan Audit (`/tier8-audit-plan`): verified 22/22 requirements (`REQ-001` through `REQ-022`), 0 ZORM violations across 415 files, 0 technical debt findings across 33 targets and 207 1-hop callers, and 100% plan-tracker parity (`audit_plan_tracker_parity.py` & `audit_tracker_output.py`).
 
 ## Learned
 - On persistent PostgreSQL 19 volumes previously seeded before `PromptBlockCategory.TASK_DEFINITION` removal, `ON CONFLICT (id) DO UPDATE` in `run_seed.py` updates existing IDs but leaves deleted seed rows (`blk_0195f3a0000070018a2b3c4d5e6f7a8b`, `blk_0195f3a0000070088b7a6f5e4d3c2b1a`) in `prompt_blocks`. Adding idempotent `DELETE FROM prompt_blocks WHERE category_id NOT IN ('matrix', 'system_rule', 'runtime_variables', 'persona', 'protocol');` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L472-L473]` deterministically purges retired categories during `apply_migrations()`.
 
 ## Remaining
-- Execute Tier 2 Hardening (`scripts/auto_hardening_runner.py`), As-Built Architectural Sync (`/tier7-describe-architecture`), and System 2 Red-Team Plan Audit (`/tier8-audit-plan`).
+- Execute Tier 2 Hardening (`scripts/auto_hardening_runner.py` with `--gate all`) and As-Built Architectural Sync (`/tier7-describe-architecture`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 ```
