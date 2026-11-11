@@ -33,6 +33,26 @@ void main() {
     const testRegistryId = 'reg_0195f3a0000070008000000000000004';
     const testGatewayId = 'mcp_0195f3a0000070008000000000000005';
     const testProfileId = 'op_0195f3a0000070008000000000000006';
+    const testTaskBriefId = 'tbr_0195f3a00000700d8a1b2c3d4e5f6001';
+
+    final validTaskBriefJson = <String, Object?>{
+      'id': testTaskBriefId,
+      'slug': 'test_task_brief',
+      'label': <String, Object?>{
+        'translations': <String, Object?>{
+          'en': 'Test Brief',
+          'fi': 'Testiohje',
+        },
+      },
+      'description': <String, Object?>{
+        'translations': <String, Object?>{
+          'en': 'Brief Description',
+          'fi': 'Ohjekuvaus',
+        },
+      },
+      'instruction_text': 'Perform the analysis.',
+      'source_url': 'https://docs.qrum.ai/brief.pdf',
+    };
 
     final validBlockJson = <String, Object?>{
       'category_id': 'system_rule',
@@ -587,6 +607,101 @@ void main() {
         );
         final profile = await client.getOutputProfile(testProfileId);
         expect(profile.id, equals(testProfileId));
+
+        // Task Briefs
+        when(
+          () => mockDio.get<List<Object?>>('studio/task-briefs/'),
+        ).thenAnswer(
+          (_) async => Response<List<Object?>>(
+            requestOptions: RequestOptions(path: 'studio/task-briefs/'),
+            data: <Object?>[validTaskBriefJson],
+            statusCode: 200,
+          ),
+        );
+        final briefs = await client.getTaskBriefs();
+        expect(briefs.single.id, equals(testTaskBriefId));
+
+        when(
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/task-briefs/$testTaskBriefId',
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/task-briefs/$testTaskBriefId',
+            ),
+            data: validTaskBriefJson,
+            statusCode: 200,
+          ),
+        );
+        final brief = await client.getTaskBrief(testTaskBriefId);
+        expect(brief.id, equals(testTaskBriefId));
+
+        when(
+          () => mockDio.put<Map<String, Object?>>(
+            'studio/task-briefs/$testTaskBriefId',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/task-briefs/$testTaskBriefId',
+            ),
+            data: validTaskBriefJson,
+            statusCode: 200,
+          ),
+        );
+        expect(
+          (await client.saveTaskBrief(testTaskBriefId, brief)).id,
+          equals(testTaskBriefId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>(
+            'studio/task-briefs/$testTaskBriefId/clone',
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/task-briefs/$testTaskBriefId/clone',
+            ),
+            data: validTaskBriefJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.cloneTaskBrief(testTaskBriefId)).id,
+          equals(testTaskBriefId),
+        );
+
+        when(
+          () => mockDio.post<Map<String, Object?>>('studio/task-briefs/'),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: 'studio/task-briefs/'),
+            data: validTaskBriefJson,
+            statusCode: 201,
+          ),
+        );
+        expect(
+          (await client.createTaskBriefDraft()).id,
+          equals(testTaskBriefId),
+        );
+
+        when(
+          () => mockDio.delete<void>('studio/task-briefs/$testTaskBriefId'),
+        ).thenAnswer(
+          (_) async => Response<void>(
+            requestOptions: RequestOptions(
+              path: 'studio/task-briefs/$testTaskBriefId',
+            ),
+            statusCode: 200,
+          ),
+        );
+        await client.deleteTaskBrief(testTaskBriefId);
+        verify(
+          () => mockDio.delete<void>('studio/task-briefs/$testTaskBriefId'),
+        ).called(1);
       },
     );
 

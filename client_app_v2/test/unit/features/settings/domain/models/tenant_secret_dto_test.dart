@@ -13,7 +13,7 @@ void main() {
   const validWfId = 'wf_01960000000070008000000000000005';
   const validTskId = 'tsk_01960000000070008000000000000006';
   const validBatchId = 'tsk_01960000000070008000000000000007';
-  const validBriefId = 'blk_01960000000070008000000000000008';
+  const validBriefId = 'tbr_01960000000070008000000000000008';
 
   group('tenant_secret_dto Domain Models Hardening Tests', () {
     test(

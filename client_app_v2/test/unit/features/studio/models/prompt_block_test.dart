@@ -87,7 +87,6 @@ void main() {
           'agent_role',
           'protocol',
           'runtime_variables',
-          'task_definition',
         ]) {
           final block = PromptBlock.fromJson({
             'id': validPbId,

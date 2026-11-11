@@ -244,28 +244,27 @@ void main() {
       );
     });
 
-    testWidgets(
-      'RuntimeVariablesPromptBlock and TaskDefinitionPromptBlock render instructionText',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
+    testWidgets('RuntimeVariablesPromptBlock renders instructionText', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-        const block = PromptBlock.runtimeVariables(
-          id: 'blk_test_vars',
-          slug: 'runtime_vars',
-          label: I18nText(translations: {'en': 'Runtime Variables'}),
-          description: I18nText(translations: {'en': 'Vars Desc'}),
-          instructionText: 'Variables instruction text',
-        );
+      const block = PromptBlock.runtimeVariables(
+        id: 'blk_test_vars',
+        slug: 'runtime_vars',
+        label: I18nText(translations: {'en': 'Runtime Variables'}),
+        description: I18nText(translations: {'en': 'Vars Desc'}),
+        instructionText: 'Variables instruction text',
+      );
 
-        await tester.pumpWidget(createTestWidget(block: block));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createTestWidget(block: block));
+      await tester.pumpAndSettle();
 
-        expect(find.text('System Instruction Text'), findsOneWidget);
-        expect(find.text('Variables instruction text'), findsOneWidget);
-      },
-    );
+      expect(find.text('System Instruction Text'), findsOneWidget);
+      expect(find.text('Variables instruction text'), findsOneWidget);
+    });
 
     testWidgets('MatrixPromptBlock renders notice card and BARS scales card', (
       WidgetTester tester,

@@ -537,11 +537,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                                   is RuntimeVariablesPromptBlock
                                                               ? payload
                                                                     .instructionText
-                                                              : (payload
-                                                                        is TaskDefinitionPromptBlock
-                                                                    ? payload
-                                                                          .instructionText
-                                                                    : null)),
+                                                              : null),
                                                   ),
                                                 PromptBlockCategory
                                                     .executionPersona =>
@@ -655,45 +651,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                                   is SystemRulePromptBlock
                                                               ? payload
                                                                     .instructionText
-                                                              : (payload
-                                                                        is TaskDefinitionPromptBlock
-                                                                    ? payload
-                                                                          .instructionText
-                                                                    : null)),
-                                                  ),
-                                                PromptBlockCategory
-                                                    .taskDefinition =>
-                                                  PromptBlock.taskDefinition(
-                                                    id: payload.id,
-                                                    slug: payload.slug,
-                                                    organizationId:
-                                                        payload.organizationId,
-                                                    label: payload.label,
-                                                    description:
-                                                        payload.description,
-                                                    isEvaluative: false,
-                                                    type: BlockDataType
-                                                        .instruction,
-                                                    allowDecimals: false,
-                                                    outputExtensions: const [],
-                                                    theoryGrounding:
-                                                        payload.theoryGrounding,
-                                                    isLightweightProtocol: payload
-                                                        .isLightweightProtocol,
-                                                    instructionText:
-                                                        payload
-                                                            is TaskDefinitionPromptBlock
-                                                        ? payload
-                                                              .instructionText
-                                                        : (payload
-                                                                  is SystemRulePromptBlock
-                                                              ? payload
-                                                                    .instructionText
-                                                              : (payload
-                                                                        is RuntimeVariablesPromptBlock
-                                                                    ? payload
-                                                                          .instructionText
-                                                                    : null)),
+                                                              : null),
                                                   ),
                                               };
                                               ref
@@ -1704,15 +1662,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           blockId,
           instructionText,
         ),
-      TaskDefinitionPromptBlock(:final instructionText) =>
-        _buildSystemRuleSection(
-          context,
-          ref,
-          l10n,
-          payload,
-          blockId,
-          instructionText,
-        ),
       MatrixPromptBlock() => _buildMatrixNoticeSection(context, l10n),
     };
   }
@@ -1740,9 +1689,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             final updated = switch (payload) {
               SystemRulePromptBlock() => payload.copyWith(instructionText: val),
               RuntimeVariablesPromptBlock() => payload.copyWith(
-                instructionText: val,
-              ),
-              TaskDefinitionPromptBlock() => payload.copyWith(
                 instructionText: val,
               ),
               _ => payload,

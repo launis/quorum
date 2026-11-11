@@ -11,7 +11,7 @@ import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/settings/presentation/organization_iam_settings_view.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
-import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
@@ -258,7 +258,7 @@ class _FakeUserRepository implements UserRepository {
 
 class _FakeStudioClient implements StudioClient {
   List<McpGateway> gateways;
-  List<PromptBlock> promptBlocks;
+  List<TaskBrief> taskBriefs;
   List<Workflow> workflows;
   String defaultDraftOrganizationId = _FakeUserRepository.primaryOrgId;
   int _draftCounter = 0;
@@ -272,9 +272,9 @@ class _FakeStudioClient implements StudioClient {
         type: 'mcp_gateways',
       ),
     ],
-    List<PromptBlock>? promptBlocks,
+    List<TaskBrief>? taskBriefs,
     List<Workflow>? workflows,
-  }) : promptBlocks = List<PromptBlock>.from(promptBlocks ?? const []),
+  }) : taskBriefs = List<TaskBrief>.from(taskBriefs ?? const []),
        workflows = List<Workflow>.from(
          workflows ??
              const <Workflow>[
@@ -325,66 +325,52 @@ class _FakeStudioClient implements StudioClient {
       List<Workflow>.unmodifiable(workflows);
 
   @override
-  Future<List<PromptBlock>> getPromptBlocks() async =>
-      List<PromptBlock>.unmodifiable(promptBlocks);
+  Future<List<TaskBrief>> getTaskBriefs() async =>
+      List<TaskBrief>.unmodifiable(taskBriefs);
 
   @override
-  Future<PromptBlock> createPromptBlockDraft({String? categoryId}) async {
+  Future<TaskBrief> createTaskBriefDraft() async {
     _draftCounter += 1;
     final hexTail = _draftCounter.toRadixString(16).padLeft(8, '0');
-    final draftId = 'blk_019600000000700080000000$hexTail';
-    final PromptBlock draft = switch (categoryId) {
-      'task_definition' => TaskDefinitionPromptBlock(
-        id: draftId,
-        slug: 'draft_task_brief_$_draftCounter',
-        organizationId: defaultDraftOrganizationId,
-        label: const I18nText(
-          translations: {'en': 'Draft Task Brief', 'fi': 'Luonnostehtävä'},
-        ),
-        description: const I18nText(
-          translations: {'en': 'Draft description', 'fi': 'Luonnoskuvaus'},
-        ),
-        instructionText: 'Initial draft instructions',
+    final draftId = 'tbr_019600000000700080000000$hexTail';
+    final draft = TaskBrief(
+      id: draftId,
+      slug: 'draft_task_brief_$_draftCounter',
+      organizationId: defaultDraftOrganizationId,
+      label: const I18nText(
+        translations: {'en': 'Draft Task Brief', 'fi': 'Luonnostehtävä'},
       ),
-      _ => SystemRulePromptBlock(
-        id: draftId,
-        slug: 'draft_rule_$_draftCounter',
-        organizationId: defaultDraftOrganizationId,
-        label: const I18nText(
-          translations: {'en': 'Draft Rule', 'fi': 'Luonnossääntö'},
-        ),
-        description: const I18nText(
-          translations: {'en': 'Draft description', 'fi': 'Luonnoskuvaus'},
-        ),
-        instructionText: 'Initial rule',
+      description: const I18nText(
+        translations: {'en': 'Draft description', 'fi': 'Luonnoskuvaus'},
       ),
-    };
-    promptBlocks = <PromptBlock>[draft, ...promptBlocks];
+      instructionText: 'Initial draft instructions',
+    );
+    taskBriefs = <TaskBrief>[draft, ...taskBriefs];
     return draft;
   }
 
   @override
-  Future<PromptBlock> savePromptBlock(String id, PromptBlock data) async {
-    final idx = promptBlocks.indexWhere((b) => b.id == id);
+  Future<TaskBrief> saveTaskBrief(String id, TaskBrief data) async {
+    final idx = taskBriefs.indexWhere((b) => b.id == id);
     if (idx < 0) {
-      throw AppException.notFound('PromptBlock not found: $id');
+      throw AppException.notFound('TaskBrief not found: $id');
     }
-    promptBlocks = <PromptBlock>[
-      for (var i = 0; i < promptBlocks.length; i++)
-        if (i == idx) data else promptBlocks[i],
+    taskBriefs = <TaskBrief>[
+      for (var i = 0; i < taskBriefs.length; i++)
+        if (i == idx) data else taskBriefs[i],
     ];
     return data;
   }
 
   @override
-  Future<PromptBlock> clonePromptBlock(String id) async {
-    final original = promptBlocks.where((b) => b.id == id).firstOrNull;
+  Future<TaskBrief> cloneTaskBrief(String id) async {
+    final original = taskBriefs.where((b) => b.id == id).firstOrNull;
     if (original == null) {
-      throw AppException.notFound('PromptBlock not found: $id');
+      throw AppException.notFound('TaskBrief not found: $id');
     }
     _draftCounter += 1;
     final hexTail = _draftCounter.toRadixString(16).padLeft(8, '0');
-    final clonedId = 'blk_019600000000700080000000$hexTail';
+    final clonedId = 'tbr_019600000000700080000000$hexTail';
     final enTitle = original.label.translations['en'] ?? 'Brief';
     final fiTitle = original.label.translations['fi'] ?? enTitle;
     final cloned = original.copyWith(
@@ -398,13 +384,13 @@ class _FakeStudioClient implements StudioClient {
         },
       ),
     );
-    promptBlocks = <PromptBlock>[cloned, ...promptBlocks];
+    taskBriefs = <TaskBrief>[cloned, ...taskBriefs];
     return cloned;
   }
 
   @override
-  Future<void> deletePromptBlock(String id) async {
-    promptBlocks = promptBlocks.where((b) => b.id != id).toList();
+  Future<void> deleteTaskBrief(String id) async {
+    taskBriefs = taskBriefs.where((b) => b.id != id).toList();
   }
 
   @override
@@ -1337,8 +1323,8 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
 
-        const rootBriefId = 'blk_0195f3a0000070008000000000000701';
-        const rootBrief = TaskDefinitionPromptBlock(
+        const rootBriefId = 'tbr_0195f3a0000070008000000000000701';
+        const rootBrief = TaskBrief(
           id: rootBriefId,
           slug: 'root_standard_brief',
           organizationId: 'org_0195f3a0000070008000000000000001',
@@ -1352,15 +1338,13 @@ void main() {
             translations: {'en': 'System template', 'fi': 'Järjestelmäpohja'},
           ),
           instructionText: 'System level instructions.',
-          theoryGrounding: TheoryGrounding(
-            sourceUrl: 'https://qrum.ai/docs/template.pdf',
-          ),
+          sourceUrl: 'https://qrum.ai/docs/template.pdf',
         );
 
         final userRepo = _FakeUserRepository();
         final execClient = _FakeExecutionClient();
         final studioClient = _FakeStudioClient(
-          promptBlocks: const <PromptBlock>[rootBrief],
+          taskBriefs: const <TaskBrief>[rootBrief],
         );
 
         // 1. Boundary: MANAGER does not see org_task_briefs_card
@@ -1407,9 +1391,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Global Case Template (Copy)'), findsOneWidget);
-        final clonedBrief = studioClient.promptBlocks
-            .whereType<TaskDefinitionPromptBlock>()
-            .firstWhere((b) => b.id != rootBriefId);
+        final clonedBrief = studioClient.taskBriefs.firstWhere(
+          (b) => b.id != rootBriefId,
+        );
 
         await tester.tap(
           find.byKey(Key('org_edit_task_brief_btn_${clonedBrief.id}')),
@@ -1435,14 +1419,14 @@ void main() {
         await tester.tap(find.byKey(const Key('org_edit_task_brief_save_btn')));
         await tester.pumpAndSettle();
 
-        final updatedCloned = studioClient.promptBlocks
-            .whereType<TaskDefinitionPromptBlock>()
-            .firstWhere((b) => b.id == clonedBrief.id);
+        final updatedCloned = studioClient.taskBriefs.firstWhere(
+          (b) => b.id == clonedBrief.id,
+        );
         expect(
           updatedCloned.label.translations['en'],
           equals('Custom Tenant Case Brief'),
         );
-        expect(updatedCloned.theoryGrounding, isNull);
+        expect(updatedCloned.sourceUrl, isNull);
         expect(updatedCloned.instructionText, isNull);
 
         // 4. Positive: ADMIN creates a new Task Brief draft and deletes it
@@ -1450,11 +1434,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Draft Task Brief'), findsOneWidget);
-        final createdDraft = studioClient.promptBlocks
-            .whereType<TaskDefinitionPromptBlock>()
-            .firstWhere(
-              (b) => b.label.translations['en'] == 'Draft Task Brief',
-            );
+        final createdDraft = studioClient.taskBriefs.firstWhere(
+          (b) => b.label.translations['en'] == 'Draft Task Brief',
+        );
 
         await tester.tap(
           find.byKey(Key('org_delete_task_brief_btn_${createdDraft.id}')),

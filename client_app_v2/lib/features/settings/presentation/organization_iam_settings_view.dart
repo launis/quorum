@@ -3,7 +3,6 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/core/models/prompt_block_category.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -13,7 +12,7 @@ import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
-import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -29,9 +28,8 @@ Future<List<McpGateway>> availableMcpGateways(Ref ref) async =>
     ref.watch(studioClientProvider).getMcpGateways();
 
 @riverpod
-Future<List<PromptBlock>> organizationTaskBriefs(Ref ref) async {
-  final blocks = await ref.watch(studioClientProvider).getPromptBlocks();
-  return blocks.whereType<TaskDefinitionPromptBlock>().toList(growable: false);
+Future<List<TaskBrief>> organizationTaskBriefs(Ref ref) async {
+  return await ref.watch(studioClientProvider).getTaskBriefs();
 }
 
 String _resolveTaskBriefLabel(I18nText text, String localeCode) {
@@ -777,10 +775,8 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                       : () => mutation.mutate(() async {
                           await ref
                               .read(studioClientProvider)
-                              .createPromptBlockDraft(
-                                categoryId:
-                                    PromptBlockCategory.taskDefinition.id,
-                              );
+                              .createTaskBriefDraft();
+                          if (!context.mounted) return;
                           ref.invalidate(organizationTaskBriefsProvider);
                           ref.invalidate(availableTaskBriefsProvider);
                         }),
@@ -803,10 +799,7 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                 stackTrace: stackTrace,
                 compact: true,
               ),
-              AsyncData(:final value) => () {
-                final briefs = value
-                    .whereType<TaskDefinitionPromptBlock>()
-                    .toList(growable: false);
+              AsyncData(value: final briefs) => () {
                 if (briefs.isEmpty) {
                   return Text(
                     l10n.orgTaskBriefEmptyState,
@@ -816,18 +809,18 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                   );
                 }
                 return Column(
-                  children: briefs.map((block) {
+                  children: briefs.map((brief) {
                     final canModify =
                         currentUser.role == UserRole.root ||
-                        block.organizationId == activeOrgId;
+                        brief.organizationId == activeOrgId;
                     final title = _resolveTaskBriefLabel(
-                      block.label,
+                      brief.label,
                       localeCode,
                     );
-                    final sourceUrl = block.theoryGrounding?.sourceUrl;
-                    final bodyText = block.instructionText;
+                    final sourceUrl = brief.sourceUrl;
+                    final bodyText = brief.instructionText;
                     return Container(
-                      key: Key('org_task_brief_row_${block.id}'),
+                      key: Key('org_task_brief_row_${brief.id}'),
                       margin: const EdgeInsets.only(bottom: AppSpacing.s12),
                       padding: AppSpacing.p12,
                       decoration: BoxDecoration(
@@ -876,7 +869,7 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                             ),
                           ),
                           IconButton(
-                            key: Key('org_clone_task_brief_btn_${block.id}'),
+                            key: Key('org_clone_task_brief_btn_${brief.id}'),
                             tooltip: l10n.tooltipDuplicate,
                             icon: const Icon(Icons.copy_outlined),
                             onPressed: mutation.isLoading
@@ -884,7 +877,8 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                                 : () => mutation.mutate(() async {
                                     await ref
                                         .read(studioClientProvider)
-                                        .clonePromptBlock(block.id);
+                                        .cloneTaskBrief(brief.id);
+                                    if (!context.mounted) return;
                                     ref.invalidate(
                                       organizationTaskBriefsProvider,
                                     );
@@ -892,7 +886,7 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                                   }),
                           ),
                           IconButton(
-                            key: Key('org_edit_task_brief_btn_${block.id}'),
+                            key: Key('org_edit_task_brief_btn_${brief.id}'),
                             tooltip: l10n.orgEditTaskBriefTooltip,
                             icon: const Icon(Icons.edit_outlined),
                             onPressed: (!canModify || mutation.isLoading)
@@ -902,7 +896,7 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                                       context: context,
                                       builder: (dialogContext) =>
                                           _EditTaskBriefDialog(
-                                            block: block,
+                                            brief: brief,
                                             l10n: l10n,
                                           ),
                                     );
@@ -914,7 +908,7 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                                   },
                           ),
                           IconButton(
-                            key: Key('org_delete_task_brief_btn_${block.id}'),
+                            key: Key('org_delete_task_brief_btn_${brief.id}'),
                             tooltip: l10n.delete,
                             color: theme.colorScheme.error,
                             icon: const Icon(Icons.delete_outline),
@@ -923,7 +917,8 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
                                 : () => mutation.mutate(() async {
                                     await ref
                                         .read(studioClientProvider)
-                                        .deletePromptBlock(block.id);
+                                        .deleteTaskBrief(brief.id);
+                                    if (!context.mounted) return;
                                     ref.invalidate(
                                       organizationTaskBriefsProvider,
                                     );
@@ -945,22 +940,20 @@ class _TaskBriefsManagementCard extends HookConsumerWidget {
 }
 
 class _EditTaskBriefDialog extends HookConsumerWidget {
-  final TaskDefinitionPromptBlock block;
+  final TaskBrief brief;
   final AppLocalizations l10n;
 
-  const _EditTaskBriefDialog({required this.block, required this.l10n});
+  const _EditTaskBriefDialog({required this.brief, required this.l10n});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final localeCode = Localizations.localeOf(context).languageCode;
     final titleController = useTextEditingController(
-      text: _resolveTaskBriefLabel(block.label, localeCode),
+      text: _resolveTaskBriefLabel(brief.label, localeCode),
     );
-    final urlController = useTextEditingController(
-      text: block.theoryGrounding?.sourceUrl ?? '',
-    );
+    final urlController = useTextEditingController(text: brief.sourceUrl ?? '');
     final bodyController = useTextEditingController(
-      text: block.instructionText ?? '',
+      text: brief.instructionText ?? '',
     );
     final saveMutation = useMutation<void>();
 
@@ -973,25 +966,20 @@ class _EditTaskBriefDialog extends HookConsumerWidget {
         if (nextTitle.isEmpty) {
           throw AppException.validation(l10n.errorValidation);
         }
-        final updatedBlock = block.copyWith(
+        final updatedBrief = brief.copyWith(
           label: I18nText(
             translations: <String, String>{
-              ...block.label.translations,
+              ...brief.label.translations,
               'en': nextTitle,
               'fi': nextTitle,
             },
           ),
           instructionText: nextBody.isEmpty ? null : nextBody,
-          theoryGrounding: nextUrl.isEmpty
-              ? null
-              : TheoryGrounding(
-                  sourceUrl: nextUrl,
-                  citationReference: block.theoryGrounding?.citationReference,
-                ),
+          sourceUrl: nextUrl.isEmpty ? null : nextUrl,
         );
         await ref
             .read(studioClientProvider)
-            .savePromptBlock(block.id, updatedBlock);
+            .saveTaskBrief(brief.id, updatedBrief);
         if (!context.mounted) return;
         Navigator.of(context).pop();
       });

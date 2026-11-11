@@ -55,13 +55,11 @@ final organizationTaskBriefsProvider = OrganizationTaskBriefsProvider._();
 final class OrganizationTaskBriefsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<PromptBlock>>,
-          List<PromptBlock>,
-          FutureOr<List<PromptBlock>>
+          AsyncValue<List<TaskBrief>>,
+          List<TaskBrief>,
+          FutureOr<List<TaskBrief>>
         >
-    with
-        $FutureModifier<List<PromptBlock>>,
-        $FutureProvider<List<PromptBlock>> {
+    with $FutureModifier<List<TaskBrief>>, $FutureProvider<List<TaskBrief>> {
   OrganizationTaskBriefsProvider._()
     : super(
         from: null,
@@ -78,18 +76,18 @@ final class OrganizationTaskBriefsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<PromptBlock>> $createElement(
+  $FutureProviderElement<List<TaskBrief>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<PromptBlock>> create(Ref ref) {
+  FutureOr<List<TaskBrief>> create(Ref ref) {
     return organizationTaskBriefs(ref);
   }
 }
 
 String _$organizationTaskBriefsHash() =>
-    r'7e382638d3cf928f6f6b5c61ad727e14b79c0374';
+    r'a97516f7bfb2a8d8ddecdd044ea6ad0176d6a429';
 
 @ProviderFor(availableOrganizations)
 final availableOrganizationsProvider = AvailableOrganizationsProvider._();

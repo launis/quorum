@@ -1253,7 +1253,6 @@
   },
   "categoryMatrix": "Evaluation Matrix",
   "categoryAgentRole": "Agent Role Persona",
-  "categoryTaskDefinition": "Task Definition",
   "categorySystemRule": "System Rule / Heuristic",
   "categoryProtocol": "Execution Protocol",
   "categoryRuntimeVariables": "Runtime Variables",

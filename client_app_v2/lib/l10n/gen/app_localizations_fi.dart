@@ -2574,9 +2574,6 @@ class AppLocalizationsFi extends AppLocalizations {
   String get categoryAgentRole => 'Agentin Roolipersoona';
 
   @override
-  String get categoryTaskDefinition => 'Tehtävän Määrittely';
-
-  @override
   String get categorySystemRule => 'Järjestelmäsääntö / Heuristiikka';
 
   @override

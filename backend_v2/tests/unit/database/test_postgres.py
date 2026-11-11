@@ -56,6 +56,7 @@ from backend_v2.models.auth import Invitation, Organization, SubscriptionStatus,
 from backend_v2.models.core_base import (
     I18nText,
     V2CoreBase,
+    generate_uuid7,
     generate_uuid7_opaque_id,
     parse_prefixed_uuid7,
 )
@@ -94,6 +95,7 @@ from backend_v2.models.domain.system_config import (
 )
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.mcp import (
     MCPIconDTO,
     MCPServerInfoDTO,
@@ -101,6 +103,9 @@ from backend_v2.models.dtos.mcp import (
     MCPToolInputSchemaDTO,
     MCPToolSchemaPropertyDTO,
 )
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     DependencyRelationType,
@@ -486,9 +491,12 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
         duration_ms=412,
     )
     trace_event = TraceEvent(
+        event_id=generate_uuid7(),
+        timestamp=now_utc,
         step_name="step_fact_verification",
         event_type="output",
         content="Step completed with external MCP verification.",
+        metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
         mcp_audit_traces=[mcp_trace],
     )
     execution_record = ExecutionRecord(
@@ -499,8 +507,16 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
         target_locale="fi",
         progress=100,
         status_message="Completed",
+        context_variables=ContextVariablesDTO(variables={}),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        step_states={},
+        profile_syntheses={},
+        source_identity_manifest={},
         frozen_context=FrozenContext(
             compiled_prompts={"stp_0195f3a0000070008000a1b2c3d4e5f6": "<system_directive>Verify</system_directive>"},
+            injected_theory=InjectedTheoryManifestDTO(theories={}),
+            generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+            ui_hints_snapshot={},
             mcp_tool_audit=[mcp_trace],
         ),
         steps=[
@@ -508,6 +524,7 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
                 id="stp_0195f3a0000070008000a1b2c3d4e5f6",
                 label="Fact Verification",
                 status=ExecutionStatus.PASSED,
+                scorecard_atoms={},
                 prompt_tokens=1200,
                 completion_tokens=350,
                 cached_tokens=800,
@@ -725,6 +742,9 @@ def test_schema_dto_naming_parity() -> None:
         type=StepType.LLM,
         extraction_protocol_block_id=generate_uuid7_opaque_id(EntityPrefix.PROMPT_BLOCK),
         criteria_block_ids=[generate_uuid7_opaque_id(EntityPrefix.PROMPT_BLOCK)],
+        pre_hooks=[],
+        post_hooks=[],
+        expected_inputs=[],
         allowed_mcp_tools=["exa_search__web_search_exa"],
         mcp_tool_params={"exa_search__web_search_exa": {"num_results": 10, "use_autoprompt": True}},
         cognitive_tier=CognitiveTier.DEEP,
@@ -1288,6 +1308,17 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
                 id=run_id,
                 workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
                 target_locale="en",
+                execution_trace=[],
+                context_variables=ContextVariablesDTO(variables={}),
+                raw_inputs=WorkflowInputs(dynamic_inputs={}),
+                frozen_context=None,
+                steps=[],
+                step_states={},
+                profile_syntheses={},
+                source_identity_manifest={},
+                models_used={},
+                created_at=now_utc,
+                updated_at=now_utc,
             )
         )
     assert exc_unbound_save_exec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
@@ -1346,6 +1377,17 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
             id=run_id,
             workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
             target_locale="en",
+            execution_trace=[],
+            context_variables=ContextVariablesDTO(variables={}),
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+            frozen_context=None,
+            steps=[],
+            step_states={},
+            profile_syntheses={},
+            source_identity_manifest={},
+            models_used={},
+            created_at=now_utc,
+            updated_at=now_utc,
         )
 
         try:
@@ -1736,6 +1778,15 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         target_locale="fi",
         progress=100,
         status_message="Completed",
+        execution_trace=[],
+        context_variables=ContextVariablesDTO(variables={}),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=None,
+        steps=[],
+        step_states={},
+        profile_syntheses={},
+        source_identity_manifest={},
+        models_used={},
         created_at=now,
         updated_at=now,
         completed_at=now,
@@ -1775,6 +1826,7 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
             seed_buffer.system_config
         )
         assert await uow.entities.seed_collection_batch("prompt_blocks", sample_blocks) == 4
+        assert await uow.entities.seed_collection_batch("task_briefs", seed_buffer.task_briefs[:1]) == 1
         assert await uow.entities.seed_collection_batch("steps", seed_buffer.steps[:1]) == 1
         assert await uow.entities.seed_collection_batch("workflows", seed_buffer.workflows[:1]) == 1
         assert await uow.entities.seed_collection_batch("output_profiles", seed_buffer.output_profiles[:1]) == 1
@@ -1788,6 +1840,7 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
                 "users": 1,
                 "system_config": 1,
                 "prompt_blocks": 4,
+                "task_briefs": 1,
                 "steps": 1,
                 "workflows": 1,
                 "output_profiles": 1,
@@ -1833,9 +1886,9 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
                 organization_id=org_sample.id,
                 assigned_email="assignee@quorum.ai",
                 workflow_id=wf_sample.id,
-                locked_inputs=WorkflowInputs(),
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
                 assignee_input_keys=[],
-                draft_inputs=WorkflowInputs(),
+                draft_inputs=WorkflowInputs(dynamic_inputs={}),
                 token_hash="b" * 64,
                 hard_deadline_at=now,
                 created_by=user_sample.id,
@@ -2006,7 +2059,7 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
 
     # 2. Verify _validate_database_preflight and _seed_postgres apply migrations on PostgresUnitOfWork before table checks
     pool = InMemoryAsyncPgPool()
-    for table in ("organizations", "users", "workflows", "prompt_blocks", "steps", "output_profiles"):
+    for table in ("organizations", "users", "workflows", "prompt_blocks", "task_briefs", "steps", "output_profiles"):
         pool.store.seed_tables[table][f"{table[:3]}_0195f3a0000070008000111111111111"] = (
             f"{table[:3]}_0195f3a0000070008000111111111111",
         )

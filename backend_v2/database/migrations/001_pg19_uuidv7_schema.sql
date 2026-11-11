@@ -469,6 +469,8 @@ BEGIN
         EXECUTE format('ALTER TABLE execution_assignments DROP CONSTRAINT IF EXISTS %I', fk_name);
     END LOOP;
 
+    DELETE FROM prompt_blocks WHERE category_id NOT IN ('matrix', 'system_rule', 'runtime_variables', 'persona', 'protocol');
+
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint con

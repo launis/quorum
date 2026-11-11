@@ -55,13 +55,11 @@ final availableTaskBriefsProvider = AvailableTaskBriefsProvider._();
 final class AvailableTaskBriefsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<PromptBlock>>,
-          List<PromptBlock>,
-          FutureOr<List<PromptBlock>>
+          AsyncValue<List<TaskBrief>>,
+          List<TaskBrief>,
+          FutureOr<List<TaskBrief>>
         >
-    with
-        $FutureModifier<List<PromptBlock>>,
-        $FutureProvider<List<PromptBlock>> {
+    with $FutureModifier<List<TaskBrief>>, $FutureProvider<List<TaskBrief>> {
   AvailableTaskBriefsProvider._()
     : super(
         from: null,
@@ -78,18 +76,18 @@ final class AvailableTaskBriefsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<PromptBlock>> $createElement(
+  $FutureProviderElement<List<TaskBrief>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<PromptBlock>> create(Ref ref) {
+  FutureOr<List<TaskBrief>> create(Ref ref) {
     return availableTaskBriefs(ref);
   }
 }
 
 String _$availableTaskBriefsHash() =>
-    r'18ed0284070479c9322061acc7ce90478d4a7be7';
+    r'5b6d786238e793162903c1e8312eae38a79c925d';
 
 @ProviderFor(NewExecutionController)
 final newExecutionControllerProvider = NewExecutionControllerProvider._();

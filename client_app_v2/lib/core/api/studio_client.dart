@@ -11,6 +11,7 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
+import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/workflow_simulation.dart';
 import 'package:client_app/utils/json_converters.dart';
@@ -615,5 +616,55 @@ class StudioClient {
       OutputProfile.fromJson,
       'createOutputProfileDraft',
     );
+  }
+
+  // --- Task Briefs ---
+
+  /// Retrieves all task briefs accessible to the current tenant.
+  Future<List<TaskBrief>> getTaskBriefs() async {
+    final response = await _dio.get<List<Object?>>('studio/task-briefs/');
+    return _parseListResponse(response, TaskBrief.fromJson, 'getTaskBriefs');
+  }
+
+  /// Retrieves a specific task brief by ID.
+  Future<TaskBrief> getTaskBrief(String id) async {
+    _validateOpaqueId(id, 'id', 'getTaskBrief');
+    final response = await _dio.get<Map<String, Object?>>(
+      'studio/task-briefs/$id',
+    );
+    return _parseResponse(response, TaskBrief.fromJson, 'getTaskBrief');
+  }
+
+  /// Appends or updates a task brief.
+  Future<TaskBrief> saveTaskBrief(String id, TaskBrief data) async {
+    _validateOpaqueId(id, 'id', 'saveTaskBrief');
+    final response = await _dio.put<Map<String, Object?>>(
+      'studio/task-briefs/$id',
+      data: data.toJson(),
+    );
+    return _parseResponse(response, TaskBrief.fromJson, 'saveTaskBrief');
+  }
+
+  /// Deletes a task brief.
+  Future<void> deleteTaskBrief(String id) async {
+    _validateOpaqueId(id, 'id', 'deleteTaskBrief');
+    await _dio.delete<void>('studio/task-briefs/$id');
+  }
+
+  /// Deep clones a task brief securely.
+  Future<TaskBrief> cloneTaskBrief(String id) async {
+    _validateOpaqueId(id, 'id', 'cloneTaskBrief');
+    final response = await _dio.post<Map<String, Object?>>(
+      'studio/task-briefs/$id/clone',
+    );
+    return _parseResponse(response, TaskBrief.fromJson, 'cloneTaskBrief');
+  }
+
+  /// Creates a draft task brief securely via SSOT Service Layer.
+  Future<TaskBrief> createTaskBriefDraft() async {
+    final response = await _dio.post<Map<String, Object?>>(
+      'studio/task-briefs/',
+    );
+    return _parseResponse(response, TaskBrief.fromJson, 'createTaskBriefDraft');
   }
 }

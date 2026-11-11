@@ -12,7 +12,6 @@ void main() {
         const expectedIds = <PromptBlockCategory, String>{
           PromptBlockCategory.matrix: 'matrix',
           PromptBlockCategory.agentRole: 'agent_role',
-          PromptBlockCategory.taskDefinition: 'task_definition',
           PromptBlockCategory.systemRule: 'system_rule',
           PromptBlockCategory.protocol: 'protocol',
           PromptBlockCategory.runtimeVariables: 'runtime_variables',

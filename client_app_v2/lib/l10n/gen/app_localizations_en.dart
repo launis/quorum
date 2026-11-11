@@ -2560,9 +2560,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryAgentRole => 'Agent Role Persona';
 
   @override
-  String get categoryTaskDefinition => 'Task Definition';
-
-  @override
   String get categorySystemRule => 'System Rule / Heuristic';
 
   @override

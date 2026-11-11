@@ -19,17 +19,17 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]`
   - [x] Step 1: Phase 1: Backend Domain Schema, Enums, Studio DTOs & Polyfactory
   - [x] Step 2: Phase 2: PostgreSQL 19 16-Table Schema, Zero-ORM Entity Adapter, Repository & In-Memory Fakes
   - [x] Step 3: Phase 3: StudioTaskBriefService, ExecutionAssignmentService Wiring & FastAPI Router
   - [x] Step 4: Phase 4: Seed Vault Pipeline, Sanitizer, Atom Auditor & seed_data.json Migration
-  - [ ] Step 5: Phase 5: Flutter TaskBrief Freezed Model, StudioClient, IAM & Execution Views, Tests & Directory Index
+  - [x] Step 5: Phase 5: Flutter TaskBrief Freezed Model, StudioClient, IAM & Execution Views, Tests & Directory Index
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[backend_v2/api/dependencies.py]
   - [ ] @[backend_v2/api/routers/studio/__init__.py]
@@ -52,8 +52,8 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[client_app_v2/lib/core/api/studio_client.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/task_brief.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols (`PromptBlockCategory.TASK_DEFINITION`, `TaskDefinitionPromptBlock`, `PromptBlockCategory.taskDefinition`, `categoryTaskDefinition`) or legacy synthesis block references (`blk_0195f3a0000070018a2b3c4d5e6f7a8b`, `blk_0195f3a0000070088b7a6f5e4d3c2b1a`) remain across Python, SQL, JSON, or Dart files.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols (`PromptBlockCategory.TASK_DEFINITION`, `TaskDefinitionPromptBlock`, `PromptBlockCategory.taskDefinition`, `categoryTaskDefinition`) or legacy synthesis block references (`blk_0195f3a0000070018a2b3c4d5e6f7a8b`, `blk_0195f3a0000070088b7a6f5e4d3c2b1a`) remain across Python, SQL, JSON, or Dart files.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -108,24 +108,28 @@
 | REQ-016 | Add `sanitize_task_briefs` in `@[scripts/sanitize_seed_vault.py#L128-L151]` and `@[scripts/sanitize_seed_vault.py#L1079-L1183]`, and expand `@[scripts/audit_database_atoms.py#L1117-L1310]` and `@[scripts/audit_database_atoms.py#L1313-L1391]` to audit `"task_briefs"` as the 8th canonical seed collection (`EntityPrefix.TASK_BRIEF`, `"label"` display field, `organization_id` FK check, XML tag ban on `instruction_text`, and bilingual `I18nText` parity). | Step 4 | [x] Completed |
 | REQ-017 | Back up `@[backend_v2/seed/seed_data.json]`, reclassify the 11 active internal DAG instruction blocks from `"category_id": "task_definition"` to `"category_id": "system_rule"` with 100% `instruction_text` preservation (`@[backend_v2/seed/seed_data.json#L13965-L19274]`), delete unreferenced synthesis blocks `blk_0195f3a0000070018a2b3c4d5e6f7a8b` and `blk_0195f3a0000070088b7a6f5e4d3c2b1a`, and seed 2 bilingual `task_briefs` (`tbr_0195f3a00000700d8a1b2c3d4e5f6001`, `tbr_0195f3a00000700d8a1b2c3d4e5f6002`) in `@[backend_v2/seed/seed_data.json#L23130-L23139]`. | Step 4 | [x] Completed |
 | REQ-018 | Remove the obsolete `blk_0195f3a0000070018a2b3c4d5e6f7a8b` exemption from `@[backend_v2/tests/unit/test_seed_architectural_guardrails.py#L26-L49]`, assert `task_briefs` bilingual parity and zero `"task_definition"` blocks in `seed_data.json`, and execute `run_seed.py local --dry-run`, `audit_database_atoms.py --strict`, and `run_seed.py local`. | Step 4 | [x] Completed |
-| REQ-019 | Create `[NEW] @[client_app_v2/lib/features/studio/models/task_brief.dart]` (`@Freezed(equal: false) abstract class TaskBrief`, `@JsonSerializable(disallowUnrecognizedKeys: true)`, `@StrictOpaqueIdConverter()`, `parseListInBackground`) and add 6 CRUD+Clone `studio/task-briefs` methods to `@[client_app_v2/lib/core/api/studio_client.dart]`. | Step 5 | [ ] Pending |
-| REQ-020 | Remove `PromptBlock.taskDefinition` / `TaskDefinitionPromptBlock`, `PromptBlockCategory.taskDefinition`, and `categoryTaskDefinition` L10n keys from `@[client_app_v2/lib/features/studio/models/prompt_block.dart]`, `@[client_app_v2/lib/core/models/prompt_block_category.dart]`, `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`, `@[client_app_v2/lib/l10n/app_en.arb]`, and `@[client_app_v2/lib/l10n/app_fi.arb]`. | Step 5 | [ ] Pending |
-| REQ-021 | Migrate `organizationTaskBriefsProvider`, `_TaskBriefsManagementCard`, and `_EditTaskBriefDialog` in `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]` and `availableTaskBriefsProvider` + `TaskAssignmentConfigDialog` in `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]` to `TaskBrief` with post-`await` `if (!context.mounted) return;` guards (`DGR011`). | Step 5 | [ ] Pending |
-| REQ-022 | Create `[NEW] @[client_app_v2/test/unit/features/studio/models/task_brief_test.dart]`, update `@[client_app_v2/test/models/domain_parity_test.dart]` and all 6 affected Flutter unit/widget test suites, update `@[.agents/rules/04_directory_reference.md]`, and pass `flutter_audit_loop.py`, `audit_dto_parity.py`, and `backend_audit_loop.py`. | Step 5 | [ ] Pending |
+| REQ-019 | Create `[NEW] @[client_app_v2/lib/features/studio/models/task_brief.dart]` (`@Freezed(equal: false) abstract class TaskBrief`, `@JsonSerializable(disallowUnrecognizedKeys: true)`, `@StrictOpaqueIdConverter()`, `parseListInBackground`) and add 6 CRUD+Clone `studio/task-briefs` methods to `@[client_app_v2/lib/core/api/studio_client.dart]`. | Step 5 | [x] Completed |
+| REQ-020 | Remove `PromptBlock.taskDefinition` / `TaskDefinitionPromptBlock`, `PromptBlockCategory.taskDefinition`, and `categoryTaskDefinition` L10n keys from `@[client_app_v2/lib/features/studio/models/prompt_block.dart]`, `@[client_app_v2/lib/core/models/prompt_block_category.dart]`, `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`, `@[client_app_v2/lib/l10n/app_en.arb]`, and `@[client_app_v2/lib/l10n/app_fi.arb]`. | Step 5 | [x] Completed |
+| REQ-021 | Migrate `organizationTaskBriefsProvider`, `_TaskBriefsManagementCard`, and `_EditTaskBriefDialog` in `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]` and `availableTaskBriefsProvider` + `TaskAssignmentConfigDialog` in `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]` to `TaskBrief` with post-`await` `if (!context.mounted) return;` guards (`DGR011`). | Step 5 | [x] Completed |
+| REQ-022 | Create `[NEW] @[client_app_v2/test/unit/features/studio/models/task_brief_test.dart]`, update `@[client_app_v2/test/models/domain_parity_test.dart]` and all 6 affected Flutter unit/widget test suites, update `@[.agents/rules/04_directory_reference.md]`, and pass `flutter_audit_loop.py`, `audit_dto_parity.py`, and `backend_audit_loop.py`. | Step 5 | [x] Completed |
 
 # Session Handover Context
 
 ## Achieved
-- Generated full standalone Plan Tracker `@[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]` in 1:1 structural and AST parity with `@[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md]`.
-- Mapped all 5 execution steps, 22 granular requirements (`REQ-001` through `REQ-022`), 18 backend production hardening targets, 2 frontend production hardening targets, and parameterized Tier 7 documentation directives.
+- Completed all 5 steps (`REQ-001` through `REQ-022`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md]`:
+  - **Step 1 (`6d5e78282`)**: Created `TaskBrief` (`EntityPrefix.TASK_BRIEF = "tbr"`), `TaskBriefResponseDTO`, `TaskBriefDeleteResponse`, `TaskBriefFactory`, and removed `PromptBlockCategory.TASK_DEFINITION`.
+  - **Step 2 (`1898d754a`)**: Added `task_briefs` as the 16th PostgreSQL 19 table in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, registered in `@[scripts/audit_zero_orm_strictness.py]`, implemented `TaskBriefRepositoryImpl` (`@[backend_v2/database/repositories/components/task_brief.py]`), and wired across `PostgresEntityAdapter` and `InMemoryUnitOfWork`.
+  - **Step 3 (`ac0bfbf19`)**: Implemented `StudioTaskBriefService` (`@[backend_v2/services/studio/task_brief_service.py]`), wired `ITaskBriefRepository` into `ExecutionAssignmentService` and `ExecutionService`, and mounted `/api/v2/studio/task-briefs` (`@[backend_v2/api/routers/studio/task_briefs.py]`).
+  - **Step 4 (`c021d4b8e`)**: Registered `SeedCollectionName.TASK_BRIEFS = "task_briefs"`, updated `sanitize_seed_vault.py` and `audit_database_atoms.py` (8 collections), reclassified 11 active DAG instruction blocks in `@[backend_v2/seed/seed_data.json#L13965-L19274]` to `"system_rule"` with 100% prompt preservation, deleted the 2 unreferenced synthesis blocks, seeded 2 bilingual `task_briefs` (`tbr_0195f3a00000700d8a1b2c3d4e5f6001`, `tbr_0195f3a00000700d8a1b2c3d4e5f6002`), and re-seeded local PostgreSQL 19 (`90` `prompt_blocks`, `2` `task_briefs`).
+  - **Step 5**: Created Flutter `TaskBrief` Freezed model (`@[client_app_v2/lib/features/studio/models/task_brief.dart]`), added 6 CRUD+Clone `studio/task-briefs` methods in `@[client_app_v2/lib/core/api/studio_client.dart]`, migrated `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]` and `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`, purged `TaskDefinitionPromptBlock` and `PromptBlockCategory.taskDefinition`, updated `@[.agents/rules/04_directory_reference.md]`, and verified `flutter_audit_loop.py` (0 violations), `audit_dto_parity.py` (93/93 shared models aligned), `backend_audit_loop.py` (7,187 passed, 97.50% coverage), and live E2E `test_integration_real_llm.py` (7/7 passed).
 
 ## Learned
-- Pre-flight technical debt scan across 36 target files and 206 1-hop callers passed with 0 AST violations, and 3 legacy structural remnants (`blk_0195f3a0000070018a2b3c4d5e6f7a8b` hardcoded exemption in `test_seed_architectural_guardrails.py`, dead `"TaskDefinitionPromptBlock"` string in `test_ast_prompt_fallback_guardrails.py`, and `exclude_none=True` system-level `organization_id`/`source_url` roundtrip discipline in `seed_data.json`) are explicitly scheduled in Steps 1 and 4.
+- On persistent PostgreSQL 19 volumes previously seeded before `PromptBlockCategory.TASK_DEFINITION` removal, `ON CONFLICT (id) DO UPDATE` in `run_seed.py` updates existing IDs but leaves deleted seed rows (`blk_0195f3a0000070018a2b3c4d5e6f7a8b`, `blk_0195f3a0000070088b7a6f5e4d3c2b1a`) in `prompt_blocks`. Adding idempotent `DELETE FROM prompt_blocks WHERE category_id NOT IN ('matrix', 'system_rule', 'runtime_variables', 'persona', 'protocol');` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L472-L473]` deterministically purges retired categories during `apply_migrations()`.
 
 ## Remaining
-- Execute Steps 1 through 5 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md]` via `/tier2-execute --full-auto`, followed by Post-Implementation Gates, Tier 2 Hardening, Tier 7 As-Built Architectural Sync, and Tier 8 System 2 Red-Team Plan Audit.
+- Execute Tier 2 Hardening (`scripts/auto_hardening_runner.py`), As-Built Architectural Sync (`/tier7-describe-architecture`), and System 2 Red-Team Plan Audit (`/tier8-audit-plan`).
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Independent_Task_Briefs_Architecture.md] @[docs/implementationplans/TRACKER_Independent_Task_Briefs_Architecture.md]
 ```

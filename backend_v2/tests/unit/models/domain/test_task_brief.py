@@ -37,9 +37,7 @@ def test_task_brief_instantiation_and_dto_parity() -> None:
     assert response_dump["organization_id"] == "org_0195f3a0000070008000000000000001"
     assert response_dump["id"] == brief.id
 
-    delete_resp = TaskBriefDeleteResponse.model_validate_json(
-        f'{{"status": "deleted", "deleted_id": "{brief.id}"}}'
-    )
+    delete_resp = TaskBriefDeleteResponse.model_validate_json(f'{{"status": "deleted", "deleted_id": "{brief.id}"}}')
     assert delete_resp.status == "deleted"
     assert delete_resp.deleted_id == brief.id
 

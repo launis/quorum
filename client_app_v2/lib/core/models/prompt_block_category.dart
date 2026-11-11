@@ -9,8 +9,6 @@ enum PromptBlockCategory {
   matrix,
   @JsonValue('agent_role')
   agentRole,
-  @JsonValue('task_definition')
-  taskDefinition,
   @JsonValue('system_rule')
   systemRule,
   @JsonValue('protocol')
@@ -26,8 +24,6 @@ enum PromptBlockCategory {
         return 'matrix';
       case PromptBlockCategory.agentRole:
         return 'agent_role';
-      case PromptBlockCategory.taskDefinition:
-        return 'task_definition';
       case PromptBlockCategory.systemRule:
         return 'system_rule';
       case PromptBlockCategory.protocol:
@@ -61,8 +57,6 @@ extension PromptBlockCategoryL10n on PromptBlockCategory {
         return l10n.categoryMatrix;
       case PromptBlockCategory.agentRole:
         return l10n.categoryAgentRole;
-      case PromptBlockCategory.taskDefinition:
-        return l10n.categoryTaskDefinition;
       case PromptBlockCategory.systemRule:
         return l10n.categorySystemRule;
       case PromptBlockCategory.protocol:

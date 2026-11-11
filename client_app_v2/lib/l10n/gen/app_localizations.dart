@@ -4736,12 +4736,6 @@ abstract class AppLocalizations {
   /// **'Agent Role Persona'**
   String get categoryAgentRole;
 
-  /// No description provided for @categoryTaskDefinition.
-  ///
-  /// In en, this message translates to:
-  /// **'Task Definition'**
-  String get categoryTaskDefinition;
-
   /// No description provided for @categorySystemRule.
   ///
   /// In en, this message translates to:

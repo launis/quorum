@@ -378,27 +378,6 @@ sealed class PromptBlock with _$PromptBlock {
     @JsonKey(name: 'instruction_text') String? instructionText,
   }) = RuntimeVariablesPromptBlock;
 
-  @FreezedUnionValue('task_definition')
-  @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory PromptBlock.taskDefinition({
-    @StrictOpaqueIdConverter() required String id,
-    required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
-    required I18nText label,
-    required I18nText description,
-    @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
-    @Default(BlockDataType.instruction) BlockDataType type,
-    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
-    @JsonKey(name: 'output_extensions')
-    @Default([])
-    List<String> outputExtensions,
-    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
-    @JsonKey(name: 'is_lightweight_protocol')
-    @Default(false)
-    bool isLightweightProtocol,
-    @JsonKey(name: 'instruction_text') String? instructionText,
-  }) = TaskDefinitionPromptBlock;
-
   factory PromptBlock.fromJson(Map<String, dynamic> json) =>
       _$PromptBlockFromJson(json);
 
@@ -421,7 +400,6 @@ sealed class PromptBlock with _$PromptBlock {
     AgentRolePromptBlock() => 'agent_role',
     ProtocolPromptBlock() => 'protocol',
     RuntimeVariablesPromptBlock() => 'runtime_variables',
-    TaskDefinitionPromptBlock() => 'task_definition',
   };
 
   List<MatrixScale>? get scales => switch (this) {

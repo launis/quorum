@@ -855,7 +855,6 @@
   },
   "categoryMatrix": "Arviointimatriisi",
   "categoryAgentRole": "Agentin Roolipersoona",
-  "categoryTaskDefinition": "Tehtävän Määrittely",
   "categorySystemRule": "Järjestelmäsääntö / Heuristiikka",
   "categoryProtocol": "Suoritusprotokolla",
   "categoryRuntimeVariables": "Ajonaikaiset muuttujat",

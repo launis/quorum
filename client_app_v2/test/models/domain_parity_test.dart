@@ -6,6 +6,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 
 void main() {
@@ -109,5 +110,22 @@ void main() {
         expect(parsedOrganizations.length, rawOrganizations.length);
       },
     );
+
+    test('Isolate parsing extracts TaskBriefs perfectly from SSoT', () async {
+      final rawTaskBriefs = seedData['task_briefs'] as List<dynamic>;
+      expect(
+        rawTaskBriefs.isNotEmpty,
+        true,
+        reason: 'Seed should have task_briefs',
+      );
+
+      final List<TaskBrief> parsedBriefs =
+          await TaskBrief.parseListInBackground(rawTaskBriefs);
+
+      expect(parsedBriefs.length, rawTaskBriefs.length);
+      for (final brief in parsedBriefs) {
+        expect(brief.id, startsWith('tbr_'));
+      }
+    });
   });
 }

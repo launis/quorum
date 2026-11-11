@@ -12,7 +12,7 @@ import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
-import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -47,8 +47,8 @@ void main() {
     mockStudioClient = MockStudioClient();
     mockExecutionClient = MockExecutionClient();
     when(
-      () => mockStudioClient.getPromptBlocks(),
-    ).thenAnswer((_) async => const <PromptBlock>[]);
+      () => mockStudioClient.getTaskBriefs(),
+    ).thenAnswer((_) async => const <TaskBrief>[]);
   });
 
   Widget createTestWidget({
@@ -464,10 +464,10 @@ void main() {
     );
 
     testWidgets(
-      'selects TaskDefinitionPromptBlock in TaskAssignmentConfigDialog, submits taskBriefId without polluting lockedInputs, and renders verified dispatch summary',
+      'selects TaskBrief in TaskAssignmentConfigDialog, submits taskBriefId without polluting lockedInputs, and renders verified dispatch summary',
       (tester) async {
         const wfId = 'wor_018f123456787abc8000000000000021';
-        const briefId = 'blk_018f123456787abc8000000000000055';
+        const briefId = 'tbr_018f123456787abc8000000000000055';
         const assignmentId = 'tsk_018f123456787abc8000000000000077';
         final textInput = ExpectedInput(
           inputKey: 'candidate_response',
@@ -487,7 +487,7 @@ void main() {
           expectedInputs: [textInput],
         );
 
-        const taskBrief = TaskDefinitionPromptBlock(
+        const taskBrief = TaskBrief(
           id: briefId,
           slug: 'case_study_brief',
           organizationId: 'org_018f123456787abc8000000000000088',
@@ -516,8 +516,8 @@ void main() {
           () => mockStudioClient.getWorkflows(),
         ).thenAnswer((_) async => [wf]);
         when(
-          () => mockStudioClient.getPromptBlocks(),
-        ).thenAnswer((_) async => const <PromptBlock>[taskBrief]);
+          () => mockStudioClient.getTaskBriefs(),
+        ).thenAnswer((_) async => const <TaskBrief>[taskBrief]);
         when(() => mockExecutionClient.createAssignment(any())).thenAnswer((
           inv,
         ) async {

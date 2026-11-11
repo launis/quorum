@@ -10,7 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:client_app/core/api/studio_client.dart';
-import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
@@ -38,10 +38,9 @@ Future<List<Workflow>> availableWorkflows(Ref ref) async {
 }
 
 @riverpod
-Future<List<PromptBlock>> availableTaskBriefs(Ref ref) async {
+Future<List<TaskBrief>> availableTaskBriefs(Ref ref) async {
   final client = ref.watch(studioClientProvider);
-  final blocks = await client.getPromptBlocks();
-  return blocks.whereType<TaskDefinitionPromptBlock>().toList(growable: false);
+  return await client.getTaskBriefs();
 }
 
 String _resolveLocalizedLabel(I18nText text, String localeCode) {
@@ -1069,14 +1068,10 @@ class _TaskAssignmentConfigDialogState
 
     final effectiveProfileId = _resolveProfileId(activeWorkflow);
 
-    final List<TaskDefinitionPromptBlock> taskBriefs =
-        switch (taskBriefsAsync) {
-          AsyncData(:final value) =>
-            value.whereType<TaskDefinitionPromptBlock>().toList(
-              growable: false,
-            ),
-          _ => const <TaskDefinitionPromptBlock>[],
-        };
+    final List<TaskBrief> taskBriefs = switch (taskBriefsAsync) {
+      AsyncData(:final value) => value,
+      _ => const <TaskBrief>[],
+    };
 
     return AlertDialog(
       key: const Key('task_assignment_config_dialog'),
