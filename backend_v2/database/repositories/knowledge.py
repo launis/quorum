@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+from pydantic import BaseModel
+
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -28,6 +30,64 @@ __all__ = ["KnowledgeRepositoryImpl"]
 class KnowledgeRepositoryImpl(BaseRepository):
     """Repository implementation for Knowledge base, Banned phrases and Prompts."""
 
+    async def _query_and_validate[T: BaseModel](
+        self,
+        collection: str,
+        model_cls: type[T],
+        entity_label: str,
+    ) -> list[T]:
+        """Query a storage collection and hydrate records into a typed domain model list.
+
+        Args:
+            collection: Target storage collection name.
+            model_cls: Target Pydantic domain model class.
+            entity_label: Human-readable entity label for RFC 7807 error reporting.
+
+        Returns:
+            List of validated domain model instances.
+
+        Raises:
+            AppException: If a stored record fails validation (ErrorCodes.VALIDATION_FAILED).
+        """
+        data = await self.driver.query(collection)
+        items: list[T] = []
+        for record in data:
+            try:
+                items.append(model_cls.model_validate(record, strict=False))
+            except Exception as e:
+                item_id = "unknown"
+                if "id" in record:
+                    item_id = str(record["id"])
+                logger.error(
+                    "[KnowledgeRepository] %s: Corrupted %s %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    entity_label,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=f"Corrupted {entity_label} {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
+                ) from e
+        return items
+
+    async def _upsert_knowledge_item(self, collection: str, item: BaseModel) -> str:
+        """Serialize a creation DTO with a generated UUIDv7 identifier and upsert it.
+
+        Args:
+            collection: Target storage collection name.
+            item: Validated creation DTO instance.
+
+        Returns:
+            The persisted entity identifier.
+        """
+        payload = item.model_dump(mode="json")
+        doc_id = str(generate_uuid7())
+        payload["id"] = doc_id
+        return await self.driver.upsert(collection, payload, doc_id)
+
     async def get_banned_phrases(self) -> list[BannedPhrase]:
         """Retrieve all banned phrases.
 
@@ -37,28 +97,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         Raises:
             AppException: If a banned phrase record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
-        data = await self.driver.query("banned_phrases")
-        phrases: list[BannedPhrase] = []
-        for p in data:
-            try:
-                phrases.append(BannedPhrase.model_validate(p, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in p:
-                    item_id = str(p["id"])
-                logger.error(
-                    "[KnowledgeRepository] %s: Corrupted banned phrase %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted banned phrase {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return phrases
+        return await self._query_and_validate("banned_phrases", BannedPhrase, "banned phrase")
 
     async def add_banned_phrase(self, phrase: str, language: str = SystemLocale.EN.value) -> None:
         """Add a new banned phrase if not already existing.
@@ -116,28 +155,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         Raises:
             AppException: If a concept record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
-        data = await self.driver.query("concepts")
-        concepts: list[Concept] = []
-        for c in data:
-            try:
-                concepts.append(Concept.model_validate(c, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in c:
-                    item_id = str(c["id"])
-                logger.error(
-                    "[KnowledgeRepository] %s: Corrupted concept %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted concept {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return concepts
+        return await self._query_and_validate("concepts", Concept, "concept")
 
     async def get_references(self) -> list[Reference]:
         """Retrieve all knowledge base references.
@@ -148,28 +166,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         Raises:
             AppException: If a reference record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
-        data = await self.driver.query("references")
-        refs: list[Reference] = []
-        for r in data:
-            try:
-                refs.append(Reference.model_validate(r, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in r:
-                    item_id = str(r["id"])
-                logger.error(
-                    "[KnowledgeRepository] %s: Corrupted reference %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted reference {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return refs
+        return await self._query_and_validate("references", Reference, "reference")
 
     async def get_claims(self) -> list[Claim]:
         """Retrieve all knowledge base claims.
@@ -180,28 +177,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         Raises:
             AppException: If a claim record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
-        data = await self.driver.query("claims")
-        claims: list[Claim] = []
-        for c in data:
-            try:
-                claims.append(Claim.model_validate(c, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in c:
-                    item_id = str(c["id"])
-                logger.error(
-                    "[KnowledgeRepository] %s: Corrupted claim %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted claim {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return claims
+        return await self._query_and_validate("claims", Claim, "claim")
 
     async def add_concept(self, item: ConceptCreateDTO) -> str:
         """Add a concept to the knowledge base.
@@ -212,10 +188,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         Returns:
             The created concept ID.
         """
-        payload = item.model_dump(mode="json")
-        doc_id = str(generate_uuid7())
-        payload["id"] = doc_id
-        return await self.driver.upsert("concepts", payload, doc_id)
+        return await self._upsert_knowledge_item("concepts", item)
 
     async def add_reference(self, item: ReferenceCreateDTO) -> str:
         """Add a reference to the knowledge base.
@@ -226,10 +199,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         Returns:
             The created reference ID.
         """
-        payload = item.model_dump(mode="json")
-        doc_id = str(generate_uuid7())
-        payload["id"] = doc_id
-        return await self.driver.upsert("references", payload, doc_id)
+        return await self._upsert_knowledge_item("references", item)
 
     async def add_claim(self, item: ClaimCreateDTO) -> str:
         """Add a claim to the knowledge base.
@@ -240,10 +210,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         Returns:
             The created claim ID.
         """
-        payload = item.model_dump(mode="json")
-        doc_id = str(generate_uuid7())
-        payload["id"] = doc_id
-        return await self.driver.upsert("claims", payload, doc_id)
+        return await self._upsert_knowledge_item("claims", item)
 
     async def clear_knowledge_base(self) -> None:
         """Clear all concepts, references, and claims from the database."""
