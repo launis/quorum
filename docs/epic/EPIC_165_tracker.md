@@ -31,14 +31,14 @@
   - [x] Step 1.3: Append-Only PostgreSQL 19 audit_logs & usage_records Ledgers, SQL FinOps Rollups & delete_tenant_secret
   - [x] Step 1.4: Direct EntityPersistencePort Repository Cutover, StorageDriver & Dead V1 Ghost Repository Eradication
 
-### Phase 2: 22-Table PostgreSQL 19 DDL Evolution, `system_configs` Split (`model_registries` & `mcp_gateways`), Junction Tables (`step_criteria_blocks` & `workflow_step_refs`), `Workflow.version` SQL OCC & Typed UUID Foreign Keys
+### Phase 2: 21-Table PostgreSQL 19 DDL Evolution, `system_configs` Split (`model_registries` & `mcp_gateways`), Junction Tables (`step_criteria_blocks` & `workflow_step_refs`), `Workflow.version` SQL OCC & Typed UUID Foreign Keys
 **Plan:** @[docs/epic/tasks_EPIC_165/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`
-  - [ ] Step 2.1: system_configs Split into model_registries (mrg_) & mcp_gateways (mcp_), tenant_secrets.mcp_gateway_id FK & ModelProfile Cleanup
-  - [ ] Step 2.2: Junction Tables (step_criteria_blocks & workflow_step_refs), Deferrable default_profile_id, Typed UUID FKs, VIRTUAL created_at & Workflow.version SQL OCC
-  - [ ] Step 2.3: Source-Level seed_data.json Structural Split (model_registries & mcp_gateways) & Operational Seed Script Synchronization
-  - [ ] Step 2.4: Flutter Studio Enum, LlmModelConfig, ModelRegistryView & McpGateway Freezed Parity
+  - [ ] Step 2.1: system_configs Split into model_registries (mrg_) & mcp_gateways (mcp_), tenant_secrets.mcp_gateway_id FK, ModelProfile / LLMProviderConfig Cleanup & QGR030 Prefix Ratchet
+  - [ ] Step 2.2: Junction Tables (step_criteria_blocks & workflow_step_refs), Deferrable default_profile_id, Typed UUID FKs, VIRTUAL created_at, Single-UoW clone_workflow & Workflow.version SQL OCC
+  - [ ] Step 2.3: Source-Level seed_data.json Structural Split (model_registries & mcp_gateways), Operational Seed Scripts & DTO Parity Registry
+  - [ ] Step 2.4: Flutter Studio EntityPrefix, ModelConfig / LlmModelConfig, ModelRegistryView, McpGateway & OrganizationIamSettingsView Freezed Parity
 
 ### Phase 3: `task_briefs` <-> `execution_assignments` Publication Snapshot (`task_brief_snapshot JSONB`), `ON DELETE RESTRICT`, `organization_id NOT NULL ON DELETE CASCADE` & $O(1)$ Indexed SQL Query Pushdown
 **Plan:** @[docs/epic/tasks_EPIC_165/03_phase3_plan.md]
@@ -115,6 +115,7 @@
   - [ ] @[backend_v2/models/dtos/trace.py]
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/models/execution_core.py]
+  - [ ] @[backend_v2/models/llm.py]
   - [ ] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/seed/run_seed.py]
   - [ ] @[backend_v2/seed/seed_registry.py]
@@ -159,6 +160,7 @@
   - [ ] @[scripts/ablation_live_executor.py]
   - [ ] @[scripts/audit_database_atoms.py]
   - [ ] @[scripts/audit_dict_eradication.py]
+  - [ ] @[scripts/audit_dto_parity.py]
   - [ ] @[scripts/audit_skills_architecture.py]
   - [ ] @[scripts/audit_technical_debt.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
@@ -172,6 +174,7 @@
   - [ ] @[client_app_v2/lib/features/execution/models/execution_step.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/execution_view.dart]
+  - [ ] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/model_config.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/output_profile.dart]
@@ -235,25 +238,24 @@
 # Session Handover Context
 
 ## Achieved
-- Executed Tier 1 Epic Planning (`/tier1-planner`) for `@[docs/epic/EPIC_165_Postgres_19_Zero_ORM_Normalization_And_Schema_Sovereignty.md]` after ingesting `@[docs/epic/EPIC_165_audit_report.md]` and verifying `0%` pre-existing `[ALREADY_IMPLEMENTED]` items on disk, generating `@[docs/epic/tasks_EPIC_165/01_phase1_plan.md]`..`@[docs/epic/tasks_EPIC_165/04_phase4_plan.md]` and `@[docs/epic/EPIC_165_tracker.md]`.
-- Completed Tier 0 System 2 Red-Teaming (`/tier0-research-plan`) on `@[docs/epic/tasks_EPIC_165/01_phase1_plan.md]` with 100% bidirectional parity across `Target Files`, `touched_artifacts`, the 5-Column Architectural Directives Table, and `execution_protocol` Steps `1.1`–`1.4` (`23` `[DELETE]` and `189` `[MODIFY]` target bounds):
-  - **Step 1.1 (`validate_hydrated_row` & `translate_postgres_exception`)**: Specified `@runtime_checkable class _SqlStateCarrier(Protocol)` (`isinstance(exc, _SqlStateCarrier)`) to avoid `getattr`/`hasattr` (`QGR001`) and `asyncpg` imports (`ZORM001`), preserved `PromptBlockCategory`-specific column projection in `hydrate_prompt_block_row` before `PromptBlockAdapter` validation under `extra="forbid"`, and added `graph_adapter.py` AST bounds (`#L247-L262`, `#L265-L296`, `#L320-L430`, `#L433-L754`).
-  - **Step 1.2 (Studio IDOR, 4-Phase In-Place Upsert & Single-UoW `clone_workflow`)**: Injected `uow_factory: UnitOfWorkFactory | None = None` into `StudioWorkflowService` (`dependencies.py`, `conftest.py`), enforced 4-Phase In-Place Upsert across `StudioSystemConfigService` (`save_system_config`, `save_mcp_gateways`, `_require_root` on `create_system_config_draft`), and fixed `UserRole` RBAC checks to reject `MANAGER`, `MEMBER`, and `VIEWER` (`403`, allowing `ROOT` and `ADMIN`).
-  - **Step 1.3 (`audit_logs` & `usage_records` Ledgers & Macro Stage 10 `ZORM004`/`ZORM006` Parity)**: Preserved `AuditLogEntry` on `Metadata.audit_logs` while introducing `AuditLogRecord(V2CoreBase)` and `UsageRollupSummaryDTO(BaseDTO)`, preserved all 5 FinOps columns on `usage_records` (`cache_creation_input_tokens`, `latency_ms`, `finish_reason`, `system_fingerprint`, `estimated_savings_usd`) and nullable `organization_id` FK (`feature_sovereignty_mandate`), added `AuditLogRecordFactory`/`UsageRecordFactory`, switched `verify_seed_table_counts_rows` to `list_system_configs_rows`, and registered the 18-table topology in `@[scripts/audit_zero_orm_strictness.py#L407-L427]`.
-  - **Step 1.4 (`EntityPersistencePort` Cutover, `BlueprintTransformer` Arity & Guardrail Ratchets)**: Added missing 7-to-6 positional argument update on `BlueprintTransformer(...)` in `@[backend_v2/services/report/compilation_service.py#L33-L301]`, synchronized `BOUNDARY_EXEMPTION_FILES` and `_QGR030_ENTITY_PREFIXES` in `@[scripts/_ast_guardrails.py]`, mapped all `2` `[DELETE]` (`test_driver.py`, `test_storage_audit.py`) and `110` `[MODIFY]` collateral test/fixture/factory files, and scheduled ISTQB negative tests in `@[backend_v2/tests/unit/test_repositories_v2.py]` to resolve `TD_ISTQB_NEGATIVE`.
+- Executed Tier 1 Epic Planning (`/tier1-planner`), Tier 0 Red-Teaming, and Tier 2 Full-Auto Execution across Phase 1 (`@[docs/epic/tasks_EPIC_165/01_phase1_plan.md]`): implemented `validate_hydrated_row` and `translate_postgres_exception`, closed Studio multi-tenant `PUT` IDOR vulnerabilities via 4-Phase In-Place Upsert and single-UoW `clone_workflow`, migrated `audit_logs` (`aud_`) and `usage_records` (`usg_`) onto PostgreSQL 19 ledgers, and eradicated `StorageDriver`, `PostgresStorageDriver`, and all dead V1 ghost repositories across 9 active `EntityPersistencePort`-backed repositories.
+- Completed Tier 0 System 2 Red-Teaming (`/tier0-research-plan`) on `@[docs/epic/tasks_EPIC_165/02_phase2_plan.md]` with 100% 4-way bidirectional parity across `Target Files`, `touched_artifacts`, the 5-Column Architectural Directives Table, and `execution_protocol` Steps `2.1`–`2.4` (`49` production `[MODIFY]` targets and `156` test/factory/fake `[MODIFY]` targets):
+  - **Step 2.1 (`system_configs` Split, `tenant_secrets.mcp_gateway_id`, `ModelProfile` / `LLMProviderConfig` Cleanup & `QGR030` Prefix Ratchet)**: Removed STI `type` discriminator fields from `SystemConfigModelRegistry` and `SystemConfigMCPGateways`, added required `organization_id` (`EntityPrefix.ORGANIZATION`) to `SystemConfigMCPGateways`, removed `LLMProviderConfig.parsing_mode` in `@[backend_v2/models/llm.py]`, preserved `StudioSystemConfigService` public method names so `model_registry.py` and `mcp_gateways.py` routers (`OPAQUE_STRIPE_ID_REGEX`) remain untouched, expanded `<demolish>` to all 15 retired `system_config` union/DTO/adapter/repo symbols, and ratcheted `_QGR030_ENTITY_PREFIXES` (`mrg`, `mcp`, retiring `^sys_[0-9a-fA-F]{32}$`) in `@[scripts/_ast_guardrails.py]`.
+  - **Step 2.2 (21-Table DDL, `step_criteria_blocks` & `workflow_step_refs`, Typed UUID FKs, Single-UoW `clone_workflow` & `Workflow.version` SQL OCC)**: Dropped redundant `steps.criteria_block_ids JSONB` (projecting ordered `criteria_block_ids` from `step_criteria_blocks` via `ORDER BY scb.position ASC` and syncing via `UNNEST`), eliminated all 4 Python full-table delete loops (`PromptBlockRepositoryImpl`, `StudioWorkflowService`, `WorkflowRepositoryImpl`, `StudioOutputProfileService`), added `parse_prefixed_uuid7` validators across `Workflow`, `OutputProfile`, `Organization`, `User`, and `ExecutionRecord` (`IdentityRepositoryImpl`), pre-generated `profile_mapping` in `StudioWorkflowService.clone_workflow` for single-save (`version=1`) deferred-FK persistence, enforced `WHERE workflows.version = $6 RETURNING version` SQL OCC with `WorkflowRepositoryImpl.update_workflow` version re-fetch, and locked the 21-table Phase 2 topology in `@[scripts/audit_zero_orm_strictness.py]`.
+  - **Step 2.3 & Step 2.4 (`seed_data.json` Split, `audit_dto_parity.py` Alias Parity & Flutter Freezed Sync)**: Mapped exact `seed_data.json` bounds (`#L2-L554` and `#L20805-L21600`), registered `"systemconfigmodelregistry": "modelconfig"` and `"modelprofile": "llmmodelconfig"` in `EXPLICIT_MODEL_ALIASES` inside `@[scripts/audit_dto_parity.py]`, removed redundant `llm/handler.py` from Phase 2 targets (already completed in Phase 1), synchronized `OrganizationIamSettingsView` (`@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`) and all 14 Flutter test suites, and structured `--micro` intermediate step gates so Backend (`Steps 2.1–2.3`) and Frontend (`Step 2.4`) commit cleanly without cross-language parity deadlocks.
 
 ## Learned
-- `ReportCompilationService` (`@[backend_v2/services/report/compilation_service.py#L33-L301]`) invokes `BlueprintTransformer` with 7 positional arguments; stripping `comp_repo` from `BlueprintTransformer.__init__` without updating `compilation_service.py` would trigger a runtime `TypeError`.
-- `backend_audit_loop.py` executes `audit_zero_orm_strictness.py` (`ZORM004`/`ZORM006`) and `_ast_guardrails.py` (`BOUNDARY_EXEMPTION_FILES`, `_QGR030_ENTITY_PREFIXES`) in Macro Stage 10, so Phase 1 Steps 1.3 and 1.4 must update those static registries synchronously rather than deferring until Phase 4.
-- Phase 1 Step 1.4 and Phase 4 Step 4.2 touch `backend_v2/services/orchestrator/` and therefore require explicit `"PERMISSION GRANTED to mutate DAG Orchestrator ecosystem"` (`orchestrator_god_object_fragility`) prior to `/tier2-execute`.
+- Keeping `StudioSystemConfigService` method names (`get_all_system_configs`, `get_system_config`, `create_system_config_draft`, `save_system_config`, `delete_system_config`, `clone_system_config`) unchanged avoids touching `model_registry.py` and `mcp_gateways.py` while keeping `delete_system_config` and `get_system_config` out of `<demolish>` so `audit_epic_coverage.py` passes at Epic completion.
+- `steps.criteria_block_ids JSONB` must be dropped in Step 2.2 once `step_criteria_blocks` is introduced so Step criteria order has a single normalized SSOT (`ORDER BY scb.position ASC`).
+- Intermediate Backend step gates (`Steps 2.1–2.3`) must pass `--micro` to `backend_audit_loop.py` prior to Step 2.4's Flutter Freezed and `enums.dart` commit, followed by full Macro `backend_audit_loop.py` (including Stage 8 `audit_dto_parity.py --fail-on-mismatch`, Stage 10 `audit_zero_orm_strictness.py`, and `test_enum_parity.py`) and `flutter_audit_loop.py` in Step 2.4 and `<validation_gate>`.
 
 ## Remaining
-- Execute Tier 0 Red-Teaming and Tier 2 Execution across Phases 2–4 (`/tier0-research-plan @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`), followed by the Full-Stack Integration Checkpoint, Tier 2 Hardening (Backend & Frontend), `/tier7-describe-architecture`, and `/tier8-audit-epic`.
+- Execute Tier 2 Implementation for Phase 2 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`), followed by Phases 3–4 Tier 0 Red-Teaming and Tier 2 Execution, the Full-Stack Integration Checkpoint, Tier 2 Hardening (Backend & Frontend), `/tier7-describe-architecture`, and `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-# Interactive Next Action (Start a fresh chat session for Phase 2 Red-Teaming):
-/tier0-research-plan @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]
+# Interactive Next Action (Start a fresh chat session for Phase 2 Execution):
+/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]
 
 # Unattended Start-to-Finish Full-Lifecycle Batch Pipeline (Phases 2-4 Tier 0 -> Tier 2 -> Hardening -> Seed/Parity/Audits -> Tier 7 -> Tier 8):
 $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_165_tracker.md --full-lifecycle --timeout 86400 --max-retries 6
