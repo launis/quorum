@@ -144,6 +144,15 @@ class PhaseItemDTO(BaseModel):
     ] = False
 
 
+class PhaseSubstepProgressDTO(BaseModel):
+    """Sub-step completion progress for a single phase in a tracker document."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    completed_steps: Annotated[int, Field(ge=0, description="Number of sub-steps marked [x].")]
+    total_steps: Annotated[int, Field(ge=0, description="Total number of sub-steps declared in the phase.")]
+
+
 class PostLifecycleStageDTO(BaseModel):
     """Extracted state and slash command for a post-implementation lifecycle section."""
 
@@ -775,15 +784,66 @@ def execute_lifecycle_prompt_subagent(
     return last_res
 
 
+def _inspect_phase_substeps(
+    tracker_path: Path,
+    phase_num: int,
+    repo_root: Path,
+) -> PhaseSubstepProgressDTO:
+    """Count completed and total sub-step checkboxes (`- [ ] Step` / `- [x] Step`) for a phase.
+
+    Args:
+        tracker_path: Path to target tracker markdown file.
+        phase_num: Phase index to inspect.
+        repo_root: Repository root directory.
+
+    Returns:
+        PhaseSubstepProgressDTO with completed_steps and total_steps counts.
+    """
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None:
+        return PhaseSubstepProgressDTO(completed_steps=0, total_steps=0)
+    resolved_tracker = cleaned_tracker if cleaned_tracker.is_absolute() else (repo_root / cleaned_tracker)
+    if not resolved_tracker.is_file():
+        return PhaseSubstepProgressDTO(completed_steps=0, total_steps=0)
+
+    content = resolved_tracker.read_text(encoding="utf-8")
+    substep_re = re.compile(r"^\s+-\s*\[([ xX])\]\s*Step", re.MULTILINE)
+
+    phase_header_re = re.compile(rf"^### Phase\s+{phase_num}[:\-]?", re.MULTILINE | re.IGNORECASE)
+    match = phase_header_re.search(content)
+    if match:
+        next_boundary = re.search(
+            r"(?m)^(?:### Phase\s+\d+|### Integration Checkpoint|### Post-Implementation|\Z)",
+            content[match.end() :],
+        )
+        end_idx = match.end() + next_boundary.start() if next_boundary else len(content)
+        section_slice = content[match.start() : end_idx]
+        marks = substep_re.findall(section_slice)
+        completed = sum(1 for m in marks if m.lower() == "x")
+        return PhaseSubstepProgressDTO(completed_steps=completed, total_steps=len(marks))
+
+    standalone_header = re.search(r"^## Step Execution Status", content, re.MULTILINE | re.IGNORECASE)
+    if standalone_header and phase_num == 1:
+        next_boundary = re.search(r"(?m)^(?:### Post-Implementation|\Z)", content[standalone_header.end() :])
+        end_idx = standalone_header.end() + next_boundary.start() if next_boundary else len(content)
+        section_slice = content[standalone_header.start() : end_idx]
+        marks = substep_re.findall(section_slice)
+        completed = sum(1 for m in marks if m.lower() == "x")
+        return PhaseSubstepProgressDTO(completed_steps=completed, total_steps=len(marks))
+
+    return PhaseSubstepProgressDTO(completed_steps=0, total_steps=0)
+
+
 def execute_phase_subagent(
     phase: PhaseItemDTO,
     args: AutoPhaseRunnerArgsDTO,
     repo_root: Path,
 ) -> SubagentExecutionResultDTO:
-    """Spawn an agy CLI subagent process for the designated phase with streaming output and retry loop.
+    """Spawn agy CLI subagent sessions for the designated phase until all sub-steps are complete.
 
-    Retries transient startup glitches (such as remote model catalog fetch failures or network timeouts)
-    up to args.max_retries attempts with linear backoff before reporting failure.
+    Automatically continues across multi-session handovers when a subagent completes one or more
+    sub-steps (`- [x] Step ...`) and exits cleanly to preserve context budget, and retries up to
+    args.max_retries when a session exits early without advancing sub-step progress.
 
     Args:
         phase: Phase to execute.
@@ -802,9 +862,72 @@ def execute_phase_subagent(
             f"{phase.command}. PERMISSION GRANTED for continuous full-auto execution across all steps, "
             f"PERMISSION GRANTED to mutate DAG Orchestrator ecosystem, and PERMISSION GRANTED for structural "
             f"seed_data.json schema updates with 100% coaching prompt preservation. "
-            f"Proceed autonomously through all steps without intermediate confirmations."
+            f"Proceed autonomously through all steps without intermediate confirmations. "
+            f"After completing, auditing, and committing each step, immediately mark its '- [x] Step' "
+            f"checkbox in the tracker file before starting the next step or initiating a session handover."
         )
-    return execute_lifecycle_prompt_subagent(prompt, args, repo_root)
+
+    prev_progress = _inspect_phase_substeps(args.tracker, phase.phase_num, repo_root)
+    stagnant_attempts = 0
+    combined_outputs: list[str] = []
+    total_duration = 0.0
+
+    while True:
+        res = execute_lifecycle_prompt_subagent(prompt, args, repo_root)
+        combined_outputs.append(res.output)
+        total_duration += res.duration_seconds
+
+        if res.is_timeout or res.exit_code != 0:
+            return SubagentExecutionResultDTO(
+                exit_code=res.exit_code,
+                output="\n".join(combined_outputs),
+                duration_seconds=total_duration,
+                is_timeout=res.is_timeout,
+            )
+
+        curr_progress = _inspect_phase_substeps(args.tracker, phase.phase_num, repo_root)
+        if curr_progress.total_steps == 0 or curr_progress.completed_steps >= curr_progress.total_steps:
+            return SubagentExecutionResultDTO(
+                exit_code=0,
+                output="\n".join(combined_outputs),
+                duration_seconds=total_duration,
+                is_timeout=False,
+            )
+
+        if curr_progress.completed_steps > prev_progress.completed_steps:
+            stagnant_attempts = 0
+            prev_progress = curr_progress
+            print(
+                f"\n{ANSIColors.CYAN}[STEP HANDOVER] Phase {phase.phase_num} progress: "
+                f"{curr_progress.completed_steps}/{curr_progress.total_steps} steps completed. "
+                f"Spawning fresh subagent session for remaining steps...{ANSIColors.RESET}\n",
+                flush=True,
+            )
+            continue
+
+        stagnant_attempts += 1
+        if stagnant_attempts < args.max_retries:
+            print(
+                f"\n{ANSIColors.YELLOW}[STEP RETRY] Phase {phase.phase_num} subagent exited with "
+                f"{curr_progress.completed_steps}/{curr_progress.total_steps} steps completed "
+                f"(stagnant attempt {stagnant_attempts}/{args.max_retries}). "
+                f"Re-invoking subagent...{ANSIColors.RESET}\n",
+                flush=True,
+            )
+            continue
+
+        err_summary = (
+            f"\n[INCOMPLETE PHASE] Phase {phase.phase_num} halted: only "
+            f"{curr_progress.completed_steps}/{curr_progress.total_steps} sub-steps completed "
+            f"after {stagnant_attempts} stagnant attempts."
+        )
+        combined_outputs.append(err_summary)
+        return SubagentExecutionResultDTO(
+            exit_code=1,
+            output="\n".join(combined_outputs),
+            duration_seconds=total_duration,
+            is_timeout=False,
+        )
 
 
 def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateResultDTO:

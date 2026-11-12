@@ -1321,3 +1321,104 @@ def test_run_phase_pipeline_full_lifecycle_and_dry_run(tmp_path: Path) -> None:
         assert fail_summary.failed_phases == 1
         assert fail_summary.succeeded_phases == 0
         mock_phase_exec.assert_not_called()
+
+
+def test_execute_phase_subagent_multistep_handover_and_stagnant_guard(tmp_path: Path) -> None:
+    """Verify execute_phase_subagent continues across step handovers and fails on stagnant incomplete substeps."""
+    tracker = tmp_path / "tracker.md"
+    initial_md = (
+        "### Phase 2: Two\n"
+        "- **Plan:** @[plan2.md]\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[plan2.md] @[tracker.md]`\n"
+        "  - [ ] Step 2.1: First\n"
+        "  - [ ] Step 2.2: Second\n"
+    )
+    tracker.write_text(initial_md, encoding="utf-8")
+
+    phase = PhaseItemDTO(
+        phase_num=2,
+        title="Two",
+        plan_path=Path("plan2.md"),
+        is_completed=False,
+        command="/tier2-execute --full-auto @[plan2.md] @[tracker.md]",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tracker, max_retries=2)
+
+    call_idx = 0
+
+    def _progress_side_effect(*_a: object, **_kw: object) -> SubagentExecutionResultDTO:
+        nonlocal call_idx
+        call_idx += 1
+        if call_idx == 1:
+            tracker.write_text(
+                initial_md.replace("  - [ ] Step 2.1: First", "  - [x] Step 2.1: First"),
+                encoding="utf-8",
+            )
+            return SubagentExecutionResultDTO(exit_code=0, output="Step 2.1 done", duration_seconds=3.0)
+        tracker.write_text(
+            initial_md.replace("  - [ ] Step 2.1: First", "  - [x] Step 2.1: First").replace(
+                "  - [ ] Step 2.2: Second", "  - [x] Step 2.2: Second"
+            ),
+            encoding="utf-8",
+        )
+        return SubagentExecutionResultDTO(exit_code=0, output="Step 2.2 done", duration_seconds=4.0)
+
+    with patch(
+        "scripts.auto_phase_runner.execute_lifecycle_prompt_subagent",
+        side_effect=_progress_side_effect,
+    ) as mock_sub:
+        res = execute_phase_subagent(phase, args, tmp_path)
+        assert res.exit_code == 0
+        assert mock_sub.call_count == 2
+        assert "Step 2.1 done" in res.output
+        assert "Step 2.2 done" in res.output
+
+    # Negative case: stagnant subagent exits with code 0 without advancing substeps
+    tracker.write_text(initial_md, encoding="utf-8")
+    with patch(
+        "scripts.auto_phase_runner.execute_lifecycle_prompt_subagent",
+        return_value=SubagentExecutionResultDTO(exit_code=0, output="Premature exit", duration_seconds=1.0),
+    ) as mock_stagnant:
+        stagnant_res = execute_phase_subagent(phase, args, tmp_path)
+        assert stagnant_res.exit_code == 1
+        assert mock_stagnant.call_count == 2
+        assert "[INCOMPLETE PHASE]" in stagnant_res.output
+
+    # Standalone topology and unmatched phase header coverage
+    standalone_tracker = tmp_path / "standalone.md"
+    standalone_tracker.write_text(
+        "## Step Execution Status\n"
+        "- **Plan:** @[plan.md]\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
+        "  - [x] Step 1: Done\n",
+        encoding="utf-8",
+    )
+    standalone_phase = PhaseItemDTO(
+        phase_num=1,
+        title="Step Execution",
+        plan_path=Path("plan.md"),
+        is_completed=False,
+        command="/tier2-execute",
+    )
+    with patch(
+        "scripts.auto_phase_runner.execute_lifecycle_prompt_subagent",
+        return_value=SubagentExecutionResultDTO(exit_code=0, output="Standalone OK", duration_seconds=1.0),
+    ):
+        s_res = execute_phase_subagent(
+            standalone_phase,
+            AutoPhaseRunnerArgsDTO(tracker=standalone_tracker),
+            tmp_path,
+        )
+        assert s_res.exit_code == 0
+        unmatched_res = execute_phase_subagent(
+            phase,
+            AutoPhaseRunnerArgsDTO(tracker=standalone_tracker),
+            tmp_path,
+        )
+        assert unmatched_res.exit_code == 0
+        empty_res = execute_phase_subagent(
+            phase,
+            AutoPhaseRunnerArgsDTO(tracker=Path("`")),
+            tmp_path,
+        )
+        assert empty_res.exit_code == 0
