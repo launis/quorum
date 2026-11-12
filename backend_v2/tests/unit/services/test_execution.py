@@ -34,9 +34,20 @@ from backend_v2.models.dtos.context_variables import ContextVariablesDTO, Evalua
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest, ScorecardAtomDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
-from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider, VisualIntent
+from backend_v2.models.enums import (
+    CognitiveTier,
+    ExecutionStatus,
+    HistoricalContextMode,
+    LLMProvider,
+    VisualIntent,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.execution import ExecutionResumptionService, ExecutionService, create_execution_record
+from backend_v2.tests.factories.model_factories import (
+    ExecutionRecordFactory,
+    OutputProfileFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -50,8 +61,7 @@ def _make_test_record(
     profile_id: str | None = None,
     **kwargs: Any,
 ) -> ExecutionRecord:
-    clean_kwargs = {k: v for k, v in kwargs.items() if k != "is_public"}
-    data = {
+    base_fields = {
         "id": execution_id,
         "workflow_id": workflow_id,
         "organization_id": organization_id,
@@ -64,9 +74,11 @@ def _make_test_record(
         "metadata": ExecutionMetadata(),
         "step_states": {},
         "execution_trace": [],
-        **clean_kwargs,
+        "profile_syntheses": {},
+        "steps": [],
     }
-    return ExecutionRecord.model_validate(data, strict=False)
+    overrides = {k: v for k, v in kwargs.items() if k != "is_public"}
+    return ExecutionRecordFactory.build(**(base_fields | overrides))
 
 
 def _make_test_profile(
@@ -75,16 +87,16 @@ def _make_test_profile(
     organization_id: str = "org_1",
     **kwargs: Any,
 ) -> OutputProfile:
-    data = {
+    base_fields = {
         "id": profile_id,
         "slug": "test-profile",
         "workflow_id": workflow_id,
         "organization_id": organization_id,
         "name": I18nText(translations={"en": "Test Profile"}),
         "target_block_order": [],
-        **kwargs,
     }
-    return OutputProfile.model_validate(data, strict=False)
+    overrides = {k: v for k, v in kwargs.items()}
+    return OutputProfileFactory.build(**(base_fields | overrides))
 
 
 def _make_test_workflow(
@@ -94,7 +106,7 @@ def _make_test_workflow(
     model_registry_id: str | None = "sys_0195f3a00000700e826807f3bfa3454d",
     **kwargs: Any,
 ) -> Workflow:
-    data = {
+    base_fields = {
         "id": workflow_id,
         "slug": "test-wf",
         "name": I18nText(translations={"en": "Test WF"}),
@@ -105,12 +117,16 @@ def _make_test_workflow(
         "is_public": False,
         "default_profile_id": default_profile_id,
         "model_registry_id": model_registry_id,
-        "historical_context_mode": "DISABLED",
+        "mcp_gateway_id": None,
+        "historical_context_mode": HistoricalContextMode.DISABLED,
         "expected_inputs": [],
         "steps": [],
-        **kwargs,
     }
-    return Workflow.model_validate(data, strict=False)
+    overrides = {
+        k: (HistoricalContextMode(v) if k == "historical_context_mode" and isinstance(v, str) else v)
+        for k, v in kwargs.items()
+    }
+    return WorkflowFactory.build(**(base_fields | overrides))
 
 
 def _create_test_service(
@@ -123,7 +139,6 @@ def _create_test_service(
     service = ExecutionService(
         exec_repo=unified_repo,
         workflow_repo=unified_repo,
-        comp_repo=unified_repo,
         prompt_block_repo=unified_repo,
         output_profile_repo=unified_repo,
         identity_repo=unified_repo,
@@ -1281,7 +1296,7 @@ async def test_check_resumability_string_version() -> None:
     service, repo = _create_test_service()
     rec = _make_test_record(
         status=ExecutionStatus.FAILED,
-        metadata={"workflow_version": "1"},
+        metadata=ExecutionMetadata.model_construct(workflow_version="1"),
         step_states={"stp_1": ExecutionStep(id="stp_1", label="Step 1", status=ExecutionStatus.FAILED)},
     )
 

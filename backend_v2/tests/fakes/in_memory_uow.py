@@ -26,7 +26,11 @@ from backend_v2.database.interfaces import (
     GraphMutationPort,
     TopologyResolutionPort,
 )
-from backend_v2.database.postgres.entity_adapter import hydrate_execution_row
+from backend_v2.database.postgres.entity_adapter import (
+    _TABLE_TO_ENTITY_PREFIX,
+    apply_execution_updates,
+    hydrate_execution_row,
+)
 from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     hydrate_audit_log_row,
     hydrate_usage_record_row,
@@ -60,6 +64,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
+    PromptBlock,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
@@ -83,6 +88,8 @@ from backend_v2.models.domain.system_config import (
 )
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.system import AnySystemConfig
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import (
     DependencyRelationType,
     EntityPrefix,
@@ -1553,6 +1560,332 @@ class InMemoryEntityAdapter:
                 )
         return counts
 
+    def _delete_seed_row(self, table: str, entity_id: str, prefix: EntityPrefix) -> bool:
+        """Delete an entity row from a seed_tables bucket by canonical or raw UUID key."""
+        ent_uuid = parse_prefixed_uuid7(entity_id, prefix)
+        raw_uuid_key = str(ent_uuid)
+        deleted = False
+        if entity_id in self._store.seed_tables[table]:
+            del self._store.seed_tables[table][entity_id]
+            deleted = True
+        if raw_uuid_key in self._store.seed_tables[table]:
+            del self._store.seed_tables[table][raw_uuid_key]
+            deleted = True
+        return deleted
+
+    def _cascade_delete_organization_children(self, org_id: str) -> None:
+        """Cascade-delete tenant-scoped child entities matching org_id in memory."""
+        for table in (
+            "users",
+            "invitations",
+            "tenant_secrets",
+            "execution_assignments",
+            "prompt_blocks",
+            "task_briefs",
+            "steps",
+            "workflows",
+            "output_profiles",
+        ):
+            bucket = self._store.seed_tables[table]
+            keys_to_drop = [
+                k
+                for k, v in bucket.items()
+                if isinstance(
+                    v,
+                    (
+                        User,
+                        Invitation,
+                        TenantSecretDTO,
+                        ExecutionAssignment,
+                        MatrixPromptBlock,
+                        PersonaPromptBlock,
+                        ProtocolPromptBlock,
+                        SystemRulePromptBlock,
+                        TaskBrief,
+                        Step,
+                        Workflow,
+                        OutputProfile,
+                    ),
+                )
+                and v.organization_id == org_id
+            ]
+            for k in keys_to_drop:
+                del bucket[k]
+
+        deleted_exec_ids = [eid for eid, rec in self._store.executions.items() if rec.organization_id == org_id]
+        for eid in deleted_exec_ids:
+            del self._store.executions[eid]
+            self._cascade_delete_execution_children(eid)
+
+        audit_keys = [aid for aid, rec in self._store.audit_logs.items() if rec.organization_id == org_id]
+        for aid in audit_keys:
+            del self._store.audit_logs[aid]
+
+        usage_keys = [uid for uid, rec in self._store.usage_records.items() if rec.org_id == org_id]
+        for uid in usage_keys:
+            del self._store.usage_records[uid]
+
+    def _cascade_delete_execution_children(self, execution_id: str) -> None:
+        """Cascade-delete report_artifacts, report_binaries, and graph elements for an execution."""
+        rep_bucket = self._store.seed_tables["report_artifacts"]
+        rep_keys = [
+            rk for rk, rv in rep_bucket.items() if isinstance(rv, ReportArtifact) and rv.execution_id == execution_id
+        ]
+        for rk in rep_keys:
+            item = rep_bucket[rk]
+            rep_id = item.id if isinstance(item, ReportArtifact) else rk
+            del rep_bucket[rk]
+            if rep_id in self._store.report_binaries:
+                del self._store.report_binaries[rep_id]
+            if rep_id in self._store.report_has_pdf:
+                del self._store.report_has_pdf[rep_id]
+
+        node_keys = [nid for nid, entry in self._store.nodes.items() if entry.node.run_id == execution_id]
+        for nid in node_keys:
+            del self._store.nodes[nid]
+
+        edge_keys = [eid for eid, edge in self._store.edges.items() if edge.run_id == execution_id]
+        for eid in edge_keys:
+            del self._store.edges[eid]
+
+    async def delete_organization(self, org_id: str) -> bool:
+        """Delete an Organization by primary key and cascade-delete child tenant records."""
+        deleted = self._delete_seed_row("organizations", org_id, EntityPrefix.ORG)
+        self._cascade_delete_organization_children(org_id)
+        return deleted
+
+    async def get_user_by_email(self, email: str) -> User | None:
+        """Retrieve a User by case-insensitive email match in memory."""
+        normalized_email = email.strip().lower()
+        if not normalized_email:
+            return None
+        for item in self._store.seed_tables["users"].values():
+            if isinstance(item, User) and str(item.email).lower() == normalized_email:
+                return item
+        return None
+
+    async def delete_user(self, user_id: str) -> bool:
+        """Delete a User by primary key in memory."""
+        return self._delete_seed_row("users", user_id, EntityPrefix.USER)
+
+    async def delete_invitation(self, invitation_id: str) -> bool:
+        """Delete an Invitation by primary key in memory."""
+        return self._delete_seed_row("invitations", invitation_id, EntityPrefix.INVITATION)
+
+    async def upsert_system_config(self, cfg: AnySystemConfig) -> str:
+        """Upsert a SystemConfigModelRegistry or SystemConfigMCPGateways in memory."""
+        _ = parse_prefixed_uuid7(cfg.id, EntityPrefix.SYSTEM_CONFIG)
+        self._store.seed_tables["system_configs"][cfg.id] = cfg
+        return cfg.id
+
+    async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
+        """Retrieve a SystemConfig by config_id in memory."""
+        _ = parse_prefixed_uuid7(config_id, EntityPrefix.SYSTEM_CONFIG)
+        if config_id in self._store.seed_tables["system_configs"]:
+            item = self._store.seed_tables["system_configs"][config_id]
+            if isinstance(item, (SystemConfigModelRegistry, SystemConfigMCPGateways)):
+                return item
+        return None
+
+    async def delete_system_config(self, config_id: str) -> bool:
+        """Delete a SystemConfig by primary key in memory."""
+        return self._delete_seed_row("system_configs", config_id, EntityPrefix.SYSTEM_CONFIG)
+
+    async def upsert_prompt_block(self, block: PromptBlock) -> str:
+        """Upsert a polymorphic PromptBlock in memory."""
+        _ = parse_prefixed_uuid7(block.id, EntityPrefix.PROMPT_BLOCK)
+        if block.organization_id is not None and block.organization_id != "SYSTEM":
+            _ = parse_prefixed_uuid7(block.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["prompt_blocks"][block.id] = block
+        return block.id
+
+    async def get_prompt_block(self, block_id: str) -> PromptBlock | None:
+        """Retrieve a PromptBlock by block_id in memory."""
+        _ = parse_prefixed_uuid7(block_id, EntityPrefix.PROMPT_BLOCK)
+        if block_id in self._store.seed_tables["prompt_blocks"]:
+            item = self._store.seed_tables["prompt_blocks"][block_id]
+            if isinstance(
+                item,
+                (MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, SystemRulePromptBlock),
+            ):
+                return item
+        return None
+
+    async def list_prompt_blocks(self) -> list[PromptBlock]:
+        """List all persisted PromptBlock entities in memory."""
+        blocks: list[PromptBlock] = [
+            item
+            for item in self._store.seed_tables["prompt_blocks"].values()
+            if isinstance(
+                item,
+                (MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, SystemRulePromptBlock),
+            )
+        ]
+        blocks.sort(key=lambda b: b.id)
+        return blocks
+
+    async def delete_prompt_block(self, block_id: str) -> bool:
+        """Delete a PromptBlock by primary key in memory."""
+        return self._delete_seed_row("prompt_blocks", block_id, EntityPrefix.PROMPT_BLOCK)
+
+    async def delete_task_brief(self, brief_id: str) -> bool:
+        """Delete a TaskBrief by primary key in memory."""
+        return self._delete_seed_row("task_briefs", brief_id, EntityPrefix.TASK_BRIEF)
+
+    async def upsert_output_profile(self, profile: OutputProfile) -> str:
+        """Upsert an OutputProfile in memory."""
+        _ = parse_prefixed_uuid7(profile.id, EntityPrefix.OUTPUT_PROFILE)
+        _ = parse_prefixed_uuid7(profile.workflow_id, EntityPrefix.WORKFLOW)
+        if profile.organization_id is not None and profile.organization_id != "SYSTEM":
+            _ = parse_prefixed_uuid7(profile.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["output_profiles"][profile.id] = profile
+        return profile.id
+
+    async def get_output_profile(self, profile_id: str) -> OutputProfile | None:
+        """Retrieve an OutputProfile by profile_id in memory."""
+        _ = parse_prefixed_uuid7(profile_id, EntityPrefix.OUTPUT_PROFILE)
+        if profile_id in self._store.seed_tables["output_profiles"]:
+            item = self._store.seed_tables["output_profiles"][profile_id]
+            if isinstance(item, OutputProfile):
+                return item
+        return None
+
+    async def list_output_profiles(self) -> list[OutputProfile]:
+        """List all persisted OutputProfile entities in memory."""
+        profiles = [
+            item for item in self._store.seed_tables["output_profiles"].values() if isinstance(item, OutputProfile)
+        ]
+        profiles.sort(key=lambda p: p.id)
+        return profiles
+
+    async def delete_output_profile(self, profile_id: str) -> bool:
+        """Delete an OutputProfile by primary key in memory."""
+        return self._delete_seed_row("output_profiles", profile_id, EntityPrefix.OUTPUT_PROFILE)
+
+    async def upsert_workflow(self, wf: Workflow) -> str:
+        """Upsert a Workflow in memory."""
+        _ = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
+        _ = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG)
+        if wf.default_profile_id is not None:
+            _ = parse_prefixed_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE)
+        if wf.mcp_gateway_id is not None:
+            _ = parse_prefixed_uuid7(wf.mcp_gateway_id, EntityPrefix.SYSTEM_CONFIG)
+        if wf.organization_id is not None and wf.organization_id != "SYSTEM":
+            _ = parse_prefixed_uuid7(wf.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["workflows"][wf.id] = wf
+        return wf.id
+
+    async def get_workflow(self, workflow_id: str) -> Workflow | None:
+        """Retrieve a Workflow by workflow_id in memory."""
+        _ = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+        if workflow_id in self._store.seed_tables["workflows"]:
+            item = self._store.seed_tables["workflows"][workflow_id]
+            if isinstance(item, Workflow):
+                return item
+        return None
+
+    async def list_workflows(self) -> list[Workflow]:
+        """List all persisted Workflow entities in memory."""
+        workflows = [item for item in self._store.seed_tables["workflows"].values() if isinstance(item, Workflow)]
+        workflows.sort(key=lambda w: w.id)
+        return workflows
+
+    async def delete_workflow(self, workflow_id: str) -> bool:
+        """Delete a Workflow by primary key in memory."""
+        deleted = self._delete_seed_row("workflows", workflow_id, EntityPrefix.WORKFLOW)
+        if deleted:
+            prf_bucket = self._store.seed_tables["output_profiles"]
+            prf_keys = [
+                pk for pk, pv in prf_bucket.items() if isinstance(pv, OutputProfile) and pv.workflow_id == workflow_id
+            ]
+            for pk in prf_keys:
+                del prf_bucket[pk]
+        return deleted
+
+    async def upsert_step(self, step: Step) -> str:
+        """Upsert a Step in memory."""
+        _ = parse_prefixed_uuid7(step.id, EntityPrefix.STEP)
+        if step.organization_id is not None and step.organization_id != "SYSTEM":
+            _ = parse_prefixed_uuid7(step.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["steps"][step.id] = step
+        return step.id
+
+    async def get_step(self, step_id: str) -> Step | None:
+        """Retrieve a Step by step_id in memory."""
+        _ = parse_prefixed_uuid7(step_id, EntityPrefix.STEP)
+        if step_id in self._store.seed_tables["steps"]:
+            item = self._store.seed_tables["steps"][step_id]
+            if isinstance(item, Step):
+                return item
+        return None
+
+    async def list_steps(self) -> list[Step]:
+        """List all persisted Step entities in memory."""
+        steps = [item for item in self._store.seed_tables["steps"].values() if isinstance(item, Step)]
+        steps.sort(key=lambda s: s.id)
+        return steps
+
+    async def delete_step(self, step_id: str) -> bool:
+        """Delete a Step by primary key in memory."""
+        return self._delete_seed_row("steps", step_id, EntityPrefix.STEP)
+
+    async def update_execution_occ(self, execution_id: str, updates: ExecutionUpdateDTO) -> bool:
+        """Apply partial ExecutionUpdateDTO updates to a persisted ExecutionRecord with OCC checking."""
+        existing = await self.get_execution(execution_id)
+        if existing is None:
+            return False
+        merged = apply_execution_updates(existing, updates)
+        await self.save_execution(merged, expected_state_version=updates.expected_state_version)
+        return True
+
+    async def delete_execution(self, execution_id: str) -> bool:
+        """Delete an ExecutionRecord by primary key in memory."""
+        _ = parse_prefixed_uuid7(execution_id, EntityPrefix.EXECUTION)
+        if execution_id not in self._store.executions:
+            return False
+        del self._store.executions[execution_id]
+        self._cascade_delete_execution_children(execution_id)
+        return True
+
+    async def upsert_report_artifact(self, artifact: ReportArtifact) -> str:
+        """Upsert a ReportArtifact in memory."""
+        _ = parse_prefixed_uuid7(artifact.id, EntityPrefix.REPORT)
+        _ = parse_prefixed_uuid7(artifact.execution_id, EntityPrefix.EXECUTION)
+        _ = parse_prefixed_uuid7(artifact.workflow_id, EntityPrefix.WORKFLOW)
+        _ = parse_prefixed_uuid7(artifact.profile_id, EntityPrefix.OUTPUT_PROFILE)
+        self._store.seed_tables["report_artifacts"][artifact.id] = artifact
+        return artifact.id
+
+    async def get_report_artifact(self, report_id: str) -> ReportArtifact | None:
+        """Retrieve a ReportArtifact by report_id in memory."""
+        _ = parse_prefixed_uuid7(report_id, EntityPrefix.REPORT)
+        if report_id in self._store.seed_tables["report_artifacts"]:
+            item = self._store.seed_tables["report_artifacts"][report_id]
+            if isinstance(item, ReportArtifact):
+                return item
+        return None
+
+    async def list_report_artifacts_by_execution(self, execution_id: str) -> list[ReportArtifact]:
+        """List all ReportArtifact entities belonging to execution_id ordered newest-first."""
+        _ = parse_prefixed_uuid7(execution_id, EntityPrefix.EXECUTION)
+        reports = [
+            item
+            for item in self._store.seed_tables["report_artifacts"].values()
+            if isinstance(item, ReportArtifact) and item.execution_id == execution_id
+        ]
+        reports.sort(key=lambda r: r.created_at, reverse=True)
+        return reports
+
+    async def delete_report_artifact(self, report_id: str) -> bool:
+        """Delete a ReportArtifact by primary key in memory."""
+        deleted = self._delete_seed_row("report_artifacts", report_id, EntityPrefix.REPORT)
+        if deleted:
+            if report_id in self._store.report_binaries:
+                del self._store.report_binaries[report_id]
+            if report_id in self._store.report_has_pdf:
+                del self._store.report_has_pdf[report_id]
+        return deleted
+
 
 class InMemoryAsyncPgTransaction:
     """In-memory implementation of AsyncPgTransactionProtocol with snapshot rollback."""
@@ -1833,11 +2166,16 @@ class InMemoryAsyncPgConnection:
                 row_id = str(args[0])
                 if row_id in self._store.seed_tables[tbl]:
                     del self._store.seed_tables[tbl][row_id]
+                    if tbl == "organizations" and isinstance(args[0], (uuid.UUID, str)):
+                        org_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.ORG)
+                        self._entities._cascade_delete_organization_children(org_prefixed)
                     return "DELETE 1"
-                if tbl == "tenant_secrets" and isinstance(args[0], (uuid.UUID, str)):
-                    prefixed_sec = format_prefixed_uuid7(args[0], EntityPrefix.TENANT_SECRET)
-                    if prefixed_sec in self._store.seed_tables[tbl]:
-                        del self._store.seed_tables[tbl][prefixed_sec]
+                if tbl in _TABLE_TO_ENTITY_PREFIX and isinstance(args[0], (uuid.UUID, str)):
+                    prefixed_key = format_prefixed_uuid7(args[0], _TABLE_TO_ENTITY_PREFIX[tbl])
+                    if prefixed_key in self._store.seed_tables[tbl]:
+                        del self._store.seed_tables[tbl][prefixed_key]
+                        if tbl == "organizations":
+                            self._entities._cascade_delete_organization_children(prefixed_key)
                         return "DELETE 1"
                 return "DELETE 0"
 
@@ -2022,7 +2360,7 @@ class InMemoryAsyncPgConnection:
         ):
             if f"FROM {tbl.upper()}" in normalized:
                 cols = self._extract_select_columns(query)
-                rows: list[AsyncPgRecordProtocol] = []
+                mapped_rows: list[dict[str, _ColumnValue]] = []
                 for entry in self._store.seed_tables[tbl].values():
                     if isinstance(entry, Sequence):
                         mapped = self._zip_select_row(cols, entry)
@@ -2033,8 +2371,24 @@ class InMemoryAsyncPgConnection:
                             and mapped["organization_id"] != args[0]
                         ):
                             continue
-                        rows.append(InMemoryAsyncPgRecord(mapped))
-                return tuple(rows)
+                        if (
+                            "WHERE EXECUTION_ID = $1" in normalized
+                            and args
+                            and "execution_id" in mapped
+                            and mapped["execution_id"] != args[0]
+                        ):
+                            continue
+                        mapped_rows.append(mapped)
+                if "ORDER BY CREATED_AT DESC" in normalized:
+                    mapped_rows.sort(
+                        key=lambda m: (
+                            m["created_at"]
+                            if "created_at" in m and isinstance(m["created_at"], datetime)
+                            else datetime.min.replace(tzinfo=UTC)
+                        ),
+                        reverse=True,
+                    )
+                return tuple(InMemoryAsyncPgRecord(m) for m in mapped_rows)
 
         return ()
 
@@ -2047,7 +2401,9 @@ class InMemoryAsyncPgConnection:
         if "created_at" in cols and len(entry) == len(cols) - 1:
             non_virtual_cols = [c for c in cols if c != "created_at"]
             mapped = {col: val for col, val in zip(non_virtual_cols, entry, strict=False)}
-            pk_val = entry[0] if entry else None
+            pk_val: _ColumnValue = None
+            if entry:
+                pk_val = entry[0]
             if isinstance(pk_val, uuid.UUID):
                 ts_ms = (pk_val.int >> 80) & ((1 << 48) - 1)
                 mapped["created_at"] = datetime.fromtimestamp(ts_ms / 1000.0, tz=UTC)
@@ -2227,6 +2583,16 @@ class InMemoryAsyncPgConnection:
             if exec_id not in self._store.executions:
                 return None
             return self._build_execution_record_row(self._store.executions[exec_id])
+
+        if "FROM USERS" in normalized and "LOWER(EMAIL) = LOWER($1)" in normalized and args:
+            target_email = str(args[0]).strip().lower()
+            cols = self._extract_select_columns(query)
+            for entry in self._store.seed_tables["users"].values():
+                if isinstance(entry, Sequence):
+                    mapped = self._zip_select_row(cols, entry)
+                    if "email" in mapped and str(mapped["email"]).lower() == target_email:
+                        return InMemoryAsyncPgRecord(mapped)
+            return None
 
         for tbl in (
             "organizations",

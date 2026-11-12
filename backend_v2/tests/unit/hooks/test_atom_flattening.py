@@ -29,16 +29,15 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 def _make_deps(
     workflow_repo: Any = ...,
-    comp_repo: Any = None,
+    prompt_block_repo: Any = None,
 ) -> HookDependencies:
     default_fake = InMemoryUnifiedWorkflowRepository()
     wf = default_fake if workflow_repo is ... else workflow_repo
-    comp = default_fake if comp_repo is None else comp_repo
+    pb_repo = default_fake if prompt_block_repo is None else prompt_block_repo
     return HookDependencies(
         exec_repo=default_fake,
         workflow_repo=wf,
-        comp_repo=comp,
-        prompt_block_repo=comp,
+        prompt_block_repo=pb_repo,
         output_profile_repo=default_fake,
         identity_repo=default_fake,
         audit_repo=default_fake,
@@ -165,7 +164,7 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
     await repo.create_prompt_block(mock_block)
-    deps = _make_deps(workflow_repo=repo, comp_repo=repo)
+    deps = _make_deps(workflow_repo=repo, prompt_block_repo=repo)
 
     # Use STRATIFIED_3
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=3)})
@@ -194,7 +193,7 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
     await repo.create_prompt_block(mock_block)
-    deps = _make_deps(workflow_repo=repo, comp_repo=repo)
+    deps = _make_deps(workflow_repo=repo, prompt_block_repo=repo)
 
     # Use ALL
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=0)})
@@ -272,7 +271,7 @@ async def test_atom_flattening_invalid_block_format_fails_fast(
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
     await repo.create_prompt_block(mock_block)
-    deps = _make_deps(workflow_repo=repo, comp_repo=repo)
+    deps = _make_deps(workflow_repo=repo, prompt_block_repo=repo)
 
     def _raise_validation_error(*_args: object, **_kwargs: object) -> object:
         raise ValueError("Invalid legacy block format")
@@ -292,7 +291,7 @@ async def test_atom_flattening_no_matching_matrix_blocks(base_hook_state: HookSt
     """Test hook returns empty state delta if all_blocks has no matching IDs."""
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
-    deps = _make_deps(workflow_repo=repo, comp_repo=repo)
+    deps = _make_deps(workflow_repo=repo, prompt_block_repo=repo)
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta is not None
@@ -349,7 +348,7 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
     await repo.create_prompt_block(mock_block)
-    deps = _make_deps(workflow_repo=repo, comp_repo=repo)
+    deps = _make_deps(workflow_repo=repo, prompt_block_repo=repo)
 
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=0)})
     result = await process_matrix_flattening(state, deps)
@@ -460,7 +459,7 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
     await repo.create_prompt_block(mock_block)
-    deps = _make_deps(workflow_repo=repo, comp_repo=repo)
+    deps = _make_deps(workflow_repo=repo, prompt_block_repo=repo)
 
     # Use sampling strategy 1 (select 1 atom per scale initially)
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=1)})

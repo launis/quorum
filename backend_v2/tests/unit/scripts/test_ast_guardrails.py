@@ -978,7 +978,9 @@ def test_qgr012_allows_isinstance_non_dict() -> None:
 def test_qgr012_boundary_exemption_honored() -> None:
     """Verify QGR012 exempts authorized persistence boundary driver files."""
     code = "if isinstance(payload, dict):\n    pass\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
+    violations = _scan_snippet(
+        code, filepath="backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py"
+    )
     qgr012 = [v for v in violations if v.rule_code == "QGR012"]
     assert len(qgr012) == 0
 
@@ -1091,7 +1093,9 @@ def test_ast_guardrails_fatal_rejection_on_dict_messages() -> None:
 def test_ast_guardrails_exempt_driver_fatal_severity() -> None:
     """Contract 2: Exempt boundary files receive FATAL severity unconditionally."""
     code = "val = getattr(obj, 'x', None)\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
+    violations = _scan_snippet(
+        code, filepath="backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py"
+    )
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
     assert violations[0].severity == GuardrailSeverity.FATAL
@@ -1279,12 +1283,13 @@ def test_qgr015_typeguard_import_and_usage_fatal() -> None:
 
 
 def test_purged_boundary_exemption_files() -> None:
-    """Verify non-driver files are purged and BOUNDARY_EXEMPTION_FILES contains the 13 SSOT paths."""
+    """Verify non-driver files are purged and BOUNDARY_EXEMPTION_FILES contains the 12 SSOT paths."""
     purged = [
         "backend_v2/database/tinydb_driver.py",
         "backend_v2/database/firestore_driver.py",
         "backend_v2/database/wrapper.py",
         "backend_v2/database/driver.py",
+        "backend_v2/database/postgres/storage_driver.py",
         "backend_v2/database/postgres/graph_adapter.py",
         "backend_v2/llm/provider/__init__.py",
         "backend_v2/models/dtos/telemetry.py",
@@ -1300,7 +1305,6 @@ def test_purged_boundary_exemption_files() -> None:
 
     assert BOUNDARY_EXEMPTION_FILES == frozenset(
         {
-            "backend_v2/database/postgres/storage_driver.py",
             "backend_v2/database/postgres/entity_adapter/__init__.py",
             "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
             "backend_v2/llm/handler.py",
@@ -1371,7 +1375,9 @@ def test_qgr016_boolean_condition_allowed_false_positive_immunity() -> None:
 def test_qgr016_boundary_exempt_file_fatal() -> None:
     """QGR016: Boundary exemption files emit FATAL severity unconditionally."""
     code = "conn = raw_conn or 'localhost'\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
+    violations = _scan_snippet(
+        code, filepath="backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py"
+    )
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
     assert qgr016[0].severity == GuardrailSeverity.FATAL
@@ -1380,7 +1386,9 @@ def test_qgr016_boundary_exempt_file_fatal() -> None:
 def test_qgr016_comment_suppression_rejected() -> None:
     """QGR016: Comment suppression does not suppress the violation."""
     code = "x = val or 'default'  # noqa: QGR016 [REASON: legacy compatibility boundary]\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
+    violations = _scan_snippet(
+        code, filepath="backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py"
+    )
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
     assert qgr016[0].severity == GuardrailSeverity.FATAL
@@ -1804,13 +1812,12 @@ def test_qgr018_typeadapter_mapping_laundering_fatal() -> None:
 def test_boundary_exemption_files_preserved() -> None:
     """Verify QGR001 reflection calls inside boundary exemption files still emit FATAL severity."""
     code = "val = getattr(obj, 'k', None)\n"
-    for exempt_file in [
-        "storage_driver.py",
-        "entity_adapter/__init__.py",
-        "entity_adapter/seed_and_collection_stage.py",
-        "logging_config.py",
+    for exempt_filepath in [
+        "backend_v2/database/postgres/entity_adapter/__init__.py",
+        "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
+        "backend_v2/logging_config.py",
     ]:
-        violations = _scan_snippet(code, filepath=f"backend_v2/database/postgres/{exempt_file}")
+        violations = _scan_snippet(code, filepath=exempt_filepath)
         assert all(v.severity == GuardrailSeverity.FATAL for v in violations)
 
 
@@ -2113,8 +2120,8 @@ async def sync_progress():
 
 
 def test_boundary_exemption_files_contains_only_relative_paths() -> None:
-    """Verify that all 13 BOUNDARY_EXEMPTION_FILES members are workspace-relative POSIX paths matching physical files."""
-    assert len(BOUNDARY_EXEMPTION_FILES) == 13
+    """Verify that all 12 BOUNDARY_EXEMPTION_FILES members are workspace-relative POSIX paths matching physical files."""
+    assert len(BOUNDARY_EXEMPTION_FILES) == 12
     for file_path_str in BOUNDARY_EXEMPTION_FILES:
         path = Path(file_path_str)
         assert not path.is_absolute(), f"Exemption path must be relative: {file_path_str}"
@@ -2139,9 +2146,8 @@ def test_boundary_exemption_files_rejects_models_services_hooks_api() -> None:
 
 
 def test_admission_ratchet_asserts_clean_baseline_for_new_members() -> None:
-    """Verify 9 admitted boundary files scanned with empty exemption set return 0 AST violations."""
-    nine_new_members = [
-        "backend_v2/database/driver.py",
+    """Verify admitted boundary files scanned with empty exemption set return 0 AST violations."""
+    admitted_members = [
         "backend_v2/database/postgres/graph_adapter.py",
         "backend_v2/llm/handler.py",
         "backend_v2/llm/adapters/vertex_adapter.py",
@@ -2152,7 +2158,7 @@ def test_admission_ratchet_asserts_clean_baseline_for_new_members() -> None:
         "backend_v2/llm/adapters/mock_adapter.py",
     ]
     with patch("scripts._ast_guardrails.BOUNDARY_EXEMPTION_FILES", frozenset()):
-        for rel_path in nine_new_members:
+        for rel_path in admitted_members:
             abs_path = REPO_ROOT / rel_path
             violations = scan_file_for_guardrails(abs_path)
             assert len(violations) == 0, f"Expected 0 violations for {rel_path}, got: {violations}"

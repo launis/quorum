@@ -12,7 +12,6 @@ import os
 import secrets
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any, override
 
 from arq.connections import ArqRedis, RedisSettings, create_pool
@@ -38,7 +37,6 @@ from backend_v2.api.routers.studio import router as studio_router
 from backend_v2.api.routers.system import router as system_router
 from backend_v2.context import set_request_context
 from backend_v2.core.telemetry import configure_telemetry, resolve_startup_logfire_token
-from backend_v2.database.driver import StorageDriver
 from backend_v2.database.factory import (
     close_shared_pool_manager,
     create_unit_of_work,
@@ -67,67 +65,6 @@ __all__ = [
 ]
 
 # --- 1. Lifespan Management ---
-
-
-async def _audit_storage_and_database_sync(
-    driver: StorageDriver,
-    logger: logging.Logger,
-    storage_dir: Path | None = None,
-) -> None:
-    """Audits synchronization between executions in PostgreSQL 19 and execution artifacts on disk.
-
-    Performs a strictly read-only check. Emits a structured warning with remediation instructions
-    if orphaned database records or unindexed disk executions are discovered.
-
-    Args:
-        driver: Active StorageDriver for querying execution records.
-        logger: Application logger for emitting audit telemetry.
-        storage_dir: Optional override for the root execution artifacts directory
-            (defaults to Path("data/files/executions")).
-    """
-    resolved_storage_dir = storage_dir if storage_dir is not None else Path("data/files/executions")
-    db_records = await driver.query("executions")
-
-    db_execution_ids: set[str] = set()
-    orphaned_db_ids: list[str] = []
-
-    for rec in db_records:
-        if "id" not in rec or not rec["id"]:
-            continue
-        rec_id = str(rec["id"])
-        db_execution_ids.add(rec_id)
-
-        trace_path_raw = None
-        if "execution_trace_storage_path" in rec and rec["execution_trace_storage_path"] is not None:
-            trace_path_raw = str(rec["execution_trace_storage_path"])
-        trace_exists = False
-        if trace_path_raw and Path(trace_path_raw).exists():
-            trace_exists = True
-        elif trace_path_raw and (resolved_storage_dir.parent / trace_path_raw).exists():
-            trace_exists = True
-        elif (resolved_storage_dir / str(rec_id) / "execution_trace.json").exists():
-            trace_exists = True
-
-        if not trace_exists:
-            orphaned_db_ids.append(str(rec_id))
-
-    unindexed_disk_ids: list[str] = []
-    if resolved_storage_dir.exists() and resolved_storage_dir.is_dir():
-        for child in resolved_storage_dir.iterdir():
-            if child.is_dir() and (child / "execution_trace.json").exists():
-                disk_id = child.name
-                if disk_id not in db_execution_ids:
-                    unindexed_disk_ids.append(disk_id)
-
-    if orphaned_db_ids or unindexed_disk_ids:
-        logger.warning(
-            f"[StorageAudit] WARNING: Storage/Database desync detected. "
-            f"DB has {len(orphaned_db_ids)} orphaned records ({orphaned_db_ids}); "
-            f"Disk has {len(unindexed_disk_ids)} unindexed runs ({unindexed_disk_ids}). "
-            f"Run 'uv run python scripts/reconcile_storage.py --fix' to reconcile."
-        )
-    else:
-        logger.info("[StorageAudit] Execution storage and database synchronization PASSED.")
 
 
 async def _validate_database_preflight(
@@ -200,11 +137,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.pool_manager = None
 
     try:
-        workflow_dir = Path("data/workflows")
-        if workflow_dir.exists() and workflow_dir.is_dir():
-            files = [f.name for f in workflow_dir.iterdir() if f.name.endswith(".json")]
-            logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir.as_posix()}.")
-
         await _validate_database_preflight(logger)
         app.state.pool_manager = get_shared_pool_manager(settings)
         secret_service = SecretService(uow_factory=get_registered_uow_factory())

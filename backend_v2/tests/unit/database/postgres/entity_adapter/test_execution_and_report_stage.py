@@ -17,13 +17,19 @@ from pydantic_core import from_json
 
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import execute_entity_upsert
 from backend_v2.database.postgres.entity_adapter.execution_and_report_stage import (
+    apply_execution_updates,
+    delete_execution_row,
+    delete_report_artifact_row,
     get_execution_row,
     get_report_artifact_row,
     get_report_binary_row,
     hydrate_execution_row,
     hydrate_report_artifact_row,
+    list_execution_rows,
+    list_report_artifacts_by_execution_row,
     save_execution_row,
     save_report_binary_row,
+    update_execution_occ_row,
     upsert_report_artifact_row,
 )
 from backend_v2.database.postgres.pool import (
@@ -32,10 +38,11 @@ from backend_v2.database.postgres.pool import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
-from backend_v2.models.domain.execution import ExecutionSummarySnapshot
+from backend_v2.models.domain.execution import ExecutionSummarySnapshot, FrozenContext
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
-from backend_v2.models.enums import EntityPrefix
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.enums import EntityPrefix, ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.factories.model_factories import (
     ExecutionRecordFactory,
@@ -393,3 +400,125 @@ def test_hydrate_report_artifact_row_corrupt_status_raises_validation_failed() -
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert exc_info.value.details["table_name"] == "report_artifacts"
     assert exc_info.value.details["entity_id"] == art.id
+
+
+@pytest.mark.asyncio
+async def test_list_update_occ_and_delete_execution_and_report_rows_roundtrip() -> None:
+    """Verify list, partial OCC update, and delete stage operations for executions and report_artifacts."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        missing_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+        noop_update = ExecutionUpdateDTO.model_validate({"progress": 25})
+        assert await update_execution_occ_row(conn, _TIMEOUT, missing_exe_id, noop_update) is False
+        assert await delete_execution_row(conn, _TIMEOUT, missing_exe_id) is False
+        assert await delete_report_artifact_row(conn, _TIMEOUT, generate_opaque_id(EntityPrefix.REPORT)) is False
+
+        exec_rec = ExecutionRecordFactory.build(
+            active_profile_id=None,
+            output_profile_id=None,
+            frozen_context=FrozenContext.model_validate({}),
+            frozen_context_storage_path="gs://bucket/frozen.json",
+            execution_trace_storage_path="gs://bucket/trace.json",
+            context_variables_storage_path="gs://bucket/ctx.json",
+            status_message="Initial",
+            state_version=1,
+        )
+        await save_execution_row(conn, _TIMEOUT, exec_rec)
+
+        listed_execs = await list_execution_rows(conn, _TIMEOUT)
+        assert [r.id for r in listed_execs] == [exec_rec.id]
+
+        step_name_update = ExecutionUpdateDTO.model_validate(
+            {
+                "status": ExecutionStatus.RUNNING.value,
+                "current_step_name": "Evaluating Matrix",
+                "progress": 60,
+                "execution_trace": [],
+                "frozen_context": {},
+                "expected_state_version": 1,
+            }
+        )
+        assert await update_execution_occ_row(conn, _TIMEOUT, exec_rec.id, step_name_update) is True
+        after_occ = await get_execution_row(conn, _TIMEOUT, exec_rec.id)
+        assert after_occ is not None
+        assert after_occ.state_version == 2
+        assert after_occ.status == ExecutionStatus.RUNNING
+        assert after_occ.status_message == "Evaluating Matrix"
+        assert after_occ.progress == 60
+        assert after_occ.execution_trace_storage_path is None
+        assert after_occ.frozen_context_storage_path is None
+
+        clear_frozen_update = ExecutionUpdateDTO.model_validate(
+            {
+                "current_step": "Finalizing",
+                "frozen_context": None,
+                "error": None,
+                "state_version": 5,
+            }
+        )
+        merged_cleared = apply_execution_updates(after_occ, clear_frozen_update)
+        assert merged_cleared.status_message == "Finalizing"
+        assert merged_cleared.frozen_context is None
+        assert merged_cleared.state_version == 5
+
+        rep_a = ReportArtifactFactory.build(
+            execution_id=exec_rec.id,
+            workflow_id=exec_rec.workflow_id,
+        )
+        await upsert_report_artifact_row(conn, _TIMEOUT, rep_a)
+        by_exec = await list_report_artifacts_by_execution_row(conn, _TIMEOUT, exec_rec.id)
+        assert [r.id for r in by_exec] == [rep_a.id]
+
+        assert await delete_report_artifact_row(conn, _TIMEOUT, rep_a.id) is True
+        assert await list_report_artifacts_by_execution_row(conn, _TIMEOUT, exec_rec.id) == []
+        assert await delete_execution_row(conn, _TIMEOUT, exec_rec.id) is True
+        assert await list_execution_rows(conn, _TIMEOUT) == []
+    finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_list_and_delete_execution_and_report_rows_fault_and_invalid_id_failure() -> None:
+    """Verify list and delete stage functions translate invalid prefixes and driver faults to AppException."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    valid_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    direct_app_err = AppException(
+        message="pre-existing app exception",
+        status_code=400,
+        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+    )
+    try:
+        with pytest.raises(AppException) as bad_del_exe:
+            await delete_execution_row(conn, _TIMEOUT, "rep_0195f3a0000070008000000000000001")
+        assert bad_del_exe.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_list_rep:
+            await list_report_artifacts_by_execution_row(conn, _TIMEOUT, "rep_0195f3a0000070008000000000000001")
+        assert bad_list_rep.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_del_rep:
+            await delete_report_artifact_row(conn, _TIMEOUT, "exe_0195f3a0000070008000000000000001")
+        assert bad_del_rep.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        pool.inject_fault("fetch", RuntimeError("simulated fetch failure"))
+        with pytest.raises(AppException) as fetch_exe_err:
+            await list_execution_rows(conn, _TIMEOUT)
+        assert fetch_exe_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as fetch_rep_err:
+            await list_report_artifacts_by_execution_row(conn, _TIMEOUT, valid_exe_id)
+        assert fetch_rep_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("fetch", direct_app_err)
+        with pytest.raises(AppException) as direct_exe_err:
+            await list_execution_rows(conn, _TIMEOUT)
+        assert direct_exe_err.value is direct_app_err
+
+        with pytest.raises(AppException) as direct_rep_err:
+            await list_report_artifacts_by_execution_row(conn, _TIMEOUT, valid_exe_id)
+        assert direct_rep_err.value is direct_app_err
+    finally:
+        pool.clear_faults()
+        await pool.release(conn)

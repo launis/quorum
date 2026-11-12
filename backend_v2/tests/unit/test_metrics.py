@@ -1,7 +1,12 @@
+"""Unit tests for text_metrics and calculate_control_ratio_hook hooks."""
+
+from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import status
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -19,11 +24,15 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 @pytest.fixture
 def mock_deps() -> HookDependencies:
+    """Provide HookDependencies backed by InMemoryUnifiedWorkflowRepository.
+
+    Returns:
+        Configured HookDependencies container.
+    """
     repo = InMemoryUnifiedWorkflowRepository()
     return HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -33,8 +42,22 @@ def mock_deps() -> HookDependencies:
     )
 
 
+def _build_sample_validation_error() -> ValidationError:
+    """Construct a genuine Pydantic ValidationError without raw dict model_validate fixtures.
+
+    Returns:
+        ValidationError instance triggered by strict TypeAdapter int validation.
+    """
+    try:
+        TypeAdapter(int).validate_python("not an int", strict=True)
+    except ValidationError as err:
+        return err
+    msg = "Expected ValidationError was not raised"
+    raise AssertionError(msg)
+
+
 def test_text_metrics_hook_valid_payload(mock_deps: HookDependencies) -> None:
-    """Test that text metrics are correctly calculated for valid text inputs."""
+    """Test that text metrics are calculated for valid text inputs."""
     state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",
@@ -45,7 +68,8 @@ def test_text_metrics_hook_valid_payload(mock_deps: HookDependencies) -> None:
             raw_inputs={
                 "history_text": "User: Can you summarize this?\nAI: Yes, I can.",
                 "product_text": "This is a product. It has three sentences. Awesome!",
-            }
+            },
+            dynamic_inputs={},
         ),
     )
 
@@ -71,7 +95,8 @@ def test_text_metrics_hook_with_user_only_key(mock_deps: HookDependencies) -> No
             raw_inputs={
                 "chat_user_only": "User: This is a direct multiline statement.\nContinuing on next line.\nThird line.",
                 "chat": "User: Hello\nAI: Hi there!\nUser: tilaa ja vahvista",
-            }
+            },
+            dynamic_inputs={},
         ),
     )
     result = text_metrics(state, mock_deps)
@@ -93,7 +118,8 @@ def test_control_ratio_multiline_and_empty(mock_deps: HookDependencies) -> None:
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "chat": "User: Start user line\nSecond user line\nAI: Start ai line\nSecond ai line",
-            }
+            },
+            dynamic_inputs={},
         ),
     )
     res = calculate_control_ratio_hook(state, mock_deps)
@@ -112,7 +138,8 @@ def test_control_ratio_multiline_and_empty(mock_deps: HookDependencies) -> None:
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "plain": "AI: Just pure AI text without any user statements",
-            }
+            },
+            dynamic_inputs={},
         ),
     )
     res2 = calculate_control_ratio_hook(state_no_prefix, mock_deps)
@@ -132,7 +159,7 @@ def test_text_metrics_hook_internal_error(mock_analyze: MagicMock, mock_deps: Ho
         step_id="step_1",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={"text": "Some valid content"}),
+        inputs=ExecutionInputsDTO(raw_inputs={"text": "Some valid content"}, dynamic_inputs={}),
     )
     with pytest.raises(AppException) as exc:
         text_metrics(state, mock_deps)
@@ -147,7 +174,7 @@ def test_text_metrics_hook_empty_text_fails(mock_deps: HookDependencies) -> None
         step_id="step_1",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={"empty_key": "", "none_key": None}),
+        inputs=ExecutionInputsDTO(raw_inputs={"empty_key": "", "none_key": None}, dynamic_inputs={}),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -165,7 +192,7 @@ def test_control_ratio_hook_valid(mock_deps: HookDependencies) -> None:
         step_id="step_1",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={"chat": "User: Hello\nAI: Hi there!"}),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat": "User: Hello\nAI: Hi there!"}, dynamic_inputs={}),
     )
 
     result = calculate_control_ratio_hook(state, mock_deps)
@@ -177,19 +204,9 @@ def test_control_ratio_hook_valid(mock_deps: HookDependencies) -> None:
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")
-def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:
-    """Mock the DTO validation to force a ValidationError and check Fail-Fast behavior."""
-    from pydantic import BaseModel, ValidationError
-
-    class Dummy(BaseModel):
-        x: int
-
-    try:
-        Dummy.model_validate({"x": "not an int"})
-    except ValidationError as e:
-        val_error = e
-
-    mock_validate.side_effect = val_error
+def test_control_ratio_hook_invalid_schema(mock_validate: MagicMock, mock_deps: HookDependencies) -> None:
+    """Mock DTO validation to force a ValidationError and verify Fail-Fast behavior."""
+    mock_validate.side_effect = _build_sample_validation_error()
 
     state = HookState(
         execution_id="exe_123",
@@ -197,7 +214,7 @@ def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: 
         step_id="step_1",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}),
+        inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}, dynamic_inputs={}),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -208,19 +225,9 @@ def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: 
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")
-def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:
-    """Mock the DTO validation to force a ValidationError and check Fail-Fast behavior."""
-    from pydantic import BaseModel, ValidationError
-
-    class Dummy(BaseModel):
-        x: int
-
-    try:
-        Dummy.model_validate({"x": "not an int"})
-    except ValidationError as e:
-        val_error = e
-
-    mock_validate.side_effect = val_error
+def test_text_metrics_hook_invalid_schema(mock_validate: MagicMock, mock_deps: HookDependencies) -> None:
+    """Mock DTO validation to force a ValidationError and verify Fail-Fast behavior."""
+    mock_validate.side_effect = _build_sample_validation_error()
 
     state = HookState(
         execution_id="exe_123",
@@ -228,7 +235,7 @@ def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: H
         step_id="step_1",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}),
+        inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}, dynamic_inputs={}),
     )
 
     with pytest.raises(AppException) as exc_info:

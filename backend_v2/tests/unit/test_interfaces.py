@@ -16,27 +16,19 @@ from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 def test_interfaces_are_protocols() -> None:
-    """Verify that all 22 repository interfaces and Hexagonal CQRS ports are defined as Protocols."""
+    """Verify that all 9 active V2 repository protocols and Hexagonal CQRS ports are defined as Protocols."""
     protocol_classes = [
         interfaces.CausalReasoningPort,
         interfaces.EntityPersistencePort,
         interfaces.GraphMutationPort,
-        interfaces.IAgentRepository,
         interfaces.IAuditRepository,
-        interfaces.IComponentRepository,
         interfaces.IEntityPersistenceAdapter,
-        interfaces.IExecutionPersonaRepository,
         interfaces.IExecutionRepository,
-        interfaces.IExtractionProtocolRepository,
         interfaces.IIdentityRepository,
-        interfaces.IKnowledgeRepository,
-        interfaces.IMatrixRepository,
         interfaces.IOutputProfileRepository,
         interfaces.IPromptBlockRepository,
         interfaces.IReportArtifactRepository,
-        interfaces.IRoleRepository,
         interfaces.ISystemRepository,
-        interfaces.ITaskBlueprintRepository,
         interfaces.ITaskBriefRepository,
         interfaces.IUnifiedWorkflowRepository,
         interfaces.IWorkflowRepository,

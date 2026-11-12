@@ -200,7 +200,6 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     deps = StrategyDependencies(
         exec_repo=test_repo,
         workflow_repo=test_repo,
-        comp_repo=test_repo,
         prompt_block_repo=test_repo,
         output_profile_repo=test_repo,
         identity_repo=test_repo,

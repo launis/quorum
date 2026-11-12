@@ -22,7 +22,6 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 class MockDependenciesContainer:
     exec_repo: InMemoryUnifiedWorkflowRepository
     workflow_repo: InMemoryUnifiedWorkflowRepository
-    comp_repo: InMemoryUnifiedWorkflowRepository
     prompt_block_repo: InMemoryUnifiedWorkflowRepository
     output_profile_repo: InMemoryUnifiedWorkflowRepository
     identity_repo: InMemoryUnifiedWorkflowRepository
@@ -79,7 +78,6 @@ def mock_repos() -> MockDependenciesContainer:
     return MockDependenciesContainer(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -96,7 +94,6 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
     executor = DAGExecutor(
         exec_repo=mock_repos.exec_repo,
         workflow_repo=mock_repos.workflow_repo,
-        comp_repo=mock_repos.comp_repo,
         prompt_block_repo=mock_repos.prompt_block_repo,
         output_profile_repo=mock_repos.output_profile_repo,
         identity_repo=mock_repos.identity_repo,
@@ -214,7 +211,6 @@ async def test_dag_executor_generated_schemas_accumulation(mock_repos: MockDepen
     executor = DAGExecutor(
         exec_repo=mock_repos.exec_repo,
         workflow_repo=mock_repos.workflow_repo,
-        comp_repo=mock_repos.comp_repo,
         prompt_block_repo=mock_repos.prompt_block_repo,
         output_profile_repo=mock_repos.output_profile_repo,
         identity_repo=mock_repos.identity_repo,

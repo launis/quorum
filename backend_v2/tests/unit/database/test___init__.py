@@ -11,14 +11,12 @@ import backend_v2.database.repositories.components as components_pkg
 from backend_v2.database import (
     CausalReasoningPort,
     EntityPersistencePort,
-    Filter,
     GraphMutationPort,
     QuorumUnitOfWork,
     TopologyResolutionPort,
     UnifiedWorkflowRepository,
     close_shared_pool_manager,
     create_unit_of_work,
-    get_driver,
     get_registered_uow_factory,
     get_shared_pool_manager,
     register_default_uow_factory,
@@ -26,7 +24,7 @@ from backend_v2.database import (
 from backend_v2.database.postgres import PostgresEntityAdapter, PostgresPoolManager
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.auth import Organization, SubscriptionStatus, User, UserRole
-from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import (
@@ -47,6 +45,7 @@ from backend_v2.models.enums import (
 from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
     ExecutionRecordFactory,
+    I18nTextFactory,
     OutputProfileFactory,
     ReportArtifactFactory,
     SystemRulePromptBlockFactory,
@@ -54,62 +53,44 @@ from backend_v2.tests.factories.model_factories import (
 )
 from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryUnitOfWork
 
+_SYS_ACTOR_ID = "usr_0195f3a0000070008000000000000099"
+
 
 def test_database_package_exports_and_uow_factory_registration() -> None:
     """Verify public __all__ exports and UnitOfWorkFactory registration roundtrip."""
     expected_exports = {
         "CausalReasoningPort",
         "EntityPersistencePort",
-        "Filter",
         "GraphMutationPort",
-        "IAgentRepository",
         "IAuditRepository",
-        "IComponentRepository",
         "IEntityPersistenceAdapter",
-        "IExecutionPersonaRepository",
         "IExecutionRepository",
-        "IExtractionProtocolRepository",
         "IIdentityRepository",
-        "IKnowledgeRepository",
-        "IMatrixRepository",
         "IOutputProfileRepository",
         "IPromptBlockRepository",
         "IReportArtifactRepository",
-        "IRoleRepository",
         "ISystemRepository",
-        "ITaskBlueprintRepository",
+        "ITaskBriefRepository",
         "IUnifiedWorkflowRepository",
         "IWorkflowRepository",
-        "Operator",
         "QuorumUnitOfWork",
-        "StorageDocument",
-        "StorageDriver",
-        "StorageValue",
         "TopologyResolutionPort",
         "UnifiedWorkflowRepository",
         "UnitOfWorkFactory",
         "close_shared_pool_manager",
         "create_unit_of_work",
-        "get_driver",
+        "get_active_uow",
         "get_registered_uow_factory",
         "get_shared_pool_manager",
+        "open_uow_session",
         "register_default_uow_factory",
     }
     assert set(db_pkg.__all__) == expected_exports
     assert set(components_pkg.__all__) == {
-        "AgentRepositoryImpl",
-        "ExecutionPersonaRepositoryImpl",
-        "ExtractionProtocolRepositoryImpl",
-        "MatrixRepositoryImpl",
         "OutputProfileRepositoryImpl",
         "PromptBlockRepositoryImpl",
-        "RoleRepositoryImpl",
-        "TaskBlueprintRepositoryImpl",
+        "TaskBriefRepositoryImpl",
     }
-
-    flt = Filter(field="organization_id", operator="==", value=generate_opaque_id(EntityPrefix.ORGANIZATION))
-    assert flt.field == "organization_id"
-    assert flt.operator == "=="
 
     previous_factory = get_registered_uow_factory()
     try:
@@ -133,11 +114,16 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
     try:
         pool_mgr = get_shared_pool_manager(settings)
         assert isinstance(pool_mgr, PostgresPoolManager)
-        driver = await get_driver(settings=settings, pool_manager=pool_mgr)
-        repo = UnifiedWorkflowRepository(driver)
-        assert repo.driver is driver
         uow = create_unit_of_work(settings=settings, pool_manager=pool_mgr)
         assert isinstance(uow, QuorumUnitOfWork)
+        base_uow = InMemoryUnitOfWork()
+
+        def _uow_factory() -> InMemoryUnitOfWork:
+            return InMemoryUnitOfWork(base_uow.store)
+
+        repo = UnifiedWorkflowRepository(uow_factory=_uow_factory)
+        assert repo._uow_factory is _uow_factory
+        assert await repo.get_all_workflows() == []
     finally:
         await close_shared_pool_manager()
 
@@ -169,7 +155,7 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
             language=SystemLocale.EN,
             theme_mode="dark",
             created_at=datetime.now(UTC),
-            created_by="usr_system",
+            created_by=_SYS_ACTOR_ID,
         )
         profile = ModelProfile(
             provider="google",
@@ -189,8 +175,8 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
             id=generate_opaque_id(EntityPrefix.STEP),
             slug="pkg_step",
             organization_id=org.id,
-            name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
-            description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+            name=I18nTextFactory.build(translations={"en": "Step", "fi": "Vaihe"}),
+            description=I18nTextFactory.build(translations={"en": "Desc", "fi": "Kuvaus"}),
             type=StepType.LLM,
             extraction_protocol_block_id=blk.id,
             criteria_block_ids=[blk.id],
@@ -219,24 +205,36 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
 
         assert await adapter.upsert_organization(org) == org.id
         assert (await adapter.get_organization(org.id)) is not None
+        assert len(await adapter.list_organizations()) == 1
         assert await adapter.upsert_user(user) == user.id
         assert (await adapter.get_user(user.id)) is not None
+        assert (await adapter.get_user_by_email(user.email)) is not None
+        assert len(await adapter.list_users(organization_id=org.id)) == 1
         assert await adapter.upsert_system_config(cfg) == cfg.id
         assert await adapter.get_system_config(cfg.id) == cfg
+        assert len(await adapter.list_system_configs()) == 1
         assert await adapter.upsert_prompt_block(blk) == blk.id
         assert await adapter.get_prompt_block(blk.id) == blk
+        assert len(await adapter.list_prompt_blocks()) == 1
         assert await adapter.upsert_step(step) == step.id
         assert await adapter.get_step(step.id) == step
+        assert len(await adapter.list_steps()) == 1
         assert await adapter.upsert_workflow(wf) == wf.id
         assert await adapter.get_workflow(wf.id) == wf
+        assert len(await adapter.list_workflows()) == 1
         assert await adapter.upsert_output_profile(prf) == prf.id
         assert await adapter.get_output_profile(prf.id) == prf
+        assert len(await adapter.list_output_profiles()) == 1
         assert await adapter.save_execution(exec_rec) == exec_rec.id
         assert (await adapter.get_execution(exec_rec.id)) is not None
+        assert len(await adapter.list_executions()) == 1
         assert await adapter.upsert_report_artifact(rep) == rep.id
         assert await adapter.get_report_artifact(rep.id) == rep
+        assert len(await adapter.list_report_artifacts_by_execution(exec_rec.id)) == 1
         await adapter.save_report_binary(bin_dto)
         assert await adapter.get_report_binary(rep.id) == bin_dto
+        assert await adapter.delete_report_artifact(rep.id) is True
+        assert await adapter.delete_execution(exec_rec.id) is True
         assert await adapter.seed_collection_batch("organizations", [org]) == 1
         assert (await adapter.verify_seed_table_counts({"organizations": 1}))["organizations"] == 1
     finally:
@@ -275,12 +273,12 @@ async def test_database_package_negative_invalid_prefix_and_collection_validatio
 
 
 @pytest.mark.asyncio
-async def test_database_factory_negative_invalid_pool_manager_and_binary_bva() -> None:
-    """Verify get_driver rejects incompatible pool_manager and save_report_binary enforces size BVA (min-1/max+1)."""
-    settings = get_settings().model_copy(update={"active_backend": StorageBackend.POSTGRES})
-    with pytest.raises(ConfigurationError) as bad_pool_err:
-        await get_driver(settings=settings, pool_manager=object())
-    assert bad_pool_err.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+async def test_database_factory_negative_invalid_backend_and_binary_bva() -> None:
+    """Verify create_unit_of_work rejects decommissioned backends and save_report_binary enforces size BVA."""
+    bad_settings = get_settings().model_copy(update={"storage_backend": "FIRESTORE"})
+    with pytest.raises(ConfigurationError) as bad_backend_err:
+        create_unit_of_work(settings=bad_settings)
+    assert bad_backend_err.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
     pool = InMemoryAsyncPgPool()
     conn = await pool.acquire()

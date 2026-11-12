@@ -14,6 +14,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _format_org_uuid7,
     _parse_optional_uuid7,
     _parse_org_uuid7,
+    execute_entity_delete,
     execute_entity_upsert,
     resolve_effective_timeout,
     translate_postgres_exception,
@@ -31,6 +32,9 @@ from backend_v2.models.enums import EntityPrefix
 _STEP_RULE_LIST_ADAPTER: TypeAdapter[list[StepRule]] = TypeAdapter(list[StepRule])
 
 __all__ = [
+    "_DELETE_OUTPUT_PROFILE_SQL",
+    "_DELETE_TASK_BRIEF_SQL",
+    "_DELETE_WORKFLOW_SQL",
     "_GET_OUTPUT_PROFILE_SQL",
     "_GET_TASK_BRIEF_SQL",
     "_GET_WORKFLOW_SQL",
@@ -40,13 +44,18 @@ __all__ = [
     "_UPSERT_OUTPUT_PROFILE_SQL",
     "_UPSERT_TASK_BRIEF_SQL",
     "_UPSERT_WORKFLOW_SQL",
+    "delete_output_profile_row",
+    "delete_task_brief_row",
+    "delete_workflow_row",
     "get_output_profile_row",
     "get_task_brief_row",
     "get_workflow_row",
     "hydrate_output_profile_row",
     "hydrate_task_brief_row",
     "hydrate_workflow_row",
+    "list_output_profile_rows",
     "list_task_brief_rows",
+    "list_workflow_rows",
     "upsert_output_profile_row",
     "upsert_task_brief_row",
     "upsert_workflow_row",
@@ -587,3 +596,151 @@ async def list_task_brief_rows(conn: AsyncPgConnectionProtocol, timeout: float) 
             entity_id="*",
         ) from exc
     return [hydrate_task_brief_row(row) for row in rows]
+
+
+_DELETE_WORKFLOW_SQL: str = "DELETE FROM workflows WHERE id = $1::uuid"
+_DELETE_OUTPUT_PROFILE_SQL: str = "DELETE FROM output_profiles WHERE id = $1::uuid"
+_DELETE_TASK_BRIEF_SQL: str = "DELETE FROM task_briefs WHERE id = $1::uuid"
+
+
+async def list_workflow_rows(conn: AsyncPgConnectionProtocol, timeout: float) -> list[Workflow]:
+    """List all Workflow rows from workflows.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated Workflow domain models.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(_LIST_WORKFLOWS_SQL, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="workflows",
+            entity_id="*",
+        ) from exc
+    return [hydrate_workflow_row(row) for row in rows]
+
+
+async def delete_workflow_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    workflow_id: str,
+) -> bool:
+    """Delete a Workflow row by primary key from workflows.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        workflow_id: Canonical wf_<hex32> workflow identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    wf_uuid = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_WORKFLOW_SQL,
+        wf_uuid,
+        entity_id=workflow_id,
+        table="workflows",
+    )
+
+
+async def list_output_profile_rows(conn: AsyncPgConnectionProtocol, timeout: float) -> list[OutputProfile]:
+    """List all OutputProfile rows from output_profiles.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated OutputProfile domain models.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(_LIST_OUTPUT_PROFILES_SQL, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="output_profiles",
+            entity_id="*",
+        ) from exc
+    return [hydrate_output_profile_row(row) for row in rows]
+
+
+async def delete_output_profile_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    profile_id: str,
+) -> bool:
+    """Delete an OutputProfile row by primary key from output_profiles.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        profile_id: Canonical prf_<hex32> output profile identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    prf_uuid = parse_prefixed_uuid7(profile_id, EntityPrefix.OUTPUT_PROFILE)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_OUTPUT_PROFILE_SQL,
+        prf_uuid,
+        entity_id=profile_id,
+        table="output_profiles",
+    )
+
+
+async def delete_task_brief_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    brief_id: str,
+) -> bool:
+    """Delete a TaskBrief row by primary key from task_briefs.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        brief_id: Canonical tbr_<hex32> task brief identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    tbr_uuid = parse_prefixed_uuid7(brief_id, EntityPrefix.TASK_BRIEF)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_TASK_BRIEF_SQL,
+        tbr_uuid,
+        entity_id=brief_id,
+        table="task_briefs",
+    )

@@ -111,7 +111,6 @@ def dummy_strategy() -> DummyStrategy:
     deps = StrategyDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -127,7 +126,6 @@ def test_strategy_properties(dummy_strategy: DummyStrategy) -> None:
     """Verify all convenience property accessors on NodeStrategy."""
     assert dummy_strategy.exec_repo is dummy_strategy.deps.exec_repo
     assert dummy_strategy.workflow_repo is dummy_strategy.deps.workflow_repo
-    assert dummy_strategy.comp_repo is dummy_strategy.deps.comp_repo
     assert dummy_strategy.prompt_block_repo is dummy_strategy.deps.prompt_block_repo
     assert dummy_strategy.output_profile_repo is dummy_strategy.deps.output_profile_repo
     assert dummy_strategy.identity_repo is dummy_strategy.deps.identity_repo

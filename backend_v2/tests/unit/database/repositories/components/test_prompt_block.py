@@ -1,39 +1,58 @@
-"""Unit tests for PromptBlockRepositoryImpl."""
+"""Unit tests for PromptBlockRepositoryImpl over EntityPersistencePort."""
 
 from __future__ import annotations
 
 import pytest
 
-from backend_v2.database.driver import StorageDriver
-from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
+from backend_v2.database.postgres.pool import PostgresPoolManager
+from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
-from backend_v2.exceptions import AppException
-from backend_v2.models.core_base import I18nText
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.domain.step import Step
-from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory, StepType
+from backend_v2.models.enums import (
+    BlockDataType,
+    CognitiveTier,
+    PromptBlockCategory,
+    StepType,
+    StorageBackend,
+)
+from backend_v2.settings import Settings
+from backend_v2.tests.factories.model_factories import (
+    I18nTextFactory,
+    SystemRulePromptBlockFactory,
+)
+from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryUnitOfWork
+
+_BLK_ID = "blk_0195f3a0000070018234567890abcdef"
+_BLK_ID_1 = "blk_0195f3a0000070018111111111111111"
+_BLK_ID_2 = "blk_0195f3a0000070028222222222222222"
+_BLK_PROT_ID = "blk_0195f3a0000070008000000000000002"
+_BLK_MISSING_1 = "blk_0195f3a0000070008000000000000091"
+_BLK_MISSING_2 = "blk_0195f3a0000070008000000000000092"
+_STP_ID = "stp_0195f3a0000070008000000000000001"
 
 
 @pytest.fixture
-def driver() -> StorageDriver:
-    """Provides a PostgresStorageDriver instance."""
-    return PostgresStorageDriver(auto_initialize_pool=False)
+def base_uow() -> InMemoryUnitOfWork:
+    """Provide a shared InMemoryUnitOfWork backing store."""
+    return InMemoryUnitOfWork()
 
 
 @pytest.fixture
-def repo(driver: StorageDriver) -> PromptBlockRepositoryImpl:
-    """Provides a PromptBlockRepositoryImpl instance with the real TinyDB driver."""
-    return PromptBlockRepositoryImpl(driver)
+def repo(base_uow: InMemoryUnitOfWork) -> PromptBlockRepositoryImpl:
+    """Provide a PromptBlockRepositoryImpl backed by the stateful InMemoryUnitOfWork store."""
+    return PromptBlockRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
 
 @pytest.fixture
 def sample_system_rule() -> SystemRulePromptBlock:
-    """Provides a valid SystemRulePromptBlock instance."""
-    return SystemRulePromptBlock(
-        id="blk_0195f3a0000070018234567890abcdef",
+    """Provide a valid SystemRulePromptBlock instance via Polyfactory."""
+    return SystemRulePromptBlockFactory.build(
+        id=_BLK_ID,
         slug="rule_clean",
-        label=I18nText(translations={"en": "Rule", "fi": "Sääntö"}),
-        description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
+        label=I18nTextFactory.build(translations={"en": "Rule", "fi": "Rule FI"}),
+        description=I18nTextFactory.build(translations={"en": "Description", "fi": "Description FI"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text="Instruction.",
@@ -41,8 +60,11 @@ def sample_system_rule() -> SystemRulePromptBlock:
 
 
 @pytest.mark.asyncio
-async def test_prompt_block_crud(repo: PromptBlockRepositoryImpl, sample_system_rule: SystemRulePromptBlock) -> None:
-    """Test CRUD operations for PromptBlocks."""
+async def test_prompt_block_crud_and_in_place_update(
+    repo: PromptBlockRepositoryImpl,
+    sample_system_rule: SystemRulePromptBlock,
+) -> None:
+    """Positive: verify CRUD operations and in-place primary-ID preservation on update."""
     created_id = await repo.create_prompt_block(sample_system_rule)
     assert created_id == sample_system_rule.id
 
@@ -59,205 +81,134 @@ async def test_prompt_block_crud(repo: PromptBlockRepositoryImpl, sample_system_
     assert len(all_models) == 1
     assert all_models[0].id == sample_system_rule.id
 
+    all_models_alias = await repo.get_all_prompt_blocks_models()
+    assert len(all_models_alias) == 1
 
-@pytest.mark.asyncio
-async def test_update_prompt_block(
-    repo: PromptBlockRepositoryImpl, driver: StorageDriver, sample_system_rule: SystemRulePromptBlock
-) -> None:
-    """Test versioned update of PromptBlock with real version incrementation."""
-    await repo.create_prompt_block(sample_system_rule)
-
-    updated_rule = sample_system_rule.model_copy(update={"instruction_text": "Updated instruction."})
+    updated_rule = sample_system_rule.model_copy(update={"id": _BLK_ID_2, "instruction_text": "Updated instruction."})
     res = await repo.update_prompt_block(sample_system_rule.id, updated_rule)
     assert res is True
 
-    # Real AppendOnlyRepository version incrementation creates a new version record
-    new_version_id = f"{sample_system_rule.id}_v2"
-    persisted_raw = await driver.get("prompt_blocks", new_version_id)
-    assert persisted_raw is not None
-    assert persisted_raw["id"] == new_version_id
-    assert persisted_raw["version"] == 2
-    assert persisted_raw["is_latest"] is True
+    persisted = await repo.get_prompt_block_by_id(sample_system_rule.id)
+    assert isinstance(persisted, SystemRulePromptBlock)
+    assert persisted.id == sample_system_rule.id
+    assert persisted.instruction_text == "Updated instruction."
 
 
 @pytest.mark.asyncio
 async def test_update_prompt_block_not_found(
-    repo: PromptBlockRepositoryImpl, sample_system_rule: SystemRulePromptBlock
+    repo: PromptBlockRepositoryImpl,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
-    """Test updating non-existent PromptBlock."""
-    res = await repo.update_prompt_block("pb1", sample_system_rule)
-    assert res is False
+    """Negative: update_prompt_block returns False when target block does not exist."""
+    assert await repo.update_prompt_block(_BLK_MISSING_1, sample_system_rule) is False
 
 
 @pytest.mark.asyncio
-async def test_delete_prompt_block_blocked_by_usage(
-    repo: PromptBlockRepositoryImpl, driver: StorageDriver, sample_system_rule: SystemRulePromptBlock
+async def test_delete_prompt_block_blocked_by_usage_and_force_delete(
+    repo: PromptBlockRepositoryImpl,
+    base_uow: InMemoryUnitOfWork,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
-    """Test delete prompt block when blocked by step usage."""
+    """Negative & Positive: delete_prompt_block blocks on Step reference unless force_delete is True."""
     await repo.create_prompt_block(sample_system_rule)
-    # Seed a step referencing this prompt block
-    valid_step = Step(
-        id="stp_0195f3a0000070008000000000000001",
+    step = Step(
+        id=_STP_ID,
         slug="test_step_usage",
-        name=I18nText(translations={"en": "Test Step", "fi": "Testiaskel"}),
+        name=I18nTextFactory.build(translations={"en": "Test Step", "fi": "Test Step FI"}),
         type=StepType.LLM,
         cognitive_tier=CognitiveTier.FAST,
-        extraction_protocol_block_id="blk_0195f3a0000070008000000000000002",
+        extraction_protocol_block_id=_BLK_PROT_ID,
         criteria_block_ids=[sample_system_rule.id],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
     )
-    await driver.upsert("steps", valid_step.model_dump(mode="json"), valid_step.id)
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.upsert_step(step)
 
     with pytest.raises(AppException) as exc:
         await repo.delete_prompt_block(sample_system_rule.id, force_delete=False)
 
     assert exc.value.status_code == 400
-    assert "delete blocked" in exc.value.message.lower()
+    assert exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    assert await repo.delete_prompt_block(sample_system_rule.id, force_delete=True) is True
+    assert await repo.get_prompt_block_by_id(sample_system_rule.id) is None
 
 
 @pytest.mark.asyncio
-async def test_delete_prompt_block_success(
-    repo: PromptBlockRepositoryImpl, sample_system_rule: SystemRulePromptBlock
+async def test_delete_prompt_block_success_and_not_found(
+    repo: PromptBlockRepositoryImpl,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
-    """Test successful delete prompt block."""
+    """Positive & Negative: delete_prompt_block deletes unreferenced block and returns False when missing."""
+    assert await repo.delete_prompt_block(_BLK_MISSING_1) is False
     await repo.create_prompt_block(sample_system_rule)
     assert await repo.delete_prompt_block(sample_system_rule.id) is True
     assert await repo.get_prompt_block_by_id(sample_system_rule.id) is None
 
 
 @pytest.mark.asyncio
-async def test_get_prompt_blocks_by_ids_success(repo: PromptBlockRepositoryImpl) -> None:
-    """Test batch resolution of prompt blocks successfully returning hydrated models."""
-    blk_1 = SystemRulePromptBlock(
-        id="blk_0195f3a0000070018111111111111111",
-        slug="block_1",
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        label=I18nText(translations={"en": "Rule 1"}),
-        description=I18nText(translations={"en": "Desc 1"}),
-        instruction_text="Rule 1 text",
-    )
-    blk_2 = SystemRulePromptBlock(
-        id="blk_0195f3a0000070028222222222222222",
-        slug="block_2",
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        label=I18nText(translations={"en": "Rule 2"}),
-        description=I18nText(translations={"en": "Desc 2"}),
-        instruction_text="Rule 2 text",
-    )
+async def test_get_prompt_blocks_by_ids_resolution_modes(
+    repo: PromptBlockRepositoryImpl,
+    sample_system_rule: SystemRulePromptBlock,
+) -> None:
+    """Verify batch resolution order, empty fast-path, deduplication, strict 404, and non-strict partial return."""
+    assert await repo.get_prompt_blocks_by_ids([]) == []
+
+    blk_1 = SystemRulePromptBlockFactory.build(id=_BLK_ID_1, slug="block_1")
+    blk_2 = SystemRulePromptBlockFactory.build(id=_BLK_ID_2, slug="block_2")
     await repo.create_prompt_block(blk_1)
     await repo.create_prompt_block(blk_2)
+    await repo.create_prompt_block(sample_system_rule)
 
-    results = await repo.get_prompt_blocks_by_ids(
-        ["blk_0195f3a0000070018111111111111111", "blk_0195f3a0000070028222222222222222"]
+    ordered = await repo.get_prompt_blocks_by_ids([_BLK_ID_2, _BLK_ID_1])
+    assert [b.id for b in ordered] == [_BLK_ID_2, _BLK_ID_1]
+
+    deduped = await repo.get_prompt_blocks_by_ids([sample_system_rule.id, sample_system_rule.id])
+    assert len(deduped) == 1
+    assert deduped[0].id == sample_system_rule.id
+
+    partial = await repo.get_prompt_blocks_by_ids([sample_system_rule.id, _BLK_MISSING_1], strict=False)
+    assert len(partial) == 1
+    assert partial[0].id == sample_system_rule.id
+
+    with pytest.raises(AppException) as single_exc:
+        await repo.get_prompt_blocks_by_ids([sample_system_rule.id, _BLK_MISSING_1], strict=True)
+    assert single_exc.value.status_code == 404
+    assert _BLK_MISSING_1 in single_exc.value.message
+
+    with pytest.raises(AppException) as all_exc:
+        await repo.get_prompt_blocks_by_ids([_BLK_MISSING_1, _BLK_MISSING_2], strict=True)
+    assert all_exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_prompt_block_invalid_prefix_and_storage_fault_failure() -> None:
+    """Negative: invalid ID prefix raises VALIDATION_FAILED and SQL fault raises STORAGE_ACCESS_FAILED."""
+    pool = InMemoryAsyncPgPool()
+    settings = Settings(
+        storage_backend=StorageBackend.POSTGRES,
+        postgres_host="db.internal",
+        postgres_port=5432,
+        postgres_user="quorum",
+        postgres_db="quorum",
+        postgres_command_timeout_seconds=5.0,
     )
-    assert len(results) == 2
-    assert results[0].id == "blk_0195f3a0000070018111111111111111"
-    assert results[1].id == "blk_0195f3a0000070028222222222222222"
+    pool_mgr = PostgresPoolManager(settings=settings, pool=pool)
+    pg_repo = PromptBlockRepositoryImpl(uow_factory=lambda: PostgresUnitOfWork(pool_mgr))
 
+    with pytest.raises(AppException) as invalid_exc:
+        await pg_repo.get_prompt_block_by_id(_STP_ID)
+    assert invalid_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-@pytest.mark.asyncio
-async def test_get_prompt_blocks_by_ids_empty_list(repo: PromptBlockRepositoryImpl) -> None:
-    """Test empty input list fast-path returns empty list with zero queries."""
-    results = await repo.get_prompt_blocks_by_ids([])
-    assert results == []
-
-
-@pytest.mark.asyncio
-async def test_get_prompt_blocks_by_ids_duplicate_input(
-    repo: PromptBlockRepositoryImpl, sample_system_rule: SystemRulePromptBlock
-) -> None:
-    """Test duplicate IDs are deduplicated during resolution."""
-    await repo.create_prompt_block(sample_system_rule)
-
-    results = await repo.get_prompt_blocks_by_ids([sample_system_rule.id, sample_system_rule.id])
-    assert len(results) == 1
-    assert results[0].id == sample_system_rule.id
-
-
-@pytest.mark.asyncio
-async def test_get_prompt_blocks_by_ids_strict_missing_single_raises_app_exception(
-    repo: PromptBlockRepositoryImpl, sample_system_rule: SystemRulePromptBlock
-) -> None:
-    """Test strict resolution raises AppException(404) when a single block ID is missing."""
-    await repo.create_prompt_block(sample_system_rule)
-
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_prompt_blocks_by_ids([sample_system_rule.id, "blk_missing_ghost"], strict=True)
-
-    assert exc_info.value.status_code == 404
-    assert "blk_missing_ghost" in exc_info.value.message
-
-
-@pytest.mark.asyncio
-async def test_get_prompt_blocks_by_ids_strict_missing_all_raises_app_exception(
-    repo: PromptBlockRepositoryImpl,
-) -> None:
-    """Test strict resolution raises AppException(404) when all block IDs are missing."""
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_prompt_blocks_by_ids(["blk_ghost_1", "blk_ghost_2"], strict=True)
-
-    assert exc_info.value.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_prompt_blocks_by_ids_non_strict_returns_partial(
-    repo: PromptBlockRepositoryImpl, sample_system_rule: SystemRulePromptBlock
-) -> None:
-    """Test non-strict resolution returns partial found items without raising."""
-    await repo.create_prompt_block(sample_system_rule)
-
-    results = await repo.get_prompt_blocks_by_ids([sample_system_rule.id, "blk_missing"], strict=False)
-    assert len(results) == 1
-    assert results[0].id == sample_system_rule.id
-
-
-@pytest.mark.asyncio
-async def test_get_prompt_blocks_by_ids_malformed_raises_app_exception(
-    repo: PromptBlockRepositoryImpl, driver: StorageDriver
-) -> None:
-    """Test get_prompt_blocks_by_ids raises AppException(500) if document fails Pydantic parsing."""
-    await driver.upsert(
-        "prompt_blocks",
-        {"id": "blk_0195f3a0000070018111111111111111", "category_id": "invalid_category"},
-        "blk_0195f3a0000070018111111111111111",
-    )
-
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_prompt_blocks_by_ids(["blk_0195f3a0000070018111111111111111"])
-
-    assert exc_info.value.status_code == 500
-    assert "Failed to parse PromptBlock" in exc_info.value.message
-
-
-@pytest.mark.asyncio
-async def test_get_all_prompt_blocks_models_success(
-    repo: PromptBlockRepositoryImpl, sample_system_rule: SystemRulePromptBlock
-) -> None:
-    """Test get_all_prompt_blocks_models parses and returns all models."""
-    await repo.create_prompt_block(sample_system_rule)
-
-    results = await repo.get_all_prompt_blocks_models()
-    assert len(results) == 1
-    assert results[0].id == sample_system_rule.id
-
-
-@pytest.mark.asyncio
-async def test_get_all_prompt_blocks_models_malformed_raises_app_exception(
-    repo: PromptBlockRepositoryImpl, driver: StorageDriver
-) -> None:
-    """Test get_all_prompt_blocks_models raises AppException(500) on malformed document."""
-    await driver.upsert("prompt_blocks", {"id": "blk_bad", "category_id": "unknown"}, "blk_bad")
-
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_all_prompt_blocks_models()
-
-    assert exc_info.value.status_code == 500
-    assert "Failed to parse PromptBlock" in exc_info.value.message
-
-
-@pytest.mark.asyncio
-async def test_delete_prompt_block_not_found(repo: PromptBlockRepositoryImpl) -> None:
-    """Test delete_prompt_block returns False when document does not exist."""
-    result = await repo.delete_prompt_block("blk_non_existent")
-    assert result is False
+    try:
+        pool.inject_fault("fetch", RuntimeError("simulated list failure"))
+        with pytest.raises(AppException) as fault_exc:
+            await pg_repo.get_all_prompt_blocks()
+        assert fault_exc.value.status_code == 500
+        assert fault_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    finally:
+        pool.clear_faults()

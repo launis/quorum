@@ -15,9 +15,12 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider
+from backend_v2.models.enums import CognitiveTier, EntityPrefix, ExecutionStatus, LLMProvider
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 from scripts.ablation_live_executor import (
     AblationLiveExecutionConfigDTO,
     AblationLiveExecutor,
@@ -443,13 +446,14 @@ def test_resolve_model_telemetry_live(tmp_path: Path) -> None:
     assert resolve_model_telemetry(bad_file) == {}
 
     # Test mock custom DB with reasoning models, dict system_config, and various tiers
+    reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
     mock_db = tmp_path / "mock_db.json"
     mock_db.write_text(
         json.dumps(
             {
                 "system_config": {
                     "reg_1": {
-                        "id": "sys_test",
+                        "id": reg_id,
                         "slug": "test-registry-slug",
                         "name": "Test Registry Name",
                         "type": "model_registry",
@@ -488,7 +492,7 @@ def test_resolve_model_telemetry_live(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     # Target by id
-    res_id = resolve_model_telemetry(mock_db, registry_id="sys_test")
+    res_id = resolve_model_telemetry(mock_db, registry_id=reg_id)
     assert "fast" in res_id
     assert res_id["fast"].is_gemini_v3 is True
 
@@ -521,9 +525,13 @@ def test_resolve_provider_enum() -> None:
 @pytest.mark.asyncio
 async def test_executor_create_factory(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify AblationLiveExecutor.create initializes single and dual clients via LLMClient.from_tier."""
+    base_uow = InMemoryUnitOfWork()
     mock_from_tier = AsyncMock(return_value=AsyncMock())
     monkeypatch.setattr("scripts.ablation_live_executor.LLMClient.from_tier", mock_from_tier)
-    monkeypatch.setattr("scripts.ablation_live_executor.get_driver", AsyncMock())
+    monkeypatch.setattr(
+        "scripts.ablation_live_executor.create_unit_of_work",
+        lambda _settings=None: InMemoryUnitOfWork(base_uow.store),
+    )
 
     # 1. Dual cross-model
     cfg_dual_model = AblationLiveExecutionConfigDTO(
@@ -534,6 +542,7 @@ async def test_executor_create_factory(monkeypatch: pytest.MonkeyPatch) -> None:
     exec_dm = await AblationLiveExecutor.create(cfg_dual_model)
     assert exec_dm.client_1 is not None
     assert exec_dm.client_2 is not None
+    assert isinstance(mock_from_tier.await_args_list[0].kwargs["repository"], SystemRepositoryImpl)
 
     # 2. Dual cross-strategy
     mock_from_tier.reset_mock()
@@ -560,9 +569,13 @@ async def test_ablation_live_executor_config_coerces_lax_cognitive_tier_pair(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify AblationLiveExecutionConfigDTO coerces LaxCognitiveTier pair and initializes via LLMClient.from_tier."""
+    base_uow = InMemoryUnitOfWork()
     mock_from_tier = AsyncMock(return_value=AsyncMock())
     monkeypatch.setattr("scripts.ablation_live_executor.LLMClient.from_tier", mock_from_tier)
-    monkeypatch.setattr("scripts.ablation_live_executor.get_driver", AsyncMock())
+    monkeypatch.setattr(
+        "scripts.ablation_live_executor.create_unit_of_work",
+        lambda _settings=None: InMemoryUnitOfWork(base_uow.store),
+    )
 
     cfg = AblationLiveExecutionConfigDTO.model_validate(
         {
@@ -613,13 +626,14 @@ def test_print_model_telemetry_output(tmp_path: Path, capsys: pytest.CaptureFixt
     assert "Warning: Model registry not found" in out
 
     # Populated DB
+    pop_reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
     mock_db = tmp_path / "pop_db.json"
     mock_db.write_text(
         json.dumps(
             {
                 "system_config": [
                     {
-                        "id": "sys_pop",
+                        "id": pop_reg_id,
                         "name": "Populated Registry",
                         "type": "model_registry",
                         "default_provider": "google",
@@ -640,7 +654,7 @@ def test_print_model_telemetry_output(tmp_path: Path, capsys: pytest.CaptureFixt
         ),
         encoding="utf-8",
     )
-    print_model_telemetry(mock_db, active_strategies=["fast"], registry_id="sys_pop")
+    print_model_telemetry(mock_db, active_strategies=["fast"], registry_id=pop_reg_id)
     out_pop = capsys.readouterr().out
     assert "Populated Registry" in out_pop
     assert "AKTIIVINEN TESTIKOHDE" in out_pop

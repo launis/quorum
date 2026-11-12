@@ -2,93 +2,41 @@
 
 from __future__ import annotations
 
-import logging
-
-from backend_v2.database.driver import StorageDriver
-from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.models.domain.task_brief import TaskBrief
-
-logger = logging.getLogger(__name__)
 
 __all__ = ["TaskBriefRepositoryImpl"]
 
 
-class TaskBriefRepositoryImpl(AppendOnlyRepositoryBase):
+class TaskBriefRepositoryImpl(BaseRepository):
     """Repository implementation for CRUD operations on TaskBrief records."""
 
-    def __init__(self, driver: StorageDriver) -> None:
-        """Initialize the repository with a storage driver.
-
-        Args:
-            driver: The underlying storage driver for database operations.
-        """
-        super().__init__(driver)
-
     async def get_all_task_briefs(self) -> list[TaskBrief]:
-        """Retrieve all task briefs from the database.
+        """Retrieve all task briefs from PostgreSQL 19.
 
         Returns:
             List of validated TaskBrief domain models.
 
         Raises:
-            AppException: If the database query or model validation fails
-                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        data = await self.driver.query("task_briefs")
-        models: list[TaskBrief] = []
-        for raw in data:
-            try:
-                models.append(TaskBrief.model_validate(raw, strict=False))
-            except Exception as exc:
-                item_id = "unknown"
-                if "id" in raw:
-                    item_id = str(raw["id"])
-                logger.error(
-                    "[TaskBriefRepository] %s: Failed to parse TaskBrief %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    exc,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to parse task brief {item_id} from database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from exc
-        return models
+        async with self._acquire_entities() as entities:
+            return await entities.list_task_briefs()
 
     async def get_task_brief_by_id(self, brief_id: str) -> TaskBrief | None:
         """Retrieve a task brief by its primary key ID in O(1) indexed time.
 
         Args:
-            brief_id: Canonical tbr_<32_hex> task brief identifier.
+            brief_id: Canonical tbr_<hex32> task brief identifier.
 
         Returns:
             Validated TaskBrief domain model if found, otherwise None.
 
         Raises:
-            AppException: If the database query or model validation fails
-                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        doc = await self.driver.get("task_briefs", brief_id)
-        if not doc:
-            return None
-        try:
-            return TaskBrief.model_validate(doc, strict=False)
-        except Exception as exc:
-            logger.error(
-                "[TaskBriefRepository] %s: Failed to parse TaskBrief %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                brief_id,
-                exc,
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Failed to parse task brief {brief_id} from database",
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from exc
+        async with self._acquire_entities() as entities:
+            return await entities.get_task_brief(brief_id)
 
     async def create_task_brief(self, brief_data: TaskBrief) -> str:
         """Create or upsert a TaskBrief record.
@@ -97,51 +45,46 @@ class TaskBriefRepositoryImpl(AppendOnlyRepositoryBase):
             brief_data: Validated TaskBrief domain model.
 
         Returns:
-            Canonical tbr_<32_hex> identifier of the persisted task brief.
+            Canonical tbr_<hex32> identifier of the persisted task brief.
 
         Raises:
-            AppException: Propagated from driver if the upsert operation fails
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
         """
-        payload = brief_data.model_dump(mode="json")
-        return await self.driver.upsert("task_briefs", payload, brief_data.id)
+        async with self._acquire_entities() as entities:
+            return await entities.upsert_task_brief(brief_data)
 
     async def update_task_brief(self, brief_id: str, updates: TaskBrief) -> bool:
-        """Update an existing TaskBrief record.
+        """Update an existing TaskBrief record in-place.
 
         Args:
-            brief_id: Canonical tbr_<32_hex> identifier of the task brief to update.
+            brief_id: Canonical tbr_<hex32> identifier of the task brief to update.
             updates: Validated TaskBrief domain model containing updated fields.
 
         Returns:
-            True if the update was successful, False if the document was not found.
+            True if updated, False if the task brief does not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
         """
-        old_doc = await self.driver.get("task_briefs", brief_id)
-        if not old_doc:
-            return False
-
-        payload = updates.model_dump(mode="json", exclude_unset=True)
-        await self.driver.update("task_briefs", brief_id, payload)
-        return True
+        async with self._acquire_entities() as entities:
+            existing = await entities.get_task_brief(brief_id)
+            if existing is None:
+                return False
+            persisted = updates if updates.id == brief_id else updates.model_copy(update={"id": brief_id})
+            await entities.upsert_task_brief(persisted)
+            return True
 
     async def delete_task_brief(self, brief_id: str) -> bool:
         """Delete a TaskBrief record by ID.
 
         Args:
-            brief_id: Canonical tbr_<32_hex> identifier of the task brief to delete.
+            brief_id: Canonical tbr_<hex32> identifier of the task brief to delete.
 
         Returns:
-            True if successfully deleted, False if the document did not exist.
+            True if deleted, False if the task brief did not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if deletion fails.
         """
-        existing = await self.driver.get("task_briefs", brief_id)
-        if not existing:
-            return False
-        return await self.driver.delete("task_briefs", brief_id)
+        async with self._acquire_entities() as entities:
+            return await entities.delete_task_brief(brief_id)

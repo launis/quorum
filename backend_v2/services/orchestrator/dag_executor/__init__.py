@@ -8,7 +8,6 @@ from typing import Any
 from backend_v2.core.hook_registry import hook_registry as hook_registry
 from backend_v2.database.interfaces import (
     IAuditRepository,
-    IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
     IOutputProfileRepository,
@@ -99,7 +98,6 @@ class DAGExecutor:
         self,
         exec_repo: IExecutionRepository,
         workflow_repo: IWorkflowRepository,
-        comp_repo: IComponentRepository,
         prompt_block_repo: IPromptBlockRepository,
         output_profile_repo: IOutputProfileRepository,
         identity_repo: IIdentityRepository,
@@ -109,7 +107,7 @@ class DAGExecutor:
         rag_preflight: RAGPreflightService,
     ) -> None:
         """Initialize the DAG orchestration facade and wire strategy dependencies."""
-        self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
+        self.exec_repo, self.workflow_repo = exec_repo, workflow_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.audit_repo, self.system_repo = identity_repo, audit_repo, system_repo
         self.compiler, self.rag_preflight = prompt_compiler, rag_preflight
@@ -117,7 +115,6 @@ class DAGExecutor:
         self.deps = StrategyDependencies(
             exec_repo,
             workflow_repo,
-            comp_repo,
             prompt_block_repo,
             output_profile_repo,
             identity_repo,

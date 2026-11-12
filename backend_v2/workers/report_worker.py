@@ -12,10 +12,8 @@ from typing import Any
 from pydantic import ValidationError
 
 import backend_v2.services.report as report_service_mod
-from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.settings import get_settings
 from backend_v2.workers.synthesis_worker import (
     generate_profile_synthesis_and_pdf_task as generate_profile_synthesis_and_pdf_task,
 )
@@ -60,8 +58,7 @@ async def generate_report_artifact_job(
         force_resynthesis,
     )
     try:
-        driver = await get_driver(get_settings())
-        repo = UnifiedWorkflowRepository(driver)
+        repo = UnifiedWorkflowRepository()
         service = report_service_mod.ReportService(repo, synthesis_runner=generate_profile_synthesis_and_pdf_task)
         await service.process_artifact_compilation(report_id, force_resynthesis=force_resynthesis)
         return f"Report Artifact Generated: {report_id}"

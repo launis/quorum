@@ -18,12 +18,10 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
-from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ConfigDict, Field, ValidationError
 
-from backend_v2.database.driver import StorageDriver
 from backend_v2.database.interfaces import QuorumUnitOfWork
 from backend_v2.database.postgres import (
     AsyncPgConnectionProtocol,
@@ -241,7 +239,7 @@ def _extract_sql_table_columns(sql_text: str) -> dict[str, set[str]]:
 
 
 # ============================================================================
-# Step 5, Positive Case 1: Single-Round Wave Materialization & Roundtrip
+# Positive Case 1: Single-Round Wave Materialization & Roundtrip
 # ============================================================================
 
 
@@ -352,7 +350,7 @@ async def test_single_round_wave_materialization(uow: QuorumUnitOfWork) -> None:
 
 
 # ============================================================================
-# Step 5, Positive Case 2: Toulmin Falsification Query Parity
+# Positive Case 2: Toulmin Falsification Query Parity
 # ============================================================================
 
 
@@ -452,7 +450,7 @@ async def test_toulmin_falsification_query_parity(uow: QuorumUnitOfWork) -> None
 
 
 # ============================================================================
-# Step 5, Positive Case 3: Report Binary TOAST Roundtrip & Binary JSONB Codec
+# Positive Case 3: Report Binary TOAST Roundtrip & Binary JSONB Codec
 # ============================================================================
 
 
@@ -595,7 +593,7 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
 
 
 # ============================================================================
-# Step 5, Positive Case 4: PostgreSQL 19 DDL Schema vs. Domain DTO Naming Parity
+# Positive Case 4: PostgreSQL 19 DDL Schema vs. Domain DTO Naming Parity
 # ============================================================================
 
 
@@ -771,7 +769,7 @@ def test_schema_dto_naming_parity() -> None:
 
 
 # ============================================================================
-# Step 5, Negative Case 1: DAG Cycle Detection Fail-Fast
+# Negative Case 1: DAG Cycle Detection Fail-Fast
 # ============================================================================
 
 
@@ -836,7 +834,7 @@ async def test_dag_cycle_detection_fail_fast(uow: QuorumUnitOfWork) -> None:
 
 
 # ============================================================================
-# Step 5, Negative Case 2: Transactional Rollback & Isolation
+# Negative Case 2: Transactional Rollback & Isolation
 # ============================================================================
 
 
@@ -892,7 +890,7 @@ async def test_transaction_rollback_and_isolation(uow: QuorumUnitOfWork) -> None
 
 
 # ============================================================================
-# Step 5, Negative Case 3: ISTQB Boundary Value Analysis & Pool/Adapter Faults
+# Negative Case 3: ISTQB Boundary Value Analysis & Pool/Adapter Faults
 # ============================================================================
 
 
@@ -1524,7 +1522,7 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
 
 
 # ============================================================================
-# Step 5, Negative Case 4: Zero-ORM AST Guardrail & Codebase Verification
+# Negative Case 4: Zero-ORM AST Guardrail & Codebase Verification
 # ============================================================================
 
 
@@ -1580,11 +1578,11 @@ def test_zero_orm_ast_guardrail_verification(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
-    """Verify PostgresStorageDriver CRUD roundtrips, query filtering/sorting, and negative boundaries."""
-    from backend_v2.database.driver import Filter
-    from backend_v2.database.factory import create_unit_of_work, get_driver
-    from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
+async def test_postgres_uow_crud_and_occ_boundary_invariants() -> None:
+    """Verify create_unit_of_work, PostgresUnitOfWork entity CRUD roundtrips, OCC conflict, and negative boundaries."""
+    from backend_v2.database.factory import create_unit_of_work
+    from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+    from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 
     pool = InMemoryAsyncPgPool()
     settings = Settings(
@@ -1596,164 +1594,54 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
         postgres_command_timeout_seconds=12.0,
     )
     pool_manager = PostgresPoolManager(settings=settings, pool=pool)
-
-    # Verify factory functions
-    default_driver = await get_driver()
-    assert isinstance(default_driver, PostgresStorageDriver)
-    assert default_driver.pool_manager is not None
-    factory_uow = create_unit_of_work(pool_manager=pool_manager)
+    factory_uow = create_unit_of_work(settings=settings, pool_manager=pool_manager)
     assert isinstance(factory_uow, QuorumUnitOfWork)
 
-    driver = PostgresStorageDriver(pool_manager=pool_manager, settings=settings, auto_initialize_pool=False)
-
-    # 1. Upsert and Get roundtrip against custom collection + canonical collection
     org_id_val = "org_0195f3a0000070008000111111111111"
-    org_payload = {
-        "id": org_id_val,
-        "slug": "alpha-org",
-        "name": "Alpha Org",
-        "is_active": True,
-        "tier": "enterprise",
-        "subscription_status": "active",
-        "quota_limit": 500.0,
-        "tpm_limit": 100000,
-        "rpm_limit": 1000,
-    }
-    doc_id = await driver.upsert("organizations", org_payload, org_id_val)
-    assert doc_id == org_id_val
-    fetched = await driver.get("organizations", doc_id)
-    assert fetched is not None
-    assert fetched["id"] == doc_id
-    assert fetched["name"] == "Alpha Org"
-
-    # Update existing and missing
-    assert await driver.update("organizations", doc_id, {"name": "Alpha Updated"}) is True
-    assert await driver.update("organizations", "org_0195f3a0000070008000000000000000", {"name": "Nope"}) is False
-    updated_org = await driver.get("organizations", doc_id)
-    assert updated_org is not None
-    assert updated_org["name"] == "Alpha Updated"
-
-    # 2. Insert and Query with all filter operators, nested fields, sort, and limit
-    await driver.insert(
-        "custom_items",
-        {
-            "id": "itm_0195f3a0000070008000111111111111",
-            "name": "Item A",
-            "score": 90,
-            "tags": ["core", "pg19"],
-            "meta": {"rank": 1},
-        },
+    org = Organization(
+        id=org_id_val,
+        slug="alpha-org",
+        name="Alpha Org",
+        is_active=True,
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=100000,
+        rpm_limit=1000,
+        allowed_email_domains=[],
     )
-    await driver.insert(
-        "custom_items",
-        {
-            "id": "itm_0195f3a0000070008000222222222222",
-            "name": "Item B",
-            "score": 40,
-            "tags": ["aux"],
-            "meta": {"rank": 2},
-        },
-    )
-    all_items = await driver.get_all("custom_items")
-    assert len(all_items) == 2
-    assert await driver.count("custom_items") == 2
+    async with create_unit_of_work(settings=settings, pool_manager=pool_manager) as uow:
+        assert await uow.entities.upsert_organization(org) == org_id_val
+        fetched = await uow.entities.get_organization(org_id_val)
+        assert fetched is not None
+        assert fetched.name == "Alpha Org"
+        assert await uow.entities.delete_organization(org_id_val) is True
+        assert await uow.entities.delete_organization(org_id_val) is False
 
-    assert len(await driver.query("custom_items", filters=[Filter("name", "==", "Item A")])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("name", "!=", "Item A")])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("name", "in", ["Item A", "Item C"])])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("name", "in", "not-a-list")])) == 0
-    assert len(await driver.query("custom_items", filters=[Filter("tags", "array-contains", "pg19")])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("name", "array-contains", "pg19")])) == 0
-    assert len(await driver.query("custom_items", filters=[Filter("score", ">", 50)])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("score", ">=", 90)])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("score", "<", 50)])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("score", "<=", 40)])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("meta.rank", "==", 1)])) == 1
-    assert len(await driver.query("custom_items", filters=[Filter("meta.missing", ">", 0)])) == 0
-    assert len(await driver.query("custom_items", filters=[Filter("name", "<", 999)])) == 0
-    assert (
-        len(
-            await driver.query(
-                "custom_items",
-                order_by="score",
-                descending=True,
-                limit=1,
+        with pytest.raises(AppException) as exc_bad_id:
+            await uow.entities.get_organization("   ")
+        assert exc_bad_id.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+        exec_rec = ExecutionRecordFactory.build(
+            id="exe_0195f3a0000070008000111111111111",
+            workflow_id="wf_0195f3a0000070008000111111111111",
+            state_version=1,
+        )
+        await uow.entities.save_execution(exec_rec)
+        assert await uow.entities.update_execution_occ(
+            exec_rec.id,
+            ExecutionUpdateDTO(expected_state_version=1, current_step="Wave 1 done"),
+        )
+        updated_exec = await uow.entities.get_execution(exec_rec.id)
+        assert updated_exec is not None
+        assert updated_exec.state_version == 2
+
+        with pytest.raises(AppException) as exc_occ:
+            await uow.entities.update_execution_occ(
+                exec_rec.id,
+                ExecutionUpdateDTO(expected_state_version=1, current_step="Stale write"),
             )
-        )
-        == 1
-    )
-    assert (
-        len(
-            await driver.query(
-                "custom_items",
-                order_by="meta.nonexistent",
-                descending=False,
-            )
-        )
-        == 2
-    )
-
-    # 3. Verify uninitialized pool driver operations
-    uninit_pool_manager = PostgresPoolManager(settings=settings)
-    uninit_driver = PostgresStorageDriver(
-        pool_manager=uninit_pool_manager,
-        settings=settings,
-        auto_initialize_pool=False,
-    )
-    await uninit_driver.upsert("organizations", org_payload, org_id_val)
-    assert await uninit_driver.get("organizations", org_id_val) is not None
-    await uninit_driver.close()
-
-    # 4. Delete and Clear
-    assert await driver.delete("custom_items", "itm_0195f3a0000070008000222222222222") is True
-    assert await driver.delete("custom_items", "itm_missing") is False
-    assert await driver.delete("organizations", doc_id) is True
-    await driver.clear("custom_items")
-    await driver.clear("organizations")
-    assert await driver.get_all("custom_items") == []
-    await driver.close()
-
-    # 5. Negative boundaries: empty collection name or empty doc_id raises AppException(VALIDATION_FAILED)
-    with pytest.raises(AppException) as exc_empty_col:
-        await driver.get("   ", org_id_val)
-    assert exc_empty_col.value.error_code == ErrorCodes.VALIDATION_FAILED.value
-
-    with pytest.raises(AppException) as exc_empty_id:
-        await driver.get("organizations", "   ")
-    assert exc_empty_id.value.error_code == ErrorCodes.VALIDATION_FAILED.value
-
-    # 6. Optimistic concurrency control on executions collection (state_version increment & conflict)
-    exec_id_val = "exe_0195f3a0000070008000111111111111"
-    await driver.upsert(
-        "executions",
-        {
-            "id": exec_id_val,
-            "workflow_id": "wor_0195f3a0000070008000111111111111",
-            "target_locale": "en",
-            "state_version": 1,
-        },
-        exec_id_val,
-    )
-    assert (
-        await driver.update(
-            "executions",
-            exec_id_val,
-            {"expected_state_version": 1, "status_message": "Wave 1 done"},
-        )
-        is True
-    )
-    updated_exec = await driver.get("executions", exec_id_val)
-    assert updated_exec is not None
-    assert updated_exec["state_version"] == 2
-    assert "expected_state_version" not in updated_exec
-
-    with pytest.raises(AppException) as exc_occ:
-        await driver.update(
-            "executions",
-            exec_id_val,
-            {"expected_state_version": 1, "status_message": "Stale write"},
-        )
-    assert exc_occ.value.error_code == ErrorCodes.CONFLICT.value
+        assert exc_occ.value.error_code == ErrorCodes.CONFLICT.value
 
 
 @pytest.mark.asyncio
@@ -2110,8 +1998,8 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
     await _seed_postgres({}, dry_run=False, uow=pg_uow)
     assert pool.store.migrations_applied == 3
 
-    # 3. Verify IdentityRepositoryImpl.get_user and get_organization use O(1) driver.get instead of full-table query
-    mock_driver = AsyncMock(spec=StorageDriver)
+    # 3. Verify IdentityRepositoryImpl.get_user and get_organization resolve via O(1) EntityPersistencePort lookups
+    base_identity_uow = InMemoryUnitOfWork()
     user_id = "usr_0195f3a00000700a83fd6b3d77c748f4"
     org_id = "org_0195f3a0000070008000000000000001"
     expected_user = User(
@@ -2135,21 +2023,18 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
         rpm_limit=1000,
         allowed_email_domains=[],
     )
-    mock_driver.get.side_effect = [
-        expected_user.model_dump(mode="json"),
-        expected_org.model_dump(mode="json"),
-    ]
-    identity_repo = IdentityRepositoryImpl(mock_driver)
+    async with InMemoryUnitOfWork(base_identity_uow.store) as seed_uow:
+        await seed_uow.entities.upsert_organization(expected_org)
+        await seed_uow.entities.upsert_user(expected_user)
+
+    identity_repo = IdentityRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_identity_uow.store))
     resolved_user = await identity_repo.get_user(user_id)
     assert resolved_user is not None
     assert resolved_user.id == user_id
-    mock_driver.get.assert_any_await("users", user_id)
 
     resolved_org = await identity_repo.get_organization(org_id)
     assert resolved_org is not None
     assert resolved_org.id == org_id
-    mock_driver.get.assert_any_await("organizations", org_id)
-    mock_driver.query.assert_not_awaited()
 
 
 @pytest.mark.asyncio

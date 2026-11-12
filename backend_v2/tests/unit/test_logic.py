@@ -1,21 +1,32 @@
+"""Unit tests for LogicNodeStrategy blueprint resolution and raw input projection."""
+
+from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.execution import FrozenContext
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
+from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.mark.asyncio
-async def test_logic_strategy_missing_blueprint() -> None:
+async def test_logic_strategy_missing_blueprint_error() -> None:
+    """Verify LogicNodeStrategy raises AppException when step has no task_blueprint configured."""
     fake_repo = InMemoryUnifiedWorkflowRepository()
     compiler = MagicMock()
     deps = StrategyDependencies(
         exec_repo=fake_repo,
         workflow_repo=fake_repo,
-        comp_repo=fake_repo,
         prompt_block_repo=fake_repo,
         output_profile_repo=fake_repo,
         identity_repo=fake_repo,
@@ -41,18 +52,15 @@ async def test_logic_strategy_missing_blueprint() -> None:
 
 
 @pytest.mark.asyncio
-async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
-    from backend_v2.models.state import StepOutputDTO
-    from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
-
+async def test_logic_strategy_raw_inputs_extraction() -> None:
+    """Verify LogicNodeStrategy reconstructs raw_inputs dictionary from StateProjector snapshot."""
     fake_repo = InMemoryUnifiedWorkflowRepository()
-    fake_repo.set_step({"id": "st_0195f3a0000070018234567890123456"}, step_id="blueprint_123")
+    fake_repo.set_step({"id": "stp_0195f3a0000070018234567890123456"}, step_id="blueprint_123")
 
     compiler = MagicMock()
     deps = StrategyDependencies(
         exec_repo=fake_repo,
         workflow_repo=fake_repo,
-        comp_repo=fake_repo,
         prompt_block_repo=fake_repo,
         output_profile_repo=fake_repo,
         identity_repo=fake_repo,
@@ -68,16 +76,11 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     step.input_mappings = {}
 
     projector = MagicMock()
-    # Simulate StateProjector flattening the raw_inputs dictionary
     projector.snapshot = [
         StepOutputDTO(step_id="raw_inputs", block_id="chat_log", data_type="text", payload="**Gemini Chat**..."),
         StepOutputDTO(step_id="raw_inputs", block_id="organization_id", data_type="text", payload="org-123"),
         StepOutputDTO(step_id="inputs", block_id="chat_log", data_type="text", payload="**Gemini Chat**..."),
     ]
-
-    from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
-    from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
-    from backend_v2.models.execution_core import ExecutionMetadata
 
     context = MagicMock()
     context.execution_id = "exe_1"
@@ -100,25 +103,18 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         await strategy.execute(step, projector, context, None, [])
         hook_state = mock_hook.call_args[0][1]
 
-    assert type(hook_state.inputs.raw_inputs) is dict, (
-        f"Bug! raw_inputs is {type(hook_state.inputs.raw_inputs)} instead of dict"
-    )
+    assert type(hook_state.inputs.raw_inputs) is dict
     assert hook_state.inputs.raw_inputs["chat_log"] == "**Gemini Chat**..."
 
 
 @pytest.mark.asyncio
-async def test_logic_strategy_signature_parity() -> None:
-    from backend_v2.exceptions import AppException
-    from backend_v2.models.domain.execution import FrozenContext
-    from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
-
+async def test_logic_strategy_signature_parity_failure() -> None:
+    """Verify LogicNodeStrategy execute accepts keyword arguments matching DAGExecutor dispatch."""
     fake_repo = InMemoryUnifiedWorkflowRepository()
-
     compiler = MagicMock()
     deps = StrategyDependencies(
         exec_repo=fake_repo,
         workflow_repo=fake_repo,
-        comp_repo=fake_repo,
         prompt_block_repo=fake_repo,
         output_profile_repo=fake_repo,
         identity_repo=fake_repo,
@@ -139,15 +135,22 @@ async def test_logic_strategy_signature_parity() -> None:
     context = MagicMock()
     context.execution_id = "exe_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
-    context.metadata = {}
+    context.global_context_vars = GlobalContextVarsDTO()
+    context.metadata = ExecutionMetadata()
 
-    # Call execute with the exact keyword argument signature from dag_executor.py
+    frozen = FrozenContext(
+        compiled_prompts={},
+        injected_theory=InjectedTheoryManifestDTO(theories={}),
+        generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+        ui_hints_snapshot={},
+        mcp_tool_audit=[],
+    )
+
     with pytest.raises(AppException):
         await strategy.execute(
             step=step,
             projector=projector,
             context=context,
-            frozen_ctx=FrozenContext(),
+            frozen_ctx=frozen,
             trace=[],
         )

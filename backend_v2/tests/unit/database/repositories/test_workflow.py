@@ -1,307 +1,299 @@
-"""Unit tests for WorkflowRepositoryImpl."""
+"""Unit tests for WorkflowRepositoryImpl over EntityPersistencePort."""
 
-from unittest.mock import AsyncMock
+from __future__ import annotations
 
 import pytest
 
-from backend_v2.database.driver import StorageDriver
+from backend_v2.database.postgres.pool import PostgresPoolManager
+from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
-from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
-from backend_v2.models.core_base import I18nText
+from backend_v2.exceptions import (
+    AppException,
+    ErrorCodes,
+    ResourceNotFoundError,
+    WorkflowNotFoundError,
+)
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
     StepUpdateDTO,
     WorkflowCreateDTO,
     WorkflowUpdateDTO,
 )
-from backend_v2.models.enums import CognitiveTier
+from backend_v2.models.enums import (
+    CognitiveTier,
+    HistoricalContextMode,
+    StepType,
+    StorageBackend,
+)
+from backend_v2.settings import Settings
+from backend_v2.tests.factories.model_factories import I18nTextFactory, WorkflowFactory
+from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryUnitOfWork
+
+_WF_ID = "wf_0195f3a0000070018234567890abcdef"
+_WF_OTHER = "wf_0195f3a0000070028234567890abcdef"
+_WF_MISSING = "wf_0195f3a0000070008000000000000099"
+_STP_ID = "stp_0195f3a0000070018234567890abcdef"
+_STP_MISSING = "stp_0195f3a0000070008000000000000099"
+_BLK_ID = "blk_0195f3a0000070018234567890abcdef"
+_PRF_ID = "prf_0195f3a0000070018234567890abcdef"
+_SYS_ID = "sys_0195f3a00000700e826807f3bfa3454d"
+_ORG_A = "org_0195f3a0000070018234567890abcdef"
+_ORG_B = "org_0195f3a0000070028234567890abcdef"
 
 
 @pytest.fixture
-def mock_driver() -> AsyncMock:
-    """Mock storage driver."""
-    driver = AsyncMock(spec=StorageDriver)
-    driver.query.return_value = []
-    driver.get.return_value = None
-    driver.upsert.return_value = "wf_0195f3a0000070018234567890abcdef"
-    driver.update.return_value = True
-    driver.delete.return_value = True
-    driver.count.return_value = 1
-    return driver
+def base_uow() -> InMemoryUnitOfWork:
+    """Provide a shared InMemoryUnitOfWork store for stateful repository tests."""
+    return InMemoryUnitOfWork()
 
 
 @pytest.fixture
-def repo(mock_driver: AsyncMock) -> WorkflowRepositoryImpl:
-    """Workflow repository fixture."""
-    return WorkflowRepositoryImpl(mock_driver)
+def repo(base_uow: InMemoryUnitOfWork) -> WorkflowRepositoryImpl:
+    """Provide a WorkflowRepositoryImpl backed by the stateful InMemoryUnitOfWork store."""
+    return WorkflowRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
 
 @pytest.fixture
-def valid_workflow_doc() -> dict:
-    """Valid workflow document fixture."""
-    return {
-        "id": "wf_0195f3a0000070018234567890abcdef",
-        "slug": "wf_exec",
-        "name": {"translations": {"en": "Workflow", "fi": "Työnkulku"}},
-        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
-        "status": "published",
-        "version": 1,
-        "default_profile_id": "prf_0195f3a0000070018234567890abcdef",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
-        "steps": [],
-    }
-
-
-@pytest.fixture
-def valid_step_doc() -> dict:
-    """Valid step document fixture."""
-    return {
-        "id": "stp_0195f3a0000070018234567890abcdef",
-        "slug": "step_one",
-        "name": {"translations": {"en": "Step 1", "fi": "Vaihe 1"}},
-        "cognitive_tier": "fast",
-        "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
-        "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
-    }
-
-
-@pytest.mark.asyncio
-async def test_get_workflow_by_id_and_definition(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
-) -> None:
-    """Positive: retrieves valid Workflow domain model via get_workflow_by_id and get_workflow."""
-    mock_driver.get.return_value = valid_workflow_doc
-    wf = await repo.get_workflow_by_id("wf_0195f3a0000070018234567890abcdef")
-    assert wf is not None
-    assert wf.id == "wf_0195f3a0000070018234567890abcdef"
-
-    wf_def = await repo.get_workflow("wf_0195f3a0000070018234567890abcdef")
-    assert wf_def is not None
-    assert wf_def.slug == "wf_exec"
-
-
-@pytest.mark.asyncio
-async def test_get_workflow_not_found(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: returns None when workflow is not found."""
-    mock_driver.get.return_value = None
-    assert await repo.get_workflow_by_id("wf_missing") is None
-    assert await repo.get_workflow_definition("wf_missing") is None
-
-
-@pytest.mark.asyncio
-async def test_get_all_workflows_filters(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
-) -> None:
-    """Positive: retrieving workflows with role ROOT, org filter, and corrupted record skipping."""
-    mock_driver.query.return_value = [valid_workflow_doc]
-    workflows = await repo.get_all_workflows(organization_id="org_123", role="MEMBER")
-    assert len(workflows) == 1
-    assert workflows[0].id == "wf_0195f3a0000070018234567890abcdef"
-
-    # With ROOT role
-    root_workflows = await repo.get_all_workflows(role="ROOT")
-    assert len(root_workflows) == 1
-
-
-@pytest.mark.asyncio
-async def test_get_all_workflows_corruption_fail_fast(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted workflow raises AppException."""
-    mock_driver.query.return_value = [{"id": "corrupted_1"}]
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_all_workflows()
-    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
-
-
-@pytest.mark.asyncio
-async def test_workflow_lifecycle_and_versioning(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
-) -> None:
-    """Positive: tests create, versioned update, definition update, count, and delete."""
-    mock_driver.upsert.return_value = "wf_0195f3a0000070018234567890abcdef"
-    wf_dto = WorkflowCreateDTO(
-        slug=valid_workflow_doc["slug"],
-        name=I18nText(translations=valid_workflow_doc["name"]["translations"]),
-        description=I18nText(translations=valid_workflow_doc["description"]["translations"]),
-        default_profile_id=valid_workflow_doc["default_profile_id"],
-        historical_context_mode=valid_workflow_doc["historical_context_mode"],
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+def sample_workflow() -> Workflow:
+    """Provide a valid Workflow domain model via Polyfactory."""
+    return WorkflowFactory.build(
+        id=_WF_ID,
+        slug="wf_exec",
+        organization_id=_ORG_A,
+        default_profile_id=_PRF_ID,
+        model_registry_id=_SYS_ID,
         steps=[],
     )
-    assert await repo.create_workflow(wf_dto) == "wf_0195f3a0000070018234567890abcdef"
 
-    mock_driver.get.return_value = valid_workflow_doc
-    new_id = await repo.update_workflow(
-        "wf_0195f3a0000070018234567890abcdef", WorkflowUpdateDTO(name=I18nText(translations={"en": "Updated"}))
+
+@pytest.fixture
+def sample_step() -> Step:
+    """Provide a valid Step domain model."""
+    return Step(
+        id=_STP_ID,
+        slug="step_one",
+        organization_id=_ORG_A,
+        name=I18nTextFactory.build(translations={"en": "Step 1", "fi": "Step 1 FI"}),
+        type=StepType.LLM,
+        cognitive_tier=CognitiveTier.FAST,
+        criteria_block_ids=[_BLK_ID],
+        extraction_protocol_block_id=_BLK_ID,
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
     )
-    assert new_id == "wf_0195f3a0000070018234567890abcdef"
-
-    def_id = await repo.update_workflow_definition(
-        "wf_0195f3a0000070018234567890abcdef", WorkflowUpdateDTO(slug="new_slug")
-    )
-    assert def_id == "wf_0195f3a0000070018234567890abcdef"
-
-    assert await repo.count_workflows() == 1
-    assert await repo.delete_workflow("wf_0195f3a0000070018234567890abcdef") is True
 
 
 @pytest.mark.asyncio
-async def test_save_workflow_and_save_step(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict, valid_step_doc: dict
+async def test_workflow_crud_and_role_filtering(
+    repo: WorkflowRepositoryImpl,
+    sample_workflow: Workflow,
 ) -> None:
-    """Positive: tests in-place atomic upsert for Workflow and Step domain models."""
-    from backend_v2.models.domain.step import Step
-    from backend_v2.models.domain.workflow import Workflow
+    """Positive: verify save_workflow, get_workflow aliases, tenant/ROOT filtering, update, count, and delete."""
+    assert await repo.get_workflow_by_id(_WF_MISSING) is None
+    assert await repo.get_workflow_definition(_WF_MISSING) is None
+    assert await repo.delete_workflow(_WF_MISSING) is False
 
-    wf_model = Workflow.model_validate(valid_workflow_doc, strict=False)
-    mock_driver.upsert.return_value = wf_model.id
-    saved_wf_id = await repo.save_workflow(wf_model)
-    assert saved_wf_id == wf_model.id
-    mock_driver.upsert.assert_called_with("workflows", wf_model.model_dump(mode="json"), wf_model.id)
+    assert await repo.save_workflow(sample_workflow) == _WF_ID
+    other_wf = WorkflowFactory.build(id=_WF_OTHER, organization_id=_ORG_B, model_registry_id=_SYS_ID, steps=[])
+    sys_wf = WorkflowFactory.build(
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        model_registry_id=_SYS_ID,
+        steps=[],
+    )
+    await repo.save_workflow(other_wf)
+    await repo.save_workflow(sys_wf)
 
-    step_model = Step.model_validate(valid_step_doc, strict=False)
-    mock_driver.upsert.return_value = step_model.id
-    saved_step_id = await repo.save_step(step_model)
-    assert saved_step_id == step_model.id
-    mock_driver.upsert.assert_called_with("steps", step_model.model_dump(mode="json"), step_model.id)
+    assert await repo.get_workflow(_WF_ID) == sample_workflow
+    assert await repo.get_workflow_by_id(_WF_ID) == sample_workflow
+    assert await repo.count_workflows() == 3
+
+    org_a_visible = await repo.get_all_workflows(organization_id=_ORG_A, role="MEMBER")
+    assert {w.id for w in org_a_visible} == {_WF_ID, sys_wf.id}
+
+    root_visible = await repo.get_all_workflows(organization_id=_ORG_A, role="ROOT")
+    assert len(root_visible) == 3
+
+    # Empty update returns workflow_id without mutating
+    assert await repo.update_workflow(_WF_ID, WorkflowUpdateDTO()) == _WF_ID
+
+    updated_id = await repo.update_workflow_definition(
+        _WF_ID,
+        WorkflowUpdateDTO(
+            name=I18nTextFactory.build(translations={"en": "Updated WF"}),
+            description=I18nTextFactory.build(translations={"en": "Updated Desc"}),
+            slug="wf_updated",
+            historical_context_mode=HistoricalContextMode.SLIDING_WINDOW_3,
+            default_profile_id=None,
+            default_strictness_level=85,
+            default_lexical_strictness_level=85,
+            security_penalty=0.5,
+            post_hoc_penalty=0.5,
+            passivity_penalty=0.5,
+            status="draft",
+            model_registry_id=_SYS_ID,
+            expected_inputs=[],
+            steps=[],
+        ),
+    )
+    assert updated_id == _WF_ID
+    updated_wf = await repo.get_workflow_by_id(_WF_ID)
+    assert updated_wf is not None
+    assert updated_wf.slug == "wf_updated"
+    assert updated_wf.default_profile_id is None
+    assert updated_wf.historical_context_mode == HistoricalContextMode.SLIDING_WINDOW_3
+
+    assert await repo.delete_workflow(_WF_ID) is True
+    assert await repo.get_workflow_by_id(_WF_ID) is None
 
 
 @pytest.mark.asyncio
-async def test_update_workflow_not_found(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: update_workflow raises WorkflowNotFoundError if workflow does not exist."""
-    mock_driver.get.return_value = None
+async def test_create_workflow_and_missing_registry_or_not_found_failures(
+    repo: WorkflowRepositoryImpl,
+) -> None:
+    """Positive & Negative: create_workflow requires model_registry_id and update_workflow raises WorkflowNotFoundError."""
+    wf_dto = WorkflowCreateDTO(
+        slug="created_wf",
+        name=I18nTextFactory.build(translations={"en": "Created"}),
+        description=I18nTextFactory.build(translations={"en": "Desc"}),
+        organization_id=_ORG_A,
+        default_profile_id=_PRF_ID,
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id=_SYS_ID,
+        expected_inputs=[],
+        steps=[],
+    )
+    created_id = await repo.create_workflow(wf_dto)
+    assert created_id.startswith("wf_")
+
+    missing_reg_dto = WorkflowCreateDTO(
+        slug="missing_reg",
+        name=I18nTextFactory.build(translations={"en": "Missing Reg"}),
+        model_registry_id=None,
+        expected_inputs=[],
+        steps=[],
+    )
+    with pytest.raises(AppException) as reg_exc:
+        await repo.create_workflow(missing_reg_dto)
+    assert reg_exc.value.status_code == 422
+    assert reg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
     with pytest.raises(WorkflowNotFoundError):
-        await repo.update_workflow("wf_missing", WorkflowUpdateDTO(slug="new_slug"))
+        await repo.update_workflow(_WF_MISSING, WorkflowUpdateDTO(slug="ghost"))
 
 
 @pytest.mark.asyncio
-async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict) -> None:
-    """Positive: tests step retrieval, creation, update, and deletion."""
-    mock_driver.get.return_value = valid_step_doc
-    mock_driver.query.return_value = [valid_step_doc]
+async def test_step_crud_delete_blocked_by_usage_and_not_found_failures(
+    repo: WorkflowRepositoryImpl,
+    sample_step: Step,
+    sample_workflow: Workflow,
+) -> None:
+    """Verify Step CRUD, empty update short-circuit, missing step errors, and workflow-usage delete guard."""
+    assert await repo.get_step_by_id(_STP_MISSING) is None
+    assert await repo.delete_step(_STP_MISSING) is False
+    with pytest.raises(ResourceNotFoundError):
+        await repo.update_step(_STP_MISSING, StepUpdateDTO(slug="ghost"))
 
-    step = await repo.get_step_by_id("stp_0195f3a0000070018234567890abcdef")
-    assert step is not None
-    assert step.id == "stp_0195f3a0000070018234567890abcdef"
+    assert await repo.save_step(sample_step) == _STP_ID
+    assert await repo.get_step(_STP_ID) == sample_step
+    assert len(await repo.get_all_steps()) == 1
 
-    step_alias = await repo.get_step("stp_0195f3a0000070018234567890abcdef")
-    assert step_alias is not None
+    # Empty StepUpdateDTO returns step_id unchanged
+    assert await repo.update_step(_STP_ID, StepUpdateDTO()) == _STP_ID
 
-    all_steps = await repo.get_all_steps()
-    assert len(all_steps) == 1
-
-    mock_driver.upsert.return_value = "stp_0195f3a0000070018234567890abcdef"
-    step_dto = StepCreateDTO(
-        slug=valid_step_doc["slug"],
-        name=I18nText(translations=valid_step_doc["name"]["translations"]),
-        cognitive_tier=CognitiveTier(valid_step_doc["cognitive_tier"]),
-        criteria_block_ids=valid_step_doc["criteria_block_ids"],
-        extraction_protocol_block_id=valid_step_doc["extraction_protocol_block_id"],
-    )
-    assert await repo.create_step(step_dto) == "stp_0195f3a0000070018234567890abcdef"
     assert (
-        await repo.update_step("stp_0195f3a0000070018234567890abcdef", StepUpdateDTO(slug="updated"))
-        == "stp_0195f3a0000070018234567890abcdef"
+        await repo.update_step(
+            _STP_ID,
+            StepUpdateDTO(
+                name=I18nTextFactory.build(translations={"en": "Renamed Step"}),
+                description=I18nTextFactory.build(translations={"en": "Step Desc"}),
+                slug="step_renamed",
+                type=StepType.LLM,
+                role_block_id=_BLK_ID,
+                extraction_protocol_block_id=_BLK_ID,
+                execution_persona_block_id=_BLK_ID,
+                criteria_block_ids=[_BLK_ID],
+                pre_hooks=[],
+                post_hooks=[],
+                safety="safe",
+                allowed_mcp_tools=[],
+                mcp_tool_params={},
+                cognitive_tier=CognitiveTier.BALANCED,
+                expected_inputs=[],
+            ),
+        )
+        == _STP_ID
     )
-    assert await repo.delete_step("stp_0195f3a0000070018234567890abcdef", force_delete=True) is True
+
+    created_step_id = await repo.create_step(
+        StepCreateDTO(
+            slug="created_step",
+            organization_id=_ORG_A,
+            name=I18nTextFactory.build(translations={"en": "Created Step"}),
+            type=StepType.LLM,
+            cognitive_tier=CognitiveTier.FAST,
+            criteria_block_ids=[_BLK_ID],
+            extraction_protocol_block_id=_BLK_ID,
+            pre_hooks=[],
+            post_hooks=[],
+            allowed_mcp_tools=[],
+            mcp_tool_params={},
+            expected_inputs=[],
+        )
+    )
+    assert created_step_id.startswith("stp_")
+
+    # Workflow referencing _STP_ID blocks non-forced deletion
+    wf_using_step = sample_workflow.model_copy(
+        update={
+            "steps": [
+                StepRule(
+                    task_blueprint=_STP_ID,
+                    depends_on=[],
+                )
+            ]
+        }
+    )
+    await repo.save_workflow(wf_using_step)
+
+    with pytest.raises(AppException) as blocked_exc:
+        await repo.delete_step(_STP_ID, force_delete=False)
+    assert blocked_exc.value.status_code == 400
+    assert blocked_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    assert await repo.delete_step(_STP_ID, force_delete=True) is True
+    assert await repo.get_step_by_id(_STP_ID) is None
 
 
 @pytest.mark.asyncio
-async def test_get_all_steps_corruption_fail_fast(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted step raises AppException."""
-    mock_driver.query.return_value = [{"id": "corrupted_step"}]
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_all_steps()
-    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+async def test_workflow_postgres_invalid_prefix_and_storage_fault_failure() -> None:
+    """Negative: invalid ID prefix raises VALIDATION_FAILED and SQL fault raises STORAGE_ACCESS_FAILED."""
+    pool = InMemoryAsyncPgPool()
+    settings = Settings(
+        storage_backend=StorageBackend.POSTGRES,
+        postgres_host="db.internal",
+        postgres_port=5432,
+        postgres_user="quorum",
+        postgres_db="quorum",
+        postgres_command_timeout_seconds=5.0,
+    )
+    pool_mgr = PostgresPoolManager(settings=settings, pool=pool)
+    pg_repo = WorkflowRepositoryImpl(uow_factory=lambda: PostgresUnitOfWork(pool_mgr))
 
+    with pytest.raises(AppException) as invalid_exc:
+        await pg_repo.get_workflow_by_id(_STP_ID)
+    assert invalid_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-@pytest.mark.asyncio
-async def test_delete_step_blocked_by_usage(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict, valid_workflow_doc: dict
-) -> None:
-    """Negative: step deletion blocked when used by an active workflow without force_delete."""
-    workflow_using_step = dict(valid_workflow_doc)
-    workflow_using_step["steps"] = [{"task_blueprint": "stp_0195f3a0000070018234567890abcdef"}]
-
-    mock_driver.get.return_value = valid_step_doc
-    mock_driver.query.return_value = [workflow_using_step]
-
-    with pytest.raises(AppException) as exc_info:
-        await repo.delete_step("stp_0195f3a0000070018234567890abcdef", force_delete=False)
-    assert exc_info.value.status_code == 400
-
-
-@pytest.mark.asyncio
-async def test_delete_step_not_found(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: returns False if step does not exist."""
-    mock_driver.get.return_value = None
-    assert await repo.delete_step("stp_missing") is False
-
-
-@pytest.mark.asyncio
-async def test_get_workflow_definition_from_disk_success(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
-) -> None:
-    """Positive: loads workflow from disk file when driver returns None."""
-    import json
-    from pathlib import Path
-
-    wf_id = "wf_0195f3a0000070018234567890abcdef"
-    disk_file = Path(f"data/workflows/{wf_id}.json")
-    disk_file.parent.mkdir(parents=True, exist_ok=True)
-    file_doc = dict(valid_workflow_doc)
-    file_doc["id"] = wf_id
-    disk_file.write_text(json.dumps(file_doc), encoding="utf-8")
     try:
-        mock_driver.get.return_value = None
-        wf = await repo.get_workflow_definition(wf_id)
-        assert wf is not None
-        assert wf.id == wf_id
+        pool.inject_fault("fetch", RuntimeError("simulated list failure"))
+        with pytest.raises(AppException) as fault_exc:
+            await pg_repo.get_all_steps()
+        assert fault_exc.value.status_code == 500
+        assert fault_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
     finally:
-        if disk_file.exists():
-            disk_file.unlink()
-
-
-@pytest.mark.asyncio
-async def test_get_workflow_definition_from_disk_corruption(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock
-) -> None:
-    """Negative: corrupted disk workflow file raises AppException with STORAGE_ACCESS_FAILED."""
-    from pathlib import Path
-
-    wf_id = "wf_0195f3a00000700a8bcdef1234567890"
-    disk_file = Path(f"data/workflows/{wf_id}.json")
-    disk_file.parent.mkdir(parents=True, exist_ok=True)
-    disk_file.write_text("{not valid json", encoding="utf-8")
-    try:
-        mock_driver.get.return_value = None
-        with pytest.raises(AppException) as exc_info:
-            await repo.get_workflow_definition(wf_id)
-        assert exc_info.value.status_code == 500
-        assert exc_info.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED
-    finally:
-        if disk_file.exists():
-            disk_file.unlink()
-
-
-@pytest.mark.asyncio
-async def test_get_step_by_id_embedded_fallback(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict
-) -> None:
-    """Positive: locates step embedded in workflow when standalone step is None."""
-    mock_driver.get.return_value = None
-    mock_driver.query.return_value = [{"id": "wf_with_embedded", "steps": [valid_step_doc]}]
-    step = await repo.get_step_by_id(valid_step_doc["id"])
-    assert step is not None
-    assert step.id == valid_step_doc["id"]
-
-
-@pytest.mark.asyncio
-async def test_get_step_by_id_embedded_corruption(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: corrupted embedded step in workflow raises AppException with VALIDATION_FAILED."""
-    mock_driver.get.return_value = None
-    mock_driver.query.return_value = [{"id": "wf_with_embedded", "steps": [{"id": "stp_corrupt_embedded"}]}]
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_step_by_id("stp_corrupt_embedded")
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+        pool.clear_faults()

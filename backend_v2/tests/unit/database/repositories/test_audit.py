@@ -199,7 +199,7 @@ async def test_audit_repository_invalid_since_and_missing_uow_failure(
         await repo.get_detailed_usage("org", "org_0195f3a0000070018234567890abcdef", since="invalid_date_format")
     assert exc_detailed.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-    monkeypatch.setattr("backend_v2.database.repositories.audit.get_registered_uow_factory", lambda: None)
+    monkeypatch.setattr("backend_v2.database.repositories.base.get_registered_uow_factory", lambda: None)
     unconfigured_repo = AuditRepositoryImpl(uow_factory=None)
     with pytest.raises(ConfigurationError) as cfg_exc:
         await unconfigured_repo.get_audit_logs()

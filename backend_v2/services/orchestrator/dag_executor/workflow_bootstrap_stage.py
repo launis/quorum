@@ -485,8 +485,15 @@ async def bootstrap_workflow_execution_state(
         exec_record.execution_trace.append(input_event)
         projector.apply_delta(input_event)
         try:
-            r1 = (deps.exec_repo, deps.workflow_repo, deps.comp_repo, deps.prompt_block_repo)
-            r2 = (deps.output_profile_repo, deps.identity_repo, deps.system_repo, deps.audit_repo)
+            hook_deps = HookDependencies(
+                exec_repo=deps.exec_repo,
+                workflow_repo=deps.workflow_repo,
+                prompt_block_repo=deps.prompt_block_repo,
+                output_profile_repo=deps.output_profile_repo,
+                identity_repo=deps.identity_repo,
+                system_repo=deps.system_repo,
+                audit_repo=deps.audit_repo,
+            )
             dyn_in = exec_record.raw_inputs.dynamic_inputs
             h_meta = exec_record.metadata if exec_record.metadata is not None else ExecutionMetadata()
             h_in, w_id = ExecutionInputsDTO(raw_inputs=dyn_in, dynamic_inputs=dyn_in), workflow.id
@@ -495,7 +502,7 @@ async def bootstrap_workflow_execution_state(
             )
             dm = sys.modules
             reg: Any = dm[_DAG_EXECUTOR_MODULE].hook_registry if _DAG_EXECUTOR_MODULE in dm else hook_registry
-            processed_result = await reg.execute("input_processing", h_state, HookDependencies(*r1, *r2))
+            processed_result = await reg.execute("input_processing", h_state, hook_deps)
             if processed_result.success and processed_result.state_delta is not None:
                 delta_content = StepOutputContentDTO.model_validate(
                     {"data": _extract_input_delta_dict(processed_result.state_delta)}

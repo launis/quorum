@@ -306,7 +306,6 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
     deps = HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,

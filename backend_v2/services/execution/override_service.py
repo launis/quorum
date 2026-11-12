@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
-    IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
     IOutputProfileRepository,
@@ -39,7 +38,6 @@ class ExecutionOverrideService:
     Attributes:
         exec_repo: Repository for execution records.
         workflow_repo: Repository for workflow blueprints.
-        comp_repo: Optional repository for workflow components.
         prompt_block_repo: Optional repository for prompt blocks.
         output_profile_repo: Optional repository for output profiles.
         identity_repo: Optional repository for user and organization identities.
@@ -51,7 +49,6 @@ class ExecutionOverrideService:
         self,
         exec_repo: IExecutionRepository,
         workflow_repo: IWorkflowRepository,
-        comp_repo: IComponentRepository | None = None,
         prompt_block_repo: IPromptBlockRepository | None = None,
         output_profile_repo: IOutputProfileRepository | None = None,
         identity_repo: IIdentityRepository | None = None,
@@ -64,7 +61,6 @@ class ExecutionOverrideService:
         Args:
             exec_repo: Repository for execution records.
             workflow_repo: Repository for workflows.
-            comp_repo: Optional repository for components.
             prompt_block_repo: Optional repository for prompt blocks.
             output_profile_repo: Optional repository for output profiles.
             identity_repo: Optional repository for identities.
@@ -72,7 +68,7 @@ class ExecutionOverrideService:
             storage_driver: Optional file storage driver.
             get_execution_fn: Optional callable to retrieve an execution record.
         """
-        self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
+        self.exec_repo, self.workflow_repo = exec_repo, workflow_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
         self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
@@ -345,8 +341,7 @@ class ExecutionOverrideService:
                 (ErrorCodes.CONFIGURATION_ERROR).
         """
         if (
-            self.comp_repo is None
-            or self.prompt_block_repo is None
+            self.prompt_block_repo is None
             or self.output_profile_repo is None
             or self.identity_repo is None
             or self.system_repo is None
@@ -368,7 +363,6 @@ class ExecutionOverrideService:
         deps = HookDependencies(
             exec_repo=self.exec_repo,
             workflow_repo=self.workflow_repo,
-            comp_repo=self.comp_repo,
             prompt_block_repo=self.prompt_block_repo,
             output_profile_repo=self.output_profile_repo,
             identity_repo=self.identity_repo,

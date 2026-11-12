@@ -179,7 +179,6 @@ def _build_stage1_result(
         hook_deps=HookDependencies(
             exec_repo=repo,
             workflow_repo=repo,
-            comp_repo=repo,
             prompt_block_repo=repo,
             output_profile_repo=repo,
             identity_repo=repo,
@@ -225,7 +224,6 @@ def strategy_deps(in_memory_repo: InMemoryUnifiedWorkflowRepository) -> Strategy
     return StrategyDependencies(
         exec_repo=in_memory_repo,
         workflow_repo=in_memory_repo,
-        comp_repo=in_memory_repo,
         prompt_block_repo=in_memory_repo,
         output_profile_repo=in_memory_repo,
         identity_repo=in_memory_repo,

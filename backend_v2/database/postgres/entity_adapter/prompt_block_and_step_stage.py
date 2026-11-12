@@ -12,6 +12,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _format_org_uuid7,
     _parse_optional_uuid7,
     _parse_org_uuid7,
+    execute_entity_delete,
     execute_entity_upsert,
     resolve_effective_timeout,
     translate_postgres_exception,
@@ -32,16 +33,22 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
 
 __all__ = [
+    "_DELETE_PROMPT_BLOCK_SQL",
+    "_DELETE_STEP_SQL",
     "_GET_PROMPT_BLOCK_SQL",
     "_GET_STEP_SQL",
     "_LIST_PROMPT_BLOCKS_SQL",
     "_LIST_STEPS_SQL",
     "_UPSERT_PROMPT_BLOCK_SQL",
     "_UPSERT_STEP_SQL",
+    "delete_prompt_block_row",
+    "delete_step_row",
     "get_prompt_block_row",
     "get_step_row",
     "hydrate_prompt_block_row",
     "hydrate_step_row",
+    "list_prompt_block_rows",
+    "list_step_rows",
     "upsert_prompt_block_row",
     "upsert_step_row",
 ]
@@ -455,7 +462,125 @@ async def get_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step_id:
         AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
     """
     step_uuid = parse_prefixed_uuid7(step_id, EntityPrefix.STEP)
-    row = await _fetch_row(conn, timeout, _GET_STEP_SQL, step_uuid, step_id)
+    row = await _fetch_row(conn, timeout, _GET_STEP_SQL, step_uuid, step_id, table_name="steps")
     if row is None:
         return None
     return hydrate_step_row(row)
+
+
+_DELETE_PROMPT_BLOCK_SQL: str = "DELETE FROM prompt_blocks WHERE id = $1::uuid"
+_DELETE_STEP_SQL: str = "DELETE FROM steps WHERE id = $1::uuid"
+
+
+async def list_prompt_block_rows(conn: AsyncPgConnectionProtocol, timeout: float) -> list[AnyPromptBlock]:
+    """List all polymorphic AnyPromptBlock rows from prompt_blocks.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated AnyPromptBlock domain models.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(_LIST_PROMPT_BLOCKS_SQL, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="prompt_blocks",
+            entity_id="*",
+        ) from exc
+    return [hydrate_prompt_block_row(row) for row in rows]
+
+
+async def delete_prompt_block_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    block_id: str,
+) -> bool:
+    """Delete a PromptBlock row by primary key from prompt_blocks.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        block_id: Canonical blk_<hex32> prompt block identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    block_uuid = parse_prefixed_uuid7(block_id, EntityPrefix.PROMPT_BLOCK)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_PROMPT_BLOCK_SQL,
+        block_uuid,
+        entity_id=block_id,
+        table="prompt_blocks",
+    )
+
+
+async def list_step_rows(conn: AsyncPgConnectionProtocol, timeout: float) -> list[Step]:
+    """List all Step rows from steps.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated Step domain models.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(_LIST_STEPS_SQL, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="steps",
+            entity_id="*",
+        ) from exc
+    return [hydrate_step_row(row) for row in rows]
+
+
+async def delete_step_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    step_id: str,
+) -> bool:
+    """Delete a Step row by primary key from steps.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        step_id: Canonical stp_<hex32> step identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    step_uuid = parse_prefixed_uuid7(step_id, EntityPrefix.STEP)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_STEP_SQL,
+        step_uuid,
+        entity_id=step_id,
+        table="steps",
+    )

@@ -28,12 +28,24 @@ from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAsserti
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO
 from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
+from backend_v2.models.enums import (
+    BlockDataType,
+    ExecutionStatus,
+    HistoricalContextMode,
+    PromptBlockCategory,
+    StepType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.factories.model_factories import (
+    ExecutionRecordFactory,
+    OutputProfileFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -52,126 +64,116 @@ class MatrixSetupDTO:
 
 def _build_test_matrix_block(pb_id: str, tda_id: str) -> MatrixPromptBlock:
     """Construct a valid MatrixPromptBlock for test fixtures."""
-    return MatrixPromptBlock.model_validate(
-        {
-            "id": pb_id,
-            "slug": "test_matrix_block",
-            "label": {"translations": {"en": "Leadership Maturity", "fi": "Johtamisen kypsyys"}},
-            "description": {"translations": {"en": "Measures leadership behavior", "fi": "Mittaa johtajuutta"}},
-            "type": "float",
-            "category_id": PromptBlockCategory.MATRIX.value,
-            "ai_description": "Assess strategic leadership capabilities.",
-            "allow_contextual_override": True,
-            "scales": [
-                {
-                    "score": 1,
-                    "ai_label": "Foundational",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": "Basic alignment", "fi": "Peruslinjaus"}},
-                            "tda_assertions": [
-                                {
-                                    "tda_id": tda_id,
-                                    "concept_description": "Demonstrates clear vision alignment.",
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "EXISTS",
-                                }
-                            ],
-                        }
-                    ],
-                },
-                {
-                    "score": 2,
-                    "ai_label": "Advanced",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": "Strategic synthesis", "fi": "Strateginen synteesi"}},
-                            "tda_assertions": [
-                                {
-                                    "tda_id": "tda_99998888777766669999888877776666",
-                                    "concept_description": "Synthesizes multi-stakeholder strategy.",
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "EXISTS",
-                                }
-                            ],
-                        }
-                    ],
-                },
-            ],
-        }
+    return MatrixPromptBlock(
+        id=pb_id,
+        slug="test_matrix_block",
+        label=I18nText(translations={"en": "Leadership Maturity", "fi": "Johtamisen kypsyys"}),
+        description=I18nText(translations={"en": "Measures leadership behavior", "fi": "Mittaa johtajuutta"}),
+        type=BlockDataType.FLOAT,
+        category_id=PromptBlockCategory.MATRIX,
+        ai_description="Assess strategic leadership capabilities.",
+        allow_contextual_override=True,
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="Foundational",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Basic alignment", "fi": "Peruslinjaus"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id=tda_id,
+                                concept_description="Demonstrates clear vision alignment.",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+            MatrixScale(
+                score=2,
+                ai_label="Advanced",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Strategic synthesis", "fi": "Strateginen synteesi"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id="tda_99998888777766669999888877776666",
+                                concept_description="Synthesizes multi-stakeholder strategy.",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+        ],
     )
 
 
 def _build_test_step(step_id: str, block_id: str) -> Step:
     """Construct a valid Step containing the matrix block reference."""
-    return Step.model_validate(
-        {
-            "id": step_id,
-            "slug": "strategic_matrix_step",
-            "name": {"translations": {"en": "Matrix Evaluation Step", "fi": "Matriisiarviointivaihe"}},
-            "type": "logic",
-            "hook": "matrix_scoring_hook",
-            "role_block_id": None,
-            "extraction_protocol_block_id": "blk_0195f3a0000070058555666677778888",
-            "criteria_block_ids": [block_id],
-        }
+    return Step(
+        id=step_id,
+        slug="strategic_matrix_step",
+        name=I18nText(translations={"en": "Matrix Evaluation Step", "fi": "Matriisiarviointivaihe"}),
+        type=StepType.LOGIC,
+        hook="matrix_scoring_hook",
+        role_block_id=None,
+        extraction_protocol_block_id="blk_0195f3a0000070058555666677778888",
+        criteria_block_ids=[block_id],
     )
 
 
 def _build_test_workflow(workflow_id: str, profile_id: str) -> Workflow:
     """Construct a valid Workflow."""
-    return Workflow.model_validate(
-        {
-            "id": workflow_id,
-            "slug": "executive_review",
-            "name": {"translations": {"en": "Executive Review", "fi": "Johdon arviointi"}},
-            "description": {"translations": {"en": "Executive review workflow", "fi": "Johdon työnkulku"}},
-            "status": "active",
-            "version": 1,
-            "default_profile_id": profile_id,
-            "default_strictness_level": 70,
-            "enable_contextual_overrides": True,
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
-            "historical_context_mode": "DISABLED",
-        }
+    return WorkflowFactory.build(
+        id=workflow_id,
+        slug="executive_review",
+        name=I18nText(translations={"en": "Executive Review", "fi": "Johdon arviointi"}),
+        description=I18nText(translations={"en": "Executive review workflow", "fi": "Johdon työnkulku"}),
+        status="active",
+        version=1,
+        default_profile_id=profile_id,
+        default_strictness_level=70,
+        enable_contextual_overrides=True,
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        historical_context_mode=HistoricalContextMode.DISABLED,
     )
 
 
 def _build_test_execution(execution_id: str, workflow_id: str, profile_id: str) -> ExecutionRecord:
     """Construct a valid ExecutionRecord."""
     now = datetime.now(UTC)
-    return ExecutionRecord.model_validate(
-        {
-            "id": execution_id,
-            "workflow_id": workflow_id,
-            "organization_id": "org_0195f3a0000070018111222233334444",
-            "created_by": "usr_0195f3a0000070018111222233334444",
-            "output_profile_id": profile_id,
-            "status": "RUNNING",
-            "target_locale": "en",
-            "created_at": now,
-            "updated_at": now,
-        }
+    return ExecutionRecordFactory.build(
+        id=execution_id,
+        workflow_id=workflow_id,
+        organization_id="org_0195f3a0000070018111222233334444",
+        created_by="usr_0195f3a0000070018111222233334444",
+        output_profile_id=profile_id,
+        status=ExecutionStatus.RUNNING,
+        target_locale="en",
+        created_at=now,
+        updated_at=now,
     )
 
 
 def _build_test_output_profile(profile_id: str, workflow_id: str, block_id: str) -> OutputProfile:
     """Construct a valid OutputProfile."""
-    return OutputProfile.model_validate(
-        {
-            "id": profile_id,
-            "slug": "standard_executive_profile",
-            "workflow_id": workflow_id,
-            "name": {"translations": {"en": "Standard Executive", "fi": "Vakiojohto"}},
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_0195f3a0000070018111222233334444",
-                    "title": {"translations": {"en": "Leadership", "fi": "Johtajuus"}},
-                    "target_blocks": [block_id],
-                }
-            ],
-            "display_scale": "original",
-        }
+    return OutputProfileFactory.build(
+        id=profile_id,
+        slug="standard_executive_profile",
+        workflow_id=workflow_id,
+        name=I18nText(translations={"en": "Standard Executive", "fi": "Vakiojohto"}),
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0195f3a0000070018111222233334444",
+                title=I18nText(translations={"en": "Leadership", "fi": "Johtajuus"}),
+                target_blocks=[block_id],
+            )
+        ],
+        display_scale="original",
     )
 
 
@@ -201,7 +203,6 @@ def matrix_setup() -> MatrixSetupDTO:
     deps = HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -285,7 +286,6 @@ async def test_matrix_scoring_hook_missing_workflow_repo_raises(matrix_setup: Ma
     deps = HookDependencies(
         exec_repo=matrix_setup.deps.exec_repo,
         workflow_repo=None,
-        comp_repo=matrix_setup.deps.comp_repo,
         prompt_block_repo=matrix_setup.deps.prompt_block_repo,
         output_profile_repo=matrix_setup.deps.output_profile_repo,
         identity_repo=matrix_setup.deps.identity_repo,

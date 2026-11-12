@@ -1,6 +1,6 @@
 """Database Factory Module.
 
-Centralizes the creation of PostgreSQL 19 StorageDriver and QuorumUnitOfWork
+Centralizes the creation of PostgreSQL 19 PostgresPoolManager and QuorumUnitOfWork
 instances based on Application Settings.
 """
 
@@ -9,10 +9,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from backend_v2.database.driver import StorageDriver
 from backend_v2.database.interfaces import QuorumUnitOfWork, register_default_uow_factory
 from backend_v2.database.postgres.pool import PostgresPoolManager
-from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.settings import Settings, StorageBackend, get_settings
@@ -25,7 +23,6 @@ _POOL_MANAGER_LOCK: asyncio.Lock = asyncio.Lock()
 __all__ = [
     "close_shared_pool_manager",
     "create_unit_of_work",
-    "get_driver",
     "get_shared_pool_manager",
 ]
 
@@ -75,58 +72,6 @@ async def close_shared_pool_manager() -> None:
 
     if manager is not None:
         await manager.close()
-
-
-async def get_driver(
-    settings: Settings | None = None,
-    pool_manager: object | None = None,
-) -> StorageDriver:
-    """Instantiate the PostgreSQL 19 Async Storage Driver.
-
-    Args:
-        settings: Application settings object containing 'active_backend'.
-        pool_manager: Optional pre-initialized PostgresPoolManager instance for injection.
-
-    Returns:
-        An initialized PostgresStorageDriver instance.
-
-    Raises:
-        ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if active_backend
-            is not StorageBackend.POSTGRES or if an incompatible pool_manager is passed.
-    """
-    resolved_settings = settings if settings is not None else get_settings()
-    backend = resolved_settings.active_backend
-    logger.debug("[Factory] Initializing Storage Driver for Backend: %s", backend.value)
-
-    if backend != StorageBackend.POSTGRES:
-        msg = f"Unsupported storage backend '{backend.value}'. Only StorageBackend.POSTGRES is supported."
-        logger.error(
-            "[Factory] %s: %s",
-            ErrorCodes.CONFIGURATION_ERROR.name,
-            msg,
-            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            exc_info=True,
-        )
-        raise ConfigurationError(msg)
-
-    if pool_manager is not None:
-        if not isinstance(pool_manager, PostgresPoolManager):
-            msg = (
-                f"StorageBackend.POSTGRES requires a PostgresPoolManager instance when pool_manager is provided, "
-                f"got {type(pool_manager).__name__}."
-            )
-            logger.error(
-                "[Factory] %s: %s",
-                ErrorCodes.CONFIGURATION_ERROR.name,
-                msg,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                exc_info=True,
-            )
-            raise ConfigurationError(msg)
-        return PostgresStorageDriver(pool_manager=pool_manager, settings=resolved_settings)
-
-    shared_pool_manager = get_shared_pool_manager(resolved_settings)
-    return PostgresStorageDriver(pool_manager=shared_pool_manager, settings=resolved_settings)
 
 
 def create_unit_of_work(

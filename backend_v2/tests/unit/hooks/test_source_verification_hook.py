@@ -5,6 +5,7 @@ from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import BaseModel
 
 import backend_v2.hooks.source_verification_hook as hook_module
 from backend_v2.core.hook_registry import (
@@ -77,7 +78,6 @@ def mock_deps() -> HookDependencies:
     return HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -258,7 +258,6 @@ async def test_source_verification_hook_missing_system_repo_raises() -> None:
     deps_no_repo = HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -462,7 +461,6 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
     mock_deps: HookDependencies,
 ) -> None:
     """TC-HOOK-08: Tests generic BaseModel inputs and non-AppException wrapping."""
-    from pydantic import BaseModel
 
     class CustomDataModel(BaseModel):
         text: str
@@ -506,7 +504,6 @@ async def test_source_verification_hook_bypasses_when_no_search_tools_configured
     deps_empty_tools = HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -538,7 +535,6 @@ async def test_source_verification_hook_extra_none_and_invalid_type() -> None:
     deps_empty_tools = HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,

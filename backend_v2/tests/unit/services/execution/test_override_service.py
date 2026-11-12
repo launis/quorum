@@ -141,7 +141,6 @@ def _create_mock_service(
     service = ExecutionOverrideService(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
-        comp_repo=workflow_repo,
         prompt_block_repo=workflow_repo,
         output_profile_repo=workflow_repo,
         identity_repo=workflow_repo,
@@ -284,7 +283,6 @@ async def test_override_atom_missing_repos_configuration_error() -> None:
     service = ExecutionOverrideService(
         exec_repo=exec_repo,
         workflow_repo=InMemoryUnifiedWorkflowRepository(),
-        comp_repo=None,
         prompt_block_repo=None,
         storage_driver=MagicMock(spec=FileDriver),
     )

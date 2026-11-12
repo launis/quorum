@@ -1,5 +1,7 @@
 """Unit tests for metadata hook and metadata domain DTOs."""
 
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 
@@ -21,11 +23,18 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _create_hook_deps(repo: InMemoryUnifiedWorkflowRepository | None = None) -> HookDependencies:
-    r = repo or InMemoryUnifiedWorkflowRepository()
+    """Build HookDependencies wired to an in-memory unified workflow repository.
+
+    Args:
+        repo: Optional pre-configured InMemoryUnifiedWorkflowRepository.
+
+    Returns:
+        Configured HookDependencies container.
+    """
+    r = repo if repo is not None else InMemoryUnifiedWorkflowRepository()
     return HookDependencies(
         exec_repo=r,
         workflow_repo=r,
-        comp_repo=r,
         prompt_block_repo=r,
         output_profile_repo=r,
         identity_repo=r,
@@ -51,7 +60,7 @@ def test_inject_step_metadata_missing_execution_id_fails() -> None:
         execution_id="",
         workflow_id="wf_1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
@@ -71,7 +80,7 @@ def test_inject_step_metadata_missing_step_id_fails() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
@@ -91,7 +100,7 @@ def test_inject_step_metadata_missing_workflow_id_fails() -> None:
         execution_id="exec_1",
         workflow_id="",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
@@ -107,14 +116,14 @@ def test_inject_step_metadata_missing_workflow_id_fails() -> None:
 
 def test_inject_step_metadata_missing_global_context_vars_fails() -> None:
     """Test missing global_context_vars raises AppException with VALIDATION_FAILED."""
-    state = HookState.model_construct(
+    state = HookState(
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
-        global_context_vars=None,
-    )
+    ).model_copy(update={"global_context_vars": None})
     deps = _create_hook_deps()
 
     with pytest.raises(AppException) as exc_info:
@@ -131,7 +140,7 @@ def test_inject_step_metadata_custom_values() -> None:
         execution_id="exec_555",
         workflow_id="wf_999",
         step_id="step_123",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={}),
         global_context_vars=GlobalContextVarsDTO(initiator_id="usr_777"),
         metadata=ExecutionMetadata(),
     )
@@ -154,9 +163,8 @@ def test_inject_step_metadata_custom_values() -> None:
 
 def test_inject_step_metadata_validation_failure() -> None:
     """Test that strict Pydantic validation fails if context vars contain invalid types."""
-    # Since strict=True, passing an integer instead of a string for initiator_id fails at construction
     with pytest.raises(ValidationError):
-        GlobalContextVarsDTO(initiator_id=12345)
+        GlobalContextVarsDTO.model_validate({"initiator_id": 12345})
 
 
 def test_step_metadata_dto_unix_time_boundary_valid() -> None:

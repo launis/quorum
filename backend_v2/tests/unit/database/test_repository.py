@@ -1,13 +1,12 @@
-"""Unit tests for UnifiedWorkflowRepository and sub-repository delegation."""
+"""Unit tests for UnifiedWorkflowRepository delegation over UnitOfWorkFactory."""
+
+from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import JsonValue
 
-from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
-from backend_v2.database.repositories.execution import HydrationPayloadValue
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import (
@@ -18,206 +17,197 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.base import AuditLogCreateDTO
-from backend_v2.models.domain.knowledge import (
-    ClaimCreateDTO,
-    ConceptCreateDTO,
-    ReferenceCreateDTO,
-)
-from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
 from backend_v2.models.domain.system_config import (
     ModelProfile,
+    ProviderExtraParamsDTO,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
-from backend_v2.models.domain.task_brief import TaskBrief
+from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
     StepUpdateDTO,
     WorkflowCreateDTO,
     WorkflowUpdateDTO,
 )
-from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.dtos.system import SystemConfigCreateDTO
+from backend_v2.models.dtos.trace import (
+    ExecutionCreateDTO,
+    ExecutionUpdateDTO,
+    ProgressTracePayloadDTO,
+    TraceEventMetadataDTO,
+)
 from backend_v2.models.enums import (
-    BlockDataType,
     CognitiveTier,
     ExecutionStatus,
     LLMProvider,
-    PromptBlockCategory,
+    StepType,
     SystemLocale,
     TargetBlockType,
 )
+from backend_v2.models.state import TraceEvent
+from backend_v2.tests.factories.model_factories import (
+    ExecutionRecordFactory,
+    I18nTextFactory,
+    OutputProfileFactory,
+    ReportArtifactFactory,
+    SystemRulePromptBlockFactory,
+    TaskBriefFactory,
+    UsageRecordFactory,
+)
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
+_WF_ID = "wf_0195f3a0000070008123456789abcdef"
+_PRF_ID = "prf_0195f3a0000070008123456789abcdef"
+_EXE_ID = "exe_0195f3a0000070008123456789abcdef"
+_ORG_ID = "org_0195f3a0000070008123456789abcdef"
+_USR_ID = "usr_0195f3a0000070008123456789abcdef"
+_BLK_ID = "blk_0195f3a0000070008123456789abcdef"
+_TBR_ID = "tbr_0195f3a0000070008123456789abcdef"
+_REP_ID = "rep_0195f3a0000070008123456789abcdef"
+_SYS_ID = "sys_0195f3a0000070018234567890abcdef"
+_SYS_GW_ID = "sys_0195f3a0000070018234567890abcde1"
+_SYS_MISSING_ID = "sys_0195f3a0000070018234567890abcde9"
+
 
 @pytest.mark.asyncio
-async def test_hydrate_payloads_fails_fast_on_empty_blob() -> None:
-    """Test that an empty storage blob triggers a Fail-Fast DATA_CORRUPTION error."""
-    mock_driver = AsyncMock()
-    mock_driver.read.return_value = b"   "
+async def test_hydrate_blob_fails_fast_on_empty_blob_failure() -> None:
+    """Verify an empty offloaded execution trace blob triggers Fail-Fast DATA_CORRUPTION."""
+    base_uow = InMemoryUnitOfWork()
+    repo = UnifiedWorkflowRepository(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    offloaded_record = ExecutionRecordFactory.build(
+        id=_EXE_ID,
+        workflow_id=_WF_ID,
+        execution_trace=[],
+        execution_trace_storage_path="executions/exe_0195f3a0000070008123456789abcdef/execution_trace.json",
+    )
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.save_execution(offloaded_record)
 
-    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_driver):
-        data: dict[str, HydrationPayloadValue] = {
-            "id": "exe_123",
-            "execution_trace_storage_path": "executions/exe_123/execution_trace.json",
-        }
+    mock_blob_driver = AsyncMock()
+    mock_blob_driver.read.return_value = b"   "
 
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_blob_driver):
         with pytest.raises(AppException) as exc_info:
-            await repo._hydrate_payloads(data)
-
-        assert exc_info.value.status_code == 500
-        assert exc_info.value.details["error_code"] == ErrorCodes.DATA_CORRUPTION.value
-        assert "Missing blob trace data for execution_trace" in exc_info.value.message
-
-
-@pytest.mark.asyncio
-async def test_persist_audit_trace_fails_fast() -> None:
-    """Test that failing to persist an audit trace raises an AppException."""
-    mock_driver = AsyncMock()
-    mock_driver.upsert.side_effect = Exception("DB crash")
-
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-    data: dict[str, JsonValue] = {
-        "frozen_context": {
-            "mcp_tool_audit": [
-                {
-                    "id": "audit_123",
-                    "tool_id": "tool_1",
-                    "step_name": "step_1",
-                    "query": "query_text",
-                }
-            ]
-        }
-    }
-
-    with pytest.raises(AppException) as exc_info:
-        await repo._offload_payloads("doc_123", data)
-
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
-    assert "Failed to persist audit trace" in exc_info.value.message
-
-
-@pytest.mark.asyncio
-async def test_offload_payloads_fails_fast() -> None:
-    """Test that failing to offload massive payloads to storage raises an AppException."""
-    mock_driver = AsyncMock()
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-
-    mock_storage_driver = AsyncMock()
-    mock_storage_driver.save.side_effect = Exception("Storage crash")
-
-    data: dict[str, JsonValue] = {
-        "execution_trace": ["large_data"] * 10000  # Will exceed 100KB
-    }
-
-    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage_driver):
-        with pytest.raises(AppException) as exc_info:
-            await repo._offload_payloads("doc_123", data)
-
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
-    assert "Failed to offload execution_trace" in exc_info.value.message
-
-
-@pytest.mark.asyncio
-async def test_hydrate_audit_trails_fails_fast() -> None:
-    """Test that failing to query audit trails from DB raises an AppException."""
-    mock_driver = AsyncMock()
-    mock_driver.query.side_effect = Exception("Query crash")
-
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-    data: dict[str, HydrationPayloadValue] = {"id": "doc_123"}
-
-    with patch("backend_v2.database.repositories.execution.get_storage_driver"):
-        with pytest.raises(AppException) as exc_info:
-            await repo._hydrate_payloads(data)
+            await repo.get_execution(_EXE_ID, hydrate=True)
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.DATA_CORRUPTION.value
-    assert "Failed to hydrate audit_trails" in exc_info.value.message
 
 
 @pytest.mark.asyncio
-async def test_workflow_fetching() -> None:
-    """Test that get_workflow_by_id returns None when the workflow record does not exist."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = None
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+async def test_offload_blob_fails_fast_on_storage_crash_failure() -> None:
+    """Verify failing to offload >100KB execution_trace raises AppException(INTERNAL_SERVER_ERROR)."""
+    base_uow = InMemoryUnitOfWork()
+    repo = UnifiedWorkflowRepository(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
-    workflow_id = "wor_0195f3a0000070008123456789abcdef"
-    res = await repo.get_workflow_by_id(workflow_id)
+    large_events = [
+        TraceEvent(
+            event_id=generate_uuid7(),
+            timestamp=datetime.now(UTC),
+            step_name="step_1",
+            event_type="progress",
+            content=ProgressTracePayloadDTO(message="x" * 2048, progress_pct=50),
+            metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=[],
+        )
+        for _ in range(60)
+    ]
+    initial_record = ExecutionRecordFactory.build(
+        id=_EXE_ID,
+        workflow_id=_WF_ID,
+        execution_trace=[],
+    )
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.save_execution(initial_record)
 
-    assert res is None
-    mock_driver.get.assert_called_once_with("workflows", workflow_id)
+    mock_blob_driver = AsyncMock()
+    mock_blob_driver.save.side_effect = RuntimeError("Storage crash")
+
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_blob_driver):
+        with pytest.raises(AppException) as exc_info:
+            await repo.update_execution(_EXE_ID, ExecutionUpdateDTO(execution_trace=large_events))
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
 
 
 @pytest.mark.asyncio
-async def test_all_passthrough_methods() -> None:
-    """Test delegation across UnifiedWorkflowRepository passthrough methods."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
-    mock_driver.get.return_value = None
-    mock_driver.upsert.return_value = "new_id"
-    mock_driver.update.return_value = True
-    mock_driver.delete.return_value = True
+async def test_all_9_active_protocol_delegations_roundtrip() -> None:
+    """Verify delegation across all 9 active V2 repository protocols on UnifiedWorkflowRepository."""
+    base_uow = InMemoryUnitOfWork()
+    repo = UnifiedWorkflowRepository(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    profile_tier = ModelProfile(
+        provider="ai_studio",
+        model_name="gemini-2.5-flash",
+        allowed_tools=[],
+        additional_params=ProviderExtraParamsDTO(),
+    )
+    reg = SystemConfigModelRegistry(
+        id=_SYS_ID,
+        name="Default Model Registry",
+        type="model_registry",
+        default_provider=LLMProvider.AI_STUDIO,
+        tier_definitions={tier: profile_tier for tier in CognitiveTier},
+    )
+    assert await repo.update_model_registry(reg) is True
+    assert (await repo.get_model_registry(_SYS_ID)).id == _SYS_ID
+    assert len(await repo.get_all_model_registries()) == 1
 
-    await repo.get_execution("1")
-    await repo.get_execution_status("1")
-    await repo.create_execution(
-        ExecutionCreateDTO(
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
-            output_profile_id="pro_0195f3a0000070008123456789abcdef",
-            raw_inputs=None,
-        )
+    gw = SystemConfigMCPGateways(
+        id=_SYS_GW_ID,
+        name="Gateway",
+        slug="default_mcp_gateway",
+        type="mcp_gateways",
+        tools=[],
     )
-    await repo.update_execution(
-        "exe_0195f3a0000070008123456789abcdef", ExecutionUpdateDTO(status=ExecutionStatus.PASSED)
+    assert await repo.update_mcp_gateways(gw) is True
+    assert (await repo.get_mcp_gateways(_SYS_GW_ID)).id == _SYS_GW_ID
+    assert (await repo.get_mcp_gateways()).id == _SYS_GW_ID
+    assert len(await repo.get_all_mcp_gateways()) == 1
+    extra_gw = SystemConfigMCPGateways(
+        id="sys_0195f3a0000070018234567890abcde2",
+        name="Extra Gateway",
+        slug="extra_mcp_gateway",
+        type="mcp_gateways",
+        tools=[],
     )
-    await repo.delete_execution("1")
-    await repo.get_all_executions()
-    await repo.get_recent_completed_executions()
-    uow = InMemoryUnitOfWork()
-    repo._uow_factory = lambda: uow
-    await repo.log_audit_event(
-        AuditLogCreateDTO(
-            organization_id="org_0195f3a0000070008123456789abcdef",
-            actor_id="usr_0195f3a0000070008123456789abcdef",
-            event_type="WORKFLOW_TESTED",
-            resource_type="workflow",
-            resource_id="wor_0195f3a0000070008123456789abcdef",
-            details={},
-        )
-    )
-    await repo.get_audit_logs()
-    await repo.get_all_workflows()
-    await repo.get_workflow_by_id("1")
-    await repo.create_workflow(
+    created_cfg_id = await repo.create_system_config(SystemConfigCreateDTO(type="mcp_gateways", content=extra_gw))
+    assert await repo.get_system_config(created_cfg_id) is not None
+    assert await repo.delete_system_config(created_cfg_id) is True
+
+    wf_id = await repo.create_workflow(
         WorkflowCreateDTO(
             slug="wf_slug",
             name="WF",
-            description=None,
+            description="Desc",
+            model_registry_id=_SYS_ID,
+            organization_id=_ORG_ID,
             expected_inputs=[],
             steps=[],
         )
     )
-    mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_workflow("1", WorkflowUpdateDTO(name="WF New"))
-    await repo.update_workflow_definition("1", WorkflowUpdateDTO(name="WF New"))
-    await repo.delete_workflow("1")
-    await repo.get_all_steps()
-    mock_driver.get.return_value = None
-    await repo.get_step_by_id("1")
-    await repo.create_step(
+    assert await repo.get_workflow(wf_id) is not None
+    assert await repo.get_workflow_by_id(wf_id) is not None
+    assert await repo.get_workflow_definition(wf_id) is not None
+    assert await repo.count_workflows() == 1
+    assert len(await repo.get_all_workflows(organization_id=_ORG_ID)) == 1
+    await repo.update_workflow(wf_id, WorkflowUpdateDTO(name="WF New"))
+    await repo.update_workflow_definition(wf_id, WorkflowUpdateDTO(name="WF Def"))
+    persisted_wf = await repo.get_workflow(wf_id)
+    assert persisted_wf is not None
+    assert await repo.save_workflow(persisted_wf) == wf_id
+
+    step_id = await repo.create_step(
         StepCreateDTO(
             slug="step_slug",
-            name=I18nText(translations={"en": "Step"}),
+            name=I18nTextFactory.build(translations={"en": "Step", "fi": "Vaihe"}),
+            type=StepType.LOGIC,
+            hook="h1",
             criteria_block_ids=[],
             pre_hooks=[],
             post_hooks=[],
@@ -226,228 +216,159 @@ async def test_all_passthrough_methods() -> None:
             expected_inputs=[],
         )
     )
-    mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_step("1", StepUpdateDTO(name=I18nText(translations={"en": "Step"})))
-    await repo.delete_step("1", force_delete=True)
-    await repo.get_all_components()
-    mock_driver.get.return_value = None
-    await repo.get_component_by_id("1")
-    persona_block = PersonaPromptBlock(
-        id="blk_0195f3a0000070008123456789abcdef",
-        slug="blk_1",
-        label=I18nText(translations={"en": "Block"}),
-        description=I18nText(translations={"en": "Desc"}),
-        category_id=PromptBlockCategory.EXECUTION_PERSONA,
-        type=BlockDataType.INSTRUCTION,
-        organization_id="org_1234abcd",
-        role_enforcement="Persona",
+    assert await repo.get_step(step_id) is not None
+    assert await repo.get_step_by_id(step_id) is not None
+    assert len(await repo.get_all_steps()) == 1
+    await repo.update_step(
+        step_id,
+        StepUpdateDTO(name=I18nTextFactory.build(translations={"en": "Step Updated", "fi": "Vaihe"})),
     )
-    mock_driver.get.return_value = persona_block.model_dump(mode="json")
-    await repo.update_component_metadata("1", "mod", "cls")
-    await repo.register_component(persona_block)
-    await repo.create_component(persona_block)
-    mock_driver.get.return_value = None
-    await repo.get_prompt_block_by_id("1")
-    await repo.get_all_prompt_blocks()
-    await repo.create_prompt_block(persona_block)
-    mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_prompt_block("1", persona_block)
-    await repo.delete_prompt_block("1", force_delete=True)
-    mock_driver.get.return_value = None
-    await repo.get_agent_by_id("1")
-    await repo.get_all_agents()
-    await repo.create_agent(persona_block)
-    mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_agent("1", persona_block)
-    await repo.delete_agent("1")
-    mock_driver.get.return_value = None
-    await repo.get_banned_phrases()
-    await repo.add_banned_phrase("phrase")
-    await repo.delete_banned_phrase("phrase")
-    await repo.count_workflows()
-    await repo.get_prompt_template("1")
-    dummy_reg = SystemConfigModelRegistry(
-        id="sys_0195f3a0000070018234567890abcdef",
-        name="Default Model Registry",
-        type="model_registry",
-        default_provider=LLMProvider.AI_STUDIO,
-        tier_definitions={
-            CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
-            CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
-            CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
-            CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
-        },
-    )
-    mock_driver.get.return_value = dummy_reg.model_dump(mode="json")
-    await repo.get_model_registry("sys_0195f3a0000070018234567890abcdef")
-    await repo.update_model_registry(dummy_reg)
-    mock_driver.query.return_value = [
-        {
-            "id": "sys_0195f3a0000070018234567890abcdef",
-            "name": "Gateway",
-            "slug": "default_mcp_gateway",
-            "type": "mcp_gateways",
-            "tools": [],
-        }
-    ]
-    await repo.get_mcp_gateways()
-    await repo.update_mcp_gateways(
-        SystemConfigMCPGateways(
-            id="sys_0195f3a0000070018234567890abcdef",
-            name="Gateway",
-            slug="default_mcp_gateway",
-            type="mcp_gateways",
-            tools=[],
+    persisted_step = await repo.get_step(step_id)
+    assert persisted_step is not None
+    assert await repo.save_step(persisted_step) == step_id
+    assert await repo.delete_step(step_id, force_delete=True) is True
+
+    exe_id = await repo.create_execution(
+        ExecutionCreateDTO(
+            workflow_id=wf_id,
+            output_profile_id=_PRF_ID,
+            organization_id=_ORG_ID,
+            created_by=_USR_ID,
+            raw_inputs=None,
         )
     )
-    mock_driver.query.return_value = []
-    await repo.count_executions_by_matrix("1")
-    await repo.get_matrices_using_dimension("1")
-    await repo.list_organizations()
-    mock_driver.get.return_value = None
-    await repo.get_organization("1")
-    await repo.create_organization(
-        Organization(
-            id="org_0195f3a0000070008123456789abcdef",
-            name="Org",
-            tier="enterprise",
-            is_active=True,
-            subscription_status=SubscriptionStatus.ACTIVE,
-            quota_limit=500.0,
-            tpm_limit=50000,
-            rpm_limit=500,
-            allowed_email_domains=[],
+    assert await repo.get_execution(exe_id) is not None
+    assert await repo.get_execution_status(exe_id) == "PENDING"
+    assert await repo.update_execution(exe_id, ExecutionUpdateDTO(status=ExecutionStatus.PASSED)) is True
+    event = TraceEvent(
+        event_id=generate_uuid7(),
+        timestamp=datetime.now(UTC),
+        step_name="step_1",
+        event_type="progress",
+        content=ProgressTracePayloadDTO(message="ok", progress_pct=100),
+        metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+        mcp_audit_traces=[],
+    )
+    assert await repo.append_trace_event(exe_id, event) is True
+    assert len(await repo.get_all_executions(organization_id=_ORG_ID)) == 1
+    assert len(await repo.get_recent_completed_executions()) == 1
+    assert await repo.count_executions_by_matrix(_BLK_ID) == 0
+
+    art = ReportArtifactFactory.build(id=_REP_ID, execution_id=exe_id, workflow_id=wf_id, profile_id=_PRF_ID)
+    await repo.create_report_artifact(art)
+    assert await repo.get_report_artifact(_REP_ID) is not None
+    assert len(await repo.list_report_artifacts_by_execution(exe_id)) == 1
+    await repo.update_report_artifact(_REP_ID, ReportArtifactUpdateDTO(error_message="Updated"))
+    assert await repo.delete_report_artifact(_REP_ID) is True
+    assert await repo.delete_execution(exe_id) is True
+
+    block = SystemRulePromptBlockFactory.build(id=_BLK_ID, slug="blk_1", organization_id=_ORG_ID)
+    await repo.create_prompt_block(block)
+    assert await repo.get_prompt_block(_BLK_ID) is not None
+    assert await repo.get_prompt_block_by_id(_BLK_ID) is not None
+    assert len(await repo.get_all_prompt_blocks()) == 1
+    assert len(await repo.get_all_prompt_blocks_models()) == 1
+    assert len(await repo.get_prompt_blocks_by_ids([_BLK_ID])) == 1
+    assert await repo.update_prompt_block(_BLK_ID, block) is True
+    assert await repo.delete_prompt_block(_BLK_ID, force_delete=True) is True
+
+    brief = TaskBriefFactory.build(id=_TBR_ID, slug="tbr_1")
+    await repo.create_task_brief(brief)
+    assert await repo.get_task_brief_by_id(_TBR_ID) is not None
+    assert len(await repo.get_all_task_briefs()) == 1
+    assert await repo.update_task_brief(_TBR_ID, brief) is True
+    assert await repo.delete_task_brief(_TBR_ID) is True
+
+    profile = OutputProfileFactory.build(
+        id=_PRF_ID,
+        slug="prf_1",
+        workflow_id=wf_id,
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+        content_blocks=[],
+    )
+    await repo.create_output_profile(profile)
+    assert await repo.get_output_profile_by_id(_PRF_ID) is not None
+    assert len(await repo.get_all_output_profiles()) == 1
+    assert len(await repo.get_all_output_profiles_models()) == 1
+    assert await repo.update_output_profile(_PRF_ID, profile) is True
+    assert await repo.delete_output_profile(_PRF_ID) is True
+    assert await repo.delete_workflow(wf_id) is True
+
+    org = Organization(
+        id=_ORG_ID,
+        name="Org",
+        tier="enterprise",
+        is_active=True,
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+        allowed_email_domains=[],
+    )
+    await repo.create_organization(org)
+    assert await repo.get_organization(_ORG_ID) is not None
+    assert await repo.get_organization_model(_ORG_ID) is not None
+    assert len(await repo.list_organizations()) == 1
+    assert await repo.update_organization(_ORG_ID, OrganizationUpdateDTO(name="Org New")) is True
+
+    user = User(
+        id=_USR_ID,
+        email="test@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        language=SystemLocale.EN,
+        theme_mode="system",
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        organization_id=_ORG_ID,
+    )
+    await repo.create_user(user)
+    assert await repo.get_user(_USR_ID) is not None
+    assert await repo.get_user_by_email("test@test.com") is not None
+    assert len(await repo.list_users(_ORG_ID)) == 1
+    assert await repo.update_user(_USR_ID, UserUpdate(name="User New")) is True
+
+    await repo.log_audit_event(
+        AuditLogCreateDTO(
+            organization_id=_ORG_ID,
+            actor_id=_USR_ID,
+            event_type="WORKFLOW_TESTED",
+            resource_type="workflow",
+            resource_id=_WF_ID,
+            details={},
         )
     )
-    await repo.update_organization("1", OrganizationUpdateDTO(name="Org New"))
-    await repo.delete_organization("1")
-    await repo.list_users()
-    await repo.get_user("1")
-    await repo.get_user_by_email("email")
-    await repo.create_user(
-        User(
-            id="usr_0195f3a0000070008123456789abcdef",
-            email="test@test.com",
-            role=UserRole.MEMBER,
-            is_active=True,
-            language=SystemLocale.EN,
-            theme_mode="system",
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-            organization_id="org_0195f3a0000070008123456789abcdef",
-        )
+    assert len(await repo.get_audit_logs(organization_id=_ORG_ID)) == 1
+    usage_rec = UsageRecordFactory.build(
+        org_id=_ORG_ID,
+        user_id=_USR_ID,
+        model="gemini-2.5-flash",
+        input_tokens=20,
+        output_tokens=10,
+        cost_usd=0.25,
+        timestamp=datetime.now(UTC),
     )
-    await repo.update_user("1", UserUpdate(name="User New"))
-    await repo.delete_user("1")
-    await repo.delete_org_data("1")
-    await repo.get_org_usage_total("1")
-    await repo.add_concept(ConceptCreateDTO(name="concept_1"))
-    await repo.add_reference(ReferenceCreateDTO(name="reference_1"))
-    await repo.add_claim(ClaimCreateDTO(name="claim_1"))
-    await repo.get_all_output_profiles()
-    await repo.get_output_profile_by_id("1")
-    await repo.create_output_profile(
-        OutputProfile(
-            id="prf_0195f3a0000070008123456789abcdef",
-            slug="prf_1",
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
-            name=I18nText(translations={"en": "Profile"}),
-            target_block_order=[TargetBlockType.METADATA_BLOCK],
-        )
-    )
-    await repo.update_output_profile(
-        "1",
-        OutputProfile(
-            id="prf_0195f3a0000070008123456789abcdef",
-            slug="prf_1",
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
-            name=I18nText(translations={"en": "Profile"}),
-            target_block_order=[TargetBlockType.METADATA_BLOCK],
-        ),
-    )
-    await repo.delete_output_profile("1")
-    sample_brief = TaskBrief(
-        id="tbr_0195f3a0000070008123456789abcdef",
-        slug="tbr_1",
-        label=I18nText(translations={"en": "Brief", "fi": "Ohje"}),
-        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
-        instruction_text="Instructions",
-    )
-    await repo.get_all_task_briefs()
-    mock_driver.get.return_value = None
-    await repo.get_task_brief_by_id("1")
-    await repo.create_task_brief(sample_brief)
-    mock_driver.get.return_value = sample_brief.model_dump(mode="json")
-    await repo.update_task_brief("1", sample_brief)
-    await repo.delete_task_brief("1")
+    await repo.log_usage(usage_rec)
+    assert len(await repo.get_usage_records("organization", _ORG_ID)) == 1
+    assert (await repo.aggregate_organization_usage(organization_id=_ORG_ID)).total_cost_usd == pytest.approx(0.25)
+    assert await repo.get_org_usage_total(_ORG_ID) == pytest.approx(0.25)
+    assert (await repo.get_detailed_usage("organization", _ORG_ID)).total_tokens >= 30
+
+    assert await repo.delete_user(_USR_ID) is True
+    await repo.delete_org_data(_ORG_ID)
+    assert await repo.get_organization(_ORG_ID) is None
 
 
 @pytest.mark.asyncio
-async def test_system_repo_get_mcp_gateways_with_id() -> None:
-    """Positive: get_mcp_gateways with specific ID executes O(1) primary-key lookup via driver.get."""
-    mock_driver = AsyncMock()
-    gateway_id = "sys_0195f3a0000070018234567890abcdef"
-    mock_driver.get.return_value = {
-        "id": gateway_id,
-        "name": "Test MCP Gateway",
-        "slug": "test_mcp_gateway",
-        "type": "mcp_gateways",
-        "tools": [],
-    }
+async def test_system_repo_get_mcp_gateways_not_found_raises_failure() -> None:
+    """Verify get_mcp_gateways raises ResourceNotFoundError when missing by ID or when none exist."""
+    base_uow = InMemoryUnitOfWork()
+    repo = UnifiedWorkflowRepository(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-    res = await repo.get_mcp_gateways(id=gateway_id)
-
-    assert res.id == gateway_id
-    mock_driver.get.assert_called_once_with("system_config", gateway_id)
-    mock_driver.query.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_system_repo_get_mcp_gateways_not_found_raises() -> None:
-    """Negative: get_mcp_gateways with specific ID raises ResourceNotFoundError when driver.get returns None."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = None
-
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-    with pytest.raises(ResourceNotFoundError) as exc_info:
-        await repo.get_mcp_gateways(id="sys_nonexistent")
-
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.details["resource_id"] == "sys_nonexistent"
-    mock_driver.get.assert_called_once_with("system_config", "sys_nonexistent")
-    mock_driver.query.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_system_repo_get_mcp_gateways_default_not_found_raises() -> None:
-    """Negative: get_mcp_gateways without ID raises ResourceNotFoundError when type query returns empty list."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
-
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-    with pytest.raises(ResourceNotFoundError) as exc_info:
+    with pytest.raises(ResourceNotFoundError) as empty_exc:
         await repo.get_mcp_gateways()
+    assert empty_exc.value.status_code == 404
 
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.details["resource_id"] == "mcp_gateways"
-    mock_driver.query.assert_called_once()
-    mock_driver.get.assert_not_called()
-
-
-def test_append_only_repository_increment_version() -> None:
-    """Positive: tests version incrementing on AppendOnlyRepositoryBase."""
-    repo = AppendOnlyRepositoryBase(AsyncMock())
-    res = repo._increment_version("wf_exec")
-    assert res.base_id == "wf_exec"
-    assert res.new_id == "wf_exec_v2"
-    assert res.version == 2
-
-    res2 = repo._increment_version("wf_exec_v2")
-    assert res2.base_id == "wf_exec"
-    assert res2.new_id == "wf_exec_v3"
-    assert res2.version == 3
-
-    res3 = repo._increment_version("wf_exec_v_invalid")
-    assert res3.base_id == "wf_exec"
-    assert res3.new_id == "wf_exec_v2"
-    assert res3.version == 2
+    with pytest.raises(ResourceNotFoundError) as id_exc:
+        await repo.get_mcp_gateways(id=_SYS_MISSING_ID)
+    assert id_exc.value.status_code == 404
+    assert id_exc.value.details["resource_id"] == _SYS_MISSING_ID

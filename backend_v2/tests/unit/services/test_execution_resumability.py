@@ -73,7 +73,7 @@ def _create_record(
         active_profile_id="prf_0195f3a0000070008123456789abcdef",
         step_states=step_states or {},
         execution_trace=execution_trace or [],
-        profile_syntheses={"prf_0195f3a0000070008123456789abcdef": RenderedSynthesisCache.model_validate({})},
+        profile_syntheses={"prf_0195f3a0000070008123456789abcdef": RenderedSynthesisCache()},
         context_variables=ContextVariablesDTO(),
     )
 
@@ -85,7 +85,6 @@ def _create_test_service(
     service = ExecutionService(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -411,7 +410,6 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
     deps = StrategyDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,

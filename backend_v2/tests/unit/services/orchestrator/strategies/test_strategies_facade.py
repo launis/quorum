@@ -71,7 +71,6 @@ def strategy_deps(
     return StrategyDependencies(
         exec_repo=in_memory_repo,
         workflow_repo=in_memory_repo,
-        comp_repo=in_memory_repo,
         prompt_block_repo=in_memory_repo,
         output_profile_repo=in_memory_repo,
         identity_repo=in_memory_repo,

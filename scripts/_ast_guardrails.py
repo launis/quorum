@@ -91,7 +91,6 @@ class GuardrailViolation(BaseModel):
 
 BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
     {
-        "backend_v2/database/postgres/storage_driver.py",
         "backend_v2/database/postgres/entity_adapter/__init__.py",
         "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
         "backend_v2/llm/handler.py",
@@ -155,7 +154,7 @@ _ZERO_DEFAULT_FIELD_NAMES: frozenset[str] = frozenset(
 )
 
 _QGR030_ENTITY_PREFIXES: frozenset[str] = frozenset(
-    {"exe", "rep", "tda", "wf", "stp", "sr", "prf", "blk", "sys", "usr", "org", "nod", "edg", "sc"}
+    {"exe", "rep", "tda", "wf", "stp", "sr", "prf", "blk", "sys", "usr", "org", "nod", "edg", "sc", "aud", "usg"}
 )
 _QGR030_MOCK_ID_REGEX: re.Pattern[str] = re.compile(r"^([a-z]{2,5})_([a-zA-Z0-9]{14,32})$")
 _QGR030_NON_HEX_CHARS: frozenset[str] = frozenset("ghijklmnopqrstuvwxyzGHIJKLMNOPQRSTUVWXYZ")
@@ -1117,7 +1116,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         node,
                         "QGR017",
                         f"Banned eradicated legacy database module `{banned_db_path}` detected.",
-                        "Use PostgreSQL 19 Zero-ORM adapters (`PostgresStorageDriver`, `PostgresUnitOfWork`, `PostgresEntityAdapter`).",
+                        "Use PostgreSQL 19 Zero-ORM adapters (`PostgresUnitOfWork`, `PostgresEntityAdapter`).",
                         severity=GuardrailSeverity.FATAL,
                     )
 
@@ -3242,7 +3241,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR017",
                     f"Banned import of eradicated legacy persistence module `{alias.name}`.",
-                    "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                    "Use PostgreSQL 19 Zero-ORM persistence (`PostgresEntityAdapter`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                     severity=GuardrailSeverity.FATAL,
                 )
             # QGR021: Banned import of eradicated llm_debug_logger
@@ -3535,7 +3534,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR017",
                     f"Banned import from eradicated legacy persistence module `{node.module}`.",
                     "Use PostgreSQL 19 Zero-ORM persistence "
-                    "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                    "(`PostgresEntityAdapter`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                     severity=GuardrailSeverity.FATAL,
                 )
             elif node.module in ("backend_v2.database", "database"):
@@ -3555,7 +3554,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             f"Banned import of eradicated legacy persistence symbol `{alias.name}` "
                             f"from `{node.module}`.",
                             "Use PostgreSQL 19 Zero-ORM persistence "
-                            "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                            "(`PostgresEntityAdapter`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                             severity=GuardrailSeverity.FATAL,
                         )
             else:
@@ -3566,7 +3565,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "QGR017",
                             f"Banned import of eradicated legacy persistence symbol `{alias.name}`.",
                             "Use PostgreSQL 19 Zero-ORM persistence "
-                            "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                            "(`PostgresEntityAdapter`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                             severity=GuardrailSeverity.FATAL,
                         )
 
@@ -3613,7 +3612,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "QGR017",
                 f"Banned reference to eradicated persistence symbol `{node.id}`.",
                 "Use PostgreSQL 19 Zero-ORM persistence "
-                "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                "(`PostgresEntityAdapter`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                 severity=GuardrailSeverity.FATAL,
             )
         if self._is_domain_code and not self._is_test_file and node.id == "uuid4":

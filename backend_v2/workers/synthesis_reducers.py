@@ -8,7 +8,6 @@ from typing import Annotated, Any, cast
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
-from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -38,7 +37,6 @@ from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
 from backend_v2.services.report import ReportService
 from backend_v2.services.storage import get_storage_driver
-from backend_v2.settings import get_settings
 
 __all__ = [
     "ExecutiveSummaryReductionDTO",
@@ -572,8 +570,7 @@ async def handle_synthesis_failure_state(
         return
     try:
         if repo is None:
-            driver = await get_driver(get_settings())
-            repo = UnifiedWorkflowRepository(driver)
+            repo = UnifiedWorkflowRepository()
         v_step_id = f"sys_render_{profile_id}"
         fail_step_states = None
         fail_steps = None
@@ -592,8 +589,7 @@ async def handle_synthesis_failure_state(
             fail_step_states = exec_record_local.step_states
             fail_steps = exec_record_local.steps
 
-        # REQ-02 / Phase 3 Failure Quarantine:
-        # Do NOT update ExecutionRecord.status to FAILED. Preserve Phase 1 PASSED status.
+        # Quarantine synthesis rendering failure on the virtual step without failing the DAG execution status.
         await repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(

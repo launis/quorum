@@ -13,7 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.interfaces import (
     IAuditRepository,
-    IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
     IOutputProfileRepository,
@@ -110,7 +109,6 @@ class StrategyDependencies:
     Attributes:
         exec_repo: Execution state persistence repository.
         workflow_repo: Workflow blueprint repository.
-        comp_repo: Step component repository.
         prompt_block_repo: Prompt block repository.
         output_profile_repo: Output profile repository.
         identity_repo: Identity and organization repository.
@@ -122,7 +120,6 @@ class StrategyDependencies:
 
     exec_repo: IExecutionRepository
     workflow_repo: IWorkflowRepository
-    comp_repo: IComponentRepository
     prompt_block_repo: IPromptBlockRepository
     output_profile_repo: IOutputProfileRepository
     identity_repo: IIdentityRepository
@@ -156,11 +153,6 @@ class NodeStrategy(ABC):
     def workflow_repo(self) -> IWorkflowRepository:
         """Return the workflow repository instance."""
         return self.deps.workflow_repo
-
-    @property
-    def comp_repo(self) -> IComponentRepository:
-        """Return the component repository instance."""
-        return self.deps.comp_repo
 
     @property
     def prompt_block_repo(self) -> IPromptBlockRepository:

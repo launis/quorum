@@ -154,7 +154,6 @@ def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock, mock_engine: Ma
     deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,
@@ -1247,7 +1246,6 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
     deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,
@@ -1351,7 +1349,6 @@ def test_configure_llm_context_hook_success() -> None:
     deps = HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -1418,7 +1415,6 @@ def test_configure_llm_context_hook_empty_state() -> None:
         HookDependencies(
             exec_repo=repo,
             workflow_repo=repo,
-            comp_repo=repo,
             prompt_block_repo=repo,
             output_profile_repo=repo,
             identity_repo=repo,
@@ -1465,7 +1461,6 @@ def test_configure_llm_context_hook_error() -> None:
                 HookDependencies(
                     exec_repo=repo,
                     workflow_repo=repo,
-                    comp_repo=repo,
                     prompt_block_repo=repo,
                     output_profile_repo=repo,
                     identity_repo=repo,

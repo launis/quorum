@@ -10,16 +10,20 @@ from __future__ import annotations
 import pytest
 
 from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    delete_output_profile_row,
+    delete_task_brief_row,
+    delete_workflow_row,
     get_output_profile_row,
     get_task_brief_row,
     get_workflow_row,
     hydrate_workflow_row,
+    list_output_profile_rows,
     list_task_brief_rows,
+    list_workflow_rows,
     upsert_output_profile_row,
     upsert_task_brief_row,
     upsert_workflow_row,
 )
-from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
@@ -29,7 +33,11 @@ from backend_v2.tests.factories.model_factories import (
     TaskBriefFactory,
     WorkflowFactory,
 )
-from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryAsyncPgRecord
+from backend_v2.tests.fakes.in_memory_uow import (
+    InMemoryAsyncPgPool,
+    InMemoryAsyncPgRecord,
+    InMemoryUnitOfWork,
+)
 
 _TIMEOUT: float = 5.0
 
@@ -231,26 +239,28 @@ async def test_task_brief_stage_and_repository_crud_and_negative_boundaries() ->
             await list_task_brief_rows(conn, _TIMEOUT)
         assert direct_fetch_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
         pool.clear_faults()
+        wf = WorkflowFactory.build()
+        prf = OutputProfileFactory.build(workflow_id=wf.id, content_blocks=[])
+        brief_row = TaskBriefFactory.build(organization_id=None, source_url=None)
+        await upsert_workflow_row(conn, _TIMEOUT, wf)
+        await upsert_output_profile_row(conn, _TIMEOUT, prf)
+        await upsert_task_brief_row(conn, _TIMEOUT, brief_row)
+
+        assert await list_workflow_rows(conn, _TIMEOUT) == [wf]
+        assert await list_output_profile_rows(conn, _TIMEOUT) == [prf]
+
+        assert await delete_output_profile_row(conn, _TIMEOUT, prf.id) is True
+        assert await delete_output_profile_row(conn, _TIMEOUT, prf.id) is False
+        assert await delete_workflow_row(conn, _TIMEOUT, wf.id) is True
+        assert await delete_workflow_row(conn, _TIMEOUT, wf.id) is False
+        assert await delete_task_brief_row(conn, _TIMEOUT, brief_row.id) is True
+        assert await delete_task_brief_row(conn, _TIMEOUT, brief_row.id) is False
     finally:
         pool.clear_faults()
         await pool.release(conn)
 
-    # TaskBriefRepositoryImpl end-to-end over PostgresStorageDriver + InMemoryAsyncPgPool
-    from backend_v2.database.postgres.pool import PostgresPoolManager
-    from backend_v2.models.enums import StorageBackend
-    from backend_v2.settings import Settings
-
-    settings = Settings(
-        storage_backend=StorageBackend.POSTGRES,
-        postgres_host="db.internal",
-        postgres_port=5432,
-        postgres_user="quorum",
-        postgres_db="quorum",
-        postgres_command_timeout_seconds=5.0,
-    )
-    pool_mgr = PostgresPoolManager(settings=settings, pool=pool)
-    driver = PostgresStorageDriver(pool_manager=pool_mgr, settings=settings)
-    repo = TaskBriefRepositoryImpl(driver)
+    base_uow = InMemoryUnitOfWork()
+    repo = TaskBriefRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
     brief = TaskBriefFactory.build(organization_id=None, source_url="https://example.com/brief")
     created_id = await repo.create_task_brief(brief)

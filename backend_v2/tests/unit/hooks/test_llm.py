@@ -22,7 +22,7 @@ def test_configure_llm_context_hook_no_state() -> None:
     assert result.state_delta.delta is None
 
 
-def test_configure_llm_context_hook_no_step_id() -> None:
+def test_configure_llm_context_hook_no_step_id_validation_error() -> None:
     state = HookState(
         execution_id="exe1",
         workflow_id="wf1",
@@ -40,7 +40,7 @@ def test_configure_llm_context_hook_no_step_id() -> None:
 
 
 @patch("backend_v2.hooks.llm.get_settings")
-def test_configure_llm_context_hook_no_default_strategy(mock_get_settings: MagicMock) -> None:
+def test_configure_llm_context_hook_no_default_strategy_configuration_error(mock_get_settings: MagicMock) -> None:
     mock_settings = MagicMock()
     mock_settings.default_model_strategy = None
     mock_get_settings.return_value = mock_settings

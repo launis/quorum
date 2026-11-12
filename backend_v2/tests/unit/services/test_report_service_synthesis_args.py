@@ -19,6 +19,7 @@ from backend_v2.models.dtos.export import ExportPayloadDTO
 from backend_v2.models.dtos.report_artifact import ReportMetadataDTO, ReportStoragePathsDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, ReportStatus
+from backend_v2.services import blueprint
 from backend_v2.services.report import ReportService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_pdf_task
@@ -81,8 +82,6 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
         execution_id=report.execution_id,
         profile_id=report.profile_id,
     )
-    from backend_v2.services import blueprint
-
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
     service = ReportService(
@@ -120,7 +119,7 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("invalid_lang", [None, "", "   "])
-async def test_synthesis_task_rejects_empty_language(invalid_lang: str | None) -> None:
+async def test_synthesis_task_empty_language_validation_error(invalid_lang: str | None) -> None:
     """Verify synthesis worker rejects empty or whitespace-only accept_language."""
     with pytest.raises(AppException) as exc_info:
         await generate_profile_synthesis_and_pdf_task(
@@ -134,7 +133,7 @@ async def test_synthesis_task_rejects_empty_language(invalid_lang: str | None) -
 
 
 @pytest.mark.asyncio
-async def test_synthesis_task_rejects_locale_as_profile_id(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_synthesis_task_locale_as_profile_id_not_found_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify synthesis worker validates real output_profile entity relation and raises ResourceNotFoundError."""
     repo = InMemoryUnifiedWorkflowRepository()
     record = ExecutionRecord(
@@ -151,8 +150,7 @@ async def test_synthesis_task_rejects_locale_as_profile_id(monkeypatch: pytest.M
         source_identity_manifest={},
     )
     await repo.save_execution(record)
-    monkeypatch.setattr("backend_v2.workers.synthesis_worker.get_driver", AsyncMock())
-    monkeypatch.setattr("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", lambda driver: repo)
+    monkeypatch.setattr("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", lambda: repo)
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await generate_profile_synthesis_and_pdf_task(

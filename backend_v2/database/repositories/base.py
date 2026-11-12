@@ -1,62 +1,66 @@
-"""Database repository implementation module."""
+"""Base repository coordinating UnitOfWorkFactory and EntityPersistencePort sessions."""
 
-from typing import Annotated
+from __future__ import annotations
 
-from pydantic import ConfigDict, Field
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
-from backend_v2.database.driver import StorageDriver
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.database.interfaces import (
+    EntityPersistencePort,
+    UnitOfWorkFactory,
+    get_registered_uow_factory,
+    open_uow_session,
+)
+from backend_v2.exceptions import ConfigurationError, ErrorCodes
 
-__all__ = [
-    "AppendOnlyRepositoryBase",
-    "BaseRepository",
-    "VersionIncrementDTO",
-]
+logger = logging.getLogger(__name__)
 
-
-class VersionIncrementDTO(V2CoreBase):
-    """Result of incrementing an entity version identifier."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    base_id: Annotated[str, Field(description="Base identifier prefix before version suffix.")]
-    new_id: Annotated[str, Field(description="Newly generated identifier with incremented version suffix.")]
-    version: Annotated[int, Field(description="Incremented integer version.")]
+__all__ = ["BaseRepository"]
 
 
 class BaseRepository:
-    """Base repository providing access to the injected StorageDriver."""
+    """Base repository providing context-propagated EntityPersistencePort session acquisition."""
 
-    def __init__(self, driver: StorageDriver) -> None:
-        """Initialize the repository with an injected storage driver.
+    _uow_factory: UnitOfWorkFactory | None
+
+    def __init__(self, uow_factory: UnitOfWorkFactory | None = None) -> None:
+        """Initialize the repository with an optional explicit UnitOfWorkFactory.
 
         Args:
-            driver: Injected storage driver.
+            uow_factory: Optional zero-argument callable returning a QuorumUnitOfWork.
+                Falls back to the process-registered UnitOfWorkFactory when omitted.
         """
-        self.driver = driver
+        self._uow_factory = uow_factory
 
-
-class AppendOnlyRepositoryBase(BaseRepository):
-    """Base repository for entities that require append-only versioning."""
-
-    def _increment_version(self, id_str: str) -> VersionIncrementDTO:
-        """Parse an ID into VersionIncrementDTO containing base_id, new_id, and version.
-
-        Args:
-            id_str: Entity identifier to inspect and increment.
+    def _resolve_uow_factory(self) -> UnitOfWorkFactory | None:
+        """Resolve the configured or process-registered UnitOfWorkFactory.
 
         Returns:
-            VersionIncrementDTO containing the extracted base ID, newly generated versioned ID, and version number.
+            Callable UnitOfWorkFactory if available, otherwise None.
         """
-        if "_v" in id_str:
-            base_id, v_str = id_str.rsplit("_v", 1)
-            if v_str.isdigit():
-                version = int(v_str) + 1
-            else:
-                version = 2
-        else:
-            base_id = id_str
-            version = 2
+        if self._uow_factory is not None:
+            return self._uow_factory
+        return get_registered_uow_factory()
 
-        new_id = f"{base_id}_v{version}"
-        return VersionIncrementDTO(base_id=base_id, new_id=new_id, version=version)
+    @asynccontextmanager
+    async def _acquire_entities(self) -> AsyncIterator[EntityPersistencePort]:
+        """Enter or reuse the active QuorumUnitOfWork session and yield its EntityPersistencePort.
+
+        Yields:
+            Active EntityPersistencePort bound to the current transaction scope.
+
+        Raises:
+            ConfigurationError: With CONFIGURATION_ERROR if no UnitOfWorkFactory is registered.
+        """
+        async with open_uow_session(self._resolve_uow_factory()) as uow:
+            if uow is None:
+                msg = f"QuorumUnitOfWork factory is not configured for {type(self).__name__}."
+                logger.error(
+                    "[BaseRepository] %s: %s",
+                    ErrorCodes.CONFIGURATION_ERROR.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+                raise ConfigurationError(message=msg)
+            yield uow.entities

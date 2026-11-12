@@ -1,7 +1,7 @@
 """Unit tests for In-Memory Repository Fakes.
 
 Verifies snapshot isolation, ingress mutation decoupling, explicit update requirement,
-100% protocol method parity, and deterministic fault injection mechanics.
+100% protocol method parity across the 9 active V2 repositories, and deterministic fault injection mechanics.
 """
 
 from __future__ import annotations
@@ -18,51 +18,101 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.base import AuditLogCreateDTO
-from backend_v2.models.domain.knowledge import ClaimCreateDTO, ConceptCreateDTO, ReferenceCreateDTO
-from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
-from backend_v2.models.domain.report_artifact import ReportArtifact
-from backend_v2.models.domain.step import Role, Step
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
 from backend_v2.models.dtos.system import SystemConfigCreateDTO
-from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.dtos.trace import (
+    ExecutionCreateDTO,
+    ExecutionUpdateDTO,
+    ProgressTracePayloadDTO,
+    TraceEventMetadataDTO,
+)
 from backend_v2.models.enums import ExecutionStatus, ReportStatus, StepType, SystemLocale
 from backend_v2.models.state import TraceEvent
-from backend_v2.tests.factories.model_factories import UsageRecordFactory
+from backend_v2.tests.factories.model_factories import (
+    I18nTextFactory,
+    OutputProfileFactory,
+    ReportArtifactFactory,
+    SystemRulePromptBlockFactory,
+    TaskBriefFactory,
+    UsageRecordFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import (
-    InMemoryAgentRepository,
     InMemoryAuditRepository,
-    InMemoryComponentRepository,
-    InMemoryExecutionPersonaRepository,
     InMemoryExecutionRepository,
-    InMemoryExtractionProtocolRepository,
     InMemoryIdentityRepository,
-    InMemoryKnowledgeRepository,
-    InMemoryMatrixRepository,
     InMemoryOutputProfileRepository,
     InMemoryPromptBlockRepository,
     InMemoryReportArtifactRepository,
-    InMemoryRoleRepository,
     InMemorySystemRepository,
-    InMemoryTaskBlueprintRepository,
+    InMemoryTaskBriefRepository,
     InMemoryUnifiedWorkflowRepository,
     InMemoryWorkflowRepository,
 )
 
-# ==============================================================================
-# 0. Test Contracts from Phase 2 Plan
-# ==============================================================================
+_WF_ID = "wf_0195f3a0000070008000000000000001"
+_PRF_ID = "prf_0195f3a0000070008000000000000001"
+_ORG_ID = "org_0195f3a0000070008000000000000001"
+_USR_ID = "usr_0195f3a0000070008000000000000001"
+_BLK_ID = "blk_0195f3a0000070008000000000000001"
+_TBR_ID = "tbr_0195f3a0000070008000000000000001"
+_EXE_ID = "exe_0195f3a0000070008000000000000001"
+_REP_ID = "rep_0195f3a0000070008000000000000001"
+_SYS_REG_ID = "sys_0195f3a0000070008000e26807f3bfa3"
+_SYS_GW_ID = "sys_0195f3a0000070088172bda70c8641c5"
+_SYS_EXTRA_ID = "sys_0195f3a0000070018234567890abcde1"
+_SYS_UNIFIED_EXTRA_ID = "sys_0195f3a0000070018234567890abcde2"
+_MTX_ID = "blk_0195f3a0000070008000000000000099"
+
+
+def _make_workflow_dto(slug: str, name: str, description: str) -> WorkflowCreateDTO:
+    """Build a strict WorkflowCreateDTO fixture for in-memory repository tests."""
+    return WorkflowCreateDTO(
+        slug=slug,
+        name=name,
+        description=description,
+        expected_inputs=[],
+        steps=[],
+    )
+
+
+def _make_step_dto(slug: str, label: str, hook: str) -> StepCreateDTO:
+    """Build a strict StepCreateDTO fixture for in-memory repository tests."""
+    return StepCreateDTO(
+        slug=slug,
+        name=I18nTextFactory.build(translations={"en": label, "fi": label}),
+        type=StepType.LOGIC,
+        hook=hook,
+        criteria_block_ids=[],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
+    )
+
+
+def _make_trace_event(step_name: str, message: str) -> TraceEvent:
+    """Build a strict TraceEvent fixture for in-memory repository tests."""
+    return TraceEvent(
+        event_id=generate_uuid7(),
+        timestamp=datetime.now(UTC),
+        step_name=step_name,
+        event_type="progress",
+        content=ProgressTracePayloadDTO(message=message, progress_pct=50),
+        metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
+        mcp_audit_traces=[],
+    )
 
 
 @pytest.mark.asyncio
 async def test_in_memory_workflow_repo_persistence_roundtrip() -> None:
-    """Verify save workflow to InMemoryWorkflowRepository, then get_workflow returns updated state."""
+    """Verify saving a workflow to InMemoryWorkflowRepository and reading back updated state."""
     repo = InMemoryWorkflowRepository()
-    dto = WorkflowCreateDTO(slug="roundtrip-slug", name="Roundtrip Workflow", description="Initial")
+    dto = _make_workflow_dto(slug="roundtrip-slug", name="Roundtrip Workflow", description="Initial")
     wf_id = await repo.create_workflow(dto)
     fetched = await repo.get_workflow(wf_id)
     assert fetched is not None
@@ -76,24 +126,24 @@ async def test_in_memory_workflow_repo_persistence_roundtrip() -> None:
 
 @pytest.mark.asyncio
 async def test_in_memory_repo_fault_injection() -> None:
-    """Configure inject_fault('create_workflow', ServiceUnavailableError()), then call create_workflow."""
+    """Verify inject_fault raises configured exception and cleans up via clear_faults."""
     repo = InMemoryWorkflowRepository()
     exc = ServiceUnavailableError("Database connection error")
     repo.inject_fault("create_workflow", exc)
-    dto = WorkflowCreateDTO(slug="fault-slug", name="Fault Test", description="Testing Fault")
-    with pytest.raises(ServiceUnavailableError) as exc_info:
-        await repo.create_workflow(dto)
-    assert exc_info.value.error_code == ErrorCodes.SERVICE_UNAVAILABLE
+    try:
+        dto = _make_workflow_dto(slug="fault-slug", name="Fault Test", description="Testing Fault")
+        with pytest.raises(ServiceUnavailableError) as exc_info:
+            await repo.create_workflow(dto)
+        assert exc_info.value.error_code == ErrorCodes.SERVICE_UNAVAILABLE
+    finally:
+        repo.clear_faults()
 
 
 @pytest.mark.asyncio
 async def test_in_memory_repo_snapshot_isolation() -> None:
-    """Retrieve model from repo, mutate local variable, and re-fetch from repo.
-
-    Asserts that original stored model remains unmutated and repo.get(id) is not repo.get(id).
-    """
+    """Verify retrieved entities are distinct memory copies (`is not`) with identical structural state (`==`)."""
     repo = InMemoryWorkflowRepository()
-    dto = WorkflowCreateDTO(slug="iso-slug", name="Snapshot Iso", description="Isolation Desc")
+    dto = _make_workflow_dto(slug="iso-slug", name="Snapshot Iso", description="Isolation Desc")
     wf_id = await repo.create_workflow(dto)
 
     w1 = await repo.get_workflow(wf_id)
@@ -102,24 +152,21 @@ async def test_in_memory_repo_snapshot_isolation() -> None:
     assert w1 is not w2
     assert w1 == w2
 
-    # Mutate local copy
     _ = w1.model_copy(update={"name": "Locally Mutated Name"})
     refetched = await repo.get_workflow(wf_id)
     assert refetched is not None
     assert refetched.name == "Snapshot Iso"
 
 
-# ==============================================================================
-# 1. Snapshot Reference Isolation Tests
-# ==============================================================================
-
-
 @pytest.mark.asyncio
 async def test_snapshot_reference_isolation() -> None:
-    """Verify get() returns distinct memory objects (is not) with identical structural data (==)."""
+    """Verify get_execution returns distinct memory objects with identical structural data."""
     repo = InMemoryExecutionRepository()
     dto = ExecutionCreateDTO(
-        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+        workflow_id=_WF_ID,
+        output_profile_id=_PRF_ID,
+        organization_id=_ORG_ID,
+        created_by=_USR_ID,
     )
     exec_id = await repo.create_execution(dto)
 
@@ -134,12 +181,11 @@ async def test_snapshot_reference_isolation() -> None:
 
 @pytest.mark.asyncio
 async def test_ingress_mutation_decoupling() -> None:
-    """Verify mutating the input DTO after calling create does NOT affect internal stored state."""
+    """Verify mutating the input DTO after create_workflow does not affect stored state."""
     repo = InMemoryWorkflowRepository()
-    dto = WorkflowCreateDTO(slug="orig-slug", name="Original Name", description="Test Desc")
+    dto = _make_workflow_dto(slug="orig-slug", name="Original Name", description="Test Desc")
     wf_id = await repo.create_workflow(dto)
 
-    # Modify caller DTO
     _ = dto.model_copy(update={"name": "Mutated Name"})
 
     stored = await repo.get_workflow(wf_id)
@@ -149,89 +195,91 @@ async def test_ingress_mutation_decoupling() -> None:
 
 @pytest.mark.asyncio
 async def test_explicit_update_requirement() -> None:
-    """Verify modifying a returned entity without calling repo.update leaves stored snapshot intact."""
+    """Verify modifying a returned entity without calling update_execution leaves stored snapshot intact."""
     repo = InMemoryExecutionRepository()
     dto = ExecutionCreateDTO(
-        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+        workflow_id=_WF_ID,
+        output_profile_id=_PRF_ID,
+        organization_id=_ORG_ID,
+        created_by=_USR_ID,
     )
     exec_id = await repo.create_execution(dto)
 
     rec = await repo.get_execution(exec_id)
     assert rec is not None
 
-    # Simulate local memory mutation
     _ = rec.model_copy(update={"status": ExecutionStatus.FAILED})
 
-    # Re-fetch from repository: should still be original status
     fetched = await repo.get_execution(exec_id)
     assert fetched is not None
     assert fetched.status == ExecutionStatus.PENDING
 
 
-# ==============================================================================
-# 2. Deterministic Fault Injection Tests
-# ==============================================================================
-
-
 @pytest.mark.asyncio
 async def test_deterministic_fault_injection_transient() -> None:
-    """Verify single-shot transient fault raises on 1st call and succeeds on 2nd call."""
+    """Verify single-shot transient fault raises on first call and succeeds on second call."""
     repo = InMemoryExecutionRepository()
     dto = ExecutionCreateDTO(
-        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+        workflow_id=_WF_ID,
+        output_profile_id=_PRF_ID,
+        organization_id=_ORG_ID,
+        created_by=_USR_ID,
     )
     exec_id = await repo.create_execution(dto)
 
     repo.inject_fault("get_execution", TimeoutError("Transient DB Timeout"), trigger_count=1)
+    try:
+        with pytest.raises(TimeoutError) as exc_info:
+            await repo.get_execution(exec_id)
+        assert "Transient DB Timeout" in str(exc_info.value)
 
-    # 1st call: must raise injected TimeoutError
-    with pytest.raises(TimeoutError) as exc_info:
-        await repo.get_execution(exec_id)
-    assert "Transient DB Timeout" in str(exc_info.value)
-
-    # 2nd call: must succeed normally
-    rec = await repo.get_execution(exec_id)
-    assert rec is not None
-    assert rec.id == exec_id
+        rec = await repo.get_execution(exec_id)
+        assert rec is not None
+        assert rec.id == exec_id
+    finally:
+        repo.clear_faults()
 
 
 @pytest.mark.asyncio
 async def test_deterministic_fault_injection_permanent() -> None:
-    """Verify permanent fault consistently raises across all invocations."""
+    """Verify permanent fault consistently raises across invocations until cleared."""
     repo = InMemoryExecutionRepository()
-    repo.inject_fault("create_execution", ConnectionError("Database Down"), trigger_count=None)
-
     dto = ExecutionCreateDTO(
-        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+        workflow_id=_WF_ID,
+        output_profile_id=_PRF_ID,
+        organization_id=_ORG_ID,
+        created_by=_USR_ID,
     )
-    with pytest.raises(ConnectionError):
-        await repo.create_execution(dto)
+    repo.inject_fault("create_execution", ConnectionError("Database Down"), trigger_count=None)
+    try:
+        with pytest.raises(ConnectionError):
+            await repo.create_execution(dto)
 
-    with pytest.raises(ConnectionError):
-        await repo.create_execution(dto)
+        with pytest.raises(ConnectionError):
+            await repo.create_execution(dto)
+    finally:
+        repo.clear_faults("create_execution")
 
-    repo.clear_faults("create_execution")
     exec_id = await repo.create_execution(dto)
     assert exec_id.startswith("exe_")
 
 
 @pytest.mark.asyncio
 async def test_deterministic_fault_injection_context_manager() -> None:
-    """Verify scoped fault_context raises during block and auto-clears on exit."""
+    """Verify scoped fault_context raises during block and clears automatically on exit."""
     repo = InMemoryWorkflowRepository()
-    dto = WorkflowCreateDTO(slug="wf-scoped", name="WF", description="Desc")
+    dto = _make_workflow_dto(slug="wf-scoped", name="WF", description="Desc")
     wf_id = await repo.create_workflow(dto)
 
     async with repo.fault_context("get_workflow", RuntimeError("Scoped Error")):
         with pytest.raises(RuntimeError):
             await repo.get_workflow(wf_id)
 
-    # After context exit, fault is cleared
     wf = await repo.get_workflow(wf_id)
     assert wf is not None
 
 
-def test_fault_injection_invalid_method() -> None:
+def test_fault_injection_invalid_method_failure() -> None:
     """Verify injecting fault on non-existent, private, or excluded method raises ValueError Fail-Fast."""
     repo = InMemoryExecutionRepository()
     with pytest.raises(ValueError) as exc_info:
@@ -247,32 +295,32 @@ def test_fault_injection_invalid_method() -> None:
     assert "does not exist" in str(exc_info_excluded.value)
 
 
-# ==============================================================================
-# 3. Complete 15/15 Protocol & Facade Coverage Tests
-# ==============================================================================
-
-
 @pytest.mark.asyncio
-async def test_all_15_fake_repositories_and_facade() -> None:
-    """Exercise methods across all 15 fake repositories and the unified facade."""
+async def test_all_9_active_v2_fake_repositories_and_facade() -> None:
+    """Exercise methods across all 9 active V2 fake repositories and InMemoryUnifiedWorkflowRepository."""
     # 1. Execution
     exec_repo = InMemoryExecutionRepository()
     e_id = await exec_repo.create_execution(
-        ExecutionCreateDTO(workflow_id="wf_1", output_profile_id="prof_1", organization_id="org_1", created_by="u_1")
+        ExecutionCreateDTO(
+            workflow_id=_WF_ID,
+            output_profile_id=_PRF_ID,
+            organization_id=_ORG_ID,
+            created_by=_USR_ID,
+        )
     )
     assert await exec_repo.get_execution_status(e_id) is not None
     assert await exec_repo.update_execution(e_id, ExecutionUpdateDTO(status=ExecutionStatus.PASSED))
-    event = TraceEvent(step_name="step_1", event_type="progress", content={"message": "Started"})
+    event = _make_trace_event(step_name="step_1", message="Started")
     assert await exec_repo.append_trace_event(e_id, event)
-    assert len(await exec_repo.get_all_executions(organization_id="org_1")) == 1
+    assert len(await exec_repo.get_all_executions(organization_id=_ORG_ID)) == 1
     assert len(await exec_repo.get_recent_completed_executions()) == 1
-    assert await exec_repo.count_executions_by_matrix("m1") == 0
+    assert await exec_repo.count_executions_by_matrix(_MTX_ID) == 0
     assert await exec_repo.delete_execution(e_id)
-    assert not await exec_repo.delete_execution("non_existent")
+    assert not await exec_repo.delete_execution(_EXE_ID)
 
-    # 2. Workflow
+    # 2. Workflow & Step
     wf_repo = InMemoryWorkflowRepository()
-    wf_id = await wf_repo.create_workflow(WorkflowCreateDTO(slug="wf-1", name="WF1", description="D1"))
+    wf_id = await wf_repo.create_workflow(_make_workflow_dto(slug="wf-1", name="WF1", description="D1"))
     assert await wf_repo.get_workflow(wf_id) is not None
     assert await wf_repo.get_workflow_definition(wf_id) is not None
     assert await wf_repo.get_workflow_by_id(wf_id) is not None
@@ -282,29 +330,30 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     await wf_repo.update_workflow_definition(wf_id, WorkflowUpdateDTO(name="WF1 Updated Def"))
     wf_model = await wf_repo.get_workflow(wf_id)
     assert wf_model is not None
-    updated_wf = wf_model.model_copy(update={"name": I18nText(translations={"en": "Saved WF", "fi": "Saved WF"})})
+    saved_wf_name = I18nTextFactory.build(translations={"en": "Saved WF", "fi": "Saved WF"})
+    updated_wf = wf_model.model_copy(update={"name": saved_wf_name})
     assert await wf_repo.save_workflow(updated_wf) == wf_id
     re_fetched_wf = await wf_repo.get_workflow(wf_id)
     assert re_fetched_wf is not None
-    assert re_fetched_wf.name == I18nText(translations={"en": "Saved WF", "fi": "Saved WF"})
+    assert re_fetched_wf.name == saved_wf_name
 
-    s_id = await wf_repo.create_step(
-        StepCreateDTO(slug="s1", name=I18nText(translations={"en": "S1", "fi": "S1"}), type=StepType.LOGIC, hook="h1")
-    )
+    s_id = await wf_repo.create_step(_make_step_dto(slug="s1", label="S1", hook="h1"))
     assert await wf_repo.get_step(s_id) is not None
     assert await wf_repo.get_step_by_id(s_id) is not None
     assert len(await wf_repo.get_all_steps()) == 1
-    await wf_repo.update_step(s_id, StepUpdateDTO(name=I18nText(translations={"en": "S1 Updated", "fi": "S1 Updated"})))
+    await wf_repo.update_step(
+        s_id,
+        StepUpdateDTO(name=I18nTextFactory.build(translations={"en": "S1 Updated", "fi": "S1 Updated"})),
+    )
 
     step_model = await wf_repo.get_step(s_id)
     assert step_model is not None
-    updated_step = step_model.model_copy(
-        update={"name": I18nText(translations={"en": "Saved Step", "fi": "Saved Step"})}
-    )
+    saved_step_name = I18nTextFactory.build(translations={"en": "Saved Step", "fi": "Saved Step"})
+    updated_step = step_model.model_copy(update={"name": saved_step_name})
     assert await wf_repo.save_step(updated_step) == s_id
     re_fetched_step = await wf_repo.get_step(s_id)
     assert re_fetched_step is not None
-    assert re_fetched_step.name == I18nText(translations={"en": "Saved Step", "fi": "Saved Step"})
+    assert re_fetched_step.name == saved_step_name
 
     assert await wf_repo.delete_step(s_id)
     assert await wf_repo.delete_workflow(wf_id)
@@ -344,112 +393,52 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     await id_repo.delete_org_data(org_id)
     await id_repo.delete_organization(org_id)
 
-    # 4. Component
-    comp_repo = InMemoryComponentRepository()
-    b_id = "pb_1234567890abcdef1234567890abcdef"
-    block = PersonaPromptBlock(
-        id=b_id,
-        slug="persona-1",
-        label=I18nText(translations={"en": "Persona 1", "fi": "Persona 1"}),
-        description=I18nText(translations={"en": "Persona Desc", "fi": "Persona Desc"}),
-        role_enforcement="Strict",
-    )
-    await comp_repo.register_component(block)
-    assert await comp_repo.get_component_by_id(b_id) is not None
-    assert await comp_repo.get_component_by_name("Persona 1") is not None
-    assert len(await comp_repo.get_all_components()) == 1
-    await comp_repo.update_component(b_id, block)
-    await comp_repo.update_component_metadata(b_id, "m", "c")
-    assert await comp_repo.get_components_using_dimension("dim1") == []
-    await comp_repo.delete_component(b_id)
-
-    # 5. PromptBlock
+    # 4. PromptBlock
+    block = SystemRulePromptBlockFactory.build(id=_BLK_ID, slug="rule-1")
     pb_repo = InMemoryPromptBlockRepository()
     await pb_repo.create_prompt_block(block)
-    assert await pb_repo.get_prompt_block_by_id(b_id) is not None
-    assert await pb_repo.get_prompt_block(b_id) is not None
+    assert await pb_repo.get_prompt_block_by_id(_BLK_ID) is not None
+    assert await pb_repo.get_prompt_block(_BLK_ID) is not None
     assert len(await pb_repo.get_all_prompt_blocks()) == 1
     assert len(await pb_repo.get_all_prompt_blocks_models()) == 1
-    assert len(await pb_repo.get_prompt_blocks_by_ids([b_id])) == 1
-    await pb_repo.update_prompt_block(b_id, block)
-    await pb_repo.delete_prompt_block(b_id)
+    assert len(await pb_repo.get_prompt_blocks_by_ids([_BLK_ID])) == 1
+    await pb_repo.update_prompt_block(_BLK_ID, block)
+    await pb_repo.delete_prompt_block(_BLK_ID)
 
-    # 6. Agent
-    ag_repo = InMemoryAgentRepository()
-    await ag_repo.create_agent(block)
-    assert await ag_repo.get_agent_by_id(b_id) is not None
-    assert len(await ag_repo.get_all_agents()) == 1
-    await ag_repo.update_agent(b_id, block)
-    await ag_repo.delete_agent(b_id)
+    # 5. TaskBrief
+    tb_repo = InMemoryTaskBriefRepository()
+    brief = TaskBriefFactory.build(id=_TBR_ID, slug="brief-1")
+    await tb_repo.create_task_brief(brief)
+    assert await tb_repo.get_task_brief_by_id(_TBR_ID) is not None
+    assert len(await tb_repo.get_all_task_briefs()) == 1
+    assert await tb_repo.update_task_brief(_TBR_ID, brief)
+    assert await tb_repo.delete_task_brief(_TBR_ID)
 
-    # 7. TaskBlueprint
-    bp_repo = InMemoryTaskBlueprintRepository()
-    step_model = Step(
-        id="step_1234567890abcdef1234567890abcdef",
-        slug="step-bp",
-        name=I18nText(translations={"en": "Step Blueprint", "fi": "Step Blueprint"}),
-        type=StepType.LOGIC,
-        hook="logic_hook",
-    )
-    await bp_repo.create_task_blueprint(step_model)
-    assert await bp_repo.get_task_blueprint_by_id("step_1234567890abcdef1234567890abcdef") is not None
-    assert len(await bp_repo.get_all_task_blueprints()) == 1
-    await bp_repo.update_task_blueprint(
-        "step_1234567890abcdef1234567890abcdef",
-        StepUpdateDTO(name=I18nText(translations={"en": "Updated BP", "fi": "Updated BP"})),
-    )
-    await bp_repo.delete_task_blueprint("step_1234567890abcdef1234567890abcdef")
-
-    # 8. OutputProfile
+    # 6. OutputProfile
     op_repo = InMemoryOutputProfileRepository()
-    prof_id = "prof_1234567890abcdef1234567890abcdef"
-    profile = OutputProfile(
-        id=prof_id,
-        slug="prof-1",
-        workflow_id="wf_1234567890abcdef1234567890abcdef",
-        name=I18nText(translations={"en": "Profile 1", "fi": "Profile 1"}),
-        target_block_order=[],
-    )
+    profile = OutputProfileFactory.build(id=_PRF_ID, slug="prof-1", workflow_id=_WF_ID, target_block_order=[])
     await op_repo.create_output_profile(profile)
-    assert await op_repo.get_output_profile_by_id(prof_id) is not None
+    assert await op_repo.get_output_profile_by_id(_PRF_ID) is not None
     assert len(await op_repo.get_all_output_profiles()) == 1
     assert len(await op_repo.get_all_output_profiles_models()) == 1
-    await op_repo.update_output_profile(prof_id, profile)
-    await op_repo.delete_output_profile(prof_id)
+    await op_repo.update_output_profile(_PRF_ID, profile)
+    await op_repo.delete_output_profile(_PRF_ID)
 
-    # 9. Knowledge
-    kn_repo = InMemoryKnowledgeRepository()
-    await kn_repo.add_banned_phrase("banned", "en")
-    assert len(await kn_repo.get_banned_phrases()) == 1
-    assert await kn_repo.delete_banned_phrase("banned")
-    assert await kn_repo.get_prompt_template("t1") is None
-    c_id = await kn_repo.add_concept(ConceptCreateDTO(name="C1"))
-    assert c_id.startswith("con_")
-    r_id = await kn_repo.add_reference(ReferenceCreateDTO(name="R1"))
-    assert r_id.startswith("ref_")
-    cl_id = await kn_repo.add_claim(ClaimCreateDTO(name="CL1"))
-    assert cl_id.startswith("cl_")
-    assert len(await kn_repo.get_concepts()) == 1
-    assert len(await kn_repo.get_references()) == 1
-    assert len(await kn_repo.get_claims()) == 1
-    await kn_repo.clear_knowledge_base()
-
-    # 10. System
+    # 7. System
     sys_repo = InMemorySystemRepository()
-    reg = await sys_repo.get_model_registry("sys_1234567890abcdef1234567890abcdef")
-    assert reg.id == "sys_1234567890abcdef1234567890abcdef"
-    await sys_repo.update_model_registry(reg.model_copy(update={"name": "Updated Registry"}))
-    assert (await sys_repo.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
-    await sys_repo.update_mcp_gateways(
-        SystemConfigMCPGateways(
-            id="sys_abcdef1234567890abcdef1234567890",
-            name="Gateway",
-            slug="default_mcp_gateway",
-            tools=[],
-        )
+    reg = await sys_repo.get_model_registry(_SYS_REG_ID)
+    assert reg.id is not None
+    await sys_repo.update_model_registry(reg.model_copy(update={"id": _SYS_REG_ID, "name": "Updated Registry"}))
+    gw_cfg = SystemConfigMCPGateways(
+        id=_SYS_GW_ID,
+        name="Gateway",
+        slug="default_mcp_gateway",
+        tools=[],
     )
+    await sys_repo.update_mcp_gateways(gw_cfg)
+    assert (await sys_repo.get_mcp_gateways(_SYS_GW_ID)).id == _SYS_GW_ID
     mcp_cfg = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070018234567890abcde1",
+        id=_SYS_EXTRA_ID,
         name="Extra Gateway",
         slug="extra_mcp_gateway",
         tools=[],
@@ -457,21 +446,22 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     cfg_id = await sys_repo.create_system_config(SystemConfigCreateDTO(type="mcp_gateways", content=mcp_cfg))
     assert await sys_repo.get_system_config(cfg_id) is not None
 
-    # 11. Audit
+    # 8. Audit
     aud_repo = InMemoryAuditRepository()
     await aud_repo.log_audit_event(
         AuditLogCreateDTO(
-            actor_id="usr_0195f3a0000070018234567890abcdef",
+            actor_id=_USR_ID,
             event_type="WORKFLOW_CREATED",
             resource_type="workflow",
-            resource_id="wor_0195f3a0000070018234567890abcdef",
+            resource_id=_WF_ID,
+            details={},
         )
     )
-    assert len(await aud_repo.get_audit_logs(actor_id="usr_0195f3a0000070018234567890abcdef")) == 1
+    assert len(await aud_repo.get_audit_logs(actor_id=_USR_ID)) == 1
     await aud_repo.log_usage(
         UsageRecordFactory.build(
-            org_id="org_0195f3a0000070018234567890abcdef",
-            user_id="usr_0195f3a0000070018234567890abcdef",
+            org_id=_ORG_ID,
+            user_id=_USR_ID,
             model="gemini-2.5-flash",
             input_tokens=50,
             output_tokens=50,
@@ -479,55 +469,31 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             timestamp=datetime.now(UTC),
         )
     )
-    assert len(await aud_repo.get_usage_records("organization", "org_0195f3a0000070018234567890abcdef")) == 1
-    rollup = await aud_repo.aggregate_organization_usage(organization_id="org_0195f3a0000070018234567890abcdef")
+    assert len(await aud_repo.get_usage_records("organization", _ORG_ID)) == 1
+    rollup = await aud_repo.aggregate_organization_usage(organization_id=_ORG_ID)
     assert rollup.total_prompt_tokens == 50
-    assert (
-        await aud_repo.get_detailed_usage("org", "org_0195f3a0000070018234567890abcdef")
-    ).organization_id == "org_0195f3a0000070018234567890abcdef"
+    assert (await aud_repo.get_detailed_usage("organization", _ORG_ID)).organization_id == _ORG_ID
 
-    # 12. Matrix
-    mx_repo = InMemoryMatrixRepository()
-    await mx_repo.create_matrix(block)
-    assert await mx_repo.get_matrix_by_id(b_id) is not None
-    assert len(await mx_repo.get_all_matrices()) == 1
-    await mx_repo.update_matrix(b_id, block)
-    assert await mx_repo.get_matrices_using_dimension("d1") == []
-    await mx_repo.delete_matrix(b_id)
-
-    # 13. Role
-    role_repo = InMemoryRoleRepository()
-    rol_id = "rol_1234567890abcdef1234567890abcdef"
-    role_model = Role(
-        id=rol_id,
-        name=I18nText(translations={"en": "Role 1", "fi": "Role 1"}),
-        model_role="analyst_model",
+    # 9. Report Artifact
+    rep_repo = InMemoryReportArtifactRepository()
+    art = ReportArtifactFactory.build(
+        id=_REP_ID,
+        execution_id=_EXE_ID,
+        workflow_id=_WF_ID,
+        profile_id=_PRF_ID,
+        locale="en",
+        title="Test Report",
+        status=ReportStatus.READY,
     )
-    await role_repo.create_role(role_model)
-    assert await role_repo.get_role_by_id(rol_id) is not None
-    assert len(await role_repo.get_all_roles()) == 1
-    await role_repo.update_role(rol_id, role_model)
-    await role_repo.delete_role(rol_id)
+    await rep_repo.create_report_artifact(art)
+    assert await rep_repo.get_report_artifact(_REP_ID) is not None
+    assert len(await rep_repo.list_report_artifacts_by_execution(_EXE_ID)) == 1
+    await rep_repo.update_report_artifact(_REP_ID, ReportArtifactUpdateDTO(error_message="Err"))
+    assert await rep_repo.delete_report_artifact(_REP_ID)
 
-    # 14. Execution Persona
-    ep_repo = InMemoryExecutionPersonaRepository()
-    await ep_repo.create_execution_persona(block)
-    assert await ep_repo.get_execution_persona_by_id(b_id) is not None
-    assert len(await ep_repo.get_all_execution_personas()) == 1
-    await ep_repo.update_execution_persona(b_id, block)
-    await ep_repo.delete_execution_persona(b_id)
-
-    # 15. Extraction Protocol
-    proto_repo = InMemoryExtractionProtocolRepository()
-    await proto_repo.create_extraction_protocol(block)
-    assert await proto_repo.get_extraction_protocol_by_id(b_id) is not None
-    assert len(await proto_repo.get_all_extraction_protocols()) == 1
-    await proto_repo.update_extraction_protocol(b_id, block)
-    await proto_repo.delete_extraction_protocol(b_id)
-
-    # 16. Unified Workflow Facade
+    # 10. Unified Workflow Facade across all 9 active protocols
     unified = InMemoryUnifiedWorkflowRepository()
-    u_wf_id = await unified.create_workflow(WorkflowCreateDTO(slug="unified-wf", name="Unified WF", description="D"))
+    u_wf_id = await unified.create_workflow(_make_workflow_dto(slug="unified-wf", name="Unified WF", description="D"))
     assert await unified.get_workflow(u_wf_id) is not None
     assert await unified.get_workflow_by_id(u_wf_id) is not None
     assert await unified.get_workflow_definition(u_wf_id) is not None
@@ -539,42 +505,43 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     u_wf = await unified.get_workflow(u_wf_id)
     assert u_wf is not None
     u_wf_up = u_wf.model_copy(
-        update={"name": I18nText(translations={"en": "Unified Saved WF", "fi": "Unified Saved WF"})}
+        update={"name": I18nTextFactory.build(translations={"en": "Unified Saved WF", "fi": "Unified Saved WF"})}
     )
     assert await unified.save_workflow(u_wf_up) == u_wf_id
 
-    u_step_id = await unified.create_step(
-        StepCreateDTO(
-            slug="u-s1", name=I18nText(translations={"en": "US1", "fi": "US1"}), type=StepType.LOGIC, hook="h"
-        )
-    )
+    u_step_id = await unified.create_step(_make_step_dto(slug="u-s1", label="US1", hook="h"))
     assert await unified.get_step(u_step_id) is not None
     assert await unified.get_step_by_id(u_step_id) is not None
     assert len(await unified.get_all_steps()) == 1
-    await unified.update_step(u_step_id, StepUpdateDTO(name=I18nText(translations={"en": "US1 Up", "fi": "US1 Up"})))
+    await unified.update_step(
+        u_step_id,
+        StepUpdateDTO(name=I18nTextFactory.build(translations={"en": "US1 Up", "fi": "US1 Up"})),
+    )
 
     u_step_model = await unified.get_step(u_step_id)
     assert u_step_model is not None
     u_step_saved = u_step_model.model_copy(
-        update={"name": I18nText(translations={"en": "Unified Saved Step", "fi": "Unified Saved Step"})}
+        update={"name": I18nTextFactory.build(translations={"en": "Unified Saved Step", "fi": "Unified Saved Step"})}
     )
     assert await unified.save_step(u_step_saved) == u_step_id
-
     assert await unified.delete_step(u_step_id)
     assert await unified.delete_workflow(u_wf_id)
 
     u_exec_id = await unified.create_execution(
-        ExecutionCreateDTO(workflow_id="wf_1", output_profile_id="p1", organization_id="o1", created_by="u1")
+        ExecutionCreateDTO(
+            workflow_id=_WF_ID,
+            output_profile_id=_PRF_ID,
+            organization_id=_ORG_ID,
+            created_by=_USR_ID,
+        )
     )
     assert await unified.get_execution(u_exec_id) is not None
     assert await unified.get_execution_status(u_exec_id) is not None
     await unified.update_execution(u_exec_id, ExecutionUpdateDTO(status=ExecutionStatus.RUNNING))
-    await unified.append_trace_event(
-        u_exec_id, TraceEvent(step_name="step1", event_type="progress", content={"message": "ok"})
-    )
+    await unified.append_trace_event(u_exec_id, _make_trace_event(step_name="step1", message="ok"))
     assert len(await unified.get_all_executions()) == 1
     assert len(await unified.get_recent_completed_executions()) == 1
-    assert await unified.count_executions_by_matrix("mx_1") == 0
+    assert await unified.count_executions_by_matrix(_MTX_ID) == 0
     assert await unified.delete_execution(u_exec_id)
 
     u_org_id = await unified.create_organization(
@@ -608,102 +575,42 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await unified.get_org_usage_total(u_org_id) == 0.0
     assert await unified.delete_user(u_user_id)
     assert await unified.delete_organization(u_org_id)
-    await unified.delete_org_data("org_dummy")
+    await unified.delete_org_data(_ORG_ID)
 
-    u_b_id = "blk_1234567890abcdef1234567890abcdef"
-    u_block = PersonaPromptBlock(
-        id=u_b_id,
-        slug="u-persona",
-        label=I18nText(translations={"en": "U Persona", "fi": "U Persona"}),
-        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
-        role_enforcement="Strict Enforcement",
-    )
-    assert await unified.register_component(u_block) == u_b_id
-    assert await unified.get_component_by_id(u_b_id) is not None
-    assert await unified.get_component_by_name("u-persona") is not None
-    assert len(await unified.get_all_components()) == 1
-    assert await unified.update_component_metadata(u_b_id, "mod", "cls")
-    await unified.create_component(u_block)
-    await unified.update_component(u_b_id, u_block)
-    assert await unified.get_components_using_dimension("dim1") == []
-    assert await unified.delete_component(u_b_id)
-
-    await unified.create_prompt_block(u_block)
-    assert await unified.get_prompt_block(u_b_id) is not None
-    assert await unified.get_prompt_block_by_id(u_b_id) is not None
+    await unified.create_prompt_block(block)
+    assert await unified.get_prompt_block(_BLK_ID) is not None
+    assert await unified.get_prompt_block_by_id(_BLK_ID) is not None
     assert len(await unified.get_all_prompt_blocks()) == 1
     assert len(await unified.get_all_prompt_blocks_models()) == 1
-    assert len(await unified.get_prompt_blocks_by_ids([u_b_id])) == 1
-    await unified.update_prompt_block(u_b_id, u_block)
-    assert await unified.delete_prompt_block(u_b_id)
+    assert len(await unified.get_prompt_blocks_by_ids([_BLK_ID])) == 1
+    await unified.update_prompt_block(_BLK_ID, block)
+    assert await unified.delete_prompt_block(_BLK_ID)
 
-    await unified.create_agent(u_block)
-    assert await unified.get_agent_by_id(u_b_id) is not None
-    assert len(await unified.get_all_agents()) == 1
-    await unified.update_agent(u_b_id, u_block)
-    assert await unified.delete_agent(u_b_id)
+    await unified.create_task_brief(brief)
+    assert await unified.get_task_brief_by_id(_TBR_ID) is not None
+    assert len(await unified.get_all_task_briefs()) == 1
+    assert await unified.update_task_brief(_TBR_ID, brief)
+    assert await unified.delete_task_brief(_TBR_ID)
 
-    u_step = Step(
-        id="step_1234567890abcdef1234567890abcdef",
-        slug="step-u",
-        name=I18nText(translations={"en": "Step U", "fi": "Step U"}),
-        type=StepType.LOGIC,
-        hook="hook_u",
-    )
-    await unified.create_task_blueprint(u_step)
-    assert await unified.get_task_blueprint_by_id("step_1234567890abcdef1234567890abcdef") is not None
-    assert len(await unified.get_all_task_blueprints()) == 1
-    await unified.update_task_blueprint(
-        "step_1234567890abcdef1234567890abcdef", StepUpdateDTO(name=I18nText(translations={"en": "U2", "fi": "U2"}))
-    )
-    assert await unified.delete_task_blueprint("step_1234567890abcdef1234567890abcdef")
-
-    u_prof = OutputProfile(
-        id="prof_1234567890abcdef1234567890abcdef",
-        slug="prof-u",
-        workflow_id="wf_1234567890abcdef1234567890abcdef",
-        name=I18nText(translations={"en": "P", "fi": "P"}),
-        target_block_order=[],
-    )
-    await unified.create_output_profile(u_prof)
-    assert await unified.get_output_profile_by_id("prof_1234567890abcdef1234567890abcdef") is not None
+    await unified.create_output_profile(profile)
+    assert await unified.get_output_profile_by_id(_PRF_ID) is not None
     assert len(await unified.get_all_output_profiles()) == 1
     assert len(await unified.get_all_output_profiles_models()) == 1
-    await unified.update_output_profile("prof_1234567890abcdef1234567890abcdef", u_prof)
-    assert await unified.delete_output_profile("prof_1234567890abcdef1234567890abcdef")
+    await unified.update_output_profile(_PRF_ID, profile)
+    assert await unified.delete_output_profile(_PRF_ID)
 
-    await unified.add_banned_phrase("phrase_u", "en")
-    assert len(await unified.get_banned_phrases()) == 1
-    assert await unified.delete_banned_phrase("phrase_u")
-    assert await unified.get_prompt_template("t_u") is None
-    c_u = await unified.add_concept(ConceptCreateDTO(name="CU"))
-    assert c_u.startswith("con_")
-    r_u = await unified.add_reference(ReferenceCreateDTO(name="RU"))
-    assert r_u.startswith("ref_")
-    cl_u = await unified.add_claim(ClaimCreateDTO(name="CLU"))
-    assert cl_u.startswith("cl_")
-    assert len(await unified.get_concepts()) == 1
-    assert len(await unified.get_references()) == 1
-    assert len(await unified.get_claims()) == 1
-    await unified.clear_knowledge_base()
-
-    u_reg = await unified.get_model_registry("sys_1234567890abcdef1234567890abcdef")
-    assert u_reg.id == "sys_1234567890abcdef1234567890abcdef"
-    await unified.update_model_registry(u_reg.model_copy(update={"name": "U Reg"}))
-    assert (await unified.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
-    await unified.update_mcp_gateways(
-        SystemConfigMCPGateways(
-            id="sys_abcdef1234567890abcdef1234567890",
-            name="Gateway",
-            slug="default_mcp_gateway",
-            tools=[],
-        )
-    )
+    u_reg = await unified.get_model_registry(_SYS_REG_ID)
+    assert u_reg.id is not None
+    await unified.update_model_registry(u_reg.model_copy(update={"id": _SYS_REG_ID, "name": "U Reg"}))
+    await unified.update_mcp_gateways(gw_cfg)
+    assert (await unified.get_mcp_gateways(_SYS_GW_ID)).id == _SYS_GW_ID
+    all_gws = await unified.get_all_mcp_gateways()
+    assert any(g.id == _SYS_GW_ID for g in all_gws)
     cfg_u = await unified.create_system_config(
         SystemConfigCreateDTO(
             type="mcp_gateways",
             content=SystemConfigMCPGateways(
-                id="sys_0195f3a0000070018234567890abcde2",
+                id=_SYS_UNIFIED_EXTRA_ID,
                 name="Unified Extra Gateway",
                 slug="unified_extra_gateway",
                 tools=[],
@@ -714,17 +621,18 @@ async def test_all_15_fake_repositories_and_facade() -> None:
 
     await unified.log_audit_event(
         AuditLogCreateDTO(
-            actor_id="usr_0195f3a0000070018234567890abcdef",
+            actor_id=_USR_ID,
             event_type="WORKFLOW_UPDATED",
             resource_type="workflow",
-            resource_id="wor_0195f3a0000070018234567890abcdef",
+            resource_id=_WF_ID,
+            details={},
         )
     )
     assert len(await unified.get_audit_logs()) == 1
     await unified.log_usage(
         UsageRecordFactory.build(
-            org_id="org_0195f3a0000070018234567890abcdef",
-            user_id="usr_0195f3a0000070018234567890abcdef",
+            org_id=_ORG_ID,
+            user_id=_USR_ID,
             model="gemini-2.5-flash",
             input_tokens=10,
             output_tokens=20,
@@ -732,77 +640,12 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             timestamp=datetime.now(UTC),
         )
     )
-    assert len(await unified.get_usage_records("organization", "org_0195f3a0000070018234567890abcdef")) == 1
-    assert (
-        await unified.aggregate_organization_usage(organization_id="org_0195f3a0000070018234567890abcdef")
-    ).record_count == 1
-    assert (
-        await unified.get_detailed_usage("org", "org_0195f3a0000070018234567890abcdef")
-    ).organization_id == "org_0195f3a0000070018234567890abcdef"
-
-    await unified.create_matrix(u_block)
-    assert await unified.get_matrix_by_id(u_b_id) is not None
-    assert len(await unified.get_all_matrices()) == 1
-    await unified.update_matrix(u_b_id, u_block)
-    assert await unified.get_matrices_using_dimension("dim1") == []
-    assert await unified.delete_matrix(u_b_id)
-
-    u_rol = Role(
-        id="rol_1234567890abcdef1234567890abcdef",
-        name=I18nText(translations={"en": "R", "fi": "R"}),
-        model_role="analyst",
-    )
-    await unified.create_role(u_rol)
-    assert await unified.get_role_by_id("rol_1234567890abcdef1234567890abcdef") is not None
-    assert len(await unified.get_all_roles()) == 1
-    await unified.update_role("rol_1234567890abcdef1234567890abcdef", u_rol)
-    assert await unified.delete_role("rol_1234567890abcdef1234567890abcdef")
-
-    await unified.create_execution_persona(u_block)
-    assert await unified.get_execution_persona_by_id(u_b_id) is not None
-    assert len(await unified.get_all_execution_personas()) == 1
-    await unified.update_execution_persona(u_b_id, u_block)
-    assert await unified.delete_execution_persona(u_b_id)
-
-    await unified.create_extraction_protocol(u_block)
-    assert await unified.get_extraction_protocol_by_id(u_b_id) is not None
-    assert len(await unified.get_all_extraction_protocols()) == 1
-    await unified.update_extraction_protocol(u_b_id, u_block)
-    assert await unified.delete_extraction_protocol(u_b_id)
-
-    # 18. Report Artifact (direct + unified)
-    rep_repo = InMemoryReportArtifactRepository()
-    art = ReportArtifact(
-        id="rep_1234567890abcdef1234567890abcdef",
-        execution_id="exe_test123",
-        workflow_id="wf_test123",
-        profile_id="prof_test123",
-        locale="en",
-        title="Test Report",
-        status=ReportStatus.READY,
-    )
-    await rep_repo.create_report_artifact(art)
-    assert await rep_repo.get_report_artifact("rep_1234567890abcdef1234567890abcdef") is not None
-    assert len(await rep_repo.list_report_artifacts_by_execution("exe_test123")) == 1
-    await rep_repo.update_report_artifact(
-        "rep_1234567890abcdef1234567890abcdef",
-        ReportArtifactUpdateDTO(error_message="Err"),
-    )
-    assert await rep_repo.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")
+    assert len(await unified.get_usage_records("organization", _ORG_ID)) == 1
+    assert (await unified.aggregate_organization_usage(organization_id=_ORG_ID)).record_count == 1
+    assert (await unified.get_detailed_usage("organization", _ORG_ID)).organization_id == _ORG_ID
 
     await unified.create_report_artifact(art)
-    assert await unified.get_report_artifact("rep_1234567890abcdef1234567890abcdef") is not None
-    assert len(await unified.list_report_artifacts_by_execution("exe_test123")) == 1
-    await unified.update_report_artifact(
-        "rep_1234567890abcdef1234567890abcdef",
-        ReportArtifactUpdateDTO(error_message="Err2"),
-    )
-    assert await unified.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")
-
-    gw = SystemConfigMCPGateways(
-        id="cfg_0195f3a0000070088172bda70c8641c5", name="Gateway", slug="mcp_gateways", type="mcp_gateways", tools=[]
-    )
-    await unified.update_mcp_gateways(gw)
-    all_gws = await unified.get_all_mcp_gateways()
-    assert len(all_gws) >= 1
-    assert any(g.id == "cfg_0195f3a0000070088172bda70c8641c5" for g in all_gws)
+    assert await unified.get_report_artifact(_REP_ID) is not None
+    assert len(await unified.list_report_artifacts_by_execution(_EXE_ID)) == 1
+    await unified.update_report_artifact(_REP_ID, ReportArtifactUpdateDTO(error_message="Err2"))
+    assert await unified.delete_report_artifact(_REP_ID)

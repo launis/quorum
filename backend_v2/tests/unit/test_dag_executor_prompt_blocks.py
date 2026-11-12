@@ -1,28 +1,63 @@
-from typing import Any
+"""Unit tests verifying DAGExecutor resolves prompt blocks from IPromptBlockRepository."""
+
+from __future__ import annotations
+
+from typing import Annotated
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import BaseModel, Field
 
-from backend_v2.core.hook_registry import HookResult
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+from backend_v2.exceptions import AppException
+from backend_v2.llm.client import LLMClient
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.domain.step import StepRule
-from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
-from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.enums import (
+    BlockDataType,
+    CognitiveTier,
+    ExecutionStatus,
+    HistoricalContextMode,
+    LLMProvider,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.state import StateProjector
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.tests.factories.model_factories import (
+    ExecutionRecordFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+class ModelProfileFactory(ModelFactory[ModelProfile]):
+    """Polyfactory model factory for ModelProfile configurations."""
+
+    __model__ = ModelProfile
+
+
+class MockSchema(BaseModel):
+    """Dynamic schema stub returned by the mocked prompt compiler."""
+
+    blk_0195f3a00000700c8def0123456789ab: Annotated[str | None, Field(description="Test block value.")] = None
 
 
 @pytest.fixture
 def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    """Create an in-memory unified repository seeded with prompt blocks and workflow definitions.
+
+    Returns:
+        Seeded InMemoryUnifiedWorkflowRepository instance.
+    """
     repo = InMemoryUnifiedWorkflowRepository()
-    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
-    from backend_v2.models.domain.system_config import SystemConfigModelRegistry
-    from backend_v2.models.enums import BlockDataType
 
     prompt_blocks = [
         PromptBlockAdapter.validate_python(
@@ -97,34 +132,44 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             }
         ]
     )
-    model_reg = SystemConfigModelRegistry.model_validate(
-        {
-            "id": "sys_0195f3a00000700e826807f3bfa3454d",
-            "name": "Default Stack",
-            "tier_definitions": {
-                tier: {
-                    "provider": "openai",
-                    "model_name": "gpt-4o-mini",
-                    "tpm_limit": 100000,
-                    "rpm_limit": 1000,
-                    "max_tokens": 4096,
-                    "temperature": 0.0,
-                }
-                for tier in ("fast", "balanced", "deep", "reasoning")
-            },
-        }
+    tier_profile = ModelProfileFactory.build(
+        provider=LLMProvider.OPENAI,
+        model_name="gpt-4o-mini",
+        tpm_limit=100000,
+        rpm_limit=1000,
+        max_tokens=4096,
+        temperature=0.0,
+        is_active=True,
+        allowed_tools=[],
+        additional_params={},
+    )
+    model_reg = SystemConfigModelRegistry(
+        id="sys_0195f3a00000700e826807f3bfa3454d",
+        type="model_registry",
+        name="Default Stack",
+        slug="default",
+        default_provider=LLMProvider.OPENAI,
+        tier_definitions={
+            tier: tier_profile
+            for tier in (
+                CognitiveTier.FAST,
+                CognitiveTier.BALANCED,
+                CognitiveTier.DEEP,
+                CognitiveTier.REASONING,
+            )
+        },
     )
     repo.set_model_registry(model_reg)
     return repo
 
 
 @pytest.fixture
-def mock_compiler() -> Any:
-    from pydantic import BaseModel, Field
+def mock_compiler() -> MagicMock:
+    """Create a mocked prompt compiler returning MockSchema.
 
-    class MockSchema(BaseModel):
-        blk_0195f3a00000700c8def0123456789ab: str | None = Field(default=None)
-
+    Returns:
+        Configured MagicMock prompt compiler.
+    """
     MockSchema.model_rebuild()
 
     compiler = MagicMock()
@@ -136,13 +181,20 @@ def mock_compiler() -> Any:
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: Any, mock_compiler: Any) -> None:
-    # Setup Executor
+async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    mock_compiler: MagicMock,
+) -> None:
+    """Verify DAGExecutor fetches prompt blocks via get_prompt_blocks_by_ids and projects output.
+
+    Args:
+        mock_repo: Seeded in-memory repository fixture.
+        mock_compiler: Mocked prompt compiler fixture.
+    """
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,
@@ -151,8 +203,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         prompt_compiler=mock_compiler,
     )
 
-    # Setup basic valid workflow
-    workflow = Workflow(
+    workflow = WorkflowFactory.build(
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070058555555555555555",
@@ -162,18 +213,23 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
-        steps=[StepRule(id="stp_0195f3a0000070018111111111111111", task_blueprint="task_bp")],
+        expected_inputs=[],
+        steps=[
+            StepRule(
+                id="stp_0195f3a0000070018111111111111111",
+                task_blueprint="task_bp",
+                depends_on=[],
+                input_mappings={},
+            )
+        ],
     )
 
-    # Execute
-    with patch("backend_v2.llm.client.LLMClient.from_tier", new_callable=AsyncMock) as mock_tier:
-        from backend_v2.llm.client import LLMClient
+    input_str = "this_is_a_very_long_test_string_to_bypass_fail_fast"
 
+    with patch("backend_v2.llm.client.LLMClient.from_tier", new_callable=AsyncMock) as mock_tier:
         mock_bound_client = AsyncMock(spec=LLMClient)
         mock_bound_client._config = MagicMock()
         mock_bound_client._config.provider = "mock_llm_99"
-
-        from backend_v2.models.domain.usage import TokenUsage
 
         mock_schema_cls = mock_compiler.build_dynamic_schema.return_value
         mock_bound_client.run_structured_task.return_value = (
@@ -223,35 +279,26 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                 hydrated_references={},
             )
 
-            mock_hook_state = MagicMock()
-            mock_hook_state.inputs = {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}
-            mock_hook_state.global_context_vars = {}
-
             mock_repo.set_execution(
-                ExecutionRecord(
+                ExecutionRecordFactory.build(
                     id="exe_0195f3a0000070018231231231231231",
                     workflow_id="wf_0195f3a0000070058555555555555555",
                     status=ExecutionStatus.PENDING,
                     target_locale="fi",
                     output_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-                    raw_inputs=WorkflowInputs.model_validate(
-                        {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}}
-                    ),
+                    raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": input_str}),
                     metadata=ExecutionMetadata(),
                 )
             )
 
-            # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
             with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-                from backend_v2.core.hook_registry import HookDeltaDTO
-                from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
-
                 mock_hooks.execute = AsyncMock(
                     return_value=HookResult(
                         success=True,
                         state_delta=HookDeltaDTO(
                             delta=ExecutionInputsDTO(
-                                dynamic_inputs={"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}
+                                raw_inputs={},
+                                dynamic_inputs={"chat_log": input_str},
                             )
                         ),
                     )
@@ -260,29 +307,64 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                 record = await executor.execute_workflow(
                     execution_id="exe_0195f3a0000070018231231231231231",
                     workflow=workflow,
-                    raw_inputs=WorkflowInputs.model_validate(
-                        {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}}
-                    ),
+                    raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": input_str}),
                 )
 
-    # Assert repo called new method instead of get_all_matrices
     assert mock_repo.get_call_count("get_prompt_blocks_by_ids") >= 1
-    assert mock_repo.get_call_count("get_all_matrices") == 0
     assert record.status == ExecutionStatus.RUNNING
-    from backend_v2.models.state import StateProjector
 
-    print(f"DEBUG TRACE: {record.execution_trace}")
     projector = StateProjector()
     results = projector.fold_trace(record.execution_trace)
-    print(f"DEBUG RESULTS: {results}")
 
     found = False
     for dto in results:
         if (
             dto.step_id == "stp_0195f3a0000070018111111111111111"
             and dto.block_id == "blk_0195f3a00000700c8def0123456789ab"
+            and dto.payload == "test"
         ):
-            if dto.payload == "test":
-                found = True
-                break
+            found = True
+            break
     assert found
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_prompt_blocks_missing_execution_error(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    mock_compiler: MagicMock,
+) -> None:
+    """Verify DAGExecutor raises AppException when execution_id does not exist in repository.
+
+    Args:
+        mock_repo: Seeded in-memory repository fixture.
+        mock_compiler: Mocked prompt compiler fixture.
+    """
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+    workflow = WorkflowFactory.build(
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070058555555555555555",
+        slug="wf_test_slug",
+        status="draft",
+        version=1,
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        expected_inputs=[],
+        steps=[],
+    )
+
+    with pytest.raises(AppException):
+        await executor.execute_workflow(
+            execution_id="exe_0195f3a0000070019999999999999999",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )

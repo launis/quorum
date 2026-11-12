@@ -111,7 +111,7 @@ def test_hydrate_global_inputs_none_source() -> None:
         (generate_opaque_id(EntityPrefix.EXECUTION), "   "),
     ],
 )
-def test_hydrate_global_inputs_missing_identifiers_raises_app_exception(
+def test_hydrate_global_inputs_missing_identifiers_validation_error(
     execution_id: str,
     workflow_id: str,
 ) -> None:
@@ -135,7 +135,7 @@ def test_hydrate_global_inputs_missing_identifiers_raises_app_exception(
 
 
 @pytest.mark.parametrize("invalid_key", ["", "   "])
-def test_hydrate_global_inputs_empty_key_raises_app_exception(invalid_key: str) -> None:
+def test_hydrate_global_inputs_empty_key_validation_error(invalid_key: str) -> None:
     """ISTQB Boundary Value Analysis: Empty or whitespace hydrated input key raises AppException."""
     state = HookState(
         execution_id=generate_opaque_id(EntityPrefix.EXECUTION),

@@ -26,7 +26,7 @@ if _workspace_root not in sys.path:
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, field_validator
 
-from backend_v2.database.factory import get_driver
+from backend_v2.database.factory import create_unit_of_work
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
@@ -708,8 +708,7 @@ class AblationLiveExecutor:
             AppException: ErrorCodes.VALIDATION_FAILED if provider resolution fails, or ErrorCodes.CONFIGURATION_ERROR if LLM client initialization fails.
         """
         settings = get_settings()
-        driver = await get_driver(settings)
-        repo = SystemRepositoryImpl(driver)
+        repo = SystemRepositoryImpl(lambda: create_unit_of_work(settings))
 
         if config.compare_providers:
             prov_str_1, prov_str_2 = config.compare_providers

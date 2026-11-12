@@ -334,7 +334,6 @@ async def execute_blueprint_and_pre_hooks_stage(
     hook_deps = HookDependencies(
         exec_repo=deps.exec_repo,
         workflow_repo=deps.workflow_repo,
-        comp_repo=deps.comp_repo,
         prompt_block_repo=deps.prompt_block_repo,
         output_profile_repo=deps.output_profile_repo,
         identity_repo=deps.identity_repo,

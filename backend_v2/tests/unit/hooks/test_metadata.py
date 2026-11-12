@@ -24,7 +24,6 @@ def mock_deps() -> HookDependencies:
     return HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -61,7 +60,7 @@ def test_inject_step_metadata_success(mock_deps: HookDependencies) -> None:
     assert result.state_delta.delta.audit_signature.startswith("step_789:exec_123:")
 
 
-def test_inject_step_metadata_missing_execution_id_raises(mock_deps: HookDependencies) -> None:
+def test_inject_step_metadata_missing_execution_id_error(mock_deps: HookDependencies) -> None:
     """Test that missing execution_id raises VALIDATION_FAILED."""
     state = HookState(
         execution_id="",
@@ -78,7 +77,7 @@ def test_inject_step_metadata_missing_execution_id_raises(mock_deps: HookDepende
 
 
 @pytest.mark.parametrize("invalid_step_id", [None, "", "   "])
-def test_inject_step_metadata_missing_or_blank_step_id_raises(
+def test_inject_step_metadata_missing_or_blank_step_id_error(
     mock_deps: HookDependencies, invalid_step_id: str | None
 ) -> None:
     """Test that missing, empty, or whitespace step_id raises VALIDATION_FAILED."""
@@ -97,7 +96,7 @@ def test_inject_step_metadata_missing_or_blank_step_id_raises(
 
 
 @pytest.mark.parametrize("invalid_workflow_id", ["", "   "])
-def test_inject_step_metadata_missing_or_blank_workflow_id_raises(
+def test_inject_step_metadata_missing_or_blank_workflow_id_error(
     mock_deps: HookDependencies, invalid_workflow_id: str
 ) -> None:
     """Test that empty or whitespace workflow_id raises VALIDATION_FAILED."""

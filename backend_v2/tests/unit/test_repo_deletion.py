@@ -4,25 +4,20 @@ from __future__ import annotations
 
 import pytest
 
-from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.step import Step
 from backend_v2.models.enums import CognitiveTier, EntityPrefix, StepType
-from backend_v2.tests.factories import SystemRulePromptBlockFactory
-
-
-@pytest.fixture
-def driver() -> PostgresStorageDriver:
-    """Provides a PostgresStorageDriver instance."""
-    return PostgresStorageDriver(auto_initialize_pool=False)
+from backend_v2.tests.factories.model_factories import I18nTextFactory, SystemRulePromptBlockFactory
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.mark.asyncio
-async def test_delete_prompt_block_blocks_orphan_data(driver: PostgresStorageDriver) -> None:
-    """Positive: tests Fail-Fast deletion boundary when prompt block is used by a Step."""
-    repo = PromptBlockRepositoryImpl(driver=driver)
+async def test_delete_prompt_block_blocks_orphan_data_failure() -> None:
+    """Verify Fail-Fast deletion boundary when a prompt block is referenced by a persisted Step."""
+    base_uow = InMemoryUnitOfWork()
+    repo = PromptBlockRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
     block_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
     step_id = generate_opaque_id(EntityPrefix.STEP)
@@ -31,20 +26,23 @@ async def test_delete_prompt_block_blocks_orphan_data(driver: PostgresStorageDri
     step = Step(
         id=step_id,
         slug="test_step_ref",
-        name=I18nText(translations={"en": "Step 1", "fi": "Vaihe 1"}),
+        name=I18nTextFactory.build(translations={"en": "Step 1", "fi": "Vaihe 1"}),
         type=StepType.LLM,
         cognitive_tier=CognitiveTier.FAST,
         role_block_id=None,
         extraction_protocol_block_id=block_id,
         criteria_block_ids=[block_id],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
         mcp_tool_params={},
+        expected_inputs=[],
     )
 
-    # Seed block and referencing step in storage
-    await driver.upsert("prompt_blocks", block.model_dump(mode="json"), block_id)
-    await driver.upsert("steps", step.model_dump(mode="json"), step_id)
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.upsert_prompt_block(block)
+        await uow.entities.upsert_step(step)
 
-    # Should raise AppException with RESOURCE_IN_USE / DELETE_BLOCKED_BY_USAGE
     with pytest.raises(AppException) as exc_info:
         await repo.delete_prompt_block(block_id)
 
@@ -52,6 +50,5 @@ async def test_delete_prompt_block_blocks_orphan_data(driver: PostgresStorageDri
     assert exc_info.value.details["error_code"] == str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)
     assert "PromptBlock delete blocked by step" in exc_info.value.message
 
-    # Force delete should work by bypassing validation
     assert await repo.delete_prompt_block(block_id, force_delete=True) is True
-    assert await driver.get("prompt_blocks", block_id) is None
+    assert await repo.get_prompt_block_by_id(block_id) is None

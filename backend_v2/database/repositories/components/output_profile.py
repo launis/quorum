@@ -1,162 +1,98 @@
-"""Extracted Repository for Output Profiles."""
+"""Repository implementation for Output Profiles."""
 
 from __future__ import annotations
 
-import logging
-
-from backend_v2.database.driver import StorageDriver
-from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.models.domain.output_profile import OutputProfile
-
-logger = logging.getLogger(__name__)
 
 __all__ = ["OutputProfileRepositoryImpl"]
 
 
-class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
-    """Implementation of the Output Profile Repository.
-
-    This repository is responsible for CRUD operations on output profiles.
-    """
-
-    def __init__(self, driver: StorageDriver) -> None:
-        """Initializes the repository with a storage driver.
-
-        Args:
-            driver: The underlying storage driver for database operations.
-        """
-        super().__init__(driver)
+class OutputProfileRepositoryImpl(BaseRepository):
+    """Repository implementation for CRUD operations on OutputProfile entities."""
 
     async def get_all_output_profiles(self) -> list[OutputProfile]:
-        """Retrieves all output profiles from the database.
+        """Retrieve all persisted output profiles.
 
         Returns:
-            A list of validated OutputProfile domain models.
+            List of validated OutputProfile domain models.
 
         Raises:
-            AppException: If the database query or model validation fails
-                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        data = await self.driver.query("output_profiles")
-        models: list[OutputProfile] = []
-        for pd in data:
-            try:
-                models.append(OutputProfile.model_validate(pd, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in pd:
-                    item_id = str(pd["id"])
-                logger.error(
-                    "[OutputProfileRepository] %s: Failed to parse OutputProfile %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to parse profile {item_id} from database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-        return models
+        async with self._acquire_entities() as entities:
+            return await entities.list_output_profiles()
 
     async def get_all_output_profiles_models(self) -> list[OutputProfile]:
-        """Retrieves all output profiles and maps them to Pydantic models.
+        """Retrieve all output profiles as validated domain models.
 
         Returns:
-            A list of OutputProfile models.
-
-        Raises:
-            AppException: If the database query or model validation fails
-                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
+            List of validated OutputProfile domain models.
         """
         return await self.get_all_output_profiles()
 
     async def get_output_profile_by_id(self, profile_id: str) -> OutputProfile | None:
-        """Retrieves an output profile by its ID.
+        """Retrieve an output profile by primary key ID.
 
         Args:
-            profile_id: The unique identifier of the output profile.
+            profile_id: Canonical prof_<hex32> output profile identifier.
 
         Returns:
-            The validated OutputProfile domain model if found, otherwise None.
+            Validated OutputProfile domain model if found, otherwise None.
 
         Raises:
-            AppException: If the database query or model validation fails
-                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        doc = await self.driver.get("output_profiles", profile_id)
-        if not doc:
-            return None
-        try:
-            return OutputProfile.model_validate(doc, strict=False)
-        except Exception as e:
-            logger.error(
-                "[OutputProfileRepository] %s: Failed to parse OutputProfile %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                profile_id,
-                e,
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Failed to parse profile {profile_id} from database",
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
+        async with self._acquire_entities() as entities:
+            return await entities.get_output_profile(profile_id)
 
     async def create_output_profile(self, profile_data: OutputProfile) -> str:
-        """Creates a new output profile.
+        """Persist a new OutputProfile record.
 
         Args:
-            profile_data: The OutputProfile domain model.
+            profile_data: Validated OutputProfile domain model.
 
         Returns:
-            The ID of the created output profile.
+            Canonical prof_<hex32> identifier of the persisted output profile.
 
         Raises:
-            AppException: Propagated from driver if the upsert operation fails
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
         """
-        payload = profile_data.model_dump(mode="json")
-        return await self.driver.upsert("output_profiles", payload, profile_data.id)
+        async with self._acquire_entities() as entities:
+            return await entities.upsert_output_profile(profile_data)
 
     async def update_output_profile(self, profile_id: str, updates: OutputProfile) -> bool:
-        """Updates an existing output profile.
+        """Update an existing OutputProfile record in-place.
 
         Args:
-            profile_id: The ID of the output profile to update.
-            updates: The OutputProfile domain model containing updated fields.
+            profile_id: Canonical prof_<hex32> identifier of the output profile to update.
+            updates: Validated OutputProfile domain model containing updated fields.
 
         Returns:
-            True if the update was successful, False if the document was not found.
+            True if updated, False if the output profile does not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
         """
-        old_doc = await self.driver.get("output_profiles", profile_id)
-        if not old_doc:
-            return False
-
-        payload = updates.model_dump(mode="json", exclude_unset=True)
-        await self.driver.update("output_profiles", profile_id, payload)
-        return True
+        async with self._acquire_entities() as entities:
+            existing = await entities.get_output_profile(profile_id)
+            if existing is None:
+                return False
+            persisted = updates if updates.id == profile_id else updates.model_copy(update={"id": profile_id})
+            await entities.upsert_output_profile(persisted)
+            return True
 
     async def delete_output_profile(self, profile_id: str) -> bool:
-        """Deletes an output profile by ID.
+        """Delete an OutputProfile record by ID.
 
         Args:
-            profile_id: The ID of the output profile to delete.
+            profile_id: Canonical prof_<hex32> identifier of the output profile to delete.
 
         Returns:
-            True if successfully deleted, False if the document did not exist.
+            True if deleted, False if the output profile did not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if deletion fails.
         """
-        profile = await self.driver.get("output_profiles", profile_id)
-        if not profile:
-            return False
-        return await self.driver.delete("output_profiles", profile_id)
+        async with self._acquire_entities() as entities:
+            return await entities.delete_output_profile(profile_id)

@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
-from backend_v2.database.driver import Filter, StorageDriver
-from backend_v2.database.interfaces import EntityPersistencePort
+from backend_v2.database.interfaces import EntityPersistencePort, UnitOfWorkFactory
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
     OrganizationUpdateDTO,
+    SubscriptionStatus,
     SystemOrganizations,
     User,
     UserCreate,
@@ -26,285 +29,360 @@ __all__ = ["IdentityRepositoryImpl"]
 
 
 class IdentityRepositoryImpl(BaseRepository):
-    """Repository implementation for Users and Organizations."""
+    """Repository implementation for Users and Organizations backed by EntityPersistencePort."""
 
     def __init__(
         self,
-        driver: StorageDriver,
+        uow_factory: UnitOfWorkFactory | None = None,
+        *,
         entity_adapter: EntityPersistencePort | None = None,
     ) -> None:
-        """Initializes the identity repository with a storage driver and optional entity persistence port.
+        """Initialize the identity repository with an optional UnitOfWorkFactory or direct EntityPersistencePort.
 
         Args:
-            driver: Underlying storage driver instance.
-            entity_adapter: Optional typed PostgreSQL entity persistence port.
+            uow_factory: Optional zero-argument callable returning a QuorumUnitOfWork.
+            entity_adapter: Optional pre-bound EntityPersistencePort inside an active UoW transaction.
         """
-        super().__init__(driver)
+        super().__init__(uow_factory)
         self._entity_adapter: EntityPersistencePort | None = entity_adapter
 
+    @asynccontextmanager
+    async def _acquire_entities(self) -> AsyncIterator[EntityPersistencePort]:
+        """Yield the injected EntityPersistencePort if bound, else open/reuse a QuorumUnitOfWork session."""
+        if self._entity_adapter is not None:
+            yield self._entity_adapter
+            return
+        async with super()._acquire_entities() as entities:
+            yield entities
+
     async def list_organizations(self) -> list[Organization]:
-        """Retrieves all organizations.
+        """Retrieve all persisted organizations.
 
         Returns:
             List of validated Organization domain models.
-
-        Raises:
-            AppException: If an organization record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
-        if self._entity_adapter is not None:
-            return list(await self._entity_adapter.list_organizations())
-
-        raw_orgs = await self.driver.query("organizations")
-        orgs: list[Organization] = []
-        for o in raw_orgs:
-            try:
-                orgs.append(Organization.model_validate(o, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in o:
-                    item_id = str(o["id"])
-                logger.error(
-                    "[IdentityRepository] %s: Corrupted organization %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted organization {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return orgs
+        async with self._acquire_entities() as entities:
+            return list(await entities.list_organizations())
 
     async def get_organization(self, org_id: str) -> Organization | None:
-        """Retrieves an organization by its ID.
+        """Retrieve an organization by primary key ID in O(1) indexed time.
 
         Args:
-            org_id: Unique identifier for the organization.
+            org_id: Canonical org_<hex32> organization identifier.
 
         Returns:
-            The validated Organization domain model if found, otherwise None.
+            Validated Organization domain model if found, otherwise None.
         """
-        if self._entity_adapter is not None:
-            return await self._entity_adapter.get_organization(org_id)
-
-        # Use O(1) primary-key lookup instead of full-table scan.
-        raw_org = await self.driver.get("organizations", org_id)
-        if raw_org is None:
-            return None
-        return Organization.model_validate(raw_org, strict=False)
+        async with self._acquire_entities() as entities:
+            return await entities.get_organization(org_id)
 
     async def get_organization_model(self, org_id: str) -> Organization | None:
-        """Retrieves an organization model by its ID.
+        """Retrieve an organization model by ID.
 
         Args:
-            org_id: Unique identifier for the organization.
+            org_id: Canonical org_<hex32> organization identifier.
 
         Returns:
-            The validated Organization domain model if found, otherwise None.
+            Validated Organization domain model if found, otherwise None.
         """
         return await self.get_organization(org_id)
 
     async def create_organization(self, org_data: OrganizationCreate | Organization) -> str:
-        """Creates a new organization.
+        """Create or upsert an organization record.
 
         Args:
-            org_data: Organization domain model or creation DTO.
+            org_data: Organization domain model or OrganizationCreate DTO.
 
         Returns:
-            The created organization ID.
+            Created canonical org_<hex32> identifier.
         """
-        if self._entity_adapter is not None and isinstance(org_data, Organization):
-            return await self._entity_adapter.upsert_organization(org_data)
-
-        payload = org_data.model_dump(mode="json")
-        doc_id = str(payload["id"]) if "id" in payload else generate_opaque_id(EntityPrefix.ORG)
-        payload["id"] = doc_id
-        return await self.driver.upsert("organizations", payload, doc_id)
+        if isinstance(org_data, Organization):
+            org_model = org_data
+        else:
+            org_model = Organization(
+                id=generate_opaque_id(EntityPrefix.ORG),
+                name=org_data.name,
+                created_at=datetime.now(UTC),
+                is_active=True,
+                tier="standard",
+                contact_email=str(org_data.admin_email),
+                subscription_status=SubscriptionStatus.ACTIVE,
+                quota_limit=100.0,
+                tpm_limit=org_data.tpm_limit,
+                rpm_limit=org_data.rpm_limit,
+                allowed_email_domains=[],
+            )
+        async with self._acquire_entities() as entities:
+            return await entities.upsert_organization(org_model)
 
     async def update_organization(self, org_id: str, updates: OrganizationUpdateDTO) -> bool:
-        """Updates an existing organization.
+        """Update an existing organization record in-place.
 
         Args:
-            org_id: Unique identifier for the organization.
-            updates: OrganizationUpdateDTO containing update fields.
+            org_id: Canonical org_<hex32> organization identifier.
+            updates: OrganizationUpdateDTO containing partial update fields.
 
         Returns:
-            True if updated successfully, False otherwise.
+            True if updated, False if the organization does not exist.
         """
-        payload = updates.model_dump(mode="json", exclude_unset=True)
-        if not payload:
+        fields_set = updates.model_fields_set
+        async with self._acquire_entities() as entities:
+            existing = await entities.get_organization(org_id)
+            if existing is None:
+                return False
+            if not fields_set:
+                return True
+
+            next_name = existing.name
+            if updates.name is not None:
+                next_name = updates.name
+            next_tier = existing.tier
+            if updates.tier is not None:
+                next_tier = updates.tier
+            next_active = existing.is_active
+            if updates.is_active is not None:
+                next_active = updates.is_active
+            next_contact = existing.contact_email
+            if "contact_email" in fields_set:
+                next_contact = updates.contact_email
+            next_billing = existing.billing_id
+            if "billing_id" in fields_set:
+                next_billing = updates.billing_id
+            next_sub = existing.subscription_status
+            if updates.subscription_status is not None:
+                next_sub = updates.subscription_status
+            next_quota = existing.quota_limit
+            if updates.quota_limit is not None:
+                next_quota = updates.quota_limit
+            next_tpm = existing.tpm_limit
+            if updates.tpm_limit is not None:
+                next_tpm = updates.tpm_limit
+            next_rpm = existing.rpm_limit
+            if updates.rpm_limit is not None:
+                next_rpm = updates.rpm_limit
+            next_domains = existing.allowed_email_domains
+            if updates.allowed_email_domains is not None:
+                next_domains = updates.allowed_email_domains
+
+            updated = Organization(
+                id=existing.id,
+                slug=existing.slug,
+                name=next_name,
+                created_at=existing.created_at,
+                is_active=next_active,
+                tier=next_tier,
+                contact_email=next_contact,
+                billing_id=next_billing,
+                subscription_status=next_sub,
+                quota_limit=next_quota,
+                tpm_limit=next_tpm,
+                rpm_limit=next_rpm,
+                allowed_email_domains=next_domains,
+            )
+            await entities.upsert_organization(updated)
             return True
-        return await self.driver.update("organizations", org_id, payload)
 
     async def delete_organization(self, org_id: str) -> bool:
-        """Deletes an organization by ID.
+        """Delete an organization by primary key ID.
 
         Args:
-            org_id: Unique identifier for the organization.
+            org_id: Canonical org_<hex32> organization identifier.
 
         Returns:
-            True if deleted successfully, False otherwise.
+            True if deleted, False if not found.
         """
-        return await self.driver.delete("organizations", org_id)
+        async with self._acquire_entities() as entities:
+            return await entities.delete_organization(org_id)
 
     async def list_users(self, org_id: str | None = None) -> list[User]:
-        """Retrieves all users matching an optional organization filter.
+        """Retrieve all users matching an optional organization filter.
 
         Args:
-            org_id: Optional organization ID filter.
+            org_id: Optional canonical org_<hex32> organization filter.
 
         Returns:
             List of validated User domain models.
-
-        Raises:
-            AppException: If a user record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
-        if self._entity_adapter is not None:
-            return list(await self._entity_adapter.list_users(org_id))
-
-        filters = []
-        if org_id:
-            filters.append(Filter("organization_id", "==", org_id))
-        raw_users = await self.driver.query("users", filters)
-        users: list[User] = []
-        for u in raw_users:
-            try:
-                users.append(User.model_validate(u, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in u:
-                    item_id = str(u["id"])
-                logger.error(
-                    "[IdentityRepository] %s: Corrupted user %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    item_id,
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Corrupted user {item_id}: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
-                ) from e
-        return users
+        async with self._acquire_entities() as entities:
+            return list(await entities.list_users(org_id))
 
     async def get_user(self, user_id: str) -> User | None:
-        """Retrieves a user by ID.
+        """Retrieve a user by primary key ID in O(1) indexed time.
 
         Args:
-            user_id: Unique identifier for the user.
+            user_id: Canonical usr_<hex32> user identifier.
 
         Returns:
-            The validated User domain model if found, otherwise None.
+            Validated User domain model if found, otherwise None.
         """
-        if self._entity_adapter is not None:
-            return await self._entity_adapter.get_user(user_id)
-
-        # Use O(1) primary-key lookup instead of full-table scan.
-        raw_user = await self.driver.get("users", user_id)
-        if raw_user is None:
-            return None
-        return User.model_validate(raw_user, strict=False)
+        async with self._acquire_entities() as entities:
+            return await entities.get_user(user_id)
 
     async def get_user_by_email(self, email: str) -> User | None:
-        """Retrieves a user by email address.
+        """Retrieve a user by case-insensitive email address.
 
         Args:
             email: Email address of the user.
 
         Returns:
-            The validated User domain model if found, otherwise None.
+            Validated User domain model if found, otherwise None.
         """
-        res = await self.driver.query("users", [Filter("email", "==", email)], limit=1)
-        if not res:
-            return None
-        return User.model_validate(res[0], strict=False)
+        async with self._acquire_entities() as entities:
+            return await entities.get_user_by_email(email)
 
     async def create_user(self, user_data: UserCreate | User) -> str:
-        """Creates a new user.
+        """Create or upsert a user record.
 
         Args:
-            user_data: User domain model or creation DTO.
+            user_data: User domain model or UserCreate DTO.
 
         Returns:
-            The created user ID.
+            Created canonical usr_<hex32> identifier.
         """
-        if self._entity_adapter is not None and isinstance(user_data, User):
-            return await self._entity_adapter.upsert_user(user_data)
-
-        payload = user_data.model_dump(mode="json")
-        doc_id = str(payload["id"]) if "id" in payload else generate_opaque_id(EntityPrefix.USER)
-        payload["id"] = doc_id
-        return await self.driver.upsert("users", payload, doc_id)
+        if isinstance(user_data, User):
+            user_model = user_data
+        else:
+            user_model = User(
+                id=generate_opaque_id(EntityPrefix.USER),
+                email=user_data.email,
+                name=user_data.name,
+                role=user_data.role,
+                organization_id=user_data.organization_id,
+                is_active=user_data.is_active,
+                language=user_data.language,
+                theme_mode=user_data.theme_mode,
+                created_at=datetime.now(UTC),
+                created_by=user_data.created_by,
+            )
+        async with self._acquire_entities() as entities:
+            return await entities.upsert_user(user_model)
 
     async def update_user(self, user_id: str, updates: UserUpdate) -> bool:
-        """Updates an existing user.
+        """Update an existing user record in-place.
 
         Args:
-            user_id: Unique identifier for the user.
-            updates: UserUpdate DTO containing update fields.
+            user_id: Canonical usr_<hex32> user identifier.
+            updates: UserUpdate DTO containing partial update fields.
 
         Returns:
-            True if updated successfully, False otherwise.
+            True if updated, False if the user does not exist.
         """
-        payload = updates.model_dump(mode="json", exclude_unset=True)
-        if not payload:
+        fields_set = updates.model_fields_set
+        persisted_fields = fields_set - {"password"}
+        async with self._acquire_entities() as entities:
+            existing = await entities.get_user(user_id)
+            if existing is None:
+                return False
+            if not persisted_fields:
+                return True
+
+            next_name = existing.name
+            if "name" in persisted_fields:
+                next_name = updates.name
+            next_role = existing.role
+            if updates.role is not None:
+                next_role = updates.role
+            next_active = existing.is_active
+            if updates.is_active is not None:
+                next_active = updates.is_active
+            next_lang = existing.language
+            if updates.language is not None:
+                next_lang = updates.language
+            next_theme = existing.theme_mode
+            if updates.theme_mode is not None:
+                next_theme = updates.theme_mode
+            next_org = existing.organization_id
+            if "organization_id" in persisted_fields:
+                next_org = updates.organization_id
+
+            updated = User(
+                id=existing.id,
+                slug=existing.slug,
+                email=existing.email,
+                name=next_name,
+                role=next_role,
+                organization_id=next_org,
+                is_active=next_active,
+                language=next_lang,
+                theme_mode=next_theme,
+                created_at=existing.created_at,
+                created_by=existing.created_by,
+                firebase_uid=existing.firebase_uid,
+                deleted_at=existing.deleted_at,
+            )
+            await entities.upsert_user(updated)
             return True
-        return await self.driver.update("users", user_id, payload)
 
     async def delete_user(self, user_id: str) -> bool:
-        """Deletes a user by ID.
+        """Delete a user by primary key ID.
 
         Args:
-            user_id: Unique identifier for the user.
+            user_id: Canonical usr_<hex32> user identifier.
 
         Returns:
-            True if deleted successfully, False otherwise.
+            True if deleted, False if not found.
         """
-        return await self.driver.delete("users", user_id)
+        async with self._acquire_entities() as entities:
+            return await entities.delete_user(user_id)
 
     async def delete_org_data(self, org_id: str) -> None:
-        """Cascades deletion of organization data including users, executions, and custom workflows.
+        """Atomically purge an organization and its cascade-owned tenant records inside one UoW transaction.
 
         Args:
-            org_id: Unique identifier for the organization to purge.
+            org_id: Canonical org_<hex32> organization identifier to purge.
+
+        Raises:
+            AppException: With PERMISSION_DENIED (HTTP 403) if org_id belongs to the protected system scope.
         """
-        users = await self.list_users(org_id)
-        for u in users:
-            await self.driver.delete("users", u.id)
-
-        execs = await self.driver.query("executions", [Filter("organization_id", "==", org_id)])
-        for e in execs:
-            if "id" in e and e["id"]:
-                await self.driver.delete("executions", e["id"])
-
-        wfs = await self.driver.query(
-            "workflows", [Filter("organization_id", "in", [org_id, SystemOrganizations.ROOT_SYSTEM])]
-        )
-        for w in wfs:
-            if "organization_id" in w and w["organization_id"] == org_id:
-                if "id" in w and w["id"]:
-                    await self.driver.delete("workflows", w["id"])
+        if SystemOrganizations.is_system(org_id):
+            msg = f"Cannot purge protected system organization '{org_id}'."
+            logger.error(
+                "[IdentityRepository] %s: %s",
+                ErrorCodes.PERMISSION_DENIED.name,
+                msg,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value, "organization_id": org_id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=403,
+                details={"error_code": ErrorCodes.PERMISSION_DENIED.value, "organization_id": org_id},
+            )
+        async with self._acquire_entities() as entities:
+            await entities.delete_organization(org_id)
 
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
-        """Calculates total usage cost for an organization.
+        """Calculate total FinOps USD cost for an organization from append-only usage_records.
 
         Args:
-            org_id: Unique identifier for the organization.
-            since: Optional ISO timestamp filter.
+            org_id: Canonical org_<hex32> organization identifier.
+            since: Optional ISO 8601 UTC lower-bound timestamp filter.
 
         Returns:
-            The total cost estimate in USD.
-        """
-        filters = [Filter("organization_id", "==", org_id)]
-        if since:
-            filters.append(Filter("completed_at", ">=", since))
+            Total aggregated USD cost for the organization.
 
-        execs = await self.driver.query("executions", filters)
-        total = 0.0
-        for e in execs:
-            if "cost_estimate" in e and e["cost_estimate"] is not None:
-                total += float(e["cost_estimate"])
-        return total
+        Raises:
+            AppException: With VALIDATION_FAILED (HTTP 400) if since is malformed.
+        """
+        since_dt: datetime | None = None
+        if since:
+            try:
+                parsed = datetime.fromisoformat(since.replace("Z", "+00:00"))
+            except ValueError as exc:
+                msg = f"Invalid date format '{since}': {exc}"
+                logger.error(
+                    "[IdentityRepository] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "since": since},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "since": since},
+                ) from exc
+            since_dt = parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+        async with self._acquire_entities() as entities:
+            rollup = await entities.aggregate_organization_usage(organization_id=org_id, since=since_dt)
+            return float(rollup.total_cost_usd)

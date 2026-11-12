@@ -16,7 +16,6 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.database.interfaces import (
     IAuditRepository,
-    IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
     IOutputProfileRepository,
@@ -69,7 +68,6 @@ class HookDependencies:
 
     exec_repo: IExecutionRepository
     workflow_repo: IWorkflowRepository
-    comp_repo: IComponentRepository
     prompt_block_repo: IPromptBlockRepository
     output_profile_repo: IOutputProfileRepository
     identity_repo: IIdentityRepository

@@ -2,7 +2,7 @@
 
 Re-exports connection pool protocols, binary pydantic_core JSONB codecs,
 PostgresPoolManager, PostgresGraphAdapter, CteReasoningStrategy,
-PostgresEntityAdapter, PostgresStorageDriver, and PostgresUnitOfWork.
+PostgresEntityAdapter, and PostgresUnitOfWork.
 """
 
 from backend_v2.database.postgres.entity_adapter import (
@@ -41,9 +41,6 @@ from backend_v2.database.postgres.pool import (
 from backend_v2.database.postgres.pool import (
     init_connection as init_connection,
 )
-from backend_v2.database.postgres.storage_driver import (
-    PostgresStorageDriver as PostgresStorageDriver,
-)
 from backend_v2.database.postgres.uow import (
     PostgresUnitOfWork as PostgresUnitOfWork,
 )
@@ -58,7 +55,6 @@ __all__ = [
     "PostgresEntityAdapter",
     "PostgresGraphAdapter",
     "PostgresPoolManager",
-    "PostgresStorageDriver",
     "PostgresUnitOfWork",
     "decode_jsonb_binary",
     "encode_jsonb_binary",

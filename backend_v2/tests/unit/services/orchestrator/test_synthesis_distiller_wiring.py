@@ -102,7 +102,6 @@ def _build_mock_deps() -> HookDependencies:
     return HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,

@@ -27,11 +27,12 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
-from backend_v2.models.domain.output_profile import MatrixSynthesisGroup, OutputProfile
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SecurityCheck
 from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
@@ -45,12 +46,14 @@ from backend_v2.models.enums import (
     EvaluationMandate,
     ExecutionStatus,
     FidelityLevel,
+    HistoricalContextMode,
     LaxRiskLevel,
     PromptBlockCategory,
     XaiExtensionType,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
+from backend_v2.tests.factories.model_factories import OutputProfileFactory, WorkflowFactory
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -353,22 +356,6 @@ async def _create_test_scoring_repo(
 
     # 4. Workflow
     if not omit_workflow:
-        wf_dict = {
-            "id": workflow_id,
-            "slug": "test_workflow",
-            "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-            "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-            "status": "active",
-            "version": 1,
-            "default_profile_id": profile_id,
-            "default_strictness_level": strictness_level,
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
-            "enable_contextual_overrides": enable_overrides,
-            "security_penalty": security_penalty,
-            "post_hoc_penalty": post_hoc_penalty,
-            "passivity_penalty": passivity_penalty,
-        }
         wf_aliases = [
             "test_wf",
             "wf1",
@@ -378,42 +365,54 @@ async def _create_test_scoring_repo(
             "wor_0195f3a0000070018111222233334444",
             "wor_0195f3a0000070018234567890123456",
         ]
+        base_wf = WorkflowFactory.build(
+            id=workflow_id,
+            slug="test_workflow",
+            name=I18nText(translations={"en": "Test Workflow", "fi": "Test Workflow"}),
+            description=I18nText(translations={"en": "Test Desc", "fi": "Test Desc"}),
+            status="active",
+            version=1,
+            default_profile_id=profile_id,
+            default_strictness_level=strictness_level if strictness_level is not None else 75,
+            historical_context_mode=HistoricalContextMode.DISABLED,
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            enable_contextual_overrides=enable_overrides,
+            security_penalty=security_penalty,
+            post_hoc_penalty=post_hoc_penalty,
+            passivity_penalty=passivity_penalty,
+            expected_inputs=[],
+            steps=[],
+        )
         if strictness_level is None:
-            wf_model = Workflow.model_validate({**wf_dict, "default_strictness_level": 75}).model_copy(
-                update={"default_strictness_level": None}
-            )
+            wf_model = base_wf.model_copy(update={"default_strictness_level": None})
             repo._workflows._storage[workflow_id] = wf_model
             for wf_alias in wf_aliases:
                 repo._workflows._storage[wf_alias] = wf_model
         else:
-            wf_model = Workflow.model_validate(wf_dict)
+            wf_model = base_wf
             await repo.save_workflow(wf_model)
             for wf_alias in wf_aliases:
                 repo._workflows._storage[wf_alias] = wf_model
 
     # 5. Output Profile
     if not omit_profile:
-        prof_dict: dict[str, JsonValue] = {
-            "id": profile_id,
-            "slug": "test_slug",
-            "workflow_id": workflow_id,
-            "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_0195f3a0000070008000000000000001",
-                    "title": {"translations": {"en": "Default", "fi": "Default"}},
-                    "target_blocks": ["*"],
-                }
+        prof_model = OutputProfileFactory.build(
+            id=profile_id,
+            slug="test_slug",
+            workflow_id=workflow_id,
+            name=I18nText(translations={"en": "Test", "fi": "Test"}),
+            matrix_synthesis_groups=[
+                MatrixSynthesisGroup(
+                    id="grp_0195f3a0000070008000000000000001",
+                    title=I18nText(translations={"en": "Default", "fi": "Default"}),
+                    target_blocks=["*"],
+                )
             ],
-            "display_scale": display_scale,
-        }
-        if variance_target_block:
-            prof_dict["variance_target_block"] = variance_target_block
-        if variance_scale_levels:
-            prof_dict["variance_scale_levels"] = variance_scale_levels
-        if visible_block_extensions is not None:
-            prof_dict["visible_block_extensions"] = visible_block_extensions
-        prof_model = OutputProfile.model_validate(prof_dict)
+            display_scale=display_scale,
+            variance_target_block=variance_target_block if variance_target_block else None,
+            visible_block_extensions=visible_block_extensions if visible_block_extensions is not None else [],
+            **({"variance_scale_levels": variance_scale_levels} if variance_scale_levels else {}),
+        )
         await repo.create_output_profile(prof_model)
         for prf_alias in [
             "prof_0195f3a0000070018111111111111111",
@@ -430,7 +429,6 @@ def _build_test_scoring_deps(repo: InMemoryUnifiedWorkflowRepository, **override
     kwargs = {
         "exec_repo": repo,
         "workflow_repo": repo,
-        "comp_repo": repo,
         "prompt_block_repo": repo,
         "output_profile_repo": repo,
         "identity_repo": repo,
@@ -3395,7 +3393,6 @@ async def test_recalculate_fails_fast_on_raw_dict() -> None:
 async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
     """Test apply_scoring_logic_hook when repository returns a typed Workflow model."""
     from backend_v2.models.core_base import I18nText
-    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.enums import HistoricalContextMode
 
     workflow_model = Workflow(
@@ -3586,7 +3583,6 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
     eliminating false-positive score inflation (the legacy 12.2% phantom score).
     When full positive mastery on Levels 3-5 is demonstrated, score reaches 5.0.
     """
-    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.enums import HistoricalContextMode
 
     pb = _build_toulmin_dual_track_matrix(_TOULMIN_PB_ID)
@@ -3810,7 +3806,6 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
 @pytest.mark.asyncio
 async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
     """Verify Track B: detecting a Level 1 fatal flaw suppresses Level 1 points and triggers malus deduction."""
-    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.enums import HistoricalContextMode
 
     pb = _build_toulmin_dual_track_matrix(_TOULMIN_PB_ID)

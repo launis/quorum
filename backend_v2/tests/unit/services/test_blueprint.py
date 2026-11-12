@@ -283,7 +283,6 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -594,7 +593,6 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -649,7 +647,6 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_sdui,
         workflow_repo=mock_repo_sdui,
-        comp_repo=mock_repo_sdui,
         prompt_block_repo=mock_repo_sdui,
         output_profile_repo=mock_repo_sdui,
         identity_repo=mock_repo_sdui,
@@ -697,7 +694,6 @@ async def test_blueprint_scoring_payload_flat_trace_normalization(mock_repo_sdui
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_sdui,
         workflow_repo=mock_repo_sdui,
-        comp_repo=mock_repo_sdui,
         prompt_block_repo=mock_repo_sdui,
         output_profile_repo=mock_repo_sdui,
         identity_repo=mock_repo_sdui,
@@ -894,7 +890,6 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1004,7 +999,6 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1195,7 +1189,6 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1305,7 +1298,6 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1395,7 +1387,6 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1464,7 +1455,6 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1591,7 +1581,6 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1722,7 +1711,6 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1740,7 +1728,6 @@ async def test_blueprint_apply_pii_masking(mock_repo_transformer: Any) -> None:
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1762,7 +1749,6 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
     _transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -1929,7 +1915,6 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     _transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2226,7 +2211,6 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2340,7 +2324,6 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2408,7 +2391,6 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2438,7 +2420,6 @@ async def test_blueprint_transformer_fail_fast_branches(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2528,7 +2509,6 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2620,7 +2600,6 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2698,7 +2677,6 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2865,7 +2843,6 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -2989,7 +2966,6 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -3142,7 +3118,6 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -3308,7 +3283,6 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -3513,7 +3487,6 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -3639,7 +3612,6 @@ async def test_blueprint_variance_target_block_adherence(
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -3685,7 +3657,6 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
         prompt_block_repo=mock_repo_transformer,
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
@@ -3954,7 +3925,6 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     transformer = BlueprintTransformer(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -4082,7 +4052,6 @@ async def test_blueprint_transformer_causal_result_hydration_from_trace() -> Non
     transformer = BlueprintTransformer(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -4178,7 +4147,6 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
     transformer = BlueprintTransformer(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,
@@ -4280,7 +4248,6 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_output_dt
     transformer = BlueprintTransformer(
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,

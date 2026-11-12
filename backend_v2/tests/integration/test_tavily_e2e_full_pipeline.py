@@ -8,6 +8,8 @@ Tests the complete lifecycle:
 5. Data starvation / claim-free input handling (graceful block omission)
 """
 
+from __future__ import annotations
+
 import _socket
 import os
 import socket
@@ -16,6 +18,7 @@ from pathlib import Path
 import httpx
 import pytest
 from dotenv import dotenv_values
+from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -23,11 +26,10 @@ from backend_v2.core.hook_registry import (
     HookDependencies,
     HookState,
 )
-from backend_v2.database.factory import get_driver
+from backend_v2.database.factory import create_unit_of_work
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.hooks.source_verification_hook import source_verification_hook
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.hook_delta import ExternalEvidenceResultDTO
 from backend_v2.models.dtos.mcp import (
@@ -35,6 +37,7 @@ from backend_v2.models.dtos.mcp import (
     MCPInitializeResultDTO,
     MCPJsonRpcRequestDTO,
     MCPJsonRpcResponseDTO,
+    MCPServerInfoDTO,
     MCPToolCallParamsDTO,
     MCPToolCallResultDTO,
 )
@@ -45,7 +48,14 @@ from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
 from backend_v2.settings import get_settings
+from backend_v2.tests.factories.model_factories import OutputProfileFactory
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+class MCPInitializeResultDTOFactory(ModelFactory[MCPInitializeResultDTO]):
+    """Polyfactory model factory for MCPInitializeResultDTO JSON-RPC handshakes."""
+
+    __model__ = MCPInitializeResultDTO
 
 
 def _build_tavily_mcp_transport() -> httpx.MockTransport:
@@ -60,9 +70,9 @@ def _build_tavily_mcp_transport() -> httpx.MockTransport:
         if rpc_req.method == "initialize":
             init_resp = MCPJsonRpcResponseDTO(
                 id=rpc_req.id,
-                result=MCPInitializeResultDTO(
+                result=MCPInitializeResultDTOFactory.build(
                     protocol_version="2025-03-26",
-                    server_info={"name": "tavily-mcp", "version": "1.0.0"},
+                    server_info=MCPServerInfoDTO(name="tavily-mcp", version="1.0.0", icons=[]),
                 ),
             )
             return httpx.Response(
@@ -73,7 +83,8 @@ def _build_tavily_mcp_transport() -> httpx.MockTransport:
         if rpc_req.method == "notifications/initialized":
             return httpx.Response(202)
         if rpc_req.method == "tools/call" and isinstance(rpc_req.params, MCPToolCallParamsDTO):
-            query_str = str(rpc_req.params.arguments.get("query", ""))
+            query_val = rpc_req.params.arguments["query"] if "query" in rpc_req.params.arguments else ""
+            query_str = str(query_val)
             call_resp = MCPJsonRpcResponseDTO(
                 id=rpc_req.id,
                 result=MCPToolCallResultDTO(
@@ -105,7 +116,7 @@ def _build_tavily_mcp_transport() -> httpx.MockTransport:
 
 @pytest.fixture(autouse=True)
 def allow_live_network(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Restores unblocked C-level socket getaddrinfo for live LLM calls and binds MCP JSON-RPC transport."""
+    """Restore unblocked C-level socket getaddrinfo for live LLM calls and bind MCP JSON-RPC transport."""
     monkeypatch.setattr(socket, "getaddrinfo", _socket.getaddrinfo)
     env_path = Path(__file__).resolve().parents[3] / ".env"
     if env_path.exists():
@@ -126,13 +137,12 @@ def allow_live_network(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
-    """End-to-end test: Ingest text -> extract claims -> live Tavily search -> build SDUI bibliography."""
+    """Verify full claim extraction, Tavily search verification, and SDUI bibliography rendering."""
     settings = get_settings()
     if "TAVILY_API_KEY" not in os.environ or not os.environ["TAVILY_API_KEY"]:
         pytest.skip("TAVILY_API_KEY is not configured in environment.")
 
-    driver = await get_driver(settings)
-    system_repo = SystemRepositoryImpl(driver)
+    system_repo = SystemRepositoryImpl(lambda: create_unit_of_work(settings))
 
     document_text = (
         "Maailman terveysjärjestön (WHO) mukaan aikuisten tulisi harrastaa vähintään 150 minuuttia "
@@ -140,20 +150,22 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         "Lisäksi Harvardin yliopiston tutkimus osoittaa, että riittävä uni parantaa kognitiivista suorituskykyä."
     )
 
-    # 1. Pipeline Step 1: Execute Pre-Hook
     state = HookState(
         execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018111222233334444",
         step_id="stp_0195f3a00000700786eedbc020274f66",
         metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700b81c2d3e4f5a60718"),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={},
+            dynamic_inputs={"document_text": document_text},
+            target_locale="fi",
+        ),
     )
     fake_repo = InMemoryUnifiedWorkflowRepository()
     deps = HookDependencies(
         exec_repo=fake_repo,
         workflow_repo=fake_repo,
-        comp_repo=fake_repo,
         prompt_block_repo=fake_repo,
         output_profile_repo=fake_repo,
         identity_repo=fake_repo,
@@ -163,7 +175,6 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
 
     hook_result = await source_verification_hook(state=state, deps=deps)
 
-    # Verify Hook Result
     assert hook_result.success is True
     assert hook_result.state_delta is not None
     assert hook_result.state_delta.metadata_updates is not None
@@ -175,7 +186,6 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
     assert isinstance(raw_traces, list)
     assert len(raw_traces) >= 1
 
-    # Map typed MCPAuditTrace instances
     audit_map: dict[str, MCPAuditTrace] = {}
     for typed_trace in raw_traces:
         assert typed_trace.id is not None
@@ -184,15 +194,13 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         assert len(typed_trace.source_urls) >= 1
         assert any(url.startswith("http") for url in typed_trace.source_urls)
 
-    # 2. Pipeline Step 2: Verify Evidence XML for Step LLM Context
     assert isinstance(hook_result.state_delta.delta, ExternalEvidenceResultDTO)
     evidence_xml = hook_result.state_delta.delta.external_evidence
     assert isinstance(evidence_xml, str)
     assert "<external_evidence>" in evidence_xml
     assert "<claim status=" in evidence_xml
 
-    # 3. Pipeline Step 3: Server-Driven UI Rendering (SDUI)
-    mock_profile = OutputProfile(
+    mock_profile = OutputProfileFactory.build(
         id="prf_0195f3a0000070018111222233334444",
         slug="default_profile",
         workflow_id="wf_0195f3a0000070018111222233334444",
@@ -221,12 +229,10 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
     assert isinstance(markdown_block_fi, MarkdownBlock)
     assert "### Lähteet ja lähdeviitteet" in markdown_block_fi.text
 
-    # Verify that real HTTP source URLs from Tavily search are included in the bibliography
     for trace in audit_map.values():
         for url in trace.source_urls:
             assert url in markdown_block_fi.text
 
-    # 4. Pipeline Step 4: Verify English Localization Parity
     adapter_context_en = AdapterContext(
         execution=None,
         locale="en",
@@ -249,13 +255,12 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
 
 @pytest.mark.asyncio
 async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_block() -> None:
-    """End-to-end test: Non-verifiable text skips Tavily search and omits bibliography from SDUI."""
+    """Verify non-verifiable text skips Tavily search and omits bibliography from SDUI."""
     settings = get_settings()
     if "TAVILY_API_KEY" not in os.environ or not os.environ["TAVILY_API_KEY"]:
         pytest.skip("TAVILY_API_KEY is not configured in environment.")
 
-    driver = await get_driver(settings)
-    system_repo = SystemRepositoryImpl(driver)
+    system_repo = SystemRepositoryImpl(lambda: create_unit_of_work(settings))
 
     document_text = "Hei kaikille ja tervetuloa tämänpäiväiseen kokoukseen."
 
@@ -265,13 +270,16 @@ async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_
         step_id="stp_0195f3a00000700786eedbc020274f66",
         metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700b81c2d3e4f5a60718"),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={},
+            dynamic_inputs={"document_text": document_text},
+            target_locale="fi",
+        ),
     )
     fake_repo = InMemoryUnifiedWorkflowRepository()
     deps = HookDependencies(
         exec_repo=fake_repo,
         workflow_repo=fake_repo,
-        comp_repo=fake_repo,
         prompt_block_repo=fake_repo,
         output_profile_repo=fake_repo,
         identity_repo=fake_repo,
@@ -288,8 +296,7 @@ async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_
     traces = metadata_delta.mcp_audit_traces if (metadata_delta and metadata_delta.mcp_audit_traces) else []
     assert len(traces) == 0
 
-    # Build SDUI with empty audit map
-    mock_profile = OutputProfile(
+    mock_profile = OutputProfileFactory.build(
         id="prf_0195f3a0000070028222333344445555",
         slug="empty_profile",
         workflow_id="wf_0195f3a0000070028222333344445555",
@@ -312,7 +319,6 @@ async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_
     )
 
     sdui_blocks = PrintableSourcesAdapter.build(adapter_context)
-    # When no citations or search traces exist and summary box is enabled, PrintableSourcesAdapter renders empty notice
     assert len(sdui_blocks) == 1
     assert isinstance(sdui_blocks[0], MarkdownBlock)
     assert "ei havaittu ulkoisia kirjallisuusviitteitä" in sdui_blocks[0].text

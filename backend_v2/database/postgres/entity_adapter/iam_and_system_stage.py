@@ -34,12 +34,17 @@ from backend_v2.models.enums import EntityPrefix
 
 __all__ = [
     "_AGGREGATE_USAGE_BASE_SQL",
+    "_DELETE_INVITATION_SQL",
+    "_DELETE_ORGANIZATION_SQL",
+    "_DELETE_SYSTEM_CONFIG_SQL",
     "_DELETE_TENANT_SECRET_SQL",
+    "_DELETE_USER_SQL",
     "_GET_EXECUTION_ASSIGNMENT_SQL",
     "_GET_INVITATION_SQL",
     "_GET_ORGANIZATION_SQL",
     "_GET_SYSTEM_CONFIG_SQL",
     "_GET_TENANT_SECRET_SQL",
+    "_GET_USER_BY_EMAIL_SQL",
     "_GET_USER_SQL",
     "_INSERT_AUDIT_LOG_SQL",
     "_INSERT_USAGE_RECORD_SQL",
@@ -62,12 +67,17 @@ __all__ = [
     "_UPSERT_TENANT_SECRET_SQL",
     "_UPSERT_USER_SQL",
     "aggregate_organization_usage_row",
+    "delete_invitation_row",
+    "delete_organization_row",
+    "delete_system_config_row",
     "delete_tenant_secret_row",
+    "delete_user_row",
     "get_execution_assignment_row",
     "get_invitation_row",
     "get_organization_row",
     "get_system_config_row",
     "get_tenant_secret_row",
+    "get_user_by_email_row",
     "get_user_row",
     "hydrate_audit_log_row",
     "hydrate_execution_assignment_row",
@@ -1525,4 +1535,168 @@ async def aggregate_organization_usage_row(
         },
         table_name="usage_records",
         entity_id=target_label,
+    )
+
+
+_GET_USER_BY_EMAIL_SQL: str = """SELECT id, slug, firebase_uid, email, name, role, organization_id, is_active,
+       language, theme_mode, created_at, created_by, deleted_at
+FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1"""
+
+_DELETE_ORGANIZATION_SQL: str = "DELETE FROM organizations WHERE id = $1::uuid"
+_DELETE_USER_SQL: str = "DELETE FROM users WHERE id = $1::uuid"
+_DELETE_INVITATION_SQL: str = "DELETE FROM invitations WHERE id = $1::uuid"
+_DELETE_SYSTEM_CONFIG_SQL: str = "DELETE FROM system_configs WHERE id = $1::uuid"
+
+
+async def get_user_by_email_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    email: str,
+) -> User | None:
+    """Fetch a User by case-insensitive email lookup from users.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        email: Target user email address.
+
+    Returns:
+        Hydrated User domain model if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    normalized_email = email.strip()
+    if not normalized_email:
+        return None
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        row = await conn.fetchrow(_GET_USER_BY_EMAIL_SQL, normalized_email, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="users",
+            entity_id=normalized_email,
+        ) from exc
+    if row is None:
+        return None
+    return hydrate_user_row(row)
+
+
+async def delete_organization_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    org_id: str,
+) -> bool:
+    """Delete an Organization row by primary key from organizations.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        org_id: Canonical org_<hex32> organization identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    org_uuid = parse_prefixed_uuid7(org_id, EntityPrefix.ORG)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_ORGANIZATION_SQL,
+        org_uuid,
+        entity_id=org_id,
+        table="organizations",
+    )
+
+
+async def delete_user_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    user_id: str,
+) -> bool:
+    """Delete a User row by primary key from users.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        user_id: Canonical usr_<hex32> user identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    user_uuid = parse_prefixed_uuid7(user_id, EntityPrefix.USER)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_USER_SQL,
+        user_uuid,
+        entity_id=user_id,
+        table="users",
+    )
+
+
+async def delete_invitation_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    invitation_id: str,
+) -> bool:
+    """Delete an Invitation row by primary key from invitations.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        invitation_id: Canonical inv_<hex32> invitation identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    inv_uuid = parse_prefixed_uuid7(invitation_id, EntityPrefix.INVITATION)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_INVITATION_SQL,
+        inv_uuid,
+        entity_id=invitation_id,
+        table="invitations",
+    )
+
+
+async def delete_system_config_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    config_id: str,
+) -> bool:
+    """Delete a SystemConfig row by primary key from system_configs.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        config_id: Canonical sys_<hex32> system configuration identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    cfg_uuid = parse_prefixed_uuid7(config_id, EntityPrefix.SYSTEM_CONFIG)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_SYSTEM_CONFIG_SQL,
+        cfg_uuid,
+        entity_id=config_id,
+        table="system_configs",
     )

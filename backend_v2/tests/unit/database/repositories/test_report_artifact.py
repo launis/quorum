@@ -1,350 +1,259 @@
-"""Unit tests for ReportArtifactRepositoryImpl.
+"""Unit and boundary tests for ReportArtifactRepositoryImpl over InMemoryUnitOfWork.
 
-Verifies full CRUD lifecycle, in-place updates, schema validation, and error boundaries
-for the 'report_artifacts' collection in strict adherence to Tripartite Pipeline Architecture.
+Covers stateful CRUD roundtrips, execution-scoped listing order, UnifiedWorkflowRepository
+composition, and negative identifier validation and configuration failure paths.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from unittest.mock import AsyncMock
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from backend_v2.database.repositories.report_artifact import (
-    _COLLECTION_NAME,
-    ReportArtifactRepositoryImpl,
-)
+from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repository import UnifiedWorkflowRepository
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, generate_opaque_id
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.dtos.report_artifact import (
     ReportArtifactUpdateDTO,
     ReportMetadataDTO,
-    ReportStatus,
     ReportStoragePathsDTO,
 )
-from backend_v2.models.enums import CognitiveTier
+from backend_v2.models.enums import CognitiveTier, EntityPrefix, ReportStatus
 from backend_v2.tests.factories.model_factories import ReportArtifactFactory
-
-
-def _build_test_report_artifact(
-    report_id: str = "rep_0195f3a00000700a81b2c3d4e5f60718",
-    execution_id: str = "exe_0195f3a0000070018234567890abcdef",
-    workflow_id: str = "wf_0195f3a00000700a8bcdef1234567890",
-    profile_id: str = "prf_0195f3a00000700f8edcba0987654321",
-    locale: str = "fi",
-    title: str = "Test Forensic Report",
-    status: ReportStatus = ReportStatus.PENDING,
-) -> ReportArtifact:
-    """Helper to construct a valid ReportArtifact model via Polyfactory."""
-    return ReportArtifactFactory.build(
-        id=report_id,
-        execution_id=execution_id,
-        workflow_id=workflow_id,
-        profile_id=profile_id,
-        locale=locale,
-        title=title,
-        status=status,
-        storage_paths=ReportStoragePathsDTO(pdf_path=f"artifacts/reports/{report_id}/report.pdf"),
-        metadata=ReportMetadataDTO(
-            cost_usd=0.042,
-            duration_ms=1250,
-            tokens_used=1800,
-            llm_model="gemini-2.5-flash",
-            cognitive_tier=CognitiveTier.BALANCED,
-        ),
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-    )
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.fixture
-def sample_report() -> ReportArtifact:
-    """Fixture returning a canonical ReportArtifact."""
-    return _build_test_report_artifact()
+def base_uow() -> InMemoryUnitOfWork:
+    """Create an isolated InMemoryUnitOfWork backing store for each test.
+
+    Returns:
+        Fresh InMemoryUnitOfWork instance.
+    """
+    return InMemoryUnitOfWork()
 
 
-# =========================================================================
-# 1. CREATE_REPORT_ARTIFACT TESTS
-# =========================================================================
+@pytest.fixture
+def repo(base_uow: InMemoryUnitOfWork) -> ReportArtifactRepositoryImpl:
+    """Create a ReportArtifactRepositoryImpl bound to a shared InMemoryUnitOfWork store.
 
+    Args:
+        base_uow: Shared in-memory Unit of Work fixture.
 
-@pytest.mark.asyncio
-async def test_create_report_artifact_success(sample_report: ReportArtifact) -> None:
-    """Positive: creates and persists a new ReportArtifact document."""
-    mock_driver = AsyncMock()
-    mock_driver.upsert.return_value = sample_report.id
-
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    result = await repo.create_report_artifact(sample_report)
-
-    assert result.id == sample_report.id
-    assert result.status == ReportStatus.PENDING
-    assert result.title == sample_report.title
-    mock_driver.upsert.assert_awaited_once()
-    args, _ = mock_driver.upsert.await_args
-    assert args[0] == _COLLECTION_NAME
-    assert args[1]["id"] == sample_report.id
-    assert args[2] == sample_report.id
+    Returns:
+        Configured ReportArtifactRepositoryImpl instance.
+    """
+    return ReportArtifactRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
 
 @pytest.mark.asyncio
-async def test_create_report_artifact_driver_failure(sample_report: ReportArtifact) -> None:
-    """Negative: propagates exception when underlying driver upsert fails."""
-    mock_driver = AsyncMock()
-    mock_driver.upsert.side_effect = AppException(
-        message="Database disk write error",
-        status_code=500,
-        details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+async def test_create_and_get_report_artifact_roundtrip_success(
+    repo: ReportArtifactRepositoryImpl,
+) -> None:
+    """Verify create_report_artifact persists and get_report_artifact reconstitutes full model state."""
+    artifact = ReportArtifactFactory.build(
+        locale="fi",
+        title="Executive Synthesis Report",
+        status=ReportStatus.GENERATING,
+        custom_preface_md="### Executive Preface",
     )
 
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    with pytest.raises(AppException) as exc_info:
-        await repo.create_report_artifact(sample_report)
+    persisted = await repo.create_report_artifact(artifact)
+    assert persisted == artifact
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
-
-
-# =========================================================================
-# 2. GET_REPORT_ARTIFACT TESTS
-# =========================================================================
+    fetched = await repo.get_report_artifact(artifact.id)
+    assert fetched is not None
+    assert fetched == artifact
+    assert ReportArtifact.model_validate(fetched.model_dump(mode="json"), strict=False) == artifact
 
 
 @pytest.mark.asyncio
-async def test_get_report_artifact_found(sample_report: ReportArtifact) -> None:
-    """Positive: retrieves and deserializes existing ReportArtifact."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = sample_report.model_dump(mode="json")
+async def test_list_report_artifacts_by_execution_roundtrip_and_ordering(
+    repo: ReportArtifactRepositoryImpl,
+) -> None:
+    """Verify list_report_artifacts_by_execution filters by execution_id and orders newest first."""
+    target_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    other_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    empty_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    base_time = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
 
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    result = await repo.get_report_artifact(sample_report.id)
-
-    assert result is not None
-    assert result.id == sample_report.id
-    assert result.execution_id == sample_report.execution_id
-    assert result.status == ReportStatus.PENDING
-    assert result.storage_paths.pdf_path == sample_report.storage_paths.pdf_path
-    mock_driver.get.assert_awaited_once_with(_COLLECTION_NAME, sample_report.id)
-
-
-@pytest.mark.asyncio
-async def test_get_report_artifact_not_found() -> None:
-    """Negative: returns None when document does not exist in collection."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = None
-
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    result = await repo.get_report_artifact("rep_missing00000000")
-
-    assert result is None
-    mock_driver.get.assert_awaited_once_with(_COLLECTION_NAME, "rep_missing00000000")
-
-
-@pytest.mark.asyncio
-async def test_get_report_artifact_validation_failure() -> None:
-    """Negative: raises AppException(500) if persisted document fails schema validation."""
-    mock_driver = AsyncMock()
-    # Malformed document missing mandatory fields
-    mock_driver.get.return_value = {"id": "rep_corrupted00000", "invalid_key": 123}
-
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_report_artifact("rep_corrupted00000")
-
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-
-
-# =========================================================================
-# 3. LIST_REPORT_ARTIFACTS_BY_EXECUTION TESTS
-# =========================================================================
-
-
-@pytest.mark.asyncio
-async def test_list_report_artifacts_by_execution_found(sample_report: ReportArtifact) -> None:
-    """Positive: retrieves all report artifacts matching execution_id."""
-    second_report = _build_test_report_artifact(
-        report_id="rep_0195f3a00000700b82c3d4e5f6071829",
-        profile_id="prf_second00000000",
-        title="Second Report",
-        status=ReportStatus.READY,
+    older_report = ReportArtifactFactory.build(
+        execution_id=target_exe_id,
+        title="Older Report",
+        created_at=base_time,
+        updated_at=base_time,
     )
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = [
-        sample_report.model_dump(mode="json"),
-        second_report.model_dump(mode="json"),
-    ]
+    newer_report = ReportArtifactFactory.build(
+        execution_id=target_exe_id,
+        title="Newer Report",
+        created_at=base_time + timedelta(minutes=10),
+        updated_at=base_time + timedelta(minutes=10),
+    )
+    unrelated_report = ReportArtifactFactory.build(
+        execution_id=other_exe_id,
+        title="Unrelated Execution Report",
+        created_at=base_time + timedelta(minutes=20),
+        updated_at=base_time + timedelta(minutes=20),
+    )
 
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    results = await repo.list_report_artifacts_by_execution(sample_report.execution_id)
+    await repo.create_report_artifact(older_report)
+    await repo.create_report_artifact(newer_report)
+    await repo.create_report_artifact(unrelated_report)
 
-    assert len(results) == 2
-    assert results[0].id == sample_report.id
-    assert results[1].id == second_report.id
-    assert results[1].status == ReportStatus.READY
-
-
-@pytest.mark.asyncio
-async def test_list_report_artifacts_by_execution_empty() -> None:
-    """Negative/Boundary: returns empty list when no reports match execution_id."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
-
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    results = await repo.list_report_artifacts_by_execution("exe_unmatched000000")
-
-    assert results == []
+    listed = await repo.list_report_artifacts_by_execution(target_exe_id)
+    assert [item.id for item in listed] == [newer_report.id, older_report.id]
+    assert await repo.list_report_artifacts_by_execution(empty_exe_id) == []
 
 
 @pytest.mark.asyncio
-async def test_list_report_artifacts_by_execution_validation_failure() -> None:
-    """Negative: raises AppException(500) if any item in queried collection fails validation."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"corrupted": True}]
+async def test_update_report_artifact_roundtrip_success_and_error_transition(
+    repo: ReportArtifactRepositoryImpl,
+) -> None:
+    """Verify update_report_artifact mutates fields in-place and persists across subsequent fetches."""
+    initial = ReportArtifactFactory.build(
+        status=ReportStatus.GENERATING,
+        custom_preface_md="Immutable preface",
+    )
+    await repo.create_report_artifact(initial)
 
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    with pytest.raises(AppException) as exc_info:
-        await repo.list_report_artifacts_by_execution("exe_0195f3a0000070018234567890abcdef")
+    registry_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    ready_paths = ReportStoragePathsDTO(
+        pdf_path="reports/out.pdf",
+        sdui_json_path="reports/out.json",
+        excel_path="reports/out.xlsx",
+        csv_path="reports/out.csv",
+    )
+    ready_meta = ReportMetadataDTO(
+        cost_usd=0.042,
+        duration_ms=1350,
+        tokens_used=4200,
+        llm_model="gemini-2.5-pro",
+        provider="vertex_ai",
+        cognitive_tier=CognitiveTier.DEEP,
+        model_registry_id=registry_id,
+        thinking_tokens=512,
+    )
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-
-
-# =========================================================================
-# 4. UPDATE_REPORT_ARTIFACT TESTS
-# =========================================================================
-
-
-@pytest.mark.asyncio
-async def test_update_report_artifact_success(sample_report: ReportArtifact) -> None:
-    """Positive: applies in-place partial update to existing report artifact."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = sample_report.model_dump(mode="json")
-    mock_driver.upsert.return_value = sample_report.id
-
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    update_dto = ReportArtifactUpdateDTO(
-        status=ReportStatus.READY,
-        storage_paths=ReportStoragePathsDTO(
-            pdf_path=f"artifacts/reports/{sample_report.id}/report.pdf",
-            sdui_json_path=f"artifacts/reports/{sample_report.id}/report.sdui.json",
-            excel_path=f"artifacts/reports/{sample_report.id}/report.xlsx",
-        ),
-        metadata=ReportMetadataDTO(
-            cost_usd=0.085,
-            duration_ms=2500,
-            tokens_used=3600,
-            llm_model="gemini-2.5-flash",
-            cognitive_tier=CognitiveTier.BALANCED,
+    updated_ready = await repo.update_report_artifact(
+        initial.id,
+        ReportArtifactUpdateDTO(
+            status=ReportStatus.READY,
+            storage_paths=ready_paths,
+            metadata=ready_meta,
         ),
     )
+    assert updated_ready.id == initial.id
+    assert updated_ready.status == ReportStatus.READY
+    assert updated_ready.storage_paths == ready_paths
+    assert updated_ready.metadata == ready_meta
+    assert updated_ready.custom_preface_md == "Immutable preface"
 
-    updated = await repo.update_report_artifact(sample_report.id, update_dto)
+    fetched_ready = await repo.get_report_artifact(initial.id)
+    assert fetched_ready == updated_ready
 
-    assert updated.id == sample_report.id
-    assert updated.status == ReportStatus.READY
-    assert updated.storage_paths.sdui_json_path is not None
-    assert updated.storage_paths.excel_path is not None
-    assert updated.metadata.cost_usd == 0.085
-    mock_driver.upsert.assert_awaited_once()
+    updated_failed = await repo.update_report_artifact(
+        initial.id,
+        ReportArtifactUpdateDTO(
+            status=ReportStatus.FAILED,
+            error_message="PDF compilation failed due to template error",
+        ),
+    )
+    assert updated_failed.status == ReportStatus.FAILED
+    assert updated_failed.error_message == "PDF compilation failed due to template error"
+    assert updated_failed.storage_paths == ready_paths
+
+    fetched_failed = await repo.get_report_artifact(initial.id)
+    assert fetched_failed == updated_failed
 
 
 @pytest.mark.asyncio
-async def test_update_report_artifact_not_found() -> None:
-    """Negative: raises AppException(404) with RESOURCE_NOT_FOUND when record missing."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = None
+async def test_delete_report_artifact_roundtrip(repo: ReportArtifactRepositoryImpl) -> None:
+    """Verify delete_report_artifact removes persisted record and returns False when already absent."""
+    artifact = ReportArtifactFactory.build()
+    await repo.create_report_artifact(artifact)
 
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    update_dto = ReportArtifactUpdateDTO(status=ReportStatus.FAILED, error_message="Generation crashed")
+    assert await repo.delete_report_artifact(artifact.id) is True
+    assert await repo.get_report_artifact(artifact.id) is None
+    assert await repo.delete_report_artifact(artifact.id) is False
+
+
+@pytest.mark.asyncio
+async def test_unified_workflow_repository_report_artifact_roundtrip(
+    base_uow: InMemoryUnitOfWork,
+) -> None:
+    """Verify UnifiedWorkflowRepository inherits ReportArtifactRepositoryImpl and persists statefully."""
+    unified_repo = UnifiedWorkflowRepository(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
+    assert isinstance(unified_repo, ReportArtifactRepositoryImpl)
+
+    artifact = ReportArtifactFactory.build()
+    assert artifact.id is not None
+    assert OPAQUE_STRIPE_ID_REGEX is not None
+
+    await unified_repo.create_report_artifact(artifact)
+    fetched = await unified_repo.get_report_artifact(artifact.id)
+    assert fetched == artifact
+
+    assert await unified_repo.delete_report_artifact(artifact.id) is True
+    assert await unified_repo.get_report_artifact(artifact.id) is None
+
+
+@pytest.mark.asyncio
+async def test_get_report_artifact_not_found_returns_none(
+    repo: ReportArtifactRepositoryImpl,
+) -> None:
+    """Verify get_report_artifact returns None when canonical report_id does not exist."""
+    missing_id = generate_opaque_id(EntityPrefix.REPORT)
+    assert await repo.get_report_artifact(missing_id) is None
+
+
+@pytest.mark.asyncio
+async def test_update_report_artifact_not_found_error(
+    repo: ReportArtifactRepositoryImpl,
+) -> None:
+    """Verify update_report_artifact raises AppException RESOURCE_NOT_FOUND when target record is missing."""
+    missing_id = generate_opaque_id(EntityPrefix.REPORT)
+    update_dto = ReportArtifactUpdateDTO(status=ReportStatus.FAILED, error_message="Missing target")
 
     with pytest.raises(AppException) as exc_info:
-        await repo.update_report_artifact("rep_missing00000000", update_dto)
+        await repo.update_report_artifact(missing_id, update_dto)
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
 @pytest.mark.asyncio
-async def test_update_report_artifact_validation_failure() -> None:
-    """Negative: raises AppException(500) with VALIDATION_FAILED when existing record is corrupted."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = {"id": "rep_corrupted00000", "corrupted_field": True}
+async def test_report_artifact_invalid_prefix_raises_validation_failure(
+    repo: ReportArtifactRepositoryImpl,
+) -> None:
+    """Verify mismatched Opaque Stripe ID prefixes raise AppException VALIDATION_FAILED."""
+    wrong_for_report = generate_opaque_id(EntityPrefix.EXECUTION)
+    wrong_for_execution = generate_opaque_id(EntityPrefix.REPORT)
 
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    update_dto = ReportArtifactUpdateDTO(status=ReportStatus.READY)
+    with pytest.raises(AppException) as get_exc:
+        await repo.get_report_artifact(wrong_for_report)
+    assert get_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-    with pytest.raises(AppException) as exc_info:
-        await repo.update_report_artifact("rep_corrupted00000", update_dto)
+    with pytest.raises(AppException) as list_exc:
+        await repo.list_report_artifacts_by_execution(wrong_for_execution)
+    assert list_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-
-
-@pytest.mark.asyncio
-async def test_update_report_artifact_with_error_message(sample_report: ReportArtifact) -> None:
-    """Positive/Edge: updates report status to FAILED with error message."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = sample_report.model_dump(mode="json")
-    mock_driver.upsert.return_value = sample_report.id
-
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    update_dto = ReportArtifactUpdateDTO(
-        status=ReportStatus.FAILED,
-        error_message="Synthesis timeout exceeded after 60s",
-    )
-
-    updated = await repo.update_report_artifact(sample_report.id, update_dto)
-
-    assert updated.status == ReportStatus.FAILED
-    assert updated.error_message == "Synthesis timeout exceeded after 60s"
-
-
-# =========================================================================
-# 5. DELETE_REPORT_ARTIFACT TESTS
-# =========================================================================
+    with pytest.raises(AppException) as del_exc:
+        await repo.delete_report_artifact(wrong_for_report)
+    assert del_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
-async def test_delete_report_artifact_success() -> None:
-    """Positive: deletes document and returns True."""
-    mock_driver = AsyncMock()
-    mock_driver.delete.return_value = True
+async def test_report_artifact_unconfigured_uow_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify repository operations fail fast with ConfigurationError when UnitOfWorkFactory is missing."""
+    monkeypatch.setattr("backend_v2.database.repositories.base.get_registered_uow_factory", lambda: None)
+    unconfigured_repo = ReportArtifactRepositoryImpl(uow_factory=None)
+    artifact = ReportArtifactFactory.build()
 
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    result = await repo.delete_report_artifact("rep_0195f3a00000700a81b2c3d4e5f60718")
+    with pytest.raises(ConfigurationError) as exc_info:
+        await unconfigured_repo.create_report_artifact(artifact)
 
-    assert result is True
-    mock_driver.delete.assert_awaited_once_with(_COLLECTION_NAME, "rep_0195f3a00000700a81b2c3d4e5f60718")
-
-
-@pytest.mark.asyncio
-async def test_delete_report_artifact_not_found() -> None:
-    """Negative: returns False when document does not exist."""
-    mock_driver = AsyncMock()
-    mock_driver.delete.return_value = False
-
-    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    result = await repo.delete_report_artifact("rep_nonexistent0000")
-
-    assert result is False
-
-
-# =========================================================================
-# 6. UNIFIED_WORKFLOW_REPOSITORY INTEGRATION TEST
-# =========================================================================
-
-
-def test_unified_workflow_repository_inheritance() -> None:
-    """Verifies that UnifiedWorkflowRepository inherits ReportArtifactRepositoryImpl."""
-    mock_driver = AsyncMock()
-    unified = UnifiedWorkflowRepository(driver=mock_driver)
-
-    assert isinstance(unified, ReportArtifactRepositoryImpl)
-    assert callable(unified.create_report_artifact)
-    assert callable(unified.get_report_artifact)
-    assert callable(unified.list_report_artifacts_by_execution)
-    assert callable(unified.update_report_artifact)
-    assert callable(unified.delete_report_artifact)
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR

@@ -1,7 +1,7 @@
 """Repository implementation for Report Artifacts.
 
 Governs materialized report outputs, metadata, storage references, and CRUD persistence
-targeting the 'report_artifacts' collection in strict compliance with Tripartite Pipeline Architecture.
+targeting the 'report_artifacts' table via EntityPersistencePort.
 """
 
 from __future__ import annotations
@@ -9,8 +9,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from backend_v2.database.driver import Filter, StorageDriver
-from backend_v2.database.interfaces import IReportArtifactRepository
+from backend_v2.database.interfaces import IReportArtifactRepository, UnitOfWorkFactory
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.report_artifact import ReportArtifact
@@ -18,175 +17,132 @@ from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 
 logger = logging.getLogger(__name__)
 
-_COLLECTION_NAME = "report_artifacts"
-
 __all__ = ["ReportArtifactRepositoryImpl"]
 
 
 class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
     """Repository implementation for ReportArtifact domain entities."""
 
-    def __init__(self, driver: StorageDriver) -> None:
-        """Initializes the repository with a storage driver.
-
-        Args:
-            driver: The underlying storage driver for database operations.
-        """
-        super().__init__(driver)
+    def __init__(self, uow_factory: UnitOfWorkFactory | None = None) -> None:
+        """Initialize the repository with an optional UnitOfWorkFactory."""
+        super().__init__(uow_factory)
 
     async def create_report_artifact(self, report: ReportArtifact) -> ReportArtifact:
-        """Persists a new report artifact domain record.
+        """Persist a new report artifact domain record.
 
         Args:
-            report: The ReportArtifact domain entity to persist.
+            report: Validated ReportArtifact domain entity to persist.
 
         Returns:
-            The persisted ReportArtifact model.
+            Persisted ReportArtifact model.
 
         Raises:
-            AppException: If database persistence fails (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
         """
-        payload = report.model_dump(mode="json")
-        await self.driver.upsert(_COLLECTION_NAME, payload, report.id)
+        async with self._acquire_entities() as entities:
+            await entities.upsert_report_artifact(report)
         return report
 
     async def get_report_artifact(self, report_id: str) -> ReportArtifact | None:
-        """Retrieves a report artifact by its unique identifier.
+        """Retrieve a report artifact by its canonical identifier.
 
         Args:
-            report_id: Unique identifier prefixed with 'rep_'.
+            report_id: Canonical rep_<hex32> identifier.
 
         Returns:
-            The validated ReportArtifact if found, otherwise None.
+            Validated ReportArtifact if found, otherwise None.
 
         Raises:
-            AppException: If document validation or retrieval fails
-                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        doc = await self.driver.get(_COLLECTION_NAME, report_id)
-        if doc is None:
-            return None
-        try:
-            return ReportArtifact.model_validate(doc, strict=False)
-        except Exception as e:
-            logger.error(
-                "Failed to parse ReportArtifact %s: %s",
-                report_id,
-                e,
-                extra={"report_id": report_id, "error_code": ErrorCodes.VALIDATION_FAILED.value},
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Failed to parse report artifact {report_id}",
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
+        async with self._acquire_entities() as entities:
+            return await entities.get_report_artifact(report_id)
 
     async def list_report_artifacts_by_execution(self, execution_id: str) -> list[ReportArtifact]:
-        """Lists all report artifacts associated with an analytical execution run.
+        """List all report artifacts associated with an analytical execution run.
 
         Args:
-            execution_id: Parent execution ID.
+            execution_id: Parent canonical exe_<hex32> execution identifier.
 
         Returns:
-            List of validated ReportArtifact instances.
+            List of validated ReportArtifact instances ordered newest first.
 
         Raises:
-            AppException: If document validation or query fails
-                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        docs = await self.driver.query(_COLLECTION_NAME, [Filter("execution_id", "==", execution_id)])
-        results: list[ReportArtifact] = []
-        for doc in docs:
-            try:
-                results.append(ReportArtifact.model_validate(doc, strict=False))
-            except Exception as e:
-                logger.error(
-                    "Failed to parse ReportArtifact for execution %s: %s",
-                    execution_id,
-                    e,
-                    extra={"execution_id": execution_id, "error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to parse report artifact for execution {execution_id}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-        return results
+        async with self._acquire_entities() as entities:
+            return await entities.list_report_artifacts_by_execution(execution_id)
 
     async def update_report_artifact(self, report_id: str, update_dto: ReportArtifactUpdateDTO) -> ReportArtifact:
-        """Applies in-place field updates to an existing report artifact.
+        """Apply in-place field updates to an existing report artifact.
 
         Args:
-            report_id: Unique identifier prefixed with 'rep_'.
-            update_dto: Strongly typed update DTO with optional fields.
+            report_id: Canonical rep_<hex32> identifier.
+            update_dto: Validated ReportArtifactUpdateDTO carrying updated fields.
 
         Returns:
-            The updated ReportArtifact model.
+            Updated ReportArtifact model.
 
         Raises:
-            AppException: If the record does not exist (ErrorCodes.RESOURCE_NOT_FOUND),
-                fails validation (ErrorCodes.VALIDATION_FAILED), or persistence fails
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With RESOURCE_NOT_FOUND (HTTP 404) if missing, or STORAGE_ACCESS_FAILED on write failure.
         """
-        doc = await self.driver.get(_COLLECTION_NAME, report_id)
-        if doc is None:
-            logger.error(
-                "Report artifact %s not found for update",
-                report_id,
-                extra={"report_id": report_id, "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Report artifact {report_id} not found",
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-            )
+        async with self._acquire_entities() as entities:
+            current = await entities.get_report_artifact(report_id)
+            if current is None:
+                logger.error(
+                    "[ReportArtifactRepository] %s: Report artifact %s not found for update",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    report_id,
+                    extra={"report_id": report_id, "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                )
+                raise AppException(
+                    message=f"Report artifact {report_id} not found",
+                    status_code=404,
+                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                )
 
-        try:
-            current = ReportArtifact.model_validate(doc, strict=False)
-        except Exception as e:
-            logger.error(
-                "Failed to parse ReportArtifact %s during update: %s",
-                report_id,
-                e,
-                extra={"report_id": report_id, "error_code": ErrorCodes.VALIDATION_FAILED.value},
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Failed to parse report artifact {report_id}",
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
+            next_status = current.status
+            if update_dto.status is not None:
+                next_status = update_dto.status
+            next_paths = current.storage_paths
+            if update_dto.storage_paths is not None:
+                next_paths = update_dto.storage_paths
+            next_metadata = current.metadata
+            if update_dto.metadata is not None:
+                next_metadata = update_dto.metadata
+            next_error = current.error_message
+            if update_dto.error_message is not None:
+                next_error = update_dto.error_message
 
-        updated = current.model_copy(
-            update={
-                "status": update_dto.status if update_dto.status is not None else current.status,
-                "storage_paths": update_dto.storage_paths
-                if update_dto.storage_paths is not None
-                else current.storage_paths,
-                "metadata": update_dto.metadata if update_dto.metadata is not None else current.metadata,
-                "error_message": update_dto.error_message
-                if update_dto.error_message is not None
-                else current.error_message,
-                "updated_at": datetime.now(UTC),
-            }
-        )
-        payload = updated.model_dump(mode="json")
-        await self.driver.upsert(_COLLECTION_NAME, payload, report_id)
-        return updated
+            updated = ReportArtifact(
+                id=current.id,
+                execution_id=current.execution_id,
+                workflow_id=current.workflow_id,
+                profile_id=current.profile_id,
+                locale=current.locale,
+                title=current.title,
+                status=next_status,
+                storage_paths=next_paths,
+                metadata=next_metadata,
+                custom_preface_md=current.custom_preface_md,
+                error_message=next_error,
+                created_at=current.created_at,
+                updated_at=datetime.now(UTC),
+            )
+            await entities.upsert_report_artifact(updated)
+            return updated
 
     async def delete_report_artifact(self, report_id: str) -> bool:
-        """Deletes a report artifact record by its identifier.
+        """Delete a report artifact record by its identifier.
 
         Args:
-            report_id: Unique identifier prefixed with 'rep_'.
+            report_id: Canonical rep_<hex32> identifier.
 
         Returns:
             True if deletion succeeded, False otherwise.
 
         Raises:
-            AppException: If deletion operation fails (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if deletion fails.
         """
-        return await self.driver.delete(_COLLECTION_NAME, report_id)
+        async with self._acquire_entities() as entities:
+            return await entities.delete_report_artifact(report_id)

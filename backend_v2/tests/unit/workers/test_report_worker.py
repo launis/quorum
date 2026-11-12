@@ -23,7 +23,6 @@ async def test_generate_report_artifact_job_delegates_to_service() -> None:
 
     with (
         patch("backend_v2.services.report.ReportService", return_value=mock_service),
-        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
         patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
     ):
         _ = await generate_report_artifact_job(
@@ -45,7 +44,6 @@ async def test_generate_report_artifact_job_forwards_force_resynthesis() -> None
 
     with (
         patch("backend_v2.services.report.ReportService", return_value=mock_service),
-        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
         patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
     ):
         await generate_report_artifact_job(
@@ -75,7 +73,6 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
 
     with (
         patch("backend_v2.services.report.ReportService", return_value=mock_service),
-        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
         patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
     ):
         await generate_report_artifact_job(
@@ -83,12 +80,12 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
             report_id="rep_0195f3a0000070008123456789abcdef",
         )
 
-    # Invariant: Failure in Phase 2/3 does NOT alter execution record status to FAILED
+    # Invariant: Failure during report compilation does NOT alter execution record status to FAILED
     assert (await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")) is None
 
 
 @pytest.mark.asyncio
-async def test_generate_report_artifact_job_cancelled() -> None:
+async def test_generate_report_artifact_job_cancelled_error() -> None:
     """Verify cancellation handling in generate_report_artifact_job returns DLQ status."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_service = MagicMock()
@@ -96,7 +93,6 @@ async def test_generate_report_artifact_job_cancelled() -> None:
 
     with (
         patch("backend_v2.services.report.ReportService", return_value=mock_service),
-        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
         patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
     ):
         res = await generate_report_artifact_job(ctx={}, report_id="rep_0195f3a0000070008123456789abcdef")
@@ -104,17 +100,14 @@ async def test_generate_report_artifact_job_cancelled() -> None:
 
 
 @pytest.mark.asyncio
-async def test_report_worker_fails_fast_when_execution_record_missing_in_memory() -> None:
-    """Phase 6, Step 6.2: Verify report worker fails fast deterministically when execution record is missing in memory."""
+async def test_report_worker_missing_execution_record_failure() -> None:
+    """Verify report worker fails fast deterministically when execution record is missing in memory."""
     repo = InMemoryUnifiedWorkflowRepository()
     report_id = "rep_0195f3a0000070008123456789abcdef"
     missing_exec_id = "exe_0195f3a0000070008123456789abcdef"
 
     # Case 1: Missing report artifact in repository triggers ResourceNotFoundError -> DLQ status
-    with (
-        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
-        patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=repo),
-    ):
+    with patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=repo):
         missing_report_res = await generate_report_artifact_job(ctx={}, report_id=report_id)
     assert missing_report_res == {"_dlq_status": "FAILED/DLQ"}
 
@@ -126,10 +119,7 @@ async def test_report_worker_fails_fast_when_execution_record_missing_in_memory(
     )
     repo.save_report_artifact(seeded_artifact)
 
-    with (
-        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
-        patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=repo),
-    ):
+    with patch.object(report_worker_mod, "UnifiedWorkflowRepository", return_value=repo):
         await generate_report_artifact_job(ctx={}, report_id=report_id)
 
     reconstituted = await repo.get_report_artifact(report_id)

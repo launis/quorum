@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDeltaDTO, HookState
+from backend_v2.core.hook_registry import HookDeltaDTO, HookDependencies, HookState
 from backend_v2.hooks.scoring.falsifier_hook import apply_scoring_logic_hook
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
@@ -22,10 +22,7 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.state_reducer import reduce_hook_delta
-from backend_v2.tests.unit.hooks.test_scoring import (
-    _build_test_scoring_deps,
-    _create_test_scoring_repo,
-)
+from backend_v2.tests.unit.hooks.test_scoring import _create_test_scoring_repo
 
 
 def _build_test_hook_state(step_id: str = "st_matrix") -> HookState:
@@ -101,7 +98,15 @@ async def test_apply_scoring_logic_hook_reads_evaluative_matrices_from_global_co
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
     )
     repo = await _create_test_scoring_repo()
-    deps = _build_test_scoring_deps(repo)
+    deps = HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True

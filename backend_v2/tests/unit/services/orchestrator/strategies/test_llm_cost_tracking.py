@@ -162,7 +162,6 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,

@@ -129,7 +129,6 @@ def _build_stages_for_trace(
         hook_deps=HookDependencies(
             exec_repo=repo,
             workflow_repo=repo,
-            comp_repo=repo,
             prompt_block_repo=repo,
             output_profile_repo=repo,
             identity_repo=repo,

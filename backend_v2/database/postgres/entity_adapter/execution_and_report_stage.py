@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 
 from fastapi import status
 from pydantic_core import to_json
@@ -17,6 +18,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_optional_uuid7,
     _parse_org_uuid7,
     _ReportBinaryRowDTO,
+    execute_entity_delete,
     execute_entity_upsert,
     resolve_effective_timeout,
     translate_postgres_exception,
@@ -28,34 +30,44 @@ from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uu
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.report_artifact import ReportArtifact
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 type _Conn = AsyncPgConnectionProtocol
 
-# Ensure ExecutionRecord deferred annotations (TraceEvent union) are rebuilt
+# Ensure ExecutionRecord and ExecutionUpdateDTO deferred annotations are rebuilt
 _ = WorkflowState
 ExecutionRecord.model_rebuild()
+ExecutionUpdateDTO.model_rebuild()
 
 __all__ = [
+    "_DELETE_EXECUTION_SQL",
+    "_DELETE_REPORT_ARTIFACT_SQL",
     "_GET_EXECUTION_SQL",
     "_GET_REPORT_ARTIFACT_SQL",
     "_GET_REPORT_BINARY_SQL",
     "_LIST_EXECUTIONS_SQL",
+    "_LIST_REPORT_ARTIFACTS_BY_EXECUTION_SQL",
     "_LIST_REPORT_ARTIFACTS_SQL",
     "_MARK_REPORT_ARTIFACT_PDF_SQL",
     "_SAVE_EXECUTION_SQL",
     "_SAVE_REPORT_BINARY_SQL",
     "_UPSERT_REPORT_ARTIFACT_SQL",
+    "apply_execution_updates",
+    "delete_execution_row",
+    "delete_report_artifact_row",
     "get_execution_row",
     "get_report_artifact_row",
     "get_report_binary_row",
     "hydrate_execution_row",
     "hydrate_report_artifact_row",
     "list_execution_rows",
+    "list_report_artifacts_by_execution_row",
     "save_execution_row",
     "save_report_binary_row",
+    "update_execution_occ_row",
     "upsert_report_artifact_row",
 ]
 
@@ -574,3 +586,263 @@ async def list_execution_rows(conn: _Conn, timeout: float) -> list[ExecutionReco
             entity_id="*",
         ) from exc
     return [hydrate_execution_row(r) for r in rows]
+
+
+_DELETE_EXECUTION_SQL: str = "DELETE FROM executions WHERE id = $1::uuid"
+_LIST_REPORT_ARTIFACTS_BY_EXECUTION_SQL: str = (
+    f"{_LIST_REPORT_ARTIFACTS_SQL} WHERE execution_id = $1::uuid ORDER BY created_at DESC"
+)
+_DELETE_REPORT_ARTIFACT_SQL: str = "DELETE FROM report_artifacts WHERE id = $1::uuid"
+
+
+def _coalesce_optional[T](updated: T | None, current: T) -> T:
+    """Return updated when explicitly provided as non-None, otherwise preserve current.
+
+    Args:
+        updated: Candidate replacement value from the partial update DTO.
+        current: Existing value on the persisted ExecutionRecord.
+
+    Returns:
+        Resolved field value for the updated ExecutionRecord.
+    """
+    return current if updated is None else updated
+
+
+def _resolve_updated_status_message(existing: ExecutionRecord, updates: ExecutionUpdateDTO) -> str | None:
+    """Resolve status_message from current_step or current_step_name field presence.
+
+    Args:
+        existing: Currently persisted ExecutionRecord instance.
+        updates: Partial ExecutionUpdateDTO describing requested field updates.
+
+    Returns:
+        Updated status message or None depending on explicit DTO field presence.
+    """
+    fields_set = updates.model_fields_set
+    if "current_step" in fields_set:
+        return updates.current_step
+    if "current_step_name" in fields_set:
+        return updates.current_step_name
+    return existing.status_message
+
+
+def _apply_nullable_execution_fields(record: ExecutionRecord, updates: ExecutionUpdateDTO) -> ExecutionRecord:
+    """Apply nullable ExecutionUpdateDTO fields gated by model_fields_set membership.
+
+    Args:
+        record: Source ExecutionRecord instance.
+        updates: Partial ExecutionUpdateDTO describing requested field updates.
+
+    Returns:
+        ExecutionRecord copy with explicitly supplied nullable fields applied.
+    """
+    fields_set = updates.model_fields_set
+    return record.model_copy(
+        update={
+            "progress": updates.progress if "progress" in fields_set else record.progress,
+            "error": updates.error if "error" in fields_set else record.error,
+            "pdf_report_path": updates.pdf_report_path if "pdf_report_path" in fields_set else record.pdf_report_path,
+            "active_profile_id": (
+                updates.active_profile_id if "active_profile_id" in fields_set else record.active_profile_id
+            ),
+            "output_profile_id": (
+                updates.output_profile_id if "output_profile_id" in fields_set else record.output_profile_id
+            ),
+            "metadata": updates.metadata if "metadata" in fields_set else record.metadata,
+            "execution_summary": (
+                updates.execution_summary if "execution_summary" in fields_set else record.execution_summary
+            ),
+            "completed_at": updates.completed_at if "completed_at" in fields_set else record.completed_at,
+        }
+    )
+
+
+def apply_execution_updates(existing: ExecutionRecord, updates: ExecutionUpdateDTO) -> ExecutionRecord:
+    """Merge partial ExecutionUpdateDTO fields onto an existing ExecutionRecord.
+
+    Args:
+        existing: Currently persisted ExecutionRecord instance.
+        updates: Partial ExecutionUpdateDTO describing requested field updates.
+
+    Returns:
+        Updated immutable ExecutionRecord prior to persistence-layer state_version increment.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the merged ExecutionRecord violates schema invariants.
+    """
+    stage1 = _apply_nullable_execution_fields(existing, updates)
+    fields_set = updates.model_fields_set
+    next_frozen_context = updates.frozen_context if "frozen_context" in fields_set else stage1.frozen_context
+    next_frozen_storage_path = (
+        None
+        if ("frozen_context" in fields_set and updates.frozen_context is not None)
+        else stage1.frozen_context_storage_path
+    )
+    next_trace_storage_path = None if updates.execution_trace is not None else stage1.execution_trace_storage_path
+    next_ctx_storage_path = None if updates.context_variables is not None else stage1.context_variables_storage_path
+    next_state_version = stage1.state_version
+    if updates.expected_state_version is None and updates.state_version is not None:
+        next_state_version = updates.state_version
+
+    merged = stage1.model_copy(
+        update={
+            "status": _coalesce_optional(updates.status, stage1.status),
+            "status_message": _resolve_updated_status_message(stage1, updates),
+            "steps": _coalesce_optional(updates.steps, stage1.steps),
+            "step_states": _coalesce_optional(updates.step_states, stage1.step_states),
+            "execution_trace": _coalesce_optional(updates.execution_trace, stage1.execution_trace),
+            "execution_trace_storage_path": next_trace_storage_path,
+            "frozen_context": next_frozen_context,
+            "frozen_context_storage_path": next_frozen_storage_path,
+            "profile_syntheses": _coalesce_optional(updates.profile_syntheses, stage1.profile_syntheses),
+            "context_variables": _coalesce_optional(updates.context_variables, stage1.context_variables),
+            "context_variables_storage_path": next_ctx_storage_path,
+            "is_resumable": _coalesce_optional(updates.is_resumable, stage1.is_resumable),
+            "prompt_tokens": _coalesce_optional(updates.prompt_tokens, stage1.prompt_tokens),
+            "completion_tokens": _coalesce_optional(updates.completion_tokens, stage1.completion_tokens),
+            "cached_tokens": _coalesce_optional(updates.cached_tokens, stage1.cached_tokens),
+            "reasoning_tokens": _coalesce_optional(updates.reasoning_tokens, stage1.reasoning_tokens),
+            "cumulative_synthesis_tokens": _coalesce_optional(
+                updates.cumulative_synthesis_tokens,
+                stage1.cumulative_synthesis_tokens,
+            ),
+            "dag_cost_usd": _coalesce_optional(updates.dag_cost_usd, stage1.dag_cost_usd),
+            "cumulative_synthesis_cost": _coalesce_optional(
+                updates.cumulative_synthesis_cost,
+                stage1.cumulative_synthesis_cost,
+            ),
+            "duration_ms": _coalesce_optional(updates.duration_ms, stage1.duration_ms),
+            "cost_estimate": _coalesce_optional(updates.cost_estimate, stage1.cost_estimate),
+            "models_used": _coalesce_optional(updates.models_used, stage1.models_used),
+            "created_at": _coalesce_optional(updates.created_at, stage1.created_at),
+            "updated_at": _coalesce_optional(updates.updated_at, datetime.now(UTC)),
+            "state_version": next_state_version,
+        }
+    )
+    dumped = merged.model_dump(mode="json", exclude_none=True)
+    if merged.frozen_context is None:
+        dumped["frozen_context"] = None
+    return validate_hydrated_row(
+        ExecutionRecord,
+        dumped,
+        table_name="executions",
+        entity_id=existing.id,
+    )
+
+
+async def update_execution_occ_row(
+    conn: _Conn,
+    timeout: float,
+    execution_id: str,
+    updates: ExecutionUpdateDTO,
+) -> bool:
+    """Apply partial ExecutionUpdateDTO updates to an existing ExecutionRecord with OCC checking.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        execution_id: Canonical exe_<hex32> execution identifier.
+        updates: Validated ExecutionUpdateDTO carrying field updates and optional expected_state_version.
+
+    Returns:
+        True if the execution existed and was updated, False if no matching execution exists.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID/payload, CONFLICT on OCC mismatch,
+            or STORAGE_ACCESS_FAILED on database error.
+    """
+    existing = await get_execution_row(conn, timeout, execution_id)
+    if existing is None:
+        return False
+    merged = apply_execution_updates(existing, updates)
+    await save_execution_row(
+        conn,
+        timeout,
+        merged,
+        expected_state_version=updates.expected_state_version,
+    )
+    return True
+
+
+async def delete_execution_row(conn: _Conn, timeout: float, execution_id: str) -> bool:
+    """Delete an ExecutionRecord row by primary key from executions.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        execution_id: Canonical exe_<hex32> execution identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    exec_uuid = parse_prefixed_uuid7(execution_id, EntityPrefix.EXECUTION)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_EXECUTION_SQL,
+        exec_uuid,
+        entity_id=execution_id,
+        table="executions",
+    )
+
+
+async def list_report_artifacts_by_execution_row(
+    conn: _Conn,
+    timeout: float,
+    execution_id: str,
+) -> list[ReportArtifact]:
+    """List all ReportArtifact rows belonging to a parent execution ordered newest-first.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        execution_id: Canonical exe_<hex32> parent execution identifier.
+
+    Returns:
+        List of hydrated ReportArtifact models ordered by created_at DESC.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID/corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    exec_uuid = parse_prefixed_uuid7(execution_id, EntityPrefix.EXECUTION)
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(_LIST_REPORT_ARTIFACTS_BY_EXECUTION_SQL, exec_uuid, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="report_artifacts",
+            entity_id=execution_id,
+        ) from exc
+    return [hydrate_report_artifact_row(row) for row in rows]
+
+
+async def delete_report_artifact_row(conn: _Conn, timeout: float, report_id: str) -> bool:
+    """Delete a ReportArtifact row by primary key from report_artifacts.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        report_id: Canonical rep_<hex32> report artifact identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    report_uuid = parse_prefixed_uuid7(report_id, EntityPrefix.REPORT)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_REPORT_ARTIFACT_SQL,
+        report_uuid,
+        entity_id=report_id,
+        table="report_artifacts",
+    )

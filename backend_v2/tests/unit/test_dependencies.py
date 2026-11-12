@@ -9,21 +9,17 @@ import pytest
 from fastapi.security import HTTPAuthorizationCredentials
 
 from backend_v2.api.dependencies import (
-    get_agent_repo,
     get_arq_pool,
     get_audit_repo,
     get_auth_service,
-    get_component_repo,
     get_current_admin_user,
     get_current_user_from_header,
     get_dag_executor,
-    get_db_driver,
     get_document_extraction_service,
     get_execution_repo,
     get_execution_service,
     get_export_service,
     get_identity_repo,
-    get_knowledge_repo,
     get_llm_handler,
     get_llm_task_executor,
     get_output_profile_repo,
@@ -39,24 +35,20 @@ from backend_v2.api.dependencies import (
     get_studio_task_brief_service,
     get_studio_workflow_service,
     get_system_repo,
-    get_task_blueprint_repo,
     get_task_brief_repo,
     get_tenant_rate_limit_service,
+    get_uow_factory,
     get_usage_service,
     get_workflow_repo,
     require_role,
 )
 from backend_v2.core.redis_security import RevocationCache
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
-from backend_v2.database.repositories.component import ComponentRepositoryImpl
-from backend_v2.database.repositories.components.agent import AgentRepositoryImpl
 from backend_v2.database.repositories.components.output_profile import OutputProfileRepositoryImpl
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
-from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
-from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
 from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
@@ -71,6 +63,7 @@ from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.settings import Settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
 @pytest.fixture
@@ -95,14 +88,19 @@ def mock_settings() -> Settings:
     return settings
 
 
-@pytest.mark.asyncio
-async def test_get_db_driver(mock_settings: Settings) -> None:
-    """Test get_db_driver delegates to get_driver with injected settings."""
-    expected_driver = MagicMock()
-    with patch("backend_v2.api.dependencies.get_driver", new=AsyncMock(return_value=expected_driver)) as mock_factory:
-        driver = await get_db_driver(settings=mock_settings)
-        assert driver is expected_driver
-        mock_factory.assert_awaited_once_with(mock_settings)
+def test_get_uow_factory() -> None:
+    """Test get_uow_factory delegates to get_registered_uow_factory."""
+
+    def expected_factory() -> InMemoryUnitOfWork:
+        return InMemoryUnitOfWork()
+
+    with patch(
+        "backend_v2.api.dependencies.get_registered_uow_factory",
+        return_value=expected_factory,
+    ) as mock_registered:
+        resolved = get_uow_factory()
+        assert resolved is expected_factory
+        mock_registered.assert_called_once_with()
 
 
 def test_get_auth_service(fake_repo: InMemoryUnifiedWorkflowRepository, mock_settings: Settings) -> None:
@@ -325,27 +323,30 @@ def test_compiler_and_executor_dependencies() -> None:
 
 @pytest.mark.asyncio
 async def test_repository_factory_dependencies() -> None:
-    """Test repository factory dependencies bind the injected storage driver."""
-    mock_driver = MagicMock()
-    assert isinstance(await get_execution_repo(driver=mock_driver), ExecutionRepositoryImpl)
-    assert isinstance(await get_report_artifact_repo(driver=mock_driver), ReportArtifactRepositoryImpl)
-    assert isinstance(await get_identity_repo(driver=mock_driver), IdentityRepositoryImpl)
-    assert isinstance(await get_workflow_repo(driver=mock_driver), WorkflowRepositoryImpl)
-    assert isinstance(await get_component_repo(driver=mock_driver), ComponentRepositoryImpl)
-    assert isinstance(await get_prompt_block_repo(driver=mock_driver), PromptBlockRepositoryImpl)
-    assert isinstance(await get_task_brief_repo(driver=mock_driver), TaskBriefRepositoryImpl)
-    assert isinstance(await get_agent_repo(driver=mock_driver), AgentRepositoryImpl)
-    assert isinstance(await get_task_blueprint_repo(driver=mock_driver), TaskBlueprintRepositoryImpl)
-    assert isinstance(await get_output_profile_repo(driver=mock_driver), OutputProfileRepositoryImpl)
-    assert isinstance(await get_knowledge_repo(driver=mock_driver), KnowledgeRepositoryImpl)
-    assert isinstance(await get_system_repo(driver=mock_driver), SystemRepositoryImpl)
-    assert isinstance(await get_audit_repo(driver=mock_driver), AuditRepositoryImpl)
+    """Test repository factory dependencies bind the injected UnitOfWork factory."""
+    uow = InMemoryUnitOfWork()
+
+    def uow_factory() -> InMemoryUnitOfWork:
+        return uow
+
+    assert isinstance(await get_execution_repo(uow_factory=uow_factory), ExecutionRepositoryImpl)
+    assert isinstance(await get_report_artifact_repo(uow_factory=uow_factory), ReportArtifactRepositoryImpl)
+    assert isinstance(await get_identity_repo(uow_factory=uow_factory), IdentityRepositoryImpl)
+    assert isinstance(await get_workflow_repo(uow_factory=uow_factory), WorkflowRepositoryImpl)
+    assert isinstance(await get_prompt_block_repo(uow_factory=uow_factory), PromptBlockRepositoryImpl)
+    assert isinstance(await get_task_brief_repo(uow_factory=uow_factory), TaskBriefRepositoryImpl)
+    assert isinstance(await get_output_profile_repo(uow_factory=uow_factory), OutputProfileRepositoryImpl)
+    assert isinstance(await get_system_repo(uow_factory=uow_factory), SystemRepositoryImpl)
+    assert isinstance(await get_audit_repo(uow_factory=uow_factory), AuditRepositoryImpl)
 
 
 @pytest.mark.asyncio
 async def test_service_factory_dependencies(fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Test service factory dependencies wire repositories and sub-services accurately."""
-    mock_driver = MagicMock()
+    uow = InMemoryUnitOfWork()
+
+    def uow_factory() -> InMemoryUnitOfWork:
+        return uow
 
     usage_svc = get_usage_service(identity_repo=fake_repo, audit_repo=fake_repo)
     assert usage_svc.identity_repo is fake_repo
@@ -354,7 +355,7 @@ async def test_service_factory_dependencies(fake_repo: InMemoryUnifiedWorkflowRe
     export_svc = await get_export_service(prompt_block_repo=fake_repo)
     assert export_svc.prompt_block_repo is fake_repo
 
-    report_svc = await get_report_service(driver=mock_driver, prompt_block_repo=fake_repo)
+    report_svc = await get_report_service(prompt_block_repo=fake_repo, uow_factory=uow_factory)
     assert report_svc.export_service.prompt_block_repo is fake_repo
 
     wf_svc = await get_studio_workflow_service(
@@ -362,6 +363,7 @@ async def test_service_factory_dependencies(fake_repo: InMemoryUnifiedWorkflowRe
         output_profile_repo=fake_repo,
         prompt_block_repo=fake_repo,
         system_repo=fake_repo,
+        uow_factory=uow_factory,
     )
     assert wf_svc.workflow_repo is fake_repo
 
@@ -398,7 +400,6 @@ async def test_service_factory_dependencies(fake_repo: InMemoryUnifiedWorkflowRe
     dag_executor = await get_dag_executor(
         exec_repo=fake_repo,
         workflow_repo=fake_repo,
-        component_repo=fake_repo,
         identity_repo=fake_repo,
         audit_repo=fake_repo,
         system_repo=fake_repo,
@@ -411,7 +412,6 @@ async def test_service_factory_dependencies(fake_repo: InMemoryUnifiedWorkflowRe
     exec_service = await get_execution_service(
         exec_repo=fake_repo,
         workflow_repo=fake_repo,
-        comp_repo=fake_repo,
         identity_repo=fake_repo,
         system_repo=fake_repo,
         usage_service=usage_svc,

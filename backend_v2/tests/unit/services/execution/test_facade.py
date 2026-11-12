@@ -46,7 +46,6 @@ from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
     InMemoryIdentityRepository,
     InMemoryPromptBlockRepository,
-    InMemorySystemRepository,
     InMemoryUnifiedWorkflowRepository,
     InMemoryWorkflowRepository,
 )
@@ -107,7 +106,7 @@ def test_execution_service_init_with_defaults() -> None:
     service = ExecutionService(exec_repo=exec_repo, workflow_repo=workflow_repo)
     assert service.exec_repo is exec_repo
     assert service.workflow_repo is workflow_repo
-    assert service.comp_repo is None
+    assert service.prompt_block_repo is None
     assert service.storage is not None
     assert service._assignment is None
     assert callable(create_execution_record)
@@ -635,7 +634,7 @@ async def test_facade_assignment_lifecycle_end_to_end() -> None:
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=identity_repo,
-        system_repo=InMemorySystemRepository(),
+        system_repo=repo,
         usage_service=usage_service,
     )
 

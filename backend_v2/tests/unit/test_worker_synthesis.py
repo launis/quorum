@@ -1,21 +1,29 @@
 """Unit tests for worker background synthesis tasks and trace extraction."""
 
-from collections.abc import Mapping
+from __future__ import annotations
+
+from collections.abc import Generator, Mapping
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 
 import backend_v2.workers.synthesis_worker as synthesis_worker_mod
 from backend_v2.exceptions import AppException
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
-from backend_v2.models.domain.synthesis import RenderedSynthesisCache
-from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
+from backend_v2.models.domain.system_config import (
+    ChatMessageDTO,
+    ModelProfile,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -24,18 +32,112 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
-from backend_v2.models.enums import ExecutionStatus, RoleClassification, XaiExtensionType
+from backend_v2.models.enums import (
+    BlockDataType,
+    CognitiveTier,
+    DisplayScale,
+    ExecutionStatus,
+    HistoricalContextMode,
+    LLMProvider,
+    PromptBlockCategory,
+    RoleClassification,
+    TargetBlockType,
+    XaiExtensionType,
+)
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.settings import get_settings
+from backend_v2.tests.factories.model_factories import (
+    ExecutionRecordFactory,
+    MatrixPromptBlockFactory,
+    OutputProfileFactory,
+    SystemRulePromptBlockFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers import VarianceExplanationResult, generate_profile_synthesis_and_pdf_task
 
 
+class _ModelProfileFactory(ModelFactory[ModelProfile]):
+    """Polyfactory model factory for deterministic ModelProfile configurations."""
+
+    __model__ = ModelProfile
+    __use_defaults__ = True
+
+
+class _ModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
+    """Polyfactory model factory for deterministic SystemConfigModelRegistry instances."""
+
+    __model__ = SystemConfigModelRegistry
+    __use_defaults__ = True
+
+
+class _TraceEventFactory(ModelFactory[TraceEvent]):
+    """Polyfactory model factory for deterministic TraceEvent instances."""
+
+    __model__ = TraceEvent
+    __use_defaults__ = True
+
+
+class _MatrixSynthesisGroupFactory(ModelFactory[MatrixSynthesisGroup]):
+    """Polyfactory model factory for deterministic MatrixSynthesisGroup instances."""
+
+    __model__ = MatrixSynthesisGroup
+    __use_defaults__ = True
+
+
+class _DeterministicExecutionRecordFactory(ExecutionRecordFactory):
+    """ExecutionRecord factory preserving Pydantic defaults on unset optional fields."""
+
+    __use_defaults__ = True
+
+
+class _DeterministicWorkflowFactory(WorkflowFactory):
+    """Workflow factory preserving Pydantic defaults on unset optional fields."""
+
+    __use_defaults__ = True
+
+
+class _DeterministicOutputProfileFactory(OutputProfileFactory):
+    """OutputProfile factory preserving Pydantic defaults on unset optional fields."""
+
+    __use_defaults__ = True
+
+
+@pytest.fixture(autouse=True)
+def mock_worker_report_service() -> Generator[MagicMock]:
+    """Mock ReportService for background worker synthesis tasks.
+
+    Yields:
+        Mocked ReportService instance.
+    """
+    mock_artifact = MagicMock()
+    mock_artifact.id = "rep_0195f3a0000070018234567890123456"
+    mock_svc = MagicMock()
+    mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+    mock_svc.compile_and_persist_artifact = AsyncMock()
+    with (
+        patch("backend_v2.workers.synthesis_worker.ReportService", return_value=mock_svc),
+        patch("backend_v2.workers.synthesis_reducers.ReportService", return_value=mock_svc),
+    ):
+        yield mock_svc
+
+
 async def _get_profile_syntheses(
-    repo: InMemoryUnifiedWorkflowRepository, exec_id: str = "exec_0195f3a0000070018234567812345678"
+    repo: InMemoryUnifiedWorkflowRepository,
+    exec_id: str = "exec_0195f3a0000070018234567812345678",
 ) -> dict[str, RenderedSynthesisCache] | None:
+    """Fetch profile_syntheses from the persisted ExecutionRecord when available.
+
+    Args:
+        repo: Seeded InMemoryUnifiedWorkflowRepository instance.
+        exec_id: Target execution identifier.
+
+    Returns:
+        Dictionary of profile synthesis caches or None if unset.
+    """
     rec = await repo.get_execution(exec_id)
     if rec and rec.profile_syntheses:
         return rec.profile_syntheses
@@ -43,80 +145,101 @@ async def _get_profile_syntheses(
 
 
 def _get_base_model_registry() -> SystemConfigModelRegistry:
-    profile = {
-        "provider": "mock_llm_99",
-        "model_name": "gemini-2.5-pro",
-        "temperature": 0.0,
-        "max_tokens": 1024,
-        "is_active": True,
-        "tpm_limit": 100000,
-        "rpm_limit": 1000,
-    }
-    return SystemConfigModelRegistry.model_validate(
-        {
-            "id": "sys_0195f3a0000070018111222233334444",
-            "name": "Default Test Registry",
-            "type": "model_registry",
-            "slug": "model_registry",
-            "default_provider": "vertex_ai",
-            "tier_definitions": {
-                "fast": profile,
-                "balanced": profile,
-                "deep": profile,
-                "reasoning": profile,
-            },
-        }
+    """Build the default test SystemConfigModelRegistry routed to mock_llm_99.
+
+    Returns:
+        Configured SystemConfigModelRegistry instance.
+    """
+    profile = _ModelProfileFactory.build(
+        provider="mock_llm_99",
+        model_name="gemini-2.5-pro",
+        temperature=0.0,
+        max_tokens=1024,
+        is_active=True,
+        tpm_limit=100000,
+        rpm_limit=1000,
+    )
+    return _ModelRegistryFactory.build(
+        id="sys_0195f3a0000070018111222233334444",
+        name="Default Test Registry",
+        type="model_registry",
+        slug="model_registry",
+        default_provider=LLMProvider.VERTEX_AI,
+        tier_definitions={
+            CognitiveTier.FAST: profile,
+            CognitiveTier.BALANCED: profile,
+            CognitiveTier.DEEP: profile,
+            CognitiveTier.REASONING: profile,
+        },
     )
 
 
+def _extract_captured_messages(calls: list[Any]) -> str:
+    """Concatenate string message contents captured from mocked LLM task invocations.
+
+    Args:
+        calls: Recorded mock call list from run_structured_task.
+
+    Returns:
+        Concatenated prompt content string across all recorded calls.
+    """
+    collected: list[str] = []
+    for call in calls:
+        if "messages" in call.kwargs:
+            for msg in call.kwargs["messages"]:
+                if isinstance(msg, (ChatMessageDTO, LLMMessageDTO)) and isinstance(msg.content, str):
+                    collected.append(msg.content)
+    return " ".join(collected)
+
+
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> None:
-    """Test that the worker background task extracts synthesis payload from the DAG execution trace."""
+async def test_worker_extracts_synthesis_from_trace() -> None:
+    """Verify the worker background task extracts synthesis payload from the DAG execution trace."""
     get_settings().use_mock_llm = True
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
-    mock_execution = ExecutionRecord.model_validate(
-        {
-            "id": "exec_0195f3a0000070018234567812345678",
-            "workflow_id": "wf_0195f3a0000070018234567812345678",
-            "output_profile_id": "prof_0195f3a0000070018111111111111111",
-            "status": ExecutionStatus.PASSED,
-            "target_locale": "fi",
-            "metadata": {},
-            "progress": None,
-            "status_message": None,
-            "execution_trace": [
-                {
-                    "v": 1,
-                    "timestamp": datetime.now(UTC),
-                    "event_type": "output",
-                    "step_name": "sr_0195f3a0000070018234567812345678",
-                    "content": {"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
-                }
-            ],
-        },
-        strict=False,
+    trace_event = _TraceEventFactory.build(
+        v=1,
+        timestamp=datetime.now(UTC),
+        event_type="output",
+        step_name="sr_0195f3a0000070018234567812345678",
+        content={"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
+    )
+    mock_execution = _DeterministicExecutionRecordFactory.build(
+        id="exec_0195f3a0000070018234567812345678",
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
+        status=ExecutionStatus.PASSED,
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+        progress=None,
+        status_message=None,
+        execution_trace=[trace_event],
     )
     await mock_repo.save_execution(mock_execution)
 
-    wf_dict = {
-        "id": "wf_0195f3a0000070018234567812345678",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "status": "draft",
-        "historical_context_mode": "DISABLED",
-        "version": 1,
-        "default_profile_id": "prof_0195f3a0000070018111111111111111",
-        "model_registry_id": "sys_0195f3a0000070018111222233334444",
-        "expected_inputs": [],
-        "steps": [
-            {"id": "sr_0195f3a0000070018234567812345678", "task_blueprint": "sp_0195f3a0000070018234567812345678"}
+    workflow = _DeterministicWorkflowFactory.build(
+        id="wf_0195f3a0000070018234567812345678",
+        slug="test_workflow",
+        name=I18nText(translations={"en": "Test", "fi": "Test"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        status="draft",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        version=1,
+        default_profile_id="prof_0195f3a0000070018111111111111111",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
+        expected_inputs=[],
+        steps=[
+            StepRule(
+                id="sr_0195f3a0000070018234567812345678",
+                task_blueprint="sp_0195f3a0000070018234567812345678",
+                depends_on=[],
+                input_mappings={},
+            )
         ],
-    }
-    await mock_repo.save_workflow(Workflow.model_validate(wf_dict, strict=False))
+    )
+    await mock_repo.save_workflow(workflow)
 
     mock_repo.seed_raw_step(
         "sp_0195f3a0000070018234567812345678",
@@ -132,45 +255,45 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
 
     mock_repo.set_model_registry(_get_base_model_registry(), "sys_0195f3a0000070018111222233334444")
 
-    pb_1 = {
-        "id": "pb_0195f3a0000070018111111111111111",
-        "slug": "system_prompt",
-        "type": "instruction",
-        "label": {"translations": {"en": "System"}},
-        "description": {"translations": {"en": "System prompt"}},
-        "category_id": "system_rule",
-    }
-    pb_2 = {
-        "id": "pb_0195f3a0000070028222222222222222",
-        "slug": "synthesis_prompt",
-        "type": "instruction",
-        "label": {"translations": {"en": "Synth System"}},
-        "description": {"translations": {"en": "System prompt for synthesis"}},
-        "instruction_text": "You are an AI.",
-        "category_id": "system_rule",
-    }
+    pb_1 = SystemRulePromptBlockFactory.build(
+        id="pb_0195f3a0000070018111111111111111",
+        slug="system_prompt",
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "System"}),
+        description=I18nText(translations={"en": "System prompt"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+    )
+    pb_2 = SystemRulePromptBlockFactory.build(
+        id="pb_0195f3a0000070028222222222222222",
+        slug="synthesis_prompt",
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "Synth System"}),
+        description=I18nText(translations={"en": "System prompt for synthesis"}),
+        instruction_text="You are an AI.",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+    )
     mock_repo.set_prompt_blocks([pb_1, pb_2])
 
-    output_prof = {
-        "slug": "test_slug",
-        "workflow_id": "wf_0195f3a0000070018234567812345678",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "id": "prof_0195f3a0000070018111111111111111",
-        "max_extension_items": 3,
-        "synthesis_length_constraint": 1000,
-        "tone_instruction": "Professional",
-        "matrix_1d_synthesis_directive": "1D DIRECTIVE",
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0195f3a0000070018111111111111111",
-                "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
-                "target_blocks": ["blk_1"],
-                "view_type": "1d_metrics",
-            }
+    output_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="test_slug",
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        name=I18nText(translations={"en": "Test", "fi": "Test"}),
+        max_extension_items=3,
+        synthesis_length_constraint=1000,
+        tone_instruction="Professional",
+        matrix_1d_synthesis_directive="1D DIRECTIVE",
+        matrix_synthesis_groups=[
+            _MatrixSynthesisGroupFactory.build(
+                id="grp_0195f3a0000070018111111111111111",
+                title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
+                target_blocks=["blk_1"],
+                view_type="1d_metrics",
+            )
         ],
-        "target_block_order": ["matrix_graphs_block"],
-        "display_scale": "original",
-    }
+        target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
+        display_scale=DisplayScale.ORIGINAL,
+    )
     mock_repo.set_output_profiles([output_prof])
 
     with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
@@ -191,126 +314,110 @@ async def _setup_mock_repo_for_metrics(
     trace_content_ling: Mapping[str, JsonSchemaNode] | None,
     trace_content_det: Mapping[str, JsonSchemaNode] | None,
 ) -> None:
+    """Seed workflow, execution trace, prompt blocks, and default profile for metric extraction tests.
+
+    Args:
+        mock_repo: Target InMemoryUnifiedWorkflowRepository instance.
+        trace_content_ling: Optional linguistics decision trace content mapping.
+        trace_content_det: Optional detector output trace content mapping.
+    """
     trace_events: list[TraceEvent] = []
     if trace_content_ling is not None:
         trace_events.append(
-            TraceEvent.model_validate(
-                {
-                    "v": 1,
-                    "timestamp": datetime.now(UTC),
-                    "event_type": "decision",
-                    "step_name": "ling",
-                    "content": {"step_linguistics": trace_content_ling},
-                },
-                strict=False,
+            _TraceEventFactory.build(
+                v=1,
+                timestamp=datetime.now(UTC),
+                event_type="decision",
+                step_name="ling",
+                content={"step_linguistics": dict(trace_content_ling)},
             )
         )
     if trace_content_det is not None:
         trace_events.append(
-            TraceEvent.model_validate(
-                {
-                    "v": 1,
-                    "timestamp": datetime.now(UTC),
-                    "event_type": "output",
-                    "step_name": "sr_det_step12345678",
-                    "content": trace_content_det,
-                },
-                strict=False,
+            _TraceEventFactory.build(
+                v=1,
+                timestamp=datetime.now(UTC),
+                event_type="output",
+                step_name="sr_det_step12345678",
+                content=dict(trace_content_det),
             )
         )
 
-    mock_execution = ExecutionRecord.model_validate(
-        {
-            "id": "exec_0195f3a0000070018234567812345678",
-            "workflow_id": "wf_0195f3a0000070018234567812345678",
-            "output_profile_id": "prof_0195f3a0000070018111111111111111",
-            "status": ExecutionStatus.PASSED,
-            "target_locale": "fi",
-            "metadata": {},
-            "progress": None,
-            "status_message": None,
-            "execution_trace": trace_events,
-            "context_variables": {},
-        },
-        strict=False,
+    mock_execution = _DeterministicExecutionRecordFactory.build(
+        id="exec_0195f3a0000070018234567812345678",
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
+        status=ExecutionStatus.PASSED,
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+        progress=None,
+        status_message=None,
+        execution_trace=trace_events,
+        context_variables=ContextVariablesDTO(variables={}),
     )
     await mock_repo.save_execution(mock_execution)
 
-    wf_dict = {
-        "id": "wf_0195f3a0000070018234567812345678",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "status": "draft",
-        "historical_context_mode": "DISABLED",
-        "version": 1,
-        "default_profile_id": "prof_0195f3a0000070018111111111111111",
-        "model_registry_id": "sys_0195f3a0000070018111222233334444",
-        "expected_inputs": [],
-        "steps": [],
-    }
-    await mock_repo.save_workflow(Workflow.model_validate(wf_dict, strict=False))
+    workflow = _DeterministicWorkflowFactory.build(
+        id="wf_0195f3a0000070018234567812345678",
+        slug="test_workflow",
+        name=I18nText(translations={"en": "Test", "fi": "Test"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        status="draft",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        version=1,
+        default_profile_id="prof_0195f3a0000070018111111111111111",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
+        expected_inputs=[],
+        steps=[],
+    )
+    await mock_repo.save_workflow(workflow)
 
     mock_repo.set_model_registry(_get_base_model_registry(), "sys_0195f3a0000070018111222233334444")
 
-    pb_synth = {
-        "id": "pb_0195f3a0000070028222222222222222",
-        "slug": "synthesis_prompt",
-        "type": "instruction",
-        "label": {"translations": {"en": "Synth System"}},
-        "description": {"translations": {"en": "System prompt for synthesis"}},
-        "instruction_text": "You are an AI.",
-        "category_id": "system_rule",
-    }
-    pb_target = {
-        "id": "blk_0195f3a00000700583f32679aa514fcb",
-        "slug": "matrix_goodhart",
-        "type": "float",
-        "label": {"translations": {"en": "Target Matrix"}},
-        "description": {"translations": {"en": "Desc"}},
-        "category_id": "matrix",
-        "scales": [
-            {
-                "score": 1,
-                "ai_label": "L1",
-            },
-            {
-                "score": 5,
-                "ai_label": "L5",
-            },
-        ],
-    }
-    mock_repo.set_prompt_blocks(
-        [
-            SystemRulePromptBlock.model_validate(pb_synth),
-            MatrixPromptBlock.model_validate(pb_target),
-        ]
+    pb_synth = SystemRulePromptBlockFactory.build(
+        id="pb_0195f3a0000070028222222222222222",
+        slug="synthesis_prompt",
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "Synth System"}),
+        description=I18nText(translations={"en": "System prompt for synthesis"}),
+        instruction_text="You are an AI.",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
     )
+    pb_target = MatrixPromptBlockFactory.build(
+        id="blk_0195f3a00000700583f32679aa514fcb",
+        slug="matrix_goodhart",
+        type=BlockDataType.FLOAT,
+        label=I18nText(translations={"en": "Target Matrix"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        scales=[
+            MatrixScale(score=1, ai_label="L1", claims=[]),
+            MatrixScale(score=5, ai_label="L5", claims=[]),
+        ],
+    )
+    mock_repo.set_prompt_blocks([pb_synth, pb_target])
 
-    default_prof = {
-        "id": "prof_0195f3a0000070018111111111111111",
-        "slug": "prof",
-        "name": {"translations": {"en": "test"}},
-        "workflow_id": "wf_0195f3a0000070018234567812345678",
-        "display_scale": "original",
-        "tone_instruction": "Professional",
-        "xai_synthesis_directive": "XAI DIRECTIVE",
-        "variance_synthesis_directive": "VARIANCE DIRECTIVE",
-        "max_extension_items": 3,
-        "visible_workflow_extensions": ["variance_validation"],
-        "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
-        "matrix_synthesis_groups": [],
-        "target_block_order": [],
-    }
+    default_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof",
+        name=I18nText(translations={"en": "test"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        tone_instruction="Professional",
+        xai_synthesis_directive="XAI DIRECTIVE",
+        variance_synthesis_directive="VARIANCE DIRECTIVE",
+        max_extension_items=3,
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        variance_target_block="blk_0195f3a00000700583f32679aa514fcb",
+        matrix_synthesis_groups=[],
+        target_block_order=[],
+    )
     mock_repo.set_output_profiles([default_prof])
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_extracts_metrics_from_trace(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test extracting extension metrics from execution trace during synthesis."""
+async def test_worker_synthesis_extracts_metrics_from_trace() -> None:
+    """Verify extracting extension metrics from execution trace during synthesis."""
     get_settings().use_mock_llm = True
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
@@ -362,11 +469,8 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test extracting extension metrics from modernized Coach/Goodhart step."""
+async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step() -> None:
+    """Verify extracting extension metrics from Coach/Goodhart evaluation step."""
     get_settings().use_mock_llm = True
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
@@ -416,11 +520,8 @@ async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_missing_metrics_remains_none(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test synthesis when extension metrics are missing from trace."""
+async def test_worker_synthesis_missing_metrics_remains_none() -> None:
+    """Verify synthesis leaves extension_metrics as None when metrics are absent from trace."""
     get_settings().use_mock_llm = True
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
@@ -440,11 +541,8 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_malformed_metrics_remains_none(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test synthesis when extension metrics contain malformed score."""
+async def test_worker_synthesis_malformed_metrics_remains_none() -> None:
+    """Verify synthesis leaves extension_metrics as None when detector score is None."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
     await _setup_mock_repo_for_metrics(
@@ -485,9 +583,8 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock) -> None:
-    """Test synthesis when step metadata is missing from detector output."""
+async def test_worker_synthesis_metrics_no_step_metadata() -> None:
+    """Verify synthesis leaves extension_metrics as None when step metadata is missing."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
     await _setup_mock_repo_for_metrics(
@@ -518,11 +615,8 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test synthesis when task_blueprint is missing from step metadata."""
+async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata() -> None:
+    """Verify synthesis leaves extension_metrics as None when task_blueprint is absent."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
     await _setup_mock_repo_for_metrics(
@@ -603,18 +697,16 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
         ),
     ],
 )
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 @patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_matrix_layout_directives(
     mock_from_tier: AsyncMock,
-    _mock_driver: AsyncMock,
     view_type: str,
     directive_field: str,
     directive_value: str | None,
     expected_snippet: str | None,
     should_execute_group: bool,
 ) -> None:
-    """Test that matrix synthesis groups strictly execute based on profile-level directives matching view_type."""
+    """Verify matrix synthesis groups execute strictly based on profile directives matching view_type."""
     get_settings().use_mock_llm = True
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
@@ -626,26 +718,23 @@ async def test_worker_synthesis_matrix_layout_directives(
         "3d_matrix": ["blk_1", "blk_2", "blk_3"],
         "text_only": ["blk_1"],
     }
-    prof_obj = OutputProfile.model_validate(
-        {
-            "id": "prof_0195f3a0000070018111111111111111",
-            "slug": "prof_test",
-            "name": {"translations": {"en": "Test Profile"}},
-            "workflow_id": "wf_0195f3a0000070018234567812345678",
-            "display_scale": "original",
-            "synthesis_length_constraint": 1000,
-            "tone_instruction": "Professional",
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_0195f3a0000070018234567890123456",
-                    "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
-                    "target_blocks": target_blocks_map[view_type] if view_type in target_blocks_map else ["blk_1"],
-                    "view_type": view_type,
-                }
-            ],
-            "target_block_order": ["matrix_graphs_block"],
-        },
-        strict=False,
+    prof_obj: OutputProfile = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_test",
+        name=I18nText(translations={"en": "Test Profile"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        synthesis_length_constraint=1000,
+        tone_instruction="Professional",
+        matrix_synthesis_groups=[
+            _MatrixSynthesisGroupFactory.build(
+                id="grp_0195f3a0000070018234567890123456",
+                title=I18nText(translations={"fi": "Matriisinäkymä", "en": "Matrix View"}),
+                target_blocks=target_blocks_map[view_type] if view_type in target_blocks_map else ["blk_1"],
+                view_type=view_type,
+            )
+        ],
+        target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
     )
     if directive_value is not None:
         prof_obj = prof_obj.model_copy(update={directive_field: directive_value})
@@ -656,9 +745,7 @@ async def test_worker_synthesis_matrix_layout_directives(
 
     async def _mock_run_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         resp_model = kwargs["response_model"] if "response_model" in kwargs else None
-        usage = TokenUsage.model_validate(
-            {"prompt_tokens": 50, "completion_tokens": 50, "total_tokens": 100, "cost_usd": 0.001}
-        )
+        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
@@ -716,50 +803,36 @@ async def test_worker_synthesis_matrix_layout_directives(
             redis=None,
         )
 
-    all_user_content = ""
-    for call in mock_client.run_structured_task.call_args_list:
-        if "messages" in call.kwargs:
-            messages = call.kwargs["messages"]
-            all_user_content += " ".join(
-                m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
-                else (str(m["content"]) if type(m) is dict and "content" in m else "")
-                for m in messages
-            )
+    all_user_content = _extract_captured_messages(mock_client.run_structured_task.call_args_list)
 
     if expected_snippet is not None:
         assert expected_snippet in all_user_content
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 @patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     mock_from_tier: AsyncMock,
-    _mock_driver: AsyncMock,
 ) -> None:
-    """Test that when matrix_synthesis_groups is empty, no group section instruction is generated."""
+    """Verify empty matrix_synthesis_groups omits group section synthesis instructions."""
     get_settings().use_mock_llm = True
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
-    mock_repo.set_output_profiles(
-        [
-            {
-                "id": "prof_0195f3a0000070018111111111111111",
-                "slug": "prof_disabled",
-                "name": {"translations": {"en": "Disabled Profile"}},
-                "workflow_id": "wf_0195f3a0000070018234567812345678",
-                "display_scale": "original",
-                "synthesis_length_constraint": 1000,
-                "tone_instruction": "Professional",
-                "executive_summary_directive": "EXECUTIVE SUMMARY DIRECTIVE",
-                "matrix_synthesis_groups": [],
-                "target_block_order": ["executive_summary_block"],
-            }
-        ]
+    disabled_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_disabled",
+        name=I18nText(translations={"en": "Disabled Profile"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        synthesis_length_constraint=1000,
+        tone_instruction="Professional",
+        executive_summary_directive="EXECUTIVE SUMMARY DIRECTIVE",
+        matrix_synthesis_groups=[],
+        target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
     )
+    mock_repo.set_output_profiles([disabled_prof])
 
     mock_client = AsyncMock()
 
@@ -794,50 +867,39 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
         )
 
     assert mock_client.run_structured_task.called
-    all_user_content = ""
-    for call in mock_client.run_structured_task.call_args_list:
-        if "messages" in call.kwargs:
-            messages = call.kwargs["messages"]
-            all_user_content += " ".join(
-                m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
-                else (str(m["content"]) if type(m) is dict and "content" in m else "")
-                for m in messages
-            )
+    all_user_content = _extract_captured_messages(mock_client.run_structured_task.call_args_list)
     assert "2D COMPARISON SYNTHESIS MANDATE:" not in all_user_content
     assert "NO IN-TEXT CITATIONS MANDATE:" in all_user_content
     assert "HARVARD CITATION STANDARD MANDATE:" not in all_user_content
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 @patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_executive_summary_instruction_and_cache(
     mock_from_tier: AsyncMock,
-    _mock_driver: AsyncMock,
 ) -> None:
-    """Test that executive summary instruction is generated and results are cached properly."""
+    """Verify executive summary instruction is generated and synthesized blocks are cached."""
     get_settings().use_mock_llm = True
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
-    mock_repo.set_output_profiles(
-        [
-            {
-                "id": "prof_0195f3a0000070018111111111111111",
-                "slug": "prof_exec_summary",
-                "name": {"translations": {"en": "Exec Profile"}},
-                "workflow_id": "wf_0195f3a0000070018234567812345678",
-                "display_scale": "original",
-                "synthesis_length_constraint": 1000,
-                "tone_instruction": "Professional",
-                "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:",
-                "matrix_synthesis_groups": [],
-                "target_block_order": ["executive_summary_block", "printable_sources_block"],
-            }
-        ]
+    exec_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_exec_summary",
+        name=I18nText(translations={"en": "Exec Profile"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        synthesis_length_constraint=1000,
+        tone_instruction="Professional",
+        executive_summary_directive="EXECUTIVE SUMMARY SYNTHESIS MANDATE:",
+        matrix_synthesis_groups=[],
+        target_block_order=[
+            TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+            TargetBlockType.PRINTABLE_SOURCES_BLOCK,
+        ],
     )
+    mock_repo.set_output_profiles([exec_prof])
 
     mock_client = AsyncMock()
 
@@ -874,16 +936,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
         )
 
     assert mock_client.run_structured_task.called
-    all_user_content = ""
-    for call in mock_client.run_structured_task.call_args_list:
-        if "messages" in call.kwargs:
-            messages = call.kwargs["messages"]
-            all_user_content += " ".join(
-                m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
-                else (str(m["content"]) if type(m) is dict and "content" in m else "")
-                for m in messages
-            )
+    all_user_content = _extract_captured_messages(mock_client.run_structured_task.call_args_list)
     assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
     assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in all_user_content
     assert "HARVARD CITATION STANDARD MANDATE:" in all_user_content
@@ -900,41 +953,36 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 @patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_multi_section_aggregation(
     mock_from_tier: AsyncMock,
-    _mock_driver: AsyncMock,
 ) -> None:
-    """Test that multiple SynthesisSectionDTO items for a matrix group are aggregated into sec_dict[group_id]."""
+    """Verify multiple SynthesisSectionDTO items for a matrix group aggregate into section_syntheses."""
     get_settings().use_mock_llm = True
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
-    mock_repo.set_output_profiles(
-        [
-            {
-                "id": "prof_0195f3a0000070018111111111111111",
-                "slug": "prof_multi_sec",
-                "name": {"translations": {"en": "Multi Section Profile"}},
-                "workflow_id": "wf_0195f3a0000070018234567812345678",
-                "display_scale": "original",
-                "synthesis_length_constraint": 1000,
-                "tone_instruction": "Professional",
-                "matrix_1d_synthesis_directive": "CUSTOM CAUSALITY DIRECTIVE",
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_0195f3a00000700c85804a9143c34cb1",
-                        "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
-                        "target_blocks": ["blk_1"],
-                        "view_type": "1d_metrics",
-                    }
-                ],
-                "target_block_order": ["matrix_graphs_block"],
-            }
-        ]
+    multi_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_multi_sec",
+        name=I18nText(translations={"en": "Multi Section Profile"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        synthesis_length_constraint=1000,
+        tone_instruction="Professional",
+        matrix_1d_synthesis_directive="CUSTOM CAUSALITY DIRECTIVE",
+        matrix_synthesis_groups=[
+            _MatrixSynthesisGroupFactory.build(
+                id="grp_0195f3a00000700c85804a9143c34cb1",
+                title=I18nText(translations={"fi": "Kausaalisuus", "en": "Causality"}),
+                target_blocks=["blk_1"],
+                view_type="1d_metrics",
+            )
+        ],
+        target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
     )
+    mock_repo.set_output_profiles([multi_prof])
 
     mock_client = AsyncMock()
 
@@ -996,40 +1044,35 @@ async def test_worker_synthesis_multi_section_aggregation(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 @patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_empty_sections_not_set_in_cache(
     mock_from_tier: AsyncMock,
-    _mock_driver: AsyncMock,
 ) -> None:
-    """Negative Test: Verify that when matrix sections or content_blocks are empty, no key is set in sec_dict."""
+    """Verify empty matrix sections omit setting an empty group key in section_syntheses."""
     get_settings().use_mock_llm = True
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
-    mock_repo.set_output_profiles(
-        [
-            {
-                "id": "prof_0195f3a0000070018111111111111111",
-                "slug": "prof_empty_sec",
-                "name": {"translations": {"en": "Empty Section Profile"}},
-                "workflow_id": "wf_0195f3a0000070018234567812345678",
-                "display_scale": "original",
-                "synthesis_length_constraint": 1000,
-                "tone_instruction": "Professional",
-                "matrix_1d_synthesis_directive": "1D DIRECTIVE",
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_0195f3a0000070008000000000000000",
-                        "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
-                        "target_blocks": ["blk_1"],
-                    }
-                ],
-                "target_block_order": ["matrix_graphs_block"],
-            }
-        ]
+    empty_sec_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_empty_sec",
+        name=I18nText(translations={"en": "Empty Section Profile"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        synthesis_length_constraint=1000,
+        tone_instruction="Professional",
+        matrix_1d_synthesis_directive="1D DIRECTIVE",
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0195f3a0000070008000000000000000",
+                title=I18nText(translations={"fi": "Kausaalisuus", "en": "Causality"}),
+                target_blocks=["blk_1"],
+            )
+        ],
+        target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
     )
+    mock_repo.set_output_profiles([empty_sec_prof])
 
     mock_client = AsyncMock()
 
@@ -1073,16 +1116,11 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 @patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_custom_directives_resolution(
     mock_from_tier: AsyncMock,
-    _mock_driver: AsyncMock,
 ) -> None:
-    """Test custom row, XAI, and variance directives configured in profile.
-
-    Verifies they are dynamically compiled and injected into prompts.
-    """
+    """Verify custom row, XAI, and variance directives configured on OutputProfile are injected into prompts."""
     get_settings().use_mock_llm = True
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
@@ -1110,27 +1148,27 @@ async def test_worker_synthesis_custom_directives_resolution(
         },
     )
 
-    mock_repo.set_output_profiles(
-        [
-            {
-                "id": "prof_0195f3a0000070018111111111111111",
-                "slug": "prof_custom_directives",
-                "name": {"translations": {"en": "Custom Directives Profile"}},
-                "workflow_id": "wf_0195f3a0000070018234567812345678",
-                "display_scale": "original",
-                "synthesis_length_constraint": 1000,
-                "tone_instruction": "Professional",
-                "row_explanation_directive": "CUSTOM ROW EXPLANATION DIRECTIVE",
-                "xai_synthesis_directive": "CUSTOM XAI SYNTHESIS DIRECTIVE",
-                "variance_synthesis_directive": "CUSTOM VARIANCE DIRECTIVE",
-                "visible_workflow_extensions": ["variance_validation"],
-                "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
-                "matrix_visible_columns": ["label", "row_explanation"],
-                "matrix_synthesis_groups": [],
-                "target_block_order": ["variance_validation_block", "matrix_summary_table_block"],
-            }
-        ]
+    custom_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_custom_directives",
+        name=I18nText(translations={"en": "Custom Directives Profile"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        synthesis_length_constraint=1000,
+        tone_instruction="Professional",
+        row_explanation_directive="CUSTOM ROW EXPLANATION DIRECTIVE",
+        xai_synthesis_directive="CUSTOM XAI SYNTHESIS DIRECTIVE",
+        variance_synthesis_directive="CUSTOM VARIANCE DIRECTIVE",
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        variance_target_block="blk_0195f3a00000700583f32679aa514fcb",
+        matrix_visible_columns=["label", "row_explanation"],
+        matrix_synthesis_groups=[],
+        target_block_order=[
+            TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+            TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
+        ],
     )
+    mock_repo.set_output_profiles([custom_prof])
 
     mock_client = AsyncMock()
 
@@ -1168,27 +1206,15 @@ async def test_worker_synthesis_custom_directives_resolution(
             redis=None,
         )
 
-    all_user_content = ""
-    for call in mock_client.run_structured_task.call_args_list:
-        if "messages" in call.kwargs:
-            messages = call.kwargs["messages"]
-            all_user_content += " ".join(
-                m.content
-                if isinstance(m, (ChatMessageDTO, LLMMessageDTO)) and isinstance(m.content, str)
-                else (str(m["content"]) if type(m) is dict and "content" in m else "")
-                for m in messages
-            )
+    all_user_content = _extract_captured_messages(mock_client.run_structured_task.call_args_list)
 
     assert "CUSTOM XAI SYNTHESIS DIRECTIVE" in all_user_content
     assert "CUSTOM VARIANCE DIRECTIVE" in all_user_content
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_missing_variance_target_block_raises_configuration_error(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test that missing variance_target_block when variance is active raises fail-fast AppException."""
+async def test_worker_synthesis_missing_variance_target_block_raises_configuration_error() -> None:
+    """Verify missing variance_target_block when variance is active raises Fail-Fast AppException."""
     get_settings().use_mock_llm = True
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
@@ -1198,19 +1224,15 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
         trace_content_det={"blk_0195f3a00000700583f32679aa514fcb": {"raw_score": 2.5, "justification": "test"}},
     )
 
-    # Override profile without variance_target_block
-    prof_missing = OutputProfile.model_validate(
-        {
-            "id": "prof_0195f3a0000070018111111111111111",
-            "slug": "prof_missing_target",
-            "name": {"translations": {"en": "Missing Target"}},
-            "workflow_id": "wf_0195f3a0000070018234567812345678",
-            "display_scale": "original",
-            "target_block_order": ["variance_validation_block"],
-            "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
-            "matrix_synthesis_groups": [],
-        },
-        strict=False,
+    prof_missing = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_missing_target",
+        name=I18nText(translations={"en": "Missing Target"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        target_block_order=[TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+        variance_target_block="blk_0195f3a00000700583f32679aa514fcb",
+        matrix_synthesis_groups=[],
     ).model_copy(
         update={
             "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
@@ -1233,14 +1255,8 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test unevaluated target block in trace.
-
-    If target block was never evaluated in the trace, synthesis succeeds without variance metrics.
-    """
+async def test_worker_synthesis_unevaluated_target_block_handled_gracefully() -> None:
+    """Verify synthesis completes cleanly without variance metrics if target block was not evaluated."""
     get_settings().use_mock_llm = True
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
@@ -1248,7 +1264,6 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
         mock_repo,
         trace_content_ling={"performative_patterns": [], "total_word_count": 100},
         trace_content_det={
-            # Target block is blk_53f32679aa514fcb, but trace only has blk_unrelated99999999
             "blk_unrelated99999999": {
                 "raw_score": 1.0,
                 "justification": "Other block",
@@ -1266,16 +1281,12 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    # Since blk_53f32679aa514fcb was never evaluated, extension_metrics should be None
     assert prof_synth["prof_0195f3a0000070018111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_extracts_user_role_from_target_block_deterministically(
-    _mock_driver: AsyncMock,
-) -> None:
-    """Test that when user_role_target_block is set, user_role is extracted deterministically from trace."""
+async def test_worker_synthesis_extracts_user_role_from_target_block_deterministically() -> None:
+    """Verify user_role is extracted deterministically from trace when user_role_target_block is configured."""
     get_settings().use_mock_llm = True
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
@@ -1290,22 +1301,19 @@ async def test_worker_synthesis_extracts_user_role_from_target_block_determinist
         },
     )
 
-    mock_repo.set_output_profiles(
-        [
-            {
-                "id": "prof_0195f3a0000070018111111111111111",
-                "slug": "prof_role_target",
-                "name": {"translations": {"en": "Role Target Profile"}},
-                "workflow_id": "wf_0195f3a0000070018234567812345678",
-                "display_scale": "original",
-                "visible_workflow_extensions": ["variance_validation"],
-                "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
-                "user_role_target_block": "blk_0195f3a00000700583f32679aa514fcb",
-                "target_block_order": ["variance_validation_block"],
-                "matrix_synthesis_groups": [],
-            }
-        ]
+    role_prof = _DeterministicOutputProfileFactory.build(
+        id="prof_0195f3a0000070018111111111111111",
+        slug="prof_role_target",
+        name=I18nText(translations={"en": "Role Target Profile"}),
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        display_scale=DisplayScale.ORIGINAL,
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        variance_target_block="blk_0195f3a00000700583f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
+        target_block_order=[TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+        matrix_synthesis_groups=[],
     )
+    mock_repo.set_output_profiles([role_prof])
 
     with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(

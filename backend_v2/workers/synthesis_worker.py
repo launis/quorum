@@ -20,7 +20,6 @@ from backend_v2.core.hook_registry import (
     HookDependencies,
     HookState,
 )
-from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.llm.client import LLMClient
@@ -125,8 +124,7 @@ async def generate_profile_synthesis_and_pdf_task(
     logger.info("[Task] Starting Async Text Synthesis for execution %s (Profile: %s)", execution_id, profile_id)
     repo: UnifiedWorkflowRepository | None = None
     try:
-        driver = await get_driver(get_settings())
-        repo = UnifiedWorkflowRepository(driver)
+        repo = UnifiedWorkflowRepository()
 
         execution: ExecutionRecord | None = await repo.get_execution(execution_id)
         if execution is None:
@@ -248,7 +246,6 @@ async def generate_profile_synthesis_and_pdf_task(
         hook_deps = HookDependencies(
             exec_repo=repo,
             workflow_repo=repo,
-            comp_repo=repo,
             prompt_block_repo=repo,
             output_profile_repo=repo,
             identity_repo=repo,

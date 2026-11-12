@@ -1,7 +1,6 @@
 """Unit tests for backend_v2/main.py covering lifespan, pre-flight checks, middlewares, and exception handlers."""
 
 import logging
-from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,7 +11,6 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, JsonValue, ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.main import (
     LocalizationMiddleware,
@@ -330,61 +328,6 @@ async def test_path_normalization_middleware_ignores_non_http() -> None:
 
 
 @pytest.mark.asyncio
-async def test_audit_execution_storage_sync_clean(tmp_path: Path) -> None:
-    """Test _audit_storage_and_database_sync when records and disk files match cleanly."""
-    from backend_v2.main import _audit_storage_and_database_sync
-
-    driver = PostgresStorageDriver(auto_initialize_pool=False)
-    await driver.upsert(
-        "executions",
-        {"id": "exe_1", "execution_trace_storage_path": str(tmp_path / "exe_1" / "execution_trace.json")},
-        "exe_1",
-    )
-
-    exe_dir = tmp_path / "exe_1"
-    exe_dir.mkdir(parents=True)
-    (exe_dir / "execution_trace.json").write_text("{}")
-
-    mock_logger = MagicMock()
-    await _audit_storage_and_database_sync(driver=driver, logger=mock_logger, storage_dir=tmp_path)
-    mock_logger.info.assert_called_once()
-    assert "PASSED" in mock_logger.info.call_args[0][0]
-
-
-@pytest.mark.asyncio
-async def test_audit_execution_storage_sync_desync(tmp_path: Path) -> None:
-    """Test _audit_storage_and_database_sync warns on orphaned DB records and unindexed disk runs."""
-    from backend_v2.main import _audit_storage_and_database_sync
-
-    driver = PostgresStorageDriver(auto_initialize_pool=False)
-    await driver.upsert("executions", {"id": "exe_orphaned", "execution_trace_storage_path": None}, "exe_orphaned")
-    await driver.upsert("executions", {"id": ""}, "exe_empty")
-
-    disk_dir = tmp_path / "exe_unindexed"
-    disk_dir.mkdir(parents=True)
-    (disk_dir / "execution_trace.json").write_text("{}")
-
-    mock_logger = MagicMock()
-    await _audit_storage_and_database_sync(driver=driver, logger=mock_logger, storage_dir=tmp_path)
-    mock_logger.warning.assert_called_once()
-    assert "Storage/Database desync detected" in mock_logger.warning.call_args[0][0]
-
-
-@pytest.mark.asyncio
-async def test_lifespan_workflow_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test lifespan startup logs workflow files when workflow directory exists."""
-    wf_dir = tmp_path / "data" / "workflows"
-    wf_dir.mkdir(parents=True)
-    (wf_dir / "test_wf.json").write_text("{}", encoding="utf-8")
-    (wf_dir / "other.txt").write_text("text", encoding="utf-8")
-    monkeypatch.chdir(tmp_path)
-    test_app = FastAPI()
-    with patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock):
-        async with lifespan(test_app):
-            assert test_app.state.arq_pool is not None
-
-
-@pytest.mark.asyncio
 async def test_lifespan_production_redis_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test lifespan startup connects to Arq Redis pool and closes on shutdown in production mode."""
     from arq.connections import ArqRedis
@@ -401,37 +344,3 @@ async def test_lifespan_production_redis_success(monkeypatch: pytest.MonkeyPatch
     async with b_main.lifespan(test_app):
         assert test_app.state.arq_pool is mock_pool
     mock_pool.aclose.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_audit_execution_storage_sync_relative_and_fallback_paths(tmp_path: Path) -> None:
-    """Test _audit_storage_and_database_sync resolves parent-relative and default execution trace paths."""
-    from backend_v2.main import _audit_storage_and_database_sync
-
-    storage_dir = tmp_path / "executions"
-    storage_dir.mkdir(parents=True)
-
-    rel_trace = tmp_path / "custom_traces" / "exe_rel" / "execution_trace.json"
-    rel_trace.parent.mkdir(parents=True)
-    rel_trace.write_text("{}", encoding="utf-8")
-
-    fallback_trace = storage_dir / "exe_fallback" / "execution_trace.json"
-    fallback_trace.parent.mkdir(parents=True)
-    fallback_trace.write_text("{}", encoding="utf-8")
-
-    driver = PostgresStorageDriver(auto_initialize_pool=False)
-    await driver.upsert(
-        "executions",
-        {"id": "exe_rel", "execution_trace_storage_path": "custom_traces/exe_rel/execution_trace.json"},
-        "exe_rel",
-    )
-    await driver.upsert(
-        "executions",
-        {"id": "exe_fallback", "execution_trace_storage_path": None},
-        "exe_fallback",
-    )
-
-    mock_logger = MagicMock()
-    await _audit_storage_and_database_sync(driver=driver, logger=mock_logger, storage_dir=storage_dir)
-    mock_logger.info.assert_called_once()
-    assert "PASSED" in mock_logger.info.call_args[0][0]

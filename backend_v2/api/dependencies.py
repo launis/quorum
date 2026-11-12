@@ -14,39 +14,25 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.datastructures import State
 
 from backend_v2.core.redis_security import RevocationCache, TenantRateLimitService
-from backend_v2.database.driver import StorageDriver
-from backend_v2.database.factory import get_driver
 from backend_v2.database.interfaces import (
-    IAgentRepository,
     IAuditRepository,
-    IComponentRepository,
-    IExecutionPersonaRepository,
     IExecutionRepository,
-    IExtractionProtocolRepository,
     IIdentityRepository,
-    IKnowledgeRepository,
-    IMatrixRepository,
     IOutputProfileRepository,
     IPromptBlockRepository,
     IReportArtifactRepository,
-    IRoleRepository,
     ISystemRepository,
-    ITaskBlueprintRepository,
     ITaskBriefRepository,
     IWorkflowRepository,
     UnitOfWorkFactory,
     get_registered_uow_factory,
 )
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
-from backend_v2.database.repositories.component import ComponentRepositoryImpl
-from backend_v2.database.repositories.components.agent import AgentRepositoryImpl
 from backend_v2.database.repositories.components.output_profile import OutputProfileRepositoryImpl
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
-from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
-from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
 from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
@@ -77,20 +63,16 @@ from backend_v2.settings import Settings, get_settings
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "AgentRepoDep",
     "ArqPoolDep",
     "AuditRepoDep",
     "AuthServiceDep",
-    "ComponentRepoDep",
     "CurrentUserDep",
     "DocumentExtractionServiceDep",
-    "DriverDep",
     "ExecutionRepoDep",
     "ExecutionServiceDep",
     "ExecutorDep",
     "ExportServiceDep",
     "IdentityRepoDep",
-    "KnowledgeRepoDep",
     "LLMHandlerDep",
     "LLMTaskExecutorDep",
     "OutputProfileRepoDep",
@@ -106,28 +88,23 @@ __all__ = [
     "StudioTaskBriefServiceDep",
     "StudioWorkflowServiceDep",
     "SystemRepoDep",
-    "TaskBlueprintRepoDep",
     "TaskBriefRepoDep",
     "TenantRateLimitServiceDep",
     "UoWFactoryDep",
     "UsageServiceDep",
     "UserDep",
     "WorkflowRepoDep",
-    "get_agent_repo",
     "get_arq_pool",
     "get_audit_repo",
     "get_auth_service",
-    "get_component_repo",
     "get_current_admin_user",
     "get_current_user_from_header",
     "get_dag_executor",
-    "get_db_driver",
     "get_document_extraction_service",
     "get_execution_repo",
     "get_execution_service",
     "get_export_service",
     "get_identity_repo",
-    "get_knowledge_repo",
     "get_llm_handler",
     "get_llm_task_executor",
     "get_output_profile_repo",
@@ -143,7 +120,6 @@ __all__ = [
     "get_studio_task_brief_service",
     "get_studio_workflow_service",
     "get_system_repo",
-    "get_task_blueprint_repo",
     "get_task_brief_repo",
     "get_tenant_rate_limit_service",
     "get_uow_factory",
@@ -156,218 +132,148 @@ __all__ = [
 security = HTTPBearer(auto_error=False)
 
 
-async def get_db_driver(settings: Annotated[Settings, Depends(get_settings)]) -> StorageDriver:
-    """Retrieve the global database storage driver.
-
-    Args:
-        settings: Application settings.
+def get_uow_factory() -> UnitOfWorkFactory | None:
+    """Return the process-scoped UnitOfWorkFactory registered for transactional boundaries.
 
     Returns:
-        The instantiated storage driver.
+        Registered UnitOfWorkFactory callable or None.
     """
-    return await get_driver(settings)
+    return get_registered_uow_factory()
 
 
-DriverDep = Annotated[StorageDriver, Depends(get_db_driver)]
+UoWFactoryDep = Annotated[UnitOfWorkFactory | None, Depends(get_uow_factory)]
 
 
-async def get_execution_repo(driver: DriverDep) -> IExecutionRepository:
+async def get_execution_repo(uow_factory: UoWFactoryDep = None) -> IExecutionRepository:
     """Instantiate the execution repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Execution repository instance.
     """
-    return ExecutionRepositoryImpl(driver)
+    return ExecutionRepositoryImpl(uow_factory)
 
 
 ExecutionRepoDep = Annotated[IExecutionRepository, Depends(get_execution_repo)]
 
 
-async def get_report_artifact_repo(driver: DriverDep) -> IReportArtifactRepository:
+async def get_report_artifact_repo(uow_factory: UoWFactoryDep = None) -> IReportArtifactRepository:
     """Instantiate the report artifact repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Report artifact repository instance.
     """
-    return ReportArtifactRepositoryImpl(driver)
+    return ReportArtifactRepositoryImpl(uow_factory)
 
 
 ReportArtifactRepoDep = Annotated[IReportArtifactRepository, Depends(get_report_artifact_repo)]
 
 
-async def get_identity_repo(driver: DriverDep) -> IIdentityRepository:
+async def get_identity_repo(uow_factory: UoWFactoryDep = None) -> IIdentityRepository:
     """Instantiate the identity repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Identity repository instance.
     """
-    return IdentityRepositoryImpl(driver)
+    return IdentityRepositoryImpl(uow_factory)
 
 
 IdentityRepoDep = Annotated[IIdentityRepository, Depends(get_identity_repo)]
 
 
-async def get_workflow_repo(driver: DriverDep) -> IWorkflowRepository:
+async def get_workflow_repo(uow_factory: UoWFactoryDep = None) -> IWorkflowRepository:
     """Instantiate the workflow repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Workflow repository instance.
     """
-    return WorkflowRepositoryImpl(driver)
+    return WorkflowRepositoryImpl(uow_factory)
 
 
 WorkflowRepoDep = Annotated[IWorkflowRepository, Depends(get_workflow_repo)]
 
 
-async def get_component_repo(driver: DriverDep) -> IComponentRepository:
-    """Instantiate the component repository.
-
-    Args:
-        driver: Storage driver.
-
-    Returns:
-        Component repository instance.
-    """
-    return ComponentRepositoryImpl(driver)
-
-
-ComponentRepoDep = Annotated[
-    IComponentRepository,
-    IMatrixRepository,
-    IRoleRepository,
-    IExecutionPersonaRepository,
-    IExtractionProtocolRepository,
-    Depends(get_component_repo),
-]
-
-
-async def get_prompt_block_repo(driver: DriverDep) -> IPromptBlockRepository:
+async def get_prompt_block_repo(uow_factory: UoWFactoryDep = None) -> IPromptBlockRepository:
     """Instantiate the prompt block repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Prompt block repository instance.
     """
-    return PromptBlockRepositoryImpl(driver)
+    return PromptBlockRepositoryImpl(uow_factory)
 
 
 PromptBlockRepoDep = Annotated[IPromptBlockRepository, Depends(get_prompt_block_repo)]
 
 
-async def get_task_brief_repo(driver: DriverDep) -> ITaskBriefRepository:
+async def get_task_brief_repo(uow_factory: UoWFactoryDep = None) -> ITaskBriefRepository:
     """Instantiate the task brief repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Task brief repository instance.
     """
-    return TaskBriefRepositoryImpl(driver)
+    return TaskBriefRepositoryImpl(uow_factory)
 
 
 TaskBriefRepoDep = Annotated[ITaskBriefRepository, Depends(get_task_brief_repo)]
 
 
-async def get_agent_repo(driver: DriverDep) -> IAgentRepository:
-    """Instantiate the agent repository.
-
-    Args:
-        driver: Storage driver.
-
-    Returns:
-        Agent repository instance.
-    """
-    return AgentRepositoryImpl(driver)
-
-
-AgentRepoDep = Annotated[IAgentRepository, Depends(get_agent_repo)]
-
-
-async def get_task_blueprint_repo(driver: DriverDep) -> ITaskBlueprintRepository:
-    """Instantiate the task blueprint repository.
-
-    Args:
-        driver: Storage driver.
-
-    Returns:
-        Task blueprint repository instance.
-    """
-    return TaskBlueprintRepositoryImpl(driver)
-
-
-TaskBlueprintRepoDep = Annotated[ITaskBlueprintRepository, Depends(get_task_blueprint_repo)]
-
-
-async def get_output_profile_repo(driver: DriverDep) -> IOutputProfileRepository:
+async def get_output_profile_repo(uow_factory: UoWFactoryDep = None) -> IOutputProfileRepository:
     """Instantiate the output profile repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Output profile repository instance.
     """
-    return OutputProfileRepositoryImpl(driver)
+    return OutputProfileRepositoryImpl(uow_factory)
 
 
 OutputProfileRepoDep = Annotated[IOutputProfileRepository, Depends(get_output_profile_repo)]
 
 
-async def get_knowledge_repo(driver: DriverDep) -> IKnowledgeRepository:
-    """Instantiate the knowledge repository.
-
-    Args:
-        driver: Storage driver.
-
-    Returns:
-        Knowledge repository instance.
-    """
-    return KnowledgeRepositoryImpl(driver)
-
-
-KnowledgeRepoDep = Annotated[IKnowledgeRepository, Depends(get_knowledge_repo)]
-
-
-async def get_system_repo(driver: DriverDep) -> ISystemRepository:
+async def get_system_repo(uow_factory: UoWFactoryDep = None) -> ISystemRepository:
     """Instantiate the system repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         System repository instance.
     """
-    return SystemRepositoryImpl(driver)
+    return SystemRepositoryImpl(uow_factory)
 
 
 SystemRepoDep = Annotated[ISystemRepository, Depends(get_system_repo)]
 
 
-async def get_audit_repo(driver: DriverDep) -> IAuditRepository:
+async def get_audit_repo(uow_factory: UoWFactoryDep = None) -> IAuditRepository:
     """Instantiate the audit repository.
 
     Args:
-        driver: Storage driver.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Audit repository instance.
     """
-    return AuditRepositoryImpl(driver)
+    return AuditRepositoryImpl(uow_factory)
 
 
 AuditRepoDep = Annotated[IAuditRepository, Depends(get_audit_repo)]
@@ -591,7 +497,6 @@ LLMTaskExecutorDep = Annotated[LLMTaskExecutor, Depends(get_llm_task_executor)]
 async def get_dag_executor(
     exec_repo: ExecutionRepoDep,
     workflow_repo: WorkflowRepoDep,
-    component_repo: ComponentRepoDep,
     identity_repo: IdentityRepoDep,
     audit_repo: AuditRepoDep,
     system_repo: SystemRepoDep,
@@ -604,7 +509,6 @@ async def get_dag_executor(
     Args:
         exec_repo: Execution repository.
         workflow_repo: Workflow repository.
-        component_repo: Component repository.
         identity_repo: Identity repository.
         audit_repo: Audit repository.
         system_repo: System repository.
@@ -623,7 +527,6 @@ async def get_dag_executor(
     return DAGExecutor(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
-        comp_repo=component_repo,
         prompt_block_repo=prompt_block_repo,
         output_profile_repo=output_profile_repo,
         identity_repo=identity_repo,
@@ -640,7 +543,6 @@ ExecutorDep = Annotated[DAGExecutor, Depends(get_dag_executor)]
 async def get_execution_service(
     exec_repo: ExecutionRepoDep,
     workflow_repo: WorkflowRepoDep,
-    comp_repo: ComponentRepoDep,
     identity_repo: IdentityRepoDep,
     system_repo: SystemRepoDep,
     usage_service: UsageServiceDep,
@@ -654,7 +556,6 @@ async def get_execution_service(
     Args:
         exec_repo: Execution repository.
         workflow_repo: Workflow repository.
-        comp_repo: Component repository.
         identity_repo: Identity repository.
         system_repo: System repository.
         usage_service: Usage service.
@@ -669,7 +570,6 @@ async def get_execution_service(
     return ExecutionService(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
-        comp_repo=comp_repo,
         prompt_block_repo=prompt_block_repo,
         task_brief_repo=task_brief_repo,
         output_profile_repo=output_profile_repo,
@@ -701,36 +601,24 @@ ExportServiceDep = Annotated[ExportService, Depends(get_export_service)]
 
 
 async def get_report_service(
-    driver: DriverDep,
     prompt_block_repo: PromptBlockRepoDep,
+    uow_factory: UoWFactoryDep = None,
 ) -> ReportService:
     """Instantiate the report artifact service.
 
     Args:
-        driver: Storage driver.
         prompt_block_repo: Prompt block repository.
+        uow_factory: Optional UnitOfWork factory override.
 
     Returns:
         Report service instance.
     """
-    repo = UnifiedWorkflowRepository(driver)
+    repo = UnifiedWorkflowRepository(uow_factory)
     export_service = ExportService(prompt_block_repo=prompt_block_repo)
     return ReportService(repo=repo, export_service=export_service)
 
 
 ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
-
-
-def get_uow_factory() -> UnitOfWorkFactory | None:
-    """Return the process-scoped UnitOfWorkFactory registered for transactional boundaries.
-
-    Returns:
-        Registered UnitOfWorkFactory callable or None.
-    """
-    return get_registered_uow_factory()
-
-
-UoWFactoryDep = Annotated[UnitOfWorkFactory | None, Depends(get_uow_factory)]
 
 
 async def get_studio_workflow_service(
@@ -866,11 +754,11 @@ async def get_studio_simulation_service(
 StudioSimulationServiceDep = Annotated[StudioSimulationService, Depends(get_studio_simulation_service)]
 
 
-def get_llm_handler(repo: ComponentRepoDep) -> LLMHandler:
+def get_llm_handler(repo: SystemRepoDep) -> LLMHandler:
     """Instantiate the direct LLM handler.
 
     Args:
-        repo: Component repository.
+        repo: System repository.
 
     Returns:
         LLM handler instance.

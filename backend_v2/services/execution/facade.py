@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 from backend_v2.database.interfaces import (
     EntityPersistencePort,
-    IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
     IOutputProfileRepository,
@@ -73,7 +72,6 @@ class ExecutionService:
     Attributes:
         exec_repo: Repository for execution records.
         workflow_repo: Repository for workflow blueprints.
-        comp_repo: Optional repository for workflow components.
         prompt_block_repo: Optional repository for prompt blocks.
         task_brief_repo: Optional repository for task briefs.
         output_profile_repo: Optional repository for output profiles.
@@ -88,7 +86,6 @@ class ExecutionService:
         self,
         exec_repo: IExecutionRepository,
         workflow_repo: IWorkflowRepository,
-        comp_repo: IComponentRepository | None = None,
         prompt_block_repo: IPromptBlockRepository | None = None,
         task_brief_repo: ITaskBriefRepository | None = None,
         output_profile_repo: IOutputProfileRepository | None = None,
@@ -107,7 +104,6 @@ class ExecutionService:
         Args:
             exec_repo: Repository for execution records.
             workflow_repo: Repository for workflows.
-            comp_repo: Optional repository for components.
             prompt_block_repo: Optional repository for prompt blocks.
             task_brief_repo: Optional repository for task briefs.
             output_profile_repo: Optional repository for output profiles.
@@ -125,7 +121,7 @@ class ExecutionService:
             AppException: If resolving the default FileDriver fails due to an unsupported
                 storage backend (ErrorCodes.CONFIGURATION_ERROR).
         """
-        self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
+        self.exec_repo, self.workflow_repo = exec_repo, workflow_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.task_brief_repo = task_brief_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
@@ -167,7 +163,6 @@ class ExecutionService:
         self._override = ExecutionOverrideService(
             exec_repo,
             workflow_repo,
-            comp_repo,
             prompt_block_repo,
             output_profile_repo,
             identity_repo,

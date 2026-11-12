@@ -30,7 +30,6 @@ def mock_dag_executor() -> DAGExecutor:
         rag_preflight=AsyncMock(),
         exec_repo=repo,
         workflow_repo=repo,
-        comp_repo=repo,
         prompt_block_repo=repo,
         output_profile_repo=repo,
         identity_repo=repo,

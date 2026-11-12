@@ -1,32 +1,60 @@
+"""Unit tests for DAGExecutor and LiteLLMProvider concurrency limits."""
+
+from __future__ import annotations
+
 import asyncio
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import ValidationError
+from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+from backend_v2.llm.provider import LiteLLMProvider
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
-from backend_v2.models.domain.step import StepRule
-from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
-from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.enums import (
+    CognitiveTier,
+    ExecutionStatus,
+    HistoricalContextMode,
+    LLMProvider,
+    StepType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import Settings, get_settings
+from backend_v2.tests.factories.model_factories import (
+    ExecutionRecordFactory,
+    StepFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+class ModelProfileFactory(ModelFactory[ModelProfile]):
+    """Polyfactory model factory for ModelProfile configurations."""
+
+    __model__ = ModelProfile
+
+
+class DummySchema(BaseModel):
+    """Minimal schema model used by the mocked prompt compiler."""
 
 
 @pytest.fixture(autouse=True)
 def clear_litellm_provider_caches() -> Generator[None]:
-    """Clear LiteLLM provider caches before and after each test."""
-    from backend_v2.llm.provider import LiteLLMProvider
+    """Clear LiteLLM provider caches before and after each test.
 
+    Yields:
+        Control back to the active test case.
+    """
     LiteLLMProvider._router_cache.clear()
     LiteLLMProvider._semaphores.clear()
     LiteLLMProvider._httpx_clients.clear()
@@ -38,57 +66,85 @@ def clear_litellm_provider_caches() -> Generator[None]:
 
 @pytest.fixture(autouse=True)
 def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Disable provider pacing delays during concurrency fuzzer execution.
+
+    Args:
+        monkeypatch: Pytest monkeypatch fixture.
+    """
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
 
 
-def _configure_repo_model_registry(repo: InMemoryUnifiedWorkflowRepository, rpm_limit: int = 1000) -> None:
-    """Configure model registry on the mock repo with the specified rpm_limit."""
-    model_reg = SystemConfigModelRegistry.model_validate(
-        {
-            "id": "sys_0195f3a00000700e826807f3bfa3454d",
-            "name": "Default Stack",
-            "tier_definitions": {
-                tier: {
-                    "provider": "openai",
-                    "model_name": "gpt-4o-mini",
-                    "tpm_limit": 100000,
-                    "rpm_limit": rpm_limit,
-                    "max_tokens": 4096,
-                    "temperature": 0.0,
-                }
-                for tier in ("fast", "balanced", "deep", "reasoning")
-            },
-        }
+def _configure_repo_model_registry(
+    repo: InMemoryUnifiedWorkflowRepository,
+    rpm_limit: int = 1000,
+) -> None:
+    """Configure model registry on the in-memory repository with the target rpm_limit.
+
+    Args:
+        repo: In-memory unified repository instance.
+        rpm_limit: Requests-per-minute limit to set on each cognitive tier.
+    """
+    tier_profile = ModelProfileFactory.build(
+        provider=LLMProvider.OPENAI,
+        model_name="gpt-4o-mini",
+        tpm_limit=100000,
+        rpm_limit=rpm_limit,
+        max_tokens=4096,
+        temperature=0.0,
+        is_active=True,
+        allowed_tools=[],
+        additional_params={},
+    )
+    model_reg = SystemConfigModelRegistry(
+        id="sys_0195f3a00000700e826807f3bfa3454d",
+        type="model_registry",
+        name="Default Stack",
+        slug="default",
+        default_provider=LLMProvider.OPENAI,
+        tier_definitions={
+            tier: tier_profile
+            for tier in (
+                CognitiveTier.FAST,
+                CognitiveTier.BALANCED,
+                CognitiveTier.DEEP,
+                CognitiveTier.REASONING,
+            )
+        },
     )
     repo.set_model_registry(model_reg)
 
 
 @pytest.fixture
 def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    """Build an initialized in-memory unified repository for concurrency tests.
+
+    Returns:
+        Configured InMemoryUnifiedWorkflowRepository instance.
+    """
     repo = InMemoryUnifiedWorkflowRepository()
 
-    def _mock_step_data():
-        return {
-            "id": "stp_0195f3a0000070018234567890abcdef",
-            "type": "llm",
-            "cognitive_tier": "fast",
-            "slug": "mock",
-            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
-            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
-            "name": {"translations": {"en": "mock"}},
-            "description": {"translations": {"en": "mock"}},
-        }
+    def _mock_step_data() -> Step:
+        return StepFactory.build(
+            id="stp_0195f3a0000070018234567890abcdef",
+            type=StepType.LLM,
+            cognitive_tier=CognitiveTier.FAST,
+            slug="mock",
+            criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+            extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
+            name=I18nText(translations={"en": "mock"}),
+            description=I18nText(translations={"en": "mock"}),
+        )
 
     repo.set_step(_mock_step_data())
     repo.seed_raw_step("bp_fuzz", _mock_step_data())
     repo.set_execution(
-        ExecutionRecord(
+        ExecutionRecordFactory.build(
             id="exe_0195f3a0000070018111222233334444",
             workflow_id="wf_0195f3a0000070008000000000000000",
             output_profile_id="prof_0195f3a0000070008000000000000000",
             status=ExecutionStatus.PENDING,
             target_locale="en",
-            raw_inputs={"dynamic_inputs": {"log": "test"}},
+            raw_inputs=WorkflowInputs(dynamic_inputs={"log": "test"}),
             metadata=ExecutionMetadata(),
         )
     )
@@ -135,11 +191,11 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
 
 @pytest.fixture
 def mock_compiler() -> MagicMock:
-    from pydantic import BaseModel
+    """Build a mocked prompt compiler returning DummySchema.
 
-    class DummySchema(BaseModel):
-        pass
-
+    Returns:
+        Configured MagicMock prompt compiler.
+    """
     compiler = MagicMock()
     compiler.build_dynamic_schema.return_value = DummySchema
     compiler.compile_static_instructions.return_value = "static instructions"
@@ -147,7 +203,15 @@ def mock_compiler() -> MagicMock:
 
 
 def _create_workflow(num_steps: int) -> Workflow:
-    return Workflow(
+    """Create a parallel workflow with the specified number of independent steps.
+
+    Args:
+        num_steps: Number of parallel steps to generate.
+
+    Returns:
+        Validated Workflow domain model.
+    """
+    return WorkflowFactory.build(
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070008000000000000000",
@@ -157,7 +221,16 @@ def _create_workflow(num_steps: int) -> Workflow:
         default_profile_id="prof_0195f3a0000070008000000000000000",
         name=I18nText(translations={"en": "Fuzz"}),
         description=I18nText(translations={"en": "Fuzz"}),
-        steps=[StepRule(id=f"stp_0195f3a0000070008000{i:012x}", task_blueprint="bp_fuzz") for i in range(num_steps)],
+        expected_inputs=[],
+        steps=[
+            StepRule(
+                id=f"stp_0195f3a0000070008000{i:012x}",
+                task_blueprint="bp_fuzz",
+                depends_on=[],
+                input_mappings={},
+            )
+            for i in range(num_steps)
+        ],
     )
 
 
@@ -165,7 +238,15 @@ async def _execute_and_measure_peak_concurrency(
     executor: DAGExecutor,
     workflow: Workflow,
 ) -> int:
-    """Execute workflow while measuring peak concurrent LLM invocations."""
+    """Execute workflow while measuring peak concurrent LLM invocations.
+
+    Args:
+        executor: Configured DAGExecutor under test.
+        workflow: Workflow graph to execute.
+
+    Returns:
+        Observed peak number of simultaneous LLM completion calls.
+    """
     current_concurrent = 0
     peak_concurrent = 0
     lock = asyncio.Lock()
@@ -201,14 +282,14 @@ async def _execute_and_measure_peak_concurrency(
             mock_hooks.execute = AsyncMock(
                 return_value=HookResult(
                     success=True,
-                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs={}, dynamic_inputs={"log": "test"})),
                 )
             )
 
             await executor.execute_workflow(
                 execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
-                raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
+                raw_inputs=WorkflowInputs(dynamic_inputs={"log": "test"}),
             )
 
     return peak_concurrent
@@ -222,7 +303,14 @@ async def test_concurrency_fuzzer_peak_limit_stage_a(
     mock_compiler: MagicMock,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Stage A: Peak concurrency proven against provider SSOT across closed set [1, 2, 5, 10]."""
+    """Verify peak concurrency respects provider semaphore across closed set [1, 2, 5, 10].
+
+    Args:
+        concurrency: Target semaphore max concurrency bound.
+        mock_repo: Seeded in-memory repository fixture.
+        mock_compiler: Mocked prompt compiler fixture.
+        monkeypatch: Pytest monkeypatch fixture.
+    """
     _configure_repo_model_registry(mock_repo, rpm_limit=1000)
     mock_settings = get_settings().model_copy(
         update={"semaphore_max_concurrency": concurrency, "max_concurrent_llm_steps": 100}
@@ -234,7 +322,6 @@ async def test_concurrency_fuzzer_peak_limit_stage_a(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,
@@ -259,7 +346,13 @@ async def test_concurrency_fuzzer_low_rpm_limit_stage_a(
     mock_compiler: MagicMock,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Stage A: Peak concurrency proven against semaphore_low_rpm_limit under low rpm_limit=20."""
+    """Verify peak concurrency respects semaphore_low_rpm_limit under low rpm_limit=20.
+
+    Args:
+        mock_repo: Seeded in-memory repository fixture.
+        mock_compiler: Mocked prompt compiler fixture.
+        monkeypatch: Pytest monkeypatch fixture.
+    """
     _configure_repo_model_registry(mock_repo, rpm_limit=20)
     mock_settings = get_settings().model_copy(update={"semaphore_max_concurrency": 10, "max_concurrent_llm_steps": 100})
     monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
@@ -269,7 +362,6 @@ async def test_concurrency_fuzzer_low_rpm_limit_stage_a(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,
@@ -284,8 +376,8 @@ async def test_concurrency_fuzzer_low_rpm_limit_stage_a(
     assert peak_concurrent > 0
 
 
-def test_concurrency_settings_reject_zero_limits() -> None:
-    """Verify Settings rejects semaphore_max_concurrency=0 via Pydantic ValidationError without bypass."""
+def test_concurrency_settings_reject_zero_limits_invalid() -> None:
+    """Verify Settings rejects semaphore_max_concurrency=0 via Pydantic ValidationError."""
     with pytest.raises(ValidationError):
         Settings(semaphore_max_concurrency=0)
 
@@ -299,7 +391,15 @@ async def test_concurrency_fuzzer_exceeding_physical_limit(
     mock_compiler: MagicMock,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Boundary - Exceeding Physical Limit: Provider semaphore bounds execution under constrained RPM."""
+    """Verify provider semaphore bounds execution under constrained RPM limits.
+
+    Args:
+        rpm_limit: Configured provider RPM limit.
+        expected_bound: Expected maximum concurrent requests.
+        mock_repo: Seeded in-memory repository fixture.
+        mock_compiler: Mocked prompt compiler fixture.
+        monkeypatch: Pytest monkeypatch fixture.
+    """
     _configure_repo_model_registry(mock_repo, rpm_limit=rpm_limit)
     mock_settings = get_settings().model_copy(update={"semaphore_max_concurrency": 10, "max_concurrent_llm_steps": 100})
     monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
@@ -309,7 +409,6 @@ async def test_concurrency_fuzzer_exceeding_physical_limit(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,

@@ -8,7 +8,7 @@ Enforces:
 5. Location independence for non-Vertex providers.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -21,7 +21,7 @@ from backend_v2.llm.handler import LLMHandler
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.enums import GCPVertexDiscoveryRegion, LLMPlatformType, LLMProviderName
 from backend_v2.settings import Settings
-from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def test_cache_adapter_factory_returns_vertex_adapter() -> None:
@@ -112,7 +112,7 @@ def test_istqb_negative_vertex_ai_missing_deps_raises_service_dependency_missing
 
     with patch("backend_v2.llm.handler.GOOGLE_DEPS_AVAILABLE", False):
         with pytest.raises(ConfigurationError) as exc_info:
-            handler = LLMHandler(repo=InMemorySystemRepository())
+            handler = LLMHandler(repo=InMemoryUnifiedWorkflowRepository())
             handler._fetch_vertex_models(target_location="europe-north1", settings=mock_settings)
 
         assert exc_info.value.error_code == ErrorCodes.SERVICE_DEPENDENCY_MISSING
@@ -129,7 +129,7 @@ def test_istqb_negative_vertex_ai_missing_adc_raises_authentication_failed() -> 
         patch("google.auth.default", side_effect=Exception("Could not automatically determine credentials")),
     ):
         with pytest.raises(ConfigurationError) as exc_info:
-            handler = LLMHandler(repo=InMemorySystemRepository())
+            handler = LLMHandler(repo=InMemoryUnifiedWorkflowRepository())
             handler._fetch_vertex_models(target_location="europe-north1", settings=mock_settings)
 
         assert exc_info.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
@@ -138,13 +138,10 @@ def test_istqb_negative_vertex_ai_missing_adc_raises_authentication_failed() -> 
 def test_istqb_equivalence_enabled_providers_independence() -> None:
     """ISTQB Boundary Test 3: Settings.enabled_providers calculates vertex_ai and ai_studio independently."""
     # Case A: Only google_api_key present -> ai_studio enabled, vertex_ai disabled
-    with (
-        patch("os.path.exists", return_value=False),
-        patch.dict(
-            "os.environ",
-            {"VERTEX_PROJECT_ID": "", "GOOGLE_APPLICATION_CREDENTIALS": ""},
-            clear=False,
-        ),
+    with patch.dict(
+        "backend_v2.settings.os.environ",
+        {"VERTEX_PROJECT_ID": "", "GOOGLE_APPLICATION_CREDENTIALS": "", "GCP_PROJECT": ""},
+        clear=False,
     ):
         settings_ai_only = Settings(
             use_mock_llm=False,
@@ -162,7 +159,7 @@ def test_istqb_equivalence_enabled_providers_independence() -> None:
     # Case B: Only VERTEX_PROJECT_ID present -> vertex_ai enabled, ai_studio disabled
     with patch.dict(
         "backend_v2.settings.os.environ",
-        {"VERTEX_PROJECT_ID": "test-proj"},
+        {"VERTEX_PROJECT_ID": "test-proj", "GOOGLE_APPLICATION_CREDENTIALS": "", "GCP_PROJECT": ""},
         clear=False,
     ):
         settings_vertex_only = Settings(
@@ -181,7 +178,7 @@ def test_istqb_equivalence_enabled_providers_independence() -> None:
 
 def test_istqb_isolation_non_vertex_discovery_without_location() -> None:
     """ISTQB Boundary Test 4: Querying AI Studio models does not require target_location."""
-    handler = LLMHandler(repo=InMemorySystemRepository())
+    handler = LLMHandler(repo=InMemoryUnifiedWorkflowRepository())
 
     with (
         patch.object(handler, "_fetch_ai_studio_models", return_value=["gemini-2.5-flash", "gemini-2.5-pro"]),
@@ -202,46 +199,6 @@ def test_istqb_isolation_non_vertex_discovery_without_location() -> None:
         assert len(ai_models) == 2
         assert "gemini-2.5-flash" in ai_models
         assert "gemini-2.5-pro" in ai_models
-
-
-@pytest.mark.asyncio
-async def test_istqb_anti_heuristic_model_validation_derives_platform_from_provider() -> None:
-    """ISTQB Boundary Test 5: create_provider_for_strategy derives platform from provider, not model_name."""
-    handler = LLMHandler(repo=InMemorySystemRepository())
-
-    dummy_registry = {
-        "models": {
-            "fast": {
-                "provider": LLMProviderName.VERTEX_AI.value,
-                "model_name": "gemini-custom-enterprise",
-                "temperature": 0.5,
-                "max_tokens": 2048,
-                "tpm_limit": 10000,
-                "rpm_limit": 60,
-                "supports_grounding": False,
-                "is_active": True,
-                "additional_params": {"vertex_location": "europe-north1"},
-            }
-        }
-    }
-
-    mock_discovery_result = {
-        LLMPlatformType.VERTEX_AI.value: ["gemini-custom-enterprise"],
-    }
-
-    with (
-        patch.object(handler, "get_active_model_registry", AsyncMock(return_value=dummy_registry)),
-        patch.object(handler, "fetch_all_available_models", return_value=mock_discovery_result) as mock_fetch,
-        patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_create,
-    ):
-        mock_create.return_value = MagicMock()
-        await handler.create_provider_for_strategy("fast")
-
-        assert mock_fetch.call_count == 1
-        _, kwargs = mock_fetch.call_args
-        # Platform must be VERTEX_AI derived directly from provider, not from model_name
-        assert kwargs["platform"] == LLMPlatformType.VERTEX_AI.value
-        assert kwargs["location"] == "europe-north1"
 
 
 def test_vertex_discovery_uses_us_central1_hub_constant() -> None:

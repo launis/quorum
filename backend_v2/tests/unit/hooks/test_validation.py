@@ -26,7 +26,6 @@ def _create_hook_deps(repo: InMemoryUnifiedWorkflowRepository | None = None) -> 
     return HookDependencies(
         exec_repo=r,
         workflow_repo=r,
-        comp_repo=r,
         prompt_block_repo=r,
         output_profile_repo=r,
         identity_repo=r,

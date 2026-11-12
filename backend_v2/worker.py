@@ -17,7 +17,6 @@ from fastapi import status
 import backend_v2.hooks as _hooks
 from backend_v2.core.hook_registry import hook_registry
 from backend_v2.core.telemetry import configure_telemetry, resolve_startup_logfire_token
-from backend_v2.database.factory import get_driver
 from backend_v2.database.interfaces import get_registered_uow_factory
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -87,8 +86,7 @@ async def startup(ctx: Any) -> None:
         )
     logger.info("HookRegistry initialized. Registered hooks (%d): %s", len(registered_hooks), registered_hooks)
 
-    driver = await get_driver(get_settings())
-    repository = UnifiedWorkflowRepository(driver)
+    repository = UnifiedWorkflowRepository(get_registered_uow_factory())
     llm_client = LLMClient()
 
     compiler = PromptCompilerAdapter()
@@ -100,7 +98,6 @@ async def startup(ctx: Any) -> None:
     engine = DAGExecutor(
         exec_repo=repository,
         workflow_repo=repository,
-        comp_repo=repository,
         prompt_block_repo=repository,
         output_profile_repo=repository,
         identity_repo=repository,

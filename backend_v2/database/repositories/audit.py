@@ -3,19 +3,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
-from backend_v2.database.driver import StorageDriver
-from backend_v2.database.interfaces import (
-    EntityPersistencePort,
-    UnitOfWorkFactory,
-    get_registered_uow_factory,
-    open_uow_session,
-)
+from backend_v2.database.interfaces import UnitOfWorkFactory
 from backend_v2.database.repositories.base import BaseRepository
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
@@ -33,55 +25,13 @@ __all__ = ["AuditRepositoryImpl"]
 class AuditRepositoryImpl(BaseRepository):
     """Repository implementation routing AuditLogRecord and UsageRecord operations through EntityPersistencePort."""
 
-    _uow_factory: UnitOfWorkFactory | None = None
-
-    def __init__(
-        self,
-        driver: StorageDriver | None = None,
-        *,
-        uow_factory: UnitOfWorkFactory | None = None,
-    ) -> None:
-        """Initialize the repository with an optional StorageDriver or UnitOfWorkFactory.
+    def __init__(self, uow_factory: UnitOfWorkFactory | None = None) -> None:
+        """Initialize the repository with an optional UnitOfWorkFactory.
 
         Args:
-            driver: Optional legacy StorageDriver instance for MRO composition.
-            uow_factory: Optional explicit UnitOfWorkFactory keyword override.
+            uow_factory: Optional explicit UnitOfWorkFactory override.
         """
-        if driver is not None:
-            super().__init__(driver)
-        self._uow_factory: UnitOfWorkFactory | None = uow_factory
-
-    def _resolve_uow_factory(self) -> UnitOfWorkFactory | None:
-        """Resolve the configured or process-registered UnitOfWorkFactory.
-
-        Returns:
-            Callable UnitOfWorkFactory if available, otherwise None.
-        """
-        if self._uow_factory is not None:
-            return self._uow_factory
-        return get_registered_uow_factory()
-
-    @asynccontextmanager
-    async def _acquire_entities(self) -> AsyncIterator[EntityPersistencePort]:
-        """Enter or reuse the active QuorumUnitOfWork session and yield its EntityPersistencePort.
-
-        Yields:
-            Active EntityPersistencePort bound to the current transaction.
-
-        Raises:
-            ConfigurationError: With CONFIGURATION_ERROR if no UnitOfWorkFactory is registered.
-        """
-        async with open_uow_session(self._resolve_uow_factory()) as uow:
-            if uow is None:
-                msg = "QuorumUnitOfWork factory is not configured for AuditRepositoryImpl."
-                logger.error(
-                    "[AuditRepository] %s: %s",
-                    ErrorCodes.CONFIGURATION_ERROR.name,
-                    msg,
-                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-                raise ConfigurationError(message=msg)
-            yield uow.entities
+        super().__init__(uow_factory)
 
     @staticmethod
     def _parse_since_iso(since: str | None) -> datetime | None:
@@ -265,11 +215,9 @@ class AuditRepositoryImpl(BaseRepository):
                 if since_dt is not None:
                     if item.completed_at is None:
                         continue
-                    completed_utc = (
-                        item.completed_at
-                        if item.completed_at.tzinfo is not None
-                        else item.completed_at.replace(tzinfo=UTC)
-                    )
+                    completed_utc = item.completed_at
+                    if completed_utc.tzinfo is None:
+                        completed_utc = completed_utc.replace(tzinfo=UTC)
                     if completed_utc < since_dt:
                         continue
                 filtered_execs.append(item)

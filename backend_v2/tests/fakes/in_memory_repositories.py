@@ -1,6 +1,6 @@
 """In-Memory Repository Fakes with Rust-Accelerated Snapshot Isolation & Deterministic Fault Injection.
 
-Enforces zero-leak snapshot isolation across all 15 repository protocols:
+Enforces zero-leak snapshot isolation across all 9 active V2 repository protocols:
 Entities returned from fake repositories are deep-cloned via Pydantic V2 model validation,
 guaranteeing `repo.get(id) is not repo.get(id)` and `repo.get(id) == repo.get(id)`.
 """
@@ -17,21 +17,13 @@ from typing import Any
 from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.database.interfaces import (
-    IAgentRepository,
     IAuditRepository,
-    IComponentRepository,
-    IExecutionPersonaRepository,
     IExecutionRepository,
-    IExtractionProtocolRepository,
     IIdentityRepository,
-    IKnowledgeRepository,
-    IMatrixRepository,
     IOutputProfileRepository,
     IPromptBlockRepository,
     IReportArtifactRepository,
-    IRoleRepository,
     ISystemRepository,
-    ITaskBlueprintRepository,
     ITaskBriefRepository,
     IUnifiedWorkflowRepository,
     IWorkflowRepository,
@@ -56,20 +48,10 @@ from backend_v2.models.domain.base import (
     UsageRollupSummaryDTO,
 )
 from backend_v2.models.domain.execution import ExecutionRecord
-from backend_v2.models.domain.knowledge import (
-    BannedPhrase,
-    Claim,
-    ClaimCreateDTO,
-    Concept,
-    ConceptCreateDTO,
-    PromptTemplateDTO,
-    Reference,
-    ReferenceCreateDTO,
-)
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.report_artifact import ReportArtifact
-from backend_v2.models.domain.step import Role, Step
+from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import (
     ModelProfile,
     ProviderExtraParamsDTO,
@@ -617,80 +599,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
 
 
 # ==============================================================================
-# 4. Component Repository Fake
-# ==============================================================================
-
-
-class InMemoryComponentRepository(BaseInMemoryRepository[PromptBlock], IComponentRepository):
-    """In-memory fake implementation of IComponentRepository."""
-
-    async def get_all_components(
-        self, type: str | None = None, exclude_types: list[str] | None = None
-    ) -> list[PromptBlock]:
-        self._check_fault("get_all_components")
-        items = self._list_isolated()
-        if type is not None:
-            items = [c for c in items if c.type == type or c.type.value == type]
-        if exclude_types:
-            items = [c for c in items if c.type not in exclude_types and c.type.value not in exclude_types]
-        return items
-
-    async def get_component_by_id(self, component_id: str) -> PromptBlock | None:
-        self._check_fault("get_component_by_id")
-        return self._get_isolated(component_id)
-
-    async def get_component_by_name(self, name: str) -> PromptBlock | None:
-        self._check_fault("get_component_by_name")
-        for item in self._storage.values():
-            if item.slug == name or any(v == name for v in item.label.translations.values()):
-                return self._clone(item)
-        return None
-
-    async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
-        self._check_fault("update_component_metadata")
-        existing = self._get_isolated(component_id)
-        if existing is None:
-            return False
-        return True
-
-    async def register_component(self, component_data: PromptBlock) -> str:
-        self._check_fault("register_component")
-        c_id = component_data.id
-        self._save_isolated(c_id, component_data)
-        return c_id
-
-    async def create_component(self, component_data: PromptBlock) -> str:
-        self._check_fault("create_component")
-        return await self.register_component(component_data)
-
-    async def update_component(self, component_id: str, updates: PromptBlock) -> str:
-        self._check_fault("update_component")
-        self._save_isolated(component_id, updates)
-        return component_id
-
-    async def delete_component(self, component_id: str) -> bool:
-        self._check_fault("delete_component")
-        if component_id in self._storage:
-            del self._storage[component_id]
-            return True
-        return False
-
-    async def get_components_using_dimension(self, dimension_id: str) -> list[str]:
-        self._check_fault("get_components_using_dimension")
-        matches: list[str] = []
-        for c in self._storage.values():
-            if isinstance(c, MatrixPromptBlock) and c.rows is not None:
-                for row in c.rows:
-                    if dimension_id in row.label.translations.values() or (
-                        row.ai_description and dimension_id in row.ai_description
-                    ):
-                        matches.append(c.id)
-                        break
-        return matches
-
-
-# ==============================================================================
-# 5. Prompt Block Repository Fake
+# 4. Prompt Block Repository Fake
 # ==============================================================================
 
 
@@ -751,81 +660,7 @@ class InMemoryPromptBlockRepository(BaseInMemoryRepository[PromptBlock], IPrompt
 
 
 # ==============================================================================
-# 6. Agent Repository Fake
-# ==============================================================================
-
-
-class InMemoryAgentRepository(BaseInMemoryRepository[PromptBlock], IAgentRepository):
-    """In-memory fake implementation of IAgentRepository."""
-
-    async def get_agent_by_id(self, agent_id: str) -> PromptBlock | None:
-        self._check_fault("get_agent_by_id")
-        return self._get_isolated(agent_id)
-
-    async def get_all_agents(self) -> list[PromptBlock]:
-        self._check_fault("get_all_agents")
-        return self._list_isolated()
-
-    async def create_agent(self, agent_data: PromptBlock) -> str:
-        self._check_fault("create_agent")
-        self._save_isolated(agent_data.id, agent_data)
-        return agent_data.id
-
-    async def update_agent(self, agent_id: str, updates: PromptBlock) -> bool:
-        self._check_fault("update_agent")
-        self._save_isolated(agent_id, updates)
-        return True
-
-    async def delete_agent(self, agent_id: str) -> bool:
-        self._check_fault("delete_agent")
-        if agent_id in self._storage:
-            del self._storage[agent_id]
-            return True
-        return False
-
-
-# ==============================================================================
-# 7. Task Blueprint Repository Fake
-# ==============================================================================
-
-
-class InMemoryTaskBlueprintRepository(BaseInMemoryRepository[Step], ITaskBlueprintRepository):
-    """In-memory fake implementation of ITaskBlueprintRepository."""
-
-    async def get_task_blueprint_by_id(self, blueprint_id: str) -> Step | None:
-        self._check_fault("get_task_blueprint_by_id")
-        return self._get_isolated(blueprint_id)
-
-    async def get_all_task_blueprints(self) -> list[Step]:
-        self._check_fault("get_all_task_blueprints")
-        return self._list_isolated()
-
-    async def create_task_blueprint(self, blueprint_data: Step) -> str:
-        self._check_fault("create_task_blueprint")
-        self._save_isolated(blueprint_data.id, blueprint_data)
-        return blueprint_data.id
-
-    async def update_task_blueprint(self, blueprint_id: str, updates: StepUpdateDTO) -> bool:
-        self._check_fault("update_task_blueprint")
-        existing = self._get_isolated(blueprint_id)
-        if existing is None:
-            return False
-        dumped = existing.model_dump(mode="python")
-        dumped.update(updates.model_dump(mode="python", exclude_unset=True))
-        updated = Step.model_validate(dumped)
-        self._save_isolated(blueprint_id, updated)
-        return True
-
-    async def delete_task_blueprint(self, blueprint_id: str) -> bool:
-        self._check_fault("delete_task_blueprint")
-        if blueprint_id in self._storage:
-            del self._storage[blueprint_id]
-            return True
-        return False
-
-
-# ==============================================================================
-# 8. Output Profile Repository Fake
+# 5. Output Profile Repository Fake
 # ==============================================================================
 
 
@@ -911,93 +746,7 @@ class InMemoryTaskBriefRepository(BaseInMemoryRepository[TaskBrief], ITaskBriefR
 
 
 # ==============================================================================
-# 9. Knowledge Repository Fake
-# ==============================================================================
-
-
-class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRepository):
-    """In-memory fake implementation of IKnowledgeRepository."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._banned_phrases: dict[str, BannedPhrase] = {}
-        self._prompt_templates: dict[str, PromptTemplateDTO] = {}
-        self._concepts: dict[str, Concept] = {}
-        self._references: dict[str, Reference] = {}
-        self._claims: dict[str, Claim] = {}
-
-    async def get_banned_phrases(self) -> list[BannedPhrase]:
-        self._check_fault("get_banned_phrases")
-        return [
-            BannedPhrase.model_validate(b.model_dump(mode="python"), strict=False)
-            for b in self._banned_phrases.values()
-        ]
-
-    async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
-        self._check_fault("add_banned_phrase")
-        bp_id = f"bp_{generate_uuid7().hex}"
-        self._banned_phrases[phrase] = BannedPhrase(id=bp_id, phrase=phrase, language=language)
-
-    async def delete_banned_phrase(self, phrase: str) -> bool:
-        self._check_fault("delete_banned_phrase")
-        if phrase in self._banned_phrases:
-            del self._banned_phrases[phrase]
-            return True
-        return False
-
-    async def get_prompt_template(self, template_id: str) -> PromptTemplateDTO | None:
-        self._check_fault("get_prompt_template")
-        t = self._prompt_templates[template_id] if template_id in self._prompt_templates else None
-        return PromptTemplateDTO.model_validate(t.model_dump(mode="python"), strict=False) if t else None
-
-    async def get_concepts(self) -> list[Concept]:
-        self._check_fault("get_concepts")
-        return [Concept.model_validate(c.model_dump(mode="python"), strict=False) for c in self._concepts.values()]
-
-    async def get_references(self) -> list[Reference]:
-        self._check_fault("get_references")
-        return [Reference.model_validate(r.model_dump(mode="python"), strict=False) for r in self._references.values()]
-
-    async def get_claims(self) -> list[Claim]:
-        self._check_fault("get_claims")
-        return [Claim.model_validate(c.model_dump(mode="python"), strict=False) for c in self._claims.values()]
-
-    async def add_concept(self, item: ConceptCreateDTO) -> str:
-        self._check_fault("add_concept")
-        c_id = f"con_{generate_uuid7().hex}"
-        data_dict = item.model_dump(mode="python")
-        data_dict["id"] = c_id
-        model = Concept.model_validate(data_dict)
-        self._concepts[c_id] = Concept.model_validate(model.model_dump(mode="python"), strict=False)
-        return c_id
-
-    async def add_reference(self, item: ReferenceCreateDTO) -> str:
-        self._check_fault("add_reference")
-        r_id = f"ref_{generate_uuid7().hex}"
-        data_dict = item.model_dump(mode="python")
-        data_dict["id"] = r_id
-        model = Reference.model_validate(data_dict)
-        self._references[r_id] = Reference.model_validate(model.model_dump(mode="python"), strict=False)
-        return r_id
-
-    async def add_claim(self, item: ClaimCreateDTO) -> str:
-        self._check_fault("add_claim")
-        cl_id = f"cl_{generate_uuid7().hex}"
-        data_dict = item.model_dump(mode="python")
-        data_dict["id"] = cl_id
-        model = Claim.model_validate(data_dict)
-        self._claims[cl_id] = Claim.model_validate(model.model_dump(mode="python"), strict=False)
-        return cl_id
-
-    async def clear_knowledge_base(self) -> None:
-        self._check_fault("clear_knowledge_base")
-        self._concepts.clear()
-        self._references.clear()
-        self._claims.clear()
-
-
-# ==============================================================================
-# 10. System Repository Fake
+# 7. System Repository Fake
 # ==============================================================================
 
 
@@ -1287,156 +1036,7 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogRecord], IAuditRepo
 
 
 # ==============================================================================
-# 12. Matrix Repository Fake
-# ==============================================================================
-
-
-class InMemoryMatrixRepository(BaseInMemoryRepository[PromptBlock], IMatrixRepository):
-    """In-memory fake implementation of IMatrixRepository."""
-
-    async def get_all_matrices(self) -> list[PromptBlock]:
-        self._check_fault("get_all_matrices")
-        return self._list_isolated()
-
-    async def get_matrix_by_id(self, matrix_id: str) -> PromptBlock | None:
-        self._check_fault("get_matrix_by_id")
-        return self._get_isolated(matrix_id)
-
-    async def create_matrix(self, matrix_data: PromptBlock) -> str:
-        self._check_fault("create_matrix")
-        self._save_isolated(matrix_data.id, matrix_data)
-        return matrix_data.id
-
-    async def update_matrix(self, matrix_id: str, updates: PromptBlock) -> str:
-        self._check_fault("update_matrix")
-        self._save_isolated(matrix_id, updates)
-        return matrix_id
-
-    async def delete_matrix(self, matrix_id: str) -> bool:
-        self._check_fault("delete_matrix")
-        if matrix_id in self._storage:
-            del self._storage[matrix_id]
-            return True
-        return False
-
-    async def get_matrices_using_dimension(self, dimension_id: str) -> list[str]:
-        self._check_fault("get_matrices_using_dimension")
-        matches: list[str] = []
-        for c in self._storage.values():
-            if isinstance(c, MatrixPromptBlock) and c.rows is not None:
-                for row in c.rows:
-                    if dimension_id in row.label.translations.values() or (
-                        row.ai_description and dimension_id in row.ai_description
-                    ):
-                        matches.append(c.id)
-                        break
-        return matches
-
-
-# ==============================================================================
-# 13. Role Repository Fake
-# ==============================================================================
-
-
-class InMemoryRoleRepository(BaseInMemoryRepository[Role], IRoleRepository):
-    """In-memory fake implementation of IRoleRepository."""
-
-    async def get_all_roles(self) -> list[Role]:
-        self._check_fault("get_all_roles")
-        return self._list_isolated()
-
-    async def get_role_by_id(self, role_id: str) -> Role | None:
-        self._check_fault("get_role_by_id")
-        return self._get_isolated(role_id)
-
-    async def create_role(self, role_data: Role) -> str:
-        self._check_fault("create_role")
-        self._save_isolated(role_data.id, role_data)
-        return role_data.id
-
-    async def update_role(self, role_id: str, updates: Role) -> str:
-        self._check_fault("update_role")
-        self._save_isolated(role_id, updates)
-        return role_id
-
-    async def delete_role(self, role_id: str) -> bool:
-        self._check_fault("delete_role")
-        if role_id in self._storage:
-            del self._storage[role_id]
-            return True
-        return False
-
-
-# ==============================================================================
-# 14. Execution Persona Repository Fake
-# ==============================================================================
-
-
-class InMemoryExecutionPersonaRepository(BaseInMemoryRepository[PromptBlock], IExecutionPersonaRepository):
-    """In-memory fake implementation of IExecutionPersonaRepository."""
-
-    async def get_all_execution_personas(self) -> list[PromptBlock]:
-        self._check_fault("get_all_execution_personas")
-        return self._list_isolated()
-
-    async def get_execution_persona_by_id(self, persona_id: str) -> PromptBlock | None:
-        self._check_fault("get_execution_persona_by_id")
-        return self._get_isolated(persona_id)
-
-    async def create_execution_persona(self, persona_data: PromptBlock) -> str:
-        self._check_fault("create_execution_persona")
-        self._save_isolated(persona_data.id, persona_data)
-        return persona_data.id
-
-    async def update_execution_persona(self, persona_id: str, updates: PromptBlock) -> str:
-        self._check_fault("update_execution_persona")
-        self._save_isolated(persona_id, updates)
-        return persona_id
-
-    async def delete_execution_persona(self, persona_id: str) -> bool:
-        self._check_fault("delete_execution_persona")
-        if persona_id in self._storage:
-            del self._storage[persona_id]
-            return True
-        return False
-
-
-# ==============================================================================
-# 15. Extraction Protocol Repository Fake
-# ==============================================================================
-
-
-class InMemoryExtractionProtocolRepository(BaseInMemoryRepository[PromptBlock], IExtractionProtocolRepository):
-    """In-memory fake implementation of IExtractionProtocolRepository."""
-
-    async def get_all_extraction_protocols(self) -> list[PromptBlock]:
-        self._check_fault("get_all_extraction_protocols")
-        return self._list_isolated()
-
-    async def get_extraction_protocol_by_id(self, protocol_id: str) -> PromptBlock | None:
-        self._check_fault("get_extraction_protocol_by_id")
-        return self._get_isolated(protocol_id)
-
-    async def create_extraction_protocol(self, protocol_data: PromptBlock) -> str:
-        self._check_fault("create_extraction_protocol")
-        self._save_isolated(protocol_data.id, protocol_data)
-        return protocol_data.id
-
-    async def update_extraction_protocol(self, protocol_id: str, updates: PromptBlock) -> str:
-        self._check_fault("update_extraction_protocol")
-        self._save_isolated(protocol_id, updates)
-        return protocol_id
-
-    async def delete_extraction_protocol(self, protocol_id: str) -> bool:
-        self._check_fault("delete_extraction_protocol")
-        if protocol_id in self._storage:
-            del self._storage[protocol_id]
-            return True
-        return False
-
-
-# ==============================================================================
-# 16. Report Artifact Repository Fake
+# 9. Report Artifact Repository Fake
 # ==============================================================================
 
 
@@ -1494,12 +1094,12 @@ class InMemoryReportArtifactRepository(BaseInMemoryRepository[ReportArtifact], I
 
 
 # ==============================================================================
-# 17. Unified Workflow Repository Composite Facade
+# 10. Unified Workflow Repository Composite Facade
 # ==============================================================================
 
 
 class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
-    """Composite in-memory facade satisfying IUnifiedWorkflowRepository."""
+    """Composite in-memory facade satisfying IUnifiedWorkflowRepository across the 9 active V2 protocols."""
 
     def __init__(
         self,
@@ -1507,37 +1107,21 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         executions: InMemoryExecutionRepository | None = None,
         report_artifacts: InMemoryReportArtifactRepository | None = None,
         identities: InMemoryIdentityRepository | None = None,
-        components: InMemoryComponentRepository | None = None,
         prompt_blocks: InMemoryPromptBlockRepository | None = None,
         task_briefs: InMemoryTaskBriefRepository | None = None,
-        agents: InMemoryAgentRepository | None = None,
-        task_blueprints: InMemoryTaskBlueprintRepository | None = None,
         output_profiles: InMemoryOutputProfileRepository | None = None,
-        knowledge: InMemoryKnowledgeRepository | None = None,
         system: InMemorySystemRepository | None = None,
         audit: InMemoryAuditRepository | None = None,
-        matrices: InMemoryMatrixRepository | None = None,
-        roles: InMemoryRoleRepository | None = None,
-        execution_personas: InMemoryExecutionPersonaRepository | None = None,
-        extraction_protocols: InMemoryExtractionProtocolRepository | None = None,
     ) -> None:
         self._workflows = workflows or InMemoryWorkflowRepository()
         self._executions = executions or InMemoryExecutionRepository()
         self._report_artifacts = report_artifacts or InMemoryReportArtifactRepository()
         self._identities = identities or InMemoryIdentityRepository()
-        self._components = components or InMemoryComponentRepository()
         self._prompt_blocks = prompt_blocks or InMemoryPromptBlockRepository()
         self._task_briefs = task_briefs or InMemoryTaskBriefRepository()
-        self._agents = agents or InMemoryAgentRepository()
-        self._task_blueprints = task_blueprints or InMemoryTaskBlueprintRepository()
         self._output_profiles = output_profiles or InMemoryOutputProfileRepository()
-        self._knowledge = knowledge or InMemoryKnowledgeRepository()
         self._system = system or InMemorySystemRepository()
         self._audit = audit or InMemoryAuditRepository()
-        self._matrices = matrices or InMemoryMatrixRepository()
-        self._roles = roles or InMemoryRoleRepository()
-        self._execution_personas = execution_personas or InMemoryExecutionPersonaRepository()
-        self._extraction_protocols = extraction_protocols or InMemoryExtractionProtocolRepository()
 
     def _all_sub_repos(self) -> tuple[BaseInMemoryRepository[Any], ...]:
         return (
@@ -1545,19 +1129,11 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
             self._executions,
             self._report_artifacts,
             self._identities,
-            self._components,
             self._prompt_blocks,
             self._task_briefs,
-            self._agents,
-            self._task_blueprints,
             self._output_profiles,
-            self._knowledge,
             self._system,
             self._audit,
-            self._matrices,
-            self._roles,
-            self._execution_personas,
-            self._extraction_protocols,
         )
 
     def get_call_count(self, method_name: str) -> int:
@@ -1734,37 +1310,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         """Helper to seed usage total for test scenarios."""
         self._identities.set_org_usage_total(org_id, total)
 
-    # 4. Component
-    async def get_all_components(
-        self, type: str | None = None, exclude_types: list[str] | None = None
-    ) -> list[PromptBlock]:
-        return await self._components.get_all_components(type, exclude_types)
-
-    async def get_component_by_id(self, component_id: str) -> PromptBlock | None:
-        return await self._components.get_component_by_id(component_id)
-
-    async def get_component_by_name(self, name: str) -> PromptBlock | None:
-        return await self._components.get_component_by_name(name)
-
-    async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
-        return await self._components.update_component_metadata(component_id, module, component_class)
-
-    async def register_component(self, component_data: PromptBlock) -> str:
-        return await self._components.register_component(component_data)
-
-    async def create_component(self, component_data: PromptBlock) -> str:
-        return await self._components.create_component(component_data)
-
-    async def update_component(self, component_id: str, updates: PromptBlock) -> str:
-        return await self._components.update_component(component_id, updates)
-
-    async def delete_component(self, component_id: str) -> bool:
-        return await self._components.delete_component(component_id)
-
-    async def get_components_using_dimension(self, dimension_id: str) -> list[str]:
-        return await self._components.get_components_using_dimension(dimension_id)
-
-    # 5. PromptBlock
+    # 4. PromptBlock
     async def get_prompt_block(self, block_id: str) -> PromptBlock | None:
         return await self._prompt_blocks.get_prompt_block(block_id)
 
@@ -1811,39 +1357,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         for brief in briefs:
             self._task_briefs._save_isolated(brief.id, brief)
 
-    # 6. Agent
-    async def get_all_agents(self) -> list[PromptBlock]:
-        return await self._agents.get_all_agents()
-
-    async def get_agent_by_id(self, agent_id: str) -> PromptBlock | None:
-        return await self._agents.get_agent_by_id(agent_id)
-
-    async def create_agent(self, agent_data: PromptBlock) -> str:
-        return await self._agents.create_agent(agent_data)
-
-    async def update_agent(self, agent_id: str, updates: PromptBlock) -> bool:
-        return await self._agents.update_agent(agent_id, updates)
-
-    async def delete_agent(self, agent_id: str) -> bool:
-        return await self._agents.delete_agent(agent_id)
-
-    # 7. TaskBlueprint
-    async def get_all_task_blueprints(self) -> list[Step]:
-        return await self._task_blueprints.get_all_task_blueprints()
-
-    async def get_task_blueprint_by_id(self, blueprint_id: str) -> Step | None:
-        return await self._task_blueprints.get_task_blueprint_by_id(blueprint_id)
-
-    async def create_task_blueprint(self, blueprint_data: Step) -> str:
-        return await self._task_blueprints.create_task_blueprint(blueprint_data)
-
-    async def update_task_blueprint(self, blueprint_id: str, updates: StepUpdateDTO) -> bool:
-        return await self._task_blueprints.update_task_blueprint(blueprint_id, updates)
-
-    async def delete_task_blueprint(self, blueprint_id: str) -> bool:
-        return await self._task_blueprints.delete_task_blueprint(blueprint_id)
-
-    # 8. OutputProfile
+    # 6. OutputProfile
     async def get_all_output_profiles(self) -> list[OutputProfile]:
         return await self._output_profiles.get_all_output_profiles()
 
@@ -1874,41 +1388,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def delete_output_profile(self, profile_id: str) -> bool:
         return await self._output_profiles.delete_output_profile(profile_id)
 
-    # 9. Knowledge
-    async def get_banned_phrases(self) -> list[BannedPhrase]:
-        return await self._knowledge.get_banned_phrases()
-
-    async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
-        await self._knowledge.add_banned_phrase(phrase, language)
-
-    async def delete_banned_phrase(self, phrase: str) -> bool:
-        return await self._knowledge.delete_banned_phrase(phrase)
-
-    async def get_prompt_template(self, template_id: str) -> PromptTemplateDTO | None:
-        return await self._knowledge.get_prompt_template(template_id)
-
-    async def get_concepts(self) -> list[Concept]:
-        return await self._knowledge.get_concepts()
-
-    async def add_concept(self, item: ConceptCreateDTO) -> str:
-        return await self._knowledge.add_concept(item)
-
-    async def get_references(self) -> list[Reference]:
-        return await self._knowledge.get_references()
-
-    async def add_reference(self, item: ReferenceCreateDTO) -> str:
-        return await self._knowledge.add_reference(item)
-
-    async def get_claims(self) -> list[Claim]:
-        return await self._knowledge.get_claims()
-
-    async def add_claim(self, item: ClaimCreateDTO) -> str:
-        return await self._knowledge.add_claim(item)
-
-    async def clear_knowledge_base(self) -> None:
-        await self._knowledge.clear_knowledge_base()
-
-    # 10. System
+    # 7. System
     async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
         return await self._system.get_model_registry(registry_id=registry_id)
 
@@ -2090,70 +1570,3 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         self, scope: str, target_id: str | None = None, since: str | None = None
     ) -> DetailedUsageDTO:
         return await self._audit.get_detailed_usage(scope, target_id, since)
-
-    # 12. Matrix
-    async def get_all_matrices(self) -> list[PromptBlock]:
-        return await self._matrices.get_all_matrices()
-
-    async def get_matrix_by_id(self, matrix_id: str) -> PromptBlock | None:
-        return await self._matrices.get_matrix_by_id(matrix_id)
-
-    async def create_matrix(self, matrix_data: PromptBlock) -> str:
-        return await self._matrices.create_matrix(matrix_data)
-
-    async def update_matrix(self, matrix_id: str, updates: PromptBlock) -> str:
-        return await self._matrices.update_matrix(matrix_id, updates)
-
-    async def delete_matrix(self, matrix_id: str) -> bool:
-        return await self._matrices.delete_matrix(matrix_id)
-
-    async def get_matrices_using_dimension(self, dimension_id: str) -> list[str]:
-        return await self._matrices.get_matrices_using_dimension(dimension_id)
-
-    # 13. Role
-    async def get_all_roles(self) -> list[Role]:
-        return await self._roles.get_all_roles()
-
-    async def get_role_by_id(self, role_id: str) -> Role | None:
-        return await self._roles.get_role_by_id(role_id)
-
-    async def create_role(self, role_data: Role) -> str:
-        return await self._roles.create_role(role_data)
-
-    async def update_role(self, role_id: str, updates: Role) -> str:
-        return await self._roles.update_role(role_id, updates)
-
-    async def delete_role(self, role_id: str) -> bool:
-        return await self._roles.delete_role(role_id)
-
-    # 14. Execution Persona
-    async def get_all_execution_personas(self) -> list[PromptBlock]:
-        return await self._execution_personas.get_all_execution_personas()
-
-    async def get_execution_persona_by_id(self, persona_id: str) -> PromptBlock | None:
-        return await self._execution_personas.get_execution_persona_by_id(persona_id)
-
-    async def create_execution_persona(self, persona_data: PromptBlock) -> str:
-        return await self._execution_personas.create_execution_persona(persona_data)
-
-    async def update_execution_persona(self, persona_id: str, updates: PromptBlock) -> str:
-        return await self._execution_personas.update_execution_persona(persona_id, updates)
-
-    async def delete_execution_persona(self, persona_id: str) -> bool:
-        return await self._execution_personas.delete_execution_persona(persona_id)
-
-    # 15. Extraction Protocol
-    async def get_all_extraction_protocols(self) -> list[PromptBlock]:
-        return await self._extraction_protocols.get_all_extraction_protocols()
-
-    async def get_extraction_protocol_by_id(self, protocol_id: str) -> PromptBlock | None:
-        return await self._extraction_protocols.get_extraction_protocol_by_id(protocol_id)
-
-    async def create_extraction_protocol(self, protocol_data: PromptBlock) -> str:
-        return await self._extraction_protocols.create_extraction_protocol(protocol_data)
-
-    async def update_extraction_protocol(self, protocol_id: str, updates: PromptBlock) -> str:
-        return await self._extraction_protocols.update_extraction_protocol(protocol_id, updates)
-
-    async def delete_extraction_protocol(self, protocol_id: str) -> bool:
-        return await self._extraction_protocols.delete_extraction_protocol(protocol_id)

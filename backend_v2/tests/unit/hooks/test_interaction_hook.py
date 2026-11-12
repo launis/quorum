@@ -18,6 +18,7 @@ from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.interaction_hook import _SYSTEM_INSTRUCTION, analyze_interaction_role
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO, InteractionInput
+from backend_v2.models.domain.metrics import BehavioralMetricsDTO
 from backend_v2.models.enums import CognitiveTier, InteractionStrategy, LLMProvider, RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -54,7 +55,6 @@ async def test_analyze_interaction_role_empty_chat_log(mock_repository: InMemory
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -78,7 +78,6 @@ async def test_analyze_interaction_role_missing_system_repo(mock_repository: InM
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -105,7 +104,6 @@ async def test_analyze_interaction_role_invalid_inputs(mock_repository: InMemory
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -141,7 +139,6 @@ async def test_analyze_interaction_role_prompt_injection(
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -150,8 +147,6 @@ async def test_analyze_interaction_role_prompt_injection(
     )
 
     mock_control_ratio.return_value = 0.5
-    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
-
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=0
     )
@@ -210,7 +205,6 @@ async def test_analyze_interaction_role_garbage_data(
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -219,8 +213,6 @@ async def test_analyze_interaction_role_garbage_data(
     )
 
     mock_control_ratio.return_value = 0.0
-    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
-
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=0
     )
@@ -264,7 +256,6 @@ async def test_analyze_interaction_role_cognitive_conflict(
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -273,8 +264,6 @@ async def test_analyze_interaction_role_cognitive_conflict(
     )
 
     mock_control_ratio.return_value = 0.05
-    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
-
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=1
     )
@@ -323,7 +312,6 @@ async def test_analyze_interaction_role_llm_failure(
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -332,8 +320,6 @@ async def test_analyze_interaction_role_llm_failure(
     )
 
     mock_control_ratio.return_value = 0.5
-    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
-
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=0
     )
@@ -368,7 +354,6 @@ async def test_analyze_interaction_role_configuration_error(
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -377,8 +362,6 @@ async def test_analyze_interaction_role_configuration_error(
     )
 
     mock_control_ratio.return_value = 0.5
-    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
-
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=0
     )
@@ -418,7 +401,6 @@ async def test_analyze_interaction_role_registry_and_provider_override(
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
@@ -427,8 +409,6 @@ async def test_analyze_interaction_role_registry_and_provider_override(
     )
 
     mock_control_ratio.return_value = 0.8
-    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
-
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=2
     )
@@ -471,7 +451,6 @@ async def test_analyze_interaction_role_post_validation_empty_chat_log_short_cir
     deps = HookDependencies(
         exec_repo=mock_repository,
         workflow_repo=mock_repository,
-        comp_repo=mock_repository,
         prompt_block_repo=mock_repository,
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,

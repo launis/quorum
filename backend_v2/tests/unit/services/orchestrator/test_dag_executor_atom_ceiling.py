@@ -45,7 +45,6 @@ async def test_dag_executor_atom_ceiling(
         ),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
-        comp_repo=mock_repo,
         prompt_block_repo=mock_repo,
         output_profile_repo=mock_repo,
         identity_repo=mock_repo,

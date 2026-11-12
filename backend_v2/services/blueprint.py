@@ -10,7 +10,6 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.database.interfaces import (
-    IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
     IOutputProfileRepository,
@@ -93,7 +92,6 @@ class BlueprintTransformer:
     Attributes:
         exec_repo: Repository protocol for execution records.
         workflow_repo: Repository protocol for workflow definitions.
-        comp_repo: Repository protocol for generic components.
         prompt_block_repo: Repository protocol for prompt block definitions.
         output_profile_repo: Repository protocol for output profile definitions.
         identity_repo: Repository protocol for user and organization identities.
@@ -106,7 +104,6 @@ class BlueprintTransformer:
         self,
         exec_repo: IExecutionRepository,
         workflow_repo: IWorkflowRepository,
-        comp_repo: IComponentRepository,
         prompt_block_repo: IPromptBlockRepository,
         output_profile_repo: IOutputProfileRepository,
         identity_repo: IIdentityRepository,
@@ -117,7 +114,6 @@ class BlueprintTransformer:
         Args:
             exec_repo: Repository for execution data.
             workflow_repo: Repository for workflow definitions.
-            comp_repo: Repository for component definitions.
             prompt_block_repo: Repository for prompt block definitions.
             output_profile_repo: Repository for output profile definitions.
             identity_repo: Repository for identity management.
@@ -125,7 +121,6 @@ class BlueprintTransformer:
         """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
-        self.comp_repo = comp_repo
         self.prompt_block_repo = prompt_block_repo
         self.output_profile_repo = output_profile_repo
         self.identity_repo = identity_repo

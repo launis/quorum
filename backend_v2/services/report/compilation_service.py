@@ -189,9 +189,7 @@ class ReportCompilationService:
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
-            transformer = BlueprintTransformer(
-                self.repo, self.repo, self.repo, self.repo, self.repo, self.repo, self.repo
-            )
+            transformer = BlueprintTransformer(self.repo, self.repo, self.repo, self.repo, self.repo, self.repo)
             report_dto = await transformer.build_report_dto(
                 report.execution_id, report.profile_id, report.locale, report.custom_preface_md
             )

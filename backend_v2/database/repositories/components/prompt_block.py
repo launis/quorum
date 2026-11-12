@@ -1,124 +1,75 @@
-"""Extracted Repository for Prompt Blocks."""
+"""Repository implementation for Prompt Blocks."""
 
 from __future__ import annotations
 
 import logging
 
-from backend_v2.database.driver import StorageDriver
-from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
+from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
-from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["PromptBlockRepositoryImpl"]
 
 
-class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
-    """Implementation of the IPromptBlockRepository.
-
-    This repository is responsible for CRUD operations on prompt_blocks.
-    It inherits from AppendOnlyRepositoryBase to support versioned documents.
-
-    Attributes:
-        driver: The underlying storage driver for database operations.
-    """
-
-    def __init__(self, driver: StorageDriver) -> None:
-        """Initializes the repository with a storage driver.
-
-        Args:
-            driver: The underlying storage driver for database operations.
-        """
-        super().__init__(driver)
+class PromptBlockRepositoryImpl(BaseRepository):
+    """Repository implementation for CRUD operations on PromptBlock entities."""
 
     async def get_prompt_block_by_id(self, block_id: str) -> PromptBlock | None:
-        """Retrieves a prompt block by its ID.
+        """Retrieve a prompt block by primary key ID.
 
         Args:
-            block_id: The unique identifier of the prompt block.
+            block_id: Canonical blk_<hex32> prompt block identifier.
 
         Returns:
-            The validated PromptBlock domain model if found, otherwise None.
+            Validated PromptBlock domain model if found, otherwise None.
 
         Raises:
-            AppException: If database query or validation fails
-                (ErrorCodes.VALIDATION_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        doc = await self.driver.get("prompt_blocks", block_id)
-        if not doc:
-            return None
-        try:
-            return PromptBlockAdapter.validate_python(doc, strict=False)
-        except Exception as e:
-            logger.error("Failed to parse PromptBlock %s: %s", block_id, e, exc_info=True)
-            raise AppException(
-                message=f"Failed to parse PromptBlock {block_id} from database",
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
+        async with self._acquire_entities() as entities:
+            return await entities.get_prompt_block(block_id)
 
     async def get_prompt_block(self, block_id: str) -> PromptBlock | None:
-        """Retrieves a prompt block by its ID (alias for get_prompt_block_by_id).
+        """Retrieve a prompt block by primary key ID.
 
         Args:
-            block_id: The unique identifier of the prompt block.
+            block_id: Canonical blk_<hex32> prompt block identifier.
 
         Returns:
-            The validated PromptBlock domain model if found, otherwise None.
-
-        Raises:
-            AppException: If database query or validation fails
-                (ErrorCodes.VALIDATION_FAILED).
+            Validated PromptBlock domain model if found, otherwise None.
         """
         return await self.get_prompt_block_by_id(block_id)
 
     async def get_all_prompt_blocks(self) -> list[PromptBlock]:
-        """Retrieves all prompt blocks from the database.
+        """Retrieve all persisted prompt blocks.
 
         Returns:
-            A list of validated PromptBlock domain models.
+            List of validated PromptBlock domain models.
 
         Raises:
-            AppException: If database query or validation fails
-                (ErrorCodes.VALIDATION_FAILED).
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on hydration/query failure.
         """
-        data = await self.driver.query("prompt_blocks")
-        models: list[PromptBlock] = []
-        for b in data:
-            try:
-                models.append(PromptBlockAdapter.validate_python(b, strict=False))
-            except Exception as e:
-                item_id = "unknown"
-                if "id" in b:
-                    item_id = str(b["id"])
-                logger.error("Failed to parse PromptBlock %s: %s", item_id, e, exc_info=True)
-                raise AppException(
-                    message=f"Failed to parse PromptBlock {item_id} from database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-        return models
+        async with self._acquire_entities() as entities:
+            return await entities.list_prompt_blocks()
 
     async def get_prompt_blocks_by_ids(
         self,
         block_ids: list[str],
         strict: bool = True,
     ) -> list[PromptBlock]:
-        """Batch resolve prompt blocks by ID with mathematical set validation.
+        """Batch resolve prompt blocks by ID with deterministic missing-ID verification.
 
         Args:
-            block_ids: List of prompt block IDs to retrieve.
-            strict: If True, raises AppException when any requested ID is missing.
+            block_ids: Ordered list of canonical blk_<hex32> prompt block IDs to resolve.
+            strict: When True, raises AppException if any requested ID is missing.
 
         Returns:
-            List of validated PromptBlock domain models.
+            List of validated PromptBlock domain models preserving unique request order.
 
         Raises:
-            AppException: If strict=True and any requested block ID is missing
-                (ErrorCodes.RESOURCE_NOT_FOUND), or if validation fails
-                (ErrorCodes.VALIDATION_FAILED).
+            AppException: With RESOURCE_NOT_FOUND (HTTP 404) when strict=True and any block is missing.
         """
         if not block_ids:
             return []
@@ -127,19 +78,20 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         results: list[PromptBlock] = []
         missing_ids: list[str] = []
 
-        for block_id in unique_ids:
-            block = await self.get_prompt_block_by_id(block_id)
-            if block is not None:
-                results.append(block)
-            else:
-                missing_ids.append(block_id)
+        async with self._acquire_entities() as entities:
+            for block_id in unique_ids:
+                block = await entities.get_prompt_block(block_id)
+                if block is not None:
+                    results.append(block)
+                else:
+                    missing_ids.append(block_id)
 
         if strict and missing_ids:
             logger.error(
                 "[PromptBlockRepository] %s: Missing required prompt blocks: %s",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 missing_ids,
-                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "missing_ids": missing_ids},
             )
             raise AppException(
                 message=f"Missing required prompt blocks: {', '.join(missing_ids)}",
@@ -153,116 +105,96 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         return results
 
     async def get_all_prompt_blocks_models(self) -> list[PromptBlock]:
-        """Retrieves all prompt blocks and maps them to Pydantic models.
+        """Retrieve all prompt blocks as validated domain models.
 
         Returns:
-            A list of PromptBlock models.
-
-        Raises:
-            AppException: If database query or validation fails
-                (ErrorCodes.VALIDATION_FAILED).
+            List of validated PromptBlock domain models.
         """
         return await self.get_all_prompt_blocks()
 
     async def create_prompt_block(self, block_data: PromptBlock) -> str:
-        """Creates a new prompt block.
+        """Persist a new PromptBlock record.
 
         Args:
-            block_data: The PromptBlock model containing the prompt block data.
+            block_data: Validated PromptBlock domain model.
 
         Returns:
-            The ID of the created prompt block.
+            Canonical blk_<hex32> identifier of the persisted prompt block.
 
         Raises:
-            AppException: Propagated from driver if the upsert operation fails
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
         """
-        payload = block_data.model_dump(mode="json")
-        doc_id = payload["id"]
-        return await self.driver.upsert("prompt_blocks", payload, doc_id)
+        async with self._acquire_entities() as entities:
+            return await entities.upsert_prompt_block(block_data)
 
     async def update_prompt_block(self, block_id: str, updates: PromptBlock) -> bool:
-        """Updates an existing prompt block using versioned append-only logic.
+        """Update an existing PromptBlock record in-place under its authoritative primary ID.
 
         Args:
-            block_id: The ID of the prompt block to update.
-            updates: PromptBlock domain model containing updated fields.
+            block_id: Canonical blk_<hex32> identifier of the prompt block to update.
+            updates: Validated PromptBlock domain model containing updated fields.
 
         Returns:
-            True if the update was successful, False if the document was not found.
+            True if updated, False if the target prompt block does not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail
-                (ErrorCodes.STORAGE_ACCESS_FAILED).
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
         """
-        old_doc = await self.driver.get("prompt_blocks", block_id)
-        if not old_doc:
-            return False
-
-        await self.driver.update("prompt_blocks", block_id, {"is_latest": False})
-
-        inc = self._increment_version(block_id)
-
-        new_doc = {
-            **old_doc,
-            **updates.model_dump(mode="json", exclude_unset=True),
-            "id": inc.new_id,
-            "is_latest": True,
-            "version": inc.version,
-            "slug": inc.base_id,
-        }
-
-        await self.driver.upsert("prompt_blocks", new_doc, inc.new_id)
-        return True
+        async with self._acquire_entities() as entities:
+            existing = await entities.get_prompt_block(block_id)
+            if existing is None:
+                return False
+            persisted = updates if updates.id == block_id else updates.model_copy(update={"id": block_id})
+            await entities.upsert_prompt_block(persisted)
+            return True
 
     async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
-        """Deletes a prompt block by ID.
-
-        If force_delete is False, the method checks if the prompt block is currently
-        used by any existing step and blocks the deletion if it is.
+        """Delete a PromptBlock by ID after checking active step references when force_delete is False.
 
         Args:
-            block_id: The ID of the prompt block to delete.
-            force_delete: If True, bypasses usage checks and forces deletion.
+            block_id: Canonical blk_<hex32> prompt block identifier.
+            force_delete: When True, bypasses active step usage checks.
 
         Returns:
-            True if successfully deleted, False if the document did not exist.
+            True if deleted, False if the prompt block did not exist.
 
         Raises:
-            AppException: With ErrorCodes.DELETE_BLOCKED_BY_USAGE if force_delete
-                is False and the prompt block is used by a step.
+            AppException: With DELETE_BLOCKED_BY_USAGE (HTTP 400) if referenced by a Step.
         """
-        block = await self.driver.get("prompt_blocks", block_id)
-        if not block:
-            return False
+        async with self._acquire_entities() as entities:
+            existing = await entities.get_prompt_block(block_id)
+            if existing is None:
+                return False
 
-        if not force_delete:
-            steps_data = await self.driver.query("steps")
-            for s in steps_data:
-                step = Step.model_validate(s, strict=False)
-                referenced_ids = {
-                    step.role_block_id,
-                    step.extraction_protocol_block_id,
-                    step.execution_persona_block_id,
-                    *step.criteria_block_ids,
-                }
-                if block_id in referenced_ids:
-                    logger.error(
-                        "[PromptBlockRepository] %s: PromptBlock %s delete blocked by step %s usage.",
-                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                        block_id,
-                        step.id,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "step_id": step.id},
-                    )
-                    raise AppException(
-                        message=f"PromptBlock delete blocked by step '{step.id}' usage.",
-                        details={
-                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                            "prompt_block_id": block_id,
-                            "step_id": step.id,
-                        },
-                        status_code=400,
-                    )
+            if not force_delete:
+                steps = await entities.list_steps()
+                for step in steps:
+                    referenced_ids = {
+                        step.role_block_id,
+                        step.extraction_protocol_block_id,
+                        step.execution_persona_block_id,
+                        *step.criteria_block_ids,
+                    }
+                    if block_id in referenced_ids:
+                        logger.error(
+                            "[PromptBlockRepository] %s: PromptBlock %s delete blocked by step %s usage.",
+                            ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                            block_id,
+                            step.id,
+                            extra={
+                                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                                "prompt_block_id": block_id,
+                                "step_id": step.id,
+                            },
+                        )
+                        raise AppException(
+                            message=f"PromptBlock delete blocked by step '{step.id}' usage.",
+                            details={
+                                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                                "prompt_block_id": block_id,
+                                "step_id": step.id,
+                            },
+                            status_code=400,
+                        )
 
-        return await self.driver.delete("prompt_blocks", block_id)
+            return await entities.delete_prompt_block(block_id)
