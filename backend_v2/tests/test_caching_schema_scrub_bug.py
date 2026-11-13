@@ -21,7 +21,6 @@ async def test_caching_schema_scrub_bug() -> None:
         provider="ai_studio",
         tpm_limit=100000,
         rpm_limit=100,
-        parsing_mode="STRUCTURED_JSON",
     )
 
     client = LLMClient(config=config)

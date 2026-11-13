@@ -134,7 +134,7 @@ def mock_blueprint_repos() -> InMemoryUnifiedWorkflowRepository:
         name=I18nText(translations={"en": "Test Workflow", "fi": "Testi työnkulku"}),
         default_profile_id=_PROFILE_ID,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         default_strictness_level=85,
         steps=[],
     )

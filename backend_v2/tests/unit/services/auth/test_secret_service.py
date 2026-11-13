@@ -150,7 +150,8 @@ def _make_mcp_gateway(
 ) -> SystemConfigMCPGateways:
     """Create a valid SystemConfigMCPGateways instance for unit testing."""
     return SystemConfigMCPGateways(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
         name="Enterprise Search Gateway",
         slug="enterprise_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
@@ -754,7 +755,8 @@ async def test_llm_factory_and_dispatcher_byok_request_scoped_injection_positive
         enabled=True,
     )
     gateway = SystemConfigMCPGateways(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=org_a,
         name="Enterprise Search Gateway",
         slug="ent_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
@@ -880,7 +882,7 @@ def leak_in_log(cred: ResolvedCredentialDTO) -> None:
     logger.info("Resolved key", extra={"raw": cred.secret_value.get_secret_value()})
     MCPAuditTrace(
         step_id="stp_0195f3a0000070008000000000000001",
-        gateway_id="sys_0195f3a0000070008000000000000001",
+        gateway_id="mcp_0195f3a0000070008000000000000001",
         tool_name=cred.secret_value.get_secret_value(),
         arguments={},
         status="SUCCESS",
@@ -950,7 +952,8 @@ async def test_secret_service_root_system_inheritance_and_custom_mcp_gateway_wit
     assert resolved_llm.secret_value.get_secret_value() == multiline_vertex_sa_json
 
     custom_gateway = SystemConfigMCPGateways(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=root_org_id,
         name="Custom Enterprise MCP Server",
         slug="custom_enterprise_mcp",
         endpoint_url="https://mcp.custom.example.com/v1/mcp",

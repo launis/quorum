@@ -112,7 +112,7 @@ async def test_mcp_gateways_router_full_lifecycle(
 
     draft = await create_mcp_gateways(current_user=root_user, studio_service=studio_service)
     assert re.match(OPAQUE_STRIPE_ID_REGEX, draft.id)
-    assert draft.id.split("_", 1)[0] == EntityPrefix.SYSTEM_CONFIG
+    assert draft.id.split("_", 1)[0] == EntityPrefix.MCP_GATEWAY
 
     fetched = await get_mcp_gateway(
         gateway_id=draft.id,
@@ -172,7 +172,7 @@ async def test_mcp_gateways_router_negative_cases(
             await get_all_mcp_gateways(current_user=caller, studio_service=studio_service)
         with pytest.raises(PermissionDeniedError):
             await get_mcp_gateway(
-                gateway_id="sys_abcdef1234567890abcdef1234567890",
+                gateway_id="mcp_0195f3a0000070088abcdef012345678",
                 current_user=caller,
                 studio_service=studio_service,
             )
@@ -189,21 +189,21 @@ async def test_mcp_gateways_router_negative_cases(
 
     with pytest.raises(ResourceNotFoundError):
         await get_mcp_gateway(
-            gateway_id="sys_0195f3a0000070098999999999999999",
+            gateway_id="mcp_0195f3a0000070098999999999999999",
             current_user=root_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(ResourceNotFoundError):
         await delete_mcp_gateway(
-            gateway_id="sys_0195f3a0000070098999999999999999",
+            gateway_id="mcp_0195f3a0000070098999999999999999",
             current_user=root_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(ResourceNotFoundError):
         await discover_mcp_gateway_tools(
-            gateway_id="sys_0195f3a0000070098999999999999999",
+            gateway_id="mcp_0195f3a0000070098999999999999999",
             current_user=root_user,
             studio_service=studio_service,
         )
@@ -224,7 +224,7 @@ async def test_mcp_gateways_router_negative_cases(
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-    missing_gw_id = "sys_0195f3a0000070098999999999999999"
+    missing_gw_id = "mcp_0195f3a0000070098999999999999999"
     with pytest.raises(ResourceNotFoundError):
         await save_mcp_gateway(
             gateway_id=missing_gw_id,
@@ -235,7 +235,7 @@ async def test_mcp_gateways_router_negative_cases(
 
     with pytest.raises(AppException) as mismatch_exc_info:
         await save_mcp_gateway(
-            gateway_id="sys_0195f3a0000070098999999999999999",
+            gateway_id="mcp_0195f3a0000070098999999999999999",
             data=duplicate_gw,
             current_user=root_user,
             studio_service=studio_service,

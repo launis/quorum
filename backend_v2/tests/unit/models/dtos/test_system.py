@@ -6,21 +6,21 @@ from pydantic import ValidationError
 from backend_v2.models.domain.system_config import (
     ModelProfile,
     ProviderExtraParamsDTO,
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
 )
 from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.system import (
-    AnySystemConfigAdapter,
     ClientErrorPayload,
     HealthCheckResponseDTO,
     HookListResponse,
+    MCPGatewayCreateDTO,
+    MCPGatewayUpdateDTO,
+    MCPGatewayUpsertDTO,
+    ModelRegistryCreateDTO,
+    ModelRegistryUpdateDTO,
+    ModelRegistryUpsertDTO,
     SafetySettingDTO,
     StrictnessConfigDTO,
     StrictnessConfigListResponse,
-    SystemConfigCreateDTO,
-    SystemConfigUpdateDTO,
-    SystemConfigUpsertDTO,
 )
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import CognitiveTier, LLMProvider
@@ -135,8 +135,8 @@ def test_strictness_config_dtos_strictness_invalid() -> None:
         StrictnessConfigListResponse.model_validate_json('{"configs": [], "extra": true}')
 
 
-def test_system_config_dtos_and_discriminated_union_invalid() -> None:
-    """Verify AnySystemConfig discriminated union and SystemConfig CRUD DTOs without SystemSettingsDTO."""
+def test_model_registry_and_mcp_gateway_dtos_strictness_and_boundaries() -> None:
+    """Verify dedicated ModelRegistry*DTO and MCPGateway*DTO positive, negative, and boundary validation."""
     dummy_profile = ModelProfile(
         model_name="gemini-2.5-flash",
         provider="ai_studio",
@@ -147,62 +147,100 @@ def test_system_config_dtos_and_discriminated_union_invalid() -> None:
         allowed_tools=[],
         additional_params=ProviderExtraParamsDTO(),
     )
-    model_reg = SystemConfigModelRegistry(
-        id="sys_0195f3a0000070018234567890abcdef",
-        name="Test Registry",
-        type="model_registry",
-        default_provider=LLMProvider.AI_STUDIO,
-        tier_definitions={
-            CognitiveTier.FAST: dummy_profile,
-            CognitiveTier.BALANCED: dummy_profile,
-            CognitiveTier.DEEP: dummy_profile,
-            CognitiveTier.REASONING: dummy_profile,
-        },
-    )
-    mcp_gw = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070018234567890abcde0",
-        name="Test MCP Gateway",
-        slug="test_mcp_gateway",
-        type="mcp_gateways",
-        tools=[],
-    )
-    validated_union = AnySystemConfigAdapter.validate_python(model_reg.model_dump(mode="python"))
-    assert isinstance(validated_union, SystemConfigModelRegistry)
-    assert validated_union.type == "model_registry"
+    complete_tiers = {
+        CognitiveTier.FAST: dummy_profile,
+        CognitiveTier.BALANCED: dummy_profile,
+        CognitiveTier.DEEP: dummy_profile,
+        CognitiveTier.REASONING: dummy_profile,
+    }
+    org_id = "org_0195f3a0000070008000000000000001"
+    mrg_id = "mrg_0195f3a0000070018234567890abcdef"
+    mcp_id = "mcp_0195f3a0000070018234567890abcde0"
 
-    validated_mcp = AnySystemConfigAdapter.validate_python(mcp_gw.model_dump(mode="python"))
-    assert isinstance(validated_mcp, SystemConfigMCPGateways)
+    reg_create = ModelRegistryCreateDTO(
+        name="Test Registry",
+        slug="test_registry",
+        default_provider=LLMProvider.AI_STUDIO,
+        tier_definitions=complete_tiers,
+    )
+    assert reg_create.name == "Test Registry"
 
     with pytest.raises(ValidationError):
-        AnySystemConfigAdapter.validate_json(
-            '{"type": "system_settings", "id": "sys_0195f3a0000070018234567890abcdef"}'
+        ModelRegistryCreateDTO(
+            name="Incomplete Registry",
+            tier_definitions={CognitiveTier.FAST: dummy_profile},
         )
 
-    update_dto = SystemConfigUpdateDTO(model_registry=model_reg, mcp_gateways=mcp_gw)
-    assert update_dto.model_registry is not None
-    assert update_dto.mcp_gateways is not None
+    reg_update = ModelRegistryUpdateDTO(name="Updated Registry", tier_definitions=complete_tiers)
+    assert reg_update.name == "Updated Registry"
 
     with pytest.raises(ValidationError):
-        SystemConfigUpdateDTO.model_validate_json('{"system_settings": {}}')
+        ModelRegistryUpdateDTO(tier_definitions={CognitiveTier.FAST: dummy_profile})
 
-    create_dto = SystemConfigCreateDTO(
-        type="mcp_gateways",
-        content=mcp_gw,
+    reg_upsert = ModelRegistryUpsertDTO(
+        id=mrg_id,
+        name="Upsert Registry",
+        tier_definitions=complete_tiers,
     )
-    assert create_dto.type == "mcp_gateways"
+    assert reg_upsert.id == mrg_id
 
     with pytest.raises(ValidationError):
-        SystemConfigCreateDTO(type="", content=mcp_gw)
+        ModelRegistryUpsertDTO(
+            id=mcp_id,
+            name="Wrong Prefix Registry",
+            tier_definitions=complete_tiers,
+        )
 
-    upsert_dto = SystemConfigUpsertDTO(
-        id="sys_0195f3a0000070018234567890abcde0",
-        type="mcp_gateways",
-        content=mcp_gw,
+    gw_create = MCPGatewayCreateDTO(
+        organization_id=org_id,
+        name="Test MCP Gateway",
+        slug="test_mcp_gateway",
+        timeout_seconds=1,
+        tools=[],
     )
-    assert upsert_dto.id == "sys_0195f3a0000070018234567890abcde0"
+    assert gw_create.organization_id == org_id
+    assert gw_create.timeout_seconds == 1
 
     with pytest.raises(ValidationError):
-        SystemConfigUpsertDTO(type="", content=mcp_gw)
+        MCPGatewayCreateDTO(
+            organization_id="usr_0195f3a0000070008000000000000001",
+            name="Bad Org Gateway",
+            slug="test_mcp_gateway",
+            tools=[],
+        )
+
+    with pytest.raises(ValidationError):
+        MCPGatewayCreateDTO(
+            organization_id=org_id,
+            name="Zero Timeout Gateway",
+            slug="test_mcp_gateway",
+            timeout_seconds=0,
+            tools=[],
+        )
+
+    gw_update = MCPGatewayUpdateDTO(organization_id=org_id, timeout_seconds=300)
+    assert gw_update.timeout_seconds == 300
+
+    with pytest.raises(ValidationError):
+        MCPGatewayUpdateDTO(timeout_seconds=301)
+
+    gw_upsert = MCPGatewayUpsertDTO(
+        id=mcp_id,
+        organization_id=org_id,
+        name="Upsert MCP Gateway",
+        slug="upsert_mcp_gateway",
+        tools=[],
+    )
+    assert gw_upsert.id == mcp_id
+
+    with pytest.raises(ValidationError):
+        MCPGatewayUpsertDTO(
+            id=mrg_id,
+            organization_id=org_id,
+            name="Wrong Prefix Gateway",
+            slug="upsert_mcp_gateway",
+            tools=[],
+        )
 
 
 def test_closed_dtos_reject_unrecognized_extra_keys_invalid() -> None:

@@ -118,7 +118,7 @@ async def test_independent_steps_continue_on_sibling_failure(
     )
 
     workflow = WorkflowFactory.build(
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070048444444444444444",
         slug="wf_tg",
@@ -220,7 +220,7 @@ async def test_dependent_steps_fail_fast_on_parent_failure(
     )
 
     workflow = WorkflowFactory.build(
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070048444444444444444",
         slug="wf_tg_dep",
@@ -312,7 +312,7 @@ async def test_step_transient_failure_exhausts_retries(
     )
 
     workflow = WorkflowFactory.build(
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070048444444444444444",
         slug="wf_tg_retry",
@@ -418,7 +418,7 @@ async def test_dynamic_synthesis_model_strategy_routing(
         name=I18nText(translations={"en": "Test Workflow"}),
         organization_id="org_0195f3a00000700283456789abcdef01",
         default_profile_id="prof_0195f3a00000700283456789abcdef01",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         slug="test-workflow",
         description=I18nText(translations={"en": "A test workflow"}),
         status="draft",
@@ -519,7 +519,7 @@ async def test_intermediate_progress_callback_lock_failure_does_not_crash_step(
     )
 
     workflow = WorkflowFactory.build(
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_progress_test",

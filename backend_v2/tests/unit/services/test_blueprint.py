@@ -166,7 +166,7 @@ def mock_repo_transformer() -> Any:
             version=1,
             default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             default_strictness_level=85,
             steps=[],
         )
@@ -257,10 +257,10 @@ def mock_repo_transformer() -> Any:
 
     repo.set_mcp_gateways(
         SystemConfigMCPGateways(
-            id="sys_0195f3a0000070008000000000000001",
+            id="mcp_0195f3a0000070008000000000000001",
+            organization_id="org_0195f3a0000070008000000000000001",
             name="Default MCP Gateway",
             slug="default_mcp_gateway",
-            type="mcp_gateways",
             tools=[],
         )
     )
@@ -311,7 +311,7 @@ def mock_repo_microcot() -> Any:
             name=I18nText(translations={"en": "Mock Workflow", "fi": "Mock Workflow"}),
             default_profile_id="prf_0195f3a0000070018234567890abcdef",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             default_strictness_level=85,
             steps=[],
         )
@@ -457,7 +457,7 @@ def mock_repo_sdui() -> Any:
             version=1,
             default_profile_id="prf_0195f3a0000070018234abcd1234abcd",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             default_strictness_level=85,
             steps=[],
         )
@@ -787,7 +787,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
             version=1,
             default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             default_strictness_level=85,
             steps=[
                 StepRule(
@@ -1085,7 +1085,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             version=1,
             default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             default_strictness_level=85,
             steps=[
                 StepRule(
@@ -1542,7 +1542,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             historical_context_mode=__import__(
                 "backend_v2.models.enums", fromlist=["HistoricalContextMode"]
             ).HistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
             steps=[
                 StepRule(
@@ -2459,7 +2459,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         status="active",
         version=1,
         default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         mcp_gateway_id=None,
         historical_context_mode="DISABLED",
         expected_inputs=[],
@@ -3004,7 +3004,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         version=1,
         default_profile_id=profile.id,
         default_strictness_level=80,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         mcp_gateway_id=None,
         historical_context_mode="DISABLED",
         expected_inputs=[],
@@ -3074,9 +3074,9 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
         id="wf_0195f3a0000070008000000000000001",
         slug="wf-test",
         organization_id="org_0195f3a0000070008000000000000001",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         default_profile_id=profile.id,
-        mcp_gateway_id="sys_0195f3a00000700080008172bda70c86",
+        mcp_gateway_id="mcp_0195f3a00000700080008172bda70c86",
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Description"}),
         status="active",
@@ -3100,10 +3100,10 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
     mock_repo_transformer.set_execution(exec_record)
     mock_repo_transformer.set_mcp_gateways(
         {
-            "id": "sys_0195f3a00000700080008172bda70c86",
+            "id": "mcp_0195f3a00000700080008172bda70c86",
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "name": "Tavily MCP Gateway",
             "slug": "default_mcp_gateway",
-            "type": "mcp_gateways",
             "tools": [
                 {
                     "tool_id": "mcp_tavily_search",
@@ -3210,7 +3210,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         id="wf_0195f3a0000070008000000000000002",
         slug="wf-override",
         organization_id="org_0195f3a0000070008000000000000001",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         default_profile_id=profile.id,
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Description"}),
@@ -3421,7 +3421,7 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
         id="wf_0195f3a0000070008000000000000001",
         slug="wf-test",
         organization_id="org_0195f3a0000070008000000000000001",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         default_profile_id=profile.id,
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Description"}),
@@ -3542,7 +3542,7 @@ async def test_blueprint_variance_target_block_adherence(
         id="wf_0195f3a0000070008000000000000002",
         slug="wf-var",
         organization_id="org_0195f3a0000070008000000000000001",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         default_profile_id=profile.id,
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Description"}),
@@ -3645,10 +3645,10 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         description=I18nText(translations={"en": "Desc"}),
         status="published",
         version=1,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode="DISABLED",
         default_profile_id=profile.id,
-        mcp_gateway_id="sys_0195f3a0000070008000000000000001",
+        mcp_gateway_id="mcp_0195f3a0000070008000000000000001",
         steps=[],
     )
     mock_repo_transformer.set_output_profiles([profile])
@@ -3685,10 +3685,10 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
 
     mock_repo_transformer.set_mcp_gateways(
         SystemConfigMCPGateways(
-            id="sys_0195f3a0000070008000000000000001",
+            id="mcp_0195f3a0000070008000000000000001",
+            organization_id="org_0195f3a0000070008000000000000001",
             name="Default MCP Gateway",
             slug="default_mcp_gateway",
-            type="mcp_gateways",
             tools=[],
         )
     )
@@ -3890,10 +3890,10 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         description=I18nText(translations={"en": "Desc"}),
         status="published",
         version=1,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode="DISABLED",
         default_profile_id=profile.id,
-        mcp_gateway_id="sys_0195f3a0000070008000000000000001",
+        mcp_gateway_id="mcp_0195f3a0000070008000000000000001",
         steps=[],
     )
     repo.set_output_profiles([profile])
@@ -3901,10 +3901,10 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     repo.set_prompt_blocks([])
     repo.set_mcp_gateways(
         SystemConfigMCPGateways(
-            id="sys_0195f3a0000070008000000000000001",
+            id="mcp_0195f3a0000070008000000000000001",
+            organization_id="org_0195f3a0000070008000000000000001",
             name="Default MCP Gateway",
             slug="default_mcp_gateway",
-            type="mcp_gateways",
             tools=[],
         )
     )
@@ -4040,7 +4040,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_trace() -> Non
         description=I18nText(translations={"en": "Desc"}),
         status="published",
         version=1,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode="DISABLED",
         default_profile_id=profile.id,
         steps=[],
@@ -4135,7 +4135,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
         description=I18nText(translations={"en": "Desc"}),
         status="published",
         version=1,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode="DISABLED",
         default_profile_id=profile.id,
         steps=[],
@@ -4236,7 +4236,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_output_dt
         description=I18nText(translations={"en": "Desc"}),
         status="published",
         version=1,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode="DISABLED",
         default_profile_id=profile.id,
         steps=[],

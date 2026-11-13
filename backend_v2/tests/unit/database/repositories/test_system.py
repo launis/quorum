@@ -1,17 +1,19 @@
 """Unit and boundary tests for SystemRepositoryImpl over InMemoryUnitOfWork.
 
 Covers stateful persistence and deterministic ordering for SystemConfigModelRegistry
-and SystemConfigMCPGateways, polymorphic SystemConfigCreateDTO creation, deletion,
-and negative ResourceNotFoundError and identifier validation boundaries.
+and SystemConfigMCPGateways, ON DELETE RESTRICT referential integrity against workflows,
+deletion, and negative ResourceNotFoundError and identifier validation boundaries.
 """
 
 from __future__ import annotations
 
 import pytest
+from polyfactory import Use
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.core_base import generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
@@ -20,7 +22,6 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
-from backend_v2.models.dtos.system import AnySystemConfigAdapter, SystemConfigCreateDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     EntityPrefix,
@@ -29,6 +30,7 @@ from backend_v2.models.enums import (
     MCPAuthType,
     MCPTransportType,
 )
+from backend_v2.tests.factories.model_factories import WorkflowFactory
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 
@@ -43,12 +45,12 @@ class SystemConfigModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
 
     @classmethod
     def id(cls) -> str:
-        """Generate a canonical sys_<hex32> UUIDv7 Opaque Stripe ID.
+        """Generate a canonical mrg_<hex32> UUIDv7 Opaque Stripe ID.
 
         Returns:
-            Canonical Opaque Stripe ID with 'sys_' prefix.
+            Canonical Opaque Stripe ID with 'mrg_' prefix.
         """
-        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        return generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     @classmethod
     def slug(cls) -> str:
@@ -100,6 +102,7 @@ class SystemConfigMCPGatewaysFactory(ModelFactory[SystemConfigMCPGateways]):
     __model__ = SystemConfigMCPGateways
     __set_as_default_factory_for_type__ = False
 
+    organization_id = Use(generate_opaque_id, EntityPrefix.ORGANIZATION)
     name: str = "Primary MCP Gateway"
     endpoint_url: str = "https://mcp.example.org/v1"
     transport_type: MCPTransportType = MCPTransportType.STREAMABLE_HTTP
@@ -110,12 +113,12 @@ class SystemConfigMCPGatewaysFactory(ModelFactory[SystemConfigMCPGateways]):
 
     @classmethod
     def id(cls) -> str:
-        """Generate a canonical sys_<hex32> UUIDv7 Opaque Stripe ID.
+        """Generate a canonical mcp_<hex32> UUIDv7 Opaque Stripe ID.
 
         Returns:
-            Canonical Opaque Stripe ID with 'sys_' prefix.
+            Canonical Opaque Stripe ID with 'mcp_' prefix.
         """
-        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        return generate_opaque_id(EntityPrefix.MCP_GATEWAY)
 
     @classmethod
     def slug(cls) -> str:
@@ -170,7 +173,7 @@ async def test_model_registry_crud_and_ordering_roundtrip(repo: SystemRepository
 
     fetched_alpha = await repo.get_model_registry(reg_alpha.id)
     assert fetched_alpha == reg_alpha
-    assert AnySystemConfigAdapter.validate_python(fetched_alpha.model_dump(mode="json")) == reg_alpha
+    assert SystemConfigModelRegistry.model_validate(fetched_alpha.model_dump(mode="json")) == reg_alpha
 
     all_registries = await repo.get_all_model_registries()
     assert [item.id for item in all_registries] == [reg_alpha.id, reg_zeta.id]
@@ -202,35 +205,47 @@ async def test_mcp_gateways_crud_default_lookup_and_ordering_roundtrip(
 
 
 @pytest.mark.asyncio
-async def test_create_get_and_delete_system_config_polymorphic_roundtrip(
+async def test_model_registry_and_mcp_gateway_roundtrip_and_fk_restrict(
     repo: SystemRepositoryImpl,
+    base_uow: InMemoryUnitOfWork,
 ) -> None:
-    """Verify create_system_config applies slug override for MCP gateways and delete_system_config removes records."""
+    """Verify roundtrip persistence and ON DELETE RESTRICT protection when referenced by a Workflow."""
     reg = SystemConfigModelRegistryFactory.build()
-    created_reg_id = await repo.create_system_config(
-        SystemConfigCreateDTO(type="model_registry", content=reg, slug=reg.slug)
-    )
-    assert created_reg_id == reg.id
-    assert await repo.get_system_config(reg.id) == reg
+    gw = SystemConfigMCPGatewaysFactory.build(organization_id=SystemOrganizations.ROOT_SYSTEM.value)
 
-    gw = SystemConfigMCPGatewaysFactory.build(slug="initial_gateway_slug")
-    created_gw_id = await repo.create_system_config(
-        SystemConfigCreateDTO(type="mcp_gateways", content=gw, slug="overridden_gateway_slug")
-    )
-    assert created_gw_id == gw.id
-    fetched_gw = await repo.get_system_config(gw.id)
-    assert isinstance(fetched_gw, SystemConfigMCPGateways)
-    assert fetched_gw.slug == "overridden_gateway_slug"
+    assert await repo.update_model_registry(reg) is True
+    assert await repo.update_mcp_gateways(gw) is True
+    assert await repo.get_model_registry(reg.id) == reg
+    assert await repo.get_mcp_gateways(id=gw.id) == gw
 
-    assert await repo.delete_system_config(gw.id) is True
-    assert await repo.get_system_config(gw.id) is None
-    assert await repo.delete_system_config(gw.id) is False
+    wf = WorkflowFactory.build(model_registry_id=reg.id, mcp_gateway_id=gw.id)
+    await base_uow.entities.upsert_workflow(wf)
+
+    with pytest.raises(AppException) as reg_del_exc:
+        await repo.delete_model_registry(reg.id)
+    assert reg_del_exc.value.status_code == 400
+    assert reg_del_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    with pytest.raises(AppException) as gw_del_exc:
+        await repo.delete_mcp_gateways(gw.id)
+    assert gw_del_exc.value.status_code == 400
+    assert gw_del_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    unused_reg = SystemConfigModelRegistryFactory.build()
+    unused_gw = SystemConfigMCPGatewaysFactory.build()
+    await repo.update_model_registry(unused_reg)
+    await repo.update_mcp_gateways(unused_gw)
+
+    assert await repo.delete_model_registry(unused_reg.id) is True
+    assert await repo.delete_model_registry(unused_reg.id) is False
+    assert await repo.delete_mcp_gateways(unused_gw.id) is True
+    assert await repo.delete_mcp_gateways(unused_gw.id) is False
 
 
 @pytest.mark.asyncio
 async def test_get_model_registry_not_found_and_empty_id_error(repo: SystemRepositoryImpl) -> None:
     """Verify get_model_registry raises ResourceNotFoundError for missing or empty registry_id."""
-    missing_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    missing_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     with pytest.raises(ResourceNotFoundError) as missing_exc:
         await repo.get_model_registry(missing_id)
@@ -245,11 +260,11 @@ async def test_get_model_registry_not_found_and_empty_id_error(repo: SystemRepos
 async def test_get_mcp_gateways_not_found_and_cross_type_mismatch_error(
     repo: SystemRepositoryImpl,
 ) -> None:
-    """Verify get_mcp_gateways and get_model_registry reject missing or mismatched SystemConfig types."""
+    """Verify get_mcp_gateways and get_model_registry reject missing or cross-prefixed entity IDs."""
     with pytest.raises(ResourceNotFoundError):
         await repo.get_mcp_gateways()
 
-    missing_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    missing_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
     with pytest.raises(ResourceNotFoundError):
         await repo.get_mcp_gateways(id=missing_id)
 
@@ -258,19 +273,26 @@ async def test_get_mcp_gateways_not_found_and_cross_type_mismatch_error(
     await repo.update_model_registry(reg)
     await repo.update_mcp_gateways(gw)
 
-    with pytest.raises(ResourceNotFoundError):
+    with pytest.raises(AppException) as bad_gw_exc:
         await repo.get_mcp_gateways(id=reg.id)
+    assert bad_gw_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-    with pytest.raises(ResourceNotFoundError):
+    with pytest.raises(AppException) as bad_reg_exc:
         await repo.get_model_registry(gw.id)
+    assert bad_reg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
-async def test_get_system_config_invalid_prefix_failure(repo: SystemRepositoryImpl) -> None:
-    """Verify get_system_config raises AppException VALIDATION_FAILED when given a non-sys prefix."""
+async def test_delete_model_registry_and_mcp_gateways_invalid_prefix_failure(
+    repo: SystemRepositoryImpl,
+) -> None:
+    """Verify delete_model_registry and delete_mcp_gateways raise AppException VALIDATION_FAILED on wrong prefix."""
     invalid_id = generate_opaque_id(EntityPrefix.WORKFLOW)
 
-    with pytest.raises(AppException) as exc_info:
-        await repo.get_system_config(invalid_id)
+    with pytest.raises(AppException) as reg_exc:
+        await repo.delete_model_registry(invalid_id)
+    assert reg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    with pytest.raises(AppException) as gw_exc:
+        await repo.delete_mcp_gateways(invalid_id)
+    assert gw_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

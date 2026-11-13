@@ -103,7 +103,7 @@ def _make_test_workflow(
     workflow_id: str = "wor_0195f3a0000070008123456789abcdef",
     organization_id: str = "org_1",
     default_profile_id: str | None = "prf_0195f3a0000070008123456789abcdef",
-    model_registry_id: str | None = "sys_0195f3a00000700e826807f3bfa3454d",
+    model_registry_id: str | None = "mrg_0195f3a00000700e826807f3bfa3454d",
     **kwargs: Any,
 ) -> Workflow:
     base_fields = {
@@ -349,7 +349,7 @@ async def test_start_execution_success() -> None:
     assert result.workflow_id == "wor_0195f3a0000070008123456789abcdef"
     assert result.status == ExecutionStatus.PENDING
     assert result.metadata is not None
-    assert result.metadata.model_registry_id == "sys_0195f3a00000700e826807f3bfa3454d"
+    assert result.metadata.model_registry_id == "mrg_0195f3a00000700e826807f3bfa3454d"
     arq_pool.enqueue_job.assert_called_once()
 
 
@@ -370,9 +370,8 @@ async def test_start_execution_model_registry_override() -> None:
     repo.set_output_profiles([valid_profile])
 
     override_reg = SystemConfigModelRegistry(
-        id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+        id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
         name="Override Model Registry",
-        type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={
             CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
@@ -393,7 +392,7 @@ async def test_start_execution_model_registry_override() -> None:
         target_locale="en",
         profile_id=valid_profile.id,
         matrix_sampling_strategy=10,
-        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+        model_registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
     )
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
@@ -401,7 +400,7 @@ async def test_start_execution_model_registry_override() -> None:
     result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
     assert result.metadata is not None
-    assert result.metadata.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
+    assert result.metadata.model_registry_id == "mrg_0195f3a0000070068f8b1c4a2e0d49f1"
 
 
 @pytest.mark.asyncio
@@ -584,11 +583,11 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
     service, repo = _create_test_service()
     repo.inject_fault(
         "get_model_registry",
-        ResourceNotFoundError(resource_type="system_config", resource_id="sys_0195f3a0000070008000000000000000"),
+        ResourceNotFoundError(resource_type="system_config", resource_id="mrg_0195f3a0000070008000000000000000"),
     )
     service.usage_service.check_quota.return_value = True
 
-    wf = _make_test_workflow(default_profile_id=None, model_registry_id="sys_0195f3a0000070008000000000000000")
+    wf = _make_test_workflow(default_profile_id=None, model_registry_id="mrg_0195f3a0000070008000000000000000")
     repo.set_workflow(wf)
 
     payload = ExecutionCreate(
@@ -840,7 +839,7 @@ async def test_start_execution_with_steps_and_blocks() -> None:
         organization_id="org_0195f3a0000070008123456789abcdef",
         is_public=False,
         default_profile_id="prf_0195f3a0000070008123456789abcdef",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[],
         steps=[
             StepRule(
@@ -1213,7 +1212,7 @@ async def test_start_execution_additional_error_branches() -> None:
         version=1,
         status="ACTIVE",
         default_profile_id="prf_0195f3a0000070008123456789abcdef",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[
@@ -1406,7 +1405,7 @@ async def test_start_execution_fails_fast_when_registry_obj_is_none() -> None:
     service, repo = _create_test_service()
     service.usage_service.check_quota.return_value = True
 
-    wf = _make_test_workflow(default_profile_id=None, model_registry_id="sys_0195f3a00000700e826807f3bfa3454d")
+    wf = _make_test_workflow(default_profile_id=None, model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d")
     repo.set_workflow(wf)
     repo.set_model_registry(None)
 

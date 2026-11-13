@@ -1,4 +1,4 @@
-"""Database repository implementation module for System config, MCP gateways, and Model registries."""
+"""Database repository implementation module for Model Registries and MCP Gateways."""
 
 from __future__ import annotations
 
@@ -7,10 +7,6 @@ import logging
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
-from backend_v2.models.dtos.system import (
-    AnySystemConfig,
-    SystemConfigCreateDTO,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -21,29 +17,29 @@ class SystemRepositoryImpl(BaseRepository):
     """Repository implementation for SystemConfigModelRegistry and SystemConfigMCPGateways."""
 
     async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
-        """Retrieve a system model registry configuration by its explicit ID.
+        """Retrieve a model registry configuration by its explicit mrg_<hex32> ID.
 
         Args:
-            registry_id: Authoritative sys_<hex32> model registry ID.
+            registry_id: Authoritative mrg_<hex32> model registry ID.
 
         Returns:
             Validated SystemConfigModelRegistry domain model.
 
         Raises:
-            ResourceNotFoundError: If registry_id is empty, not found, or not a model registry.
+            ResourceNotFoundError: If registry_id is empty or not found.
         """
         if not registry_id:
-            logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: registry_id is required.")
-            raise ResourceNotFoundError(resource_type="system_config", resource_id="")
+            logger.error("[SystemRepository] MODEL_REGISTRY_NOT_FOUND: registry_id is required.")
+            raise ResourceNotFoundError(resource_type="model_registry", resource_id="")
 
         async with self._acquire_entities() as entities:
-            cfg = await entities.get_system_config(registry_id)
-        if cfg is None or not isinstance(cfg, SystemConfigModelRegistry):
+            cfg = await entities.get_model_registry(registry_id)
+        if cfg is None:
             logger.error(
-                "[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: Model registry '%s' is missing.",
+                "[SystemRepository] MODEL_REGISTRY_NOT_FOUND: Model registry '%s' is missing.",
                 registry_id,
             )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id)
+            raise ResourceNotFoundError(resource_type="model_registry", resource_id=registry_id)
         return cfg
 
     async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
@@ -53,12 +49,11 @@ class SystemRepositoryImpl(BaseRepository):
             List of validated SystemConfigModelRegistry domain models.
         """
         async with self._acquire_entities() as entities:
-            configs = await entities.list_system_configs()
-        models = [cfg for cfg in configs if isinstance(cfg, SystemConfigModelRegistry)]
+            models = await entities.list_model_registries()
         return sorted(models, key=lambda m: (m.name, m.id))
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
-        """Upsert a SystemConfigModelRegistry using its authoritative ID.
+        """Upsert a SystemConfigModelRegistry using its authoritative mrg_<hex32> ID.
 
         Args:
             registry_data: Validated SystemConfigModelRegistry domain model.
@@ -67,46 +62,45 @@ class SystemRepositoryImpl(BaseRepository):
             True once persisted.
         """
         async with self._acquire_entities() as entities:
-            await entities.upsert_system_config(registry_data)
+            await entities.upsert_model_registry(registry_data)
         return True
 
-    async def delete_system_config(self, config_id: str) -> bool:
-        """Delete a system configuration record by primary key ID.
+    async def delete_model_registry(self, registry_id: str) -> bool:
+        """Delete a model registry record by primary key ID.
 
         Args:
-            config_id: Canonical sys_<hex32> system configuration identifier.
+            registry_id: Canonical mrg_<hex32> model registry identifier.
 
         Returns:
             True if deleted, False otherwise.
         """
         async with self._acquire_entities() as entities:
-            return await entities.delete_system_config(config_id)
+            return await entities.delete_model_registry(registry_id)
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
-        """Fetch an MCP gateways configuration by explicit ID or first available gateway document.
+        """Fetch an MCP gateway configuration by explicit ID or first available gateway document.
 
         Args:
-            id: Optional explicit sys_<hex32> system configuration ID.
+            id: Optional explicit mcp_<hex32> MCP gateway ID.
 
         Returns:
             Validated SystemConfigMCPGateways domain model.
 
         Raises:
-            ResourceNotFoundError: If no matching MCP gateways configuration exists.
+            ResourceNotFoundError: If no matching MCP gateway configuration exists.
         """
         async with self._acquire_entities() as entities:
             if id:
-                cfg = await entities.get_system_config(id)
-                if cfg is None or not isinstance(cfg, SystemConfigMCPGateways):
-                    logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: '%s' document is missing.", id)
-                    raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+                cfg = await entities.get_mcp_gateway(id)
+                if cfg is None:
+                    logger.error("[SystemRepository] MCP_GATEWAY_NOT_FOUND: '%s' document is missing.", id)
+                    raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
                 return cfg
 
-            configs = await entities.list_system_configs()
-        gateways = [cfg for cfg in configs if isinstance(cfg, SystemConfigMCPGateways)]
+            gateways = await entities.list_mcp_gateways()
         if not gateways:
-            logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: 'mcp_gateways' document is missing.")
-            raise ResourceNotFoundError(resource_type="system_config", resource_id="mcp_gateways")
+            logger.error("[SystemRepository] MCP_GATEWAY_NOT_FOUND: 'mcp_gateways' document is missing.")
+            raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id="mcp_gateways")
         gateways.sort(key=lambda m: (m.slug, m.id))
         return gateways[0]
 
@@ -117,12 +111,11 @@ class SystemRepositoryImpl(BaseRepository):
             List of validated SystemConfigMCPGateways domain models.
         """
         async with self._acquire_entities() as entities:
-            configs = await entities.list_system_configs()
-        models = [cfg for cfg in configs if isinstance(cfg, SystemConfigMCPGateways)]
+            models = await entities.list_mcp_gateways()
         return sorted(models, key=lambda m: (m.slug, m.id))
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
-        """Upsert a SystemConfigMCPGateways configuration using its authoritative ID.
+        """Upsert a SystemConfigMCPGateways configuration using its authoritative mcp_<hex32> ID.
 
         Args:
             gateways_data: Validated SystemConfigMCPGateways domain model.
@@ -131,36 +124,17 @@ class SystemRepositoryImpl(BaseRepository):
             True once persisted.
         """
         async with self._acquire_entities() as entities:
-            await entities.upsert_system_config(gateways_data)
+            await entities.upsert_mcp_gateway(gateways_data)
         return True
 
-    async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
-        """Retrieve a polymorphic AnySystemConfig by primary key ID.
+    async def delete_mcp_gateways(self, gateway_id: str) -> bool:
+        """Delete an MCP gateway record by primary key ID.
 
         Args:
-            config_id: Canonical sys_<hex32> system configuration identifier.
+            gateway_id: Canonical mcp_<hex32> MCP gateway identifier.
 
         Returns:
-            Validated SystemConfigModelRegistry or SystemConfigMCPGateways if found, else None.
+            True if deleted, False otherwise.
         """
         async with self._acquire_entities() as entities:
-            return await entities.get_system_config(config_id)
-
-    async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
-        """Persist a new SystemConfig document from a SystemConfigCreateDTO.
-
-        Args:
-            config_data: Validated SystemConfigCreateDTO carrying typed content.
-
-        Returns:
-            Persisted canonical sys_<hex32> identifier.
-        """
-        cfg_to_save: AnySystemConfig = config_data.content
-        if (
-            config_data.slug is not None
-            and isinstance(cfg_to_save, SystemConfigMCPGateways)
-            and cfg_to_save.slug != config_data.slug
-        ):
-            cfg_to_save = cfg_to_save.model_copy(update={"slug": config_data.slug})
-        async with self._acquire_entities() as entities:
-            return await entities.upsert_system_config(cfg_to_save)
+            return await entities.delete_mcp_gateway(gateway_id)

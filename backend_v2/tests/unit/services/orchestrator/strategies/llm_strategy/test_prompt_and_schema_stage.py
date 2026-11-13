@@ -565,7 +565,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         status="published",
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         steps=[
             StepRule(id="sr_0195f3a0000070018111111111111111", task_blueprint=bp_matrix.id),
             StepRule(id="sr_0195f3a0000070028222222222222222", task_blueprint=bp_text.id),

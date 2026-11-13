@@ -70,7 +70,7 @@ def mock_repos() -> MockDependenciesContainer:
                 status="active",
                 default_profile_id="prof_0195f3a0000070018111111111111111",
                 historical_context_mode="DISABLED",
-                model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+                model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
                 steps=[],
             ),
         )
@@ -131,7 +131,7 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
         status="active",
         default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         steps=steps,
     )
 
@@ -242,7 +242,7 @@ async def test_dag_executor_generated_schemas_accumulation(mock_repos: MockDepen
         status="active",
         default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         steps=steps,
     )
 

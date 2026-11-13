@@ -490,7 +490,8 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
 ) -> None:
     """Verify MCP tool retrieval enrichment, synthesis/matrix branches, CausalGraph output, and max retry limit."""
     gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070008123456789abcdef",
+        id="mcp_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Search Gateway",
         slug="search_gateway",
         endpoint_url="https://mcp.example.com/sse",
@@ -715,7 +716,8 @@ async def test_execute_engine_retry_stage_accumulates_token_usage_across_retries
 ) -> None:
     """Verify usage_agg accumulates retrieval_usage and all retry engine_usage attempts (100 + 200 + 300 = 600)."""
     gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070008123456789abcdef",
+        id="mcp_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Search Gateway",
         slug="search_gateway",
         endpoint_url="https://mcp.example.com/sse",
@@ -910,7 +912,8 @@ async def test_execute_engine_retry_stage_forwards_tenant_organization_id_to_llm
     """Verify execute_engine_retry_stage forwards context.global_context_vars.organization_id to LLMClient and ToolDispatcher."""
     tenant_org_id = "org_0195f3a0000070008000000000000777"
     gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070008123456789abcdef",
+        id="mcp_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Search Gateway",
         slug="search_gateway",
         endpoint_url="https://mcp.example.com/sse",
@@ -991,7 +994,8 @@ async def test_execute_engine_retry_stage_defaults_organization_id_to_root_syste
 ) -> None:
     """Verify execute_engine_retry_stage defaults organization_id to SystemOrganizations.ROOT_SYSTEM when unset."""
     gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070008123456789abcdef",
+        id="mcp_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Search Gateway",
         slug="search_gateway",
         endpoint_url="https://mcp.example.com/sse",

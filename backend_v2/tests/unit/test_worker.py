@@ -222,9 +222,8 @@ def _get_base_model_registry() -> SystemConfigModelRegistry:
         rpm_limit=1000,
     )
     return _ModelRegistryFactory.build(
-        id="sys_0195f3a0000070018111222233334444",
+        id="mrg_0195f3a0000070018111222233334444",
         name="Default Test Registry",
-        type="model_registry",
         slug="model_registry",
         default_provider=LLMProvider.VERTEX_AI,
         tier_definitions={
@@ -256,7 +255,7 @@ def _get_base_workflow(strictness: int | None = 50, wf_id: str = "wf_0195f3a0000
         steps=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id="prof_0195f3a0000070018111222233334444",
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         default_strictness_level=strictness,
     )
 

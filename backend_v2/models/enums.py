@@ -139,7 +139,6 @@ __all__ = [
     "StrategicDepth",
     "StrictnessAnchor",
     "SubscriptionStatus",
-    "SystemConfigID",
     "SystemLocale",
     "TargetBlockType",
     "TargetSpeaker",
@@ -253,11 +252,11 @@ class EntityPrefix(StrEnum):
     SYNTHESIS_GROUP = "grp"
     PROMPT_BLOCK = "blk"
     TASK_BRIEF = "tbr"
-    SYSTEM_CONFIG = "sys"
+    MODEL_REGISTRY = "mrg"
+    MCP_GATEWAY = "mcp"
     EXECUTION = "exe"
     USER = "usr"
     ORGANIZATION = "org"
-    ORG = "org"
     INVITATION = "inv"
     TENANT_SECRET = "sec"
     ASSIGNMENT = "tsk"
@@ -303,12 +302,6 @@ class DependencyRelationType(StrEnum):
 
 
 LaxDependencyRelationType = Annotated[DependencyRelationType, Field(strict=False)]
-
-
-class SystemConfigID(StrEnum):
-    """Hardcoded Opaque Stripe IDs for global System Configurations."""
-
-    MCP_GATEWAYS = "sys_0195f3a00000700080008172bda70c86"
 
 
 class EvidenceType(StrEnum):

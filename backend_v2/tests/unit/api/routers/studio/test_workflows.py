@@ -88,7 +88,7 @@ def sample_workflow() -> Workflow:
         version=1,
         default_profile_id="prf_0195f3a0000070018234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[],
         steps=[],
     )

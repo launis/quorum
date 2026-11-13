@@ -111,7 +111,7 @@ def _make_base_workflow(wf_id: str, prof_id: str) -> Workflow:
         version=1,
         steps=[],
         default_profile_id=prof_id,
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
     )
 
@@ -1253,7 +1253,7 @@ def _build_strict_typed_synthesis_fixtures(
         expected_inputs=[],
         steps=[],
         default_profile_id=prof_id,
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
     )
     return rec, prof, wf

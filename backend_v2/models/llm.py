@@ -197,7 +197,6 @@ class LLMProviderConfig(BaseDTO):
         tpm_limit: Tokens per minute limit. 0=unlimited.
         rpm_limit: Requests per minute limit. 0=unlimited.
         default_max_tokens: Default max output tokens.
-        parsing_mode: Instructor parsing mode.
         caching_strategy: Caching strategy.
         vertex_location: Google Cloud Region (Vertex AI only).
         supports_grounding: Whether this model supports Google Search Grounding.
@@ -303,13 +302,6 @@ class LLMProviderConfig(BaseDTO):
         Field(
             description="Penalizes new tokens based on whether they appear in the text so far.",
             json_schema_extra={"x-ui-label": "Presence Penalty"},
-        ),
-    ] = None
-    parsing_mode: Annotated[
-        str | None,
-        Field(
-            description="Instructor parsing mode (e.g. 'STRUCTURED_JSON', 'JSON').",
-            json_schema_extra={"x-ui-label": "Parsing Mode"},
         ),
     ] = None
     caching_strategy: Annotated[

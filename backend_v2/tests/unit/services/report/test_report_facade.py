@@ -97,7 +97,7 @@ def _create_dummy_execution(
         },
         metadata=ExecutionMetadata(
             provider_override=LLMProvider.VERTEX_AI,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         ),
     )
 

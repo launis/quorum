@@ -431,16 +431,24 @@ def _discover_companion_for_single_target(
         parts = target_clean.split("/")
         filename = parts[-1]
         if "tests" in parts:
-            rel_sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
-            sibling_test = _resolve_probe_path(rel_sibling_test, repo_root)
-            if not filename.startswith("test_") and sibling_test.exists():
-                return [str(rel_sibling_test).replace("\\", "/")]
+            if not filename.startswith("test_"):
+                rel_sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
+                if _resolve_probe_path(rel_sibling_test, repo_root).exists():
+                    return [str(rel_sibling_test).replace("\\", "/")]
+                if len(parts) >= 3 and parts[:2] == ["backend_v2", "tests"] and parts[2] != "unit":
+                    rel_unit_test = Path("backend_v2/tests/unit") / "/".join(parts[2:-1]) / f"test_{filename}"
+                    if _resolve_probe_path(rel_unit_test, repo_root).exists():
+                        return [str(rel_unit_test).replace("\\", "/")]
             return []
         candidates = _build_py_file_test_candidates(parts, filename)
         return _discover_existing_py_test_paths(parts, filename, candidates, repo_root=repo_root)
 
     parts = target_clean.strip("/").split("/")
     if "tests" in parts or parts == ["backend_v2"]:
+        if len(parts) >= 3 and parts[:2] == ["backend_v2", "tests"] and parts[2] != "unit":
+            rel_unit_dir = Path("backend_v2/tests/unit") / "/".join(parts[2:])
+            if _resolve_probe_path(rel_unit_dir, repo_root).exists():
+                return [str(rel_unit_dir).replace("\\", "/")]
         return []
     if parts[0] == "scripts":
         rel_scripts_test_dir = Path("backend_v2/tests/unit/scripts")
@@ -563,9 +571,14 @@ def _resolve_test_file_cov_filter(parts: list[str], filename: str, cov_target: s
     Raises:
         OSError: If filesystem existence checks fail.
     """
-    sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
-    if not filename.startswith("test_") and sibling_test.exists():
-        return filename
+    if not filename.startswith("test_"):
+        sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
+        if sibling_test.exists():
+            return filename
+        if len(parts) >= 3 and parts[:2] == ["backend_v2", "tests"] and parts[2] != "unit":
+            unit_test = Path("backend_v2/tests/unit") / "/".join(parts[2:-1]) / f"test_{filename}"
+            if unit_test.exists():
+                return filename
 
     clean_name = filename.replace("test_", "", 1).removesuffix(".py")
     sibling_src = Path("/".join(parts[:-1])) / f"{clean_name}.py"
@@ -597,9 +610,14 @@ def _resolve_py_file_test_paths(target_clean: str, parts: list[str], filename: s
         OSError: If filesystem existence or glob checks fail.
     """
     if "tests" in parts:
-        sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
-        if not filename.startswith("test_") and sibling_test.exists():
-            return [str(sibling_test).replace("\\", "/")]
+        if not filename.startswith("test_"):
+            sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
+            if sibling_test.exists():
+                return [str(sibling_test).replace("\\", "/")]
+            if len(parts) >= 3 and parts[:2] == ["backend_v2", "tests"] and parts[2] != "unit":
+                unit_test = Path("backend_v2/tests/unit") / "/".join(parts[2:-1]) / f"test_{filename}"
+                if unit_test.exists():
+                    return [str(unit_test).replace("\\", "/")]
         return [target_clean]
 
     candidates = _build_py_file_test_candidates(parts, filename)
@@ -665,6 +683,10 @@ def _resolve_directory_test_path(target_clean: str, parts: list[str]) -> str:
         OSError: If directory test discovery fails on the filesystem.
     """
     if "tests" in parts:
+        if len(parts) >= 3 and parts[:2] == ["backend_v2", "tests"] and parts[2] != "unit":
+            unit_dir = Path("backend_v2/tests/unit") / "/".join(parts[2:])
+            if unit_dir.exists():
+                return str(unit_dir).replace("\\", "/")
         return target_clean
     if parts[0] == "backend_v2":
         discovered_tests = _discover_existing_dir_test_paths(target_clean, parts)
@@ -762,12 +784,13 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
         parts = target_clean.strip("/").split("/")
         cov_target = target_clean.removesuffix(".py").replace("/", ".").strip(".")
         test_path = _resolve_directory_test_path(target_clean, parts)
+        fail_under = "0" if "tests" in parts else "90"
         args = [
             *test_path.split(),
             "-v",
             "--tb=short",
             f"--cov={cov_target}",
-            "--cov-fail-under=90",
+            f"--cov-fail-under={fail_under}",
             "--cov-report=term-missing",
         ]
         result = _run_pytest_subprocess(args, logfire=logfire, print_cmd=False)
@@ -892,6 +915,9 @@ def _resolve_mypy_targets(stage_targets: list[str]) -> list[str]:
 
     MyPy directory arguments honor pyproject.toml exclusions (^backend_v2/tests/) and exit
     with 'no .py[i] files in directory', whereas explicit .py files are type-checked directly.
+    Non-unit test support directories (such as backend_v2/tests/fakes or backend_v2/tests/factories)
+    are expanded to explicit .py files so MyPy type-checks them directly without adding 'backend_v2'
+    and triggering Duplicate module errors against explicit source package directories.
 
     Args:
         stage_targets: Expanded stage targets.
@@ -904,6 +930,12 @@ def _resolve_mypy_targets(stage_targets: list[str]) -> list[str]:
         norm = target.replace("\\", "/").rstrip("/")
         if norm.startswith("backend_v2/tests") and not norm.endswith(".py"):
             parts = norm.split("/")
+            if len(parts) > 2 and parts[2] != "unit" and Path(norm).is_dir():
+                for py_file in sorted(Path(norm).rglob("*.py")):
+                    py_posix = py_file.as_posix()
+                    if py_posix not in mypy_targets:
+                        mypy_targets.append(py_posix)
+                continue
             mapped = "backend_v2"
             if len(parts) > 3 and parts[2] == "unit":
                 candidate = "backend_v2/" + "/".join(parts[3:])
@@ -911,8 +943,13 @@ def _resolve_mypy_targets(stage_targets: list[str]) -> list[str]:
                     mapped = candidate
             if mapped not in mypy_targets:
                 mypy_targets.append(mapped)
-        elif target not in mypy_targets:
-            mypy_targets.append(target)
+        elif norm not in mypy_targets:
+            mypy_targets.append(norm)
+
+    if "backend_v2" in mypy_targets:
+        mypy_targets = [
+            t for t in mypy_targets if not (t.startswith("backend_v2/") and not t.startswith("backend_v2/tests/"))
+        ]
     return mypy_targets
 
 

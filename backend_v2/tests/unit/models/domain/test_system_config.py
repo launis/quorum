@@ -116,7 +116,7 @@ def test_data_dictionary_field_and_provider_extra_params_valid_and_negative() ->
 
 def test_model_profile_valid_and_negative() -> None:
     """Verify ModelProfile default initialization and extra='forbid' enforcement."""
-    profile = ModelProfile(provider="google", model_name="gemini-2.5-pro")
+    profile = ModelProfile.model_validate_json('{"provider": "google", "model_name": "gemini-2.5-pro"}')
     assert profile.provider == "google"
     assert profile.model_name == "gemini-2.5-pro"
     assert profile.allowed_tools == []
@@ -134,10 +134,9 @@ def test_model_profile_valid_and_negative() -> None:
 
 def test_allowed_mcp_tool_valid_and_defaults() -> None:
     """Verify AllowedMCPTool defaults capability to SEARCH and accepts typed MCPToolInputSchemaDTO."""
-    tool_default = AllowedMCPTool(
-        tool_id="mcp_test_search",
-        name=I18nText(translations={"fi": "Haku", "en": "Search"}),
-        description="Search tool description.",
+    tool_default = AllowedMCPTool.model_validate_json(
+        '{"tool_id": "mcp_test_search", "name": {"translations": {"fi": "Haku", "en": "Search"}}, '
+        '"description": "Search tool description."}'
     )
     assert tool_default.capability == ToolCapability.SEARCH
     assert tool_default.tool_id == "mcp_test_search"
@@ -173,6 +172,7 @@ def test_allowed_mcp_tool_rejects_empty_tool_id_error() -> None:
             tool_id="",
             name=I18nText(translations={"en": "Empty"}),
             description="Invalid empty tool_id",
+            input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
         )
 
 
@@ -190,16 +190,12 @@ def test_allowed_mcp_tool_rejects_unknown_attribute() -> None:
 
 def test_mcp_audit_trace_provenance_fields() -> None:
     """Verify MCPAuditTrace accepts optional gateway provenance fields and enforces frozen=True."""
-    trace = MCPAuditTrace(
-        tool_id="mcp_tavily_search",
-        step_name="stp_0195f3a0000070018234567890abcdef",
-        gateway_id="sys_0195f3a00000700080008172bda70c86",
-        gateway_slug="default_mcp_gateway",
-        namespaced_alias="default_mcp_gateway__mcp_tavily_search",
-        query="test query",
-        duration_ms=120,
+    trace = MCPAuditTrace.model_validate_json(
+        '{"tool_id": "mcp_tavily_search", "step_name": "stp_0195f3a0000070018234567890abcdef", '
+        '"gateway_id": "mcp_0195f3a00000700080008172bda70c86", "gateway_slug": "default_mcp_gateway", '
+        '"namespaced_alias": "default_mcp_gateway__mcp_tavily_search", "query": "test query", "duration_ms": 120}'
     )
-    assert trace.gateway_id == "sys_0195f3a00000700080008172bda70c86"
+    assert trace.gateway_id == "mcp_0195f3a00000700080008172bda70c86"
     assert trace.gateway_slug == "default_mcp_gateway"
     assert trace.namespaced_alias == "default_mcp_gateway__mcp_tavily_search"
     assert trace.source_urls == []
@@ -208,18 +204,32 @@ def test_mcp_audit_trace_provenance_fields() -> None:
         delattr(trace, "duration_ms")
 
     with pytest.raises(ValidationError):
-        MCPAuditTrace(
-            tool_id="mcp_tavily_search",
-            step_name="stp_0195f3a0000070018234567890abcdef",
-            gateway_id="invalid_gateway_id",
-            query="test query",
+        MCPAuditTrace.model_validate(
+            {
+                "tool_id": "mcp_tavily_search",
+                "step_name": "stp_0195f3a0000070018234567890abcdef",
+                "gateway_id": "invalid_gateway_id",
+                "query": "test query",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        MCPAuditTrace.model_validate(
+            {
+                "tool_id": "mcp_tavily_search",
+                "step_name": "stp_0195f3a0000070018234567890abcdef",
+                "gateway_id": "mrg_0195f3a00000700080008172bda70c86",
+                "query": "test query",
+            }
         )
 
 
 def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
-    """Verify SystemConfigMCPGateways validates single-underscore slug and timeout bounds."""
+    """Verify SystemConfigMCPGateways validates organization_id, single-underscore slug, and timeout bounds."""
+    org_id = "org_0195f3a0000070008000000000000001"
     gw_min = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id="mcp_0195f3a00000700080008172bda70c86",
+        organization_id=org_id,
         name="Tavily MCP Gateway",
         slug="tavily_mcp_gateway",
         endpoint_url="https://mcp.tavily.com/mcp",
@@ -229,6 +239,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
         timeout_seconds=1,
         tools=[],
     )
+    assert gw_min.organization_id == org_id
     assert gw_min.name == "Tavily MCP Gateway"
     assert gw_min.slug == "tavily_mcp_gateway"
     assert gw_min.transport_type == MCPTransportType.STREAMABLE_HTTP
@@ -236,7 +247,8 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
     assert gw_min.timeout_seconds == 1
 
     gw_max = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700080008172bda70c86",
+        id="mcp_0195f3a00000700080008172bda70c86",
+        organization_id=org_id,
         name="Valid Gateway",
         slug="valid_slug",
         timeout_seconds=300,
@@ -246,7 +258,8 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
-            id="sys_0195f3a00000700080008172bda70c86",
+            id="mcp_0195f3a00000700080008172bda70c86",
+            organization_id=org_id,
             name="Bad Slug Gateway",
             slug="bad__double_underscore",
             tools=[],
@@ -254,7 +267,8 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
-            id="sys_0195f3a00000700080008172bda70c86",
+            id="mcp_0195f3a00000700080008172bda70c86",
+            organization_id=org_id,
             name="",
             slug="valid_slug",
             tools=[],
@@ -262,7 +276,8 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
-            id="sys_0195f3a00000700080008172bda70c86",
+            id="mcp_0195f3a00000700080008172bda70c86",
+            organization_id=org_id,
             name="Zero Timeout Gateway",
             slug="valid_slug",
             timeout_seconds=0,
@@ -271,10 +286,29 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
-            id="sys_0195f3a00000700080008172bda70c86",
+            id="mcp_0195f3a00000700080008172bda70c86",
+            organization_id=org_id,
             name="Excessive Timeout Gateway",
             slug="valid_slug",
             timeout_seconds=301,
+            tools=[],
+        )
+
+    with pytest.raises(ValidationError):
+        SystemConfigMCPGateways(
+            id="mrg_0195f3a00000700080008172bda70c86",
+            organization_id=org_id,
+            name="Wrong Prefix Gateway",
+            slug="valid_slug",
+            tools=[],
+        )
+
+    with pytest.raises(ValidationError):
+        SystemConfigMCPGateways(
+            id="mcp_0195f3a00000700080008172bda70c86",
+            organization_id="usr_0195f3a0000070008000000000000001",
+            name="Wrong Org Prefix Gateway",
+            slug="valid_slug",
             tools=[],
         )
 
@@ -282,29 +316,54 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 def test_system_config_model_registry_valid_all_tiers() -> None:
     """Verify SystemConfigModelRegistry succeeds when all four canonical CognitiveTiers are defined."""
     complete_tiers: dict[LaxCognitiveTier, ModelProfile] = {
-        CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-        CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
-        CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
-        CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+        CognitiveTier.FAST: ModelProfile(
+            provider="google",
+            model_name="gemini-2.5-flash",
+            allowed_tools=[],
+            additional_params=ProviderExtraParamsDTO(),
+        ),
+        CognitiveTier.BALANCED: ModelProfile(
+            provider="google",
+            model_name="gemini-2.5-pro",
+            allowed_tools=[],
+            additional_params=ProviderExtraParamsDTO(),
+        ),
+        CognitiveTier.DEEP: ModelProfile(
+            provider="google",
+            model_name="gemini-2.5-pro",
+            allowed_tools=[],
+            additional_params=ProviderExtraParamsDTO(),
+        ),
+        CognitiveTier.REASONING: ModelProfile(
+            provider="google",
+            model_name="gemini-2.5-pro",
+            allowed_tools=[],
+            additional_params=ProviderExtraParamsDTO(),
+        ),
     }
     registry = SystemConfigModelRegistry(
-        id="sys_0195f3a0000070018234567890abcdef",
+        id="mrg_0195f3a0000070018234567890abcdef",
         name="Complete Registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions=complete_tiers,
     )
-    assert registry.id == "sys_0195f3a0000070018234567890abcdef"
+    assert registry.id == "mrg_0195f3a0000070018234567890abcdef"
     assert len(registry.tier_definitions) == 4
 
 
 def test_system_config_model_registry_missing_tier_raises_value_error() -> None:
     """Verify SystemConfigModelRegistry raises ValueError when cognitive tiers are incomplete."""
     incomplete_tiers: dict[LaxCognitiveTier, ModelProfile] = {
-        CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+        CognitiveTier.FAST: ModelProfile(
+            provider="google",
+            model_name="gemini-2.5-flash",
+            allowed_tools=[],
+            additional_params=ProviderExtraParamsDTO(),
+        ),
     }
     with pytest.raises(ValidationError) as exc_info:
         SystemConfigModelRegistry(
-            id="sys_0195f3a0000070018234567890abcdef",
+            id="mrg_0195f3a0000070018234567890abcdef",
             name="Incomplete Registry",
             tier_definitions=incomplete_tiers,
         )
@@ -316,3 +375,58 @@ def test_system_config_model_registry_missing_tier_raises_value_error() -> None:
             name="Bad ID Registry",
             tier_definitions=incomplete_tiers,
         )
+
+
+def test_model_profile_and_system_configs_reject_banned_api_key_parsing_mode_and_type_fields() -> None:
+    """Verify ModelProfile, SystemConfigModelRegistry, and SystemConfigMCPGateways reject banned fields."""
+    with pytest.raises(ValidationError):
+        ModelProfile.model_validate(
+            {
+                "provider": "openai",
+                "model_name": "gpt-4o",
+                "api_key": "sk-forbidden-key",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        ModelProfile.model_validate(
+            {
+                "provider": "ai_studio",
+                "model_name": "gemini-2.5-flash",
+                "parsing_mode": "STRUCTURED_JSON",
+            }
+        )
+
+    tier_payload = {tier.value: {"provider": "ai_studio", "model_name": "gemini-2.5-flash"} for tier in CognitiveTier}
+    with pytest.raises(ValidationError):
+        SystemConfigModelRegistry.model_validate(
+            {
+                "id": "mrg_0195f3a0000070018234567890abcdef",
+                "name": "Registry With Discriminator",
+                "type": "model_registry",
+                "tier_definitions": tier_payload,
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        SystemConfigMCPGateways.model_validate(
+            {
+                "id": "mcp_0195f3a00000700080008172bda70c86",
+                "organization_id": "org_0195f3a0000070008000000000000001",
+                "name": "Gateway With Discriminator",
+                "slug": "gateway_slug",
+                "type": "mcp_gateways",
+                "tools": [],
+            }
+        )
+
+
+def test_workflow_model_registry_id_rejects_mcp_prefix_and_vice_versa() -> None:
+    """Verify Workflow rejects cross-entity prefix mismatches on model_registry_id and mcp_gateway_id."""
+    from backend_v2.tests.factories.model_factories import WorkflowFactory
+
+    with pytest.raises(ValidationError):
+        WorkflowFactory.build(model_registry_id="mcp_0195f3a00000700080008172bda70c86")
+
+    with pytest.raises(ValidationError):
+        WorkflowFactory.build(mcp_gateway_id="mrg_0195f3a0000070018234567890abcdef")

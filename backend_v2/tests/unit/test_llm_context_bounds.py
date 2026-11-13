@@ -166,8 +166,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         additional_params={},
     )
     model_reg = SystemConfigModelRegistry(
-        id="sys_0195f3a00000700e826807f3bfa3454d",
-        type="model_registry",
+        id="mrg_0195f3a00000700e826807f3bfa3454d",
         name="Default Model Registry",
         slug="default",
         default_provider=LLMProvider.OPENAI,
@@ -207,7 +206,7 @@ def _create_workflow() -> Workflow:
     """
     return WorkflowFactory.build(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070008000000000000000",
         slug="wf_ctx_bounds",
         status="draft",

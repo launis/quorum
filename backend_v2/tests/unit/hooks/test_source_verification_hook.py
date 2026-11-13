@@ -47,7 +47,8 @@ def mock_deps() -> HookDependencies:
     """Mock dependencies fixture for HookDependencies with an active search gateway."""
     repo = InMemoryUnifiedWorkflowRepository()
     gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700a81b2c3d4e5f60718",
+        id="mcp_0195f3a00000700a81b2c3d4e5f60718",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Default MCP Gateway",
         slug="default_mcp_gateway",
         endpoint_url="https://mcp.example.com/v1",
@@ -591,7 +592,7 @@ async def test_source_verification_hook_with_payload_dto_and_registry_override(
     state = HookState(
         execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id="wor_0195f3a0000070018111222233334444",
-        metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700e826807f3bfa3454d"),
+        metadata=ExecutionMetadata(model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d"),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
         inputs=ExecutionInputsDTO(
             raw_inputs={

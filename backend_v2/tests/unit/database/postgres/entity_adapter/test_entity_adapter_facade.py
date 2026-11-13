@@ -11,27 +11,31 @@ from backend_v2.database.interfaces import EntityPersistencePort
 from backend_v2.database.postgres.entity_adapter import (
     _AGGREGATE_USAGE_BASE_SQL,
     _COLLECTION_TO_TABLE_MAP,
+    _DELETE_MCP_GATEWAY_SQL,
+    _DELETE_MODEL_REGISTRY_SQL,
     _DELETE_TENANT_SECRET_SQL,
     _GET_EXECUTION_SQL,
+    _GET_MCP_GATEWAY_SQL,
+    _GET_MODEL_REGISTRY_SQL,
     _GET_ORGANIZATION_SQL,
     _GET_OUTPUT_PROFILE_SQL,
     _GET_PROMPT_BLOCK_SQL,
     _GET_REPORT_ARTIFACT_SQL,
     _GET_REPORT_BINARY_SQL,
     _GET_STEP_SQL,
-    _GET_SYSTEM_CONFIG_SQL,
     _GET_USER_SQL,
     _GET_WORKFLOW_SQL,
     _INSERT_AUDIT_LOG_SQL,
     _INSERT_USAGE_RECORD_SQL,
     _LIST_AUDIT_LOGS_SQL,
     _LIST_EXECUTIONS_SQL,
+    _LIST_MCP_GATEWAYS_SQL,
+    _LIST_MODEL_REGISTRIES_SQL,
     _LIST_ORGANIZATIONS_SQL,
     _LIST_OUTPUT_PROFILES_SQL,
     _LIST_PROMPT_BLOCKS_SQL,
     _LIST_REPORT_ARTIFACTS_SQL,
     _LIST_STEPS_SQL,
-    _LIST_SYSTEM_CONFIGS_SQL,
     _LIST_USAGE_RECORDS_SQL,
     _LIST_USERS_SQL,
     _LIST_WORKFLOWS_SQL,
@@ -41,12 +45,13 @@ from backend_v2.database.postgres.entity_adapter import (
     _SAVE_REPORT_BINARY_SQL,
     _SYSTEM_ORG_UUID7,
     _TABLE_TO_ENTITY_PREFIX,
+    _UPSERT_MCP_GATEWAY_SQL,
+    _UPSERT_MODEL_REGISTRY_SQL,
     _UPSERT_ORGANIZATION_SQL,
     _UPSERT_OUTPUT_PROFILE_SQL,
     _UPSERT_PROMPT_BLOCK_SQL,
     _UPSERT_REPORT_ARTIFACT_SQL,
     _UPSERT_STEP_SQL,
-    _UPSERT_SYSTEM_CONFIG_SQL,
     _UPSERT_USER_SQL,
     _UPSERT_WORKFLOW_SQL,
     CANONICAL_SEED_TABLES,
@@ -61,41 +66,48 @@ from backend_v2.database.postgres.entity_adapter import (
     _parse_org_uuid7,
     _ReportBinaryRowDTO,
     aggregate_organization_usage_row,
+    delete_mcp_gateway_row,
+    delete_model_registry_row,
     delete_tenant_secret_row,
     execute_entity_delete,
     execute_entity_upsert,
     get_execution_row,
+    get_mcp_gateway_row,
+    get_model_registry_row,
     get_organization_row,
     get_output_profile_row,
     get_prompt_block_row,
     get_report_artifact_row,
     get_report_binary_row,
     get_step_row,
-    get_system_config_row,
     get_user_row,
     get_workflow_row,
     hydrate_audit_log_row,
     hydrate_execution_row,
+    hydrate_mcp_gateway_row,
+    hydrate_model_registry_row,
     hydrate_organization_row,
     hydrate_output_profile_row,
     hydrate_prompt_block_row,
     hydrate_report_artifact_row,
     hydrate_step_row,
-    hydrate_system_config_row,
     hydrate_usage_record_row,
     hydrate_user_row,
     hydrate_workflow_row,
     insert_audit_log_row,
     insert_usage_record_row,
+    list_mcp_gateway_rows,
+    list_model_registry_rows,
     save_execution_row,
     save_report_binary_row,
     seed_collection_batch_rows,
+    upsert_mcp_gateway_row,
+    upsert_model_registry_row,
     upsert_organization_row,
     upsert_output_profile_row,
     upsert_prompt_block_row,
     upsert_report_artifact_row,
     upsert_step_row,
-    upsert_system_config_row,
     upsert_user_row,
     upsert_workflow_row,
     verify_seed_table_counts_rows,
@@ -105,12 +117,18 @@ from backend_v2.models.auth import Organization, SubscriptionStatus, TenantSecre
 from backend_v2.models.core_base import I18nText, generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.step import Step
-from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import (
+    ModelProfile,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.enums import (
     CognitiveTier,
     EngineType,
     EntityPrefix,
     LLMProvider,
+    MCPAuthType,
+    MCPTransportType,
     SecretScope,
     SecretStorageMode,
     StepType,
@@ -168,11 +186,25 @@ def _build_registry_config() -> SystemConfigModelRegistry:
     """Build a valid SystemConfigModelRegistry for facade testing."""
     profile = ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash")
     return SystemConfigModelRegistry(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MODEL_REGISTRY),
         name="Facade Registry",
-        type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={tier: profile for tier in CognitiveTier},
+    )
+
+
+def _build_mcp_gateway(org_id: str) -> SystemConfigMCPGateways:
+    """Build a valid SystemConfigMCPGateways for facade testing."""
+    return SystemConfigMCPGateways(
+        id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=org_id,
+        slug="facade_mcp_gateway",
+        name="Facade MCP Gateway",
+        endpoint_url="https://mcp.quorum.local/v1",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.NONE,
+        timeout_seconds=30,
+        tools=[],
     )
 
 
@@ -237,29 +269,41 @@ def test_entity_adapter_package_facade_reexports_all_symbols() -> None:
         save_execution_row,
         save_report_binary_row,
         upsert_report_artifact_row,
+        _DELETE_MCP_GATEWAY_SQL,
+        _DELETE_MODEL_REGISTRY_SQL,
+        _GET_MCP_GATEWAY_SQL,
+        _GET_MODEL_REGISTRY_SQL,
         _GET_ORGANIZATION_SQL,
-        _GET_SYSTEM_CONFIG_SQL,
         _GET_USER_SQL,
+        _LIST_MCP_GATEWAYS_SQL,
+        _LIST_MODEL_REGISTRIES_SQL,
         _LIST_ORGANIZATIONS_SQL,
-        _LIST_SYSTEM_CONFIGS_SQL,
         _LIST_USERS_SQL,
+        _UPSERT_MCP_GATEWAY_SQL,
+        _UPSERT_MODEL_REGISTRY_SQL,
         _UPSERT_ORGANIZATION_SQL,
-        _UPSERT_SYSTEM_CONFIG_SQL,
         _UPSERT_USER_SQL,
         aggregate_organization_usage_row,
+        delete_mcp_gateway_row,
+        delete_model_registry_row,
         delete_tenant_secret_row,
+        get_mcp_gateway_row,
+        get_model_registry_row,
         get_organization_row,
-        get_system_config_row,
         get_user_row,
         hydrate_audit_log_row,
+        hydrate_mcp_gateway_row,
+        hydrate_model_registry_row,
         hydrate_organization_row,
-        hydrate_system_config_row,
         hydrate_usage_record_row,
         hydrate_user_row,
         insert_audit_log_row,
         insert_usage_record_row,
+        list_mcp_gateway_rows,
+        list_model_registry_rows,
+        upsert_mcp_gateway_row,
+        upsert_model_registry_row,
         upsert_organization_row,
-        upsert_system_config_row,
         upsert_user_row,
         _GET_PROMPT_BLOCK_SQL,
         _GET_STEP_SQL,
@@ -293,7 +337,8 @@ def test_entity_adapter_package_facade_reexports_all_symbols() -> None:
     assert PostgresEntityAdapter._hydrate_execution_row is hydrate_execution_row
     assert PostgresEntityAdapter._hydrate_organization_row is hydrate_organization_row
     assert PostgresEntityAdapter._hydrate_user_row is hydrate_user_row
-    assert PostgresEntityAdapter._hydrate_system_config_row is hydrate_system_config_row
+    assert PostgresEntityAdapter._hydrate_model_registry_row is hydrate_model_registry_row
+    assert PostgresEntityAdapter._hydrate_mcp_gateway_row is hydrate_mcp_gateway_row
     assert PostgresEntityAdapter._hydrate_prompt_block_row is hydrate_prompt_block_row
     assert PostgresEntityAdapter._hydrate_step_row is hydrate_step_row
     assert PostgresEntityAdapter._hydrate_workflow_row is hydrate_workflow_row
@@ -329,6 +374,8 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         org = _build_org()
         user = _build_user(org.id)
         cfg = _build_registry_config()
+        extra_cfg = _build_registry_config()
+        gw = _build_mcp_gateway(org.id)
         blk = SystemRulePromptBlockFactory.build(organization_id=org.id)
         tbr = TaskBriefFactory.build(organization_id=org.id, source_url="https://quorum.ai/brief")
         step = _build_step(blk.id, org.id)
@@ -382,9 +429,17 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         assert await adapter.upsert_tenant_secret(sec) == sec.id
         assert await adapter.delete_tenant_secret(sec.id) is True
         assert await adapter.delete_tenant_secret(sec.id) is False
-        assert await adapter.upsert_system_config(cfg) == cfg.id
-        assert await adapter.get_system_config(cfg.id) == cfg
-        assert await adapter.list_system_configs() == [cfg]
+        assert await adapter.upsert_model_registry(cfg) == cfg.id
+        assert await adapter.get_model_registry(cfg.id) == cfg
+        assert await adapter.list_model_registries() == [cfg]
+        assert await adapter.upsert_model_registry(extra_cfg) == extra_cfg.id
+        assert await adapter.delete_model_registry(extra_cfg.id) is True
+        assert await adapter.delete_model_registry(extra_cfg.id) is False
+        assert await adapter.upsert_mcp_gateway(gw) == gw.id
+        assert await adapter.get_mcp_gateway(gw.id) == gw
+        assert await adapter.list_mcp_gateways() == [gw]
+        assert await adapter.delete_mcp_gateway(gw.id) is True
+        assert await adapter.delete_mcp_gateway(gw.id) is False
         assert await adapter.upsert_prompt_block(blk) == blk.id
         assert await adapter.get_prompt_block(blk.id) == blk
         assert await adapter.upsert_task_brief(tbr) == tbr.id

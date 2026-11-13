@@ -80,7 +80,7 @@ def _build_workflow(blueprint_id: str = "stp_0195f3a0000070008000111122223333") 
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id="prf_0195f3a0000070008000111122223333",
-        model_registry_id="sys_0195f3a0000070008000111122223333",
+        model_registry_id="mrg_0195f3a0000070008000111122223333",
         steps=[
             StepRule(
                 id="stp_0195f3a0000070008000aaaa1111bbbb",
@@ -310,7 +310,7 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
     assert state.exec_record.step_states["stp_0195f3a0000070008000aaaa1111bbbb"].status == ExecutionStatus.PENDING
     assert state.exec_record.steps[0].label == "Resolved Label"
     assert state.exec_record.metadata is not None
-    assert state.exec_record.metadata.model_registry_id == "sys_0195f3a0000070008000111122223333"
+    assert state.exec_record.metadata.model_registry_id == "mrg_0195f3a0000070008000111122223333"
 
 
 @pytest.mark.asyncio

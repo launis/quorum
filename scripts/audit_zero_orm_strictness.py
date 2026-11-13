@@ -70,7 +70,8 @@ CANONICAL_ENTITY_PK_TABLES: frozenset[str] = frozenset(
         "prompt_blocks",
         "task_briefs",
         "output_profiles",
-        "system_configs",
+        "model_registries",
+        "mcp_gateways",
         "executions",
         "report_artifacts",
         "audit_logs",
@@ -81,7 +82,8 @@ CANONICAL_ENTITY_PK_TABLES: frozenset[str] = frozenset(
 CANONICAL_NAMED_ENTITY_TABLES: dict[str, str] = {
     "organizations": "name",
     "users": "name",
-    "system_configs": "name",
+    "model_registries": "name",
+    "mcp_gateways": "name",
     "prompt_blocks": "label",
     "task_briefs": "label",
     "steps": "name",
@@ -90,7 +92,7 @@ CANONICAL_NAMED_ENTITY_TABLES: dict[str, str] = {
     "report_artifacts": "title",
 }
 
-# Define closed 18-table topology and banned symbol sets
+# Define closed 19-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -103,7 +105,8 @@ CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
         "prompt_blocks",
         "task_briefs",
         "output_profiles",
-        "system_configs",
+        "model_registries",
+        "mcp_gateways",
         "executions",
         "report_artifacts",
         "report_binaries",
@@ -228,6 +231,7 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "nonce",
         "kek_version",
         "masked_hint",
+        "mcp_gateway_id",
         "updated_by",
         "batch_id",
         "assigned_email",
@@ -242,8 +246,7 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "relative_duration_seconds",
         "activated_at",
         "submitted_at",
-        # SystemConfigs
-        "type",
+        # ModelRegistries & MCPGateways
         "default_provider",
         "tier_definitions",
         "endpoint_url",
@@ -256,6 +259,7 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         # PromptBlocks
         "label",
         "description",
+        "type",
         "output_extensions",
         "theory_grounding",
         "category_id",
@@ -295,7 +299,6 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "version",
         "is_public",
         "default_profile_id",
-        "mcp_gateway_id",
         "model_registry_id",
         "default_strictness_level",
         "default_lexical_strictness_level",
@@ -424,6 +427,7 @@ _SQL_SLUG_FILTER_REGEX = re.compile(
 REQUIRED_IDEMPOTENT_ALTER_COLUMNS: dict[str, frozenset[str]] = {
     "organizations": frozenset({"allowed_email_domains"}),
     "users": frozenset({"firebase_uid", "deleted_at"}),
+    "tenant_secrets": frozenset({"mcp_gateway_id"}),
     "executions": frozenset({"state_version"}),
     "execution_assignments": frozenset({"task_brief_id"}),
 }

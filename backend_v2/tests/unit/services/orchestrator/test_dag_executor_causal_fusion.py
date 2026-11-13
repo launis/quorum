@@ -259,7 +259,7 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a0000070018111222233334444",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Starvation Workflow"}),
         description=I18nText(translations={"en": "Starvation Test"}),
         steps=[step_causal, step_tda],
@@ -371,7 +371,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a0000070018111222233334444",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Fusion Pop Workflow"}),
         description=I18nText(translations={"en": "Fusion Pop Test"}),
         steps=[step_causal, step_tda],
@@ -700,7 +700,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a0000070018111222233334444",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Standalone Causal Workflow"}),
         description=I18nText(translations={"en": "Standalone Causal Test"}),
         steps=[step_causal],
@@ -845,7 +845,7 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -937,7 +937,7 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1043,7 +1043,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1177,7 +1177,7 @@ async def test_dag_executor_input_delta_variants() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1280,7 +1280,7 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1390,7 +1390,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1517,7 +1517,7 @@ async def test_dag_executor_causal_source_missing_from_steps_by_id() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1611,7 +1611,7 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1726,7 +1726,7 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[

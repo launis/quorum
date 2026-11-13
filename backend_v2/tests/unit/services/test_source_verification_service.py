@@ -48,7 +48,8 @@ def mock_llm_client() -> AsyncMock:
 def configured_dispatcher() -> ToolDispatcher:
     """Returns a ToolDispatcher with an enabled search tool."""
     gateway = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700a81b2c3d4e5f60718",
+        id="mcp_0195f3a00000700a81b2c3d4e5f60718",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Default MCP Gateway",
         slug="default_mcp_gateway",
         endpoint_url="https://mcp.example.com/v1",

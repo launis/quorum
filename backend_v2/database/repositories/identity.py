@@ -100,7 +100,7 @@ class IdentityRepositoryImpl(BaseRepository):
             org_model = org_data
         else:
             org_model = Organization(
-                id=generate_opaque_id(EntityPrefix.ORG),
+                id=generate_opaque_id(EntityPrefix.ORGANIZATION),
                 name=org_data.name,
                 created_at=datetime.now(UTC),
                 is_active=True,

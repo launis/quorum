@@ -125,7 +125,6 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             id=f"llm_{generate_uuid7().hex}",
             provider=target_strategy.provider,
             model_name=target_strategy.model_name,
-            api_key=target_strategy.api_key,
             tpm_limit=target_strategy.tpm_limit,
             rpm_limit=target_strategy.rpm_limit,
             default_max_tokens=target_strategy.max_tokens,

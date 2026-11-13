@@ -149,7 +149,7 @@ def _valid_workflow(
     slug: str = "wf_slug",
     org_id: str | None = "org_0195f3a0000070008000000000000123",
     status: str = "active",
-    model_registry_id: str = "sys_0195f3a0000070008000e26807f3bfa3",
+    model_registry_id: str = "mrg_0195f3a0000070008000e26807f3bfa3",
 ) -> Workflow:
     return Workflow(
         id=wf_id,
@@ -1469,17 +1469,17 @@ async def test_studio_save_methods_reject_client_invented_id_when_missing_with_4
     assert await tb_repo.get_task_brief_by_id(missing_brief.id) is None
 
     existing_reg = (await sys_repo.get_all_model_registries())[0]
-    missing_reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    missing_reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     missing_reg: SystemConfigModelRegistry = existing_reg.model_copy(update={"id": missing_reg_id})
     with pytest.raises(ResourceNotFoundError):
         await sys_service.save_system_config(root_token, missing_reg_id, missing_reg)
 
-    missing_gw_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    missing_gw_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
     missing_gw = SystemConfigMCPGateways(
         id=missing_gw_id,
+        organization_id=admin_token.organization_id,
         name="Missing Gateway",
         slug="missing_gateway",
-        type="mcp_gateways",
         tools=[],
     )
     with pytest.raises(ResourceNotFoundError):

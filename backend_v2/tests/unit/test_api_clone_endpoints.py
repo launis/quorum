@@ -64,7 +64,7 @@ def mock_studio_service() -> AsyncMock:
     service = AsyncMock()
     service.clone_workflow.return_value = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070038333333333333333",
         slug="test_wf_3333333333333333",
         status="draft",
@@ -94,10 +94,9 @@ def mock_studio_service() -> AsyncMock:
     )
     dummy_profile = ModelProfile(provider="vertex_ai", model_name="gemini-1.5-flash")
     service.clone_system_config.return_value = SystemConfigModelRegistry(
-        id="sys_0195f3a0000070018111111111111112",
+        id="mrg_0195f3a0000070018111111111111112",
         name="Cloned Model Registry",
         slug="test_sys_clone",
-        type="model_registry",
         tier_definitions={
             CognitiveTier.FAST: dummy_profile,
             CognitiveTier.BALANCED: dummy_profile,
@@ -107,9 +106,9 @@ def mock_studio_service() -> AsyncMock:
     )
     service.clone_mcp_gateways.return_value = SystemConfigMCPGateways(
         id="mcp_0195f3a0000070018111111111111112",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Test MCP Clone",
         slug="test_mcp_clone",
-        type="mcp_gateways",
         tools=[],
     )
     service.clone_output_profile.return_value = OutputProfile(
@@ -189,17 +188,17 @@ def test_clone_prompt_block_endpoint(client_admin: TestClient, mock_studio_servi
 
 def test_clone_model_registry_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
     """Verifies cloning a model registry configuration as ROOT."""
-    source_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    source_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     response = client_root.post(f"/api/v2/studio/model-registry/{source_id}/clone")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "sys_0195f3a0000070018111111111111112"
+    assert data["id"] == "mrg_0195f3a0000070018111111111111112"
     mock_studio_service.clone_system_config.assert_called_once()
 
 
 def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
     """Verifies cloning MCP gateway configuration as ROOT."""
-    source_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    source_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
     response = client_root.post(f"/api/v2/studio/mcp-gateways/{source_id}/clone")
     assert response.status_code == 200
     data = response.json()

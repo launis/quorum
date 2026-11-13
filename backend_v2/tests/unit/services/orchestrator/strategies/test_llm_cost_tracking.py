@@ -63,7 +63,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             "version": 1,
             "default_profile_id": "prof",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         },
     )

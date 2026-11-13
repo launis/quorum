@@ -102,7 +102,7 @@ def test_core_response_dto_strictness() -> None:
             "version": 1,
             "status": "draft",
             "default_profile_id": valid_id_prf,
-            "model_registry_id": "sys_0195f3a0000070008123456789abcdef",
+            "model_registry_id": "mrg_0195f3a0000070008123456789abcdef",
             "historical_context_mode": "DISABLED",
             "organization_id": valid_id_org,
         }

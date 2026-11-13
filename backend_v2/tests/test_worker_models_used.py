@@ -38,7 +38,7 @@ async def test_worker_preserves_models_used() -> None:
         description="Test WF",
         default_profile_id="prf_0195f3a00000700a81b2c3d4e5f67890",
         default_strictness_level=1,
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
     )

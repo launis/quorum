@@ -68,15 +68,13 @@ async def test_configure_llm_context_hook_valid(mock_get_settings: MagicMock) ->
     mock_settings = MagicMock()
     mock_settings.default_model_strategy = "fast"
     mock_settings.model_registry = {
-        "id": "sys_abcdef0123456789abcdef0123456789",
-        "slug": "sys_reg",
+        "id": "mrg_0195f3a0000070008000bf23c2670ad5",
+        "slug": "mrg_reg",
         "name": "Default Model Registry",
-        "type": "model_registry",
         "tier_definitions": {
             tier: {
                 "provider": "openai",
                 "model_name": "gpt-4o-mini",
-                "api_key": "test",
                 "tpm_limit": 0,
                 "rpm_limit": 0,
                 "max_tokens": 1000,
@@ -114,7 +112,6 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
         tier: {
             "provider": "openai",
             "model_name": "gpt-4o-mini",
-            "api_key": "test",
             "tpm_limit": 0,
             "rpm_limit": 0,
             "max_tokens": 1000,
@@ -125,7 +122,6 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
     tier_defs["deep"] = {
         "provider": "gemini",
         "model_name": "gemini-2.0-flash",
-        "api_key": "test2",
         "tpm_limit": 0,
         "rpm_limit": 0,
         "max_tokens": 2000,
@@ -134,10 +130,9 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
     }
     mock_settings.default_model_strategy = "deep"
     mock_settings.model_registry = {
-        "id": "sys_abcdef0123456789abcdef0123456789",
-        "slug": "sys_reg",
+        "id": "mrg_0195f3a0000070008000bf23c2670ad5",
+        "slug": "mrg_reg",
         "name": "Default Model Registry",
-        "type": "model_registry",
         "tier_definitions": tier_defs,
     }
     mock_get_settings.return_value = mock_settings
@@ -186,15 +181,13 @@ def test_configure_llm_context_hook_strategy_not_found(mock_get_settings: MagicM
     mock_settings = MagicMock()
     mock_settings.default_model_strategy = "unknown_strategy"
     mock_settings.model_registry = {
-        "id": "sys_abcdef0123456789abcdef0123456789",
-        "slug": "sys_reg",
+        "id": "mrg_0195f3a0000070008000bf23c2670ad5",
+        "slug": "mrg_reg",
         "name": "Default Model Registry",
-        "type": "model_registry",
         "tier_definitions": {
             tier: {
                 "provider": "openai",
                 "model_name": "gpt-4o-mini",
-                "api_key": "test",
                 "tpm_limit": 0,
                 "rpm_limit": 0,
                 "max_tokens": 1000,
@@ -228,10 +221,9 @@ def test_configure_llm_context_hook_corrupt_registry(mock_get_settings: MagicMoc
     mock_settings = MagicMock()
     mock_settings.default_model_strategy = "fast"
     mock_settings.model_registry = {
-        "id": "sys_abcdef0123456789abcdef0123456789",
-        "slug": "sys_reg",
+        "id": "mrg_0195f3a0000070008000bf23c2670ad5",
+        "slug": "mrg_reg",
         "name": "Default Model Registry",
-        "type": "model_registry",
     }
     mock_get_settings.return_value = mock_settings
     mock_reg = MagicMock()
@@ -262,10 +254,9 @@ def test_configure_llm_context_hook_tier_not_in_definitions(
     mock_settings = MagicMock()
     mock_settings.default_model_strategy = "deep"
     mock_settings.model_registry = {
-        "id": "sys_abcdef0123456789abcdef0123456789",
-        "slug": "sys_reg",
+        "id": "mrg_0195f3a0000070008000bf23c2670ad5",
+        "slug": "mrg_reg",
         "name": "Default Model Registry",
-        "type": "model_registry",
     }
     mock_get_settings.return_value = mock_settings
     mock_reg = MagicMock()
@@ -293,15 +284,13 @@ def test_configure_llm_context_hook_missing_limits(mock_get_settings: MagicMock)
     mock_settings = MagicMock()
     mock_settings.default_model_strategy = "fast"
     mock_settings.model_registry = {
-        "id": "sys_abcdef0123456789abcdef0123456789",
-        "slug": "sys_reg",
+        "id": "mrg_0195f3a0000070008000bf23c2670ad5",
+        "slug": "mrg_reg",
         "name": "Default Model Registry",
-        "type": "model_registry",
         "tier_definitions": {
             tier: {
                 "provider": "openai",
                 "model_name": "gpt-4o-mini",
-                "api_key": "test",
                 "tpm_limit": None if tier == "fast" else 0,
                 "rpm_limit": None if tier == "fast" else 0,
                 "max_tokens": 1000,

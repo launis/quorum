@@ -56,7 +56,7 @@ def get_audit_workflow() -> Any:
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+        "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         "slug": "valid_wf",
         "expected_inputs": [],
         "steps": [

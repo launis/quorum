@@ -7,10 +7,11 @@ updates, deletion, and negative ResourceNotFoundError boundaries over InMemoryUn
 from __future__ import annotations
 
 import pytest
+from polyfactory import Use
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.database.repositories.system import SystemRepositoryImpl
-from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.core_base import generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
@@ -41,12 +42,12 @@ class SystemConfigModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
 
     @classmethod
     def id(cls) -> str:
-        """Generate a canonical sys_<hex32> UUIDv7 Opaque Stripe ID.
+        """Generate a canonical mrg_<hex32> UUIDv7 Opaque Stripe ID.
 
         Returns:
-            Canonical Opaque Stripe ID with 'sys_' prefix.
+            Canonical Opaque Stripe ID with 'mrg_' prefix.
         """
-        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        return generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     @classmethod
     def slug(cls) -> str:
@@ -98,6 +99,7 @@ class SystemConfigMCPGatewaysFactory(ModelFactory[SystemConfigMCPGateways]):
     __model__ = SystemConfigMCPGateways
     __set_as_default_factory_for_type__ = False
 
+    organization_id = Use(generate_opaque_id, EntityPrefix.ORGANIZATION)
     name: str = "Search MCP Gateway"
     endpoint_url: str = "https://mcp.example.org/search"
     transport_type: MCPTransportType = MCPTransportType.STREAMABLE_HTTP
@@ -108,12 +110,12 @@ class SystemConfigMCPGatewaysFactory(ModelFactory[SystemConfigMCPGateways]):
 
     @classmethod
     def id(cls) -> str:
-        """Generate a canonical sys_<hex32> UUIDv7 Opaque Stripe ID.
+        """Generate a canonical mcp_<hex32> UUIDv7 Opaque Stripe ID.
 
         Returns:
-            Canonical Opaque Stripe ID with 'sys_' prefix.
+            Canonical Opaque Stripe ID with 'mcp_' prefix.
         """
-        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        return generate_opaque_id(EntityPrefix.MCP_GATEWAY)
 
     @classmethod
     def slug(cls) -> str:
@@ -197,13 +199,13 @@ async def test_update_model_registry_in_place_by_id(repo: SystemRepositoryImpl) 
 
 
 @pytest.mark.asyncio
-async def test_delete_system_config_removes_model_registry(repo: SystemRepositoryImpl) -> None:
-    """Verify delete_system_config deletes a persisted model registry and subsequent lookup fails."""
+async def test_delete_model_registry_removes_model_registry(repo: SystemRepositoryImpl) -> None:
+    """Verify delete_model_registry deletes a persisted model registry and subsequent lookup fails."""
     registry = SystemConfigModelRegistryFactory.build()
     await repo.update_model_registry(registry)
 
-    assert await repo.delete_system_config(registry.id) is True
-    assert await repo.delete_system_config(registry.id) is False
+    assert await repo.delete_model_registry(registry.id) is True
+    assert await repo.delete_model_registry(registry.id) is False
 
     with pytest.raises(ResourceNotFoundError):
         await repo.get_model_registry(registry.id)
@@ -211,8 +213,8 @@ async def test_delete_system_config_removes_model_registry(repo: SystemRepositor
 
 @pytest.mark.asyncio
 async def test_get_model_registry_by_id_not_found_error(repo: SystemRepositoryImpl) -> None:
-    """Verify get_model_registry raises ResourceNotFoundError for a non-existent sys_<hex32> ID."""
-    missing_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    """Verify get_model_registry raises ResourceNotFoundError for a non-existent mrg_<hex32> ID."""
+    missing_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await repo.get_model_registry(missing_id)
@@ -222,14 +224,15 @@ async def test_get_model_registry_by_id_not_found_error(repo: SystemRepositoryIm
 
 @pytest.mark.asyncio
 async def test_get_model_registry_by_id_wrong_type_error(repo: SystemRepositoryImpl) -> None:
-    """Verify get_model_registry raises ResourceNotFoundError when ID points to an MCP gateway document."""
+    """Verify get_model_registry raises AppException VALIDATION_FAILED when ID carries mcp_ prefix."""
     gateway = SystemConfigMCPGatewaysFactory.build()
     await repo.update_mcp_gateways(gateway)
 
-    with pytest.raises(ResourceNotFoundError) as exc_info:
+    with pytest.raises(AppException) as exc_info:
         await repo.get_model_registry(gateway.id)
 
-    assert exc_info.value.status_code == 404
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

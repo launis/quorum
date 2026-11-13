@@ -60,7 +60,7 @@ def mock_public_dns(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _make_gateway(
     *,
-    gateway_id: str = "sys_0195f3a00000700080008172bda70c86",
+    gateway_id: str = "mcp_0195f3a00000700080008172bda70c86",
     transport_type: MCPTransportType = MCPTransportType.STREAMABLE_HTTP,
     auth_type: MCPAuthType = MCPAuthType.NONE,
     auth_env_var: str | None = None,
@@ -80,6 +80,7 @@ def _make_gateway(
     """
     return SystemConfigMCPGateways(
         id=gateway_id,
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Remote Search Gateway",
         slug="remote_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
@@ -413,7 +414,7 @@ async def test_generic_mcp_client_auth_configuration_errors(monkeypatch: pytest.
     client = GenericMCPClient()
 
     gw_missing_secret = _make_gateway(
-        gateway_id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        gateway_id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
         auth_type=MCPAuthType.BEARER,
         auth_env_var=None,
     )
@@ -423,7 +424,7 @@ async def test_generic_mcp_client_auth_configuration_errors(monkeypatch: pytest.
 
     tenant_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     gw_missing_with_env = _make_gateway(
-        gateway_id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        gateway_id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
         auth_type=MCPAuthType.BEARER,
         auth_env_var="PRESENT_MCP_SECRET",
     )

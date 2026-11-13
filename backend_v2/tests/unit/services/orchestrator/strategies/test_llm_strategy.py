@@ -35,7 +35,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     # Setup system config model registry for cognitive tier
     reg = SystemConfigModelRegistry.model_validate(
         {
-            "id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "name": "Default Stack",
             "tier_definitions": {
                 "fast": {
@@ -86,7 +86,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
             "version": 1,
             "default_profile_id": "prof_0123456789abcdef0123456789abcde1",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         }
     )
@@ -221,7 +221,7 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
         output_profile_id="prof_0123456789abcdef0123456789abcde1",
         target_locale="en",
         cognitive_tier=CognitiveTier.FAST,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -232,7 +232,7 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
         output_profile_id="prof_0123456789abcdef0123456789abcde2",
         target_locale="en",
         cognitive_tier=CognitiveTier.FAST,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )

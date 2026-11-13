@@ -9,6 +9,7 @@ vs. Domain DTO Column Naming Parity across all 12 tables, and ISTQB negative bou
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import sys
@@ -216,6 +217,8 @@ def _extract_sql_table_columns(sql_text: str) -> dict[str, set[str]]:
         "FOREIGN",
         "UNIQUE",
         "CHECK",
+        "OR",
+        "AND",
     }
     for match in pattern.finditer(sql_text):
         table_name = match.group(1).lower()
@@ -223,7 +226,7 @@ def _extract_sql_table_columns(sql_text: str) -> dict[str, set[str]]:
         cols: set[str] = set()
         for raw_line in body.splitlines():
             line = raw_line.strip()
-            if not line or line.startswith("--"):
+            if not line or line.startswith("--") or line.startswith("(") or line.startswith(")"):
                 continue
             cleaned = line.rstrip(",")
             tokens = cleaned.split()
@@ -471,7 +474,7 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
 
     exec_id = generate_uuid7_opaque_id(EntityPrefix.EXECUTION)
     wf_id = generate_uuid7_opaque_id(EntityPrefix.WORKFLOW)
-    gw_id = generate_uuid7_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    gw_id = generate_uuid7_opaque_id(EntityPrefix.MCP_GATEWAY)
     mcp_trace = MCPAuditTrace(
         id=generate_uuid7_opaque_id(EntityPrefix.TDA),
         tool_id="web_search_exa",
@@ -605,13 +608,14 @@ def test_schema_dto_naming_parity() -> None:
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_edges_run_created" in sql_text
 
     parsed_tables = _extract_sql_table_columns(sql_text)
-    expected_16_tables = {
+    expected_19_tables = {
         "organizations",
         "users",
         "invitations",
         "tenant_secrets",
         "execution_assignments",
-        "system_configs",
+        "model_registries",
+        "mcp_gateways",
         "prompt_blocks",
         "task_briefs",
         "steps",
@@ -625,7 +629,7 @@ def test_schema_dto_naming_parity() -> None:
         "audit_logs",
         "usage_records",
     }
-    assert set(parsed_tables.keys()) == expected_16_tables
+    assert set(parsed_tables.keys()) == expected_19_tables
 
     # 1. quorum_nodes <-> PropositionNode + NodeDraft.local_key
     assert parsed_tables["quorum_nodes"] == set(PropositionNode.model_fields.keys()) | {"local_key"}
@@ -660,11 +664,11 @@ def test_schema_dto_naming_parity() -> None:
     # 9. output_profiles <-> OutputProfile + VIRTUAL created_at
     assert parsed_tables["output_profiles"] == set(OutputProfile.model_fields.keys()) | {"created_at"}
 
-    # 10. system_configs <-> Union of SystemConfigModelRegistry and SystemConfigMCPGateways + VIRTUAL created_at
-    system_config_union_fields = set(SystemConfigModelRegistry.model_fields.keys()) | set(
-        SystemConfigMCPGateways.model_fields.keys()
-    )
-    assert parsed_tables["system_configs"] == system_config_union_fields | {"created_at"}
+    # 10a. model_registries <-> SystemConfigModelRegistry + VIRTUAL created_at
+    assert parsed_tables["model_registries"] == set(SystemConfigModelRegistry.model_fields.keys()) | {"created_at"}
+
+    # 10b. mcp_gateways <-> SystemConfigMCPGateways + VIRTUAL created_at
+    assert parsed_tables["mcp_gateways"] == set(SystemConfigMCPGateways.model_fields.keys()) | {"created_at"}
 
     # 11. users <-> User
     assert parsed_tables["users"] == set(User.model_fields.keys())
@@ -675,8 +679,11 @@ def test_schema_dto_naming_parity() -> None:
     # 13. invitations <-> Invitation
     assert parsed_tables["invitations"] == set(Invitation.model_fields.keys())
 
-    # 14. tenant_secrets <-> TenantSecretDTO + VIRTUAL created_at
-    assert parsed_tables["tenant_secrets"] == set(TenantSecretDTO.model_fields.keys()) | {"created_at"}
+    # 14. tenant_secrets <-> TenantSecretDTO + mcp_gateway_id + VIRTUAL created_at
+    assert parsed_tables["tenant_secrets"] == set(TenantSecretDTO.model_fields.keys()) | {
+        "mcp_gateway_id",
+        "created_at",
+    }
 
     # 15. execution_assignments <-> ExecutionAssignment
     assert parsed_tables["execution_assignments"] == set(ExecutionAssignment.model_fields.keys())
@@ -708,7 +715,8 @@ def test_schema_dto_naming_parity() -> None:
     assert recovered_server_info == server_info
 
     mcp_gateway = SystemConfigMCPGateways(
-        id=generate_uuid7_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_uuid7_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Exa Search Gateway",
         slug="exa_search",
         endpoint_url="https://mcp.exa.ai/v1",
@@ -1648,20 +1656,122 @@ async def test_postgres_uow_crud_and_occ_boundary_invariants() -> None:
 async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUnitOfWork) -> None:
     """Verify seed_collection_batch, collection helpers, and verify_seed_table_counts across all tables."""
     from backend_v2.models.dtos.report_artifact import ReportMetadataDTO, ReportStoragePathsDTO
-    from backend_v2.models.enums import ReportStatus
-    from backend_v2.seed.run_seed import ValidatedSeedBufferDTO
-
-    repo_root = Path(__file__).resolve().parents[4]
-    seed_buffer = ValidatedSeedBufferDTO.model_validate_json(
-        (repo_root / "backend_v2" / "seed" / "seed_data.json").read_bytes()
+    from backend_v2.models.enums import PromptBlockCategory, ReportStatus
+    from backend_v2.tests.factories.model_factories import (
+        MatrixPromptBlockFactory,
+        OutputProfileFactory,
+        SystemConfigMCPGatewaysFactory,
+        SystemConfigModelRegistryFactory,
+        SystemRulePromptBlockFactory,
+        TaskBriefFactory,
+        WorkflowFactory,
     )
+
     now = datetime.now(UTC)
+    org_sample = Organization(
+        id="org_0195f3a0000070008000000000000001",
+        slug="quorum-root",
+        name="Quorum Root",
+        is_active=True,
+        tier="enterprise",
+        contact_email="admin@quorum.ai",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=1000.0,
+        tpm_limit=100000,
+        rpm_limit=1000,
+        allowed_email_domains=[],
+        created_at=now,
+    )
+    user_sample = User(
+        id="usr_0195f3a00000700a83fd6b3d77c748f4",
+        organization_id=org_sample.id,
+        email="admin@quorum.ai",
+        name="Root Admin",
+        role=UserRole.ROOT,
+        is_active=True,
+        language=SystemLocale.FI,
+        theme_mode="dark",
+        created_at=now,
+    )
+    reg_sample = SystemConfigModelRegistryFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.MODEL_REGISTRY),
+    )
+    gw_sample = SystemConfigMCPGatewaysFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=org_sample.id,
+    )
+    block_matrix = MatrixPromptBlockFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.PROMPT_BLOCK),
+        organization_id=org_sample.id,
+    )
+    block_persona = PersonaPromptBlock(
+        id=generate_uuid7_opaque_id(EntityPrefix.PROMPT_BLOCK),
+        organization_id=org_sample.id,
+        slug="test_persona_block",
+        label=I18nText(translations={"fi": "Persoona", "en": "Persona"}),
+        description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
+        category_id=PromptBlockCategory.EXECUTION_PERSONA,
+        output_extensions=[],
+        role_enforcement="Act as an executive analyst.",
+        tone_directives=[],
+    )
+    block_protocol = ProtocolPromptBlock(
+        id=generate_uuid7_opaque_id(EntityPrefix.PROMPT_BLOCK),
+        organization_id=org_sample.id,
+        slug="test_protocol_block",
+        label=I18nText(translations={"fi": "Protokolla", "en": "Protocol"}),
+        description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
+        category_id=PromptBlockCategory.PROTOCOL,
+        output_extensions=[],
+        protocol_instructions="Execute structured verification.",
+    )
+    block_rule = SystemRulePromptBlockFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.PROMPT_BLOCK),
+        organization_id=org_sample.id,
+    )
+    sample_blocks = [block_matrix, block_persona, block_protocol, block_rule]
+    brief_sample = TaskBriefFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.TASK_BRIEF),
+        organization_id=org_sample.id,
+    )
+    step_sample = Step(
+        id=generate_uuid7_opaque_id(EntityPrefix.STEP),
+        organization_id=org_sample.id,
+        slug="test_step_blueprint",
+        name=I18nText(translations={"fi": "Vaihe", "en": "Step"}),
+        description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
+        type=StepType.LLM,
+        zone=StepZone.ZONE_B,
+        engine_type=EngineType.PROMPT,
+        cognitive_tier=CognitiveTier.FAST,
+        role_block_id=block_rule.id,
+        extraction_protocol_block_id=block_protocol.id,
+        execution_persona_block_id=block_persona.id,
+        criteria_block_ids=[block_matrix.id],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
+    )
+    wf_sample = WorkflowFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
+        organization_id=org_sample.id,
+        model_registry_id=reg_sample.id,
+        mcp_gateway_id=gw_sample.id,
+        steps=[],
+    )
+    profile_sample = OutputProfileFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.OUTPUT_PROFILE),
+        organization_id=org_sample.id,
+        workflow_id=wf_sample.id,
+    )
 
     sample_exec = ExecutionRecord(
         id=generate_uuid7_opaque_id(EntityPrefix.EXECUTION),
-        workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
+        workflow_id=wf_sample.id,
         workflow_version=2,
-        output_profile_id="prf_0195f3a0000070008000111111111111",
+        output_profile_id=profile_sample.id,
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         progress=100,
@@ -1683,7 +1793,7 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         id=generate_uuid7_opaque_id(EntityPrefix.REPORT),
         execution_id=sample_exec.id,
         workflow_id=sample_exec.workflow_id,
-        profile_id="prf_0195f3a0000070008000111111111111",
+        profile_id=profile_sample.id,
         locale="fi",
         title="Sample Report",
         status=ReportStatus.READY,
@@ -1700,24 +1810,16 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         created_at=now,
     )
 
-    sample_blocks = [
-        next(b for b in seed_buffer.prompt_blocks if isinstance(b, MatrixPromptBlock)),
-        next(b for b in seed_buffer.prompt_blocks if isinstance(b, PersonaPromptBlock)),
-        next(b for b in seed_buffer.prompt_blocks if isinstance(b, ProtocolPromptBlock)),
-        next(b for b in seed_buffer.prompt_blocks if isinstance(b, SystemRulePromptBlock)),
-    ]
-
     async with uow:
-        assert await uow.entities.seed_collection_batch("organizations", seed_buffer.organizations[:1]) == 1
-        assert await uow.entities.seed_collection_batch("users", seed_buffer.users[:1]) == 1
-        assert await uow.entities.seed_collection_batch("system_config", seed_buffer.system_config) == len(
-            seed_buffer.system_config
-        )
+        assert await uow.entities.seed_collection_batch("organizations", [org_sample]) == 1
+        assert await uow.entities.seed_collection_batch("users", [user_sample]) == 1
+        assert await uow.entities.seed_collection_batch("model_registries", [reg_sample]) == 1
+        assert await uow.entities.seed_collection_batch("mcp_gateways", [gw_sample]) == 1
         assert await uow.entities.seed_collection_batch("prompt_blocks", sample_blocks) == 4
-        assert await uow.entities.seed_collection_batch("task_briefs", seed_buffer.task_briefs[:1]) == 1
-        assert await uow.entities.seed_collection_batch("steps", seed_buffer.steps[:1]) == 1
-        assert await uow.entities.seed_collection_batch("workflows", seed_buffer.workflows[:1]) == 1
-        assert await uow.entities.seed_collection_batch("output_profiles", seed_buffer.output_profiles[:1]) == 1
+        assert await uow.entities.seed_collection_batch("task_briefs", [brief_sample]) == 1
+        assert await uow.entities.seed_collection_batch("steps", [step_sample]) == 1
+        assert await uow.entities.seed_collection_batch("workflows", [wf_sample]) == 1
+        assert await uow.entities.seed_collection_batch("output_profiles", [profile_sample]) == 1
         assert await uow.entities.seed_collection_batch("executions", [sample_exec]) == 1
         assert await uow.entities.seed_collection_batch("report_artifacts", [sample_report]) == 1
         assert await uow.entities.seed_collection_batch("report_binaries", [sample_binary]) == 1
@@ -1726,7 +1828,8 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
             {
                 "organizations": 1,
                 "users": 1,
-                "system_config": 1,
+                "model_registries": 1,
+                "mcp_gateways": 1,
                 "prompt_blocks": 4,
                 "task_briefs": 1,
                 "steps": 1,
@@ -1741,14 +1844,6 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         assert verified["executions"] == 1
 
         if isinstance(uow.entities, PostgresEntityAdapter):
-            org_sample = seed_buffer.organizations[0]
-            user_sample = seed_buffer.users[0]
-            cfg_sample = seed_buffer.system_config[0]
-            block_sample = next(b for b in seed_buffer.prompt_blocks if isinstance(b, MatrixPromptBlock))
-            step_sample = seed_buffer.steps[0]
-            wf_sample = seed_buffer.workflows[0]
-            profile_sample = seed_buffer.output_profiles[0]
-
             invitation_sample = Invitation(
                 id=generate_uuid7_opaque_id(EntityPrefix.INVITATION),
                 organization_id=org_sample.id,
@@ -1813,13 +1908,17 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
             assert len(await uow.entities.list_execution_assignments()) >= 1
             assert len(await uow.entities.list_execution_assignments(organization_id=org_sample.id)) >= 1
 
-            assert await uow.entities.upsert_system_config(cfg_sample) == cfg_sample.id
-            fetched_cfg = await uow.entities.get_system_config(cfg_sample.id)
-            assert fetched_cfg is not None and fetched_cfg.id == cfg_sample.id
+            assert await uow.entities.upsert_model_registry(reg_sample) == reg_sample.id
+            fetched_reg = await uow.entities.get_model_registry(reg_sample.id)
+            assert fetched_reg is not None and fetched_reg.id == reg_sample.id
 
-            assert await uow.entities.upsert_prompt_block(block_sample) == block_sample.id
-            fetched_blk = await uow.entities.get_prompt_block(block_sample.id)
-            assert fetched_blk is not None and fetched_blk.id == block_sample.id
+            assert await uow.entities.upsert_mcp_gateway(gw_sample) == gw_sample.id
+            fetched_gw = await uow.entities.get_mcp_gateway(gw_sample.id)
+            assert fetched_gw is not None and fetched_gw.id == gw_sample.id
+
+            assert await uow.entities.upsert_prompt_block(block_matrix) == block_matrix.id
+            fetched_blk = await uow.entities.get_prompt_block(block_matrix.id)
+            assert fetched_blk is not None and fetched_blk.id == block_matrix.id
 
             assert await uow.entities.upsert_step(step_sample) == step_sample.id
             fetched_stp = await uow.entities.get_step(step_sample.id)
@@ -1905,12 +2004,12 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
 
         # Negative boundary 1: unsupported collection name raises VALIDATION_FAILED
         with pytest.raises(AppException) as exc_bad_col:
-            await uow.entities.seed_collection_batch("rogue_collection", seed_buffer.organizations[:1])
+            await uow.entities.seed_collection_batch("rogue_collection", [org_sample])
         assert exc_bad_col.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
         # Negative boundary 2: mismatched entity type for collection raises VALIDATION_FAILED
         with pytest.raises(AppException) as exc_type_mismatch:
-            await uow.entities.seed_collection_batch("users", seed_buffer.organizations[:1])
+            await uow.entities.seed_collection_batch("users", [org_sample])
         assert exc_type_mismatch.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
         # Negative boundary 3: unknown table in verify_seed_table_counts raises VALIDATION_FAILED
@@ -1950,13 +2049,13 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
     )
     normalized_sql = " ".join(sql_text.lower().split())
 
-    # 1. Verify idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS statements for evolved IAM columns
+    # 1. Verify idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS statements for evolved IAM and split tables
     assert "alter table organizations add column if not exists allowed_email_domains" in normalized_sql
     assert "alter table users add column if not exists firebase_uid" in normalized_sql
     assert "alter table users add column if not exists deleted_at" in normalized_sql
-    assert "delete from system_configs where name is null;" in normalized_sql
-    assert "alter table system_configs alter column name drop default;" in normalized_sql
-    assert "alter table system_configs alter column name set not null;" in normalized_sql
+    assert "and table_name = 'system_configs'" in normalized_sql
+    assert "mcp_gateways, model_registries, system_configs, audit_logs" in normalized_sql
+    assert "alter table tenant_secrets add column if not exists mcp_gateway_id" in normalized_sql
 
     # 2. Verify _validate_database_preflight and _seed_postgres apply migrations on PostgresUnitOfWork before table checks
     pool = InMemoryAsyncPgPool()
@@ -1964,21 +2063,33 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
         pool.store.seed_tables[table][f"{table[:3]}_0195f3a0000070008000111111111111"] = (
             f"{table[:3]}_0195f3a0000070008000111111111111",
         )
-    sys_cfg_uuid = parse_prefixed_uuid7("sys_0195f3a0000070008000111111111111", EntityPrefix.SYSTEM_CONFIG)
-    pool.store.seed_tables["system_configs"][str(sys_cfg_uuid)] = (
-        sys_cfg_uuid,
-        "Tavily MCP Gateway",
-        "mcp_gateways",
+    from backend_v2.tests.factories.model_factories import SystemConfigModelRegistryFactory
+
+    org_uuid = parse_prefixed_uuid7("org_0195f3a0000070008000000000000001", EntityPrefix.ORGANIZATION)
+    mrg_uuid = parse_prefixed_uuid7("mrg_0195f3a0000070008000111111111111", EntityPrefix.MODEL_REGISTRY)
+    preflight_reg = SystemConfigModelRegistryFactory.build(id="mrg_0195f3a0000070008000111111111111")
+    pool.store.seed_tables["model_registries"][str(mrg_uuid)] = (
+        mrg_uuid,
+        preflight_reg.slug,
+        preflight_reg.name,
+        preflight_reg.default_provider.value,
+        json.dumps(preflight_reg.model_dump(mode="json")["tier_definitions"]),
+        datetime.now(UTC),
+    )
+    mcp_uuid = parse_prefixed_uuid7("mcp_0195f3a0000070008000111111111111", EntityPrefix.MCP_GATEWAY)
+    pool.store.seed_tables["mcp_gateways"][str(mcp_uuid)] = (
+        mcp_uuid,
+        org_uuid,
         "default_mcp_gateway",
-        None,
-        None,
+        "Tavily MCP Gateway",
         "https://mcp.tavily.com/mcp",
         "streamable_http",
         "bearer",
-        None,
         "TAVILY_API_KEY",
+        None,
         30,
         "[]",
+        datetime.now(UTC),
     )
     settings = Settings(
         storage_backend=StorageBackend.POSTGRES,
@@ -2090,3 +2201,101 @@ async def test_materialize_wave_sql_updates_existing_edge_causal_weight_idempote
         matching_edges = [e for e in uow.store.edges.values() if e.run_id == run_id]
         assert len(matching_edges) == 1
         assert matching_edges[0].causal_weight == pytest.approx(0.92)
+
+
+@pytest.mark.asyncio
+async def test_model_registry_and_mcp_gateway_prefix_and_secret_cascade_and_dropped_fields(
+    uow: QuorumUnitOfWork,
+) -> None:
+    """Verify mrg_/mcp_ prefix enforcement, tenant_secrets.mcp_gateway_id ON DELETE CASCADE, and dropped api_key/parsing_mode rejection."""
+    from backend_v2.models.domain.system_config import ModelProfile
+    from backend_v2.models.llm import LLMProviderConfig
+    from backend_v2.tests.factories.model_factories import (
+        ModelProfileFactory,
+        SystemConfigMCPGatewaysFactory,
+        SystemConfigModelRegistryFactory,
+    )
+
+    now = datetime.now(UTC)
+    org_id = "org_0195f3a0000070008000000000000001"
+    user_id = "usr_0195f3a00000700a83fd6b3d77c748f4"
+
+    # Contract #1: SystemConfigModelRegistry requires mrg_ prefix; SystemConfigMCPGateways requires mcp_ prefix
+    reg = SystemConfigModelRegistryFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.MODEL_REGISTRY),
+    )
+    gw = SystemConfigMCPGatewaysFactory.build(
+        id=generate_uuid7_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=org_id,
+    )
+    assert reg.id.startswith("mrg_")
+    assert gw.id.startswith("mcp_")
+
+    retired_sys_id = "sys" + "_0195f3a0000070008000e26807f3bfa3"
+    with pytest.raises(ValidationError):
+        SystemConfigModelRegistryFactory.build(
+            id=retired_sys_id,
+        )
+    with pytest.raises(ValidationError):
+        SystemConfigModelRegistryFactory.build(
+            id=gw.id,
+        )
+    with pytest.raises(ValidationError):
+        SystemConfigMCPGatewaysFactory.build(
+            id=reg.id,
+            organization_id=org_id,
+        )
+    with pytest.raises(ValidationError):
+        SystemConfigModelRegistry.model_validate(
+            {**reg.model_dump(mode="json"), "type": "model_registry"},
+        )
+
+    # Contract #4: ModelProfile and LLMProviderConfig reject deprecated api_key and parsing_mode fields
+    valid_profile_dump = ModelProfileFactory.build().model_dump(mode="json")
+    with pytest.raises(ValidationError):
+        ModelProfile.model_validate({**valid_profile_dump, "api_key": "leaked-key"})
+    with pytest.raises(ValidationError):
+        ModelProfile.model_validate({**valid_profile_dump, "parsing_mode": "structured_output"})
+    with pytest.raises(ValidationError):
+        LLMProviderConfig.model_validate(
+            {
+                "model_name": "gemini-2.5-pro",
+                "provider_type": "google_vertex",
+                "parsing_mode": "structured_output",
+            }
+        )
+
+    # Contract #2: Deleting an MCP gateway cascades to its bound MCP_GATEWAY TenantSecretDTO
+    mcp_secret = TenantSecretDTO(
+        id=generate_uuid7_opaque_id(EntityPrefix.TENANT_SECRET),
+        organization_id=org_id,
+        scope=SecretScope.MCP_GATEWAY,
+        target_identifier=gw.id,
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        kek_version="kek-v1",
+        masked_hint="...9999",
+        updated_by=user_id,
+        updated_at=now,
+    )
+    invalid_mcp_secret = TenantSecretDTO(
+        id=generate_uuid7_opaque_id(EntityPrefix.TENANT_SECRET),
+        organization_id=org_id,
+        scope=SecretScope.MCP_GATEWAY,
+        target_identifier="tavily_non_canonical_slug",
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        kek_version="kek-v1",
+        masked_hint="...9999",
+        updated_by=user_id,
+        updated_at=now,
+    )
+
+    async with uow:
+        with pytest.raises(AppException) as exc_invalid_mcp:
+            await uow.entities.upsert_tenant_secret(invalid_mcp_secret)
+        assert exc_invalid_mcp.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+        await uow.entities.upsert_mcp_gateway(gw)
+        await uow.entities.upsert_tenant_secret(mcp_secret)
+        assert await uow.entities.get_tenant_secret(mcp_secret.id) is not None
+        assert await uow.entities.delete_mcp_gateway(gw.id) is True
+        assert await uow.entities.get_mcp_gateway(gw.id) is None
+        assert await uow.entities.get_tenant_secret(mcp_secret.id) is None

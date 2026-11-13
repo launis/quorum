@@ -354,7 +354,7 @@ def test_audit_workflows_input_mappings() -> None:
         "description": {"translations": {"en": "Description"}},
         "status": "ACTIVE",
         "version": 1,
-        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+        "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         "historical_context_mode": "DISABLED",
         "expected_inputs": [
             {
@@ -617,7 +617,7 @@ def test_audit_workflow_validation_error_and_orphan_blueprint() -> None:
         "description": {"translations": {"en": "Description"}},
         "status": "ACTIVE",
         "version": 1,
-        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+        "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         "historical_context_mode": "DISABLED",
         "expected_inputs": [
             {
@@ -731,8 +731,8 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
 
     org_id = "org_0195f3a0000070008000000000000001"
     usr_id = "usr_0195f3a0000070008000000000000002"
-    sys_reg_id = "sys_0195f3a0000070008000000000000003"
-    sys_mcp_id = "sys_0195f3a0000070008000000000000004"
+    sys_reg_id = "mrg_0195f3a0000070008000000000000003"
+    sys_mcp_id = "mcp_0195f3a0000070008000000000000004"
     blk_id = "blk_0195f3a0000070008123456789abcdef"
     blk_proto_id = "blk_0195f3a0000070008123456789abcde0"
     stp_id = "stp_0195f3a0000070008000000000000005"

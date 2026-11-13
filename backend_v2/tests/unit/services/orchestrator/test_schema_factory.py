@@ -296,7 +296,7 @@ def test_build_mcp_tool_declaration_positive_and_negative() -> None:
     assert decl.function.strict is True
 
     descriptor = MCPToolDescriptorDTO(
-        gateway_id="sys_mcp_gw_default_01",
+        gateway_id="mcp_0195f3a00000700080008172bda70c86",
         gateway_slug="default_mcp_gateway",
         namespaced_alias="default_mcp_gateway__mcp_tavily_search",
         tool_id="mcp_tavily_search",

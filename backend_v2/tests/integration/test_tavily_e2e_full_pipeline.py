@@ -154,7 +154,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id="wf_0195f3a0000070018111222233334444",
         step_id="stp_0195f3a00000700786eedbc020274f66",
-        metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700b81c2d3e4f5a60718"),
+        metadata=ExecutionMetadata(model_registry_id="mrg_0195f3a00000700b81c2d3e4f5a60718"),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
             raw_inputs={},
@@ -268,7 +268,7 @@ async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_
         execution_id="exe_0195f3a0000070028222333344445555",
         workflow_id="wf_0195f3a0000070028222333344445555",
         step_id="stp_0195f3a00000700786eedbc020274f66",
-        metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700b81c2d3e4f5a60718"),
+        metadata=ExecutionMetadata(model_registry_id="mrg_0195f3a00000700b81c2d3e4f5a60718"),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
             raw_inputs={},

@@ -4,9 +4,8 @@ Strictly maps collections to V2 Pydantic models (Zero V1 leak).
 """
 
 from enum import StrEnum
-from typing import Annotated
 
-from pydantic import Discriminator, Tag, TypeAdapter
+from pydantic import TypeAdapter
 
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -17,7 +16,7 @@ from backend_v2.models.domain.system_config import SystemConfigMCPGateways, Syst
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 
-__all__ = ["STANDARD_REGISTRY", "SeedCollectionName", "SystemConfigUnion"]
+__all__ = ["STANDARD_REGISTRY", "SeedCollectionName"]
 
 
 class SeedCollectionName(StrEnum):
@@ -25,7 +24,8 @@ class SeedCollectionName(StrEnum):
 
     ORGANIZATIONS = "organizations"
     USERS = "users"
-    SYSTEM_CONFIG = "system_config"
+    MODEL_REGISTRIES = "model_registries"
+    MCP_GATEWAYS = "mcp_gateways"
     PROMPT_BLOCKS = "prompt_blocks"
     TASK_BRIEFS = "task_briefs"
     STEPS = "steps"
@@ -34,14 +34,17 @@ class SeedCollectionName(StrEnum):
     EXECUTIONS = "executions"
 
 
-SystemConfigUnion = Annotated[
-    Annotated[SystemConfigModelRegistry, Tag("model_registry")]
-    | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
-    Discriminator("type"),
-]
-
 STANDARD_REGISTRY = {
-    "system_config": {"table": "system_config", "model": TypeAdapter(SystemConfigUnion), "id_field": "id"},
+    "model_registries": {
+        "table": "model_registries",
+        "model": TypeAdapter(SystemConfigModelRegistry),
+        "id_field": "id",
+    },
+    "mcp_gateways": {
+        "table": "mcp_gateways",
+        "model": TypeAdapter(SystemConfigMCPGateways),
+        "id_field": "id",
+    },
     "workflows": {"table": "workflows", "model": TypeAdapter(Workflow), "id_field": "id"},
     "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(AnyPromptBlock), "id_field": "id"},
     "task_briefs": {"table": "task_briefs", "model": TypeAdapter(TaskBrief), "id_field": "id"},

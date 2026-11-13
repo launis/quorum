@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from uuid import UUID
 
 from pydantic_core import to_json
 
@@ -30,19 +31,21 @@ from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uu
 from backend_v2.models.domain.base import AuditLogRecord, UsageRecord, UsageRollupSummaryDTO
 from backend_v2.models.domain.execution import ExecutionAssignment
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
-from backend_v2.models.enums import EntityPrefix
+from backend_v2.models.enums import EntityPrefix, SecretScope
 
 __all__ = [
     "_AGGREGATE_USAGE_BASE_SQL",
     "_DELETE_INVITATION_SQL",
+    "_DELETE_MCP_GATEWAY_SQL",
+    "_DELETE_MODEL_REGISTRY_SQL",
     "_DELETE_ORGANIZATION_SQL",
-    "_DELETE_SYSTEM_CONFIG_SQL",
     "_DELETE_TENANT_SECRET_SQL",
     "_DELETE_USER_SQL",
     "_GET_EXECUTION_ASSIGNMENT_SQL",
     "_GET_INVITATION_SQL",
+    "_GET_MCP_GATEWAY_SQL",
+    "_GET_MODEL_REGISTRY_SQL",
     "_GET_ORGANIZATION_SQL",
-    "_GET_SYSTEM_CONFIG_SQL",
     "_GET_TENANT_SECRET_SQL",
     "_GET_USER_BY_EMAIL_SQL",
     "_GET_USER_SQL",
@@ -53,8 +56,9 @@ __all__ = [
     "_LIST_EXECUTION_ASSIGNMENTS_SQL",
     "_LIST_INVITATIONS_BY_ORG_SQL",
     "_LIST_INVITATIONS_SQL",
+    "_LIST_MCP_GATEWAYS_SQL",
+    "_LIST_MODEL_REGISTRIES_SQL",
     "_LIST_ORGANIZATIONS_SQL",
-    "_LIST_SYSTEM_CONFIGS_SQL",
     "_LIST_TENANT_SECRETS_BY_ORG_SQL",
     "_LIST_TENANT_SECRETS_SQL",
     "_LIST_USAGE_RECORDS_SQL",
@@ -62,28 +66,32 @@ __all__ = [
     "_LIST_USERS_SQL",
     "_UPSERT_EXECUTION_ASSIGNMENT_SQL",
     "_UPSERT_INVITATION_SQL",
+    "_UPSERT_MCP_GATEWAY_SQL",
+    "_UPSERT_MODEL_REGISTRY_SQL",
     "_UPSERT_ORGANIZATION_SQL",
-    "_UPSERT_SYSTEM_CONFIG_SQL",
     "_UPSERT_TENANT_SECRET_SQL",
     "_UPSERT_USER_SQL",
     "aggregate_organization_usage_row",
     "delete_invitation_row",
+    "delete_mcp_gateway_row",
+    "delete_model_registry_row",
     "delete_organization_row",
-    "delete_system_config_row",
     "delete_tenant_secret_row",
     "delete_user_row",
     "get_execution_assignment_row",
     "get_invitation_row",
+    "get_mcp_gateway_row",
+    "get_model_registry_row",
     "get_organization_row",
-    "get_system_config_row",
     "get_tenant_secret_row",
     "get_user_by_email_row",
     "get_user_row",
     "hydrate_audit_log_row",
     "hydrate_execution_assignment_row",
     "hydrate_invitation_row",
+    "hydrate_mcp_gateway_row",
+    "hydrate_model_registry_row",
     "hydrate_organization_row",
-    "hydrate_system_config_row",
     "hydrate_tenant_secret_row",
     "hydrate_usage_record_row",
     "hydrate_user_row",
@@ -92,16 +100,17 @@ __all__ = [
     "list_audit_log_rows",
     "list_execution_assignment_rows",
     "list_invitation_rows",
+    "list_mcp_gateway_rows",
+    "list_model_registry_rows",
     "list_organization_rows",
-    "list_system_config_rows",
-    "list_system_configs_rows",
     "list_tenant_secret_rows",
     "list_usage_record_rows",
     "list_user_rows",
     "upsert_execution_assignment_row",
     "upsert_invitation_row",
+    "upsert_mcp_gateway_row",
+    "upsert_model_registry_row",
     "upsert_organization_row",
-    "upsert_system_config_row",
     "upsert_tenant_secret_row",
     "upsert_user_row",
 ]
@@ -157,26 +166,27 @@ _LIST_INVITATIONS_BY_ORG_SQL: str = """SELECT id, organization_id, email, role, 
        email_delivery_status, invited_by, expires_at, created_at
 FROM invitations WHERE organization_id = $1::uuid"""
 
-_UPSERT_TENANT_SECRET_SQL: str = """INSERT INTO tenant_secrets (id, organization_id, scope, target_identifier,
-    storage_mode, secret_manager_version_uri, encrypted_dek, ciphertext, nonce, kek_version, masked_hint,
-    updated_by, updated_at)
-VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7::bytea, $8::bytea, $9::bytea, $10, $11, $12::uuid, $13::timestamptz)
-ON CONFLICT (id) DO UPDATE SET organization_id = EXCLUDED.organization_id, scope = EXCLUDED.scope,
+_UPSERT_TENANT_SECRET_SQL: str = """INSERT INTO tenant_secrets (id, organization_id, mcp_gateway_id, scope,
+    target_identifier, storage_mode, secret_manager_version_uri, encrypted_dek, ciphertext, nonce, kek_version,
+    masked_hint, updated_by, updated_at)
+VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7, $8::bytea, $9::bytea, $10::bytea, $11, $12, $13::uuid, $14::timestamptz)
+ON CONFLICT (id) DO UPDATE SET organization_id = EXCLUDED.organization_id,
+    mcp_gateway_id = EXCLUDED.mcp_gateway_id, scope = EXCLUDED.scope,
     target_identifier = EXCLUDED.target_identifier, storage_mode = EXCLUDED.storage_mode,
     secret_manager_version_uri = EXCLUDED.secret_manager_version_uri,
     encrypted_dek = EXCLUDED.encrypted_dek, ciphertext = EXCLUDED.ciphertext, nonce = EXCLUDED.nonce,
     kek_version = EXCLUDED.kek_version, masked_hint = EXCLUDED.masked_hint,
     updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at"""
 
-_GET_TENANT_SECRET_SQL: str = """SELECT id, organization_id, scope, target_identifier, storage_mode,
+_GET_TENANT_SECRET_SQL: str = """SELECT id, organization_id, mcp_gateway_id, scope, target_identifier, storage_mode,
        secret_manager_version_uri, encrypted_dek, ciphertext, nonce, kek_version, masked_hint, updated_by, updated_at
 FROM tenant_secrets WHERE id = $1::uuid"""
 
-_LIST_TENANT_SECRETS_SQL: str = """SELECT id, organization_id, scope, target_identifier, storage_mode,
+_LIST_TENANT_SECRETS_SQL: str = """SELECT id, organization_id, mcp_gateway_id, scope, target_identifier, storage_mode,
        secret_manager_version_uri, encrypted_dek, ciphertext, nonce, kek_version, masked_hint, updated_by, updated_at
 FROM tenant_secrets"""
 
-_LIST_TENANT_SECRETS_BY_ORG_SQL: str = """SELECT id, organization_id, scope, target_identifier, storage_mode,
+_LIST_TENANT_SECRETS_BY_ORG_SQL: str = """SELECT id, organization_id, mcp_gateway_id, scope, target_identifier, storage_mode,
        secret_manager_version_uri, encrypted_dek, ciphertext, nonce, kek_version, masked_hint, updated_by, updated_at
 FROM tenant_secrets WHERE organization_id = $1::uuid"""
 
@@ -216,21 +226,31 @@ _LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL: str = """SELECT id, batch_id, organizati
        hard_deadline_at, relative_duration_seconds, activated_at, submitted_at, execution_id, created_by, created_at
 FROM execution_assignments WHERE organization_id = $1::uuid"""
 
-_UPSERT_SYSTEM_CONFIG_SQL: str = """INSERT INTO system_configs (id, name, type, slug, default_provider,
-    tier_definitions, endpoint_url, transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools)
-VALUES ($1::uuid, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13::jsonb)
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, slug = EXCLUDED.slug,
-    default_provider = EXCLUDED.default_provider, tier_definitions = EXCLUDED.tier_definitions,
-    endpoint_url = EXCLUDED.endpoint_url, transport_type = EXCLUDED.transport_type, auth_type = EXCLUDED.auth_type,
-    auth_header_name = EXCLUDED.auth_header_name, auth_env_var = EXCLUDED.auth_env_var,
-    timeout_seconds = EXCLUDED.timeout_seconds, tools = EXCLUDED.tools"""
+_UPSERT_MODEL_REGISTRY_SQL: str = """INSERT INTO model_registries (id, slug, name, default_provider, tier_definitions)
+VALUES ($1::uuid, $2, $3, $4, $5::jsonb)
+ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, name = EXCLUDED.name,
+    default_provider = EXCLUDED.default_provider, tier_definitions = EXCLUDED.tier_definitions"""
 
-_GET_SYSTEM_CONFIG_SQL: str = """SELECT id, name, type, slug, default_provider, tier_definitions, endpoint_url,
-       transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools
-FROM system_configs WHERE id = $1::uuid"""
+_GET_MODEL_REGISTRY_SQL: str = """SELECT id, slug, name, default_provider, tier_definitions
+FROM model_registries WHERE id = $1::uuid"""
 
-_LIST_SYSTEM_CONFIGS_SQL: str = """SELECT id, name, type, slug, default_provider, tier_definitions, endpoint_url,
-       transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools FROM system_configs"""
+_LIST_MODEL_REGISTRIES_SQL: str = """SELECT id, slug, name, default_provider, tier_definitions FROM model_registries"""
+
+_UPSERT_MCP_GATEWAY_SQL: str = """INSERT INTO mcp_gateways (id, organization_id, slug, name, endpoint_url,
+    transport_type, auth_type, auth_env_var, auth_header_name, timeout_seconds, tools)
+VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
+ON CONFLICT (id) DO UPDATE SET organization_id = EXCLUDED.organization_id, slug = EXCLUDED.slug,
+    name = EXCLUDED.name, endpoint_url = EXCLUDED.endpoint_url, transport_type = EXCLUDED.transport_type,
+    auth_type = EXCLUDED.auth_type, auth_env_var = EXCLUDED.auth_env_var,
+    auth_header_name = EXCLUDED.auth_header_name, timeout_seconds = EXCLUDED.timeout_seconds,
+    tools = EXCLUDED.tools"""
+
+_GET_MCP_GATEWAY_SQL: str = """SELECT id, organization_id, slug, name, endpoint_url, transport_type,
+       auth_type, auth_env_var, auth_header_name, timeout_seconds, tools
+FROM mcp_gateways WHERE id = $1::uuid"""
+
+_LIST_MCP_GATEWAYS_SQL: str = """SELECT id, organization_id, slug, name, endpoint_url, transport_type,
+       auth_type, auth_env_var, auth_header_name, timeout_seconds, tools FROM mcp_gateways"""
 
 _DELETE_TENANT_SECRET_SQL: str = "DELETE FROM tenant_secrets WHERE id = $1::uuid"
 
@@ -750,12 +770,16 @@ async def upsert_tenant_secret_row(
     Raises:
         AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
     """
+    mcp_gateway_uuid: UUID | None = None
+    if secret.scope == SecretScope.MCP_GATEWAY:
+        mcp_gateway_uuid = parse_prefixed_uuid7(secret.target_identifier, EntityPrefix.MCP_GATEWAY)
     return await execute_entity_upsert(
         conn,
         timeout,
         _UPSERT_TENANT_SECRET_SQL,
         parse_prefixed_uuid7(secret.id, EntityPrefix.TENANT_SECRET),
         parse_prefixed_uuid7(secret.organization_id, EntityPrefix.ORGANIZATION),
+        mcp_gateway_uuid,
         secret.scope.value,
         secret.target_identifier,
         secret.storage_mode.value,
@@ -982,169 +1006,230 @@ async def list_execution_assignment_rows(
     return [hydrate_execution_assignment_row(r) for r in rows]
 
 
-def hydrate_system_config_row(
-    row: AsyncPgRecordProtocol,
-) -> SystemConfigModelRegistry | SystemConfigMCPGateways:
-    """Hydrate a polymorphic SystemConfig from a database row.
+def hydrate_model_registry_row(row: AsyncPgRecordProtocol) -> SystemConfigModelRegistry:
+    """Hydrate a SystemConfigModelRegistry from a model_registries database row.
 
     Args:
-        row: Database record from the system_configs table.
+        row: Database record from the model_registries table.
 
     Returns:
-        Validated SystemConfigModelRegistry or SystemConfigMCPGateways instance.
+        Validated SystemConfigModelRegistry instance.
 
     Raises:
-        AppException: With VALIDATION_FAILED if the system_config UUID cannot be formatted or row validation fails.
+        AppException: With VALIDATION_FAILED if the model_registry UUID or row validation fails.
     """
-    cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
-    cfg_type = row["type"]
-    if cfg_type == "mcp_gateways":
-        return validate_hydrated_row(
-            SystemConfigMCPGateways,
-            {
-                "id": cfg_id,
-                "name": row["name"],
-                "type": "mcp_gateways",
-                "slug": row["slug"],
-                "endpoint_url": row["endpoint_url"],
-                "transport_type": row["transport_type"],
-                "auth_type": row["auth_type"],
-                "auth_header_name": row["auth_header_name"],
-                "auth_env_var": row["auth_env_var"],
-                "timeout_seconds": row["timeout_seconds"],
-                "tools": _decode_jsonb_column(row["tools"]),
-            },
-            table_name="system_configs",
-            entity_id=cfg_id,
-        )
-    if cfg_type == "model_registry":
-        return validate_hydrated_row(
-            SystemConfigModelRegistry,
-            {
-                "id": cfg_id,
-                "name": row["name"],
-                "type": "model_registry",
-                "default_provider": row["default_provider"],
-                "tier_definitions": _decode_jsonb_column(row["tier_definitions"]),
-            },
-            table_name="system_configs",
-            entity_id=cfg_id,
-        )
+    reg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.MODEL_REGISTRY)
     return validate_hydrated_row(
         SystemConfigModelRegistry,
         {
-            "id": cfg_id,
+            "id": reg_id,
+            "slug": row["slug"],
             "name": row["name"],
-            "type": cfg_type,
+            "default_provider": row["default_provider"],
+            "tier_definitions": _decode_jsonb_column(row["tier_definitions"]),
         },
-        table_name="system_configs",
-        entity_id=cfg_id,
+        table_name="model_registries",
+        entity_id=reg_id,
     )
 
 
-async def upsert_system_config_row(
+async def upsert_model_registry_row(
     conn: AsyncPgConnectionProtocol,
     timeout: float,
-    cfg: SystemConfigModelRegistry | SystemConfigMCPGateways,
+    registry: SystemConfigModelRegistry,
 ) -> str:
-    """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs.
+    """Persist a SystemConfigModelRegistry into model_registries.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
         timeout: Command execution timeout in seconds.
-        cfg: Validated SystemConfigModelRegistry or SystemConfigMCPGateways domain model.
+        registry: Validated SystemConfigModelRegistry domain model.
 
     Returns:
-        Canonical sys_<hex> system configuration identifier.
+        Canonical mrg_<hex> model registry identifier.
 
     Raises:
         AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
     """
-    cfg_uuid = parse_prefixed_uuid7(cfg.id, EntityPrefix.SYSTEM_CONFIG)
-    dumped = cfg.model_dump(mode="json")
-    name = cfg.name
-    slug = provider = tiers_json = endpoint_url = transport = auth_type = auth_hdr = auth_env = tools_json = None
-    timeout_sec: int | None = None
-    if isinstance(cfg, SystemConfigMCPGateways):
-        slug = cfg.slug
-        endpoint_url = cfg.endpoint_url
-        transport = str(cfg.transport_type)
-        auth_type = str(cfg.auth_type)
-        auth_hdr = cfg.auth_header_name
-        auth_env = cfg.auth_env_var
-        timeout_sec = cfg.timeout_seconds
-        tools_json = to_json(dumped["tools"]).decode("utf-8")
-    else:
-        provider = str(cfg.default_provider)
-        tiers_json = to_json(dumped["tier_definitions"]).decode("utf-8")
+    reg_uuid = parse_prefixed_uuid7(registry.id, EntityPrefix.MODEL_REGISTRY)
+    dumped = registry.model_dump(mode="json")
     return await execute_entity_upsert(
         conn,
         timeout,
-        _UPSERT_SYSTEM_CONFIG_SQL,
-        cfg_uuid,
-        name,
-        cfg.type,
-        slug,
-        provider,
-        tiers_json,
-        endpoint_url,
-        transport,
-        auth_type,
-        auth_hdr,
-        auth_env,
-        timeout_sec,
-        tools_json,
-        entity_id=cfg.id,
-        entity_label="system_config",
+        _UPSERT_MODEL_REGISTRY_SQL,
+        reg_uuid,
+        registry.slug,
+        registry.name,
+        str(registry.default_provider),
+        to_json(dumped["tier_definitions"]).decode("utf-8"),
+        entity_id=registry.id,
+        entity_label="model_registry",
     )
 
 
-async def get_system_config_row(
+async def get_model_registry_row(
     conn: AsyncPgConnectionProtocol,
     timeout: float,
-    config_id: str,
-) -> SystemConfigModelRegistry | SystemConfigMCPGateways | None:
-    """Fetch a SystemConfig by ID.
+    registry_id: str,
+) -> SystemConfigModelRegistry | None:
+    """Fetch a SystemConfigModelRegistry by ID from model_registries.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
         timeout: Command execution timeout in seconds.
-        config_id: Canonical sys_<hex> system configuration identifier.
+        registry_id: Canonical mrg_<hex> model registry identifier.
 
     Returns:
-        Hydrated SystemConfigModelRegistry or SystemConfigMCPGateways if found, or None.
+        Hydrated SystemConfigModelRegistry if found, or None.
 
     Raises:
         AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
     """
-    cfg_uuid = parse_prefixed_uuid7(config_id, EntityPrefix.SYSTEM_CONFIG)
-    row = await _fetch_row(conn, timeout, _GET_SYSTEM_CONFIG_SQL, cfg_uuid, config_id)
+    reg_uuid = parse_prefixed_uuid7(registry_id, EntityPrefix.MODEL_REGISTRY)
+    row = await _fetch_row(conn, timeout, _GET_MODEL_REGISTRY_SQL, reg_uuid, registry_id, table_name="model_registries")
     if row is None:
         return None
-    return hydrate_system_config_row(row)
+    return hydrate_model_registry_row(row)
 
 
-async def list_system_config_rows(
+async def list_model_registry_rows(
     conn: AsyncPgConnectionProtocol,
     timeout: float,
-) -> list[SystemConfigModelRegistry | SystemConfigMCPGateways]:
-    """List all polymorphic SystemConfig rows from system_configs.
+) -> list[SystemConfigModelRegistry]:
+    """List all SystemConfigModelRegistry rows from model_registries.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
         timeout: Command execution timeout in seconds.
 
     Returns:
-        List of hydrated SystemConfigModelRegistry and SystemConfigMCPGateways models.
+        List of hydrated SystemConfigModelRegistry domain models.
 
     Raises:
         AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
     """
-    rows = await _fetch_list_rows(conn, timeout, _LIST_SYSTEM_CONFIGS_SQL, table_label="system_configs")
-    return [hydrate_system_config_row(r) for r in rows]
+    rows = await _fetch_list_rows(conn, timeout, _LIST_MODEL_REGISTRIES_SQL, table_label="model_registries")
+    return [hydrate_model_registry_row(r) for r in rows]
 
 
-list_system_configs_rows = list_system_config_rows
+def hydrate_mcp_gateway_row(row: AsyncPgRecordProtocol) -> SystemConfigMCPGateways:
+    """Hydrate a SystemConfigMCPGateways from an mcp_gateways database row.
+
+    Args:
+        row: Database record from the mcp_gateways table.
+
+    Returns:
+        Validated SystemConfigMCPGateways instance.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the mcp_gateway UUID or row validation fails.
+    """
+    gw_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.MCP_GATEWAY)
+    org_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["organization_id"]), EntityPrefix.ORGANIZATION)
+    return validate_hydrated_row(
+        SystemConfigMCPGateways,
+        {
+            "id": gw_id,
+            "organization_id": org_id,
+            "slug": row["slug"],
+            "name": row["name"],
+            "endpoint_url": row["endpoint_url"],
+            "transport_type": row["transport_type"],
+            "auth_type": row["auth_type"],
+            "auth_env_var": row["auth_env_var"],
+            "auth_header_name": row["auth_header_name"],
+            "timeout_seconds": row["timeout_seconds"],
+            "tools": _decode_jsonb_column(row["tools"]),
+        },
+        table_name="mcp_gateways",
+        entity_id=gw_id,
+    )
+
+
+async def upsert_mcp_gateway_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    gateway: SystemConfigMCPGateways,
+) -> str:
+    """Persist a SystemConfigMCPGateways into mcp_gateways.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        gateway: Validated SystemConfigMCPGateways domain model.
+
+    Returns:
+        Canonical mcp_<hex> MCP gateway identifier.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+    """
+    gw_uuid = parse_prefixed_uuid7(gateway.id, EntityPrefix.MCP_GATEWAY)
+    org_uuid = parse_prefixed_uuid7(gateway.organization_id, EntityPrefix.ORGANIZATION)
+    dumped = gateway.model_dump(mode="json")
+    return await execute_entity_upsert(
+        conn,
+        timeout,
+        _UPSERT_MCP_GATEWAY_SQL,
+        gw_uuid,
+        org_uuid,
+        gateway.slug,
+        gateway.name,
+        gateway.endpoint_url,
+        str(gateway.transport_type),
+        str(gateway.auth_type),
+        gateway.auth_env_var,
+        gateway.auth_header_name,
+        gateway.timeout_seconds,
+        to_json(dumped["tools"]).decode("utf-8"),
+        entity_id=gateway.id,
+        entity_label="mcp_gateway",
+    )
+
+
+async def get_mcp_gateway_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    gateway_id: str,
+) -> SystemConfigMCPGateways | None:
+    """Fetch a SystemConfigMCPGateways by ID from mcp_gateways.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        gateway_id: Canonical mcp_<hex> MCP gateway identifier.
+
+    Returns:
+        Hydrated SystemConfigMCPGateways if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    gw_uuid = parse_prefixed_uuid7(gateway_id, EntityPrefix.MCP_GATEWAY)
+    row = await _fetch_row(conn, timeout, _GET_MCP_GATEWAY_SQL, gw_uuid, gateway_id, table_name="mcp_gateways")
+    if row is None:
+        return None
+    return hydrate_mcp_gateway_row(row)
+
+
+async def list_mcp_gateway_rows(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+) -> list[SystemConfigMCPGateways]:
+    """List all SystemConfigMCPGateways rows from mcp_gateways.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Returns:
+        List of hydrated SystemConfigMCPGateways domain models.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    rows = await _fetch_list_rows(conn, timeout, _LIST_MCP_GATEWAYS_SQL, table_label="mcp_gateways")
+    return [hydrate_mcp_gateway_row(r) for r in rows]
 
 
 async def delete_tenant_secret_row(
@@ -1545,7 +1630,8 @@ FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1"""
 _DELETE_ORGANIZATION_SQL: str = "DELETE FROM organizations WHERE id = $1::uuid"
 _DELETE_USER_SQL: str = "DELETE FROM users WHERE id = $1::uuid"
 _DELETE_INVITATION_SQL: str = "DELETE FROM invitations WHERE id = $1::uuid"
-_DELETE_SYSTEM_CONFIG_SQL: str = "DELETE FROM system_configs WHERE id = $1::uuid"
+_DELETE_MODEL_REGISTRY_SQL: str = "DELETE FROM model_registries WHERE id = $1::uuid"
+_DELETE_MCP_GATEWAY_SQL: str = "DELETE FROM mcp_gateways WHERE id = $1::uuid"
 
 
 async def get_user_by_email_row(
@@ -1604,7 +1690,7 @@ async def delete_organization_row(
     Raises:
         AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
     """
-    org_uuid = parse_prefixed_uuid7(org_id, EntityPrefix.ORG)
+    org_uuid = parse_prefixed_uuid7(org_id, EntityPrefix.ORGANIZATION)
     return await execute_entity_delete(
         conn,
         timeout,
@@ -1673,17 +1759,17 @@ async def delete_invitation_row(
     )
 
 
-async def delete_system_config_row(
+async def delete_model_registry_row(
     conn: AsyncPgConnectionProtocol,
     timeout: float,
-    config_id: str,
+    registry_id: str,
 ) -> bool:
-    """Delete a SystemConfig row by primary key from system_configs.
+    """Delete a SystemConfigModelRegistry row by primary key from model_registries.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
         timeout: Command execution timeout in seconds.
-        config_id: Canonical sys_<hex32> system configuration identifier.
+        registry_id: Canonical mrg_<hex32> model registry identifier.
 
     Returns:
         True if a matching row was deleted, False otherwise.
@@ -1691,12 +1777,41 @@ async def delete_system_config_row(
     Raises:
         AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
     """
-    cfg_uuid = parse_prefixed_uuid7(config_id, EntityPrefix.SYSTEM_CONFIG)
+    reg_uuid = parse_prefixed_uuid7(registry_id, EntityPrefix.MODEL_REGISTRY)
     return await execute_entity_delete(
         conn,
         timeout,
-        _DELETE_SYSTEM_CONFIG_SQL,
-        cfg_uuid,
-        entity_id=config_id,
-        table="system_configs",
+        _DELETE_MODEL_REGISTRY_SQL,
+        reg_uuid,
+        entity_id=registry_id,
+        table="model_registries",
+    )
+
+
+async def delete_mcp_gateway_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    gateway_id: str,
+) -> bool:
+    """Delete a SystemConfigMCPGateways row by primary key from mcp_gateways.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        gateway_id: Canonical mcp_<hex32> MCP gateway identifier.
+
+    Returns:
+        True if a matching row was deleted, False otherwise.
+
+    Raises:
+        AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+    """
+    gw_uuid = parse_prefixed_uuid7(gateway_id, EntityPrefix.MCP_GATEWAY)
+    return await execute_entity_delete(
+        conn,
+        timeout,
+        _DELETE_MCP_GATEWAY_SQL,
+        gw_uuid,
+        entity_id=gateway_id,
+        table="mcp_gateways",
     )

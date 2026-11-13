@@ -251,7 +251,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
             "version": 1,
             "default_profile_id": "prf_0123456789abcdef0123456789abcdef",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         }
     )

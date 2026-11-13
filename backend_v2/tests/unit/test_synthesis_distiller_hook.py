@@ -66,7 +66,7 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion() -> None:
         default_profile_id=prof_id,
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
     )
     await repo.save_workflow(wf)
 

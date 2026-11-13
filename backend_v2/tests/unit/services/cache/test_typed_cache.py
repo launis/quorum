@@ -110,12 +110,12 @@ class FaultyRedisClient:
 
 def _build_gateway(gateway_id: str | None = None) -> SystemConfigMCPGateways:
     """Construct a canonical SystemConfigMCPGateways instance with typed tool schemas."""
-    resolved_id = gateway_id if gateway_id is not None else generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    resolved_id = gateway_id if gateway_id is not None else generate_opaque_id(EntityPrefix.MCP_GATEWAY)
     return SystemConfigMCPGateways(
         id=resolved_id,
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Tavily MCP Gateway",
         slug="tavily_gateway",
-        type="mcp_gateways",
         tools=[
             AllowedMCPTool(
                 tool_id="tavily_search",
@@ -298,7 +298,7 @@ async def test_typed_cache_transport_errors_and_settings_timeout_sovereignty() -
 
 @pytest.mark.asyncio
 async def test_mcp_gateway_cache_stateful_roundtrip_and_invalid_id_rejection() -> None:
-    """Positive & Negative (ISTQB): Verify MCPGatewayCache roundtrip and canonical sys_<hex32> ID enforcement."""
+    """Positive & Negative (ISTQB): Verify MCPGatewayCache roundtrip and canonical mcp_<hex32> ID enforcement."""
     gateway = _build_gateway()
     gw_cache = MCPGatewayCache()
     assert MCPGatewayCache.build_key(gateway.id) == f"mcp_gateway:{gateway.id}"

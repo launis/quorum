@@ -40,9 +40,8 @@ VALID_USER: dict[str, JsonValue] = {
 }
 
 VALID_SYSTEM_CONFIG: dict[str, JsonValue] = {
-    "id": "sys_1234567890abcdef1234567890abcdef",
+    "id": "mrg_1234567890abcdef1234567890abcdef",
     "name": "Default Model Registry",
-    "type": "model_registry",
     "default_provider": "ai_studio",
     "tier_definitions": {
         "fast": {"provider": "ai_studio", "model_name": "gemini-2.5-flash"},
@@ -80,7 +79,7 @@ VALID_WORKFLOW: dict[str, JsonValue] = {
     "is_public": True,
     "default_profile_id": "prf_0195f3a0000070018234567890abcdef",
     "historical_context_mode": "DISABLED",
-    "model_registry_id": "sys_1234567890abcdef1234567890abcdef",
+    "model_registry_id": "mrg_1234567890abcdef1234567890abcdef",
     "steps": [],
 }
 

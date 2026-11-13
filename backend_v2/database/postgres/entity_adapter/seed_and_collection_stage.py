@@ -110,8 +110,10 @@ async def seed_collection_batch_rows(conn: _Conn, timeout: float, col_name: str,
             await _iam.upsert_tenant_secret_row(conn, timeout, item)
         elif table_name == "execution_assignments" and isinstance(item, ExecutionAssignment):
             await _iam.upsert_execution_assignment_row(conn, timeout, item)
-        elif table_name == "system_configs" and isinstance(item, (SystemConfigModelRegistry, SystemConfigMCPGateways)):
-            await _iam.upsert_system_config_row(conn, timeout, item)
+        elif table_name == "model_registries" and isinstance(item, SystemConfigModelRegistry):
+            await _iam.upsert_model_registry_row(conn, timeout, item)
+        elif table_name == "mcp_gateways" and isinstance(item, SystemConfigMCPGateways):
+            await _iam.upsert_mcp_gateway_row(conn, timeout, item)
         elif table_name == "prompt_blocks" and isinstance(
             item, (MatrixPromptBlock, SystemRulePromptBlock, PersonaPromptBlock, ProtocolPromptBlock)
         ):
@@ -175,9 +177,9 @@ async def verify_seed_table_counts_rows(conn: _Conn, timeout: float, expected: M
             msg = f"Seed count verification failed for '{target_table}': expected >= {min_expected}."
             raise _log_storage_error(msg, target_table, exc_info=False)
 
-    # Validate full Pydantic V2 hydration of system_configs rows during preflight and post-seed checks
-    if ("system_configs" in expected and expected["system_configs"] >= 1) or (
-        "system_config" in expected and expected["system_config"] >= 1
-    ):
-        await _iam.list_system_configs_rows(conn, timeout)
+    # Validate full Pydantic V2 hydration of model_registries and mcp_gateways rows during preflight and post-seed checks
+    if "model_registries" in expected and expected["model_registries"] >= 1:
+        await _iam.list_model_registry_rows(conn, timeout)
+    if "mcp_gateways" in expected and expected["mcp_gateways"] >= 1:
+        await _iam.list_mcp_gateway_rows(conn, timeout)
     return actual_counts

@@ -247,9 +247,9 @@ def hydrate_workflow_row(row: AsyncPgRecordProtocol) -> Workflow:
             "is_public": row["is_public"],
             "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
             "default_profile_id": _format_optional_uuid7(row["default_profile_id"], EntityPrefix.OUTPUT_PROFILE),
-            "mcp_gateway_id": _format_optional_uuid7(row["mcp_gateway_id"], EntityPrefix.SYSTEM_CONFIG),
+            "mcp_gateway_id": _format_optional_uuid7(row["mcp_gateway_id"], EntityPrefix.MCP_GATEWAY),
             "model_registry_id": format_prefixed_uuid7(
-                _coerce_uuid_or_str(row["model_registry_id"]), EntityPrefix.SYSTEM_CONFIG
+                _coerce_uuid_or_str(row["model_registry_id"]), EntityPrefix.MODEL_REGISTRY
             ),
             "default_strictness_level": row["default_strictness_level"],
             "default_lexical_strictness_level": row["default_lexical_strictness_level"],
@@ -297,8 +297,8 @@ async def upsert_workflow_row(conn: AsyncPgConnectionProtocol, timeout: float, w
         wf.is_public,
         _parse_org_uuid7(wf.organization_id),
         _parse_optional_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE),
-        _parse_optional_uuid7(wf.mcp_gateway_id, EntityPrefix.SYSTEM_CONFIG),
-        parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG),
+        _parse_optional_uuid7(wf.mcp_gateway_id, EntityPrefix.MCP_GATEWAY),
+        parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.MODEL_REGISTRY),
         wf.default_strictness_level,
         wf.default_lexical_strictness_level,
         wf.security_penalty,

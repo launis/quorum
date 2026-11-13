@@ -56,7 +56,7 @@ def _build_workflow(
     """Build a typed Workflow test fixture via WorkflowFactory."""
     return WorkflowFactory.build(
         id=workflow_id,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         slug=slug,
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),

@@ -1554,7 +1554,7 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
             status="active",
             version=1,
             default_strictness_level=50,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             historical_context_mode=HistoricalContextMode.DISABLED,
             expected_inputs=[
                 ExpectedInput(

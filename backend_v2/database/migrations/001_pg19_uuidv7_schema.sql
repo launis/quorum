@@ -4,8 +4,25 @@
 
 SET default_toast_compression = 'lz4';
 
--- Automatic One-Way Cutover: If legacy TEXT primary key schema exists on organizations,
--- drop the tables so they are recreated with native 16-byte UUIDv7 primary keys.
+-- Automatic One-Way Pre-Production Cutover: Drop pre-cutover tables when legacy system_configs
+-- or legacy TEXT primary key schema exists on organizations so all tables recreate cleanly.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'system_configs'
+    ) THEN
+        DROP TABLE IF EXISTS
+            report_binaries, report_artifacts, quorum_edges, quorum_nodes,
+            execution_assignments, executions,
+            workflow_step_refs, step_criteria_blocks, output_profiles,
+            workflows, steps, task_briefs, prompt_blocks,
+            tenant_secrets, mcp_gateways, model_registries, system_configs,
+            audit_logs, usage_records, invitations, users, organizations
+        CASCADE;
+    END IF;
+END $$;
+
 DO $$
 BEGIN
     IF EXISTS (
@@ -32,6 +49,8 @@ BEGIN
             workflows,
             steps,
             prompt_blocks,
+            mcp_gateways,
+            model_registries,
             system_configs,
             users,
             organizations
@@ -56,7 +75,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     allowed_email_domains JSONB NOT NULL DEFAULT '[]'::jsonb,
     CONSTRAINT enforce_organization_uuidv7 CHECK (uuid_extract_version(id) = 7)
 );
--- Phase 1, Step 1: Ensure allowed_email_domains exists on pre-existing organizations tables
+-- Ensure allowed_email_domains exists on pre-existing organizations tables
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS allowed_email_domains JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 -- 2. Users (Identity & RBAC)
@@ -77,33 +96,37 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT enforce_user_uuidv7 CHECK (uuid_extract_version(id) = 7),
     CONSTRAINT enforce_user_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
--- Phase 1, Step 1: Ensure firebase_uid and deleted_at exist on pre-existing users tables
+-- Ensure firebase_uid and deleted_at exist on pre-existing users tables
 ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid VARCHAR(128) UNIQUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
--- 3. System Configs (Model Registry & Dynamic MCP Gateways with AllowedMCPTool / MCPServerInfoDTO / MCPToolExecutionDTO)
-CREATE TABLE IF NOT EXISTS system_configs (
-    id UUID PRIMARY KEY DEFAULT uuidv7(),
-    -- Phase 1, Step 1: Enforce required non-null name on system_configs with zero SQL DEFAULT
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
+-- 3. Model Registries (Flattened Cognitive Tier Model Configurations)
+CREATE TABLE IF NOT EXISTS model_registries (
+    id UUID PRIMARY KEY DEFAULT uuidv7() CHECK (uuid_extract_version(id) = 7),
     slug TEXT,
-    default_provider TEXT,
-    tier_definitions JSONB,
-    endpoint_url TEXT,
-    transport_type TEXT,
-    auth_type TEXT,
-    auth_header_name TEXT,
-    auth_env_var TEXT,
-    timeout_seconds INTEGER CHECK (timeout_seconds >= 1 AND timeout_seconds <= 300),
-    tools JSONB DEFAULT '[]'::jsonb,
-    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
-    CONSTRAINT enforce_system_config_uuidv7 CHECK (uuid_extract_version(id) = 7)
+    name TEXT NOT NULL,
+    default_provider TEXT NOT NULL,
+    tier_definitions JSONB NOT NULL,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL
 );
--- Phase 1, Step 1: Purge corrupt pre-migration NULL-name rows and enforce DROP DEFAULT / SET NOT NULL on system_configs.name
-DELETE FROM system_configs WHERE name IS NULL;
-ALTER TABLE system_configs ALTER COLUMN name DROP DEFAULT;
-ALTER TABLE system_configs ALTER COLUMN name SET NOT NULL;
+
+-- 4. MCP Gateways (External MCP Server & Tool Registries)
+CREATE TABLE IF NOT EXISTS mcp_gateways (
+    id UUID PRIMARY KEY DEFAULT uuidv7() CHECK (uuid_extract_version(id) = 7),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    slug TEXT NOT NULL,
+    name TEXT NOT NULL,
+    endpoint_url TEXT NOT NULL,
+    transport_type TEXT NOT NULL,
+    auth_type TEXT NOT NULL,
+    auth_env_var TEXT,
+    auth_header_name TEXT,
+    timeout_seconds INTEGER NOT NULL CHECK (timeout_seconds >= 1 AND timeout_seconds <= 300),
+    tools JSONB NOT NULL,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_mcp_gateway_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_gateways_org_id ON mcp_gateways(organization_id);
 
 -- 4. Prompt Blocks (Polymorphic Matrix, SystemRule, Persona & Protocol Blocks)
 CREATE TABLE IF NOT EXISTS prompt_blocks (
@@ -178,8 +201,8 @@ CREATE TABLE IF NOT EXISTS workflows (
     is_public BOOLEAN NOT NULL DEFAULT FALSE,
     organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
     default_profile_id UUID,
-    mcp_gateway_id UUID REFERENCES system_configs(id) ON DELETE SET NULL,
-    model_registry_id UUID NOT NULL REFERENCES system_configs(id) ON DELETE RESTRICT,
+    mcp_gateway_id UUID REFERENCES mcp_gateways(id) ON DELETE RESTRICT,
+    model_registry_id UUID NOT NULL REFERENCES model_registries(id) ON DELETE RESTRICT,
     default_strictness_level INTEGER NOT NULL DEFAULT 50 CHECK (default_strictness_level >= 0 AND default_strictness_level <= 100),
     default_lexical_strictness_level INTEGER NOT NULL DEFAULT 50 CHECK (default_lexical_strictness_level >= 0 AND default_lexical_strictness_level <= 100),
     security_penalty DOUBLE PRECISION NOT NULL DEFAULT 0.0,
@@ -381,6 +404,7 @@ CREATE TABLE IF NOT EXISTS invitations (
 CREATE TABLE IF NOT EXISTS tenant_secrets (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    mcp_gateway_id UUID REFERENCES mcp_gateways(id) ON DELETE CASCADE,
     scope TEXT NOT NULL,
     target_identifier VARCHAR(128) NOT NULL,
     storage_mode TEXT NOT NULL,
@@ -395,9 +419,17 @@ CREATE TABLE IF NOT EXISTS tenant_secrets (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT enforce_tenant_secret_uuidv7 CHECK (uuid_extract_version(id) = 7),
     CONSTRAINT enforce_tenant_secret_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_tenant_secret_mcp_gateway_uuidv7 CHECK (uuid_extract_version(mcp_gateway_id) = 7),
     CONSTRAINT enforce_tenant_secret_updated_by_uuidv7 CHECK (uuid_extract_version(updated_by) = 7),
+    CONSTRAINT chk_tenant_secrets_mcp_gateway_scope CHECK (
+        (scope = 'mcp_gateway' AND mcp_gateway_id IS NOT NULL)
+        OR (scope IN ('llm_provider', 'telemetry') AND mcp_gateway_id IS NULL)
+    ),
     CONSTRAINT uq_tenant_secrets_org_scope_target UNIQUE (organization_id, scope, target_identifier)
 );
+ALTER TABLE tenant_secrets ADD COLUMN IF NOT EXISTS mcp_gateway_id UUID REFERENCES mcp_gateways(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_tenant_secrets_org_id ON tenant_secrets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_secrets_mcp_gateway_id ON tenant_secrets(mcp_gateway_id);
 
 -- 15. Task Briefs (Reusable Human-Facing Task Briefs & Case Descriptions)
 CREATE TABLE IF NOT EXISTS task_briefs (
@@ -536,8 +568,10 @@ BEGIN
         ALTER TABLE organizations ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE users DROP COLUMN IF EXISTS created_at;
         ALTER TABLE users ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
-        ALTER TABLE system_configs DROP COLUMN IF EXISTS created_at;
-        ALTER TABLE system_configs ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE model_registries DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE model_registries ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE mcp_gateways DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE mcp_gateways ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE prompt_blocks DROP COLUMN IF EXISTS created_at;
         ALTER TABLE prompt_blocks ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE task_briefs DROP COLUMN IF EXISTS created_at;

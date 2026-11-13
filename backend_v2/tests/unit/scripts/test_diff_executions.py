@@ -486,7 +486,7 @@ class TestPhysicalModelBindings:
             seed = json.load(f)
 
         # 1. Google AI Studio / Vertex stack
-        bindings = resolve_physical_model_bindings(seed, registry_id="sys_0195f3a00000700e826807f3bfa3454d")
+        bindings = resolve_physical_model_bindings(seed, registry_id="mrg_0195f3a00000700e826807f3bfa3454d")
         assert len(bindings) >= 3
         strategies = {b.strategy_name: b for b in bindings}
         assert "fast" in strategies
@@ -498,7 +498,7 @@ class TestPhysicalModelBindings:
         assert "gemini" in fast_binding.physical_model.lower() or "flash" in fast_binding.physical_model.lower()
 
         # 2. OpenAI stack
-        openai_bindings = resolve_physical_model_bindings(seed, registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1")
+        openai_bindings = resolve_physical_model_bindings(seed, registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1")
         assert len(openai_bindings) >= 3
         openai_strategies = {b.strategy_name: b for b in openai_bindings}
         assert "fast" in openai_strategies
@@ -942,7 +942,7 @@ def _create_synthetic_run(
     ]
     (run_dir / "execution_trace.json").write_text(json.dumps(trace), encoding="utf-8")
     frozen_data = {
-        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+        "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         "models_used": {"gemini-3.8-flash": 1500},
         "ui_hints_snapshot": {
             "blk_0195f3a000007004840a5fef9331451b": {
@@ -1342,7 +1342,7 @@ class TestRunDiff:
             }
         ]
         frozen_data = {
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "models_used": {"gemini-3.8-flash": 1500},
             "ui_hints_snapshot": {
                 "blk_0195f3a000007004840a5fef9331451b": {
@@ -1395,7 +1395,7 @@ class TestRunDiff:
 
             # Update exe2's frozen context to specify OpenAI model registry
             openai_frozen = {
-                "model_registry_id": "sys_0195f3a0000070068f8b1c4a2e0d49f1",
+                "model_registry_id": "mrg_0195f3a0000070068f8b1c4a2e0d49f1",
                 "models_used": {"openai/gpt-5.4-mini": 1200, "openai/gpt-5.4": 3500},
                 "ui_hints_snapshot": {
                     "blk_0195f3a000007004840a5fef9331451b": {
@@ -1438,7 +1438,7 @@ class TestRunDiff:
             exe2 = _create_synthetic_run(tmp_path, "exe_mod_2", evals)
 
             # Wipe models_used from exe2
-            bad_frozen = {"model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d"}
+            bad_frozen = {"model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d"}
             (exe2 / "frozen_context.json").write_text(json.dumps(bad_frozen), encoding="utf-8")
 
             with pytest.raises(AppException) as exc_info:
@@ -1455,12 +1455,12 @@ class TestRunDiff:
             exe2 = _create_synthetic_run(tmp_path, "exe_samp_dev", evals)
 
             f1 = {
-                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+                "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
                 "models_used": {"gemini-3.8-flash": 1500},
                 "matrix_sampling_strategy": 0,
             }
             f2 = {
-                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+                "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
                 "models_used": {"gemini-3.8-flash": 1500},
                 "matrix_sampling_strategy": 10,
             }

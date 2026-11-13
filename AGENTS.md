@@ -113,6 +113,7 @@
         6. If navigating or creating new files, you MUST read: `.agents/rules/04_directory_reference.md`
         
         **SELF-HYDRATING PLANS**: If the user provides a target tracker or plan file, you MUST load it concurrently on your first turn. On your second turn, extract its `<required_context_rules>` block and load all `@-referenced` files (`<rule>` for `.agents/rules/` and `<knowledge_item>` for Knowledge Items) before proceeding.
+        **COMPACTION RECOVERY CARVE-OUT**: Automatic context compaction (`<CONTEXT_SUMMARY>` / `# Resuming from a compaction`) is NOT a new prompt or slash command. When resuming from a compaction summary that already records the loaded rules and Knowledge Items, read ONLY `.agents/rules/00-antigravity-core.md` (bounded lines 1-50) on your first turn if needed, do NOT re-read all rules, Knowledge Items, or full plan files from scratch, and proceed directly to the Next Steps listed in the compaction summary.
         </mandatory_pattern>
         <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand. Without this absolute stateless reset, the LLM falls into "Context Bypass" mode and hallucinates old rules, causing system destruction.</catastrophic_reason>
     </rule_block>

@@ -80,7 +80,8 @@ def _make_gateway_fixture() -> SystemConfigMCPGateways:
         required=["title"],
     )
     return SystemConfigMCPGateways(
-        id="sys_0195f3a00000700a81b2c3d4e5f60718",
+        id="mcp_0195f3a00000700a81b2c3d4e5f60718",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Default MCP Gateway",
         slug="default_mcp_gateway",
         endpoint_url="https://mcp.example.com/v1",
@@ -1260,7 +1261,8 @@ async def test_execute_mcp_retrieval_with_mcp_tool_params_and_jit_synthesis() ->
         enabled=True,
     )
     gw = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070098999888877776666",
+        id="mcp_0195f3a0000070098999888877776666",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Complex Gateway",
         slug="complex_gw",
         endpoint_url="https://mcp.example.com/complex",

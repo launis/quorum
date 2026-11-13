@@ -180,7 +180,7 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id="prf_0195f3a0000070018111222233334444",
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         steps=[StepRule(id=step_id, task_blueprint=step_id, depends_on=[])],
     )
     repo.set_workflow(workflow)
@@ -193,7 +193,7 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
             output_profile_id="prf_0195f3a0000070018111222233334444",
             target_locale="en",
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Facade test document"}),
-            metadata=ExecutionMetadata(workflow_version=1, model_registry_id="sys_0195f3a0000070018111222233334444"),
+            metadata=ExecutionMetadata(workflow_version=1, model_registry_id="mrg_0195f3a0000070018111222233334444"),
         )
     )
 
@@ -280,7 +280,7 @@ async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id="prf_0195f3a0000070018111222233334444",
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         steps=[StepRule(id=step_id, task_blueprint=step_id, depends_on=[])],
     )
     repo.set_workflow(workflow)

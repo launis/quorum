@@ -356,7 +356,7 @@ async def test_get_or_create_default_artifact_workflow_default_and_fallback() ->
         status="active",
         version=1,
         default_profile_id="prf_0195f3a0000070008000000000000001",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
     )
     await repo1.save_workflow(workflow)

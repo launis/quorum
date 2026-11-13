@@ -14,12 +14,13 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import ConfigDict, EmailStr, Field, SecretStr, field_validator, model_validator
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import (
     I18nText,
     PrefixedUUID7,
     V2CoreBase,
     generate_uuid7_opaque_id,
+    parse_prefixed_uuid7,
 )
 from backend_v2.models.domain.execution import ExecutionAssignment as ExecutionAssignment
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
@@ -155,7 +156,7 @@ class Organization(V2CoreBase):
     id: Annotated[
         PrefixedUUID7,
         Field(
-            default_factory=lambda: generate_uuid7_opaque_id(EntityPrefix.ORG),
+            default_factory=lambda: generate_uuid7_opaque_id(EntityPrefix.ORGANIZATION),
             description="Unique Organization ID (org_<hex32>)",
         ),
     ]
@@ -379,22 +380,29 @@ class User(UserBase):
     @field_validator("created_by")
     @classmethod
     def validate_created_by_optional(cls, v: str | None) -> str | None:
-        """Validates that the optional creator identifier is not empty when provided.
+        """Validates that the optional creator identifier uses the canonical usr_ UUIDv7 format.
 
         Args:
             v: Input creator identifier string or None.
 
         Returns:
-            Stripped creator identifier string, or None.
+            Stripped canonical creator identifier string, or None.
 
         Raises:
-            ValueError: With logged ErrorCodes.VALIDATION_FAILED if provided string is empty or whitespace-only.
+            ValueError: If provided string is empty or fails usr_<hex32> UUIDv7 validation.
         """
-        if v is not None and (not v or not v.strip()):
+        if v is None:
+            return None
+        if not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
-        return v.strip() if v else v
+        cleaned = v.strip()
+        try:
+            parse_prefixed_uuid7(cleaned, EntityPrefix.USER)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return cleaned
 
 
 class UserAdminView(User):
@@ -451,6 +459,29 @@ class UserCreate(UserBase):
 
     password: Annotated[str | None, Field(default=None, min_length=6, description="Initial password")] = None
     created_by: Annotated[str | None, Field(default=None, description="UID of the admin creating this user")] = None
+
+    @field_validator("created_by")
+    @classmethod
+    def validate_user_create_created_by(cls, v: str | None) -> str | None:
+        """Validates that the optional creator identifier uses the canonical usr_ UUIDv7 format.
+
+        Args:
+            v: Optional creator identifier string.
+
+        Returns:
+            Stripped canonical creator identifier string, or None.
+
+        Raises:
+            ValueError: If provided string fails usr_<hex32> UUIDv7 validation.
+        """
+        if v is None:
+            return None
+        cleaned = v.strip()
+        try:
+            parse_prefixed_uuid7(cleaned, EntityPrefix.USER)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return cleaned
 
 
 class OrganizationCreate(BaseDTO):
@@ -1425,7 +1456,7 @@ class TenantSecretDTO(V2CoreBase):
         id: Canonical Tenant Secret Opaque Stripe ID (sec_<hex32>).
         organization_id: Owning Organization ID (org_<hex32>).
         scope: Capability scope ('llm_provider' or 'mcp_gateway').
-        target_identifier: Provider enum value or MCP Gateway ID (sys_<hex32>).
+        target_identifier: Provider enum value or MCP Gateway ID (mcp_<hex32>).
         storage_mode: Cryptographic storage mode ('envelope_kms' or 'cloud_secret_manager').
         secret_manager_version_uri: Optional Cloud Secret Manager version URI.
         encrypted_dek: KMS-wrapped AES-256 Data Encryption Key bytes.

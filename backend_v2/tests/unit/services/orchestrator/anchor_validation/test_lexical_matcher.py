@@ -356,7 +356,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
             slug="test-wf",
             name="Test Workflow",
             description="Test",
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             steps=[],
             default_lexical_strictness_level=-5,
         )
@@ -366,7 +366,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
             slug="test-wf",
             name="Test Workflow",
             description="Test",
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             steps=[],
             default_lexical_strictness_level=150,
         )

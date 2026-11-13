@@ -160,9 +160,8 @@ def _get_base_model_registry() -> SystemConfigModelRegistry:
         rpm_limit=1000,
     )
     return _ModelRegistryFactory.build(
-        id="sys_0195f3a0000070018111222233334444",
+        id="mrg_0195f3a0000070018111222233334444",
         name="Default Test Registry",
-        type="model_registry",
         slug="model_registry",
         default_provider=LLMProvider.VERTEX_AI,
         tier_definitions={
@@ -228,7 +227,7 @@ async def test_worker_extracts_synthesis_from_trace() -> None:
         historical_context_mode=HistoricalContextMode.DISABLED,
         version=1,
         default_profile_id="prof_0195f3a0000070018111111111111111",
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         expected_inputs=[],
         steps=[
             StepRule(
@@ -253,7 +252,7 @@ async def test_worker_extracts_synthesis_from_trace() -> None:
         },
     )
 
-    mock_repo.set_model_registry(_get_base_model_registry(), "sys_0195f3a0000070018111222233334444")
+    mock_repo.set_model_registry(_get_base_model_registry(), "mrg_0195f3a0000070018111222233334444")
 
     pb_1 = SystemRulePromptBlockFactory.build(
         id="pb_0195f3a0000070018111111111111111",
@@ -366,13 +365,13 @@ async def _setup_mock_repo_for_metrics(
         historical_context_mode=HistoricalContextMode.DISABLED,
         version=1,
         default_profile_id="prof_0195f3a0000070018111111111111111",
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         expected_inputs=[],
         steps=[],
     )
     await mock_repo.save_workflow(workflow)
 
-    mock_repo.set_model_registry(_get_base_model_registry(), "sys_0195f3a0000070018111222233334444")
+    mock_repo.set_model_registry(_get_base_model_registry(), "mrg_0195f3a0000070018111222233334444")
 
     pb_synth = SystemRulePromptBlockFactory.build(
         id="pb_0195f3a0000070028222222222222222",

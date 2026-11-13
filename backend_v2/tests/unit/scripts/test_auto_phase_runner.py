@@ -1384,7 +1384,15 @@ def test_execute_phase_subagent_multistep_handover_and_stagnant_guard(tmp_path: 
         assert mock_stagnant.call_count == 2
         assert "[INCOMPLETE PHASE]" in stagnant_res.output
 
-    # Standalone topology and unmatched phase header coverage
+    # Standalone topology (both pending and completed) and unmatched phase header coverage
+    standalone_pending_tracker = tmp_path / "standalone_pending.md"
+    standalone_pending_tracker.write_text(
+        "## Step Execution Status\n"
+        "- **Plan:** @[plan.md]\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
+        "  - [ ] Step 1: Pending Standalone\n",
+        encoding="utf-8",
+    )
     standalone_tracker = tmp_path / "standalone.md"
     standalone_tracker.write_text(
         "## Step Execution Status\n"
@@ -1404,6 +1412,12 @@ def test_execute_phase_subagent_multistep_handover_and_stagnant_guard(tmp_path: 
         "scripts.auto_phase_runner.execute_lifecycle_prompt_subagent",
         return_value=SubagentExecutionResultDTO(exit_code=0, output="Standalone OK", duration_seconds=1.0),
     ):
+        sp_res = execute_phase_subagent(
+            standalone_phase,
+            AutoPhaseRunnerArgsDTO(tracker=standalone_pending_tracker, max_retries=1),
+            tmp_path,
+        )
+        assert sp_res.exit_code == 1
         s_res = execute_phase_subagent(
             standalone_phase,
             AutoPhaseRunnerArgsDTO(tracker=standalone_tracker),

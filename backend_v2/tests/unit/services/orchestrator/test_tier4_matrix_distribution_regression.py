@@ -259,7 +259,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
             "default_profile_id": profile_id,
             "default_strictness_level": 50,
             "enable_contextual_overrides": True,
-            "model_registry_id": "sys_0195f3a0000070008000111122223333",
+            "model_registry_id": "mrg_0195f3a0000070008000111122223333",
             "historical_context_mode": "DISABLED",
         }
     )

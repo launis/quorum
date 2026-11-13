@@ -164,7 +164,7 @@ def test_build_title_map_with_blocks_and_steps() -> None:
         version=1,
         default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         steps=[
             StepRule(id="sr_0195f3a0000070018111111111111111", task_blueprint="sp_0195f3a0000070018111111111111111")
         ],
@@ -209,7 +209,7 @@ def test_build_title_map_missing_blueprint_raises() -> None:
         version=1,
         default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         steps=[
             StepRule(id="sr_0195f3a0000070018111111111111111", task_blueprint="sp_0195f3a0000070028222222222222222")
         ],
@@ -448,7 +448,7 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
                 },
             ],
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         },
     )
 

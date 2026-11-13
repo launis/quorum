@@ -51,7 +51,7 @@ def _build_workflow(
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
-        model_registry_id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        model_registry_id=generate_opaque_id(EntityPrefix.MODEL_REGISTRY),
         expected_inputs=expected_inputs if expected_inputs is not None else [],
         steps=steps,
     )

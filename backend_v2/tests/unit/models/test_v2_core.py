@@ -183,7 +183,7 @@ def test_workflow_model_validation_rules() -> None:
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[
             ExpectedInput(
                 input_key="doc",
@@ -219,7 +219,7 @@ def test_workflow_model_validation_rules() -> None:
             version=1,
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             expected_inputs=[],
             steps=[
                 StepRule(
@@ -241,7 +241,7 @@ def test_workflow_model_validation_rules() -> None:
             version=1,
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             expected_inputs=[],
             steps=[
                 StepRule(
@@ -943,7 +943,7 @@ def test_system_config_model_registry_option_a_completeness() -> None:
 
     # Valid Option A 4-tier stack
     registry = SystemConfigModelRegistry(
-        id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="mrg_0195f3a00000700e826807f3bfa3454d",
         name="Google Gemini Sovereign Stack",
         tier_definitions={
             CognitiveTier.FAST: dummy_profile,
@@ -959,7 +959,7 @@ def test_system_config_model_registry_option_a_completeness() -> None:
     # Missing tier raises ValidationError
     with pytest.raises(ValidationError, match="missing required cognitive tiers"):
         SystemConfigModelRegistry(
-            id="sys_0195f3a00000700e826807f3bfa3454d",
+            id="mrg_0195f3a00000700e826807f3bfa3454d",
             name="Incomplete Stack",
             tier_definitions={
                 CognitiveTier.FAST: dummy_profile,
@@ -997,9 +997,9 @@ def test_workflow_model_registry_id_binding() -> None:
         version=1,
         default_profile_id="prf_0195f3a0000070018234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+        model_registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
     )
-    assert wf_custom.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
+    assert wf_custom.model_registry_id == "mrg_0195f3a0000070068f8b1c4a2e0d49f1"
 
     # Invalid pattern fails validation
     with pytest.raises(ValidationError, match="String should match pattern"):
@@ -1025,9 +1025,9 @@ def test_execution_create_and_dtos_model_registry_id() -> None:
     ec = ExecutionCreate(
         workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
-        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+        model_registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
     )
-    assert ec.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
+    assert ec.model_registry_id == "mrg_0195f3a0000070068f8b1c4a2e0d49f1"
 
     ec_default = ExecutionCreate(
         workflow_id="wor_0195f3a0000070018234567890abcdef",
@@ -1039,10 +1039,10 @@ def test_execution_create_and_dtos_model_registry_id() -> None:
     wfc = WorkflowCreateDTO(
         slug="new-flow",
         name="New Flow",
-        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+        model_registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
     )
-    assert wfc.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
+    assert wfc.model_registry_id == "mrg_0195f3a0000070068f8b1c4a2e0d49f1"
 
     # WorkflowUpdateDTO
-    wfu = WorkflowUpdateDTO(model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1")
-    assert wfu.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
+    wfu = WorkflowUpdateDTO(model_registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1")
+    assert wfu.model_registry_id == "mrg_0195f3a0000070068f8b1c4a2e0d49f1"

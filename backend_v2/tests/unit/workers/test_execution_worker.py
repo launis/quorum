@@ -27,7 +27,7 @@ def _create_mock_workflow(strictness: int = 1, lexical_strictness: int = 50) -> 
         version=1,
         default_strictness_level=strictness,
         default_lexical_strictness_level=lexical_strictness,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
     )

@@ -484,7 +484,7 @@ async def test_build_variance_metrics_propagates_tenant_organization_id_to_llm_c
         return_value=mock_client,
     ) as mock_from_tier:
         await build_variance_metrics_and_task(
-            repo, rec_direct, prof, "en", "sys_0195f3a0000070018111222233334444", dummy_sem
+            repo, rec_direct, prof, "en", "mrg_0195f3a0000070018111222233334444", dummy_sem
         )
         mock_from_tier.assert_awaited_once()
         assert mock_from_tier.await_args is not None
@@ -492,7 +492,7 @@ async def test_build_variance_metrics_propagates_tenant_organization_id_to_llm_c
 
         mock_from_tier.reset_mock()
         await build_variance_metrics_and_task(
-            repo, rec_raw, prof, "en", "sys_0195f3a0000070018111222233334444", dummy_sem
+            repo, rec_raw, prof, "en", "mrg_0195f3a0000070018111222233334444", dummy_sem
         )
         mock_from_tier.assert_awaited_once()
         assert mock_from_tier.await_args is not None

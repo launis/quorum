@@ -70,7 +70,7 @@ async def test_execution_report_and_seed_collection_roundtrip_parity() -> None:
             metadata=ExecutionMetadata(
                 matrix_sampling_strategy=5,
                 workflow_version=2,
-                model_registry_id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+                model_registry_id=generate_opaque_id(EntityPrefix.MODEL_REGISTRY),
             ),
         )
         saved_exec_id = await save_execution_row(conn, _TIMEOUT, exec_full)

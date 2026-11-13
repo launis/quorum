@@ -361,15 +361,15 @@ class MCPGatewayCache:
         """Validate and construct the canonical cache key for an MCP gateway ID.
 
         Args:
-            gateway_id: Canonical Opaque Stripe ID (sys_<hex32>) of the gateway.
+            gateway_id: Canonical Opaque Stripe ID (mcp_<hex32>) of the gateway.
 
         Returns:
             Namespaced cache key string.
 
         Raises:
-            AppException: With ErrorCodes.VALIDATION_FAILED if gateway_id is not a canonical sys_<hex32> identifier.
+            AppException: With ErrorCodes.VALIDATION_FAILED if gateway_id is not a canonical mcp_<hex32> identifier.
         """
-        parse_prefixed_uuid7(gateway_id, expected_prefix=EntityPrefix.SYSTEM_CONFIG, enforce_v7=False)
+        parse_prefixed_uuid7(gateway_id, expected_prefix=EntityPrefix.MCP_GATEWAY, enforce_v7=False)
         cleaned_id = gateway_id.strip()
         return f"{cls.KEY_PREFIX}{cleaned_id}"
 
@@ -377,7 +377,7 @@ class MCPGatewayCache:
         """Retrieve a cached SystemConfigMCPGateways record by ID.
 
         Args:
-            gateway_id: Canonical Opaque Stripe ID (sys_<hex32>) of the gateway.
+            gateway_id: Canonical Opaque Stripe ID (mcp_<hex32>) of the gateway.
 
         Returns:
             Validated SystemConfigMCPGateways instance or None on cache miss.
@@ -409,7 +409,7 @@ class MCPGatewayCache:
         """Deterministically evict a specific gateway manifest from cache.
 
         Args:
-            gateway_id: Canonical Opaque Stripe ID (sys_<hex32>) of the gateway to evict.
+            gateway_id: Canonical Opaque Stripe ID (mcp_<hex32>) of the gateway to evict.
 
         Raises:
             AppException: With ErrorCodes.VALIDATION_FAILED if gateway_id is invalid, or ErrorCodes.STORAGE_ACCESS_FAILED on Redis transport/timeout failure.

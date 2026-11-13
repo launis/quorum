@@ -288,7 +288,7 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
         )
 
     # Non-existent Opaque Stripe ID triggers ResourceNotFoundError for ROOT (including save_model_registry)
-    missing_id = "sys_0195f3a0000070098999999999999999"
+    missing_id = "mrg_0195f3a0000070098999999999999999"
     with pytest.raises(ResourceNotFoundError) as exc_not_found:
         await get_model_registry(
             registry_id=missing_id,
@@ -335,7 +335,7 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
 def test_model_profile_and_registry_accepts_reasoning_effort_in_additional_params() -> None:
     """Verifies that ModelProfile and SystemConfigModelRegistry accept reasoning_effort in additional_params."""
     source_registry = SystemConfigModelRegistry(
-        id="sys_0195f3a00000700b81c2d3e4f5a60718",
+        id="mrg_0195f3a00000700b81c2d3e4f5a60718",
         name="Default Model Registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={

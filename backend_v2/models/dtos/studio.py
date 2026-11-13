@@ -7,7 +7,13 @@ from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, field_validator
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import (
+    OPAQUE_STRIPE_ID_REGEX,
+    I18nText,
+    V2CoreBase,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.matrix import MatrixRow, MatrixScale, TheoryGrounding
 from backend_v2.models.domain.prompt_blocks import PromptBlock
@@ -21,6 +27,7 @@ from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.enums import (
     BlockDataType,
     CognitiveTier,
+    EntityPrefix,
     HistoricalContextMode,
     LaxHistoricalContextMode,
     LaxStepType,
@@ -157,6 +164,44 @@ class WorkflowCreateDTO(V2CoreBase):
     enable_semantic_smoothing: Annotated[bool, Field(default=False, description="Enable semantic smoothing")] = False
     enable_eager_anonymization: Annotated[bool, Field(default=False, description="Enable eager anonymization")] = False
     system_audit_trail: Annotated[bool, Field(default=False, description="Enable system audit trail")] = False
+
+    @field_validator("mcp_gateway_id")
+    @classmethod
+    def _validate_create_mcp_gateway_id(cls, v: str | None) -> str | None:
+        """Validate optional mcp_gateway_id against canonical mcp_ UUIDv7 format.
+
+        Args:
+            v: Optional candidate MCP gateway identifier.
+
+        Returns:
+            Validated MCP gateway identifier or None.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MCP_GATEWAY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
+
+    @field_validator("model_registry_id")
+    @classmethod
+    def _validate_create_model_registry_id(cls, v: str | None) -> str | None:
+        """Validate optional model_registry_id against canonical mrg_ UUIDv7 format.
+
+        Args:
+            v: Optional candidate model registry identifier.
+
+        Returns:
+            Validated model registry identifier or None.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MODEL_REGISTRY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
 
 class StepCreateDTO(V2CoreBase):
@@ -729,6 +774,25 @@ class WorkflowUpdateDTO(BaseDTO):
     ] = None
     status: Annotated[str | None, Field(default=None, description="Updated workflow status")] = None
     model_registry_id: Annotated[str | None, Field(default=None, description="Updated model registry ID")] = None
+
+    @field_validator("model_registry_id")
+    @classmethod
+    def _validate_update_model_registry_id(cls, v: str | None) -> str | None:
+        """Validate optional updated model_registry_id against canonical mrg_ UUIDv7 format.
+
+        Args:
+            v: Optional candidate model registry identifier.
+
+        Returns:
+            Validated model registry identifier or None.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MODEL_REGISTRY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
 
 class StepUpdateDTO(BaseDTO):

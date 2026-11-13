@@ -8,12 +8,17 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
-from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import (
+    OPAQUE_STRIPE_ID_REGEX,
+    I18nText,
+    V2CoreBase,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
-from backend_v2.models.enums import LaxHistoricalContextMode, TargetBlockType
+from backend_v2.models.enums import EntityPrefix, LaxHistoricalContextMode, TargetBlockType
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +48,15 @@ class Workflow(V2CoreBase):
         str | None,
         Field(
             default=None,
-            pattern=r"^sys_[a-fA-F0-9]{32}$",
-            description="The system_config ID of the MCP gateways configuration attached to this workflow.",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="The MCP gateway ID (mcp_<hex32>) attached to this workflow.",
         ),
     ] = None
     model_registry_id: Annotated[
         str,
         Field(
-            pattern=r"^sys_[a-fA-F0-9]{32}$",
-            description="System config ID of the attached model registry",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Model registry ID (mrg_<hex32>) attached to this workflow.",
         ),
     ]
     default_strictness_level: Annotated[
@@ -138,6 +143,48 @@ class Workflow(V2CoreBase):
         LaxHistoricalContextMode,
         Field(description="Mode for fetching historical context at workflow level."),
     ]
+
+    @field_validator("mcp_gateway_id")
+    @classmethod
+    def _validate_mcp_gateway_id(cls, v: str | None) -> str | None:
+        """Validate that an optional mcp_gateway_id uses the canonical mcp_ UUIDv7 format.
+
+        Args:
+            v: Optional candidate MCP gateway identifier string.
+
+        Returns:
+            Validated MCP gateway identifier string, or None.
+
+        Raises:
+            ValueError: If mcp_gateway_id is provided and fails mcp_<hex32> UUIDv7 validation.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MCP_GATEWAY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
+
+    @field_validator("model_registry_id")
+    @classmethod
+    def _validate_model_registry_id(cls, v: str) -> str:
+        """Validate that model_registry_id uses the canonical mrg_ UUIDv7 format.
+
+        Args:
+            v: Candidate model registry identifier string.
+
+        Returns:
+            Validated model registry identifier string.
+
+        Raises:
+            ValueError: If model_registry_id fails mrg_<hex32> UUIDv7 validation.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MODEL_REGISTRY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     @model_validator(mode="after")
     def validate_dag_integrity(self) -> Workflow:

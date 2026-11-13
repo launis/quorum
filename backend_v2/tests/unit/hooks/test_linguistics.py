@@ -494,7 +494,7 @@ async def test_detect_performative_patterns_fuzzy_fallback_and_provider_override
 
     wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
     exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
-    sys_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    sys_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     state = HookState(
         workflow_id=wf_id,
         execution_id=exe_id,

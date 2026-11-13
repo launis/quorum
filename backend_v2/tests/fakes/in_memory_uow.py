@@ -88,12 +88,12 @@ from backend_v2.models.domain.system_config import (
 )
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.system import AnySystemConfig
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import (
     DependencyRelationType,
     EntityPrefix,
     PropositionNodeType,
+    SecretScope,
 )
 
 logger = logging.getLogger(__name__)
@@ -208,7 +208,8 @@ class _InMemoryPostgresStore:
             "invitations": {},
             "tenant_secrets": {},
             "execution_assignments": {},
-            "system_configs": {},
+            "model_registries": {},
+            "mcp_gateways": {},
             "prompt_blocks": {},
             "task_briefs": {},
             "steps": {},
@@ -758,7 +759,7 @@ class InMemoryEntityAdapter:
         Returns:
             Canonical org_<uuid7_hex> organization identifier.
         """
-        _ = parse_prefixed_uuid7(org.id, EntityPrefix.ORG)
+        _ = parse_prefixed_uuid7(org.id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["organizations"][org.id] = org
         return org.id
 
@@ -771,7 +772,7 @@ class InMemoryEntityAdapter:
         Returns:
             Stored Organization or None if not found.
         """
-        _ = parse_prefixed_uuid7(org_id, EntityPrefix.ORG)
+        _ = parse_prefixed_uuid7(org_id, EntityPrefix.ORGANIZATION)
         if org_id in self._store.seed_tables["organizations"]:
             item = self._store.seed_tables["organizations"][org_id]
             if isinstance(item, Organization):
@@ -799,7 +800,7 @@ class InMemoryEntityAdapter:
         """
         _ = parse_prefixed_uuid7(user.id, EntityPrefix.USER)
         if user.organization_id is not None:
-            _ = parse_prefixed_uuid7(user.organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(user.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["users"][user.id] = user
         return user.id
 
@@ -829,7 +830,7 @@ class InMemoryEntityAdapter:
             List of User domain models.
         """
         if organization_id is not None:
-            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
         users = [
             item
             for item in self._store.seed_tables["users"].values()
@@ -848,7 +849,7 @@ class InMemoryEntityAdapter:
             Canonical inv_<uuid7_hex> invitation identifier.
         """
         _ = parse_prefixed_uuid7(invitation.id, EntityPrefix.INVITATION)
-        _ = parse_prefixed_uuid7(invitation.organization_id, EntityPrefix.ORG)
+        _ = parse_prefixed_uuid7(invitation.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["invitations"][invitation.id] = invitation
         return invitation.id
 
@@ -878,7 +879,7 @@ class InMemoryEntityAdapter:
             List of Invitation domain models.
         """
         if organization_id is not None:
-            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
         invs = [
             item
             for item in self._store.seed_tables["invitations"].values()
@@ -897,7 +898,9 @@ class InMemoryEntityAdapter:
             Canonical sec_<uuid7_hex> tenant secret identifier.
         """
         _ = parse_prefixed_uuid7(secret.id, EntityPrefix.TENANT_SECRET)
-        _ = parse_prefixed_uuid7(secret.organization_id, EntityPrefix.ORG)
+        _ = parse_prefixed_uuid7(secret.organization_id, EntityPrefix.ORGANIZATION)
+        if secret.scope == SecretScope.MCP_GATEWAY:
+            _ = parse_prefixed_uuid7(secret.target_identifier, EntityPrefix.MCP_GATEWAY)
         self._store.seed_tables["tenant_secrets"][secret.id] = secret
         return secret.id
 
@@ -927,7 +930,7 @@ class InMemoryEntityAdapter:
             List of TenantSecretDTO domain models.
         """
         if organization_id is not None:
-            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
         secrets = [
             item
             for item in self._store.seed_tables["tenant_secrets"].values()
@@ -957,20 +960,6 @@ class InMemoryEntityAdapter:
             deleted = True
         return deleted
 
-    async def list_system_configs(self) -> list[SystemConfigModelRegistry | SystemConfigMCPGateways]:
-        """List all persisted polymorphic SystemConfig models in memory.
-
-        Returns:
-            List of SystemConfigModelRegistry and SystemConfigMCPGateways models sorted by id.
-        """
-        configs = [
-            item
-            for item in self._store.seed_tables["system_configs"].values()
-            if isinstance(item, (SystemConfigModelRegistry, SystemConfigMCPGateways))
-        ]
-        configs.sort(key=lambda c: c.id)
-        return configs
-
     async def upsert_execution_assignment(self, assignment: ExecutionAssignment) -> str:
         """Upsert an ExecutionAssignment entity in memory.
 
@@ -981,7 +970,7 @@ class InMemoryEntityAdapter:
             Canonical tsk_<uuid7_hex> execution assignment identifier.
         """
         _ = parse_prefixed_uuid7(assignment.id, EntityPrefix.ASSIGNMENT)
-        _ = parse_prefixed_uuid7(assignment.organization_id, EntityPrefix.ORG)
+        _ = parse_prefixed_uuid7(assignment.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["execution_assignments"][assignment.id] = assignment
         return assignment.id
 
@@ -1014,7 +1003,7 @@ class InMemoryEntityAdapter:
             List of ExecutionAssignment domain models.
         """
         if organization_id is not None:
-            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
         assignments = [
             item
             for item in self._store.seed_tables["execution_assignments"].values()
@@ -1035,7 +1024,7 @@ class InMemoryEntityAdapter:
         """
         _ = parse_prefixed_uuid7(brief.id, EntityPrefix.TASK_BRIEF)
         if brief.organization_id is not None and brief.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(brief.organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(brief.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["task_briefs"][brief.id] = brief
         return brief.id
 
@@ -1198,7 +1187,7 @@ class InMemoryEntityAdapter:
         trimmed = organization_id.strip()
         if not trimmed or trimmed.upper() == "SYSTEM":
             return None
-        _ = parse_prefixed_uuid7(trimmed, EntityPrefix.ORG)
+        _ = parse_prefixed_uuid7(trimmed, EntityPrefix.ORGANIZATION)
         return trimmed
 
     @staticmethod
@@ -1387,7 +1376,7 @@ class InMemoryEntityAdapter:
         """Batch-upsert a validated seed collection in memory.
 
         Args:
-            collection_name: Canonical collection or table name ('system_config' or 'system_configs', etc.).
+            collection_name: Canonical collection or table name ('model_registries', 'mcp_gateways', etc.).
             items: Sequence of validated Pydantic domain models to persist.
 
         Returns:
@@ -1396,14 +1385,15 @@ class InMemoryEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED if collection_name is not an allowlisted seed table.
         """
-        canonical = "system_configs" if collection_name == "system_config" else collection_name
+        canonical = collection_name
         allowed = {
             "organizations",
             "users",
             "invitations",
             "tenant_secrets",
             "execution_assignments",
-            "system_configs",
+            "model_registries",
+            "mcp_gateways",
             "prompt_blocks",
             "task_briefs",
             "steps",
@@ -1435,7 +1425,8 @@ class InMemoryEntityAdapter:
             "invitations": (Invitation,),
             "tenant_secrets": (TenantSecretDTO,),
             "execution_assignments": (ExecutionAssignment,),
-            "system_configs": (SystemConfigModelRegistry, SystemConfigMCPGateways),
+            "model_registries": (SystemConfigModelRegistry,),
+            "mcp_gateways": (SystemConfigMCPGateways,),
             "prompt_blocks": (
                 MatrixPromptBlock,
                 SystemRulePromptBlock,
@@ -1517,7 +1508,8 @@ class InMemoryEntityAdapter:
             "organizations": len(self._store.seed_tables["organizations"]),
             "users": len(self._store.seed_tables["users"]),
             "tenant_secrets": len(self._store.seed_tables["tenant_secrets"]),
-            "system_configs": len(self._store.seed_tables["system_configs"]),
+            "model_registries": len(self._store.seed_tables["model_registries"]),
+            "mcp_gateways": len(self._store.seed_tables["mcp_gateways"]),
             "prompt_blocks": len(self._store.seed_tables["prompt_blocks"]),
             "task_briefs": len(self._store.seed_tables["task_briefs"]),
             "steps": len(self._store.seed_tables["steps"]),
@@ -1528,7 +1520,7 @@ class InMemoryEntityAdapter:
             "report_binaries": len(self._store.report_binaries),
         }
         for key, min_expected in expected_counts.items():
-            target_table = "system_configs" if key == "system_config" else key
+            target_table = key
             if target_table not in counts:
                 msg = f"Unknown table '{target_table}' in verify_seed_table_counts."
                 logger.error(
@@ -1579,6 +1571,7 @@ class InMemoryEntityAdapter:
             "users",
             "invitations",
             "tenant_secrets",
+            "mcp_gateways",
             "execution_assignments",
             "prompt_blocks",
             "task_briefs",
@@ -1596,6 +1589,7 @@ class InMemoryEntityAdapter:
                         User,
                         Invitation,
                         TenantSecretDTO,
+                        SystemConfigMCPGateways,
                         ExecutionAssignment,
                         MatrixPromptBlock,
                         PersonaPromptBlock,
@@ -1650,7 +1644,7 @@ class InMemoryEntityAdapter:
 
     async def delete_organization(self, org_id: str) -> bool:
         """Delete an Organization by primary key and cascade-delete child tenant records."""
-        deleted = self._delete_seed_row("organizations", org_id, EntityPrefix.ORG)
+        deleted = self._delete_seed_row("organizations", org_id, EntityPrefix.ORGANIZATION)
         self._cascade_delete_organization_children(org_id)
         return deleted
 
@@ -1672,30 +1666,160 @@ class InMemoryEntityAdapter:
         """Delete an Invitation by primary key in memory."""
         return self._delete_seed_row("invitations", invitation_id, EntityPrefix.INVITATION)
 
-    async def upsert_system_config(self, cfg: AnySystemConfig) -> str:
-        """Upsert a SystemConfigModelRegistry or SystemConfigMCPGateways in memory."""
-        _ = parse_prefixed_uuid7(cfg.id, EntityPrefix.SYSTEM_CONFIG)
-        self._store.seed_tables["system_configs"][cfg.id] = cfg
-        return cfg.id
+    def _cascade_delete_mcp_gateway_secrets(self, gateway_id: str, gateway_uuid: uuid.UUID) -> None:
+        """Cascade-delete tenant_secrets bound to a deleted MCP gateway (ON DELETE CASCADE)."""
+        secret_bucket = self._store.seed_tables["tenant_secrets"]
+        keys_to_drop: list[str] = []
+        for k, entry in secret_bucket.items():
+            if isinstance(entry, TenantSecretDTO):
+                if entry.scope == SecretScope.MCP_GATEWAY and entry.target_identifier == gateway_id:
+                    keys_to_drop.append(k)
+            elif isinstance(entry, Sequence) and len(entry) >= 5:
+                if entry[2] == gateway_uuid or str(entry[2]) == str(gateway_uuid) or str(entry[4]) == gateway_id:
+                    keys_to_drop.append(k)
+        for k in keys_to_drop:
+            del secret_bucket[k]
 
-    async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
-        """Retrieve a SystemConfig by config_id in memory."""
-        _ = parse_prefixed_uuid7(config_id, EntityPrefix.SYSTEM_CONFIG)
-        if config_id in self._store.seed_tables["system_configs"]:
-            item = self._store.seed_tables["system_configs"][config_id]
-            if isinstance(item, (SystemConfigModelRegistry, SystemConfigMCPGateways)):
+    def _assert_model_registry_not_referenced(self, registry_id: str, registry_uuid: uuid.UUID) -> None:
+        """Enforce ON DELETE RESTRICT for workflows.model_registry_id."""
+        for entry in self._store.seed_tables["workflows"].values():
+            if isinstance(entry, Workflow) and entry.model_registry_id == registry_id:
+                msg = f"Model registry '{registry_id}' is referenced by workflow '{entry.id}'."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": registry_id},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                )
+            if (
+                isinstance(entry, Sequence)
+                and len(entry) > 10
+                and (entry[10] == registry_uuid or str(entry[10]) == str(registry_uuid))
+            ):
+                msg = f"Model registry '{registry_id}' is referenced by a persisted workflow row."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": registry_id},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                )
+
+    def _assert_mcp_gateway_not_referenced(self, gateway_id: str, gateway_uuid: uuid.UUID) -> None:
+        """Enforce ON DELETE RESTRICT for workflows.mcp_gateway_id."""
+        for entry in self._store.seed_tables["workflows"].values():
+            if isinstance(entry, Workflow) and entry.mcp_gateway_id == gateway_id:
+                msg = f"MCP gateway '{gateway_id}' is referenced by workflow '{entry.id}'."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": gateway_id},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                )
+            if (
+                isinstance(entry, Sequence)
+                and len(entry) > 9
+                and entry[9] is not None
+                and (entry[9] == gateway_uuid or str(entry[9]) == str(gateway_uuid))
+            ):
+                msg = f"MCP gateway '{gateway_id}' is referenced by a persisted workflow row."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": gateway_id},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                )
+
+    async def upsert_model_registry(self, registry: SystemConfigModelRegistry) -> str:
+        """Upsert a SystemConfigModelRegistry in memory."""
+        _ = parse_prefixed_uuid7(registry.id, EntityPrefix.MODEL_REGISTRY)
+        self._store.seed_tables["model_registries"][registry.id] = registry
+        return registry.id
+
+    async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry | None:
+        """Retrieve a SystemConfigModelRegistry by registry_id in memory."""
+        _ = parse_prefixed_uuid7(registry_id, EntityPrefix.MODEL_REGISTRY)
+        if registry_id in self._store.seed_tables["model_registries"]:
+            item = self._store.seed_tables["model_registries"][registry_id]
+            if isinstance(item, SystemConfigModelRegistry):
                 return item
         return None
 
-    async def delete_system_config(self, config_id: str) -> bool:
-        """Delete a SystemConfig by primary key in memory."""
-        return self._delete_seed_row("system_configs", config_id, EntityPrefix.SYSTEM_CONFIG)
+    async def list_model_registries(self) -> list[SystemConfigModelRegistry]:
+        """List all persisted SystemConfigModelRegistry entities in memory."""
+        registries = [
+            item
+            for item in self._store.seed_tables["model_registries"].values()
+            if isinstance(item, SystemConfigModelRegistry)
+        ]
+        registries.sort(key=lambda r: r.id)
+        return registries
+
+    async def delete_model_registry(self, registry_id: str) -> bool:
+        """Delete a SystemConfigModelRegistry by primary key in memory (ON DELETE RESTRICT)."""
+        reg_uuid = parse_prefixed_uuid7(registry_id, EntityPrefix.MODEL_REGISTRY)
+        self._assert_model_registry_not_referenced(registry_id, reg_uuid)
+        return self._delete_seed_row("model_registries", registry_id, EntityPrefix.MODEL_REGISTRY)
+
+    async def upsert_mcp_gateway(self, gateway: SystemConfigMCPGateways) -> str:
+        """Upsert a SystemConfigMCPGateways in memory."""
+        _ = parse_prefixed_uuid7(gateway.id, EntityPrefix.MCP_GATEWAY)
+        _ = parse_prefixed_uuid7(gateway.organization_id, EntityPrefix.ORGANIZATION)
+        self._store.seed_tables["mcp_gateways"][gateway.id] = gateway
+        return gateway.id
+
+    async def get_mcp_gateway(self, gateway_id: str) -> SystemConfigMCPGateways | None:
+        """Retrieve a SystemConfigMCPGateways by gateway_id in memory."""
+        _ = parse_prefixed_uuid7(gateway_id, EntityPrefix.MCP_GATEWAY)
+        if gateway_id in self._store.seed_tables["mcp_gateways"]:
+            item = self._store.seed_tables["mcp_gateways"][gateway_id]
+            if isinstance(item, SystemConfigMCPGateways):
+                return item
+        return None
+
+    async def list_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
+        """List all persisted SystemConfigMCPGateways entities in memory."""
+        gateways = [
+            item
+            for item in self._store.seed_tables["mcp_gateways"].values()
+            if isinstance(item, SystemConfigMCPGateways)
+        ]
+        gateways.sort(key=lambda g: g.id)
+        return gateways
+
+    async def delete_mcp_gateway(self, gateway_id: str) -> bool:
+        """Delete a SystemConfigMCPGateways by primary key in memory (RESTRICT on workflows, CASCADE on secrets)."""
+        gw_uuid = parse_prefixed_uuid7(gateway_id, EntityPrefix.MCP_GATEWAY)
+        self._assert_mcp_gateway_not_referenced(gateway_id, gw_uuid)
+        deleted = self._delete_seed_row("mcp_gateways", gateway_id, EntityPrefix.MCP_GATEWAY)
+        if deleted:
+            self._cascade_delete_mcp_gateway_secrets(gateway_id, gw_uuid)
+        return deleted
 
     async def upsert_prompt_block(self, block: PromptBlock) -> str:
         """Upsert a polymorphic PromptBlock in memory."""
         _ = parse_prefixed_uuid7(block.id, EntityPrefix.PROMPT_BLOCK)
         if block.organization_id is not None and block.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(block.organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(block.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["prompt_blocks"][block.id] = block
         return block.id
 
@@ -1737,7 +1861,7 @@ class InMemoryEntityAdapter:
         _ = parse_prefixed_uuid7(profile.id, EntityPrefix.OUTPUT_PROFILE)
         _ = parse_prefixed_uuid7(profile.workflow_id, EntityPrefix.WORKFLOW)
         if profile.organization_id is not None and profile.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(profile.organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(profile.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["output_profiles"][profile.id] = profile
         return profile.id
 
@@ -1765,13 +1889,13 @@ class InMemoryEntityAdapter:
     async def upsert_workflow(self, wf: Workflow) -> str:
         """Upsert a Workflow in memory."""
         _ = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
-        _ = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG)
+        _ = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.MODEL_REGISTRY)
         if wf.default_profile_id is not None:
             _ = parse_prefixed_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE)
         if wf.mcp_gateway_id is not None:
-            _ = parse_prefixed_uuid7(wf.mcp_gateway_id, EntityPrefix.SYSTEM_CONFIG)
+            _ = parse_prefixed_uuid7(wf.mcp_gateway_id, EntityPrefix.MCP_GATEWAY)
         if wf.organization_id is not None and wf.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(wf.organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(wf.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["workflows"][wf.id] = wf
         return wf.id
 
@@ -1806,7 +1930,7 @@ class InMemoryEntityAdapter:
         """Upsert a Step in memory."""
         _ = parse_prefixed_uuid7(step.id, EntityPrefix.STEP)
         if step.organization_id is not None and step.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(step.organization_id, EntityPrefix.ORG)
+            _ = parse_prefixed_uuid7(step.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["steps"][step.id] = step
         return step.id
 
@@ -2147,7 +2271,8 @@ class InMemoryAsyncPgConnection:
             "invitations",
             "tenant_secrets",
             "execution_assignments",
-            "system_configs",
+            "model_registries",
+            "mcp_gateways",
             "prompt_blocks",
             "task_briefs",
             "steps",
@@ -2164,11 +2289,23 @@ class InMemoryAsyncPgConnection:
                     self._store.seed_tables[tbl].clear()
                     return "DELETE"
                 row_id = str(args[0])
+                if tbl == "model_registries" and isinstance(args[0], (uuid.UUID, str)):
+                    mrg_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.MODEL_REGISTRY)
+                    mrg_uuid = parse_prefixed_uuid7(mrg_prefixed, EntityPrefix.MODEL_REGISTRY)
+                    self._entities._assert_model_registry_not_referenced(mrg_prefixed, mrg_uuid)
+                if tbl == "mcp_gateways" and isinstance(args[0], (uuid.UUID, str)):
+                    mcp_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.MCP_GATEWAY)
+                    mcp_uuid = parse_prefixed_uuid7(mcp_prefixed, EntityPrefix.MCP_GATEWAY)
+                    self._entities._assert_mcp_gateway_not_referenced(mcp_prefixed, mcp_uuid)
                 if row_id in self._store.seed_tables[tbl]:
                     del self._store.seed_tables[tbl][row_id]
                     if tbl == "organizations" and isinstance(args[0], (uuid.UUID, str)):
-                        org_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.ORG)
+                        org_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.ORGANIZATION)
                         self._entities._cascade_delete_organization_children(org_prefixed)
+                    if tbl == "mcp_gateways" and isinstance(args[0], (uuid.UUID, str)):
+                        mcp_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.MCP_GATEWAY)
+                        mcp_uuid = parse_prefixed_uuid7(mcp_prefixed, EntityPrefix.MCP_GATEWAY)
+                        self._entities._cascade_delete_mcp_gateway_secrets(mcp_prefixed, mcp_uuid)
                     return "DELETE 1"
                 if tbl in _TABLE_TO_ENTITY_PREFIX and isinstance(args[0], (uuid.UUID, str)):
                     prefixed_key = format_prefixed_uuid7(args[0], _TABLE_TO_ENTITY_PREFIX[tbl])
@@ -2176,6 +2313,9 @@ class InMemoryAsyncPgConnection:
                         del self._store.seed_tables[tbl][prefixed_key]
                         if tbl == "organizations":
                             self._entities._cascade_delete_organization_children(prefixed_key)
+                        if tbl == "mcp_gateways":
+                            mcp_uuid = parse_prefixed_uuid7(prefixed_key, EntityPrefix.MCP_GATEWAY)
+                            self._entities._cascade_delete_mcp_gateway_secrets(prefixed_key, mcp_uuid)
                         return "DELETE 1"
                 return "DELETE 0"
 
@@ -2241,7 +2381,8 @@ class InMemoryAsyncPgConnection:
                 "invitations",
                 "tenant_secrets",
                 "execution_assignments",
-                "system_configs",
+                "model_registries",
+                "mcp_gateways",
                 "prompt_blocks",
                 "task_briefs",
                 "steps",
@@ -2350,7 +2491,8 @@ class InMemoryAsyncPgConnection:
             "invitations",
             "tenant_secrets",
             "execution_assignments",
-            "system_configs",
+            "model_registries",
+            "mcp_gateways",
             "prompt_blocks",
             "task_briefs",
             "steps",
@@ -2513,7 +2655,8 @@ class InMemoryAsyncPgConnection:
                 "invitations",
                 "tenant_secrets",
                 "execution_assignments",
-                "system_configs",
+                "model_registries",
+                "mcp_gateways",
                 "prompt_blocks",
                 "task_briefs",
                 "steps",
@@ -2600,7 +2743,8 @@ class InMemoryAsyncPgConnection:
             "invitations",
             "tenant_secrets",
             "execution_assignments",
-            "system_configs",
+            "model_registries",
+            "mcp_gateways",
             "prompt_blocks",
             "task_briefs",
             "steps",
@@ -2634,7 +2778,7 @@ class InMemoryAsyncPgConnection:
                 r
                 for r in matched
                 if r.organization_id is not None
-                and parse_prefixed_uuid7(r.organization_id, EntityPrefix.ORG) == target_org
+                and parse_prefixed_uuid7(r.organization_id, EntityPrefix.ORGANIZATION) == target_org
             ]
         elif "ORGANIZATION_ID IS NULL" in normalized:
             matched = [r for r in matched if r.organization_id is None]
@@ -2663,7 +2807,9 @@ class InMemoryAsyncPgConnection:
         rows: list[AsyncPgRecordProtocol] = []
         for rec in matched:
             org_uuid = (
-                parse_prefixed_uuid7(rec.organization_id, EntityPrefix.ORG) if rec.organization_id is not None else None
+                parse_prefixed_uuid7(rec.organization_id, EntityPrefix.ORGANIZATION)
+                if rec.organization_id is not None
+                else None
             )
             actor_uuid = parse_prefixed_uuid7(rec.actor_id, EntityPrefix.USER) if rec.actor_id is not None else None
             exec_uuid = (
@@ -2700,7 +2846,7 @@ class InMemoryAsyncPgConnection:
             matched = [
                 r
                 for r in matched
-                if r.org_id != "system" and parse_prefixed_uuid7(r.org_id, EntityPrefix.ORG) == target_org
+                if r.org_id != "system" and parse_prefixed_uuid7(r.org_id, EntityPrefix.ORGANIZATION) == target_org
             ]
         elif "ORGANIZATION_ID IS NULL" in normalized:
             matched = [r for r in matched if r.org_id == "system"]
@@ -2733,7 +2879,7 @@ class InMemoryAsyncPgConnection:
         matched = self._filter_usage_records(normalized, args)
         rows: list[AsyncPgRecordProtocol] = []
         for rec in matched:
-            org_uuid = None if rec.org_id == "system" else parse_prefixed_uuid7(rec.org_id, EntityPrefix.ORG)
+            org_uuid = None if rec.org_id == "system" else parse_prefixed_uuid7(rec.org_id, EntityPrefix.ORGANIZATION)
             usr_uuid = None if rec.user_id == "system" else parse_prefixed_uuid7(rec.user_id, EntityPrefix.USER)
             exec_uuid = (
                 parse_prefixed_uuid7(rec.execution_id, EntityPrefix.EXECUTION) if rec.execution_id is not None else None

@@ -55,8 +55,8 @@ _USR_ID = "usr_0195f3a0000070008000000000000001"
 _BLK_ID = "blk_0195f3a0000070008000000000000001"
 _TBR_ID = "tbr_0195f3a0000070008000000000000001"
 _REP_ID = "rep_0195f3a0000070008000000000000001"
-_SYS_ID = "sys_0195f3a00000700e826807f3bfa3454d"
-_SYS_MISSING_ID = "sys_0195f3a0000070008000000000000099"
+_SYS_ID = "mrg_0195f3a00000700e826807f3bfa3454d"
+_SYS_MISSING_ID = "mrg_0195f3a0000070008000000000000099"
 _EXE_MISSING_ID = "exe_0195f3a0000070008000000000000099"
 _USG_ID = "usg_0195f3a0000070008000000000000001"
 
@@ -239,7 +239,6 @@ async def test_system_repo() -> None:
     reg = SystemConfigModelRegistry(
         id=_SYS_ID,
         name="Default Model Registry",
-        type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={tier: profile for tier in CognitiveTier},
     )

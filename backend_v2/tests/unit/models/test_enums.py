@@ -41,7 +41,6 @@ from backend_v2.models.enums import (
     StepType,
     StepZone,
     StorageBackend,
-    SystemConfigID,
     TitleKey,
     ToolCapability,
     UiVariant,
@@ -302,7 +301,10 @@ def test_storage_backend_and_proposition_graph_enums() -> None:
     assert str(EntityPrefix.EDGE) == "edg"
     assert str(EntityPrefix.SCALE) == "sc"
     assert str(EntityPrefix.SYNTHESIS_GROUP) == "grp"
-    assert SystemConfigID.MCP_GATEWAYS.value == "sys_0195f3a00000700080008172bda70c86"
+    assert str(EntityPrefix.MODEL_REGISTRY) == "mrg"
+    assert str(EntityPrefix.MCP_GATEWAY) == "mcp"
+    assert "SYSTEM_CONFIG" not in EntityPrefix.__members__
+    assert "ORG" not in EntityPrefix.__members__
     assert str(StorageBackend.POSTGRES) == "POSTGRES"
     assert str(PropositionNodeType.CLAIM) == "claim"
     assert str(PropositionNodeType.GROUND) == "ground"

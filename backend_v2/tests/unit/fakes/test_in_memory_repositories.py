@@ -23,7 +23,6 @@ from backend_v2.models.domain.base import AuditLogCreateDTO
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
-from backend_v2.models.dtos.system import SystemConfigCreateDTO
 from backend_v2.models.dtos.trace import (
     ExecutionCreateDTO,
     ExecutionUpdateDTO,
@@ -61,10 +60,10 @@ _BLK_ID = "blk_0195f3a0000070008000000000000001"
 _TBR_ID = "tbr_0195f3a0000070008000000000000001"
 _EXE_ID = "exe_0195f3a0000070008000000000000001"
 _REP_ID = "rep_0195f3a0000070008000000000000001"
-_SYS_REG_ID = "sys_0195f3a0000070008000e26807f3bfa3"
-_SYS_GW_ID = "sys_0195f3a0000070088172bda70c8641c5"
-_SYS_EXTRA_ID = "sys_0195f3a0000070018234567890abcde1"
-_SYS_UNIFIED_EXTRA_ID = "sys_0195f3a0000070018234567890abcde2"
+_MRG_REG_ID = "mrg_0195f3a0000070008000bf23c2670ad5"
+_MCP_GW_ID = "mcp_0195f3a00000700080008172bda70c86"
+_MCP_EXTRA_ID = "mcp_0195f3a0000070018234567890abcde1"
+_MCP_UNIFIED_EXTRA_ID = "mcp_0195f3a0000070018234567890abcde2"
 _MTX_ID = "blk_0195f3a0000070008000000000000099"
 
 
@@ -426,25 +425,28 @@ async def test_all_9_active_v2_fake_repositories_and_facade() -> None:
 
     # 7. System
     sys_repo = InMemorySystemRepository()
-    reg = await sys_repo.get_model_registry(_SYS_REG_ID)
+    reg = await sys_repo.get_model_registry(_MRG_REG_ID)
     assert reg.id is not None
-    await sys_repo.update_model_registry(reg.model_copy(update={"id": _SYS_REG_ID, "name": "Updated Registry"}))
+    await sys_repo.update_model_registry(reg.model_copy(update={"id": _MRG_REG_ID, "name": "Updated Registry"}))
     gw_cfg = SystemConfigMCPGateways(
-        id=_SYS_GW_ID,
+        id=_MCP_GW_ID,
+        organization_id=_ORG_ID,
         name="Gateway",
         slug="default_mcp_gateway",
         tools=[],
     )
     await sys_repo.update_mcp_gateways(gw_cfg)
-    assert (await sys_repo.get_mcp_gateways(_SYS_GW_ID)).id == _SYS_GW_ID
+    assert (await sys_repo.get_mcp_gateways(_MCP_GW_ID)).id == _MCP_GW_ID
     mcp_cfg = SystemConfigMCPGateways(
-        id=_SYS_EXTRA_ID,
+        id=_MCP_EXTRA_ID,
+        organization_id=_ORG_ID,
         name="Extra Gateway",
         slug="extra_mcp_gateway",
         tools=[],
     )
-    cfg_id = await sys_repo.create_system_config(SystemConfigCreateDTO(type="mcp_gateways", content=mcp_cfg))
-    assert await sys_repo.get_system_config(cfg_id) is not None
+    assert await sys_repo.update_mcp_gateways(mcp_cfg) is True
+    assert (await sys_repo.get_mcp_gateways(_MCP_EXTRA_ID)).id == _MCP_EXTRA_ID
+    assert await sys_repo.delete_mcp_gateways(_MCP_EXTRA_ID) is True
 
     # 8. Audit
     aud_repo = InMemoryAuditRepository()
@@ -599,25 +601,23 @@ async def test_all_9_active_v2_fake_repositories_and_facade() -> None:
     await unified.update_output_profile(_PRF_ID, profile)
     assert await unified.delete_output_profile(_PRF_ID)
 
-    u_reg = await unified.get_model_registry(_SYS_REG_ID)
+    u_reg = await unified.get_model_registry(_MRG_REG_ID)
     assert u_reg.id is not None
-    await unified.update_model_registry(u_reg.model_copy(update={"id": _SYS_REG_ID, "name": "U Reg"}))
+    await unified.update_model_registry(u_reg.model_copy(update={"id": _MRG_REG_ID, "name": "U Reg"}))
     await unified.update_mcp_gateways(gw_cfg)
-    assert (await unified.get_mcp_gateways(_SYS_GW_ID)).id == _SYS_GW_ID
+    assert (await unified.get_mcp_gateways(_MCP_GW_ID)).id == _MCP_GW_ID
     all_gws = await unified.get_all_mcp_gateways()
-    assert any(g.id == _SYS_GW_ID for g in all_gws)
-    cfg_u = await unified.create_system_config(
-        SystemConfigCreateDTO(
-            type="mcp_gateways",
-            content=SystemConfigMCPGateways(
-                id=_SYS_UNIFIED_EXTRA_ID,
-                name="Unified Extra Gateway",
-                slug="unified_extra_gateway",
-                tools=[],
-            ),
-        )
+    assert any(g.id == _MCP_GW_ID for g in all_gws)
+    unified_extra_gw = SystemConfigMCPGateways(
+        id=_MCP_UNIFIED_EXTRA_ID,
+        organization_id=_ORG_ID,
+        name="Unified Extra Gateway",
+        slug="unified_extra_gateway",
+        tools=[],
     )
-    assert await unified.get_system_config(cfg_u) is not None
+    assert await unified.update_mcp_gateways(unified_extra_gw) is True
+    assert (await unified.get_mcp_gateways(_MCP_UNIFIED_EXTRA_ID)).id == _MCP_UNIFIED_EXTRA_ID
+    assert await unified.delete_mcp_gateways(_MCP_UNIFIED_EXTRA_ID) is True
 
     await unified.log_audit_event(
         AuditLogCreateDTO(

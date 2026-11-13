@@ -42,7 +42,7 @@ def test_workflow_create_dto_accepts_valid_payload() -> None:
         "name": {"translations": {"en": "Custom Workflow", "fi": "Mukautettu työnkulku"}},
         "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+        "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
     }
     dto = WorkflowCreateDTO.model_validate(payload)
     assert dto.slug == "custom-workflow"

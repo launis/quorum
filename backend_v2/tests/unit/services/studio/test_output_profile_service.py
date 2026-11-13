@@ -262,7 +262,7 @@ async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exce
         steps=[],
         default_profile_id=profile_id,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+        model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
     )
     mock_workflow_service.list_workflows.return_value = [workflow]
 
@@ -580,7 +580,7 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         ],
         default_profile_id=profile_id,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+        model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
     )
     await wf_repo.save_workflow(workflow)
 

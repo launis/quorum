@@ -32,7 +32,6 @@ from backend_v2.models.dtos.studio import (
     WorkflowCreateDTO,
     WorkflowUpdateDTO,
 )
-from backend_v2.models.dtos.system import SystemConfigCreateDTO
 from backend_v2.models.dtos.trace import (
     ExecutionCreateDTO,
     ExecutionUpdateDTO,
@@ -67,9 +66,9 @@ _USR_ID = "usr_0195f3a0000070008123456789abcdef"
 _BLK_ID = "blk_0195f3a0000070008123456789abcdef"
 _TBR_ID = "tbr_0195f3a0000070008123456789abcdef"
 _REP_ID = "rep_0195f3a0000070008123456789abcdef"
-_SYS_ID = "sys_0195f3a0000070018234567890abcdef"
-_SYS_GW_ID = "sys_0195f3a0000070018234567890abcde1"
-_SYS_MISSING_ID = "sys_0195f3a0000070018234567890abcde9"
+_MRG_ID = "mrg_0195f3a0000070018234567890abcdef"
+_MCP_GW_ID = "mcp_0195f3a0000070018234567890abcde1"
+_MCP_MISSING_ID = "mcp_0195f3a0000070018234567890abcde9"
 
 
 @pytest.mark.asyncio
@@ -148,44 +147,43 @@ async def test_all_9_active_protocol_delegations_roundtrip() -> None:
         additional_params=ProviderExtraParamsDTO(),
     )
     reg = SystemConfigModelRegistry(
-        id=_SYS_ID,
+        id=_MRG_ID,
         name="Default Model Registry",
-        type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={tier: profile_tier for tier in CognitiveTier},
     )
     assert await repo.update_model_registry(reg) is True
-    assert (await repo.get_model_registry(_SYS_ID)).id == _SYS_ID
+    assert (await repo.get_model_registry(_MRG_ID)).id == _MRG_ID
     assert len(await repo.get_all_model_registries()) == 1
 
     gw = SystemConfigMCPGateways(
-        id=_SYS_GW_ID,
+        id=_MCP_GW_ID,
+        organization_id=_ORG_ID,
         name="Gateway",
         slug="default_mcp_gateway",
-        type="mcp_gateways",
         tools=[],
     )
     assert await repo.update_mcp_gateways(gw) is True
-    assert (await repo.get_mcp_gateways(_SYS_GW_ID)).id == _SYS_GW_ID
-    assert (await repo.get_mcp_gateways()).id == _SYS_GW_ID
+    assert (await repo.get_mcp_gateways(_MCP_GW_ID)).id == _MCP_GW_ID
+    assert (await repo.get_mcp_gateways()).id == _MCP_GW_ID
     assert len(await repo.get_all_mcp_gateways()) == 1
     extra_gw = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070018234567890abcde2",
+        id="mcp_0195f3a0000070018234567890abcde2",
+        organization_id=_ORG_ID,
         name="Extra Gateway",
         slug="extra_mcp_gateway",
-        type="mcp_gateways",
         tools=[],
     )
-    created_cfg_id = await repo.create_system_config(SystemConfigCreateDTO(type="mcp_gateways", content=extra_gw))
-    assert await repo.get_system_config(created_cfg_id) is not None
-    assert await repo.delete_system_config(created_cfg_id) is True
+    assert await repo.update_mcp_gateways(extra_gw) is True
+    assert (await repo.get_mcp_gateways(extra_gw.id)).id == extra_gw.id
+    assert await repo.delete_mcp_gateways(extra_gw.id) is True
 
     wf_id = await repo.create_workflow(
         WorkflowCreateDTO(
             slug="wf_slug",
             name="WF",
             description="Desc",
-            model_registry_id=_SYS_ID,
+            model_registry_id=_MRG_ID,
             organization_id=_ORG_ID,
             expected_inputs=[],
             steps=[],
@@ -369,6 +367,6 @@ async def test_system_repo_get_mcp_gateways_not_found_raises_failure() -> None:
     assert empty_exc.value.status_code == 404
 
     with pytest.raises(ResourceNotFoundError) as id_exc:
-        await repo.get_mcp_gateways(id=_SYS_MISSING_ID)
+        await repo.get_mcp_gateways(id=_MCP_MISSING_ID)
     assert id_exc.value.status_code == 404
-    assert id_exc.value.details["resource_id"] == _SYS_MISSING_ID
+    assert id_exc.value.details["resource_id"] == _MCP_MISSING_ID

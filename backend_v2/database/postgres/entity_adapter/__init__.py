@@ -16,9 +16,9 @@ from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.system import AnySystemConfig
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.settings import get_settings
 
@@ -75,14 +75,16 @@ from .execution_and_report_stage import update_execution_occ_row as update_execu
 from .execution_and_report_stage import upsert_report_artifact_row as upsert_report_artifact_row
 from .iam_and_system_stage import _AGGREGATE_USAGE_BASE_SQL as _AGGREGATE_USAGE_BASE_SQL
 from .iam_and_system_stage import _DELETE_INVITATION_SQL as _DELETE_INVITATION_SQL
+from .iam_and_system_stage import _DELETE_MCP_GATEWAY_SQL as _DELETE_MCP_GATEWAY_SQL
+from .iam_and_system_stage import _DELETE_MODEL_REGISTRY_SQL as _DELETE_MODEL_REGISTRY_SQL
 from .iam_and_system_stage import _DELETE_ORGANIZATION_SQL as _DELETE_ORGANIZATION_SQL
-from .iam_and_system_stage import _DELETE_SYSTEM_CONFIG_SQL as _DELETE_SYSTEM_CONFIG_SQL
 from .iam_and_system_stage import _DELETE_TENANT_SECRET_SQL as _DELETE_TENANT_SECRET_SQL
 from .iam_and_system_stage import _DELETE_USER_SQL as _DELETE_USER_SQL
 from .iam_and_system_stage import _GET_EXECUTION_ASSIGNMENT_SQL as _GET_EXECUTION_ASSIGNMENT_SQL
 from .iam_and_system_stage import _GET_INVITATION_SQL as _GET_INVITATION_SQL
+from .iam_and_system_stage import _GET_MCP_GATEWAY_SQL as _GET_MCP_GATEWAY_SQL
+from .iam_and_system_stage import _GET_MODEL_REGISTRY_SQL as _GET_MODEL_REGISTRY_SQL
 from .iam_and_system_stage import _GET_ORGANIZATION_SQL as _GET_ORGANIZATION_SQL
-from .iam_and_system_stage import _GET_SYSTEM_CONFIG_SQL as _GET_SYSTEM_CONFIG_SQL
 from .iam_and_system_stage import _GET_TENANT_SECRET_SQL as _GET_TENANT_SECRET_SQL
 from .iam_and_system_stage import _GET_USER_BY_EMAIL_SQL as _GET_USER_BY_EMAIL_SQL
 from .iam_and_system_stage import _GET_USER_SQL as _GET_USER_SQL
@@ -95,8 +97,9 @@ from .iam_and_system_stage import (
 from .iam_and_system_stage import _LIST_EXECUTION_ASSIGNMENTS_SQL as _LIST_EXECUTION_ASSIGNMENTS_SQL
 from .iam_and_system_stage import _LIST_INVITATIONS_BY_ORG_SQL as _LIST_INVITATIONS_BY_ORG_SQL
 from .iam_and_system_stage import _LIST_INVITATIONS_SQL as _LIST_INVITATIONS_SQL
+from .iam_and_system_stage import _LIST_MCP_GATEWAYS_SQL as _LIST_MCP_GATEWAYS_SQL
+from .iam_and_system_stage import _LIST_MODEL_REGISTRIES_SQL as _LIST_MODEL_REGISTRIES_SQL
 from .iam_and_system_stage import _LIST_ORGANIZATIONS_SQL as _LIST_ORGANIZATIONS_SQL
-from .iam_and_system_stage import _LIST_SYSTEM_CONFIGS_SQL as _LIST_SYSTEM_CONFIGS_SQL
 from .iam_and_system_stage import _LIST_TENANT_SECRETS_BY_ORG_SQL as _LIST_TENANT_SECRETS_BY_ORG_SQL
 from .iam_and_system_stage import _LIST_TENANT_SECRETS_SQL as _LIST_TENANT_SECRETS_SQL
 from .iam_and_system_stage import _LIST_USAGE_RECORDS_SQL as _LIST_USAGE_RECORDS_SQL
@@ -104,28 +107,32 @@ from .iam_and_system_stage import _LIST_USERS_BY_ORG_SQL as _LIST_USERS_BY_ORG_S
 from .iam_and_system_stage import _LIST_USERS_SQL as _LIST_USERS_SQL
 from .iam_and_system_stage import _UPSERT_EXECUTION_ASSIGNMENT_SQL as _UPSERT_EXECUTION_ASSIGNMENT_SQL
 from .iam_and_system_stage import _UPSERT_INVITATION_SQL as _UPSERT_INVITATION_SQL
+from .iam_and_system_stage import _UPSERT_MCP_GATEWAY_SQL as _UPSERT_MCP_GATEWAY_SQL
+from .iam_and_system_stage import _UPSERT_MODEL_REGISTRY_SQL as _UPSERT_MODEL_REGISTRY_SQL
 from .iam_and_system_stage import _UPSERT_ORGANIZATION_SQL as _UPSERT_ORGANIZATION_SQL
-from .iam_and_system_stage import _UPSERT_SYSTEM_CONFIG_SQL as _UPSERT_SYSTEM_CONFIG_SQL
 from .iam_and_system_stage import _UPSERT_TENANT_SECRET_SQL as _UPSERT_TENANT_SECRET_SQL
 from .iam_and_system_stage import _UPSERT_USER_SQL as _UPSERT_USER_SQL
 from .iam_and_system_stage import aggregate_organization_usage_row as aggregate_organization_usage_row
 from .iam_and_system_stage import delete_invitation_row as delete_invitation_row
+from .iam_and_system_stage import delete_mcp_gateway_row as delete_mcp_gateway_row
+from .iam_and_system_stage import delete_model_registry_row as delete_model_registry_row
 from .iam_and_system_stage import delete_organization_row as delete_organization_row
-from .iam_and_system_stage import delete_system_config_row as delete_system_config_row
 from .iam_and_system_stage import delete_tenant_secret_row as delete_tenant_secret_row
 from .iam_and_system_stage import delete_user_row as delete_user_row
 from .iam_and_system_stage import get_execution_assignment_row as get_execution_assignment_row
 from .iam_and_system_stage import get_invitation_row as get_invitation_row
+from .iam_and_system_stage import get_mcp_gateway_row as get_mcp_gateway_row
+from .iam_and_system_stage import get_model_registry_row as get_model_registry_row
 from .iam_and_system_stage import get_organization_row as get_organization_row
-from .iam_and_system_stage import get_system_config_row as get_system_config_row
 from .iam_and_system_stage import get_tenant_secret_row as get_tenant_secret_row
 from .iam_and_system_stage import get_user_by_email_row as get_user_by_email_row
 from .iam_and_system_stage import get_user_row as get_user_row
 from .iam_and_system_stage import hydrate_audit_log_row as hydrate_audit_log_row
 from .iam_and_system_stage import hydrate_execution_assignment_row as hydrate_execution_assignment_row
 from .iam_and_system_stage import hydrate_invitation_row as hydrate_invitation_row
+from .iam_and_system_stage import hydrate_mcp_gateway_row as hydrate_mcp_gateway_row
+from .iam_and_system_stage import hydrate_model_registry_row as hydrate_model_registry_row
 from .iam_and_system_stage import hydrate_organization_row as hydrate_organization_row
-from .iam_and_system_stage import hydrate_system_config_row as hydrate_system_config_row
 from .iam_and_system_stage import hydrate_tenant_secret_row as hydrate_tenant_secret_row
 from .iam_and_system_stage import hydrate_usage_record_row as hydrate_usage_record_row
 from .iam_and_system_stage import hydrate_user_row as hydrate_user_row
@@ -134,16 +141,17 @@ from .iam_and_system_stage import insert_usage_record_row as insert_usage_record
 from .iam_and_system_stage import list_audit_log_rows as list_audit_log_rows
 from .iam_and_system_stage import list_execution_assignment_rows as list_execution_assignment_rows
 from .iam_and_system_stage import list_invitation_rows as list_invitation_rows
+from .iam_and_system_stage import list_mcp_gateway_rows as list_mcp_gateway_rows
+from .iam_and_system_stage import list_model_registry_rows as list_model_registry_rows
 from .iam_and_system_stage import list_organization_rows as list_organization_rows
-from .iam_and_system_stage import list_system_config_rows as list_system_config_rows
-from .iam_and_system_stage import list_system_configs_rows as list_system_configs_rows
 from .iam_and_system_stage import list_tenant_secret_rows as list_tenant_secret_rows
 from .iam_and_system_stage import list_usage_record_rows as list_usage_record_rows
 from .iam_and_system_stage import list_user_rows as list_user_rows
 from .iam_and_system_stage import upsert_execution_assignment_row as upsert_execution_assignment_row
 from .iam_and_system_stage import upsert_invitation_row as upsert_invitation_row
+from .iam_and_system_stage import upsert_mcp_gateway_row as upsert_mcp_gateway_row
+from .iam_and_system_stage import upsert_model_registry_row as upsert_model_registry_row
 from .iam_and_system_stage import upsert_organization_row as upsert_organization_row
-from .iam_and_system_stage import upsert_system_config_row as upsert_system_config_row
 from .iam_and_system_stage import upsert_tenant_secret_row as upsert_tenant_secret_row
 from .iam_and_system_stage import upsert_user_row as upsert_user_row
 from .prompt_block_and_step_stage import _DELETE_PROMPT_BLOCK_SQL as _DELETE_PROMPT_BLOCK_SQL
@@ -210,7 +218,8 @@ class PostgresEntityAdapter:
     _hydrate_invitation_row = staticmethod(hydrate_invitation_row)
     _hydrate_tenant_secret_row = staticmethod(hydrate_tenant_secret_row)
     _hydrate_execution_assignment_row = staticmethod(hydrate_execution_assignment_row)
-    _hydrate_system_config_row = staticmethod(hydrate_system_config_row)
+    _hydrate_model_registry_row = staticmethod(hydrate_model_registry_row)
+    _hydrate_mcp_gateway_row = staticmethod(hydrate_mcp_gateway_row)
     _hydrate_prompt_block_row = staticmethod(hydrate_prompt_block_row)
     _hydrate_task_brief_row = staticmethod(hydrate_task_brief_row)
     _hydrate_step_row = staticmethod(hydrate_step_row)
@@ -525,33 +534,61 @@ class PostgresEntityAdapter:
             self._conn, self.command_timeout_seconds, organization_id=organization_id
         )
 
-    async def upsert_system_config(self, cfg: AnySystemConfig) -> str:
-        """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs.
+    async def upsert_model_registry(self, registry: SystemConfigModelRegistry) -> str:
+        """Persist a SystemConfigModelRegistry into model_registries.
 
         Args:
-            cfg: Validated SystemConfigModelRegistry or SystemConfigMCPGateways model.
+            registry: Validated SystemConfigModelRegistry model.
 
         Returns:
-            Canonical sys_<32_hex> identifier.
+            Canonical mrg_<32_hex> identifier.
 
         Raises:
             AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
         """
-        return await upsert_system_config_row(self._conn, self.command_timeout_seconds, cfg)
+        return await upsert_model_registry_row(self._conn, self.command_timeout_seconds, registry)
 
-    async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
-        """Fetch a SystemConfig by ID.
+    async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry | None:
+        """Fetch a SystemConfigModelRegistry by ID.
 
         Args:
-            config_id: Canonical sys_<32_hex> identifier.
+            registry_id: Canonical mrg_<32_hex> identifier.
 
         Returns:
-            Hydrated SystemConfigModelRegistry or SystemConfigMCPGateways instance, or None if not found.
+            Hydrated SystemConfigModelRegistry instance, or None if not found.
 
         Raises:
             AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
         """
-        return await get_system_config_row(self._conn, self.command_timeout_seconds, config_id)
+        return await get_model_registry_row(self._conn, self.command_timeout_seconds, registry_id)
+
+    async def upsert_mcp_gateway(self, gateway: SystemConfigMCPGateways) -> str:
+        """Persist a SystemConfigMCPGateways into mcp_gateways.
+
+        Args:
+            gateway: Validated SystemConfigMCPGateways model.
+
+        Returns:
+            Canonical mcp_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
+        return await upsert_mcp_gateway_row(self._conn, self.command_timeout_seconds, gateway)
+
+    async def get_mcp_gateway(self, gateway_id: str) -> SystemConfigMCPGateways | None:
+        """Fetch a SystemConfigMCPGateways by ID.
+
+        Args:
+            gateway_id: Canonical mcp_<32_hex> identifier.
+
+        Returns:
+            Hydrated SystemConfigMCPGateways instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await get_mcp_gateway_row(self._conn, self.command_timeout_seconds, gateway_id)
 
     async def upsert_prompt_block(self, block: AnyPromptBlock) -> str:
         """Persist a polymorphic AnyPromptBlock into prompt_blocks.
@@ -775,16 +812,27 @@ class PostgresEntityAdapter:
         """
         return await delete_tenant_secret_row(self._conn, self.command_timeout_seconds, secret_id)
 
-    async def list_system_configs(self) -> list[AnySystemConfig]:
-        """List all polymorphic SystemConfig rows from system_configs.
+    async def list_model_registries(self) -> list[SystemConfigModelRegistry]:
+        """List all SystemConfigModelRegistry rows from model_registries.
 
         Returns:
-            List of hydrated SystemConfigModelRegistry and SystemConfigMCPGateways models.
+            List of hydrated SystemConfigModelRegistry domain models.
 
         Raises:
             AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
         """
-        return await list_system_config_rows(self._conn, self.command_timeout_seconds)
+        return await list_model_registry_rows(self._conn, self.command_timeout_seconds)
+
+    async def list_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
+        """List all SystemConfigMCPGateways rows from mcp_gateways.
+
+        Returns:
+            List of hydrated SystemConfigMCPGateways domain models.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_mcp_gateway_rows(self._conn, self.command_timeout_seconds)
 
     async def list_executions(self) -> list[ExecutionRecord]:
         """List all ExecutionRecord rows ordered by created_at DESC.
@@ -964,11 +1012,11 @@ class PostgresEntityAdapter:
         """
         return await delete_invitation_row(self._conn, self.command_timeout_seconds, invitation_id)
 
-    async def delete_system_config(self, config_id: str) -> bool:
-        """Delete a SystemConfig row by primary key from system_configs.
+    async def delete_model_registry(self, registry_id: str) -> bool:
+        """Delete a SystemConfigModelRegistry row by primary key from model_registries.
 
         Args:
-            config_id: Canonical sys_<32_hex> system config identifier.
+            registry_id: Canonical mrg_<32_hex> model registry identifier.
 
         Returns:
             True if a matching row was deleted, False otherwise.
@@ -976,7 +1024,21 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
         """
-        return await delete_system_config_row(self._conn, self.command_timeout_seconds, config_id)
+        return await delete_model_registry_row(self._conn, self.command_timeout_seconds, registry_id)
+
+    async def delete_mcp_gateway(self, gateway_id: str) -> bool:
+        """Delete a SystemConfigMCPGateways row by primary key from mcp_gateways.
+
+        Args:
+            gateway_id: Canonical mcp_<32_hex> MCP gateway identifier.
+
+        Returns:
+            True if a matching row was deleted, False otherwise.
+
+        Raises:
+            AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
+        """
+        return await delete_mcp_gateway_row(self._conn, self.command_timeout_seconds, gateway_id)
 
     async def list_prompt_blocks(self) -> list[AnyPromptBlock]:
         """List all polymorphic AnyPromptBlock rows from prompt_blocks.

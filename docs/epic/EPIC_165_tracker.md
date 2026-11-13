@@ -35,7 +35,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_165/02_phase2_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`
-  - [ ] Step 2.1: system_configs Split into model_registries (mrg_) & mcp_gateways (mcp_), tenant_secrets.mcp_gateway_id FK, ModelProfile / LLMProviderConfig Cleanup & QGR030 Prefix Ratchet
+  - [x] Step 2.1: system_configs Split into model_registries (mrg_) & mcp_gateways (mcp_), tenant_secrets.mcp_gateway_id FK, ModelProfile / LLMProviderConfig Cleanup & QGR030 Prefix Ratchet
   - [ ] Step 2.2: Junction Tables (step_criteria_blocks & workflow_step_refs), Deferrable default_profile_id, Typed UUID FKs, VIRTUAL created_at, Single-UoW clone_workflow & Workflow.version SQL OCC
   - [ ] Step 2.3: Source-Level seed_data.json Structural Split (model_registries & mcp_gateways), Operational Seed Scripts & DTO Parity Registry
   - [ ] Step 2.4: Flutter Studio EntityPrefix, ModelConfig / LlmModelConfig, ModelRegistryView, McpGateway & OrganizationIamSettingsView Freezed Parity
@@ -221,7 +221,7 @@
 | REQ-165-002 | Close cross-tenant Studio `PUT` IDOR vulnerabilities via 4-Phase In-Place Upsert, enforce atomic parent-before-child `clone_workflow` inside a single `async with uow:`, fix mixed Finnish strings, and align `StudioSystemConfigService` RBAC. | Phase 1, Step 1.2 | [x] Completed |
 | REQ-165-003 | Add append-only UUIDv7 PostgreSQL 19 `audit_logs` (`aud_`) and `usage_records` (`usg_`) ledgers with SQL `SUM`/`COUNT` FinOps rollups, `delete_tenant_secret`, and `UsageAggregateDTO` shadow collection removal. | Phase 1, Step 1.3 | [x] Completed |
 | REQ-165-004 | Cut over all 9 active V2 repositories and the zero-storage-logic `UnifiedWorkflowRepository(uow_factory)` facade directly onto `EntityPersistencePort`, deleting `driver.py`, `storage_driver.py`, 9 V1 ghost modules, and 12 companion test files. | Phase 1, Step 1.4 | [x] Completed |
-| REQ-165-005 | Evolve `001_pg19_uuidv7_schema.sql` with the pre-production `DO $$` cutover gate, split `system_configs` into `model_registries` (`mrg_`) and `mcp_gateways` (`mcp_`), bind `tenant_secrets.mcp_gateway_id ON DELETE CASCADE`, and drop `ModelProfile.api_key` and `parsing_mode`. | Phase 2, Step 2.1 | [ ] Pending |
+| REQ-165-005 | Evolve `001_pg19_uuidv7_schema.sql` with the pre-production `DO $$` cutover gate, split `system_configs` into `model_registries` (`mrg_`) and `mcp_gateways` (`mcp_`), bind `tenant_secrets.mcp_gateway_id ON DELETE CASCADE`, and drop `ModelProfile.api_key` and `parsing_mode`. | Phase 2, Step 2.1 | [x] Completed |
 | REQ-165-006 | Add `step_criteria_blocks` and `workflow_step_refs` (`ON DELETE RESTRICT`), deferrable `workflows.default_profile_id`, typed UUID FKs on `*_target_block` and `*.created_by`, `VIRTUAL` `created_at`, FK/tenant B-Tree indexes, and `Workflow.version` SQL OCC. | Phase 2, Step 2.2 | [ ] Pending |
 | REQ-165-007 | Split `"system_config"` in `seed_data.json`, `seed_registry.py`, `run_seed.py`, and operational CLI scripts into `"model_registries"` and `"mcp_gateways"` (`mcp_0195f3a00000700080008172bda70c86`) with 100% coaching prompt preservation. | Phase 2, Step 2.3 | [ ] Pending |
 | REQ-165-008 | Synchronize Flutter `EntityPrefix` (`enums.dart`), remove `apiKey` and `parsingMode` from `LlmModelConfig` and `ModelRegistryView`, and enforce required `McpGateway.organizationId`. | Phase 2, Step 2.4 | [ ] Pending |

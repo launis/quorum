@@ -834,6 +834,54 @@ def _inspect_phase_substeps(
     return PhaseSubstepProgressDTO(completed_steps=0, total_steps=0)
 
 
+def _extract_next_pending_step_label(
+    tracker_path: Path,
+    phase_num: int,
+    repo_root: Path,
+) -> str | None:
+    """Extract the first unchecked `- [ ] Step ...` label for the given phase in the tracker.
+
+    Args:
+        tracker_path: Path to target tracker markdown file.
+        phase_num: Phase index to inspect.
+        repo_root: Repository root directory.
+
+    Returns:
+        Stripped label of the first unchecked sub-step, or None if none is pending.
+    """
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None:
+        return None
+    resolved_tracker = cleaned_tracker if cleaned_tracker.is_absolute() else (repo_root / cleaned_tracker)
+    if not resolved_tracker.is_file():
+        return None
+
+    content = resolved_tracker.read_text(encoding="utf-8")
+    pending_re = re.compile(r"^\s+-\s*\[\s\]\s*(Step\s+[^\r\n]+)", re.MULTILINE)
+
+    phase_header_re = re.compile(rf"^### Phase\s+{phase_num}[:\-]?", re.MULTILINE | re.IGNORECASE)
+    match = phase_header_re.search(content)
+    if match:
+        next_boundary = re.search(
+            r"(?m)^(?:### Phase\s+\d+|### Integration Checkpoint|### Post-Implementation|\Z)",
+            content[match.end() :],
+        )
+        end_idx = match.end() + next_boundary.start() if next_boundary else len(content)
+        section_slice = content[match.start() : end_idx]
+        pending_match = pending_re.search(section_slice)
+        return pending_match.group(1).strip() if pending_match else None
+
+    standalone_header = re.search(r"^## Step Execution Status", content, re.MULTILINE | re.IGNORECASE)
+    if standalone_header and phase_num == 1:
+        next_boundary = re.search(r"(?m)^(?:### Post-Implementation|\Z)", content[standalone_header.end() :])
+        end_idx = standalone_header.end() + next_boundary.start() if next_boundary else len(content)
+        section_slice = content[standalone_header.start() : end_idx]
+        pending_match = pending_re.search(section_slice)
+        return pending_match.group(1).strip() if pending_match else None
+
+    return None
+
+
 def execute_phase_subagent(
     phase: PhaseItemDTO,
     args: AutoPhaseRunnerArgsDTO,
@@ -856,13 +904,19 @@ def execute_phase_subagent(
     Raises:
         FileNotFoundError: If the agy CLI binary cannot be resolved on the host system.
     """
-    prompt = phase.command
-    if "PERMISSION GRANTED" not in prompt:
-        prompt = (
+    base_prompt = phase.command
+    if "PERMISSION GRANTED" not in base_prompt:
+        base_prompt = (
             f"{phase.command}. PERMISSION GRANTED for continuous full-auto execution across all steps, "
             f"PERMISSION GRANTED to mutate DAG Orchestrator ecosystem, and PERMISSION GRANTED for structural "
             f"seed_data.json schema updates with 100% coaching prompt preservation. "
             f"Proceed autonomously through all steps without intermediate confirmations. "
+            f"HEADLESS CLI EXECUTION MANDATES: (1) NEVER output a text-only response (such as PRE-FLIGHT CHECKLIST) "
+            f"without calling a tool in the same turn, because a turn with zero tool calls immediately terminates "
+            f"the headless CLI process; (2) If context compaction occurs ('# Resuming from a compaction'), "
+            f"DO NOT re-read rules, Knowledge Items, or full plan files from scratch—run 'git status --short' "
+            f"and continue the active step immediately; (3) Read only the required step section of the plan file "
+            f"using StartLine/EndLine bounds to preserve context window budget. "
             f"After completing, auditing, and committing each step, immediately mark its '- [x] Step' "
             f"checkbox in the tracker file before starting the next step or initiating a session handover."
         )
@@ -873,7 +927,13 @@ def execute_phase_subagent(
     total_duration = 0.0
 
     while True:
-        res = execute_lifecycle_prompt_subagent(prompt, args, repo_root)
+        next_step = _extract_next_pending_step_label(args.tracker, phase.phase_num, repo_root)
+        active_prompt = (
+            f"{base_prompt} Focus immediately on completing, auditing, committing, and marking '[x]' for: {next_step}"
+            if next_step and "PERMISSION GRANTED" not in phase.command
+            else base_prompt
+        )
+        res = execute_lifecycle_prompt_subagent(active_prompt, args, repo_root)
         combined_outputs.append(res.output)
         total_duration += res.duration_seconds
 

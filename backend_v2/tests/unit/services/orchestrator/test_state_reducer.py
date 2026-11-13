@@ -437,7 +437,7 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
 
     llm_delta = HookDeltaDTO(
         delta=LLMProviderConfig(
-            id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+            id=generate_opaque_id(EntityPrefix.MODEL_REGISTRY),
             provider="openai",
             model_name="gpt-4",
             tpm_limit=1000,

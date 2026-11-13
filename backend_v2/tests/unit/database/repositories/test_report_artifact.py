@@ -118,7 +118,7 @@ async def test_update_report_artifact_roundtrip_success_and_error_transition(
     )
     await repo.create_report_artifact(initial)
 
-    registry_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    registry_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     ready_paths = ReportStoragePathsDTO(
         pdf_path="reports/out.pdf",
         sdui_json_path="reports/out.json",

@@ -74,7 +74,7 @@ def _create_dummy_execution(
         profile_syntheses={"prf_0195f3a0000070018234567890abcdef": RenderedSynthesisCache()},
         metadata=ExecutionMetadata(
             provider_override=LLMProvider.VERTEX_AI,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         ),
     )
 
@@ -195,7 +195,7 @@ async def test_compile_and_persist_artifact_success(monkeypatch: pytest.MonkeyPa
     assert completed_rep is not None
     assert completed_rep.status == ReportStatus.READY
     assert completed_rep.metadata.provider == LLMProvider.VERTEX_AI.value
-    assert completed_rep.metadata.model_registry_id == "sys_0195f3a00000700e826807f3bfa3454d"
+    assert completed_rep.metadata.model_registry_id == "mrg_0195f3a00000700e826807f3bfa3454d"
 
 
 @pytest.mark.asyncio

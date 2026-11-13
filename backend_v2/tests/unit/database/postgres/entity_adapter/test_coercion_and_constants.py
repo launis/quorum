@@ -41,7 +41,7 @@ from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
 
 def test_coercion_helpers_and_canonical_seed_tables_parity() -> None:
     """Verify CANONICAL_SEED_TABLES, org UUIDv7 helpers, JSONB decode/encode, and float coercion parity."""
-    assert len(CANONICAL_SEED_TABLES) == 12
+    assert len(CANONICAL_SEED_TABLES) == 13
     assert "organizations" in CANONICAL_SEED_TABLES
     assert "tenant_secrets" in CANONICAL_SEED_TABLES
     assert "task_briefs" in CANONICAL_SEED_TABLES

@@ -16,18 +16,22 @@ from pydantic import ValidationError
 from backend_v2.database.postgres.entity_adapter import PostgresEntityAdapter
 from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     aggregate_organization_usage_row,
+    delete_mcp_gateway_row,
+    delete_model_registry_row,
     delete_tenant_secret_row,
     get_execution_assignment_row,
     get_invitation_row,
+    get_mcp_gateway_row,
+    get_model_registry_row,
     get_organization_row,
-    get_system_config_row,
     get_tenant_secret_row,
     get_user_row,
     hydrate_audit_log_row,
     hydrate_execution_assignment_row,
     hydrate_invitation_row,
+    hydrate_mcp_gateway_row,
+    hydrate_model_registry_row,
     hydrate_organization_row,
-    hydrate_system_config_row,
     hydrate_tenant_secret_row,
     hydrate_usage_record_row,
     hydrate_user_row,
@@ -36,16 +40,17 @@ from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     list_audit_log_rows,
     list_execution_assignment_rows,
     list_invitation_rows,
+    list_mcp_gateway_rows,
+    list_model_registry_rows,
     list_organization_rows,
-    list_system_config_rows,
-    list_system_configs_rows,
     list_tenant_secret_rows,
     list_usage_record_rows,
     list_user_rows,
     upsert_execution_assignment_row,
     upsert_invitation_row,
+    upsert_mcp_gateway_row,
+    upsert_model_registry_row,
     upsert_organization_row,
-    upsert_system_config_row,
     upsert_tenant_secret_row,
     upsert_user_row,
 )
@@ -112,7 +117,7 @@ def _build_org(org_id: str | None = None, slug: str = "acme-org") -> Organizatio
         Validated Organization instance.
     """
     return Organization(
-        id=org_id if org_id is not None else generate_opaque_id(EntityPrefix.ORG),
+        id=org_id if org_id is not None else generate_opaque_id(EntityPrefix.ORGANIZATION),
         slug=slug,
         name="Acme Corporation",
         created_at=datetime.now(UTC),
@@ -255,24 +260,26 @@ def _build_model_registry() -> SystemConfigModelRegistry:
         additional_params=ProviderExtraParamsDTO(),
     )
     return SystemConfigModelRegistry(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MODEL_REGISTRY),
         name="Primary Model Registry",
-        type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={tier: profile for tier in CognitiveTier},
     )
 
 
-def _build_mcp_gateway() -> SystemConfigMCPGateways:
+def _build_mcp_gateway(organization_id: str = SystemOrganizations.ROOT_SYSTEM.value) -> SystemConfigMCPGateways:
     """Build a valid SystemConfigMCPGateways instance for testing.
+
+    Args:
+        organization_id: Owning organization identifier.
 
     Returns:
         Validated SystemConfigMCPGateways instance.
     """
     return SystemConfigMCPGateways(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=organization_id,
         name="Exa Search MCP Gateway",
-        type="mcp_gateways",
         slug="exa_search_gateway",
         endpoint_url="https://mcp.exa.example.com/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -332,16 +339,16 @@ async def test_iam_system_and_studio_entities_roundtrip_parity() -> None:
         assert org_users[0].id == user.id
 
         reg_cfg = _build_model_registry()
-        saved_reg_id = await upsert_system_config_row(conn, _TIMEOUT, reg_cfg)
+        saved_reg_id = await upsert_model_registry_row(conn, _TIMEOUT, reg_cfg)
         assert saved_reg_id == reg_cfg.id
-        fetched_reg = await get_system_config_row(conn, _TIMEOUT, reg_cfg.id)
+        fetched_reg = await get_model_registry_row(conn, _TIMEOUT, reg_cfg.id)
         assert isinstance(fetched_reg, SystemConfigModelRegistry)
         assert fetched_reg == reg_cfg
 
-        mcp_cfg = _build_mcp_gateway()
-        saved_mcp_id = await upsert_system_config_row(conn, _TIMEOUT, mcp_cfg)
+        mcp_cfg = _build_mcp_gateway(organization_id=org.id)
+        saved_mcp_id = await upsert_mcp_gateway_row(conn, _TIMEOUT, mcp_cfg)
         assert saved_mcp_id == mcp_cfg.id
-        fetched_mcp = await get_system_config_row(conn, _TIMEOUT, mcp_cfg.id)
+        fetched_mcp = await get_mcp_gateway_row(conn, _TIMEOUT, mcp_cfg.id)
         assert isinstance(fetched_mcp, SystemConfigMCPGateways)
         assert fetched_mcp.name == mcp_cfg.name
         assert fetched_mcp == mcp_cfg
@@ -467,16 +474,18 @@ async def test_iam_and_system_get_missing_rows_return_none() -> None:
     pool = InMemoryAsyncPgPool()
     conn = await pool.acquire()
     try:
-        missing_org_id = generate_opaque_id(EntityPrefix.ORG)
+        missing_org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
         missing_user_id = generate_opaque_id(EntityPrefix.USER)
-        missing_sys_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        missing_mrg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
+        missing_mcp_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
         missing_inv_id = generate_opaque_id(EntityPrefix.INVITATION)
         missing_sec_id = generate_opaque_id(EntityPrefix.TENANT_SECRET)
         missing_tsk_id = generate_opaque_id(EntityPrefix.ASSIGNMENT)
 
         assert await get_organization_row(conn, _TIMEOUT, missing_org_id) is None
         assert await get_user_row(conn, _TIMEOUT, missing_user_id) is None
-        assert await get_system_config_row(conn, _TIMEOUT, missing_sys_id) is None
+        assert await get_model_registry_row(conn, _TIMEOUT, missing_mrg_id) is None
+        assert await get_mcp_gateway_row(conn, _TIMEOUT, missing_mcp_id) is None
         assert await get_invitation_row(conn, _TIMEOUT, missing_inv_id) is None
         assert await get_tenant_secret_row(conn, _TIMEOUT, missing_sec_id) is None
         assert await get_execution_assignment_row(conn, _TIMEOUT, missing_tsk_id) is None
@@ -498,9 +507,13 @@ async def test_iam_and_system_invalid_prefix_raises_validation_failed() -> None:
             await get_user_row(conn, _TIMEOUT, "org_0195f3a0000070008000000000000001")
         assert usr_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-        with pytest.raises(AppException) as sys_err:
-            await get_system_config_row(conn, _TIMEOUT, "usr_0195f3a0000070008000000000000001")
-        assert sys_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+        with pytest.raises(AppException) as mrg_err:
+            await get_model_registry_row(conn, _TIMEOUT, "mcp_0195f3a0000070008000000000000001")
+        assert mrg_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as mcp_err:
+            await get_mcp_gateway_row(conn, _TIMEOUT, "mrg_0195f3a0000070008000000000000001")
+        assert mcp_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     finally:
         await pool.release(conn)
 
@@ -515,6 +528,7 @@ async def test_iam_and_system_upsert_execute_faults_raise_storage_access_failed(
     sec = _build_tenant_secret(organization_id=org.id)
     tsk = _build_execution_assignment(organization_id=org.id, created_by=user.id)
     cfg = _build_model_registry()
+    gw = _build_mcp_gateway(organization_id=org.id)
     conn = await pool.acquire()
     try:
         pool.inject_fault("execute", RuntimeError("simulated execute failure"))
@@ -538,9 +552,13 @@ async def test_iam_and_system_upsert_execute_faults_raise_storage_access_failed(
             await upsert_execution_assignment_row(conn, _TIMEOUT, tsk)
         assert tsk_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
-        with pytest.raises(AppException) as sys_exc:
-            await upsert_system_config_row(conn, _TIMEOUT, cfg)
-        assert sys_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+        with pytest.raises(AppException) as mrg_exc:
+            await upsert_model_registry_row(conn, _TIMEOUT, cfg)
+        assert mrg_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as mcp_exc:
+            await upsert_mcp_gateway_row(conn, _TIMEOUT, gw)
+        assert mcp_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
     finally:
         pool.clear_faults()
         await pool.release(conn)
@@ -550,9 +568,10 @@ async def test_iam_and_system_upsert_execute_faults_raise_storage_access_failed(
 async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() -> None:
     """Verify get_*_row and list_*_rows functions translate fetchrow/fetch faults."""
     pool = InMemoryAsyncPgPool()
-    org_id = generate_opaque_id(EntityPrefix.ORG)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     user_id = generate_opaque_id(EntityPrefix.USER)
-    sys_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    mrg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
+    mcp_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
     conn = await pool.acquire()
     try:
         pool.inject_fault("fetchrow", RuntimeError("simulated fetchrow failure"))
@@ -564,9 +583,13 @@ async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() ->
             await get_user_row(conn, _TIMEOUT, user_id)
         assert usr_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
-        with pytest.raises(AppException) as sys_exc:
-            await get_system_config_row(conn, _TIMEOUT, sys_id)
-        assert sys_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+        with pytest.raises(AppException) as mrg_exc:
+            await get_model_registry_row(conn, _TIMEOUT, mrg_id)
+        assert mrg_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as mcp_exc:
+            await get_mcp_gateway_row(conn, _TIMEOUT, mcp_id)
+        assert mcp_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
         pool.inject_fault(
             "fetchrow",
@@ -584,9 +607,13 @@ async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() ->
             await get_user_row(conn, _TIMEOUT, user_id)
         assert direct_usr_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
-        with pytest.raises(AppException) as direct_sys_exc:
-            await get_system_config_row(conn, _TIMEOUT, sys_id)
-        assert direct_sys_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+        with pytest.raises(AppException) as direct_mrg_exc:
+            await get_model_registry_row(conn, _TIMEOUT, mrg_id)
+        assert direct_mrg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as direct_mcp_exc:
+            await get_mcp_gateway_row(conn, _TIMEOUT, mcp_id)
+        assert direct_mcp_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     finally:
         pool.clear_faults()
         await pool.release(conn)
@@ -595,115 +622,141 @@ async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() ->
     assert callable(hydrate_invitation_row)
     assert callable(hydrate_tenant_secret_row)
     assert callable(hydrate_execution_assignment_row)
-    assert callable(hydrate_system_config_row)
+    assert callable(hydrate_model_registry_row)
+    assert callable(hydrate_mcp_gateway_row)
+    assert callable(delete_model_registry_row)
+    assert callable(delete_mcp_gateway_row)
     assert callable(list_invitation_rows)
     assert callable(list_tenant_secret_rows)
     assert callable(list_execution_assignment_rows)
 
 
 @pytest.mark.asyncio
-async def test_hydrate_system_config_null_name_and_preflight_verification_raises_app_exception() -> None:
-    """Regression test: un-reseeded system_configs row with NULL name raises AppException in hydration and preflight."""
-    cfg_id = "sys_0195f3a00000700080008172bda70c86"
-    cfg_uuid = parse_prefixed_uuid7(cfg_id, EntityPrefix.SYSTEM_CONFIG)
-    legacy_null_name_row = InMemoryAsyncPgRecord(
+async def test_hydrate_model_registry_and_mcp_gateway_null_name_raises_app_exception() -> None:
+    """Regression test: model_registries or mcp_gateways row with NULL name raises AppException in hydration and preflight."""
+    cfg_id = "mcp_0195f3a00000700080008172bda70c86"
+    cfg_uuid = parse_prefixed_uuid7(cfg_id, EntityPrefix.MCP_GATEWAY)
+    org_uuid = parse_prefixed_uuid7(SystemOrganizations.ROOT_SYSTEM.value, EntityPrefix.ORGANIZATION)
+    null_name_gateway_row = InMemoryAsyncPgRecord(
         {
             "id": cfg_uuid,
-            "name": None,
-            "type": "mcp_gateways",
+            "organization_id": org_uuid,
             "slug": "tavily_mcp_gateway",
-            "default_provider": None,
-            "tier_definitions": None,
+            "name": None,
             "endpoint_url": "https://mcp.tavily.com/mcp",
             "transport_type": "streamable_http",
             "auth_type": "bearer",
-            "auth_header_name": None,
             "auth_env_var": "TAVILY_API_KEY",
+            "auth_header_name": None,
             "timeout_seconds": 30,
             "tools": "[]",
         }
     )
 
     with pytest.raises(AppException) as hydrate_exc:
-        hydrate_system_config_row(legacy_null_name_row)
+        hydrate_mcp_gateway_row(null_name_gateway_row)
     assert hydrate_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert hydrate_exc.value.details["entity_id"] == cfg_id
 
-    reg_id = "sys_0195f3a0000070008000000000000001"
-    reg_uuid = parse_prefixed_uuid7(reg_id, EntityPrefix.SYSTEM_CONFIG)
+    reg_id = "mrg_0195f3a0000070008000000000000001"
+    reg_uuid = parse_prefixed_uuid7(reg_id, EntityPrefix.MODEL_REGISTRY)
     null_name_registry_row = InMemoryAsyncPgRecord(
         {
             "id": reg_uuid,
-            "name": None,
-            "type": "model_registry",
             "slug": None,
+            "name": None,
             "default_provider": "ai_studio",
             "tier_definitions": "{}",
-            "endpoint_url": None,
-            "transport_type": None,
-            "auth_type": None,
-            "auth_header_name": None,
-            "auth_env_var": None,
-            "timeout_seconds": None,
-            "tools": None,
         }
     )
     with pytest.raises(AppException) as reg_exc:
-        hydrate_system_config_row(null_name_registry_row)
+        hydrate_model_registry_row(null_name_registry_row)
     assert reg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert reg_exc.value.details["entity_id"] == reg_id
 
     pool = InMemoryAsyncPgPool()
     conn = await pool.acquire()
     try:
-        pool.store.seed_tables["system_configs"][str(cfg_uuid)] = (
+        pool.store.seed_tables["mcp_gateways"][str(cfg_uuid)] = (
             cfg_uuid,
-            None,
-            "mcp_gateways",
+            org_uuid,
             "tavily_mcp_gateway",
-            None,
             None,
             "https://mcp.tavily.com/mcp",
             "streamable_http",
             "bearer",
-            None,
             "TAVILY_API_KEY",
+            None,
             30,
             "[]",
         )
         with pytest.raises(AppException) as preflight_exc:
-            await verify_seed_table_counts_rows(conn, _TIMEOUT, {"system_configs": 1})
+            await verify_seed_table_counts_rows(conn, _TIMEOUT, {"mcp_gateways": 1})
         assert preflight_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        pool.store.seed_tables["mcp_gateways"].clear()
+        pool.store.seed_tables["model_registries"][str(reg_uuid)] = (
+            reg_uuid,
+            None,
+            None,
+            "ai_studio",
+            "{}",
+        )
+        with pytest.raises(AppException) as reg_preflight_exc:
+            await verify_seed_table_counts_rows(conn, _TIMEOUT, {"model_registries": 1})
+        assert reg_preflight_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     finally:
         await pool.release(conn)
 
-    unknown_type_row = InMemoryAsyncPgRecord(
-        {
-            "id": cfg_uuid,
-            "name": "Unknown Config",
-            "type": "unsupported_config_type",
-            "slug": "unknown_cfg",
-            "default_provider": None,
-            "tier_definitions": None,
-            "endpoint_url": None,
-            "transport_type": None,
-            "auth_type": None,
-            "auth_header_name": None,
-            "auth_env_var": None,
-            "timeout_seconds": None,
-            "tools": None,
-        }
-    )
-    with pytest.raises(AppException) as unknown_type_exc:
-        hydrate_system_config_row(unknown_type_row)
-    assert unknown_type_exc.value.status_code == 500
-    assert unknown_type_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert unknown_type_exc.value.details["entity_id"] == cfg_id
+
+@pytest.mark.asyncio
+async def test_tenant_secret_mcp_gateway_cascade_delete_cleans_up_encrypted_secret() -> None:
+    """Positive contract: Deleting an unreferenced MCP gateway cascades deletion of its MCP_GATEWAY tenant secret only."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        org = _build_org(org_id=SystemOrganizations.ROOT_SYSTEM.value, slug="system")
+        await upsert_organization_row(conn, _TIMEOUT, org)
+
+        gw = _build_mcp_gateway(organization_id=org.id)
+        await upsert_mcp_gateway_row(conn, _TIMEOUT, gw)
+
+        mcp_secret = _build_tenant_secret(organization_id=org.id).model_copy(
+            update={
+                "scope": SecretScope.MCP_GATEWAY,
+                "target_identifier": gw.id,
+            }
+        )
+        llm_secret = _build_tenant_secret(organization_id=org.id).model_copy(
+            update={
+                "scope": SecretScope.LLM_PROVIDER,
+                "target_identifier": LLMProvider.OPENAI.value,
+            }
+        )
+        telemetry_secret = _build_tenant_secret(organization_id=org.id).model_copy(
+            update={
+                "scope": SecretScope.TELEMETRY,
+                "target_identifier": "logfire",
+            }
+        )
+        await upsert_tenant_secret_row(conn, _TIMEOUT, mcp_secret)
+        await upsert_tenant_secret_row(conn, _TIMEOUT, llm_secret)
+        await upsert_tenant_secret_row(conn, _TIMEOUT, telemetry_secret)
+
+        assert await get_tenant_secret_row(conn, _TIMEOUT, mcp_secret.id) is not None
+        assert await delete_mcp_gateway_row(conn, _TIMEOUT, gw.id) is True
+        assert await delete_mcp_gateway_row(conn, _TIMEOUT, gw.id) is False
+
+        assert await get_tenant_secret_row(conn, _TIMEOUT, mcp_secret.id) is None
+        assert await get_tenant_secret_row(conn, _TIMEOUT, llm_secret.id) is not None
+        assert await get_tenant_secret_row(conn, _TIMEOUT, telemetry_secret.id) is not None
+    finally:
+        await pool.release(conn)
 
 
 @pytest.mark.asyncio
 async def test_audit_and_usage_ledgers_system_configs_and_delete_secret_roundtrip() -> None:
-    """Verify audit_logs, usage_records, SQL FinOps rollups, list_system_configs, and delete_tenant_secret."""
+    """Verify audit_logs, usage_records, SQL FinOps rollups, list_model_registries/mcp_gateways, and delete_tenant_secret."""
     pool = InMemoryAsyncPgPool()
     conn = await pool.acquire()
     try:
@@ -719,12 +772,11 @@ async def test_audit_and_usage_ledgers_system_configs_and_delete_secret_roundtri
         assert await get_tenant_secret_row(conn, _TIMEOUT, secret.id) is None
 
         reg_cfg = _build_model_registry()
-        mcp_cfg = _build_mcp_gateway()
-        await upsert_system_config_row(conn, _TIMEOUT, reg_cfg)
-        await upsert_system_config_row(conn, _TIMEOUT, mcp_cfg)
-        listed_cfgs = await list_system_config_rows(conn, _TIMEOUT)
-        assert len(listed_cfgs) == 2
-        assert await list_system_configs_rows(conn, _TIMEOUT) == listed_cfgs
+        mcp_cfg = _build_mcp_gateway(organization_id=org.id)
+        await upsert_model_registry_row(conn, _TIMEOUT, reg_cfg)
+        await upsert_mcp_gateway_row(conn, _TIMEOUT, mcp_cfg)
+        assert await list_model_registry_rows(conn, _TIMEOUT) == [reg_cfg]
+        assert await list_mcp_gateway_rows(conn, _TIMEOUT) == [mcp_cfg]
 
         exec_id = generate_opaque_id(EntityPrefix.EXECUTION)
         aud_tenant = AuditLogRecordFactory.build(

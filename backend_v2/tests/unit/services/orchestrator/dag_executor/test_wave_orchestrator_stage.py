@@ -88,7 +88,7 @@ def _build_state(
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id="prf_0195f3a0000070008000111122223333",
-        model_registry_id="sys_0195f3a0000070008000111122223333",
+        model_registry_id="mrg_0195f3a0000070008000111122223333",
         steps=steps,
     )
     statuses = step_statuses or {}
@@ -113,7 +113,7 @@ def _build_state(
         execution_trace=[],
         metadata=ExecutionMetadata(
             workflow_version=1,
-            model_registry_id="sys_0195f3a0000070008000111122223333",
+            model_registry_id="mrg_0195f3a0000070008000111122223333",
             global_context_vars=GlobalContextVarsDTO(language="en", target_locale="en"),
         ),
     )

@@ -956,12 +956,19 @@ def test_run_audit_loop_executes_micro_stages_for_parsed_args(mock_sub: MagicMoc
 def test_resolve_mypy_targets_maps_tests_subdir_to_source_package(
     mock_sub: MagicMock, mock_scan: MagicMock, mock_run_tests: MagicMock
 ) -> None:
-    """Verify passing a directory under backend_v2/tests/unit/ maps MyPy target to source package."""
-    main(["backend_v2/tests/unit/workers/", "backend_v2/tests/", "--micro", "--test"])
+    """Verify passing directories under backend_v2/tests/ maps unit dirs to source packages, expands fakes, and deduplicates under backend_v2."""
+    main(["backend_v2/tests/unit/workers/", "backend_v2/tests/fakes/", "--micro", "--test"])
     mypy_cmd = mock_sub.call_args_list[2][0][0]
     assert "backend_v2/workers" in mypy_cmd
-    assert "backend_v2" in mypy_cmd
+    assert "backend_v2" not in mypy_cmd
+    assert any(arg.startswith("backend_v2/tests/fakes/") and arg.endswith(".py") for arg in mypy_cmd)
     assert mock_run_tests.call_count == 2
+
+    mock_sub.reset_mock()
+    main(["backend_v2/tests/unit/workers/", "backend_v2/tests/", "--micro"])
+    mypy_cmd_root = mock_sub.call_args_list[2][0][0]
+    assert "backend_v2" in mypy_cmd_root
+    assert "backend_v2/workers" not in mypy_cmd_root
 
 
 @patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))

@@ -35,7 +35,6 @@ async def test_litellm_router_in_memory_cache(monkeypatch: pytest.MonkeyPatch) -
         rpm_limit=10,
         default_max_tokens=100,
         supports_grounding=False,
-        parsing_mode="strict",
         caching_strategy="none",
         additional_params={},
     )
@@ -101,7 +100,6 @@ async def test_litellm_router_generation_with_unreachable_redis_config(monkeypat
         rpm_limit=10,
         default_max_tokens=100,
         supports_grounding=False,
-        parsing_mode="strict",
         caching_strategy="none",
         additional_params={},
     )

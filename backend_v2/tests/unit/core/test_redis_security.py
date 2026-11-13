@@ -162,7 +162,7 @@ async def test_revocation_cache_dual_key_mget_unrevoked_positive(
     """Contract: Dual-key MGET completes in < 1 ms when unrevoked and isolates single-session jti logout."""
     cache = RevocationCache(redis=fake_redis)
     user_id = generate_opaque_id(EntityPrefix.USER)
-    org_id = generate_opaque_id(EntityPrefix.ORG)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     jti_1 = str(generate_uuid7())
     jti_2 = str(generate_uuid7())
 
@@ -215,7 +215,7 @@ async def test_revocation_cache_revoked_user_or_jti_negative(
     """Contract: Revoked user kill-switch or revoked token jti logs AUTH_TOKEN_EXPIRED and raises 401 AuthenticationError."""
     cache = RevocationCache(redis=fake_redis)
     user_id = generate_opaque_id(EntityPrefix.USER)
-    org_id = generate_opaque_id(EntityPrefix.ORG)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     jti_a = str(generate_uuid7())
     jti_b = str(generate_uuid7())
 
@@ -279,7 +279,7 @@ async def test_revocation_cache_redis_down_fail_closed_error_path(
     token_data = TokenData(
         id=generate_opaque_id(EntityPrefix.USER),
         role=UserRole.MEMBER,
-        organization_id=generate_opaque_id(EntityPrefix.ORG),
+        organization_id=generate_opaque_id(EntityPrefix.ORGANIZATION),
         email="member@acme.com",
         mfa_verified=True,
         jti=str(generate_uuid7()),
@@ -340,7 +340,7 @@ async def test_tenant_rate_limit_service_bva_boundary(
 ) -> None:
     """Contract: ISTQB BVA at rpm_limit - 1, rpm_limit, rpm_limit + 1 and tpm_limit - 1, tpm_limit, tpm_limit + 1."""
     limiter = TenantRateLimitService(redis=fake_redis)
-    org_id = generate_opaque_id(EntityPrefix.ORG)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     rpm_limit = 5
     tpm_limit = 1000
 
@@ -379,7 +379,7 @@ async def test_tenant_rate_limit_service_bva_boundary(
     assert ErrorCodes.RATE_LIMIT_EXCEEDED.name in caplog.text
 
     # 2. TPM BVA on a second organization: tpm_limit - 1 (999), tpm_limit (1000), and tpm_limit + 1 (1001)
-    org_id_tpm = generate_opaque_id(EntityPrefix.ORG)
+    org_id_tpm = generate_opaque_id(EntityPrefix.ORGANIZATION)
     high_rpm_limit = 100
 
     # tpm_limit - 1 (999 tokens) succeeds
@@ -463,7 +463,7 @@ async def test_tenant_rate_limit_service_validation_and_redis_failure_branches(
     fake_redis: InMemoryAsyncRedisFake,
 ) -> None:
     """Verify TenantRateLimitService validation, delegation, custom settings/timeouts, and Redis failure branches."""
-    org_id = generate_opaque_id(EntityPrefix.ORG)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
 
     # 1. Unconfigured Redis client fails closed with 503
     unconfigured = TenantRateLimitService(redis=None)
@@ -549,7 +549,7 @@ async def test_revocation_cache_transient_timeout_single_retry_recovery_and_exha
     token_data = TokenData(
         id=generate_opaque_id(EntityPrefix.USER),
         role=UserRole.MEMBER,
-        organization_id=generate_opaque_id(EntityPrefix.ORG),
+        organization_id=generate_opaque_id(EntityPrefix.ORGANIZATION),
         email="member@acme.com",
         mfa_verified=True,
         jti=str(generate_uuid7()),

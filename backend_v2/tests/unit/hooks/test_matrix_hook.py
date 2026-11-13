@@ -138,7 +138,7 @@ def _build_test_workflow(workflow_id: str, profile_id: str) -> Workflow:
         default_profile_id=profile_id,
         default_strictness_level=70,
         enable_contextual_overrides=True,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
     )
 

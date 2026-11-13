@@ -17,7 +17,8 @@ from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     insert_audit_log_row,
     insert_usage_record_row,
     list_audit_log_rows,
-    list_system_configs_rows,
+    list_mcp_gateway_rows,
+    list_model_registry_rows,
     list_usage_record_rows,
     upsert_tenant_secret_row,
 )
@@ -116,20 +117,19 @@ def _build_registry_config() -> SystemConfigModelRegistry:
     """Build a valid SystemConfigModelRegistry for testing."""
     profile = ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash")
     return SystemConfigModelRegistry(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MODEL_REGISTRY),
         name="Seed Registry",
-        type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={tier: profile for tier in CognitiveTier},
     )
 
 
-def _build_mcp_config() -> SystemConfigMCPGateways:
+def _build_mcp_config(org_id: str) -> SystemConfigMCPGateways:
     """Build a valid SystemConfigMCPGateways for testing."""
     return SystemConfigMCPGateways(
-        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        id=generate_opaque_id(EntityPrefix.MCP_GATEWAY),
+        organization_id=org_id,
         name="Seed MCP Gateway",
-        type="mcp_gateways",
         slug="seed_mcp_gateway",
         endpoint_url="https://mcp.quorum.local/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -239,7 +239,7 @@ async def test_seed_collection_batch_and_verify_counts_roundtrip_parity() -> Non
         inv = _build_invitation(org.id, user.id)
         sec = _build_tenant_secret(org.id)
         reg_cfg = _build_registry_config()
-        mcp_cfg = _build_mcp_config()
+        mcp_cfg = _build_mcp_config(org.id)
         blk = SystemRulePromptBlockFactory.build(organization_id=org.id)
         tbr = TaskBriefFactory.build(organization_id=org.id)
         step = _build_step(blk.id, org.id)
@@ -283,7 +283,8 @@ async def test_seed_collection_batch_and_verify_counts_roundtrip_parity() -> Non
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "invitations", [inv]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "tenant_secrets", [sec]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "execution_assignments", [asg]) == 1
-        assert await seed_collection_batch_rows(conn, _TIMEOUT, "system_configs", [reg_cfg, mcp_cfg]) == 2
+        assert await seed_collection_batch_rows(conn, _TIMEOUT, "model_registries", [reg_cfg]) == 1
+        assert await seed_collection_batch_rows(conn, _TIMEOUT, "mcp_gateways", [mcp_cfg]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "prompt_blocks", [blk]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "task_briefs", [tbr]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "steps", [step]) == 1
@@ -301,7 +302,8 @@ async def test_seed_collection_batch_and_verify_counts_roundtrip_parity() -> Non
             {
                 "organizations": 1,
                 "users": 1,
-                "system_config": 2,
+                "model_registries": 1,
+                "mcp_gateways": 1,
                 "prompt_blocks": 1,
                 "task_briefs": 1,
                 "steps": 1,
@@ -313,10 +315,12 @@ async def test_seed_collection_batch_and_verify_counts_roundtrip_parity() -> Non
             },
         )
         assert counts["organizations"] == 1
-        assert counts["system_configs"] == 2
+        assert counts["model_registries"] == 1
+        assert counts["mcp_gateways"] == 1
         assert len(await list_audit_log_rows(conn, _TIMEOUT)) == 1
         assert len(await list_usage_record_rows(conn, _TIMEOUT)) == 1
-        assert len(await list_system_configs_rows(conn, _TIMEOUT)) == 2
+        assert len(await list_model_registry_rows(conn, _TIMEOUT)) == 1
+        assert len(await list_mcp_gateway_rows(conn, _TIMEOUT)) == 1
     finally:
         await pool.release(conn)
 
@@ -472,12 +476,12 @@ async def test_seed_and_ledger_fault_translation_failure() -> None:
     try:
         pool.inject_fault("fetch", RuntimeError("simulated fetch failure"))
         with pytest.raises(AppException) as list_exc:
-            await list_system_configs_rows(conn, _TIMEOUT)
+            await list_model_registry_rows(conn, _TIMEOUT)
         assert list_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
         pool.inject_fault("fetch", direct_app_err)
         with pytest.raises(AppException) as direct_list_exc:
-            await list_system_configs_rows(conn, _TIMEOUT)
+            await list_mcp_gateway_rows(conn, _TIMEOUT)
         assert direct_list_exc.value is direct_app_err
 
         pool.clear_faults()

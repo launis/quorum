@@ -79,7 +79,7 @@ def test_dag_compiler_should_reject_generic_inputs_preflight() -> None:
         version=1,
         default_profile_id="pf_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         steps=[
             StepRule(
                 id="sr_0195f3a0000070008000000000000001",

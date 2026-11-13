@@ -14,8 +14,8 @@ from backend_v2.services.studio.auth_validator import (
     is_resource_accessible,
 )
 
-ORG_ALPHA_ID = generate_opaque_id(EntityPrefix.ORG)
-ORG_BETA_ID = generate_opaque_id(EntityPrefix.ORG)
+ORG_ALPHA_ID = generate_opaque_id(EntityPrefix.ORGANIZATION)
+ORG_BETA_ID = generate_opaque_id(EntityPrefix.ORGANIZATION)
 WORKFLOW_ID = generate_opaque_id(EntityPrefix.WORKFLOW)
 
 

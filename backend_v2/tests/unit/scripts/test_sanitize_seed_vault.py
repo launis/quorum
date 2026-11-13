@@ -12,7 +12,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, parse_prefixed_uuid7
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step
-from backend_v2.models.enums import EntityPrefix, PromptBlockCategory, SystemConfigID
+from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
 from scripts.sanitize_seed_vault import (
     SanitizeResult,
     _sanitize_auxiliary_collections,
@@ -99,8 +99,8 @@ def test_upgrade_or_generate_opaque_id_variants() -> None:
 
     # 4. System config & organization constants
     assert (
-        _upgrade_or_generate_opaque_id("sys_8172bda70c8641c5", EntityPrefix.SYSTEM_CONFIG)
-        == SystemConfigID.MCP_GATEWAYS.value
+        _upgrade_or_generate_opaque_id("sys_8172bda70c8641c5", EntityPrefix.MCP_GATEWAY)
+        == "mcp_0195f3a00000700080008172bda70c86"
     )
     assert (
         _upgrade_or_generate_opaque_id("org_system000000", EntityPrefix.ORGANIZATION)
@@ -223,7 +223,7 @@ def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
     }
     _sanitize_auxiliary_collections(aux_data)
     aux_dump = json.dumps(aux_data)
-    assert SystemConfigID.MCP_GATEWAYS.value in aux_dump
+    assert "0195f3a00000700080008172bda70c86" in aux_dump
     assert '"org_0195f3a0000070008000000000000001"' in aux_dump
     assert '"org_0195f3a00000700e8531d2ed8a6641f6"' in aux_dump
     assert '"usr_0195f3a0000070078a9c1b2e4d5f6a8b"' in aux_dump

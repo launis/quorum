@@ -182,7 +182,7 @@ def test_schema_compiler_mcp_tool_delegation_and_negative_boundaries() -> None:
     assert validated_args.model_dump() == {"query": "quorum architecture"}
 
     descriptor = MCPToolDescriptorDTO(
-        gateway_id="sys_1234567890abcdef1234567890abcdef",
+        gateway_id="mcp_0195f3a00000700080008172bda70c86",
         gateway_slug="gw_search",
         namespaced_alias="gw_search__web",
         tool_id="web",

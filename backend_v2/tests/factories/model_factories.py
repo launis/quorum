@@ -41,6 +41,14 @@ from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.scoring import StepPanelDTO
 from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
+from backend_v2.models.domain.system_config import (
+    AllowedMCPTool,
+    MCPAuditTrace,
+    ModelProfile,
+    ProviderExtraParamsDTO,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.causal_discovery import (
@@ -63,11 +71,15 @@ from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     BlockDataType,
+    CognitiveTier,
     DisplayScale,
     EntityPrefix,
     ExecutionStatus,
     FidelityLevel,
     HistoricalContextMode,
+    LLMProvider,
+    MCPAuthType,
+    MCPTransportType,
     PromptBlockCategory,
     SecretScope,
     SecretStorageMode,
@@ -75,6 +87,7 @@ from backend_v2.models.enums import (
     VisualIntent,
     XaiExtensionType,
 )
+from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import AnySduiBlock, ReportView
 
@@ -86,11 +99,16 @@ __all__ = [
     "ExecutionStepFactory",
     "GlobalContextVarsDTOFactory",
     "I18nTextFactory",
+    "LLMProviderConfigFactory",
+    "MCPAuditTraceFactory",
     "MatrixPromptBlockFactory",
+    "ModelProfileFactory",
     "OutputProfileFactory",
     "ReportArtifactFactory",
     "ReportViewFactory",
     "StepPanelDTOFactory",
+    "SystemConfigMCPGatewaysFactory",
+    "SystemConfigModelRegistryFactory",
     "SystemRulePromptBlockFactory",
     "TaskBriefFactory",
     "TenantSecretDTOFactory",
@@ -203,18 +221,18 @@ class WorkflowFactory(ModelFactory[Workflow]):
         """Generate a valid model registry Opaque Stripe ID.
 
         Returns:
-            Canonical Opaque Stripe ID with 'sys_' prefix.
+            Canonical Opaque Stripe ID with 'mrg_' prefix.
         """
-        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        return generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     @classmethod
     def mcp_gateway_id(cls) -> str:
         """Generate a valid MCP gateway Opaque Stripe ID.
 
         Returns:
-            Canonical Opaque Stripe ID with 'sys_' prefix.
+            Canonical Opaque Stripe ID with 'mcp_' prefix.
         """
-        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        return generate_opaque_id(EntityPrefix.MCP_GATEWAY)
 
 
 class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
@@ -619,6 +637,7 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
     target_locale: str = "en"
     status: ExecutionStatus = ExecutionStatus.PENDING
     workflow_version: int = 1
+    active_profile_id: str | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
     cached_tokens: int = 0
@@ -1193,3 +1212,225 @@ class UsageRecordFactory(ModelFactory[UsageRecord]):
             Canonical Opaque Stripe ID with 'exe_' prefix.
         """
         return generate_opaque_id(EntityPrefix.EXECUTION)
+
+
+class ModelProfileFactory(ModelFactory[ModelProfile]):
+    """Polyfactory model factory for ModelProfile configurations."""
+
+    __model__ = ModelProfile
+    __set_as_default_factory_for_type__ = True
+
+    provider: str = LLMProvider.AI_STUDIO.value
+    model_name: str = "gemini-2.5-flash"
+    temperature: float | None = 0.0
+    top_p: float | None = None
+    top_k: int | None = None
+    tpm_limit: int | None = 1000000
+    rpm_limit: int | None = 60
+    max_tokens: int | None = 8192
+    frequency_penalty: float | None = None
+    presence_penalty: float | None = None
+    supports_grounding: bool = False
+    caching_strategy: str | None = None
+    thinking_budget_tokens: int | None = None
+    is_active: bool = True
+
+    @classmethod
+    def allowed_tools(cls) -> list[str]:
+        """Generate an empty enabled tools list.
+
+        Returns:
+            Empty list of tool identifiers.
+        """
+        return []
+
+    @classmethod
+    def additional_params(cls) -> ProviderExtraParamsDTO:
+        """Generate default provider extra parameters.
+
+        Returns:
+            ProviderExtraParamsDTO instance with default None overrides.
+        """
+        return ProviderExtraParamsDTO()
+
+
+class SystemConfigModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
+    """Polyfactory model factory for SystemConfigModelRegistry domain models."""
+
+    __model__ = SystemConfigModelRegistry
+    __set_as_default_factory_for_type__ = True
+
+    name: str = "Test Model Registry"
+    default_provider: LLMProvider = LLMProvider.AI_STUDIO
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid Model Registry Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'mrg_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
+
+    @classmethod
+    def slug(cls) -> str:
+        """Generate a unique model registry slug.
+
+        Returns:
+            Unique model registry slug string.
+        """
+        return f"mrg_slug_{generate_uuid7().hex[:8]}"
+
+    @classmethod
+    def tier_definitions(cls) -> dict[CognitiveTier, ModelProfile]:
+        """Generate all four required CognitiveTier profiles.
+
+        Returns:
+            Mapping covering FAST, BALANCED, DEEP, and REASONING tiers.
+        """
+        return {
+            CognitiveTier.FAST: ModelProfileFactory.build(model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfileFactory.build(model_name="gemini-2.5-pro"),
+            CognitiveTier.DEEP: ModelProfileFactory.build(model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfileFactory.build(model_name="gemini-2.5-pro"),
+        }
+
+
+class SystemConfigMCPGatewaysFactory(ModelFactory[SystemConfigMCPGateways]):
+    """Polyfactory model factory for SystemConfigMCPGateways domain models."""
+
+    __model__ = SystemConfigMCPGateways
+    __set_as_default_factory_for_type__ = True
+
+    name: str = "Test MCP Gateway"
+    endpoint_url: str = "https://mcp.example.com/mcp"
+    transport_type: MCPTransportType = MCPTransportType.STREAMABLE_HTTP
+    auth_type: MCPAuthType = MCPAuthType.BEARER
+    auth_header_name: str | None = None
+    auth_env_var: str | None = None
+    timeout_seconds: int = 30
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid MCP Gateway Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'mcp_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.MCP_GATEWAY)
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a valid Organization Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'org_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
+    def slug(cls) -> str:
+        """Generate a collision-free MCP gateway slug without double underscores.
+
+        Returns:
+            Valid MCP gateway slug matching single-underscore pattern.
+        """
+        return f"mcp_gw_{generate_uuid7().hex[:8]}"
+
+    @classmethod
+    def tools(cls) -> list[AllowedMCPTool]:
+        """Generate an empty MCP tools registry list.
+
+        Returns:
+            Empty list of AllowedMCPTool models.
+        """
+        return []
+
+
+class MCPAuditTraceFactory(ModelFactory[MCPAuditTrace]):
+    """Polyfactory model factory for MCPAuditTrace domain models."""
+
+    __model__ = MCPAuditTrace
+    __set_as_default_factory_for_type__ = True
+
+    id: str | None = None
+    tool_id: str = "tavily_search"
+    gateway_slug: str | None = "default_mcp_gateway"
+    namespaced_alias: str | None = "default_mcp_gateway__tavily_search"
+    step_name: str = "step_analyst"
+    claim_text: str | None = "Test claim text"
+    query: str = "test search query"
+    knowledge_gap: str = "Verify test claim"
+    search_rationale: str = "Ground claim in external evidence"
+    reasoning: str = "Verification check"
+    response_summary: str = "Verified result summary"
+    duration_ms: int = 120
+
+    @classmethod
+    def gateway_id(cls) -> str:
+        """Generate a valid MCP Gateway Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'mcp_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.MCP_GATEWAY)
+
+    @classmethod
+    def source_urls(cls) -> list[str]:
+        """Generate sample verified source URLs.
+
+        Returns:
+            List of HTTPS source URL strings.
+        """
+        return ["https://example.com/evidence"]
+
+    @classmethod
+    def impacted_axis_names(cls) -> list[str]:
+        """Generate sample impacted matrix axis names.
+
+        Returns:
+            List of matrix axis name strings.
+        """
+        return ["Strategic Alignment"]
+
+
+class LLMProviderConfigFactory(ModelFactory[LLMProviderConfig]):
+    """Polyfactory model factory for LLMProviderConfig DTOs."""
+
+    __model__ = LLMProviderConfig
+    __set_as_default_factory_for_type__ = True
+
+    provider: str = LLMProvider.AI_STUDIO.value
+    model_name: str = "gemini-2.5-flash"
+    api_key: str | None = None
+    base_url: str | None = None
+    temperature: float = 0.2
+    top_p: float | None = 0.95
+    top_k: int | None = 40
+    tpm_limit: int = 1000000
+    rpm_limit: int = 60
+    default_max_tokens: int | None = 8192
+    frequency_penalty: float | None = 0.0
+    presence_penalty: float | None = 0.0
+    caching_strategy: str | None = None
+    vertex_location: str | None = None
+    supports_grounding: bool = False
+    is_active: bool = True
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid provider configuration Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'mrg_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
+
+    @classmethod
+    def additional_params(cls) -> ProviderExtraParamsDTO:
+        """Generate default provider extra parameters.
+
+        Returns:
+            ProviderExtraParamsDTO instance with default None overrides.
+        """
+        return ProviderExtraParamsDTO()

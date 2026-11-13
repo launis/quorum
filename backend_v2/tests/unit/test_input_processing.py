@@ -111,7 +111,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
         WorkflowFactory.build(
             id=wf_id,
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             slug="test-wf",
             name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
             description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
@@ -210,7 +210,7 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
         WorkflowFactory.build(
             id=wf_id,
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             slug="test-wf",
             name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
             description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
@@ -270,7 +270,7 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
         WorkflowFactory.build(
             id=wf_id,
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             slug="test-wf-features",
             name=I18nText(translations={"en": "WF", "fi": "WF"}),
             description=I18nText(translations={"en": "Desc", "fi": "Desc"}),

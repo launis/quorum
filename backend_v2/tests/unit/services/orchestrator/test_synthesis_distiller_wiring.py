@@ -59,7 +59,7 @@ def _build_mock_deps() -> HookDependencies:
             "default_profile_id": "pro_0195f3a00000700283456789abcdef01",
             "steps": [],
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         },
     )
     repo.set_execution(
@@ -546,7 +546,7 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
                 },
             ],
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         },
     )
     repo.seed_raw_step(

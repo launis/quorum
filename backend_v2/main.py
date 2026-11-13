@@ -92,7 +92,8 @@ async def _validate_database_preflight(
         async with resolved_uow as active_uow:
             await active_uow.entities.verify_seed_table_counts(
                 {
-                    "system_configs": 1,
+                    "model_registries": 1,
+                    "mcp_gateways": 1,
                     "workflows": 1,
                     "prompt_blocks": 1,
                     "task_briefs": 1,

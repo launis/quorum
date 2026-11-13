@@ -955,11 +955,11 @@ class SecretService:
                     )
             case SecretScope.MCP_GATEWAY:
                 try:
-                    parse_prefixed_uuid7(target_identifier, expected_prefix=EntityPrefix.SYSTEM_CONFIG)
+                    parse_prefixed_uuid7(target_identifier, expected_prefix=EntityPrefix.MCP_GATEWAY)
                 except AppException as exc:
                     msg = (
                         f"MCP gateway target_identifier '{target_identifier}' must be a canonical "
-                        f"'sys_<hex32>' Opaque Stripe ID for organization '{organization_id}'."
+                        f"'mcp_<hex32>' Opaque Stripe ID for organization '{organization_id}'."
                     )
                     logger.error(
                         "[SecretService] %s: %s",

@@ -79,8 +79,9 @@ __all__ = [
 SEED_COLLECTION_ALLOWED_PREFIXES: dict[str, frozenset[str]] = {
     "organizations": frozenset({EntityPrefix.ORGANIZATION}),
     "users": frozenset({EntityPrefix.USER}),
-    "system_config": frozenset({EntityPrefix.SYSTEM_CONFIG}),
-    "prompt_blocks": frozenset({EntityPrefix.PROMPT_BLOCK, EntityPrefix.STEP_REFERENCE}),
+    "model_registries": frozenset({EntityPrefix.MODEL_REGISTRY}),
+    "mcp_gateways": frozenset({EntityPrefix.MCP_GATEWAY}),
+    "prompt_blocks": frozenset({EntityPrefix.PROMPT_BLOCK}),
     "task_briefs": frozenset({EntityPrefix.TASK_BRIEF}),
     "steps": frozenset({EntityPrefix.STEP}),
     "workflows": frozenset({EntityPrefix.WORKFLOW}),
@@ -90,7 +91,8 @@ SEED_COLLECTION_ALLOWED_PREFIXES: dict[str, frozenset[str]] = {
 SEED_COLLECTION_REQUIRED_DISPLAY_FIELD: dict[str, str] = {
     "organizations": "name",
     "users": "name",
-    "system_config": "name",
+    "model_registries": "name",
+    "mcp_gateways": "name",
     "prompt_blocks": "label",
     "task_briefs": "label",
     "steps": "name",

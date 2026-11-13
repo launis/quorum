@@ -128,7 +128,7 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
         historical_context_mode=HistoricalContextMode.DISABLED,
         version=1,
         default_profile_id="prof_0195f3a0000070018111111111111111",
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         expected_inputs=[],
         steps=[
             StepRule(
@@ -164,9 +164,8 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
         additional_params={},
     )
     model_reg = _ModelRegistryFactory.build(
-        id="sys_0195f3a0000070018111222233334444",
+        id="mrg_0195f3a0000070018111222233334444",
         name="Default Test Registry",
-        type="model_registry",
         slug="model_registry",
         default_provider=LLMProvider.VERTEX_AI,
         tier_definitions={
@@ -176,7 +175,7 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
             CognitiveTier.REASONING: tier_profile,
         },
     )
-    fake_repo.set_model_registry(model_reg, "sys_0195f3a0000070018111222233334444")
+    fake_repo.set_model_registry(model_reg, "mrg_0195f3a0000070018111222233334444")
 
     pb_1 = SystemRulePromptBlockFactory.build(
         id="pb_0195f3a0000070018111111111111111",

@@ -154,8 +154,31 @@ _ZERO_DEFAULT_FIELD_NAMES: frozenset[str] = frozenset(
 )
 
 _QGR030_ENTITY_PREFIXES: frozenset[str] = frozenset(
-    {"exe", "rep", "tda", "wf", "stp", "sr", "prf", "blk", "sys", "usr", "org", "nod", "edg", "sc", "aud", "usg"}
+    {
+        "exe",
+        "rep",
+        "tda",
+        "wf",
+        "stp",
+        "sr",
+        "prf",
+        "blk",
+        "tbr",
+        "mrg",
+        "mcp",
+        "usr",
+        "org",
+        "inv",
+        "sec",
+        "tsk",
+        "nod",
+        "edg",
+        "sc",
+        "aud",
+        "usg",
+    }
 )
+_QGR030_RETIRED_SYS_ID_REGEX: re.Pattern[str] = re.compile(r"^sys_[0-9a-fA-F]{32}$")
 _QGR030_MOCK_ID_REGEX: re.Pattern[str] = re.compile(r"^([a-z]{2,5})_([a-zA-Z0-9]{14,32})$")
 _QGR030_NON_HEX_CHARS: frozenset[str] = frozenset("ghijklmnopqrstuvwxyzGHIJKLMNOPQRSTUVWXYZ")
 
@@ -1197,6 +1220,20 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "QGR030",
                 f"Banned deprecated storage backend reference `StorageBackend.{node.attr}` detected.",
                 "PostgreSQL 19 (`StorageBackend.POSTGRES`) is the sole persistence backend; remove legacy LOCAL/FIRESTORE references.",
+                severity=GuardrailSeverity.FATAL,
+            )
+
+        if (
+            not self.is_guardrail_self
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "EntityPrefix"
+            and node.attr in ("SYSTEM_CONFIG", "ORG")
+        ):
+            self._add_violation(
+                node,
+                "QGR030",
+                f"Banned retired entity prefix `EntityPrefix.{node.attr}` detected.",
+                "Use `EntityPrefix.MODEL_REGISTRY` (`mrg_`), `EntityPrefix.MCP_GATEWAY` (`mcp_`), or `EntityPrefix.ORGANIZATION` (`org_`).",
                 severity=GuardrailSeverity.FATAL,
             )
 
@@ -3615,6 +3652,19 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "(`PostgresEntityAdapter`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                 severity=GuardrailSeverity.FATAL,
             )
+        if not self.is_guardrail_self and node.id in (
+            "SystemConfigID",
+            "SystemConfigUnion",
+            "AnySystemConfig",
+            "AnySystemConfigAdapter",
+        ):
+            self._add_violation(
+                node,
+                "QGR030",
+                f"Banned retired STI system config symbol `{node.id}` detected.",
+                "Use dedicated `SystemConfigModelRegistry` (`mrg_`) and `SystemConfigMCPGateways` (`mcp_`) models and DTOs.",
+                severity=GuardrailSeverity.FATAL,
+            )
         if self._is_domain_code and not self._is_test_file and node.id == "uuid4":
             self._add_violation(
                 node,
@@ -3660,8 +3710,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 severity=GuardrailSeverity.FATAL,
             )
 
-        # QGR030: Ban non-hexadecimal or non-32-hex entity ID string literals
+        # QGR030: Ban retired sys_<hex32> STI ID literals and non-hexadecimal or non-32-hex entity ID string literals
         if isinstance(node.value, str) and not self.is_guardrail_self:
+            if _QGR030_RETIRED_SYS_ID_REGEX.match(node.value) is not None:
+                self._add_violation(
+                    node,
+                    "QGR030",
+                    f"Banned retired `sys_` entity ID literal `{node.value}` detected.",
+                    "Split STI `sys_` identifiers into `mrg_<hex32>` (`EntityPrefix.MODEL_REGISTRY`) or `mcp_<hex32>` (`EntityPrefix.MCP_GATEWAY`).",
+                    severity=GuardrailSeverity.FATAL,
+                )
+                self.generic_visit(node)
+                return
             id_match = _QGR030_MOCK_ID_REGEX.match(node.value)
             if id_match is not None:
                 prefix, suffix = id_match.group(1), id_match.group(2)
@@ -3679,7 +3739,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         is_sequential_mock_id = len(distinct_digits) >= 9 and not suffix.startswith(
                             ("test1234", "step1234")
                         )
-                        if is_strict_id_scope or is_sequential_mock_id:
+                        if is_strict_id_scope or is_sequential_mock_id or prefix in ("mrg", "mcp"):
                             self._add_violation(
                                 node,
                                 "QGR030",

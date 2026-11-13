@@ -10,6 +10,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import LaxHistoricalContextMode, StepType, TargetBlockType
+from backend_v2.tests.factories.model_factories import WorkflowFactory
 
 
 def _build_test_step(
@@ -29,28 +30,47 @@ def _build_test_step(
         role_block_id=role_block_id,
         extraction_protocol_block_id=extraction_protocol_block_id,
         criteria_block_ids=criteria_block_ids or [],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
+    )
+
+
+def _build_test_step_rule(
+    rule_id: str,
+    task_blueprint: str,
+    depends_on: list[str] | None = None,
+) -> StepRule:
+    """Helper to build a valid StepRule instance."""
+    return StepRule(
+        id=rule_id,
+        task_blueprint=task_blueprint,
+        depends_on=depends_on or [],
+        input_mappings={},
     )
 
 
 def test_workflow_get_allowed_prompt_block_targets_positive() -> None:
     """Positive: assert concrete PromptBlock IDs are extracted from matching task blueprints."""
-    step_rule_1 = StepRule(
-        id="sr_11111111111111111111111111111111",
+    step_rule_1 = _build_test_step_rule(
+        rule_id="sr_11111111111111111111111111111111",
         task_blueprint="stp_11111111111111111111111111111111",
     )
-    step_rule_2 = StepRule(
-        id="sr_22222222222222222222222222222222",
+    step_rule_2 = _build_test_step_rule(
+        rule_id="sr_22222222222222222222222222222222",
         task_blueprint="stp_22222222222222222222222222222222",
     )
 
-    workflow = Workflow(
+    workflow: Workflow = WorkflowFactory.build(
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"fi": "Työnkulku", "en": "Workflow"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         status="active",
         version=1,
-        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+        model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
         steps=[step_rule_1, step_rule_2],
     )
@@ -86,19 +106,19 @@ def test_workflow_get_allowed_prompt_block_targets_positive() -> None:
 
 def test_workflow_get_allowed_layout_targets_composes_blocks_and_system_types() -> None:
     """Assert layout targets compose concrete prompt blocks with all TargetBlockType system enums."""
-    step_rule = StepRule(
-        id="sr_11111111111111111111111111111111",
+    step_rule = _build_test_step_rule(
+        rule_id="sr_11111111111111111111111111111111",
         task_blueprint="stp_11111111111111111111111111111111",
     )
 
-    workflow = Workflow(
+    workflow: Workflow = WorkflowFactory.build(
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"fi": "Työnkulku", "en": "Workflow"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         status="active",
         version=1,
-        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+        model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
         steps=[step_rule],
     )
@@ -122,14 +142,14 @@ def test_workflow_get_allowed_layout_targets_composes_blocks_and_system_types() 
 
 def test_workflow_get_allowed_prompt_block_targets_empty_steps() -> None:
     """ISTQB Boundary: Workflow with no matching steps returns empty set."""
-    workflow = Workflow(
+    workflow: Workflow = WorkflowFactory.build(
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"fi": "Työnkulku", "en": "Workflow"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         status="active",
         version=1,
-        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+        model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
         steps=[],
     )
@@ -153,11 +173,12 @@ def test_workflow_validation_dag_orphan_reference_fails() -> None:
             description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
             status="active",
             version=1,
-            model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+            model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            expected_inputs=[],
             steps=[
-                StepRule(
-                    id="sr_11111111111111111111111111111111",
+                _build_test_step_rule(
+                    rule_id="sr_11111111111111111111111111111111",
                     task_blueprint="stp_11111111111111111111111111111111",
                     depends_on=["sr_non_existent"],
                 ),
@@ -176,16 +197,17 @@ def test_workflow_validation_dag_circular_dependency_fails() -> None:
             description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
             status="active",
             version=1,
-            model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+            model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            expected_inputs=[],
             steps=[
-                StepRule(
-                    id="sr_11111111111111111111111111111111",
+                _build_test_step_rule(
+                    rule_id="sr_11111111111111111111111111111111",
                     task_blueprint="stp_11111111111111111111111111111111",
                     depends_on=["sr_22222222222222222222222222222222"],
                 ),
-                StepRule(
-                    id="sr_22222222222222222222222222222222",
+                _build_test_step_rule(
+                    rule_id="sr_22222222222222222222222222222222",
                     task_blueprint="stp_22222222222222222222222222222222",
                     depends_on=["sr_11111111111111111111111111111111"],
                 ),

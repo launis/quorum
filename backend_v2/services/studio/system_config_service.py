@@ -382,12 +382,11 @@ class StudioSystemConfigService:
         """
         self._require_root(initiator, "create system config drafts")
 
-        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        new_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
         draft = SystemConfigModelRegistry(
             id=new_id,
             name="New Model Registry Draft",
             slug=new_id,
-            type="model_registry",
             default_provider=LLMProvider.AI_STUDIO,
             tier_definitions={
                 CognitiveTier.FAST: ModelProfile(
@@ -440,7 +439,7 @@ class StudioSystemConfigService:
         self._require_root(initiator, "clone system configs")
         data = await self.system_repo.get_model_registry(registry_id=id)
 
-        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        new_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
         cloned_name = f"{data.name} (Copy)"
         cloned_obj = data.model_copy(
             update={
@@ -489,7 +488,7 @@ class StudioSystemConfigService:
             is_mcp_gateway=False,
         )
 
-        await self.system_repo.delete_system_config(id)
+        await self.system_repo.delete_model_registry(id)
 
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
         """List all MCP gateway configurations for ROOT and ADMIN users.
@@ -645,13 +644,13 @@ class StudioSystemConfigService:
         """
         self._require_root(initiator, "create MCP gateway drafts")
 
-        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
-        draft_slug = f"gateway_{new_id.removeprefix(f'{EntityPrefix.SYSTEM_CONFIG}_')}"
+        new_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
+        draft_slug = f"gateway_{new_id.removeprefix(f'{EntityPrefix.MCP_GATEWAY}_')}"
         draft = SystemConfigMCPGateways(
             id=new_id,
+            organization_id=SystemOrganizations.ROOT_SYSTEM.value,
             name="New MCP Gateway Draft",
             slug=draft_slug,
-            type="mcp_gateways",
             tools=[],
         )
         return await self._insert_validated_mcp_gateways(initiator, new_id, draft)
@@ -684,7 +683,7 @@ class StudioSystemConfigService:
             candidate_slug = f"{base_copy_slug}_{suffix}"
             suffix += 1
 
-        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        new_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
         # Append copy suffix to cloned MCP gateway name to distinguish the duplicated gateway.
         cloned_obj = existing.model_copy(
             update={"id": new_id, "name": f"{existing.name} (Copy)", "slug": candidate_slug}
@@ -726,7 +725,7 @@ class StudioSystemConfigService:
         )
 
         await self.gateway_cache.invalidate(id)
-        await self.system_repo.delete_system_config(id)
+        await self.system_repo.delete_mcp_gateways(id)
 
     async def discover_mcp_gateway_tools(
         self,
@@ -801,17 +800,3 @@ class StudioSystemConfigService:
             else:
                 merged.append(disc_tool)
         return merged
-
-    async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
-        """List system configs.
-
-        Args:
-            initiator: The authenticated user.
-
-        Returns:
-            A list containing all SystemConfigModelRegistry documents if accessible.
-
-        Raises:
-            AppException (ErrorCodes.STORAGE_ACCESS_FAILED): If repository retrieval fails.
-        """
-        return await self.get_all_system_configs(initiator)

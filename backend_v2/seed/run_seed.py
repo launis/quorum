@@ -49,11 +49,12 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import LLMProvider, SecretScope, SecretStorageMode, UserRole
 from backend_v2.models.state import StateProjector as _StateProjector
-from backend_v2.seed.seed_registry import SeedCollectionName, SystemConfigUnion
+from backend_v2.seed.seed_registry import SeedCollectionName
 from backend_v2.services.auth.secret_service import SecretService
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.settings import get_settings
@@ -61,12 +62,13 @@ from backend_v2.settings import get_settings
 _ = _StateProjector
 
 SEED_PATH = Path(get_settings().seed_data_path)
-DEFAULT_MCP_GATEWAY_ID: str = "sys_0195f3a00000700080008172bda70c86"
+DEFAULT_MCP_GATEWAY_ID: str = "mcp_0195f3a00000700080008172bda70c86"
 
 TOPOLOGICAL_SEED_ORDER: tuple[str, ...] = (
     SeedCollectionName.ORGANIZATIONS.value,
     SeedCollectionName.USERS.value,
-    SeedCollectionName.SYSTEM_CONFIG.value,
+    SeedCollectionName.MODEL_REGISTRIES.value,
+    SeedCollectionName.MCP_GATEWAYS.value,
     SeedCollectionName.PROMPT_BLOCKS.value,
     SeedCollectionName.TASK_BRIEFS.value,
     SeedCollectionName.STEPS.value,
@@ -299,9 +301,13 @@ class ValidatedSeedBufferDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    system_config: Annotated[
-        list[SystemConfigUnion],
-        Field(default_factory=list, description="Validated system configuration entities."),
+    model_registries: Annotated[
+        list[SystemConfigModelRegistry],
+        Field(default_factory=list, description="Validated model registry entities."),
+    ]
+    mcp_gateways: Annotated[
+        list[SystemConfigMCPGateways],
+        Field(default_factory=list, description="Validated MCP gateway entities."),
     ]
     workflows: Annotated[
         list[Workflow],
@@ -349,8 +355,10 @@ class ValidatedSeedBufferDTO(BaseModel):
             KeyError: If col_key does not match a registered seed collection.
         """
         match col_key:
-            case "system_config" | "system_configs":
-                return self.system_config
+            case "model_registries":
+                return self.model_registries
+            case "mcp_gateways":
+                return self.mcp_gateways
             case "workflows":
                 return self.workflows
             case "prompt_blocks":
@@ -394,8 +402,8 @@ class ValidatedSeedBufferDTO(BaseModel):
             True if col_key is a recognized seed collection identifier, otherwise False.
         """
         return col_key in {
-            "system_config",
-            "system_configs",
+            "model_registries",
+            "mcp_gateways",
             "workflows",
             "prompt_blocks",
             "task_briefs",
@@ -704,7 +712,8 @@ async def _seed_postgres(
         "organizations": max(1, len(validated_buffers.organizations)),
         "users": max(1, len(validated_buffers.users)),
         "tenant_secrets": len(resolved_secrets.iter_secret_entries()),
-        "system_configs": max(1, len(validated_buffers.system_config)),
+        "model_registries": max(1, len(validated_buffers.model_registries)),
+        "mcp_gateways": max(1, len(validated_buffers.mcp_gateways)),
         "prompt_blocks": max(1, len(validated_buffers.prompt_blocks)),
         "task_briefs": max(1, len(validated_buffers.task_briefs)),
         "steps": max(1, len(validated_buffers.steps)),

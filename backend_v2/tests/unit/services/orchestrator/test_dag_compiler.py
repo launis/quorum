@@ -178,7 +178,7 @@ def test_validate_workflow_missing_dep() -> None:
     with pytest.raises(ValidationError):
         Workflow(
             historical_context_mode="DISABLED",
-            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
             id="wf_0195f3a0000070008000000000000001",
             slug="test-workflow",
             name="wf",
@@ -210,7 +210,7 @@ def test_validate_workflow_expected_inputs_none_required_raises() -> None:
     """Test validate_workflow raises AppException if expected_inputs has no required inputs."""
     wf = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070008000000000000001",
         slug="test-workflow",
         name="wf",
@@ -241,7 +241,7 @@ def test_validate_workflow_success_and_valid_references() -> None:
     """Test validate_workflow succeeds with valid input references and step dependencies."""
     wf = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070008000000000000001",
         slug="test-workflow",
         name="wf",
@@ -285,7 +285,7 @@ def test_validate_workflow_rejects_generic_inputs_reference() -> None:
     """Negative test: DAGCompilerService rejects generic '$inputs' input mappings."""
     wf = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070008000000000000001",
         slug="test-workflow",
         name="wf",
@@ -322,7 +322,7 @@ def test_validate_workflow_unknown_input_reference_raises() -> None:
     """Test validate_workflow raises WorkflowCompilationError on unknown input reference."""
     wf = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070008000000000000001",
         slug="test-workflow",
         name="wf",
@@ -358,7 +358,7 @@ def test_validate_workflow_unexecuted_step_reference_raises() -> None:
     """Test validate_workflow raises WorkflowCompilationError when referencing a step that has not run."""
     wf = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070008000000000000001",
         slug="test-workflow",
         name="wf",

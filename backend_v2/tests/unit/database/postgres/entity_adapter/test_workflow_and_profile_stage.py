@@ -286,7 +286,7 @@ def test_hydrate_workflow_row_corrupt_steps_raises_validation_failed() -> None:
     """Verify hydrate_workflow_row validates steps via _STEP_RULE_LIST_ADAPTER and raises VALIDATION_FAILED on corruption."""
     wf = WorkflowFactory.build()
     wf_uuid = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
-    reg_uuid = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG)
+    reg_uuid = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.MODEL_REGISTRY)
     corrupt_row = InMemoryAsyncPgRecord(
         {
             "id": wf_uuid,

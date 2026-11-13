@@ -164,9 +164,8 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
             additional_params=ProviderExtraParamsDTO(),
         )
         cfg = SystemConfigModelRegistry(
-            id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+            id=generate_opaque_id(EntityPrefix.MODEL_REGISTRY),
             name="Pkg Registry",
-            type="model_registry",
             default_provider=LLMProvider.AI_STUDIO,
             tier_definitions={tier: profile for tier in CognitiveTier},
         )
@@ -210,9 +209,9 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
         assert (await adapter.get_user(user.id)) is not None
         assert (await adapter.get_user_by_email(user.email)) is not None
         assert len(await adapter.list_users(organization_id=org.id)) == 1
-        assert await adapter.upsert_system_config(cfg) == cfg.id
-        assert await adapter.get_system_config(cfg.id) == cfg
-        assert len(await adapter.list_system_configs()) == 1
+        assert await adapter.upsert_model_registry(cfg) == cfg.id
+        assert await adapter.get_model_registry(cfg.id) == cfg
+        assert len(await adapter.list_model_registries()) == 1
         assert await adapter.upsert_prompt_block(blk) == blk.id
         assert await adapter.get_prompt_block(blk.id) == blk
         assert len(await adapter.list_prompt_blocks()) == 1

@@ -107,7 +107,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             "version": 1,
             "default_profile_id": "prof_0195f3a00000700d8ddd1111dddd1111",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "steps": [{"id": "stp_0195f3a0000070018111111111111111", "task_blueprint": "task_bp"}],
@@ -144,8 +144,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         additional_params={},
     )
     model_reg = SystemConfigModelRegistry(
-        id="sys_0195f3a00000700e826807f3bfa3454d",
-        type="model_registry",
+        id="mrg_0195f3a00000700e826807f3bfa3454d",
         name="Default Stack",
         slug="default",
         default_provider=LLMProvider.OPENAI,
@@ -205,7 +204,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(
 
     workflow = WorkflowFactory.build(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",
@@ -352,7 +351,7 @@ async def test_dag_executor_prompt_blocks_missing_execution_error(
     )
     workflow = WorkflowFactory.build(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",

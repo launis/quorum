@@ -69,7 +69,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
@@ -133,7 +133,7 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
@@ -212,7 +212,7 @@ async def test_dag_executor_pure_dispatch_without_semaphore(mock_repo: Any, mock
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
@@ -284,7 +284,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -691,7 +691,7 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Cascading WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[
@@ -786,7 +786,7 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Resume WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
@@ -930,7 +930,7 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Preflight WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
@@ -988,7 +988,7 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Matrix Fail WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
@@ -1052,7 +1052,7 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Prog WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
@@ -1127,7 +1127,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "MCP Audit WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
@@ -1300,7 +1300,7 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[step_rule],
@@ -1389,7 +1389,7 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Progress Test", "fi": "Progress Test"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1465,7 +1465,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Preflight Test", "fi": "Preflight Test"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
@@ -1524,7 +1524,7 @@ async def test_dag_executor_step_blueprint_not_found_fails_fast(mock_repo: Any, 
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Missing BP"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[
@@ -1563,7 +1563,7 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
         status="draft",
         version=3,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa34599",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa34599",
         name=I18nText(translations={"en": "Resume Meta"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step_rule],
@@ -1626,7 +1626,7 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
         )
 
     assert record.metadata is not None
-    assert record.metadata.model_registry_id == "sys_0195f3a00000700e826807f3bfa34599"
+    assert record.metadata.model_registry_id == "mrg_0195f3a00000700e826807f3bfa34599"
     assert record.metadata.workflow_version == 3
     assert record.step_states["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.PASSED
 
@@ -1654,7 +1654,7 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Resume Skips"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1, step2],
@@ -1719,7 +1719,7 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
                 id="stp_0195f3a0000070048444555566667777", label="Step 2", status=ExecutionStatus.FAILED
             ),
         },
-        metadata=ExecutionMetadata(workflow_version=1, model_registry_id="sys_0195f3a00000700e826807f3bfa3454d"),
+        metadata=ExecutionMetadata(workflow_version=1, model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d"),
     )
     await mock_repo.save_execution(existing_record)
 
@@ -1772,7 +1772,7 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Watch Run"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
@@ -1860,7 +1860,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
         status="draft",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Schema Merge"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
@@ -2035,7 +2035,7 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
         status="active",
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Wave Crash Test", "fi": "Aaltotesti"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         steps=[step1, step2, step3],

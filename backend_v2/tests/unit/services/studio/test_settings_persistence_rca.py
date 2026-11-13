@@ -179,18 +179,17 @@ class _ModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
     __model__ = SystemConfigModelRegistry
 
     name: str = "Primary Model Registry"
-    type: str = "model_registry"
     slug: str | None = "primary_model_registry"
     default_provider: LLMProvider = LLMProvider.AI_STUDIO
 
     @classmethod
     def id(cls) -> str:
-        """Generate a canonical system config Opaque Stripe ID.
+        """Generate a canonical model registry Opaque Stripe ID.
 
         Returns:
-            Canonical sys_<hex32> identifier.
+            Canonical mrg_<hex32> identifier.
         """
-        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        return generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     @classmethod
     def tier_definitions(cls) -> dict[CognitiveTier, ModelProfile]:
@@ -335,7 +334,7 @@ async def test_save_workflow_updates_inplace_and_preserves_preflight() -> None:
     root_token = _make_root_token()
     target_id = generate_opaque_id(EntityPrefix.WORKFLOW)
     prof_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
-    reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     initial_wf = _create_sample_workflow(target_id, prof_id, reg_id)
     profile = _create_sample_output_profile(prof_id, target_id)
@@ -443,7 +442,7 @@ async def test_save_output_profile_updates_inplace_and_preserves_preflight() -> 
     root_token = _make_root_token()
     wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
     prof_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
-    reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
 
     await base_uow.entities.upsert_workflow(_create_sample_workflow(wf_id, prof_id, reg_id))
     initial_prof = _create_sample_output_profile(prof_id, wf_id)
@@ -497,7 +496,7 @@ async def test_create_output_profile_draft_binds_to_valid_workflow() -> None:
     root_token = _make_root_token()
     wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
     prof_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
-    reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     await base_uow.entities.upsert_workflow(_create_sample_workflow(wf_id, prof_id, reg_id))
 
     draft = await output_profile_service.create_output_profile_draft(root_token)
@@ -563,9 +562,9 @@ async def test_save_system_config_model_registry_updates_inplace_and_preserves_p
     system_service = StudioSystemConfigService(system_repo=system_repo, workflow_repo=workflow_repo)
 
     root_token = _make_root_token()
-    registry_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    registry_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     initial_registry = _ModelRegistryFactory.build(id=registry_id, name="Initial Registry")
-    await base_uow.entities.upsert_system_config(initial_registry)
+    await base_uow.entities.upsert_model_registry(initial_registry)
 
     updated_tiers = dict(initial_registry.tier_definitions)
     updated_tiers[CognitiveTier.FAST] = ModelProfile(
@@ -594,7 +593,7 @@ async def test_save_system_config_model_registry_updates_inplace_and_preserves_p
     assert reloaded.name == "Updated Production Registry"
     assert reloaded.tier_definitions[CognitiveTier.FAST].model_name == "vertex_ai/gemini-2.5-flash"
 
-    all_registries = await system_service.list_system_configs(root_token)
+    all_registries = await system_service.get_all_system_configs(root_token)
     assert len(all_registries) == 1
     registry_adapter = TypeAdapter(SystemConfigModelRegistry)
     reconstituted = registry_adapter.validate_python(all_registries[0].model_dump(mode="json"))
@@ -613,12 +612,12 @@ async def test_clone_and_delete_system_config_model_registry_preserves_preflight
 
     reg_draft = await system_service.create_system_config_draft(root_token)
     assert re.match(OPAQUE_STRIPE_ID_REGEX, reg_draft.id)
-    assert parse_prefixed_uuid7(reg_draft.id, EntityPrefix.SYSTEM_CONFIG).version == 7
+    assert parse_prefixed_uuid7(reg_draft.id, EntityPrefix.MODEL_REGISTRY).version == 7
 
     cloned = await system_service.clone_system_config(root_token, reg_draft.id)
     assert cloned.id != reg_draft.id
     assert re.match(OPAQUE_STRIPE_ID_REGEX, cloned.id)
-    assert parse_prefixed_uuid7(cloned.id, EntityPrefix.SYSTEM_CONFIG).version == 7
+    assert parse_prefixed_uuid7(cloned.id, EntityPrefix.MODEL_REGISTRY).version == 7
 
     all_registries = await system_repo.get_all_model_registries()
     assert len(all_registries) == 2
@@ -651,7 +650,7 @@ async def test_save_output_profile_invalid_target_component_validation_failure()
     root_token = _make_root_token()
     wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
     prof_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
-    reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     grp_id = generate_opaque_id(EntityPrefix.SYNTHESIS_GROUP)
 
     await base_uow.entities.upsert_workflow(_create_sample_workflow(wf_id, prof_id, reg_id))
@@ -719,7 +718,7 @@ async def test_save_system_config_missing_registry_not_found_error() -> None:
     system_service = StudioSystemConfigService(system_repo=system_repo)
 
     root_token = _make_root_token()
-    missing_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    missing_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     payload = _ModelRegistryFactory.build(id=missing_id)
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
@@ -733,9 +732,9 @@ async def test_save_system_config_non_root_permission_failure() -> None:
     system_repo = SystemRepositoryImpl(uow_factory=uow_factory)
     system_service = StudioSystemConfigService(system_repo=system_repo)
 
-    registry_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    registry_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     seeded = _ModelRegistryFactory.build(id=registry_id)
-    await base_uow.entities.upsert_system_config(seeded)
+    await base_uow.entities.upsert_model_registry(seeded)
 
     admin_token = TokenData(
         id=generate_opaque_id(EntityPrefix.USER),
@@ -754,9 +753,9 @@ async def test_get_model_registry_empty_or_missing_not_found_error() -> None:
 
     with pytest.raises(ResourceNotFoundError) as empty_exc:
         await system_repo.get_model_registry("")
-    assert empty_exc.value.details["resource_type"] == "system_config"
+    assert empty_exc.value.details["resource_type"] == "model_registry"
 
-    unknown_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    unknown_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     with pytest.raises(ResourceNotFoundError) as missing_exc:
         await system_repo.get_model_registry(unknown_id)
     assert missing_exc.value.details["resource_id"] == unknown_id

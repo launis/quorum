@@ -3637,3 +3637,48 @@ class CleanService:
 '''
     violations = _scan_snippet(code, filepath="backend_v2/services/clean_service.py", include_qgr033=True)
     assert [v for v in violations if v.rule_code == "QGR033"] == []
+
+
+def test_qgr030_allows_canonical_split_entity_prefixes() -> None:
+    """Positive: Verify QGR030 accepts canonical 32-hex UUIDv7 literals across mrg_, mcp_, tbr_, inv_, sec_, tsk_, aud_, usg_."""
+    code = '''"""Service module with canonical prefixed UUIDv7 constants."""
+
+REG_ID = "mrg_0195f3a0000070008000bf23c2670ad5"
+GW_ID = "mcp_0195f3a00000700080008172bda70c86"
+BRIEF_ID = "tbr_0195f3a0000070008000000000000001"
+INV_ID = "inv_0195f3a0000070008000000000000002"
+SEC_ID = "sec_0195f3a0000070008000000000000003"
+TSK_ID = "tsk_0195f3a0000070008000000000000004"
+AUD_ID = "aud_0195f3a0000070008000000000000005"
+USG_ID = "usg_0195f3a0000070008000000000000006"
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/canonical_ids.py")
+    assert [v for v in violations if v.rule_code == "QGR030"] == []
+
+
+def test_qgr030_rejects_retired_sys_prefix_and_system_config_enum() -> None:
+    """Negative: Verify QGR030 emits FATAL violations on retired sys_<hex32> literals and EntityPrefix.SYSTEM_CONFIG."""
+    code = '''"""Legacy module referencing retired system_config prefix."""
+
+from backend_v2.models.enums import EntityPrefix
+
+LEGACY_ID = "sys_0195f3a0000070008000bf23c2670ad5"
+LEGACY_PREFIX = EntityPrefix.SYSTEM_CONFIG
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/legacy_sys_ref.py")
+    qgr030 = [v for v in violations if v.rule_code == "QGR030"]
+    assert len(qgr030) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)
+
+
+def test_qgr030_rejects_non_hex_mock_ids_for_mrg_and_mcp_prefixes() -> None:
+    """Boundary: Verify QGR030 rejects non-hex mock IDs using mrg_ and mcp_ prefixes."""
+    code = '''"""Test module with non-hex mock IDs."""
+
+BAD_REG_ID = "mrg_mockregistry000001"
+BAD_GW_ID = "mcp_testgateway0000001"
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_bad_mock_ids.py")
+    qgr030 = [v for v in violations if v.rule_code == "QGR030"]
+    assert len(qgr030) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)

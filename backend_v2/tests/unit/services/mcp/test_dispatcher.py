@@ -24,7 +24,7 @@ from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 
 def _build_gateway(
     *,
-    gateway_id: str = "sys_0195f3a0000070018111222233334444",
+    gateway_id: str = "mcp_0195f3a0000070018111222233334444",
     slug: str = "default_mcp_gateway",
     tools: list[AllowedMCPTool] | None = None,
 ) -> SystemConfigMCPGateways:
@@ -57,6 +57,7 @@ def _build_gateway(
 
     return SystemConfigMCPGateways(
         id=gateway_id,
+        organization_id="org_0195f3a0000070008000000000000001",
         name=f"Gateway {slug}",
         slug=slug,
         endpoint_url="https://mcp.example.com/v1",
@@ -82,7 +83,7 @@ def test_tool_dispatcher_init_and_get_declarations() -> None:
         enabled=False,
     )
     gw_disabled = _build_gateway(
-        gateway_id="sys_0195f3a0000070028222333344445555",
+        gateway_id="mcp_0195f3a0000070028222333344445555",
         slug="disabled_gw",
         tools=[disabled_tool],
     )
@@ -181,7 +182,7 @@ def test_tool_dispatcher_build_search_arguments_positive_and_negative() -> None:
 
     # Unindexed MCPToolDescriptorDTO passed to get_argument_model
     unindexed_descriptor = MCPToolDescriptorDTO(
-        gateway_id="sys_0195f3a0000070018111222233334444",
+        gateway_id="mcp_0195f3a0000070018111222233334444",
         gateway_slug="unindexed_gw",
         namespaced_alias="unindexed_gw__custom_search",
         tool_id="custom_search",
@@ -451,7 +452,8 @@ def test_tool_dispatcher_build_search_arguments_exa_web_search() -> None:
         ),
     )
     gw = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070098c2093907e2d4d24",
+        id="mcp_0195f3a0000070098c2093907e2d4d24",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Exa Gateway",
         slug="exa_gateway",
         endpoint_url="https://mcp.exa.ai/mcp",
@@ -788,7 +790,8 @@ async def test_tool_dispatcher_execute_tool_authenticated_gateway_and_non_string
         enabled=True,
     )
     gw = SystemConfigMCPGateways(
-        id="sys_0195f3a0000070018111222233334444",
+        id="mcp_0195f3a0000070018111222233334444",
+        organization_id="org_0195f3a0000070008000000000000010",
         name="Auth Gateway",
         slug="auth_gw",
         endpoint_url="https://mcp.example.com/v1",

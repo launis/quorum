@@ -689,7 +689,7 @@ async def test_from_tier_empty_tier_definitions_raises_configuration_error() -> 
     with patch(
         "backend_v2.llm.client.inflate",
         return_value=SystemConfigModelRegistry.model_construct(
-            id="sys_0195f3a00000700e826807f3bfa3454d",
+            id="mrg_0195f3a00000700e826807f3bfa3454d",
             name="Empty Registry",
             tier_definitions={},
         ),
@@ -805,7 +805,7 @@ async def test_from_tier_resolves_tenant_byok_and_forwards_to_provider_factory(
         tier=CognitiveTier.FAST,
         repository=fake_repository,
         provider=LLMProvider.OPENAI,
-        registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+        registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
         organization_id=tenant_org_id,
         secret_service=secret_service,
     )
@@ -885,7 +885,7 @@ async def test_from_tier_corrupted_tenant_byok_ciphertext_fails_fast_without_pla
             tier=CognitiveTier.FAST,
             repository=fake_repository,
             provider=LLMProvider.OPENAI,
-            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+            registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
             organization_id=tenant_org_id,
             secret_service=secret_service,
         )
@@ -912,7 +912,7 @@ async def test_from_tier_missing_platform_api_key_without_byok_fails_fast(
             tier=CognitiveTier.FAST,
             repository=fake_repository,
             provider=LLMProvider.OPENAI,
-            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+            registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
             organization_id=tenant_org_id,
             secret_service=unseeded_secret_service,
         )
@@ -956,7 +956,7 @@ async def test_from_tier_populates_vertex_location_and_forwards_caching_context(
         tier=CognitiveTier.FAST,
         repository=fake_repository,
         provider=LLMProvider.VERTEX_AI,
-        registry_id="sys_0195f3a00000700b81c2d3e4f5a60718",
+        registry_id="mrg_0195f3a00000700b81c2d3e4f5a60718",
     )
 
     assert client.config is not None

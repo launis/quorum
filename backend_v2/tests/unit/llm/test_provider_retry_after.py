@@ -109,9 +109,8 @@ async def test_client_strategy_scoping_in_provider_pacing(monkeypatch: pytest.Mo
         )
 
     registry_config = SystemConfigModelRegistry(
-        id="sys_0195f3a0000070018234567890abcdef",
+        id="mrg_0195f3a0000070018234567890abcdef",
         name="Test Registry",
-        type="model_registry",
         default_provider=LLMProvider.OPENAI,
         tier_definitions={
             CognitiveTier.FAST: _make_profile(),

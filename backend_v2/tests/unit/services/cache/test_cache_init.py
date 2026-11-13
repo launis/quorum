@@ -82,7 +82,7 @@ async def test_cache_package_facade_stateful_roundtrip() -> None:
     await cache_service.delete(cache_key)
     assert await cache_service.get_cached(cache_key, Workflow) is None
 
-    gateway_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    gateway_id = generate_opaque_id(EntityPrefix.MCP_GATEWAY)
     gateway_cache = MCPGatewayCache(cache_service=cache_service)
     assert MCPGatewayCache.build_key(gateway_id) == f"mcp_gateway:{gateway_id}"
     assert await gateway_cache.get_gateway(gateway_id) is None

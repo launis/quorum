@@ -98,7 +98,7 @@ def test_parsed_mcp_tool_alias_and_invocation_dtos() -> None:
     assert alias.tool_id == "search"
 
     descriptor = MCPToolDescriptorDTO(
-        gateway_id="sys_0195f3a00000700080008172bda70c86",
+        gateway_id="mcp_0195f3a00000700080008172bda70c86",
         gateway_slug="tavily_gw",
         namespaced_alias="tavily_gw__search",
         tool_id="search",
@@ -111,7 +111,7 @@ def test_parsed_mcp_tool_alias_and_invocation_dtos() -> None:
     assert descriptor.enabled is True
 
     invocation = MCPToolInvocationDTO(
-        gateway_id="sys_0195f3a00000700080008172bda70c86",
+        gateway_id="mcp_0195f3a00000700080008172bda70c86",
         gateway_slug="tavily_gw",
         tool_id="search",
         namespaced_alias="tavily_gw__search",

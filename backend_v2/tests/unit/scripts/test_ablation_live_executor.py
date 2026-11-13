@@ -446,7 +446,7 @@ def test_resolve_model_telemetry_live(tmp_path: Path) -> None:
     assert resolve_model_telemetry(bad_file) == {}
 
     # Test mock custom DB with reasoning models, dict system_config, and various tiers
-    reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     mock_db = tmp_path / "mock_db.json"
     mock_db.write_text(
         json.dumps(
@@ -626,7 +626,7 @@ def test_print_model_telemetry_output(tmp_path: Path, capsys: pytest.CaptureFixt
     assert "Warning: Model registry not found" in out
 
     # Populated DB
-    pop_reg_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    pop_reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     mock_db = tmp_path / "pop_db.json"
     mock_db.write_text(
         json.dumps(

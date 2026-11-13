@@ -367,18 +367,18 @@ async def test_dynamic_mcp_multi_gateway_namespace_isolation_e2e(root_token: Tok
     studio_service = StudioSystemConfigService(system_repo=system_repo, mcp_client=mcp_client)
 
     gw_alpha = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700a8aaa111122223333",
+        id="mcp_0195f3a00000700a8aaa111122223333",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Alpha Gateway",
         slug="alpha_gw",
-        type="mcp_gateways",
         endpoint_url="https://alpha.mcp.example.com/rpc",
         tools=[],
     )
     gw_beta = SystemConfigMCPGateways(
-        id="sys_0195f3a00000700b8bbb444455556666",
+        id="mcp_0195f3a00000700b8bbb444455556666",
+        organization_id="org_0195f3a0000070008000000000000001",
         name="Beta Gateway",
         slug="beta_gw",
-        type="mcp_gateways",
         endpoint_url="https://beta.mcp.example.com/rpc",
         tools=[],
     )
@@ -404,12 +404,12 @@ async def test_dynamic_mcp_multi_gateway_namespace_isolation_e2e(root_token: Tok
         step_name="sp_0195f3a00000700786eedbc020274f66",
     )
 
-    assert trace_alpha.gateway_id == "sys_0195f3a00000700a8aaa111122223333"
+    assert trace_alpha.gateway_id == "mcp_0195f3a00000700a8aaa111122223333"
     assert trace_alpha.gateway_slug == "alpha_gw"
     assert trace_alpha.namespaced_alias == "alpha_gw__search"
     assert "Response from alpha.mcp.example.com." in trace_alpha.response_summary
 
-    assert trace_beta.gateway_id == "sys_0195f3a00000700b8bbb444455556666"
+    assert trace_beta.gateway_id == "mcp_0195f3a00000700b8bbb444455556666"
     assert trace_beta.gateway_slug == "beta_gw"
     assert trace_beta.namespaced_alias == "beta_gw__search"
     assert "Response from beta.mcp.example.com." in trace_beta.response_summary

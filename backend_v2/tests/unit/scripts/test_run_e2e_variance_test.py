@@ -597,9 +597,9 @@ class TestModelRegistryComparison:
         from scripts.run_e2e_variance_test import resolve_comparison_registries
 
         reg_a, reg_b = resolve_comparison_registries(Path("backend_v2/seed/seed_data.json"))
-        assert reg_a["id"] == "sys_0195f3a00000700e826807f3bfa3454d"
+        assert reg_a["id"] == "mrg_0195f3a00000700e826807f3bfa3454d"
         assert reg_b["id"] != reg_a["id"]
-        assert reg_b["id"] in ("sys_0195f3a00000700b81c2d3e4f5a60718", "sys_0195f3a0000070068f8b1c4a2e0d49f1")
+        assert reg_b["id"] in ("mrg_0195f3a00000700b81c2d3e4f5a60718", "mrg_0195f3a0000070068f8b1c4a2e0d49f1")
 
     def test_resolve_comparison_registries_explicit_args(self) -> None:
         """Verify resolve_comparison_registries supports explicit provider and name matches."""
@@ -633,7 +633,7 @@ class TestModelRegistryComparison:
         with pytest.raises(ValueError, match="Cannot compare model registry"):
             resolve_comparison_registries(
                 Path("backend_v2/seed/seed_data.json"),
-                compare_args=["google", "sys_0195f3a00000700e826807f3bfa3454d"],
+                compare_args=["google", "mrg_0195f3a00000700e826807f3bfa3454d"],
             )
 
     def test_resolve_model_telemetry_targeted_registry(self) -> None:
@@ -691,14 +691,14 @@ class TestModelRegistryComparison:
         run_e2e_variance_test.main(
             [
                 "--model-registry",
-                "sys_0195f3a0000070068f8b1c4a2e0d49f1",
+                "mrg_0195f3a0000070068f8b1c4a2e0d49f1",
                 "--compare-registries",
                 "google",
                 "openai",
             ]
         )
 
-        assert recorded_kwargs["model_registry"] == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
+        assert recorded_kwargs["model_registry"] == "mrg_0195f3a0000070068f8b1c4a2e0d49f1"
         assert recorded_kwargs["compare_registries"] == ["google", "openai"]
 
 

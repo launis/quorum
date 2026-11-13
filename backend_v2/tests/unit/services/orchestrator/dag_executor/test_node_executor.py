@@ -115,7 +115,7 @@ async def test_node_executor_resolves_engine_and_merges_post_hook_deltas() -> No
 
     meta = ExecutionMetadata(
         workflow_version=1,
-        model_registry_id="sys_0195f3a0000070018111222233334444",
+        model_registry_id="mrg_0195f3a0000070018111222233334444",
         global_context_vars=GlobalContextVarsDTO(language="fi", target_locale="fi"),
     )
 
@@ -158,7 +158,7 @@ async def test_node_executor_resolves_engine_and_merges_post_hook_deltas() -> No
     assert strat.quota_org_id == "org_0195f3a0000070018111222233334444"
     assert strat.last_context is not None
     assert strat.last_context.cognitive_tier == CognitiveTier.FAST
-    assert strat.last_context.model_registry_id == "sys_0195f3a0000070018111222233334444"
+    assert strat.last_context.model_registry_id == "mrg_0195f3a0000070018111222233334444"
     assert strat.last_context.global_context_vars.language == "fi"
 
 

@@ -6,14 +6,21 @@ SystemConfigModelRegistry, SystemConfigOptionDTO, and SystemValidationRulesDTO.
 """
 
 from datetime import UTC, datetime
-from typing import Annotated, Literal, Self
+from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import (
+    OPAQUE_STRIPE_ID_REGEX,
+    I18nText,
+    V2CoreBase,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.dtos.mcp import MCPToolExecutionDTO, MCPToolInputSchemaDTO
 from backend_v2.models.enums import (
     CognitiveTier,
+    EntityPrefix,
     LaxCognitiveTier,
     LaxComponentType,
     LaxLLMProvider,
@@ -164,8 +171,6 @@ class ModelProfile(V2CoreBase):
         presence_penalty: Presence penalty.
         allowed_tools: Enabled tools.
         supports_grounding: Supports Google Search Grounding.
-        api_key: Optional override API key.
-        parsing_mode: Parser logic flag.
         caching_strategy: Cache strategy identifier.
         thinking_budget_tokens: Reasoning/thinking token budget for reasoning models.
         additional_params: Additional provider-specific parameters.
@@ -186,10 +191,6 @@ class ModelProfile(V2CoreBase):
     presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty")] = None
     allowed_tools: Annotated[list[str], Field(default_factory=list, description="Enabled tools")]
     supports_grounding: Annotated[bool, Field(default=False, description="Supports Google Search Grounding")] = False
-    api_key: Annotated[str | None, Field(default=None, description="Optional override API key")] = None
-    parsing_mode: Annotated[
-        str | None, Field(default=None, description="Parser logic flag (e.g. 'STRUCTURED_JSON')")
-    ] = None
     caching_strategy: Annotated[
         str | None,
         Field(default=None, description="Cache strategy identifier (e.g. 'anthropic_ephemeral')"),
@@ -209,25 +210,21 @@ class ModelProfile(V2CoreBase):
 
 
 class SystemConfigModelRegistry(V2CoreBase):
-    """V2 Flattened Model Registry System Config.
+    """V2 Flattened Model Registry configuration stored in model_registries.
 
     Attributes:
-        id: System config Opaque Stripe ID.
+        id: Canonical Model Registry Opaque Stripe ID (mrg_<hex32>).
         name: Human-readable title.
-        type: Discriminator literal ('model_registry').
-        slug: System Config identifier slug.
+        slug: Informational model registry identifier slug.
         default_provider: Default LLM provider.
         tier_definitions: Direct mapping of the four canonical cognitive tiers to physical profiles.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="model_registry")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")]
+    id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Model registry ID (mrg_<hex32>)")]
     name: Annotated[str, Field(min_length=1, description="Human-readable title")]
-    type: Annotated[Literal["model_registry"], Field(default="model_registry", description="Type of config")] = (
-        "model_registry"
-    )
-    slug: Annotated[str | None, Field(default=None, description="System Config identifier slug")] = None
+    slug: Annotated[str | None, Field(default=None, description="Model registry identifier slug")] = None
     default_provider: Annotated[
         LaxLLMProvider, Field(default=LLMProvider.AI_STUDIO, description="Default LLM provider")
     ] = LLMProvider.AI_STUDIO
@@ -238,6 +235,26 @@ class SystemConfigModelRegistry(V2CoreBase):
             description="Direct mapping of the four canonical cognitive tiers to physical profiles",
         ),
     ]
+
+    @field_validator("id")
+    @classmethod
+    def _validate_model_registry_id(cls, v: str) -> str:
+        """Validate that the identifier uses the canonical mrg_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate model registry identifier string.
+
+        Returns:
+            Validated model registry identifier string.
+
+        Raises:
+            ValueError: If the identifier prefix is not 'mrg' or UUIDv7 validation fails.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MODEL_REGISTRY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     @model_validator(mode="after")
     def validate_tier_completeness(self) -> Self:
@@ -379,14 +396,36 @@ class MCPAuditTrace(V2CoreBase):
     ]
     duration_ms: Annotated[int, Field(default=0, description="Round-trip latency in milliseconds.")] = 0
 
+    @field_validator("gateway_id")
+    @classmethod
+    def _validate_gateway_id(cls, v: str | None) -> str | None:
+        """Validate that an optional gateway_id uses the canonical mcp_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Optional candidate MCP gateway identifier string.
+
+        Returns:
+            Validated MCP gateway identifier string, or None.
+
+        Raises:
+            ValueError: If gateway_id is provided and fails mcp_<hex32> UUIDv7 validation.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MCP_GATEWAY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
+
 
 class SystemConfigMCPGateways(V2CoreBase):
-    """System-level registry of available MCP tool gateways.
+    """Registry entry for an external MCP tool gateway stored in mcp_gateways.
 
     Attributes:
-        id: System config Opaque Stripe ID.
+        id: Canonical MCP gateway Opaque Stripe ID (mcp_<hex32>).
+        organization_id: Owning tenant organization Opaque Stripe ID (org_<hex32>).
         name: Human-readable gateway title.
-        type: Config type discriminator ('mcp_gateways').
         slug: Collision-free gateway namespace slug without double underscores.
         endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.
         transport_type: MCP transport protocol.
@@ -397,14 +436,17 @@ class SystemConfigMCPGateways(V2CoreBase):
         tools: Registry of all available MCP tools in the system.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="mcp_gateways")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")]
+    id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="MCP gateway ID (mcp_<hex32>).")]
+    organization_id: Annotated[
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Owning tenant organization ID (org_<hex32>).",
+        ),
+    ]
     name: Annotated[str, Field(min_length=1, description="Human-readable gateway title.")]
-    type: Annotated[
-        Literal["mcp_gateways"],
-        Field(default="mcp_gateways", description="Config type discriminator."),
-    ] = "mcp_gateways"
     slug: Annotated[
         str,
         Field(
@@ -441,3 +483,43 @@ class SystemConfigMCPGateways(V2CoreBase):
         list[AllowedMCPTool],
         Field(default_factory=list, description="Registry of all available MCP tools in the system."),
     ]
+
+    @field_validator("id")
+    @classmethod
+    def _validate_mcp_gateway_id(cls, v: str) -> str:
+        """Validate that the identifier uses the canonical mcp_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate MCP gateway identifier string.
+
+        Returns:
+            Validated MCP gateway identifier string.
+
+        Raises:
+            ValueError: If the identifier prefix is not 'mcp' or UUIDv7 validation fails.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MCP_GATEWAY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
+
+    @field_validator("organization_id")
+    @classmethod
+    def _validate_organization_id(cls, v: str) -> str:
+        """Validate that organization_id uses the canonical org_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate organization identifier string.
+
+        Returns:
+            Validated organization identifier string.
+
+        Raises:
+            ValueError: If organization_id prefix is not 'org' or UUIDv7 validation fails.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.ORGANIZATION)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v

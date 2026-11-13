@@ -62,10 +62,6 @@ from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
-from backend_v2.models.dtos.system import (
-    AnySystemConfig,
-    SystemConfigCreateDTO,
-)
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import CognitiveTier, EntityPrefix, LLMProvider
 from backend_v2.models.state import TraceEvent
@@ -356,7 +352,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         if "description" not in data_dict or data_dict["description"] is None:
             data_dict["description"] = "Default description"
         if not ("model_registry_id" in data_dict and data_dict["model_registry_id"]):
-            data_dict["model_registry_id"] = "sys_1234567890abcdef1234567890abcdef"
+            data_dict["model_registry_id"] = "mrg_0195f3a0000070008000bf23c2670ad5"
         model = Workflow.model_validate(data_dict)
         self._save_isolated(wf_id, model)
         return wf_id
@@ -489,7 +485,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
             org = org_data
             org_id = org.id
         else:
-            org_id = generate_opaque_id(EntityPrefix.ORG)
+            org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
             org = Organization(
                 id=org_id,
                 name=org_data.name,
@@ -750,15 +746,18 @@ class InMemoryTaskBriefRepository(BaseInMemoryRepository[TaskBrief], ITaskBriefR
 # ==============================================================================
 
 
-class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemRepository):
+class InMemorySystemRepository(
+    BaseInMemoryRepository[SystemConfigModelRegistry | SystemConfigMCPGateways],
+    ISystemRepository,
+):
     """In-memory fake implementation of ISystemRepository."""
 
     def __init__(self) -> None:
         super().__init__()
         default_reg = SystemConfigModelRegistry(
-            id="sys_1234567890abcdef1234567890abcdef",
+            id="mrg_0195f3a0000070008000bf23c2670ad5",
             name="Default Model Registry",
-            type="model_registry",
+            slug="default_model_registry",
             default_provider=LLMProvider.AI_STUDIO,
             tier_definitions={
                 CognitiveTier.FAST: ModelProfile(
@@ -789,13 +788,14 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         )
         self._model_registries: dict[str, SystemConfigModelRegistry] = {
             default_reg.id: default_reg,
-            "sys_0195f3a0000070008000e26807f3bfa3": default_reg,
-            "sys_0195f3a00000700e826807f3bfa3454d": default_reg,
-            "sys_0195f3a00000700b81c2d3e4f5a60718": default_reg,
-            "sys_0195f3a0000070068f8b1c4a2e0d49f1": default_reg,
+            "mrg_0195f3a0000070008000e26807f3bfa3": default_reg,
+            "mrg_0195f3a00000700e826807f3bfa3454d": default_reg,
+            "mrg_0195f3a00000700b81c2d3e4f5a60718": default_reg,
+            "mrg_0195f3a0000070068f8b1c4a2e0d49f1": default_reg,
         }
         self._mcp_gateways = SystemConfigMCPGateways(
-            id="sys_abcdef1234567890abcdef1234567890",
+            id="mcp_0195f3a00000700080008172bda70c86",
+            organization_id=SystemOrganizations.ROOT_SYSTEM.value,
             name="Default MCP Gateway",
             slug="default_mcp_gateway",
             tools=[],
@@ -814,7 +814,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         if registry is None:
             self._model_registries.clear()
         else:
-            r_id = registry_id or registry.id
+            r_id = registry_id if registry_id is not None else registry.id
             self._model_registries[r_id] = registry
             if registry.id not in self._model_registries:
                 self._model_registries[registry.id] = registry
@@ -822,7 +822,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
     async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
         self._check_fault("get_model_registry")
         if not registry_id or registry_id not in self._model_registries:
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id or "")
+            raise ResourceNotFoundError(resource_type="model_registry", resource_id=registry_id if registry_id else "")
         reg = self._model_registries[registry_id]
         return self._clone(reg)
 
@@ -835,7 +835,10 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             if reg_id not in seen_ids:
                 seen_ids.add(reg_id)
                 result.append(self._clone(reg))
-        return result
+        return sorted(
+            result,
+            key=lambda m: (m.name, m.id) if isinstance(m, SystemConfigModelRegistry) else ("", ""),
+        )
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
         self._check_fault("update_model_registry")
@@ -845,24 +848,26 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         )
         return True
 
-    async def delete_system_config(self, config_id: str) -> bool:
-        self._check_fault("delete_system_config")
-        if config_id in self._mcp_gateways_map:
-            del self._mcp_gateways_map[config_id]
+    async def delete_model_registry(self, registry_id: str) -> bool:
+        self._check_fault("delete_model_registry")
+        if registry_id in self._model_registries:
+            del self._model_registries[registry_id]
             return True
+        return False
 
-        if config_id in self._model_registries:
-            del self._model_registries[config_id]
+    async def delete_mcp_gateways(self, gateway_id: str) -> bool:
+        self._check_fault("delete_mcp_gateways")
+        if gateway_id in self._mcp_gateways_map:
+            del self._mcp_gateways_map[gateway_id]
             return True
         return False
 
     def remove_system_config(self, config_id: str) -> None:
-        """Removes a system config record from raw and model registries."""
+        """Remove a model registry or MCP gateway record from test storage."""
         if config_id in self._mcp_gateways_map:
             del self._mcp_gateways_map[config_id]
         if config_id in self._raw_system_configs:
             del self._raw_system_configs[config_id]
-
         if config_id in self._model_registries:
             del self._model_registries[config_id]
         if config_id in self._storage:
@@ -870,8 +875,14 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         self._check_fault("get_mcp_gateways")
-        if id is not None and id in self._mcp_gateways_map:
-            return self._clone(self._mcp_gateways_map[id])
+        if id is not None:
+            if id in self._mcp_gateways_map:
+                return self._clone(self._mcp_gateways_map[id])
+            if isinstance(self._mcp_gateways, SystemConfigMCPGateways) and self._mcp_gateways.id == id:
+                return self._clone(self._mcp_gateways)
+            raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
+        if self._mcp_gateways is None:
+            raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id="mcp_gateways")
         try:
             return self._mcp_gateways.model_copy(deep=True)
         except AttributeError:
@@ -886,22 +897,17 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         validated = SystemConfigMCPGateways.model_validate(gateways_data.model_dump(mode="python"), strict=False)
         self._mcp_gateways = validated
         self._mcp_gateways_map[validated.id] = validated
-        self._mcp_gateways = SystemConfigMCPGateways.model_validate(
-            gateways_data.model_dump(mode="python"), strict=False
-        )
         return True
 
     async def get_system_config(self, config_id: str) -> Any:
         self._check_fault("get_system_config")
         if config_id in self._raw_system_configs:
             return copy.deepcopy(self._raw_system_configs[config_id])
+        if config_id in self._model_registries:
+            return self._clone(self._model_registries[config_id])
+        if config_id in self._mcp_gateways_map:
+            return self._clone(self._mcp_gateways_map[config_id])
         return self._get_isolated(config_id)
-
-    async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
-        self._check_fault("create_system_config")
-        c_id = f"cfg_{config_data.type}"
-        self._save_isolated(c_id, config_data.content)
-        return c_id
 
 
 # ==============================================================================
@@ -1398,8 +1404,15 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
         return await self._system.update_model_registry(registry_data)
 
-    async def delete_system_config(self, config_id: str) -> bool:
-        return await self._system.delete_system_config(config_id)
+    async def delete_model_registry(self, registry_id: str) -> bool:
+        for wf in self._workflows._storage.values():
+            if wf.model_registry_id == registry_id:
+                raise AppException(
+                    message=f"Model registry '{registry_id}' is referenced by workflow '{wf.id}'.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                )
+        return await self._system.delete_model_registry(registry_id)
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         return await self._system.get_mcp_gateways(id)
@@ -1409,6 +1422,16 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
         return await self._system.update_mcp_gateways(gateways_data)
+
+    async def delete_mcp_gateways(self, gateway_id: str) -> bool:
+        for wf in self._workflows._storage.values():
+            if wf.mcp_gateway_id == gateway_id:
+                raise AppException(
+                    message=f"MCP gateway '{gateway_id}' is referenced by workflow '{wf.id}'.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                )
+        return await self._system.delete_mcp_gateways(gateway_id)
 
     async def get_system_config(self, config_id: str) -> Any:
         return await self._system.get_system_config(config_id)
@@ -1526,6 +1549,10 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     def set_mcp_gateways(self, gateways: SystemConfigMCPGateways | Any) -> None:
         """Helper to seed mcp gateways for tests."""
         self._system._mcp_gateways = gateways
+        if gateways is None:
+            self._system._mcp_gateways_map.clear()
+        elif isinstance(gateways, SystemConfigMCPGateways):
+            self._system._mcp_gateways_map[gateways.id] = gateways
 
     def seed_system_config(self, key: str, item: JsonValue) -> None:
         """Seeds a system config record into the underlying system repository."""
@@ -1534,9 +1561,6 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     def remove_system_config(self, config_id: str) -> None:
         """Removes a system config record from the underlying system repository."""
         self._system.remove_system_config(config_id)
-
-    async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
-        return await self._system.create_system_config(config_data)
 
     # 11. Audit
     async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:

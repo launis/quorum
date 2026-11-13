@@ -220,7 +220,7 @@ def isolate_default_uow_and_secret_service() -> Generator[None]:
         ),
         _build_encrypted_root_secret(
             scope=SecretScope.MCP_GATEWAY,
-            target_identifier="sys_0195f3a00000700080008172bda70c86",
+            target_identifier="mcp_0195f3a00000700080008172bda70c86",
             plaintext="mock-tavily-mcp-key",
         ),
     )

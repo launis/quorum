@@ -7,8 +7,6 @@ misconfigured tiers/providers according to ISTQB equivalence partitions.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,37 +14,215 @@ import pytest
 
 from backend_v2.exceptions import ConfigurationError
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import (
+    ModelProfile,
+    ProviderExtraParamsDTO,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.enums import CognitiveTier, LLMProvider
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
-SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
+
+def _build_canonical_model_registries() -> tuple[SystemConfigModelRegistry, ...]:
+    """Construct the canonical AI Studio, Vertex AI, and OpenAI model registries for tier tests."""
+    ai_studio_reg = SystemConfigModelRegistry(
+        id="mrg_0195f3a00000700e826807f3bfa3454d",
+        name="Google AI Studio Stack",
+        slug="google_ai_studio_stack",
+        default_provider=LLMProvider.AI_STUDIO,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(
+                provider="ai_studio",
+                model_name="gemini/gemini-3.8-flash",
+                temperature=0.1,
+                max_tokens=32768,
+                thinking_budget_tokens=0,
+                supports_grounding=False,
+                tpm_limit=4000000,
+                rpm_limit=200,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.BALANCED: ModelProfile(
+                provider="ai_studio",
+                model_name="gemini/gemini-3.8-flash",
+                temperature=1.0,
+                max_tokens=65536,
+                thinking_budget_tokens=2048,
+                supports_grounding=False,
+                tpm_limit=4000000,
+                rpm_limit=60,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.DEEP: ModelProfile(
+                provider="ai_studio",
+                model_name="gemini/gemini-3.8-flash",
+                temperature=1.0,
+                max_tokens=65536,
+                thinking_budget_tokens=4096,
+                supports_grounding=True,
+                tpm_limit=4000000,
+                rpm_limit=60,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.REASONING: ModelProfile(
+                provider="ai_studio",
+                model_name="gemini/gemini-3.8-flash",
+                temperature=1.0,
+                max_tokens=65536,
+                thinking_budget_tokens=8192,
+                supports_grounding=False,
+                tpm_limit=4000000,
+                rpm_limit=60,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+        },
+    )
+    vertex_reg = SystemConfigModelRegistry(
+        id="mrg_0195f3a00000700b81c2d3e4f5a60718",
+        name="Google Cloud Vertex AI Sovereign Stack",
+        slug="google_cloud_vertex_ai_sovereign_stack",
+        default_provider=LLMProvider.VERTEX_AI,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(
+                provider="vertex_ai",
+                model_name="vertex_ai/gemini-2.5-flash",
+                temperature=0.1,
+                max_tokens=32768,
+                thinking_budget_tokens=0,
+                supports_grounding=False,
+                tpm_limit=4000000,
+                rpm_limit=200,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(vertex_location="europe-north1"),
+            ),
+            CognitiveTier.BALANCED: ModelProfile(
+                provider="vertex_ai",
+                model_name="vertex_ai/gemini-2.5-flash",
+                temperature=1.0,
+                max_tokens=65536,
+                thinking_budget_tokens=2048,
+                supports_grounding=False,
+                tpm_limit=4000000,
+                rpm_limit=60,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(vertex_location="europe-north1"),
+            ),
+            CognitiveTier.DEEP: ModelProfile(
+                provider="vertex_ai",
+                model_name="vertex_ai/gemini-2.5-pro",
+                temperature=1.0,
+                max_tokens=65536,
+                thinking_budget_tokens=4096,
+                supports_grounding=True,
+                tpm_limit=4000000,
+                rpm_limit=60,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(vertex_location="europe-north1"),
+            ),
+            CognitiveTier.REASONING: ModelProfile(
+                provider="vertex_ai",
+                model_name="vertex_ai/gemini-2.5-pro",
+                temperature=1.0,
+                max_tokens=65536,
+                thinking_budget_tokens=8192,
+                supports_grounding=False,
+                tpm_limit=4000000,
+                rpm_limit=60,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(vertex_location="europe-north1"),
+            ),
+        },
+    )
+    openai_reg = SystemConfigModelRegistry(
+        id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
+        name="OpenAI O-Series Stack",
+        slug="openai_o_series_stack",
+        default_provider=LLMProvider.OPENAI,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(
+                provider="openai",
+                model_name="openai/gpt-5.4-mini",
+                temperature=0.0,
+                max_tokens=32768,
+                thinking_budget_tokens=0,
+                supports_grounding=False,
+                tpm_limit=2000000,
+                rpm_limit=1000,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(),
+            ),
+            CognitiveTier.BALANCED: ModelProfile(
+                provider="openai",
+                model_name="openai/gpt-5.4",
+                temperature=1.0,
+                max_tokens=32768,
+                thinking_budget_tokens=2048,
+                supports_grounding=False,
+                tpm_limit=2000000,
+                rpm_limit=1000,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(reasoning_effort="low"),
+            ),
+            CognitiveTier.DEEP: ModelProfile(
+                provider="openai",
+                model_name="openai/gpt-5.4",
+                temperature=1.0,
+                max_tokens=32768,
+                thinking_budget_tokens=4096,
+                supports_grounding=False,
+                tpm_limit=2000000,
+                rpm_limit=1000,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(reasoning_effort="medium"),
+            ),
+            CognitiveTier.REASONING: ModelProfile(
+                provider="openai",
+                model_name="openai/gpt-5.4",
+                temperature=1.0,
+                max_tokens=32768,
+                thinking_budget_tokens=8192,
+                supports_grounding=False,
+                tpm_limit=2000000,
+                rpm_limit=1000,
+                caching_strategy="prompt_caching",
+                allowed_tools=[],
+                additional_params=ProviderExtraParamsDTO(reasoning_effort="high"),
+            ),
+        },
+    )
+    return (ai_studio_reg, vertex_reg, openai_reg)
 
 
 def _get_seed_model_registry(registry_id: str | None = None) -> SystemConfigModelRegistry:
-    """Load model_registry system config from seed_data.json."""
-    with open(SEED_DATA_PATH, encoding="utf-8") as f:
-        data = json.load(f)
-    for cfg in data["system_config"]:
-        if "type" in cfg and cfg["type"] == "model_registry":
-            if registry_id is None or ("id" in cfg and cfg["id"] == registry_id):
-                return SystemConfigModelRegistry.model_validate(cfg)
-    raise RuntimeError(f"model_registry '{registry_id}' not found in seed_data.json")
-
-
-from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
+    """Return canonical SystemConfigModelRegistry instance for tier tests."""
+    for reg in _build_canonical_model_registries():
+        if registry_id is None or reg.id == registry_id:
+            return reg
+    raise RuntimeError(f"model_registry '{registry_id}' not found")
 
 
 @pytest.fixture
 def fake_repository() -> InMemorySystemRepository:
-    """Repository returning the authoritative model_registries from seed_data.json."""
+    """Repository returning the authoritative model_registries."""
     repo = InMemorySystemRepository()
     repo._model_registries.clear()
-    with open(SEED_DATA_PATH, encoding="utf-8") as f:
-        data = json.load(f)
-    for cfg in data["system_config"]:
-        if "type" in cfg and cfg["type"] == "model_registry":
-            seed_model = SystemConfigModelRegistry.model_validate(cfg)
-            repo._model_registries[seed_model.id] = seed_model
+    for reg in _build_canonical_model_registries():
+        repo._model_registries[reg.id] = reg
     return repo
 
 
@@ -100,7 +276,7 @@ class TestLLMClientCognitiveTiers:
             tier=CognitiveTier.FAST,
             repository=fake_repository,
             provider=LLMProvider.VERTEX_AI,
-            registry_id="sys_0195f3a00000700b81c2d3e4f5a60718",
+            registry_id="mrg_0195f3a00000700b81c2d3e4f5a60718",
         )
 
         assert client is not None
@@ -133,7 +309,7 @@ class TestLLMClientCognitiveTiers:
             tier=tier,
             repository=fake_repository,
             provider=LLMProvider.OPENAI,
-            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+            registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
         )
 
         assert client is not None
@@ -176,7 +352,7 @@ class TestLLMClientCognitiveTiers:
         client_openai = await LLMClient.from_tier(
             tier=CognitiveTier.FAST,
             repository=fake_repository,
-            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
+            registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
         )
         assert client_openai.provider_name == "openai"
         assert "gpt-5" in client_openai.model_name.lower()
@@ -185,7 +361,7 @@ class TestLLMClientCognitiveTiers:
         client_google = await LLMClient.from_tier(
             tier=CognitiveTier.FAST,
             repository=fake_repository,
-            registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         )
         assert client_google.provider_name == "ai_studio"
         assert "flash" in client_google.model_name.lower()
@@ -249,7 +425,7 @@ class TestLLMClientTiersFailFast:
         """ISTQB Negative Test: repository returning invalid registry triggers ConfigurationError."""
         bad_repo = InMemorySystemRepository()
         bad_repo._model_registries.clear()
-        bad_repo._model_registries["bad"] = cast(SystemConfigModelRegistry, cast(object, {"type": "model_registry"}))
+        bad_repo._model_registries["bad"] = cast(SystemConfigModelRegistry, cast(object, {"corrupted": "payload"}))
 
         with pytest.raises(ConfigurationError, match="Failed to parse strict SystemConfigModelRegistry"):
             await LLMClient.from_tier(tier=CognitiveTier.FAST, repository=bad_repo)

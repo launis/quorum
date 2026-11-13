@@ -245,12 +245,16 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
         "CREATE TABLE IF NOT EXISTS execution_assignments (\n"
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
         "    task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL\n"
+        ");\n"
+        "CREATE TABLE IF NOT EXISTS tenant_secrets (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    mcp_gateway_id UUID REFERENCES mcp_gateways(id) ON DELETE CASCADE\n"
         ");\n",
         encoding="utf-8",
     )
     missing_findings = audit_sql_migration_file(missing_alter_sql)
     zorm007_sql = [f for f in missing_findings if f.rule_code == ZeroOrmRuleCode.ZORM007]
-    assert len(zorm007_sql) == 5
+    assert len(zorm007_sql) == 6
 
 
 def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(tmp_path: Path) -> None:
@@ -260,8 +264,12 @@ def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(
     assert "task_briefs" in CANONICAL_ENTITY_PK_TABLES
     assert "audit_logs" in CANONICAL_ENTITY_PK_TABLES
     assert "usage_records" in CANONICAL_ENTITY_PK_TABLES
-    assert len(CLOSED_POSTGRES_TABLES) == 18
+    assert "model_registries" in CANONICAL_ENTITY_PK_TABLES
+    assert "mcp_gateways" in CANONICAL_ENTITY_PK_TABLES
+    assert len(CLOSED_POSTGRES_TABLES) == 19
     assert CANONICAL_NAMED_ENTITY_TABLES["workflows"] == "name"
+    assert CANONICAL_NAMED_ENTITY_TABLES["model_registries"] == "name"
+    assert CANONICAL_NAMED_ENTITY_TABLES["mcp_gateways"] == "name"
     assert CANONICAL_NAMED_ENTITY_TABLES["task_briefs"] == "label"
     assert CANONICAL_NAMED_ENTITY_TABLES["prompt_blocks"] == "label"
     assert CANONICAL_NAMED_ENTITY_TABLES["report_artifacts"] == "title"
@@ -284,10 +292,10 @@ def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(
         "    slug TEXT NOT NULL DEFAULT 'default_slug',\n"
         "    CONSTRAINT enforce_workflow_uuidv7 CHECK (uuid_extract_version(id) = 7)\n"
         ");\n"
-        "CREATE TABLE system_configs (\n"
+        "CREATE TABLE model_registries (\n"
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
         "    name TEXT DEFAULT 'Default',\n"
-        "    CONSTRAINT enforce_system_config_uuidv7 CHECK (uuid_extract_version(id) = 7)\n"
+        "    CONSTRAINT enforce_model_registry_uuidv7 CHECK (uuid_extract_version(id) = 7)\n"
         ");\n"
         "CREATE TABLE tenant_secrets (\n"
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"

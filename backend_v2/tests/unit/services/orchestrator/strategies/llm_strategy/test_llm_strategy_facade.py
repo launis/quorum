@@ -82,7 +82,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             "version": 1,
             "default_profile_id": "prof",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         }
     )
@@ -90,7 +90,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
 
     reg = SystemConfigModelRegistry.model_validate(
         obj={
-            "id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "name": "Default Stack",
             "tier_definitions": {
                 "fast": {
@@ -124,8 +124,8 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             },
         }
     )
-    repo.set_model_registry(reg, "sys_0195f3a00000700e826807f3bfa3454d")
-    repo.set_model_registry(reg, "sys_0195f3a00000700e826807f3bfa3454d")
+    repo.set_model_registry(reg, "mrg_0195f3a00000700e826807f3bfa3454d")
+    repo.set_model_registry(reg, "mrg_0195f3a00000700e826807f3bfa3454d")
     return repo
 
 
@@ -408,7 +408,7 @@ async def test_execute_success_path_structured_output(
             "version": 1,
             "default_profile_id": "prf_123",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
         }
     )
 
@@ -752,7 +752,7 @@ async def test_execute_with_role_and_persona_and_protocol(
             "version": 1,
             "default_profile_id": "prof_123",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "steps": [
                 {
                     "id": "stp_0123456789abcdef0123456789abcdef",
@@ -1359,10 +1359,9 @@ def test_configure_llm_context_hook_success() -> None:
     with patch("backend_v2.hooks.llm.get_settings") as mock_settings:
         mock_settings.return_value.default_model_strategy = "fast"
         mock_settings.return_value.model_registry = {
-            "id": "reg_0123456789abcdef0123456789abcdef",
+            "id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "slug": "model_registry",
             "name": "Default Model Registry",
-            "type": "model_registry",
             "tier_definitions": {
                 "fast": {
                     "provider": "google",
@@ -3326,7 +3325,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
             "version": 1,
             "default_profile_id": "prof_0123456789abcdef0123456789abcdef",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+            "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
             "steps": [
                 {
                     "id": "sr_0195f3a0000070018111111111111111",
@@ -3412,7 +3411,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
     context.metadata = ExecutionMetadata()
     context.cognitive_tier = CognitiveTier.FAST
     context.prompt_blocks = mock_blocks
-    context.model_registry_id = "sys_0195f3a00000700e826807f3bfa3454d"
+    context.model_registry_id = "mrg_0195f3a00000700e826807f3bfa3454d"
     context.strictness_level = 50
 
     mock_engine = llm_strategy._engine

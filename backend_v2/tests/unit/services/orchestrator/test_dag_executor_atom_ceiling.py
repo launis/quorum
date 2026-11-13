@@ -55,7 +55,7 @@ async def test_dag_executor_atom_ceiling(
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
@@ -74,8 +74,7 @@ async def test_dag_executor_atom_ceiling(
     )
 
     model_registry = SystemConfigModelRegistry(
-        id="sys_0195f3a00000700e826807f3bfa3454d",
-        type="model_registry",
+        id="mrg_0195f3a00000700e826807f3bfa3454d",
         slug="models",
         name="Test Stack",
         tier_definitions={

@@ -22,11 +22,16 @@ from backend_v2.tests.factories.model_factories import (
     ExecutionStepFactory,
     GlobalContextVarsDTOFactory,
     I18nTextFactory,
+    LLMProviderConfigFactory,
     MatrixPromptBlockFactory,
+    MCPAuditTraceFactory,
+    ModelProfileFactory,
     OutputProfileFactory,
     ReportArtifactFactory,
     ReportViewFactory,
     StepPanelDTOFactory,
+    SystemConfigMCPGatewaysFactory,
+    SystemConfigModelRegistryFactory,
     SystemRulePromptBlockFactory,
     TaskBriefFactory,
     TenantSecretDTOFactory,
@@ -64,6 +69,11 @@ type RegisteredFactoryType = (
     | type[TenantSecretDTOFactory]
     | type[UsageRecordFactory]
     | type[ReportViewFactory]
+    | type[ModelProfileFactory]
+    | type[SystemConfigModelRegistryFactory]
+    | type[SystemConfigMCPGatewaysFactory]
+    | type[MCPAuditTraceFactory]
+    | type[LLMProviderConfigFactory]
 )
 
 ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
@@ -84,6 +94,11 @@ ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
     TenantSecretDTOFactory,
     UsageRecordFactory,
     ReportViewFactory,
+    ModelProfileFactory,
+    SystemConfigModelRegistryFactory,
+    SystemConfigMCPGatewaysFactory,
+    MCPAuditTraceFactory,
+    LLMProviderConfigFactory,
 )
 
 

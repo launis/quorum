@@ -104,7 +104,7 @@ TESTILYHYT_DIR = os.path.join(WORKSPACE_ROOT, "docs", "testilyhyt")
 
 TARGET_WORKFLOW_ID = os.environ.get("TEST_WORKFLOW_ID", "wf_d653170e174847559e08af42b938d826")
 WAIT_TIMEOUT = int(os.environ.get("TEST_WAIT_TIMEOUT", "3600"))
-DEFAULT_GATEWAY_ID = "sys_0195f3a00000700080008172bda70c86"
+DEFAULT_GATEWAY_ID = "mcp_0195f3a00000700080008172bda70c86"
 
 
 class _LocalMCPRequestHandler(BaseHTTPRequestHandler):

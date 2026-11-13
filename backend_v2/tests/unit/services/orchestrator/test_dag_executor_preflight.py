@@ -59,7 +59,7 @@ async def test_dag_executor_preflight_skip(
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
@@ -113,7 +113,7 @@ async def test_dag_executor_preflight_execution(
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
@@ -183,7 +183,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
@@ -252,7 +252,7 @@ async def test_dag_executor_virtual_step(
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
@@ -326,7 +326,7 @@ async def test_dag_executor_preflight_ignores_system_keys(
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
