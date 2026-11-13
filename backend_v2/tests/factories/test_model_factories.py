@@ -18,6 +18,7 @@ from backend_v2.tests.factories.model_factories import (
     AuditLogRecordFactory,
     CausalGraphPayloadDTOFactory,
     CausalNodeDTOFactory,
+    ExecutionAssignmentFactory,
     ExecutionRecordFactory,
     ExecutionStepFactory,
     GlobalContextVarsDTOFactory,
@@ -29,6 +30,7 @@ from backend_v2.tests.factories.model_factories import (
     OutputProfileFactory,
     ReportArtifactFactory,
     ReportViewFactory,
+    StepFactory,
     StepPanelDTOFactory,
     SystemConfigMCPGatewaysFactory,
     SystemConfigModelRegistryFactory,
@@ -59,9 +61,11 @@ type RegisteredFactoryType = (
     | type[TaskBriefFactory]
     | type[OutputProfileFactory]
     | type[MatrixPromptBlockFactory]
+    | type[ExecutionAssignmentFactory]
     | type[ExecutionStepFactory]
     | type[ExecutionRecordFactory]
     | type[ReportArtifactFactory]
+    | type[StepFactory]
     | type[StepPanelDTOFactory]
     | type[GlobalContextVarsDTOFactory]
     | type[CausalNodeDTOFactory]
@@ -84,9 +88,11 @@ ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
     TaskBriefFactory,
     OutputProfileFactory,
     MatrixPromptBlockFactory,
+    ExecutionAssignmentFactory,
     ExecutionStepFactory,
     ExecutionRecordFactory,
     ReportArtifactFactory,
+    StepFactory,
     StepPanelDTOFactory,
     GlobalContextVarsDTOFactory,
     CausalNodeDTOFactory,

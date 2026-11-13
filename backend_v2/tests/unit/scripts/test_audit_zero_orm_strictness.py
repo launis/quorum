@@ -244,7 +244,8 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
         ");\n"
         "CREATE TABLE IF NOT EXISTS execution_assignments (\n"
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
-        "    task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL\n"
+        "    task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL,\n"
+        "    task_brief_snapshot JSONB\n"
         ");\n"
         "CREATE TABLE IF NOT EXISTS tenant_secrets (\n"
         "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
@@ -254,7 +255,7 @@ def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path)
     )
     missing_findings = audit_sql_migration_file(missing_alter_sql)
     zorm007_sql = [f for f in missing_findings if f.rule_code == ZeroOrmRuleCode.ZORM007]
-    assert len(zorm007_sql) == 6
+    assert len(zorm007_sql) == 7
 
 
 def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(tmp_path: Path) -> None:

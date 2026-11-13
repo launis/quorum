@@ -14,14 +14,59 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import (
     OPAQUE_STRIPE_ID_REGEX,
     I18nText,
+    PrefixedUUID7,
     V2CoreBase,
     parse_prefixed_uuid7,
 )
 from backend_v2.models.enums import EntityPrefix
 
-__all__ = ["StrictStr", "TaskBrief"]
+__all__ = ["StrictStr", "TaskAssignmentBriefDTO", "TaskBrief"]
 
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class TaskAssignmentBriefDTO(V2CoreBase):
+    """Frozen publication-time TaskBrief snapshot embedded in execution assignments and responses.
+
+    Attributes:
+        id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).
+        label: Localized title of the task brief.
+        instruction_text: Optional plain-text or markdown task instructions.
+        source_url: Optional reference document or external resource URL.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    id: Annotated[PrefixedUUID7, Field(description="Canonical TaskBrief ID (tbr_<hex32>)")]
+    label: Annotated[I18nText, Field(description="Localized title of the task brief")]
+    instruction_text: Annotated[
+        str | None,
+        Field(default=None, description="Optional task brief instruction text"),
+    ] = None
+    source_url: Annotated[
+        str | None,
+        Field(default=None, description="Optional reference document or external resource URL"),
+    ] = None
+
+    @field_validator("id")
+    @classmethod
+    def _validate_snapshot_task_brief_id(cls, v: str) -> str:
+        """Validate that the snapshot identifier uses the canonical tbr_ prefix and UUIDv7 format.
+
+        Args:
+            v: Candidate TaskBrief identifier string.
+
+        Returns:
+            Validated TaskBrief identifier string.
+
+        Raises:
+            ValueError: If the identifier prefix is not 'tbr' or UUIDv7 validation fails.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.TASK_BRIEF)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
 
 class TaskBrief(V2CoreBase):

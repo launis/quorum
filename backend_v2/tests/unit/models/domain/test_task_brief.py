@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.domain.task_brief import TaskBrief
+from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO, TaskBrief
 from backend_v2.models.dtos.studio import TaskBriefDeleteResponse, TaskBriefResponseDTO
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.tests.factories.model_factories import I18nTextFactory, TaskBriefFactory
@@ -103,3 +103,25 @@ def test_task_brief_forbids_extra_fields_and_in_place_mutation() -> None:
 
     with pytest.raises((ValidationError, TypeError)):
         del brief.slug
+
+
+def test_task_assignment_brief_dto_validates_id_and_enforces_immutability() -> None:
+    """Verify TaskAssignmentBriefDTO accepts canonical tbr_ IDs and rejects invalid prefixes or mutation."""
+    valid_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    snapshot = TaskAssignmentBriefDTO(
+        id=valid_id,
+        label=I18nTextFactory.build(translations={"en": "Snapshot Brief", "fi": "Tilannevedos"}),
+        instruction_text="Complete the assigned task.",
+        source_url="https://docs.example.com/ref.pdf",
+    )
+    assert snapshot.id == valid_id
+    assert snapshot.instruction_text == "Complete the assigned task."
+
+    with pytest.raises(ValidationError):
+        TaskAssignmentBriefDTO(
+            id=generate_opaque_id(EntityPrefix.WORKFLOW),
+            label=I18nTextFactory.build(translations={"en": "Wrong Prefix", "fi": "Väärä etuliite"}),
+        )
+
+    with pytest.raises((ValidationError, TypeError)):
+        del snapshot.instruction_text

@@ -1469,13 +1469,17 @@ async def test_assignment_task_brief_lifecycle_and_rbac_validation(
     assert len(listed) == 2
     assert all(item.task_brief is not None and item.task_brief.id == alpha_brief_id for item in listed)
 
-    # 2. Boundary (strict=False): If task_brief_repo is detached or brief is deleted after creation, read paths return task_brief=None gracefully
-    await wf_repo.delete_task_brief(alpha_brief_id)
-    listed_after_delete = await assignment_service.list_assignments(_manager_token())
-    assert all(item.task_brief_id == alpha_brief_id and item.task_brief is None for item in listed_after_delete)
+    # 2. Snapshot immutability: Read paths retain frozen publication-time task_brief_snapshot even if task_brief_repo is detached
+    assignment_service.task_brief_repo = None
+    listed_without_repo = await assignment_service.list_assignments(_manager_token())
+    assert all(
+        item.task_brief_id == alpha_brief_id
+        and item.task_brief is not None
+        and item.task_brief.instruction_text == "Review section 4 and summarize key risks."
+        for item in listed_without_repo
+    )
 
     # 3. Negative 1: Missing task_brief_repo on create_assignment with task_brief_id raises SERVICE_DEPENDENCY_MISSING
-    assignment_service.task_brief_repo = None
     with caplog.at_level(logging.ERROR), pytest.raises(AppException) as missing_repo_exc:
         await assignment_service.create_assignment(
             initiator=_manager_token(),
@@ -1680,3 +1684,159 @@ async def test_assignment_eager_base64_extraction_and_firebase_email_verified_bo
         )
     assert mfa_exc.value.details["error_code"] == ErrorCodes.MFA_REQUIRED.value
     mock_fb.update_user.assert_called_once_with("fb_uid_new_user", email_verified=True)
+
+
+@pytest.mark.asyncio
+async def test_published_assignment_task_brief_snapshot_immune_to_subsequent_studio_edits() -> None:
+    """Verify published ExecutionAssignment retains frozen task_brief_snapshot after Studio edits."""
+    assignment_service, _, wf_repo, _, _, _ = await _setup_assignment_harness()
+    brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    original_brief = TaskBriefFactory.build(
+        id=brief_id,
+        slug="immutable-snapshot-brief",
+        label=I18nText(translations={"en": "Original Title", "fi": "Alkuperäinen otsikko"}),
+        description=I18nText(translations={"en": "Original Desc", "fi": "Alkuperäinen kuvaus"}),
+        instruction_text="Original publication instructions v1.",
+        source_url="https://docs.qrum.ai/v1",
+        organization_id=ORG_ALPHA_ID,
+    )
+    await wf_repo.create_task_brief(original_brief)
+
+    created = await assignment_service.create_assignment(
+        initiator=_manager_token(),
+        payload=ExecutionAssignmentCreateDTO(
+            assigned_email="snapshot.user@alpha.fi",
+            workflow_id=WORKFLOW_ID,
+            output_profile_id=PROFILE_ID,
+            task_brief_id=brief_id,
+            locked_inputs=WorkflowInputs(dynamic_inputs={"manager_context": "Context"}),
+            assignee_input_keys=["candidate_answer"],
+            hard_deadline_at=datetime.now(UTC) + timedelta(hours=6),
+        ),
+    )
+    raw_token = assignment_service.get_last_generated_token(created.id)
+    assert raw_token is not None
+
+    onboarded = await assignment_service.onboard_assignee(
+        raw_token,
+        ExecutionAssignmentOnboardingRequestDTO(name="Snapshot User"),
+    )
+    assignee_tok = TokenData(
+        id=onboarded.user.id,
+        role=UserRole.MEMBER,
+        organization_id=ORG_ALPHA_ID,
+        email="snapshot.user@alpha.fi",
+    )
+    await assignment_service.activate_assignment(assignee_tok, created.id)
+    exec_rec = await assignment_service.submit_assignment(
+        initiator=assignee_tok,
+        assignment_id=created.id,
+        payload=ExecutionAssignmentSubmitDTO(
+            submitted_inputs=WorkflowInputs(dynamic_inputs={"candidate_answer": "Submitted answer"})
+        ),
+        arq_pool=AsyncMock(spec=ArqRedis),
+    )
+
+    edited_brief = original_brief.model_copy(
+        update={
+            "label": I18nText(translations={"en": "Mutated Title v2", "fi": "Muokattu otsikko v2"}),
+            "instruction_text": "Retroactively mutated instructions v2.",
+            "source_url": "https://docs.qrum.ai/v2",
+        }
+    )
+    await wf_repo.update_task_brief(brief_id, edited_brief)
+
+    preview = await assignment_service.preview_assignment(raw_token)
+    assert preview.task_brief is not None
+    assert preview.task_brief.label.translations["en"] == "Original Title"
+    assert preview.task_brief.instruction_text == "Original publication instructions v1."
+    assert preview.task_brief.source_url == "https://docs.qrum.ai/v1"
+
+    listed = await assignment_service.list_assignments(_manager_token())
+    assert len(listed) == 1
+    assert listed[0].task_brief is not None
+    assert listed[0].task_brief.instruction_text == "Original publication instructions v1."
+
+    by_exec = await assignment_service.get_assignment_by_execution_id(exec_rec.id)
+    assert by_exec is not None
+    assert by_exec.task_brief_snapshot is not None
+    assert by_exec.task_brief_snapshot.instruction_text == "Original publication instructions v1."
+
+
+@pytest.mark.asyncio
+async def test_create_assignment_with_missing_or_cross_tenant_task_brief_fails_fast(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify create_assignment and create_assignment_batch fail fast on missing or cross-tenant TaskBrief."""
+    assignment_service, _, wf_repo, _, _, _ = await _setup_assignment_harness()
+    missing_brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    beta_brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    await wf_repo.create_task_brief(
+        TaskBriefFactory.build(
+            id=beta_brief_id,
+            slug="beta-only-brief",
+            organization_id=ORG_BETA_ID,
+            instruction_text="Beta private instructions.",
+        )
+    )
+    deadline = datetime.now(UTC) + timedelta(hours=6)
+
+    with caplog.at_level(logging.ERROR), pytest.raises(ResourceNotFoundError) as nf_single:
+        await assignment_service.create_assignment(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentCreateDTO(
+                assigned_email="missing1@alpha.fi",
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=missing_brief_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
+                assignee_input_keys=[],
+                hard_deadline_at=deadline,
+            ),
+        )
+    assert nf_single.value.status_code == 404
+    assert nf_single.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+    with caplog.at_level(logging.ERROR), pytest.raises(ResourceNotFoundError) as nf_batch:
+        await assignment_service.create_assignment_batch(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentBatchCreateDTO(
+                recipients=[ExecutionAssignmentRecipientDTO(email="missing2@alpha.fi")],
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=missing_brief_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
+                assignee_input_keys=[],
+                hard_deadline_at=deadline,
+            ),
+        )
+    assert nf_batch.value.status_code == 404
+    assert nf_batch.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+    with caplog.at_level(logging.ERROR), pytest.raises(PermissionDeniedError) as fb_single:
+        await assignment_service.create_assignment(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentCreateDTO(
+                assigned_email="cross1@alpha.fi",
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=beta_brief_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
+                assignee_input_keys=[],
+                hard_deadline_at=deadline,
+            ),
+        )
+    assert fb_single.value.status_code == 403
+    assert fb_single.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+
+    with caplog.at_level(logging.ERROR), pytest.raises(PermissionDeniedError) as fb_batch:
+        await assignment_service.create_assignment_batch(
+            initiator=_manager_token(),
+            payload=ExecutionAssignmentBatchCreateDTO(
+                recipients=[ExecutionAssignmentRecipientDTO(email="cross2@alpha.fi")],
+                workflow_id=WORKFLOW_ID,
+                task_brief_id=beta_brief_id,
+                locked_inputs=WorkflowInputs(dynamic_inputs={}),
+                assignee_input_keys=[],
+                hard_deadline_at=deadline,
+            ),
+        )
+    assert fb_batch.value.status_code == 403
+    assert fb_batch.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value

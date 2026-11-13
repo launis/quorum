@@ -240,6 +240,7 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "assigned_user_id",
         "invited_role",
         "task_brief_id",
+        "task_brief_snapshot",
         "locked_inputs",
         "assignee_input_keys",
         "draft_inputs",
@@ -431,7 +432,7 @@ REQUIRED_IDEMPOTENT_ALTER_COLUMNS: dict[str, frozenset[str]] = {
     "users": frozenset({"firebase_uid", "deleted_at"}),
     "tenant_secrets": frozenset({"mcp_gateway_id"}),
     "executions": frozenset({"state_version"}),
-    "execution_assignments": frozenset({"task_brief_id"}),
+    "execution_assignments": frozenset({"task_brief_id", "task_brief_snapshot"}),
 }
 
 

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from backend_v2.models.dtos.context_variables import ContextVariablesDTO
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
-from pydantic import ConfigDict, EmailStr, Field, field_validator
+from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import (
@@ -28,6 +28,7 @@ from backend_v2.models.core_base import (
 )
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.system_config import DataDictionaryField, MCPAuditTrace
+from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO
 from backend_v2.models.dtos.context_variables import EvaluatedMatrixContextDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
@@ -575,6 +576,7 @@ class ExecutionAssignment(V2CoreBase):
         workflow_id: Target Workflow ID (wf_<hex32>).
         output_profile_id: Optional Output Profile ID (prf_<hex32>).
         task_brief_id: Optional TaskBrief ID (tbr_<hex32>).
+        task_brief_snapshot: Frozen publication-time snapshot of TaskBrief instructions and metadata.
         target_locale: Target execution locale.
         locked_inputs: Immutable manager-locked workflow inputs.
         assignee_input_keys: ExpectedInput keys unlocked for assignee completion.
@@ -623,6 +625,13 @@ class ExecutionAssignment(V2CoreBase):
     task_brief_id: Annotated[
         PrefixedUUID7 | None,
         Field(default=None, description="Optional TaskBrief ID (tbr_<hex32>)"),
+    ] = None
+    task_brief_snapshot: Annotated[
+        TaskAssignmentBriefDTO | None,
+        Field(
+            default=None,
+            description="Frozen publication-time snapshot of TaskBrief instructions and metadata when task_brief_id is set",
+        ),
     ] = None
     target_locale: Annotated[
         LaxSystemLocale,
@@ -699,3 +708,29 @@ class ExecutionAssignment(V2CoreBase):
         if isinstance(value, str):
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
         return value
+
+    @model_validator(mode="after")
+    def _validate_task_brief_snapshot_parity(self) -> Self:
+        """Enforce 1:1 presence and identifier parity between task_brief_id and task_brief_snapshot.
+
+        Returns:
+            Validated ExecutionAssignment instance.
+
+        Raises:
+            ValueError: If task_brief_id and task_brief_snapshot are not both None or both populated,
+                or if task_brief_snapshot.id does not match task_brief_id.
+        """
+        if (self.task_brief_id is None) != (self.task_brief_snapshot is None):
+            raise ValueError(
+                "ExecutionAssignment task_brief_id and task_brief_snapshot must both be None or both be populated."
+            )
+        if (
+            self.task_brief_id is not None
+            and self.task_brief_snapshot is not None
+            and self.task_brief_snapshot.id != self.task_brief_id
+        ):
+            raise ValueError(
+                f"ExecutionAssignment task_brief_snapshot.id ('{self.task_brief_snapshot.id}') "
+                f"must match task_brief_id ('{self.task_brief_id}')."
+            )
+        return self

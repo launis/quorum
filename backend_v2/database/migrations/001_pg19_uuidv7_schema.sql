@@ -517,18 +517,19 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     assigned_email TEXT NOT NULL,
     assigned_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    invited_role TEXT NOT NULL DEFAULT 'MEMBER',
+    invited_role TEXT NOT NULL DEFAULT 'MEMBER' CHECK (invited_role IN ('ROOT', 'ADMIN', 'MANAGER', 'MEMBER', 'VIEWER')),
     workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
     output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
     task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL,
+    task_brief_snapshot JSONB,
     target_locale TEXT NOT NULL,
     locked_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
     assignee_input_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
     draft_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
     token_hash TEXT NOT NULL UNIQUE,
-    status TEXT NOT NULL DEFAULT 'pending',
-    email_delivery_status VARCHAR(32) NOT NULL DEFAULT 'pending',
-    result_visibility TEXT NOT NULL DEFAULT 'confirmation_only',
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'activated', 'submitted', 'completed', 'expired', 'revoked')),
+    email_delivery_status VARCHAR(32) NOT NULL DEFAULT 'pending' CHECK (email_delivery_status IN ('pending', 'sent', 'failed')),
+    result_visibility TEXT NOT NULL DEFAULT 'confirmation_only' CHECK (result_visibility IN ('confirmation_only', 'full_report_access')),
     hard_deadline_at TIMESTAMPTZ NOT NULL,
     relative_duration_seconds INTEGER CHECK (relative_duration_seconds IS NULL OR relative_duration_seconds >= 60),
     activated_at TIMESTAMPTZ,
@@ -544,9 +545,40 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     CONSTRAINT enforce_assignment_output_profile_uuidv7 CHECK (output_profile_id IS NULL OR uuid_extract_version(output_profile_id) = 7),
     CONSTRAINT enforce_assignment_task_brief_uuidv7 CHECK (task_brief_id IS NULL OR uuid_extract_version(task_brief_id) = 7),
     CONSTRAINT enforce_assignment_execution_uuidv7 CHECK (execution_id IS NULL OR uuid_extract_version(execution_id) = 7),
-    CONSTRAINT enforce_assignment_created_by_uuidv7 CHECK (uuid_extract_version(created_by) = 7)
+    CONSTRAINT enforce_assignment_created_by_uuidv7 CHECK (uuid_extract_version(created_by) = 7),
+    CONSTRAINT enforce_assignment_task_brief_snapshot_parity CHECK ((task_brief_id IS NULL) = (task_brief_snapshot IS NULL))
 );
 ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL;
+ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_snapshot JSONB;
+DO $$
+BEGIN
+    UPDATE execution_assignments ea
+    SET task_brief_snapshot = jsonb_build_object(
+        'id', 'tbr_' || replace(tb.id::text, '-', ''),
+        'label', tb.label,
+        'instruction_text', tb.instruction_text,
+        'source_url', tb.source_url
+    )
+    FROM task_briefs tb
+    WHERE ea.task_brief_id = tb.id
+      AND ea.task_brief_snapshot IS NULL;
+
+    UPDATE execution_assignments ea
+    SET task_brief_id = NULL
+    WHERE ea.task_brief_id IS NOT NULL
+      AND ea.task_brief_snapshot IS NULL;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'enforce_assignment_task_brief_snapshot_parity'
+          AND conrelid = 'execution_assignments'::regclass
+    ) THEN
+        ALTER TABLE execution_assignments
+        ADD CONSTRAINT enforce_assignment_task_brief_snapshot_parity
+        CHECK ((task_brief_id IS NULL) = (task_brief_snapshot IS NULL));
+    END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_organization_id ON execution_assignments(organization_id);
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_assigned_user_id ON execution_assignments(assigned_user_id);
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_workflow_id ON execution_assignments(workflow_id);

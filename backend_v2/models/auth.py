@@ -16,7 +16,6 @@ from pydantic import ConfigDict, EmailStr, Field, SecretStr, field_validator, mo
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import (
-    I18nText,
     PrefixedUUID7,
     V2CoreBase,
     generate_uuid7_opaque_id,
@@ -24,6 +23,7 @@ from backend_v2.models.core_base import (
 )
 from backend_v2.models.domain.execution import ExecutionAssignment as ExecutionAssignment
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO as TaskAssignmentBriefDTO
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.enums import (
     AssignmentResultVisibility,
@@ -1043,30 +1043,6 @@ class InvitationBatchResponseDTO(BaseResponseDTO):
 
 
 # --- Task Assignment & Transactional Email DTOs ---
-
-
-class TaskAssignmentBriefDTO(BaseResponseDTO):
-    """Hydrated TaskBrief summary embedded in task assignment responses.
-
-    Attributes:
-        id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).
-        label: Localized title of the task brief.
-        instruction_text: Optional plain-text or markdown task instructions.
-        source_url: Optional reference document or external resource URL.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    id: Annotated[PrefixedUUID7, Field(description="Canonical TaskBrief ID (tbr_<hex32>)")]
-    label: Annotated[I18nText, Field(description="Localized title of the task brief")]
-    instruction_text: Annotated[
-        str | None,
-        Field(default=None, description="Optional task brief instruction text"),
-    ] = None
-    source_url: Annotated[
-        str | None,
-        Field(default=None, description="Optional reference document or external resource URL"),
-    ] = None
 
 
 class ExecutionAssignmentCreateDTO(BaseDTO):

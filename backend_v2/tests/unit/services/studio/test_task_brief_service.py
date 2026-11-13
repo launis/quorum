@@ -16,7 +16,7 @@ from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionAssignment
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.domain.task_brief import TaskBrief
+from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO, TaskBrief
 from backend_v2.models.enums import AssignmentStatus, EntityPrefix
 from backend_v2.services.studio.task_brief_service import StudioTaskBriefService
 from backend_v2.tests.factories.model_factories import TaskBriefFactory
@@ -288,6 +288,12 @@ async def test_delete_task_brief_blocked_by_active_assignment_usage_error(
         assigned_email="candidate@alpha.fi",
         workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
         task_brief_id=sample_brief.id,
+        task_brief_snapshot=TaskAssignmentBriefDTO(
+            id=sample_brief.id,
+            label=sample_brief.label,
+            instruction_text=sample_brief.instruction_text,
+            source_url=sample_brief.source_url,
+        ),
         locked_inputs=WorkflowInputs(dynamic_inputs={}),
         assignee_input_keys=[],
         draft_inputs=WorkflowInputs(dynamic_inputs={}),
@@ -313,7 +319,7 @@ async def test_delete_task_brief_blocked_by_active_assignment_usage_error(
     assert adapter_blocked_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
 
     # Once assignment no longer references sample_brief.id, deletion succeeds
-    unlinked_assignment = active_assignment.model_copy(update={"task_brief_id": None})
+    unlinked_assignment = active_assignment.model_copy(update={"task_brief_id": None, "task_brief_snapshot": None})
     await uow.entities.upsert_execution_assignment(unlinked_assignment)
 
     await task_brief_service.delete_task_brief(admin_token, sample_brief.id)

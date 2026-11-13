@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from polyfactory.factories.pydantic_factory import ModelFactory
@@ -24,6 +24,7 @@ from backend_v2.models.domain.base import AuditLogRecord, UsageRecord
 from backend_v2.models.domain.causal import CausalAnalysis
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.execution import (
+    ExecutionAssignment,
     ExecutionRecord,
     ExecutionStep,
     FrozenContext,
@@ -61,7 +62,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
-from backend_v2.models.domain.task_brief import TaskBrief
+from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO, TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.causal_discovery import (
     CausalEdgeDTO,
@@ -88,9 +89,12 @@ from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
+    AssignmentResultVisibility,
+    AssignmentStatus,
     BlockDataType,
     CognitiveTier,
     DisplayScale,
+    EmailDeliveryStatus,
     EngineType,
     EntityPrefix,
     ExecutionStatus,
@@ -104,7 +108,9 @@ from backend_v2.models.enums import (
     SecretStorageMode,
     StepType,
     StepZone,
+    SystemLocale,
     TargetBlockType,
+    UserRole,
     VisualIntent,
     XaiExtensionType,
 )
@@ -123,6 +129,7 @@ __all__ = [
     "CausalGraphPayloadDTOFactory",
     "CausalNodeDTOFactory",
     "ErrorTraceEventFactory",
+    "ExecutionAssignmentFactory",
     "ExecutionRecordFactory",
     "ExecutionStepFactory",
     "GlobalContextVarsDTOFactory",
@@ -276,7 +283,6 @@ class StepFactory(ModelFactory[Step]):
     cognitive_tier: CognitiveTier = CognitiveTier.FAST
     hook: str | None = None
     role_block_id: str | None = None
-    extraction_protocol_block_id: str | None = None
     execution_persona_block_id: str | None = None
     safety: Literal["safe", "unsafe"] = "safe"
     is_system_core: bool = False
@@ -320,13 +326,22 @@ class StepFactory(ModelFactory[Step]):
         return I18nText(translations={"en": "Test Step Description", "fi": "Testiaskeleen kuvaus"})
 
     @classmethod
-    def criteria_block_ids(cls) -> list[str]:
-        """Generate an empty criteria block IDs list.
+    def extraction_protocol_block_id(cls) -> str:
+        """Generate a valid extraction protocol block Opaque Stripe ID.
 
         Returns:
-            Empty list of prompt block identifiers.
+            Canonical Opaque Stripe ID with 'blk_' prefix.
         """
-        return []
+        return generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+
+    @classmethod
+    def criteria_block_ids(cls) -> list[str]:
+        """Generate a default single-element criteria block IDs list for LLM steps.
+
+        Returns:
+            List containing one canonical 'blk_' prompt block identifier.
+        """
+        return [generate_opaque_id(EntityPrefix.PROMPT_BLOCK)]
 
     @classmethod
     def pre_hooks(cls) -> list[str]:
@@ -495,6 +510,111 @@ class TaskBriefFactory(ModelFactory[TaskBrief]):
             I18nText instance containing localized task brief descriptions.
         """
         return I18nText(translations={"en": "Test Task Brief Description", "fi": "Testitehtävänannon kuvaus"})
+
+
+class ExecutionAssignmentFactory(ModelFactory[ExecutionAssignment]):
+    """Polyfactory model factory for ExecutionAssignment domain models."""
+
+    __model__ = ExecutionAssignment
+    __set_as_default_factory_for_type__ = True
+
+    batch_id: str | None = None
+    assigned_email: str = "candidate@quorum.ai"
+    assigned_user_id: str | None = None
+    invited_role: UserRole = UserRole.MEMBER
+    output_profile_id: str | None = None
+    task_brief_id: str | None = None
+    task_brief_snapshot: TaskAssignmentBriefDTO | None = None
+    target_locale: SystemLocale = SystemLocale.FI
+    token_hash: str = "b" * 64
+    status: AssignmentStatus = AssignmentStatus.PENDING
+    email_delivery_status: EmailDeliveryStatus = EmailDeliveryStatus.PENDING
+    result_visibility: AssignmentResultVisibility = AssignmentResultVisibility.CONFIRMATION_ONLY
+    relative_duration_seconds: int | None = None
+    activated_at: datetime | None = None
+    submitted_at: datetime | None = None
+    execution_id: str | None = None
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid assignment Opaque Stripe ID with 'tsk_' prefix.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'tsk_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ASSIGNMENT)
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a valid organization Opaque Stripe ID with 'org_' prefix.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'org_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
+    def workflow_id(cls) -> str:
+        """Generate a valid workflow Opaque Stripe ID with 'wf_' prefix.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'wf_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.WORKFLOW)
+
+    @classmethod
+    def created_by(cls) -> str:
+        """Generate a valid creator user Opaque Stripe ID with 'usr_' prefix.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'usr_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.USER)
+
+    @classmethod
+    def locked_inputs(cls) -> WorkflowInputs:
+        """Generate an empty manager-locked workflow inputs container.
+
+        Returns:
+            Initialized WorkflowInputs model instance.
+        """
+        return WorkflowInputs(dynamic_inputs={})
+
+    @classmethod
+    def assignee_input_keys(cls) -> list[str]:
+        """Generate an empty unlocked assignee input keys list.
+
+        Returns:
+            Empty list of input key strings.
+        """
+        return []
+
+    @classmethod
+    def draft_inputs(cls) -> WorkflowInputs:
+        """Generate an empty draft workflow inputs container.
+
+        Returns:
+            Initialized WorkflowInputs model instance.
+        """
+        return WorkflowInputs(dynamic_inputs={})
+
+    @classmethod
+    def hard_deadline_at(cls) -> datetime:
+        """Generate a future UTC hard deadline timestamp.
+
+        Returns:
+            UTC-aware datetime 24 hours in the future.
+        """
+        return datetime.now(UTC) + timedelta(hours=24)
+
+    @classmethod
+    def created_at(cls) -> datetime:
+        """Generate a current UTC creation timestamp.
+
+        Returns:
+            UTC-aware current datetime.
+        """
+        return datetime.now(UTC)
 
 
 class OutputProfileFactory(ModelFactory[OutputProfile]):

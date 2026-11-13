@@ -44,7 +44,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_165/03_phase3_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]`
-  - [ ] Step 3.1: Immutable task_brief_snapshot JSONB Parity & Fail-Fast TaskBrief Resolution on execution_assignments
+  - [x] Step 3.1: Immutable task_brief_snapshot JSONB Parity & Fail-Fast TaskBrief Resolution on execution_assignments
   - [ ] Step 3.2: Kernel-Level ON DELETE RESTRICT & ROOT_SYSTEM organization_id NOT NULL ON DELETE CASCADE Across All 120 Tenant-Scoped System Seed Rows
   - [ ] Step 3.3: O(1) Indexed SQL Query Pushdown for Execution Assignments & Executions
   - [ ] Step 3.4: Flutter Studio Freezed organizationId Non-Null Parity Across Models, NodeStrategy & Studio Views
@@ -229,7 +229,7 @@
 | REQ-165-006 | Add `step_criteria_blocks` and `workflow_step_refs` (`ON DELETE RESTRICT`), deferrable `workflows.default_profile_id`, typed UUID FKs on `*_target_block` and `*.created_by`, `VIRTUAL` `created_at`, FK/tenant B-Tree indexes, and `Workflow.version` SQL OCC. | Phase 2, Step 2.2 | [x] Completed |
 | REQ-165-007 | Split `"system_config"` in `seed_data.json`, `seed_registry.py`, `run_seed.py`, and operational CLI scripts into `"model_registries"` and `"mcp_gateways"` (`mcp_0195f3a00000700080008172bda70c86`) with 100% coaching prompt preservation. | Phase 2, Step 2.3 | [x] Completed |
 | REQ-165-008 | Synchronize Flutter `EntityPrefix` (`enums.dart`), remove `apiKey` and `parsingMode` from `LlmModelConfig` and `ModelRegistryView`, and enforce required `McpGateway.organizationId`. | Phase 2, Step 2.4 | [x] Completed |
-| REQ-165-009 | Add immutable `task_brief_snapshot JSONB` (`enforce_assignment_task_brief_snapshot_parity`) to `ExecutionAssignment` and `execution_assignments` via frozen `TaskAssignmentBriefDTO(V2CoreBase)` in `task_brief.py`, freeze at cohort publication time, and drop `strict: bool = False` in `_validate_and_resolve_task_brief`. | Phase 3, Step 3.1 | [ ] Pending |
+| REQ-165-009 | Add immutable `task_brief_snapshot JSONB` (`enforce_assignment_task_brief_snapshot_parity`) to `ExecutionAssignment` and `execution_assignments` via frozen `TaskAssignmentBriefDTO(V2CoreBase)` in `task_brief.py`, freeze at cohort publication time, and drop `strict: bool = False` in `_validate_and_resolve_task_brief`. | Phase 3, Step 3.1 | [x] Completed |
 | REQ-165-010 | Enforce kernel `ON DELETE RESTRICT` on `execution_assignments` FKs (dropping `_check_active_assignment_usage`) and `organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE` across all 120 tenant-scoped `ROOT_SYSTEM` seed rows (`119` Studio rows hydrated + `1` existing `mcp_gateways` row) and Studio models/DTOs. | Phase 3, Step 3.2 | [ ] Pending |
 | REQ-165-011 | Expose and wire $O(1)$ indexed SQL query methods (`get_execution_assignment_by_token_hash`, `get_execution_assignment_by_execution_id`, `list_execution_assignments_by_organization`, `list_executions_filtered`) on `EntityPersistencePort` and `PostgresEntityAdapter`, dropping `count_executions_by_matrix`. | Phase 3, Step 3.3 | [ ] Pending |
 | REQ-165-012 | Synchronize non-nullable `@StrictOpaqueIdConverter() required String organizationId` across Flutter Studio Freezed models (`TaskBrief`, `Workflow`, `NodeStrategy`, `PromptBlock`, `OutputProfile`) and their 3 Studio UI callers. | Phase 3, Step 3.4 | [ ] Pending |

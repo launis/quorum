@@ -80,6 +80,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO
 from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
 from backend_v2.models.enums import (
     AssignmentResultVisibility,
@@ -96,7 +97,11 @@ from backend_v2.models.enums import (
     SystemLocale,
 )
 from backend_v2.settings import get_settings
-from backend_v2.tests.factories.model_factories import AuditLogRecordFactory, UsageRecordFactory
+from backend_v2.tests.factories.model_factories import (
+    AuditLogRecordFactory,
+    ExecutionAssignmentFactory,
+    UsageRecordFactory,
+)
 from backend_v2.tests.fakes.in_memory_uow import (
     InMemoryAsyncPgPool,
     InMemoryAsyncPgRecord,
@@ -219,6 +224,7 @@ def _build_execution_assignment(organization_id: str, created_by: str) -> Execut
         Validated ExecutionAssignment instance.
     """
     now = datetime.now(UTC)
+    brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
     return ExecutionAssignment(
         id=generate_opaque_id(EntityPrefix.ASSIGNMENT),
         batch_id=generate_opaque_id(EntityPrefix.ASSIGNMENT),
@@ -228,7 +234,13 @@ def _build_execution_assignment(organization_id: str, created_by: str) -> Execut
         invited_role=UserRole.MEMBER,
         workflow_id=generate_opaque_id(EntityPrefix.WORKFLOW),
         output_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
-        task_brief_id=generate_opaque_id(EntityPrefix.TASK_BRIEF),
+        task_brief_id=brief_id,
+        task_brief_snapshot=TaskAssignmentBriefDTO(
+            id=brief_id,
+            label=I18nText(translations={"en": "Architecture Case", "fi": "Arkkitehtuuritapaus"}),
+            instruction_text="Analyze the architectural trade-offs.",
+            source_url="https://docs.acme.example.com/brief.pdf",
+        ),
         target_locale=SystemLocale.FI,
         locked_inputs=WorkflowInputs(dynamic_inputs={"role_context": "Senior Architect"}),
         assignee_input_keys=["candidate_essay"],
@@ -404,6 +416,7 @@ async def test_postgres_entity_adapter_iam_tables_roundtrip_positive() -> None:
         assert fetched_assign.id == assignment.id
         assert fetched_assign.batch_id == assignment.batch_id
         assert fetched_assign.task_brief_id == assignment.task_brief_id
+        assert fetched_assign.task_brief_snapshot == assignment.task_brief_snapshot
         assert fetched_assign.assigned_email == assignment.assigned_email
         assert fetched_assign.locked_inputs == assignment.locked_inputs
         assert fetched_assign.assignee_input_keys == ["candidate_essay"]
@@ -953,4 +966,72 @@ async def test_audit_and_usage_ledger_fault_and_invalid_id_failure() -> None:
         assert rollup_app_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     finally:
         pool.clear_faults()
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_execution_assignment_without_task_brief_id_satisfies_snapshot_parity() -> None:
+    """Verify ExecutionAssignment with task_brief_id=None and task_brief_snapshot=None roundtrips cleanly."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        assignment = ExecutionAssignmentFactory.build(
+            task_brief_id=None,
+            task_brief_snapshot=None,
+        )
+        saved_id = await upsert_execution_assignment_row(conn, _TIMEOUT, assignment)
+        assert saved_id == assignment.id
+        fetched = await get_execution_assignment_row(conn, _TIMEOUT, assignment.id)
+        assert fetched is not None
+        assert fetched.task_brief_id is None
+        assert fetched.task_brief_snapshot is None
+    finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_execution_assignment_mismatched_task_brief_id_and_snapshot_raises_validation_error() -> None:
+    """Verify mismatched task_brief_id and task_brief_snapshot fail fast in Pydantic and SQL check constraints."""
+    brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    other_brief_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
+    snapshot = TaskAssignmentBriefDTO(
+        id=brief_id,
+        label=I18nText(translations={"en": "Brief", "fi": "Tehtävänanto"}),
+        instruction_text="Complete the assessment.",
+        source_url=None,
+    )
+
+    with pytest.raises(ValidationError):
+        ExecutionAssignmentFactory.build(
+            task_brief_id=brief_id,
+            task_brief_snapshot=None,
+        )
+
+    with pytest.raises(ValidationError):
+        ExecutionAssignmentFactory.build(
+            task_brief_id=None,
+            task_brief_snapshot=snapshot,
+        )
+
+    with pytest.raises(ValidationError):
+        ExecutionAssignmentFactory.build(
+            task_brief_id=other_brief_id,
+            task_brief_snapshot=snapshot,
+        )
+
+    valid_base = ExecutionAssignmentFactory.build(task_brief_id=None, task_brief_snapshot=None)
+    bypassed = valid_base.model_copy(
+        update={
+            "task_brief_id": brief_id,
+            "task_brief_snapshot": None,
+        }
+    )
+
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        with pytest.raises(AppException) as sql_exc:
+            await upsert_execution_assignment_row(conn, _TIMEOUT, bypassed)
+        assert "enforce_assignment_task_brief_snapshot_parity" in sql_exc.value.message
+    finally:
         await pool.release(conn)

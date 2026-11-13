@@ -2583,6 +2583,12 @@ class InMemoryAsyncPgConnection:
             "report_artifacts",
         ):
             if f"INSERT INTO {tbl.upper()}" in normalized:
+                if tbl == "execution_assignments" and len(args) >= 10 and (args[8] is None) != (args[9] is None):
+                    raise _InMemorySqlStateError(
+                        "new row for relation 'execution_assignments' violates check constraint "
+                        "'enforce_assignment_task_brief_snapshot_parity'",
+                        sqlstate="23514",
+                    )
                 row_id = str(args[0])
                 self._store.seed_tables[tbl][row_id] = tuple(_to_column_value(a) for a in args)
                 return "INSERT 0 1"

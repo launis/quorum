@@ -352,7 +352,6 @@ class ExecutionAssignmentService:
         task_brief = await self._validate_and_resolve_task_brief(
             payload.task_brief_id,
             org.id,
-            strict=True,
         )
 
         raw_token = secrets.token_urlsafe(32)
@@ -364,6 +363,7 @@ class ExecutionAssignmentService:
             workflow_id=payload.workflow_id,
             output_profile_id=payload.output_profile_id,
             task_brief_id=payload.task_brief_id,
+            task_brief_snapshot=task_brief,
             target_locale=payload.target_locale,
             locked_inputs=payload.locked_inputs,
             assignee_input_keys=payload.assignee_input_keys,
@@ -387,7 +387,7 @@ class ExecutionAssignmentService:
             assignment_id=persisted.id,
             workflow_id=persisted.workflow_id,
         )
-        return self._to_assignment_response(persisted, task_brief=task_brief)
+        return self._to_assignment_response(persisted)
 
     async def create_assignment_batch(
         self,
@@ -419,7 +419,6 @@ class ExecutionAssignmentService:
         task_brief = await self._validate_and_resolve_task_brief(
             payload.task_brief_id,
             org.id,
-            strict=True,
         )
         deduplicated = await self._preflight_validate_batch_recipients(
             org=org,
@@ -478,7 +477,7 @@ class ExecutionAssignmentService:
                 if a.assigned_user_id == initiator.id
                 or (initiator.email is not None and a.assigned_email.lower() == initiator.email.lower())
             ]
-        return [await self._to_hydrated_assignment_response(a) for a in visible]
+        return [self._to_assignment_response(a) for a in visible]
 
     async def resend_assignment_email(
         self,
@@ -512,7 +511,7 @@ class ExecutionAssignmentService:
             assignment=rotated,
             raw_token=raw_token,
         )
-        return await self._to_hydrated_assignment_response(persisted)
+        return self._to_assignment_response(persisted)
 
     async def preview_assignment(self, raw_token: str) -> ExecutionAssignmentPreviewDTO:
         """Perform a 100% side-effect-free SafeLinks-immune preview lookup by token digest.
@@ -535,11 +534,6 @@ class ExecutionAssignmentService:
             context_label="Assignment preview",
         )
         org = await self._fetch_org_or_raise(assignment.organization_id)
-        task_brief = await self._validate_and_resolve_task_brief(
-            assignment.task_brief_id,
-            assignment.organization_id,
-            strict=False,
-        )
         return ExecutionAssignmentPreviewDTO(
             id=assignment.id,
             organization_id=assignment.organization_id,
@@ -547,7 +541,7 @@ class ExecutionAssignmentService:
             assigned_email_masked=mask_email_address(str(assignment.assigned_email)),
             workflow_id=assignment.workflow_id,
             task_brief_id=assignment.task_brief_id,
-            task_brief=task_brief,
+            task_brief=assignment.task_brief_snapshot,
             target_locale=assignment.target_locale,
             status=assignment.status,
             hard_deadline_at=assignment.hard_deadline_at,
@@ -625,7 +619,7 @@ class ExecutionAssignmentService:
         await self._assert_not_hard_expired(assignment=assignment, now=now)
         if assignment.status == AssignmentStatus.ACTIVATED and assignment.activated_at is not None:
             await self._assert_within_dual_clock_deadline(assignment=assignment, now=now, include_grace=False)
-            return await self._to_hydrated_assignment_response(assignment)
+            return self._to_assignment_response(assignment)
 
         activated = assignment.model_copy(
             update={
@@ -635,7 +629,7 @@ class ExecutionAssignmentService:
             }
         )
         await self._save_assignment(activated)
-        return await self._to_hydrated_assignment_response(activated)
+        return self._to_assignment_response(activated)
 
     async def save_draft_inputs(
         self,
@@ -685,7 +679,7 @@ class ExecutionAssignmentService:
         normalized_draft = await self._normalize_assignee_ingress_inputs(payload.draft_inputs, doc_service)
         updated = assignment.model_copy(update={"draft_inputs": normalized_draft})
         await self._save_assignment(updated)
-        return await self._to_hydrated_assignment_response(updated)
+        return self._to_assignment_response(updated)
 
     async def submit_assignment(
         self,
@@ -1008,6 +1002,7 @@ class ExecutionAssignmentService:
                 workflow_id=payload.workflow_id,
                 output_profile_id=payload.output_profile_id,
                 task_brief_id=payload.task_brief_id,
+                task_brief_snapshot=task_brief,
                 target_locale=effective_locale,
                 locked_inputs=payload.locked_inputs,
                 assignee_input_keys=payload.assignee_input_keys,
@@ -1039,7 +1034,7 @@ class ExecutionAssignmentService:
             final_assignment = draft.model_copy(update={"email_delivery_status": status_val})
             await self._save_assignment(final_assignment)
             self._last_generated_tokens[final_assignment.id] = raw_tokens_by_id[final_assignment.id]
-            persisted_dtos.append(self._to_assignment_response(final_assignment, task_brief=task_brief))
+            persisted_dtos.append(self._to_assignment_response(final_assignment))
         return persisted_dtos
 
     @staticmethod
@@ -1052,6 +1047,7 @@ class ExecutionAssignmentService:
         workflow_id: PrefixedUUID7,
         output_profile_id: PrefixedUUID7 | None,
         task_brief_id: PrefixedUUID7 | None,
+        task_brief_snapshot: TaskAssignmentBriefDTO | None,
         target_locale: SystemLocale,
         locked_inputs: WorkflowInputs,
         assignee_input_keys: list[str],
@@ -1071,7 +1067,8 @@ class ExecutionAssignmentService:
             invited_role: Role granted upon onboarding.
             workflow_id: Target Workflow ID.
             output_profile_id: Optional Output Profile ID.
-            task_brief_id: Optional Task Definition PromptBlock ID.
+            task_brief_id: Optional TaskBrief ID.
+            task_brief_snapshot: Frozen publication-time TaskAssignmentBriefDTO snapshot.
             target_locale: Target locale enum.
             locked_inputs: Manager-locked WorkflowInputs.
             assignee_input_keys: Unlocked input keys for assignee.
@@ -1097,6 +1094,7 @@ class ExecutionAssignmentService:
             workflow_id=workflow_id,
             output_profile_id=output_profile_id,
             task_brief_id=task_brief_id,
+            task_brief_snapshot=task_brief_snapshot,
             target_locale=target_locale,
             locked_inputs=locked_inputs,
             assignee_input_keys=list(assignee_input_keys),
@@ -1784,29 +1782,24 @@ class ExecutionAssignmentService:
         self,
         task_brief_id: str | None,
         organization_id: str,
-        *,
-        strict: bool = True,
     ) -> TaskAssignmentBriefDTO | None:
-        """Validate and resolve a TaskBrief into a TaskAssignmentBriefDTO.
+        """Validate and resolve a TaskBrief into an immutable TaskAssignmentBriefDTO snapshot.
 
         Args:
             task_brief_id: Optional TaskBrief identifier (tbr_<hex32>).
             organization_id: Owning organization identifier of the assignment.
-            strict: Whether to fail fast with AppException if the brief is missing or unauthorized.
 
         Returns:
-            Hydrated TaskAssignmentBriefDTO or None.
+            Frozen TaskAssignmentBriefDTO snapshot or None when task_brief_id is None.
 
         Raises:
-            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if brief is missing and strict is True.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if brief is missing.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if brief belongs to another tenant.
             AppException: With ErrorCodes.SERVICE_DEPENDENCY_MISSING if repository is missing.
         """
         if task_brief_id is None:
             return None
         if self.task_brief_repo is None:
-            if not strict:
-                return None
             logger.error(
                 "[ExecutionAssignmentService] %s: TaskBrief repository is required to resolve task_brief_id '%s'.",
                 ErrorCodes.SERVICE_DEPENDENCY_MISSING.name,
@@ -1822,8 +1815,6 @@ class ExecutionAssignmentService:
 
         brief = await self.task_brief_repo.get_task_brief_by_id(task_brief_id)
         if brief is None:
-            if not strict:
-                return None
             logger.error(
                 "[ExecutionAssignmentService] %s: TaskBrief '%s' not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -1834,8 +1825,6 @@ class ExecutionAssignmentService:
             raise ResourceNotFoundError(resource_type="task_brief", resource_id=task_brief_id)
 
         if not SystemOrganizations.is_system(brief.organization_id) and brief.organization_id != organization_id:
-            if not strict:
-                return None
             logger.error(
                 "[ExecutionAssignmentService] %s: Task brief '%s' org '%s' not accessible to org '%s'.",
                 ErrorCodes.PERMISSION_DENIED.name,
@@ -1897,39 +1886,17 @@ class ExecutionAssignmentService:
 
         return WorkflowInputs.model_validate(processed.model_dump(exclude_unset=True))
 
-    async def _to_hydrated_assignment_response(
-        self,
-        assignment: ExecutionAssignment,
-    ) -> ExecutionAssignmentResponseDTO:
-        """Resolve optional TaskAssignmentBriefDTO and project an ExecutionAssignment into a response DTO.
-
-        Args:
-            assignment: ExecutionAssignment domain model.
-
-        Returns:
-            Hydrated ExecutionAssignmentResponseDTO.
-        """
-        task_brief = await self._validate_and_resolve_task_brief(
-            assignment.task_brief_id,
-            assignment.organization_id,
-            strict=False,
-        )
-        return self._to_assignment_response(assignment, task_brief=task_brief)
-
     @staticmethod
     def _to_assignment_response(
         assignment: ExecutionAssignment,
-        *,
-        task_brief: TaskAssignmentBriefDTO | None = None,
     ) -> ExecutionAssignmentResponseDTO:
         """Project an ExecutionAssignment domain model into a redacted ExecutionAssignmentResponseDTO.
 
         Args:
             assignment: ExecutionAssignment domain model.
-            task_brief: Optional hydrated TaskAssignmentBriefDTO.
 
         Returns:
-            ExecutionAssignmentResponseDTO excluding token_hash.
+            ExecutionAssignmentResponseDTO excluding token_hash and embedding frozen task_brief_snapshot.
         """
         return ExecutionAssignmentResponseDTO(
             id=assignment.id,
@@ -1941,7 +1908,7 @@ class ExecutionAssignmentService:
             workflow_id=assignment.workflow_id,
             output_profile_id=assignment.output_profile_id,
             task_brief_id=assignment.task_brief_id,
-            task_brief=task_brief,
+            task_brief=assignment.task_brief_snapshot,
             target_locale=assignment.target_locale,
             locked_inputs=assignment.locked_inputs,
             assignee_input_keys=list(assignment.assignee_input_keys),
