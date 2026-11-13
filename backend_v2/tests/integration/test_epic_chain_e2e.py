@@ -19,7 +19,6 @@ from backend_v2.models.enums import (
     TargetBlockType,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ReportView, SduiMatrixTableBlock, SduiNACard
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
@@ -27,27 +26,24 @@ from backend_v2.tests.factories.model_factories import (
     ExecutionRecordFactory,
     MatrixPromptBlockFactory,
     OutputProfileFactory,
+    TraceEventFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
-
-
-class TraceEventFactory(ModelFactory[TraceEvent]):
-    """Polyfactory model factory for TraceEvent instances."""
-
-    __model__ = TraceEvent
 
 
 class SduiMatrixTableBlockFactory(ModelFactory[SduiMatrixTableBlock]):
     """Polyfactory model factory for SduiMatrixTableBlock SDUI view blocks."""
 
     __model__ = SduiMatrixTableBlock
+    __use_defaults__ = True
 
 
 class TDAAssertionFactory(ModelFactory[TDAAssertion]):
     """Polyfactory model factory for TDAAssertion definitions."""
 
     __model__ = TDAAssertion
+    __use_defaults__ = True
 
 
 def _build_test_matrix_scales() -> list[MatrixScale]:
@@ -161,8 +157,9 @@ async def test_sdui_output_rendering_e2e_golden_master() -> None:
         status="published",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
+        mcp_gateway_id=None,
         version=1,
-        organization_id="root",
+        organization_id="org_0195f3a0000070008000000000000000",
         default_profile_id=profile_id,
         default_strictness_level=85,
         expected_inputs=[],
@@ -174,7 +171,7 @@ async def test_sdui_output_rendering_e2e_golden_master() -> None:
         id=profile_id,
         slug="mock-profile-slug",
         workflow_id=wf_id,
-        organization_id="root",
+        organization_id="org_0195f3a0000070008000000000000000",
         name=I18nText(translations={"en": "Mock Profile"}),
         description=I18nText(translations={"en": "desc"}),
         target_block_order=[
@@ -351,13 +348,14 @@ async def test_sdui_chain_e2e_missing_locale_error() -> None:
     """Verify missing locale raises AppException with HTTP 400."""
     repo = InMemoryUnifiedWorkflowRepository()
 
-    execution_id = "exe_22222222222222222222222222222222"
-    wf_id = "wf_22222222222222222222222222222222"
+    execution_id = "exe_0195f3a0000070028222222222222222"
+    wf_id = "wf_0195f3a0000070028222222222222222"
+    profile_id = "prf_0195f3a0000070028222222222222222"
 
     record = ExecutionRecordFactory.build(
         id=execution_id,
         workflow_id=wf_id,
-        output_profile_id="prf_22222222222222222222222222222222",
+        output_profile_id=profile_id,
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         target_locale="",
@@ -374,9 +372,10 @@ async def test_sdui_chain_e2e_missing_locale_error() -> None:
         status="published",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
+        mcp_gateway_id=None,
         version=1,
-        organization_id="root",
-        default_profile_id="prf_22222222222222222222222222222222",
+        organization_id="org_0195f3a0000070008000000000000000",
+        default_profile_id=profile_id,
         default_strictness_level=85,
         expected_inputs=[],
         steps=[],
@@ -393,7 +392,7 @@ async def test_sdui_chain_e2e_missing_locale_error() -> None:
     )
 
     with pytest.raises(AppException) as exc_info:
-        await transformer.build_report_dto(execution_id, "prf_22222222222222222222222222222222", accept_language=None)
+        await transformer.build_report_dto(execution_id, profile_id, accept_language=None)
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -404,10 +403,10 @@ async def test_sdui_chain_e2e_malformed_matrix_payload_failure() -> None:
     """Verify malformed matrix step payload raises AppException with HTTP 500."""
     repo = InMemoryUnifiedWorkflowRepository()
 
-    execution_id = "exe_33333333333333333333333333333333"
-    wf_id = "wf_33333333333333333333333333333333"
-    profile_id = "prf_33333333333333333333333333333333"
-    block_id = "blk_33333333333333333333333333333333"
+    execution_id = "exe_0195f3a0000070038333333333333333"
+    wf_id = "wf_0195f3a0000070038333333333333333"
+    profile_id = "prf_0195f3a0000070038333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
 
     record = ExecutionRecordFactory.build(
         id=execution_id,
@@ -438,8 +437,9 @@ async def test_sdui_chain_e2e_malformed_matrix_payload_failure() -> None:
         status="published",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
+        mcp_gateway_id=None,
         version=1,
-        organization_id="root",
+        organization_id="org_0195f3a0000070008000000000000000",
         default_profile_id=profile_id,
         default_strictness_level=85,
         expected_inputs=[],

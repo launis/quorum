@@ -84,9 +84,13 @@ def test_execution_workflows_router_metadata() -> None:
     assert "Admin Studio V2 - Workflows" in router.tags
 
 
-def test_workflow_rbac_save_member_forbidden(client_member: TestClient) -> None:
+def test_workflow_rbac_save_member_forbidden(
+    client_member: TestClient,
+    fake_workflow_repo: InMemoryWorkflowRepository,
+) -> None:
     """Negative RBAC test: MEMBER role cannot save or mutate studio workflows."""
     workflow = WorkflowFactory.build(organization_id="org_0195f3a0000070018234567890abcdef")
+    fake_workflow_repo._save_isolated(workflow.id, workflow)
     payload = workflow.model_dump(mode="json")
     response = client_member.put(f"/api/v2/studio/workflows/{workflow.id}", json=payload)
 

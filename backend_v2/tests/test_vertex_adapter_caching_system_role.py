@@ -6,6 +6,7 @@ import pytest
 from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
+from backend_v2.tests.factories.model_factories import LLMProviderConfigFactory
 
 
 @pytest.mark.asyncio
@@ -61,7 +62,8 @@ async def test_vertex_adapter_caching_system_role_bug() -> None:
         mock_import.side_effect = fake_import
 
         # Execute
-        payload_result = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+        config = LLMProviderConfigFactory.build(vertex_location="europe-north1")
+        payload_result = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash", config=config)
 
         # Assert - if fail-soft was triggered due to InvalidArgument, 'cached_content' will be missing
         assert "cached_content" in payload_result.kwargs, (

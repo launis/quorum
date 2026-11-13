@@ -55,7 +55,7 @@ def _make_test_record(
     execution_id: str = "exe_0195f3a0000070008123456789abcdef",
     workflow_id: str = "wor_0195f3a0000070008123456789abcdef",
     organization_id: str = "org_1",
-    created_by: str = "u1",
+    created_by: str = "usr_0195f3a0000070008000000000000001",
     status: ExecutionStatus = ExecutionStatus.PASSED,
     target_locale: str = "en",
     profile_id: str | None = None,
@@ -199,7 +199,7 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
     rec = _make_test_record(id="exe_0195f3a0000070008123456789abcdef", status=ExecutionStatus.PENDING)
     repo.set_execution(rec)
 
-    initiator = TokenData(id="u1", role=UserRole.ROOT)
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.ROOT)
 
     with pytest.raises(AppException) as exc_info:
         await service.resume_execution(
@@ -224,7 +224,7 @@ async def test_list_executions_admin_sees_all() -> None:
     repo.set_execution(rec1)
     repo.set_execution(rec2)
 
-    initiator = TokenData(id="u1", role=UserRole.ROOT)
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.ROOT)
 
     with patch.object(service, "check_resumability", return_value=False):
         results = await service.list_executions(initiator=initiator)
@@ -240,19 +240,19 @@ async def test_list_executions_tenant_sees_own() -> None:
     rec1 = _make_test_record(
         id="exe_0195f3a0000070008123456789abcde1",
         organization_id="org_1",
-        created_by="u2",
+        created_by="usr_0195f3a0000070008000000000000002",
         status=ExecutionStatus.PASSED,
     )
     rec2 = _make_test_record(
         id="exe_0195f3a0000070008123456789abcde2",
         organization_id="org_2",
-        created_by="u3",
+        created_by="usr_0195f3a0000070008000000000000003",
         status=ExecutionStatus.PASSED,
     )
     repo.set_execution(rec1)
     repo.set_execution(rec2)
 
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
 
     with patch.object(service, "check_resumability", return_value=False):
         results = await service.list_executions(initiator=initiator)
@@ -271,7 +271,7 @@ async def test_get_execution_admin_sees_any() -> None:
     )
     repo.set_execution(rec)
 
-    initiator = TokenData(id="u1", role=UserRole.ROOT)
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.ROOT)
 
     with patch.object(service, "check_resumability", return_value=False):
         result = await service.get_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
@@ -287,12 +287,12 @@ async def test_get_execution_tenant_sees_own() -> None:
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
-        created_by="u2",
+        created_by="usr_0195f3a0000070008000000000000002",
         status=ExecutionStatus.PASSED,
     )
     repo.set_execution(rec)
 
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
 
     with patch.object(service, "check_resumability", return_value=False):
         result = await service.get_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
@@ -305,10 +305,14 @@ async def test_delete_execution_tenant_deletes_own() -> None:
     executor_mock = Mock()
     service, repo = _create_test_service(executor=executor_mock)
 
-    rec = _make_test_record(id="exe_0195f3a0000070008123456789abcdef", organization_id="org_1", created_by="u2")
+    rec = _make_test_record(
+        id="exe_0195f3a0000070008123456789abcdef",
+        organization_id="org_1",
+        created_by="usr_0195f3a0000070008000000000000002",
+    )
     repo.set_execution(rec)
 
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
     result = await service.delete_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
     assert result is True
@@ -342,7 +346,7 @@ async def test_start_execution_success() -> None:
         matrix_sampling_strategy=10,
     )
 
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
 
     result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
@@ -395,7 +399,7 @@ async def test_start_execution_model_registry_override() -> None:
         model_registry_id="mrg_0195f3a0000070068f8b1c4a2e0d49f1",
     )
 
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
 
     result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
@@ -418,7 +422,7 @@ async def test_start_execution_permission_denied() -> None:
         profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_my")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_my")
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
@@ -468,11 +472,15 @@ async def test_override_atom_success() -> None:
     )
 
     record = record.model_copy(
-        update={"step_states": {"sr_1": step_state}, "organization_id": "org_1", "created_by": "u2"}
+        update={
+            "step_states": {"sr_1": step_state},
+            "organization_id": "org_1",
+            "created_by": "usr_0195f3a0000070008000000000000002",
+        }
     )
     repo.set_execution(record)
 
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
         new_status=ExecutionStatus.PASSED,
         reason="Override reason",
@@ -541,7 +549,7 @@ async def test_start_execution_succeeds_without_profile() -> None:
         profile_id=None,
         matrix_sampling_strategy=10,
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
@@ -567,7 +575,7 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
         profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
@@ -597,7 +605,7 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
         profile_id=None,
         matrix_sampling_strategy=10,
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
@@ -616,13 +624,13 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
 
     service, repo = _create_test_service()
 
-    initiator = TokenData(id="u1", role=UserRole.ROOT, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.ROOT, organization_id="org_1")
     rec = _make_test_record(
         id="exe_0b51fa35ea584ca7a42cd30b444d1241",
         workflow_id="wf_1",
         status=ExecutionStatus.RUNNING,
         organization_id="org_1",
-        created_by="u1",
+        created_by="usr_0195f3a0000070008000000000000001",
         target_locale="fi",
         profile_id="prof_default",
     )
@@ -697,7 +705,7 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
         profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
@@ -734,7 +742,7 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
         profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
@@ -787,7 +795,7 @@ async def test_get_and_delete_execution_not_found_and_permission_denied() -> Non
     alien_record = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_tenant_b",
-        created_by="usr_alien000000000",
+        created_by="usr_0195f3a0000070008000000000000014",
         is_public=False,
         status=ExecutionStatus.PASSED,
     )
@@ -931,7 +939,7 @@ async def test_get_frozen_context_bytes() -> None:
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis() -> None:
     service, repo = _create_test_service()
-    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000011", role=UserRole.ADMIN, organization_id="org_1")
 
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
@@ -960,7 +968,7 @@ async def test_clear_profile_synthesis() -> None:
 @pytest.mark.asyncio
 async def test_stream_status_sse_events() -> None:
     service, repo = _create_test_service()
-    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000011", role=UserRole.ADMIN, organization_id="org_1")
 
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
@@ -994,7 +1002,7 @@ async def test_resume_execution_success() -> None:
 
     with patch.object(service, "check_resumability", return_value=True):
         arq_pool = AsyncMock()
-        initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+        initiator = TokenData(id="usr_0195f3a0000070008000000000000011", role=UserRole.ADMIN, organization_id="org_1")
         res = await service.resume_execution(initiator, "exe_0195f3a0000070008123456789abcdef", arq_pool)
         assert res.id == "exe_0195f3a0000070008123456789abcdef"
         arq_pool.enqueue_job.assert_called_once()
@@ -1020,12 +1028,14 @@ async def test_reject_evidence_quote_branches() -> None:
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_target",
-        created_by="usr_owner",
+        created_by="usr_0195f3a0000070008000000000000012",
         status=ExecutionStatus.PASSED,
     )
     repo.set_execution(rec)
 
-    initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
+    initiator_other = TokenData(
+        id="usr_0195f3a0000070008000000000000013", role=UserRole.MEMBER, organization_id="org_other"
+    )
     with pytest.raises(PermissionDeniedError):
         await service.reject_evidence_quote(
             initiator_other, "exe_0195f3a0000070008123456789abcdef", "evq_1", "Wrong quote"
@@ -1044,16 +1054,18 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
-        created_by="usr_owner",
+        created_by="usr_0195f3a0000070008000000000000012",
         status=ExecutionStatus.PASSED,
     )
     repo.set_execution(rec)
 
-    initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
+    initiator_other = TokenData(
+        id="usr_0195f3a0000070008000000000000013", role=UserRole.MEMBER, organization_id="org_other"
+    )
     with pytest.raises(PermissionDeniedError):
         await service.delete_execution(initiator_other, "exe_0195f3a0000070008123456789abcdef")
 
-    initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000012", role=UserRole.MEMBER, organization_id="org_1")
 
     storage_mock.delete_directory.side_effect = AppException("Not found", status_code=404)
     deleted = await service.delete_execution(initiator, "exe_0195f3a0000070008123456789abcdef")
@@ -1132,18 +1144,20 @@ async def test_override_atom_branches() -> None:
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
-        created_by="usr_owner",
+        created_by="usr_0195f3a0000070008000000000000012",
         status=ExecutionStatus.PASSED,
         step_states={},
     )
     repo.set_execution(rec)
 
-    initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
+    initiator_other = TokenData(
+        id="usr_0195f3a0000070008000000000000013", role=UserRole.MEMBER, organization_id="org_other"
+    )
     req = HumanOverrideRequest(new_status=ExecutionStatus.PASSED, reason="Valid evidence found")
     with pytest.raises(PermissionDeniedError):
         await service.override_atom(initiator_other, "exe_0195f3a0000070008123456789abcdef", "atm_1", req)
 
-    initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000012", role=UserRole.MEMBER, organization_id="org_1")
     with pytest.raises(AppException) as exc_info:
         await service.override_atom(initiator, "exe_0195f3a0000070008123456789abcdef", "atm_1", req)
     assert exc_info.value.status_code == 404
@@ -1176,7 +1190,7 @@ async def test_override_atom_branches() -> None:
     rec_with_atoms = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
-        created_by="usr_owner",
+        created_by="usr_0195f3a0000070008000000000000012",
         status=ExecutionStatus.PASSED,
         step_states={"stp_1": step_state},
         context_variables=ContextVariablesDTO(
@@ -1271,12 +1285,14 @@ async def test_list_executions_exception_branch() -> None:
 @pytest.mark.asyncio
 async def test_resume_execution_quota_exceeded() -> None:
     service, repo = _create_test_service()
-    initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_overquota")
+    initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000011", role=UserRole.MEMBER, organization_id="org_overquota"
+    )
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.FAILED,
         organization_id="org_overquota",
-        created_by="usr_1",
+        created_by="usr_0195f3a0000070008000000000000011",
     )
     repo.set_execution(rec)
 
@@ -1313,7 +1329,9 @@ async def test_check_resumability_string_version() -> None:
 @pytest.mark.asyncio
 async def test_start_execution_circuit_breaker_quota_exceeded() -> None:
     service, repo = _create_test_service()
-    initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_quota_tripped")
+    initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000012", role=UserRole.MEMBER, organization_id="org_quota_tripped"
+    )
     wf = _make_test_workflow(organization_id="org_quota_tripped")
     repo.set_workflow(wf)
     service.usage_service.check_quota.return_value = False
@@ -1354,7 +1372,7 @@ async def test_start_execution_fails_fast_when_profile_workflow_mismatch() -> No
         target_locale="en",
         profile_id="prf_0195f3a0000070008123456789abcdef",
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator, payload, AsyncMock())
@@ -1377,7 +1395,7 @@ async def test_start_execution_fails_fast_when_no_registry_id() -> None:
         raw_inputs=WorkflowInputs(),
         target_locale="en",
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     mock_wf = Workflow.model_construct(
         id="wor_0195f3a0000070008123456789abcdef",
@@ -1414,7 +1432,7 @@ async def test_start_execution_fails_fast_when_registry_obj_is_none() -> None:
         raw_inputs=WorkflowInputs(),
         target_locale="en",
     )
-    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000001", role=UserRole.MEMBER, organization_id="org_1")
 
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator, payload, AsyncMock())
@@ -1454,7 +1472,7 @@ async def test_override_atom_and_reject_evidence_permission_denied() -> None:
     rec = _make_test_record(
         id="exe_0195f3a0000070018234567890abcdef",
         organization_id="org_other",
-        created_by="usr_other",
+        created_by="usr_0195f3a0000070008000000000000013",
     )
     repo.set_execution(rec)
 
@@ -1474,12 +1492,12 @@ async def test_stream_status_handles_app_exception_interrupted() -> None:
     rec = _make_test_record(
         id="exe_0195f3a0000070008000000000000000",
         organization_id="org_test",
-        created_by="usr_owner",
+        created_by="usr_0195f3a0000070008000000000000012",
     )
 
     service.get_execution = AsyncMock(side_effect=[rec, OSError("Connection dropped")])
 
-    initiator = TokenData(id="usr_owner", role=UserRole.ADMIN, organization_id="org_test")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000012", role=UserRole.ADMIN, organization_id="org_test")
     events = [event async for event in service.stream_status(initiator, "exe_0195f3a0000070008000000000000000")]
     assert len(events) == 1
     assert "event: error" in events[0]

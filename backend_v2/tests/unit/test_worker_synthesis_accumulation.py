@@ -31,13 +31,15 @@ from backend_v2.models.enums import (
     TargetBlockType,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
     ExecutionRecordFactory,
     OutputProfileFactory,
     SystemRulePromptBlockFactory,
     WorkflowFactory,
+)
+from backend_v2.tests.factories.model_factories import (
+    TraceEventFactory as _TraceEventFactory,
 )
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers import generate_profile_synthesis_and_pdf_task
@@ -47,18 +49,14 @@ class _ModelProfileFactory(ModelFactory[ModelProfile]):
     """Polyfactory model factory for ModelProfile configurations."""
 
     __model__ = ModelProfile
+    __use_defaults__ = True
 
 
 class _ModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
     """Polyfactory model factory for SystemConfigModelRegistry instances."""
 
     __model__ = SystemConfigModelRegistry
-
-
-class _TraceEventFactory(ModelFactory[TraceEvent]):
-    """Polyfactory model factory for TraceEvent instances."""
-
-    __model__ = TraceEvent
+    __use_defaults__ = True
 
 
 @pytest.fixture(autouse=True)

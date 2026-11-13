@@ -74,9 +74,12 @@ def client_root(
     app.dependency_overrides.clear()
 
 
-def test_workflow_rbac_save_member_forbidden(client_member: TestClient) -> None:
+def test_workflow_rbac_save_member_forbidden(
+    client_member: TestClient, fake_workflow_repo: InMemoryWorkflowRepository
+) -> None:
     """Verifies that MEMBER role is rejected with 403 when attempting to save a workflow."""
     workflow = WorkflowFactory.build(organization_id="org_testorg123")
+    fake_workflow_repo._save_isolated(workflow.id, workflow)
     payload = workflow.model_dump(mode="json")
     response = client_member.put(f"/api/v2/studio/workflows/{workflow.id}", json=payload)
 

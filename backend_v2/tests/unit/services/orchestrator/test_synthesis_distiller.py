@@ -253,7 +253,9 @@ async def test_build_historical_context_all_branches() -> None:
         execution_id="ex_0195f3a0000070008000000000000000",
         workflow_id="wf_0195f3a0000070018111111111111111",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(initiator_id="u1", organization_id="org1"),
+        global_context_vars=GlobalContextVarsDTO(
+            initiator_id="usr_0195f3a0000070008000000000000001", organization_id="org1"
+        ),
         inputs=ExecutionInputsDTO(),
     )
 
@@ -283,7 +285,7 @@ async def test_build_historical_context_all_branches() -> None:
         completed_at=datetime.now(UTC),
         target_locale="en",
         organization_id="org1",
-        created_by="u1",
+        created_by="usr_0195f3a0000070008000000000000001",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
@@ -300,7 +302,7 @@ async def test_build_historical_context_all_branches() -> None:
         status_message="Completed",
         target_locale="en",
         organization_id="org1",
-        created_by="u1",
+        created_by="usr_0195f3a0000070008000000000000001",
         metadata=ExecutionMetadata(),
     )
     past_exec3 = ExecutionRecord(
@@ -312,7 +314,7 @@ async def test_build_historical_context_all_branches() -> None:
         status_message="Failed",
         target_locale="en",
         organization_id="org1",
-        created_by="u1",
+        created_by="usr_0195f3a0000070008000000000000001",
         metadata=ExecutionMetadata(),
     )
 
@@ -335,7 +337,7 @@ async def test_build_historical_context_all_branches() -> None:
         status_message="Completed",
         target_locale="en",
         organization_id="org1",
-        created_by="u1",
+        created_by="usr_0195f3a0000070008000000000000001",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_2": RenderedSynthesisCache(
@@ -352,7 +354,7 @@ async def test_build_historical_context_all_branches() -> None:
         status_message="Completed",
         target_locale="en",
         organization_id="org1",
-        created_by="u1",
+        created_by="usr_0195f3a0000070008000000000000001",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
@@ -369,7 +371,7 @@ async def test_build_historical_context_all_branches() -> None:
         status_message="Completed",
         target_locale="en",
         organization_id="org1",
-        created_by="u1",
+        created_by="usr_0195f3a0000070008000000000000001",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(

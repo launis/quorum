@@ -22,26 +22,15 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import ErrorTraceEvent, TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
+    ErrorTraceEventFactory,
     ExecutionRecordFactory,
+    TraceEventFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
-
-
-class ErrorTraceEventFactory(ModelFactory[ErrorTraceEvent]):
-    """Polyfactory model factory for ErrorTraceEvent instances."""
-
-    __model__ = ErrorTraceEvent
-
-
-class TraceEventFactory(ModelFactory[TraceEvent]):
-    """Polyfactory model factory for TraceEvent instances."""
-
-    __model__ = TraceEvent
 
 
 class SynthesisDistillationDTOFactory(ModelFactory[SynthesisDistillationDTO]):

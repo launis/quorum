@@ -73,7 +73,7 @@ async def test_default_get_execution_not_found(member_token: TokenData) -> None:
 @pytest.mark.asyncio
 async def test_default_get_execution_permission_denied(member_token: TokenData) -> None:
     """Verify _default_get_execution raises PermissionDeniedError when member accesses other tenant's execution."""
-    rec = _make_record(org_id="org_other0000000000", user_id="usr_other0000000000")
+    rec = _make_record(org_id="org_other0000000000", user_id="usr_0195f3a0000070098999999999999999")
     exec_repo = InMemoryExecutionRepository()
     await exec_repo.save_execution(rec)
 

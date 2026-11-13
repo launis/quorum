@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import uuid
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.auth import TenantSecretDTO
+from backend_v2.models.auth import SystemOrganizations, TenantSecretDTO
 from backend_v2.models.core_base import (
     I18nText,
     generate_opaque_id,
@@ -31,7 +34,7 @@ from backend_v2.models.domain.falsifier import (
     WaltonStressTest,
 )
 from backend_v2.models.domain.hydration import HydrationInputSourceDTO
-from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.logician import LogicianData
@@ -48,7 +51,7 @@ from backend_v2.models.domain.prompt_blocks import (
 from backend_v2.models.domain.references import BibliographyResultDTO
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.scoring import StepPanelDTO
-from backend_v2.models.domain.step import ExpectedInput, StepRule
+from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
@@ -69,19 +72,26 @@ from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import ScoringResultDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
+from backend_v2.models.dtos.mcp import MCPToolParamOverrides
+from backend_v2.models.dtos.node_execution import (
+    StepOutputContentDTO,
+    StepOutputContentValue,
+)
 from backend_v2.models.dtos.report_artifact import (
     ReportMetadataDTO,
     ReportStatus,
     ReportStoragePathsDTO,
 )
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.step_output import StepPayloadValue
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
-from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     BlockDataType,
     CognitiveTier,
     DisplayScale,
+    EngineType,
     EntityPrefix,
     ExecutionStatus,
     FidelityLevel,
@@ -92,18 +102,27 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
     SecretScope,
     SecretStorageMode,
+    StepType,
+    StepZone,
     TargetBlockType,
     VisualIntent,
     XaiExtensionType,
 )
 from backend_v2.models.llm import LLMProviderConfig
-from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+from backend_v2.models.state import (
+    ErrorTraceEvent,
+    EvidenceOverrideDTO,
+    ReasoningTrace,
+    TombstoneEvent,
+    TraceEvent,
+)
 from backend_v2.models.view.sdui import AnySduiBlock, ReportView
 
 __all__ = [
     "AuditLogRecordFactory",
     "CausalGraphPayloadDTOFactory",
     "CausalNodeDTOFactory",
+    "ErrorTraceEventFactory",
     "ExecutionRecordFactory",
     "ExecutionStepFactory",
     "GlobalContextVarsDTOFactory",
@@ -115,12 +134,14 @@ __all__ = [
     "OutputProfileFactory",
     "ReportArtifactFactory",
     "ReportViewFactory",
+    "StepFactory",
     "StepPanelDTOFactory",
     "SystemConfigMCPGatewaysFactory",
     "SystemConfigModelRegistryFactory",
     "SystemRulePromptBlockFactory",
     "TaskBriefFactory",
     "TenantSecretDTOFactory",
+    "TraceEventFactory",
     "UsageRecordFactory",
     "WorkflowFactory",
 ]
@@ -242,6 +263,115 @@ class WorkflowFactory(ModelFactory[Workflow]):
             Canonical Opaque Stripe ID with 'mcp_' prefix.
         """
         return generate_opaque_id(EntityPrefix.MCP_GATEWAY)
+
+
+class StepFactory(ModelFactory[Step]):
+    """Polyfactory model factory for Step domain models."""
+
+    __model__ = Step
+    __set_as_default_factory_for_type__ = True
+
+    organization_id: str | None = None
+    type: StepType = StepType.LLM
+    cognitive_tier: CognitiveTier = CognitiveTier.FAST
+    hook: str | None = None
+    role_block_id: str | None = None
+    extraction_protocol_block_id: str | None = None
+    execution_persona_block_id: str | None = None
+    safety: Literal["safe", "unsafe"] = "safe"
+    is_system_core: bool = False
+    engine_type: EngineType = EngineType.PROMPT
+    zone: StepZone = StepZone.ZONE_B
+
+    @classmethod
+    def id(cls) -> str:
+        """Generate a valid Opaque Stripe ID with 'stp_' prefix.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'stp_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.STEP)
+
+    @classmethod
+    def slug(cls) -> str:
+        """Generate a unique step slug.
+
+        Returns:
+            Unique step slug identifier string.
+        """
+        return f"step_slug_{generate_uuid7().hex[:8]}"
+
+    @classmethod
+    def name(cls) -> I18nText:
+        """Generate a localized step name.
+
+        Returns:
+            I18nText instance containing localized step names.
+        """
+        return I18nText(translations={"en": "Test Step", "fi": "Testiaskel"})
+
+    @classmethod
+    def description(cls) -> I18nText:
+        """Generate a localized step description.
+
+        Returns:
+            I18nText instance containing localized step descriptions.
+        """
+        return I18nText(translations={"en": "Test Step Description", "fi": "Testiaskeleen kuvaus"})
+
+    @classmethod
+    def criteria_block_ids(cls) -> list[str]:
+        """Generate an empty criteria block IDs list.
+
+        Returns:
+            Empty list of prompt block identifiers.
+        """
+        return []
+
+    @classmethod
+    def pre_hooks(cls) -> list[str]:
+        """Generate an empty pre-hooks list.
+
+        Returns:
+            Empty list of pre-hook identifiers.
+        """
+        return []
+
+    @classmethod
+    def post_hooks(cls) -> list[str]:
+        """Generate an empty post-hooks list.
+
+        Returns:
+            Empty list of post-hook identifiers.
+        """
+        return []
+
+    @classmethod
+    def allowed_mcp_tools(cls) -> list[str]:
+        """Generate an empty allowed MCP tools list.
+
+        Returns:
+            Empty list of MCP tool aliases.
+        """
+        return []
+
+    @classmethod
+    def mcp_tool_params(cls) -> dict[str, MCPToolParamOverrides]:
+        """Generate an empty MCP tool parameter overrides mapping.
+
+        Returns:
+            Empty dictionary mapping MCP tool aliases to overrides.
+        """
+        return {}
+
+    @classmethod
+    def expected_inputs(cls) -> list[str]:
+        """Generate an empty expected input keys list.
+
+        Returns:
+            Empty list of expected input key strings.
+        """
+        return []
 
 
 class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
@@ -664,6 +794,7 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
     status: ExecutionStatus = ExecutionStatus.PENDING
     workflow_version: int = 1
     active_profile_id: str | None = None
+    output_profile_id: str | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
     cached_tokens: int = 0
@@ -689,6 +820,8 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
         Returns:
             Validated ExecutionRecord instance.
         """
+        if "organization_id" not in kwargs:
+            kwargs["organization_id"] = SystemOrganizations.ROOT_SYSTEM
         if "created_at" not in kwargs:
             resolved_id = kwargs["id"] if "id" in kwargs else None
             if not isinstance(resolved_id, str):
@@ -774,7 +907,7 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
 
     @classmethod
     def organization_id(cls) -> str:
-        """Generate a valid organization Opaque Stripe ID.
+        """Generate an associated organization ID.
 
         Returns:
             Canonical Opaque Stripe ID with 'org_' prefix.
@@ -1513,3 +1646,122 @@ class LLMProviderConfigFactory(ModelFactory[LLMProviderConfig]):
             ProviderExtraParamsDTO instance with default None overrides.
         """
         return ProviderExtraParamsDTO()
+
+
+class TraceEventFactory:
+    """Deterministic builder for TraceEvent avoiding Polyfactory recursion on recursive JsonValue."""
+
+    @classmethod
+    def build(
+        cls,
+        *,
+        event_id: uuid.UUID | None = None,
+        v: int = 1,
+        timestamp: datetime | None = None,
+        step_name: str = "step_test",
+        event_type: Literal[
+            "input",
+            "reasoning",
+            "decision",
+            "error",
+            "output",
+            "tombstone",
+            "evidence_override",
+            "progress",
+        ] = "output",
+        content: EvidenceOverrideDTO
+        | StepPayloadValue
+        | DomainInputValue
+        | StepOutputContentDTO
+        | Mapping[str, StepOutputContentValue]
+        | BaseModel
+        | None = None,
+        reasoning: ReasoningTrace | None = None,
+        metadata: TraceEventMetadataDTO | None = None,
+        mcp_audit_traces: list[MCPAuditTrace] | None = None,
+    ) -> TraceEvent:
+        """Construct a validated TraceEvent instance with deterministic defaults.
+
+        Args:
+            event_id: Explicit UUIDv7 event identifier override.
+            v: Trace event schema version.
+            timestamp: Explicit UTC timestamp override.
+            step_name: Originating step identifier.
+            event_type: Trace event discriminator literal.
+            content: Typed trace payload content.
+            reasoning: Associated reasoning trace.
+            metadata: Trace event metadata container.
+            mcp_audit_traces: Associated MCP tool audit traces.
+
+        Returns:
+            Validated TraceEvent domain model instance.
+        """
+        return TraceEvent(
+            event_id=event_id if event_id is not None else generate_uuid7(),
+            v=v,
+            timestamp=timestamp if timestamp is not None else datetime.now(UTC),
+            step_name=step_name,
+            event_type=event_type,
+            content=content,
+            reasoning=reasoning,
+            metadata=metadata if metadata is not None else TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=mcp_audit_traces if mcp_audit_traces is not None else [],
+        )
+
+
+class ErrorTraceEventFactory:
+    """Deterministic builder for ErrorTraceEvent avoiding Polyfactory recursion on recursive JsonValue."""
+
+    @classmethod
+    def build(
+        cls,
+        *,
+        event_id: uuid.UUID | None = None,
+        v: int = 1,
+        timestamp: datetime | None = None,
+        step_name: str = "step_test",
+        event_type: Literal["error"] = "error",
+        error_code: str = "EXECUTION_ERROR",
+        error_message: str = "Test execution error",
+        content: EvidenceOverrideDTO
+        | StepPayloadValue
+        | DomainInputValue
+        | StepOutputContentDTO
+        | Mapping[str, StepOutputContentValue]
+        | BaseModel
+        | None = None,
+        reasoning: ReasoningTrace | None = None,
+        metadata: TraceEventMetadataDTO | None = None,
+        mcp_audit_traces: list[MCPAuditTrace] | None = None,
+    ) -> ErrorTraceEvent:
+        """Construct a validated ErrorTraceEvent instance with deterministic defaults.
+
+        Args:
+            event_id: Explicit UUIDv7 event identifier override.
+            v: Trace event schema version.
+            timestamp: Explicit UTC timestamp override.
+            step_name: Originating step identifier.
+            event_type: Constant 'error' event discriminator.
+            error_code: Standard ErrorCodes value string.
+            error_message: Human-readable error message.
+            content: Optional typed error payload content.
+            reasoning: Optional associated reasoning trace.
+            metadata: Trace event metadata container.
+            mcp_audit_traces: Associated MCP tool audit traces.
+
+        Returns:
+            Validated ErrorTraceEvent domain model instance.
+        """
+        return ErrorTraceEvent(
+            event_id=event_id if event_id is not None else generate_uuid7(),
+            v=v,
+            timestamp=timestamp if timestamp is not None else datetime.now(UTC),
+            step_name=step_name,
+            event_type=event_type,
+            error_code=error_code,
+            error_message=error_message,
+            content=content,
+            reasoning=reasoning,
+            metadata=metadata if metadata is not None else TraceEventMetadataDTO(mcp_audit_traces=[]),
+            mcp_audit_traces=mcp_audit_traces if mcp_audit_traces is not None else [],
+        )

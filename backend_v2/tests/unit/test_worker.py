@@ -49,6 +49,9 @@ from backend_v2.tests.factories.model_factories import (
     SystemRulePromptBlockFactory,
     WorkflowFactory,
 )
+from backend_v2.tests.factories.model_factories import (
+    TraceEventFactory as _TraceEventFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
     test_generate_report_artifact_job_catches_service_unavailable_error,
@@ -109,13 +112,6 @@ class _ModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
     """Polyfactory model factory for deterministic SystemConfigModelRegistry instances."""
 
     __model__ = SystemConfigModelRegistry
-    __use_defaults__ = True
-
-
-class _TraceEventFactory(ModelFactory[TraceEvent]):
-    """Polyfactory model factory for deterministic TraceEvent instances."""
-
-    __model__ = TraceEvent
     __use_defaults__ = True
 
 
@@ -256,7 +252,7 @@ def _get_base_workflow(strictness: int | None = 50, wf_id: str = "wf_0195f3a0000
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id="prof_0195f3a0000070018111222233334444",
         model_registry_id="mrg_0195f3a0000070018111222233334444",
-        default_strictness_level=strictness,
+        default_strictness_level=strictness if strictness is not None else 50,
     )
 
 

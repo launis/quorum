@@ -24,7 +24,7 @@ from backend_v2.database import (
 from backend_v2.database.postgres import PostgresEntityAdapter, PostgresPoolManager
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.auth import Organization, SubscriptionStatus, User, UserRole
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import (
@@ -194,12 +194,14 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
             workflow_id=wf.id, organization_id=org.id, active_profile_id=prf.id, output_profile_id=prf.id
         )
         rep = ReportArtifactFactory.build(execution_id=exec_rec.id, workflow_id=wf.id, profile_id=prf.id)
+        rep_uuid = parse_prefixed_uuid7(rep.id, EntityPrefix.REPORT)
+        rep_ts_ms = (rep_uuid.int >> 80) & ((1 << 48) - 1)
         bin_dto = ReportBinaryPayloadDTO(
             report_id=rep.id,
             mime_type="application/pdf",
             pdf_bytes=b"%PDF-1.7 pkg",
             size_bytes=12,
-            created_at=datetime.now(UTC),
+            created_at=datetime.fromtimestamp(rep_ts_ms / 1000.0, tz=UTC),
         )
 
         assert await adapter.upsert_organization(org) == org.id

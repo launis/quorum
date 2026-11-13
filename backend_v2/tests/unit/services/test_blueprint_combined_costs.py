@@ -14,7 +14,6 @@ from backend_v2.models.core_base import I18nText, generate_uuid7
 from backend_v2.models.domain.execution import ExecutionStepState
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
-from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
@@ -42,6 +41,7 @@ from backend_v2.tests.factories.model_factories import (
     CausalNodeDTOFactory,
     ExecutionRecordFactory,
     MatrixPromptBlockFactory,
+    MCPAuditTraceFactory,
     OutputProfileFactory,
     WorkflowFactory,
 )
@@ -59,12 +59,7 @@ class _UserFactory(ModelFactory[User]):
     """Hermetic Polyfactory builder for User domain models."""
 
     __model__ = User
-
-
-class _MCPAuditTraceFactory(ModelFactory[MCPAuditTrace]):
-    """Hermetic Polyfactory builder for MCPAuditTrace entries."""
-
-    __model__ = MCPAuditTrace
+    created_by: str | None = None
 
 
 def _make_trace_event(
@@ -135,6 +130,7 @@ def mock_blueprint_repos() -> InMemoryUnifiedWorkflowRepository:
         default_profile_id=_PROFILE_ID,
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
+        mcp_gateway_id=None,
         default_strictness_level=85,
         steps=[],
     )
@@ -607,7 +603,7 @@ async def test_blueprint_event_metadata_warning_and_mcp_axis_enrichment(
         frozen_context=ExecutionRecordFactory.frozen_context().model_copy(
             update={
                 "mcp_tool_audit": [
-                    _MCPAuditTraceFactory.build(
+                    MCPAuditTraceFactory.build(
                         id=mcp_ev_id_1,
                         tool_id="mcp_tavily_search",
                         step_name=_STEP_ID,
@@ -615,7 +611,7 @@ async def test_blueprint_event_metadata_warning_and_mcp_axis_enrichment(
                         response_summary="Verified summary text.",
                         impacted_axis_names=[],
                     ),
-                    _MCPAuditTraceFactory.build(
+                    MCPAuditTraceFactory.build(
                         id=mcp_ev_id_2,
                         tool_id="mcp_tavily_search",
                         step_name=_STEP_ID,

@@ -91,7 +91,7 @@ async def test_list_executions_member_filters_by_org_and_creator(member_token: T
     rec_same_org = _make_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         org_id="org_0195f3a0000070008123456789abcdef",
-        user_id="usr_other0000000000",
+        user_id="usr_0195f3a0000070098999999999999999",
     )
     rec_same_creator = _make_record(
         execution_id="exe_0195f3a0000070018123456789abcdef",
@@ -101,7 +101,7 @@ async def test_list_executions_member_filters_by_org_and_creator(member_token: T
     rec_foreign = _make_record(
         execution_id="exe_0195f3a0000070028123456789abcdef",
         org_id="org_different0000000",
-        user_id="usr_other0000000000",
+        user_id="usr_0195f3a0000070098999999999999999",
     )
 
     exec_repo = InMemoryExecutionRepository()
@@ -201,7 +201,7 @@ async def test_get_execution_permission_denied(member_token: TokenData) -> None:
     rec = _make_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         org_id="org_other0000000000",
-        user_id="usr_other0000000000",
+        user_id="usr_0195f3a0000070098999999999999999",
     )
     exec_repo = InMemoryExecutionRepository()
     await exec_repo.save_execution(rec)
@@ -227,7 +227,7 @@ async def test_delete_execution_permission_denied(member_token: TokenData) -> No
     rec = _make_record(
         execution_id="exe_0195f3a0000070008123456789abcdef",
         org_id="org_other0000000000",
-        user_id="usr_other0000000000",
+        user_id="usr_0195f3a0000070098999999999999999",
     )
     exec_repo = InMemoryExecutionRepository()
     await exec_repo.save_execution(rec)

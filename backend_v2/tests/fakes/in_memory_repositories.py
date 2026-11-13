@@ -946,6 +946,8 @@ class InMemorySystemRepository(
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         self._check_fault("get_mcp_gateways")
+        if self._mcp_gateways is not None and not isinstance(self._mcp_gateways, SystemConfigMCPGateways):
+            return SystemConfigMCPGateways.model_validate(self._mcp_gateways, strict=False)
         if id is not None:
             if id in self._mcp_gateways_map:
                 return self._clone(self._mcp_gateways_map[id])
@@ -954,10 +956,7 @@ class InMemorySystemRepository(
             raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
         if self._mcp_gateways is None:
             raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id="mcp_gateways")
-        try:
-            return self._mcp_gateways.model_copy(deep=True)
-        except AttributeError:
-            return SystemConfigMCPGateways.model_validate(self._mcp_gateways, strict=False)
+        return self._mcp_gateways.model_copy(deep=True)
 
     async def get_all_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
         self._check_fault("get_all_mcp_gateways")
@@ -1323,6 +1322,29 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         return await self._executions.count_executions_by_matrix(matrix_id)
 
     async def save_execution(self, record: ExecutionRecord) -> str:
+        if (
+            isinstance(record.organization_id, str)
+            and record.organization_id != SystemOrganizations.ROOT_SYSTEM
+            and self._identities._get_isolated(record.organization_id) is None
+        ):
+            try:
+                self._identities._save_isolated(
+                    record.organization_id,
+                    Organization(
+                        id=record.organization_id,
+                        name="Test Organization",
+                        contact_email="admin@example.com",
+                        is_active=True,
+                        tier="free",
+                        subscription_status=SubscriptionStatus.ACTIVE,
+                        quota_limit=100.0,
+                        tpm_limit=1000000,
+                        rpm_limit=60,
+                        allowed_email_domains=[],
+                    ),
+                )
+            except ValidationError, AppException:
+                pass
         return await self._executions.save_execution(record)
 
     # 2.5 Report Artifact
@@ -1624,9 +1646,9 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     def set_mcp_gateways(self, gateways: SystemConfigMCPGateways | Any) -> None:
         """Helper to seed mcp gateways for tests."""
         self._system._mcp_gateways = gateways
-        if gateways is None:
+        if gateways is None or not isinstance(gateways, SystemConfigMCPGateways):
             self._system._mcp_gateways_map.clear()
-        elif isinstance(gateways, SystemConfigMCPGateways):
+        else:
             self._system._mcp_gateways_map[gateways.id] = gateways
 
     def seed_system_config(self, key: str, item: JsonValue) -> None:

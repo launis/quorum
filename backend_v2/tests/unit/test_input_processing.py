@@ -31,6 +31,7 @@ class ExpectedInputFactory(ModelFactory[ExpectedInput]):
     """Polyfactory model factory for ExpectedInput workflow input definitions."""
 
     __model__ = ExpectedInput
+    __use_defaults__ = True
 
 
 def test_guided_reflection_dto_valid_dict() -> None:
@@ -117,7 +118,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
             description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
             status="draft",
             version=1,
-            default_profile_id="prof_123",
+            default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
             enable_semantic_smoothing=False,
             enable_eager_anonymization=False,
             expected_inputs=[
@@ -216,7 +217,7 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
             description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
             status="draft",
             version=1,
-            default_profile_id="prof_123",
+            default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
             expected_inputs=[
                 ExpectedInputFactory.build(
                     input_key="QUESTIONNAIRE",
@@ -276,7 +277,7 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
             description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
             status="draft",
             version=1,
-            default_profile_id="prof_123",
+            default_profile_id="prf_0195f3a00000700d8ddd1111dddd1111",
             enable_semantic_smoothing=True,
             enable_eager_anonymization=True,
             expected_inputs=[

@@ -313,3 +313,8 @@ def test_secret_scope_telemetry_python_and_dart_parity() -> None:
 def test_iam_and_assignment_enums_dart_parity(enum_name: str) -> None:
     """Verify IAM, Assignment, Email, and Secret enums match 1:1 between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), enum_name)
+
+
+def test_entity_prefix_parity() -> None:
+    """Verify EntityPrefix members match 1:1 between Python and Dart."""
+    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "EntityPrefix")

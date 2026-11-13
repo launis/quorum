@@ -135,6 +135,18 @@ class _StepFactory(ModelFactory[Step]):
     type: StepType = StepType.LOGIC
     hook: str | None = "sample_hook"
     organization_id: str | None = None
+    role_block_id: str | None = None
+    extraction_protocol_block_id: str | None = None
+    execution_persona_block_id: str | None = None
+
+    @classmethod
+    def criteria_block_ids(cls) -> list[str]:
+        """Generate an empty criteria block IDs list.
+
+        Returns:
+            Empty list of prompt block identifiers.
+        """
+        return []
 
     @classmethod
     def id(cls) -> str:

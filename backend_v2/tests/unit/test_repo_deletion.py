@@ -48,7 +48,11 @@ async def test_delete_prompt_block_blocks_orphan_data_failure() -> None:
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)
-    assert "PromptBlock delete blocked by step" in exc_info.value.message
+    assert block_id in exc_info.value.message
+    assert "referenced by a persisted step" in exc_info.value.message
 
-    assert await repo.delete_prompt_block(block_id, force_delete=True) is True
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.delete_step(step_id)
+
+    assert await repo.delete_prompt_block(block_id) is True
     assert await repo.get_prompt_block_by_id(block_id) is None

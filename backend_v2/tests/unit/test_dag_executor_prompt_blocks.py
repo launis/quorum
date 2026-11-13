@@ -358,7 +358,12 @@ async def test_dag_executor_prompt_blocks_missing_execution_error(
         version=1,
         default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
         expected_inputs=[],
-        steps=[],
+        steps=[
+            StepRule(
+                id="stp_0195f3a0000070018111111111111112",
+                task_blueprint="stp_0195f3a0000070019999999999999999",
+            )
+        ],
     )
 
     with pytest.raises(AppException):

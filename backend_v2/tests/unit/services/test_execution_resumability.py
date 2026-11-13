@@ -59,7 +59,7 @@ def _create_record(
     step_states: dict[str, ExecutionStepState] | None = None,
     execution_trace: list[TraceEvent] | None = None,
     organization_id: str = "org_1",
-    created_by: str = "usr_1",
+    created_by: str = "usr_0195f3a0000070008000000000000001",
 ) -> ExecutionRecord:
     return ExecutionRecord(
         id=execution_id,
@@ -243,11 +243,11 @@ async def test_resume_execution_firewall_denied() -> None:
         execution_id="exe_0195f3a0000070018111111111111111",
         status=ExecutionStatus.PASSED,
         organization_id="org_1",
-        created_by="u2",
+        created_by="usr_0195f3a0000070008000000000000002",
     )
     await repo.save_execution(record)
 
-    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
     arq_pool = AsyncMock()
 
     with pytest.raises(AppException) as exc_info:

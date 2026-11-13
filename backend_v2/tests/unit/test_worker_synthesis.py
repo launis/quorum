@@ -56,6 +56,9 @@ from backend_v2.tests.factories.model_factories import (
     SystemRulePromptBlockFactory,
     WorkflowFactory,
 )
+from backend_v2.tests.factories.model_factories import (
+    TraceEventFactory as _TraceEventFactory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers import VarianceExplanationResult, generate_profile_synthesis_and_pdf_task
 
@@ -71,13 +74,6 @@ class _ModelRegistryFactory(ModelFactory[SystemConfigModelRegistry]):
     """Polyfactory model factory for deterministic SystemConfigModelRegistry instances."""
 
     __model__ = SystemConfigModelRegistry
-    __use_defaults__ = True
-
-
-class _TraceEventFactory(ModelFactory[TraceEvent]):
-    """Polyfactory model factory for deterministic TraceEvent instances."""
-
-    __model__ = TraceEvent
     __use_defaults__ = True
 
 

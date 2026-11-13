@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
@@ -16,9 +15,9 @@ from backend_v2.llm.provider import LiteLLMProvider
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
-from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
-from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import (
@@ -34,22 +33,12 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
     ExecutionRecordFactory,
+    ModelProfileFactory,
     OutputProfileFactory,
+    StepFactory,
     WorkflowFactory,
 )
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
-
-
-class StepFactory(ModelFactory[Step]):
-    """Polyfactory model factory for Step domain models."""
-
-    __model__ = Step
-
-
-class ModelProfileFactory(ModelFactory[ModelProfile]):
-    """Polyfactory model factory for ModelProfile configurations."""
-
-    __model__ = ModelProfile
 
 
 class DummySchema(BaseModel):

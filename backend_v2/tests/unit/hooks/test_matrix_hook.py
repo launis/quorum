@@ -570,6 +570,9 @@ async def test_matrix_scoring_hook_workflow_not_found_raises(matrix_setup: Matri
 async def test_matrix_scoring_hook_output_profile_not_found_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Output profile referenced in execution not found raises AppException(CONFIGURATION_ERROR)."""
     deps = matrix_setup.deps
+    wf = await deps.workflow_repo.get_workflow_by_id(matrix_setup.workflow_id)
+    assert wf is not None
+    await deps.workflow_repo.save_workflow(wf.model_copy(update={"default_profile_id": None}))
     await deps.output_profile_repo.delete_output_profile(matrix_setup.profile_id)
 
     state = HookState(

@@ -144,7 +144,7 @@ async def test_model_registry_router_full_stateful_lifecycle(
 
     # 1. Create a new draft and verify persistence
     draft = await create_model_registry(current_user=root_user, studio_service=studio_service)
-    assert draft.id.startswith("sys_")
+    assert draft.id.startswith("mrg_")
     assert draft.name == "New Model Registry Draft"
 
     fetched = await get_model_registry(
@@ -187,7 +187,7 @@ async def test_model_registry_router_full_stateful_lifecycle(
         studio_service=studio_service,
     )
     assert cloned.id != draft.id
-    assert cloned.id.startswith("sys_")
+    assert cloned.id.startswith("mrg_")
     assert cloned.name == "Production Vertex Registry (Copy)"
 
     after_clone_list = await get_all_model_registries(current_user=root_user, studio_service=studio_service)

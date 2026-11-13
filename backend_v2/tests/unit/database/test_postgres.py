@@ -223,13 +223,34 @@ def _extract_sql_table_columns(sql_text: str) -> dict[str, set[str]]:
     for match in pattern.finditer(sql_text):
         table_name = match.group(1).lower()
         body = match.group(2)
-        cols: set[str] = set()
+        top_level_items: list[str] = []
+        buf: list[str] = []
+        depth = 0
+        in_quote = False
         for raw_line in body.splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("--") or line.startswith("(") or line.startswith(")"):
-                continue
-            cleaned = line.rstrip(",")
-            tokens = cleaned.split()
+            code_line = raw_line.split("--", 1)[0]
+            for ch in code_line:
+                if ch == "'":
+                    in_quote = not in_quote
+                    buf.append(ch)
+                elif not in_quote and ch == "(":
+                    depth += 1
+                    buf.append(ch)
+                elif not in_quote and ch == ")":
+                    depth = max(0, depth - 1)
+                    buf.append(ch)
+                elif not in_quote and depth == 0 and ch == ",":
+                    top_level_items.append("".join(buf).strip())
+                    buf = []
+                else:
+                    buf.append(ch)
+            buf.append(" ")
+        if "".join(buf).strip():
+            top_level_items.append("".join(buf).strip())
+
+        cols: set[str] = set()
+        for item in top_level_items:
+            tokens = item.split()
             if not tokens:
                 continue
             first_word = tokens[0].upper()
@@ -601,14 +622,14 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
 
 
 def test_schema_dto_naming_parity() -> None:
-    """Assert 1:1 bi-directional column-to-field naming parity across all 15 tables and MCP JSONB structures."""
+    """Assert 1:1 bi-directional column-to-field naming parity across all 21 tables and MCP JSONB structures."""
     sql_text = _MIGRATION_SQL_PATH.read_text(encoding="utf-8")
     assert "SET default_toast_compression = 'lz4';" in sql_text
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_nodes_run_created" in sql_text
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_edges_run_created" in sql_text
 
     parsed_tables = _extract_sql_table_columns(sql_text)
-    expected_19_tables = {
+    expected_21_tables = {
         "organizations",
         "users",
         "invitations",
@@ -619,7 +640,9 @@ def test_schema_dto_naming_parity() -> None:
         "prompt_blocks",
         "task_briefs",
         "steps",
+        "step_criteria_blocks",
         "workflows",
+        "workflow_step_refs",
         "output_profiles",
         "executions",
         "report_artifacts",
@@ -629,7 +652,7 @@ def test_schema_dto_naming_parity() -> None:
         "audit_logs",
         "usage_records",
     }
-    assert set(parsed_tables.keys()) == expected_19_tables
+    assert set(parsed_tables.keys()) == expected_21_tables
 
     # 1. quorum_nodes <-> PropositionNode + NodeDraft.local_key
     assert parsed_tables["quorum_nodes"] == set(PropositionNode.model_fields.keys()) | {"local_key"}
@@ -648,9 +671,11 @@ def test_schema_dto_naming_parity() -> None:
 
     # 6. workflows <-> Workflow + VIRTUAL created_at
     assert parsed_tables["workflows"] == set(Workflow.model_fields.keys()) | {"created_at"}
+    assert parsed_tables["workflow_step_refs"] == {"workflow_id", "step_id"}
 
-    # 7. steps <-> Step + VIRTUAL created_at
-    assert parsed_tables["steps"] == set(Step.model_fields.keys()) | {"created_at"}
+    # 7. steps <-> Step (criteria_block_ids normalized into step_criteria_blocks) + VIRTUAL created_at
+    assert parsed_tables["steps"] == (set(Step.model_fields.keys()) - {"criteria_block_ids"}) | {"created_at"}
+    assert parsed_tables["step_criteria_blocks"] == {"step_id", "prompt_block_id", "position"}
 
     # 8. prompt_blocks <-> Polymorphic union of all concrete PromptBlock models + VIRTUAL created_at
     prompt_block_union_fields = (
