@@ -16,7 +16,12 @@ from backend_v2.models.auth import TokenData, UserRole
 
 
 def mock_get_current_user_admin() -> Any:
-    return TokenData(email="admin@test.com", id="usr_admin123", role=UserRole.ADMIN, organization_id="org_testorg123")
+    return TokenData(
+        email="admin@test.com",
+        id="usr_admin123",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070018000000000000001",
+    )
 
 
 @pytest.fixture
@@ -45,6 +50,7 @@ def client_admin(mock_studio_service_admin: Any) -> Any:
 def test_workflow_api_fails_fast_on_invalid_model_strategy(client_admin: Any) -> None:
     """Test that putting an invalid model strategy to the workflow root fails at the API boundary."""
     payload = {
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -69,6 +75,7 @@ def test_workflow_api_fails_fast_on_invalid_model_strategy(client_admin: Any) ->
 def test_workflow_api_fails_fast_on_invalid_step_id(client_admin: Any) -> None:
     """Test that providing an invalid Step ID pattern fails fast."""
     payload = {
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -100,6 +107,7 @@ def test_workflow_api_strips_illegal_step_attributes(client_admin: Any, mock_stu
     Let's see if they survive into the validated payload.
     """
     payload = {
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -182,6 +190,7 @@ def test_step_api_fails_fast_on_invalid_extra_attributes(client_admin: Any) -> N
 def test_workflow_api_fails_fast_on_orphan_dependency(client_admin: Any) -> None:
     """Test that a Workflow with a dependency pointing to a missing step is outright rejected."""
     payload = {
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -210,6 +219,7 @@ def test_workflow_api_fails_fast_on_orphan_dependency(client_admin: Any) -> None
 def test_workflow_api_fails_fast_on_cyclic_dependency(client_admin: Any) -> None:
     """Test that a Workflow with A -> B -> A cyclical dependencies is outright rejected."""
     payload = {
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -243,6 +253,7 @@ def test_workflow_api_fails_fast_on_cyclic_dependency(client_admin: Any) -> None
 def test_workflow_api_succeeds_with_valid_data(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test the happy path: a valid Workflow DAG saves successfully passing all strict Pydantic locks."""
     payload = {
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Happy Path WF", "fi": "Happy Path WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},

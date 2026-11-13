@@ -28,7 +28,7 @@ def get_member_user() -> TokenData:
         email="member@test.com",
         id="usr_user45678",
         role=UserRole.MEMBER,
-        organization_id="org_testorg123",
+        organization_id="org_0195f3a0000070018000000000000001",
     )
 
 
@@ -38,7 +38,7 @@ def get_root_user() -> TokenData:
         email="root@test.com",
         id="usr_user99900",
         role=UserRole.ROOT,
-        organization_id="org_testorg123",
+        organization_id="org_0195f3a0000070018000000000000001",
     )
 
 
@@ -78,7 +78,7 @@ def test_workflow_rbac_save_member_forbidden(
     client_member: TestClient, fake_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     """Verifies that MEMBER role is rejected with 403 when attempting to save a workflow."""
-    workflow = WorkflowFactory.build(organization_id="org_testorg123")
+    workflow = WorkflowFactory.build(organization_id="org_0195f3a0000070018000000000000001")
     fake_workflow_repo._save_isolated(workflow.id, workflow)
     payload = workflow.model_dump(mode="json")
     response = client_member.put(f"/api/v2/studio/workflows/{workflow.id}", json=payload)
@@ -92,7 +92,7 @@ def test_workflow_rbac_delete_member_forbidden(
     client_member: TestClient, fake_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     """Verifies that MEMBER role is rejected with 403 when attempting to delete an existing workflow."""
-    workflow = WorkflowFactory.build(organization_id="org_testorg123")
+    workflow = WorkflowFactory.build(organization_id="org_0195f3a0000070018000000000000001")
     fake_workflow_repo._save_isolated(workflow.id, workflow)
 
     response = client_member.delete(f"/api/v2/studio/workflows/{workflow.id}")

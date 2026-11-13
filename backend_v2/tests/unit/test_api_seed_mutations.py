@@ -18,7 +18,12 @@ from backend_v2.models.auth import TokenData, UserRole
 
 
 def mock_get_current_user_admin() -> Any:
-    return TokenData(email="admin@test.com", id="usr_admin123", role=UserRole.ADMIN, organization_id="org_testorg123")
+    return TokenData(
+        email="admin@test.com",
+        id="usr_admin123",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070018000000000000001",
+    )
 
 
 @pytest.fixture
@@ -49,6 +54,7 @@ def get_seed_data() -> Any:
 
 def get_audit_workflow() -> Any:
     return {
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},

@@ -142,6 +142,7 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
     fake_repo.seed_raw_step(
         "sp_0195f3a0000070018234567812345678",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "sp_0195f3a0000070018234567812345678",
             "slug": "synthesis_step",
             "name": {"translations": {"en": "Synth"}},
@@ -217,9 +218,9 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
 
 
 @pytest.mark.asyncio
-async def test_worker_synthesis_accumulates_costs_monotonically() -> None:
+async def test_worker_synthesis_accumulates_costs_monotonically(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify consecutive synthesis runs accumulate costs and tokens monotonically without losing DAG costs."""
-    get_settings().use_mock_llm = True
+    monkeypatch.setattr(get_settings(), "use_mock_llm", True)
 
     fake_repo = InMemoryUnifiedWorkflowRepository()
     mock_record_initial = _build_initial_record()
@@ -262,9 +263,11 @@ async def test_worker_synthesis_accumulates_costs_monotonically() -> None:
 
 
 @pytest.mark.asyncio
-async def test_worker_synthesis_accumulation_preserves_multi_profile_caches() -> None:
+async def test_worker_synthesis_accumulation_preserves_multi_profile_caches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify synthesis accumulation across two distinct OutputProfile IDs preserves both caches."""
-    get_settings().use_mock_llm = True
+    monkeypatch.setattr(get_settings(), "use_mock_llm", True)
     fake_repo = InMemoryUnifiedWorkflowRepository()
 
     mock_record_initial = _build_initial_record()

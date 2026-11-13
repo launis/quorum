@@ -169,6 +169,7 @@ def test_protocol_prompt_block_instantiation(sample_i18n_text: I18nText) -> None
 def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_scale: MatrixScale) -> None:
     """Tests polymorphic parsing via PromptBlockAdapter."""
     matrix_data = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "matrix-test",
         "label": sample_i18n_text.model_dump(),
@@ -182,6 +183,7 @@ def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_s
     assert parsed_matrix.computed_max == 4
 
     rule_data = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "rule-test",
         "label": sample_i18n_text.model_dump(),
@@ -193,6 +195,7 @@ def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_s
     assert isinstance(parsed_rule, SystemRulePromptBlock)
 
     persona_data = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "persona-test",
         "label": sample_i18n_text.model_dump(),
@@ -204,6 +207,7 @@ def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_s
     assert isinstance(parsed_persona, PersonaPromptBlock)
 
     protocol_data = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "protocol-test",
         "label": sample_i18n_text.model_dump(),
@@ -285,6 +289,7 @@ def test_prompt_block_invalid_task_definition_category_error(sample_i18n_text: I
 def test_prompt_block_json_deserialization(sample_i18n_text: I18nText) -> None:
     """Tests JSON string deserialization via PromptBlockAdapter."""
     raw_dict = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "mv-test",
         "label": sample_i18n_text.model_dump(),
@@ -303,6 +308,7 @@ def test_matrix_prompt_block_deserialization_with_list_depends_on(
 ) -> None:
     """Tests that a MatrixPromptBlock serialized with JSON list depends_on deserializes into tuple CausalEdge."""
     raw_matrix_dict = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "test-matrix-deps",
         "label": sample_i18n_text.model_dump(),

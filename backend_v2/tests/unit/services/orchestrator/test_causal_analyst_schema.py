@@ -12,6 +12,7 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
 
     # Criteria block structure for Causal Analyst (mirroring actual production seed_data.json)
     causal_block_data = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a0000070018a2b3c4d5e6f7a99",
         "slug": "matrix_causal_analyst",
         "category_id": "matrix",

@@ -35,7 +35,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
                 "slug": "test",
                 "name": {"translations": {"en": "Test"}},
                 "workflow_id": "wf_0123456789abcdef0123456789abcdef",
-                "organization_id": "root",
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "matrix_synthesis_groups": [
                     {
                         "id": "grp_0195f3a0000070018234567890123456",
@@ -48,6 +48,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     )
     repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test",
             "name": {"translations": {"en": "Test"}},
@@ -62,6 +63,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     )
     repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "matrix_step",
             "name": {"translations": {"en": "Matrix"}},
@@ -74,6 +76,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070058555555555555555",
                 "slug": "eval_matrix",
                 "category_id": "matrix",
@@ -90,6 +93,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
                 ],
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",

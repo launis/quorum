@@ -64,6 +64,8 @@ def fix_mock_dict(d: Any) -> Any:
                 del d[key]
 
         if "workflow_id" in d and "id" in d:
+            if "organization_id" not in d:
+                d["organization_id"] = "org_0195f3a0000070008000000000000001"
             if "matrix_visible_columns" not in d:
                 d["matrix_visible_columns"] = ["label", "distribution", "raw_score"]
             if "matrix_synthesis_groups" not in d or not d["matrix_synthesis_groups"]:
@@ -74,6 +76,8 @@ def fix_mock_dict(d: Any) -> Any:
                         "target_blocks": ["*"],
                     }
                 ]
+        if "category_id" in d and "id" in d and "organization_id" not in d:
+            d["organization_id"] = "org_0195f3a0000070008000000000000001"
 
         if "score" in d and "claims" in d and "ai_label" not in d:
             d["ai_label"] = "ai_label_mock"

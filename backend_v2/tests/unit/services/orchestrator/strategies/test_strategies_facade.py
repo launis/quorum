@@ -114,6 +114,7 @@ async def test_logic_strategy_execution_via_facade_factory(
     """Verify LogicNodeStrategy resolved via NodeStrategyFactory executes and emits TraceEvents."""
     in_memory_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "logic_guard_step",
             "name": {"translations": {"en": "Logic Guard", "fi": "Logiikkavahti"}},
@@ -197,7 +198,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
                 "slug": "test_profile",
                 "name": {"translations": {"en": "Test Profile", "fi": "Testiprofiili"}},
                 "workflow_id": "wf_0123456789abcdef0123456789abcdef",
-                "organization_id": "root",
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "matrix_synthesis_groups": [
                     {
                         "id": "grp_0195f3a0000070018234567890123456",
@@ -210,6 +211,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
     )
     in_memory_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "facade_test_step",
             "name": {"translations": {"en": "Facade Step", "fi": "Julkisivuvaihe"}},
@@ -222,6 +224,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
     in_memory_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0123456789abcdef0123456789abcdef",
                 "slug": "criteria_block",
                 "category_id": "system_rule",
@@ -231,6 +234,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
                 "instruction_text": "Evaluate input clarity.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust_extraction_protocol",
                 "category_id": "system_rule",
@@ -243,6 +247,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
     )
     in_memory_repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test_wf",
             "name": {"translations": {"en": "Test Workflow", "fi": "Testityönkulku"}},

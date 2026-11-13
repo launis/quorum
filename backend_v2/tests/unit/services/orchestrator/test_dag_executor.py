@@ -31,6 +31,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step(
         "blp_0195f3a0000070018234567890abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "slug": "mock_step",
@@ -389,6 +390,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070018234567890abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070018234567890abcdef",
             "slug": "synthesis-slug",
             "type": "llm",
@@ -643,6 +645,7 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070018111222233334444",
             "slug": "s",
             "type": "logic",
@@ -720,6 +723,7 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         ],
     )
     step_data_1 = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "bp_0195f3a0000070018111222233334444",
         "slug": "bp_0195f3a0000070018111222233334444",
         "type": "logic",
@@ -729,6 +733,7 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         "description": {"translations": {"en": "en"}},
     }
     step_data_2 = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "bp_0195f3a0000070058555666677778888",
         "slug": "bp_0195f3a0000070058555666677778888",
         "type": "logic",
@@ -808,6 +813,7 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
     mock_repo.seed_raw_step(
         "stp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018111222233334444",
             "slug": "synthesis",
             "type": "llm",
@@ -953,6 +959,7 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
     mock_repo.seed_raw_step(
         "stp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018111222233334444",
             "slug": "synthesis",
             "type": "llm",
@@ -1012,6 +1019,7 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
     mock_repo.seed_raw_step(
         "stp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018111222233334444",
             "slug": "synthesis",
             "type": "llm",
@@ -1077,6 +1085,7 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
     mock_repo.seed_raw_step(
         "stp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018111222233334444",
             "slug": "logic",
             "type": "logic",
@@ -1153,6 +1162,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
     mock_repo.seed_raw_step(
         "stp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018111222233334444",
             "slug": "logic",
             "type": "logic",
@@ -1328,6 +1338,7 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
     mock_repo.seed_raw_step(
         "bp_11112222333344445555666677778888",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_11112222333344445555666677778888",
             "type": "logic",
             "cognitive_tier": "fast",
@@ -1392,6 +1403,7 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "progress_step",
@@ -1497,6 +1509,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070028222333344445555",
             "type": "logic",
             "pre_hooks": ["synthesis_distiller_hook"],
@@ -1595,6 +1608,7 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "logic_step",
@@ -1687,6 +1701,7 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070038333444455556666",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070038333444455556666",
             "type": "logic",
             "slug": "bp_0195f3a0000070038333444455556666",
@@ -1698,6 +1713,7 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070048444555566667777",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070048444555566667777",
             "type": "logic",
             "slug": "bp_0195f3a0000070048444555566667777",
@@ -1806,6 +1822,7 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070058555666677778888",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070058555666677778888",
             "type": "logic",
             "slug": "bp_watch_run",
@@ -1895,6 +1912,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
     mock_repo.seed_raw_step(
         "bp_0195f3a0000070068666777788889999",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a0000070068666777788889999",
             "type": "logic",
             "slug": "bp_schema_merge",

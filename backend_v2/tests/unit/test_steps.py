@@ -28,7 +28,7 @@ def mock_get_current_user_member() -> TokenData:
         email="member@test.com",
         id="usr_user45678",
         role=UserRole.MEMBER,
-        organization_id="org_testorg123",
+        organization_id="org_0195f3a0000070018000000000000001",
     )
 
 
@@ -132,7 +132,7 @@ def test_step_rbac_save_member_forbidden(client_member: TestClient) -> None:
         "role_block_id": None,
         "extraction_protocol_block_id": protocol_block_id,
         "criteria_block_ids": [criteria_block_id],
-        "organization_id": "org_testorg123",
+        "organization_id": "org_0195f3a0000070018000000000000001",
         "slug": "new_step",
     }
     response = client_member.put(f"/api/v2/studio/steps/{step_id}", json=payload)

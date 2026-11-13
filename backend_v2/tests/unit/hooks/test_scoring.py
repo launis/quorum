@@ -97,6 +97,7 @@ def _build_valid_pb(
 ) -> AnyPromptBlock:
     """Builds a valid prompt block model."""
     pb_dict = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": pb_id,
         "slug": "test_slug",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
@@ -194,6 +195,7 @@ async def _create_test_scoring_repo(
     if not omit_pb:
         if corrupt_scale:
             repo._prompt_blocks._storage[pb_id] = {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": pb_id,
                 "slug": "test_slug",
                 "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
@@ -208,6 +210,7 @@ async def _create_test_scoring_repo(
             repo._prompt_blocks._storage[pb_id] = {"id": pb_id, "corrupt": "data"}
         elif no_scales:
             repo._prompt_blocks._storage[pb_id] = {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": pb_id,
                 "slug": "test_slug",
                 "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
@@ -811,6 +814,7 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
 
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
     pb_dict = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "pb_0195f3a0000070018234567890123456",
         "slug": "test_slug",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
@@ -3564,6 +3568,7 @@ def _build_toulmin_dual_track_matrix(pb_id: str = _TOULMIN_PB_ID) -> AnyPromptBl
     ]
 
     pb_dict = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": pb_id,
         "slug": "matrix_toulmin_test",
         "label": {"translations": {"en": "Toulmin Argumentation", "fi": "Toulminin argumentaatio"}},

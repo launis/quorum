@@ -50,6 +50,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
 
     repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "slug": "mock",
@@ -426,6 +427,7 @@ async def test_dynamic_synthesis_model_strategy_routing(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "bp_0195f3a00000700283456789abcdef01",
             "type": "standard",
             "model_strategy": "synthesis",

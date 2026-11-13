@@ -21,6 +21,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
     # Construct matrix block fixture for schema compilation
     mock_matrix_block = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "test_matrix",
         "category_id": "matrix",
@@ -138,6 +139,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     compiler = PromptCompiler()
 
     mock_matrix = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a0000070028234567890abcdef",
         "slug": "extract_test",
         "category_id": "matrix",
@@ -279,6 +281,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
 
     extreme_desc = "X" * 1000  # 1000-character instruction string
     mock_block = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "extreme_test",
         "category_id": "matrix",
@@ -329,6 +332,7 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 
     mock_block = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a000007005899645bd5baf44e2",
         "slug": "custom_instruction",
         "category_id": "system_rule",

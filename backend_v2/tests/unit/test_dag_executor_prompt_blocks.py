@@ -90,6 +90,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     ]
     repo.set_prompt_blocks(prompt_blocks)
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "stp_0195f3a0000070018111111111111111",
         "slug": "task_bp",
         "name": {"translations": {"fi": "Vaihe", "en": "Step"}},
@@ -103,6 +104,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step("task_bp", step_def)
     repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wf_0195f3a0000070058555555555555555",
             "slug": "wf_test_slug",
             "status": "draft",
@@ -118,6 +120,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.set_output_profiles(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "prof_0195f3a00000700d8ddd1111dddd1111",
                 "slug": "test_profile",
                 "workflow_id": "wf_0195f3a0000070058555555555555555",

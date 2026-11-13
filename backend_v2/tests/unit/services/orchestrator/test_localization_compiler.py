@@ -27,6 +27,7 @@ def test_compile_static_instructions_supported_locales() -> None:
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070058234567890abcdef",
             "slug": "test_static",
             "category_id": "system_rule",
@@ -56,6 +57,7 @@ def test_compile_static_instructions_unsupported_locale_raises_app_exception() -
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070058234567890abcdef",
             "slug": "test_static",
             "category_id": "system_rule",
@@ -80,6 +82,7 @@ def test_compile_dynamic_instructions_supported_locales() -> None:
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070068234567890abcdef",
             "slug": "test_dynamic",
             "category_id": "runtime_variables",
@@ -144,6 +147,7 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070078234567890abcdef",
             "slug": "test_dyn_time",
             "category_id": "runtime_variables",

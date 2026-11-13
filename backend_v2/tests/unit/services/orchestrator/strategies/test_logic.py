@@ -166,6 +166,7 @@ async def test_execute_passes_global_context_vars(
     context = _make_context(global_vars=GlobalContextVarsDTO(language="fi"))
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
@@ -197,6 +198,7 @@ async def test_logic_strategy_execute_without_concurrency(
     context = _make_context()
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
@@ -244,6 +246,7 @@ async def test_execute_hook_failure_raises_app_exception(
     context = _make_context()
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
@@ -275,6 +278,7 @@ async def test_execute_missing_hook_raises_app_exception(
     context = _make_context()
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
@@ -305,6 +309,7 @@ async def test_execute_with_base_model_delta(
     context = _make_context()
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
@@ -340,6 +345,7 @@ async def test_execute_with_trace_scoring_payload_dto(
     context = _make_context()
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "scoring_slug",
         "name": {"translations": {"en": "Scoring"}},
@@ -414,6 +420,7 @@ async def test_execute_succeeds_with_projector_raw_inputs_event(
     context = _make_context()
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "scoring_engine",
         "name": {"translations": {"en": "Scoring Engine"}},
@@ -462,6 +469,7 @@ async def test_execute_extracts_raw_inputs_when_inputs_event_absent(
     context = _make_context()
 
     step_def = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": BLUEPRINT_ID,
         "slug": "scoring_engine",
         "name": {"translations": {"en": "Scoring Engine"}},

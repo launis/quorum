@@ -162,6 +162,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.set_output_profiles(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "prof_0195f3a0000070008000000000000000",
                 "slug": "test_profile",
                 "workflow_id": "wf_0195f3a0000070008000000000000000",

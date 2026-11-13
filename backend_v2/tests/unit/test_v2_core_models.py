@@ -47,6 +47,7 @@ def test_execution_record_fail_fast_on_corrupt_status() -> None:
 def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
     valid_data: dict[str, JsonValue] = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",
@@ -64,6 +65,7 @@ def test_embedded_output_profile_description_parsing() -> None:
 
     # 2. Fail-fast case with invalid description
     invalid_data: dict[str, JsonValue] = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",
@@ -481,6 +483,7 @@ def test_output_profile_matrix_graph_length_constraint_validation() -> None:
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     base_kwargs = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_0195f3a0000070018234567890123456",

@@ -43,7 +43,7 @@ def _create_workflow(
         description=I18nText(translations={"en": "Test Description"}),
         status="active",
         version=version,
-        organization_id="org_1",
+        organization_id="org_0195f3a0000070018000000000000001",
         default_strictness_level=50,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
@@ -58,7 +58,7 @@ def _create_record(
     workflow_version: int = 1,
     step_states: dict[str, ExecutionStepState] | None = None,
     execution_trace: list[TraceEvent] | None = None,
-    organization_id: str = "org_1",
+    organization_id: str = "org_0195f3a0000070018000000000000001",
     created_by: str = "usr_0195f3a0000070008000000000000001",
 ) -> ExecutionRecord:
     return ExecutionRecord(
@@ -204,14 +204,14 @@ async def test_check_resumability_quota_exceeded() -> None:
 
     step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
     record = _create_record(
-        organization_id="org_1",
+        organization_id="org_0195f3a0000070018000000000000001",
         step_states={step_id: step_state},
         execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
     )
 
     is_res = await service.check_resumability(record)
     assert is_res is False
-    usage_mock.check_quota.assert_called_once_with("org_1")
+    usage_mock.check_quota.assert_called_once_with("org_0195f3a0000070018000000000000001")
 
 
 @pytest.mark.asyncio
@@ -226,7 +226,7 @@ async def test_check_resumability_successful_resumption() -> None:
 
     step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
     record = _create_record(
-        organization_id="org_1",
+        organization_id="org_0195f3a0000070018000000000000001",
         step_states={step_id: step_state},
         execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
     )
@@ -242,12 +242,16 @@ async def test_resume_execution_firewall_denied() -> None:
     record = _create_record(
         execution_id="exe_0195f3a0000070018111111111111111",
         status=ExecutionStatus.PASSED,
-        organization_id="org_1",
+        organization_id="org_0195f3a0000070018000000000000001",
         created_by="usr_0195f3a0000070008000000000000002",
     )
     await repo.save_execution(record)
 
-    initiator = TokenData(id="usr_0195f3a0000070008000000000000002", role=UserRole.MEMBER, organization_id="org_1")
+    initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000002",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070018000000000000001",
+    )
     arq_pool = AsyncMock()
 
     with pytest.raises(AppException) as exc_info:
@@ -398,7 +402,7 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
     blk_2_v2 = blk_2_v1.model_copy(update={"role_enforcement": "Modified instruction for step 2 causing Merkle drift."})
     await repo.update_prompt_block(blk_2_v2.id, blk_2_v2)
 
-    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_0195f3a0000070018000000000000001")
     arq_pool = AsyncMock()
     resumed = await service.resume_execution(initiator=initiator, execution_id=record.id, arq_pool=arq_pool)
 

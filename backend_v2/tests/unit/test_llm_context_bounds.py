@@ -110,6 +110,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo._executions._save_isolated(record.id, record)
 
     raw_prompt_block = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "zero_trust_extraction_protocol",
         "label": {"translations": {"fi": "Testi", "en": "Test"}},

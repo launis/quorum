@@ -78,6 +78,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     # Setup Workflow
     repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wor_0195f3a0000070008123456789abcdef",
             "slug": "test_wf",
             "name": {"translations": {"en": "Test WF"}},
@@ -105,6 +106,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070008123456789abcdef",
                 "slug": "test_protocol",
                 "category_id": PromptBlockCategory.PROTOCOL.value,
@@ -114,6 +116,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
                 "protocol_instructions": "Extract all claims strictly according to protocol.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070008123456789abcde0",
                 "slug": "test_criteria",
                 "category_id": PromptBlockCategory.SYSTEM_RULE.value,
@@ -128,6 +131,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     # Setup Step
     repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070008123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Blueprint"}},

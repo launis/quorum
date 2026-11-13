@@ -320,6 +320,7 @@ def test_dynamic_profile_configurability_invariant() -> None:
     Custom profiles may include 'criteria' and custom block orders without code-level restriction.
     """
     custom_profile_payload = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "prf_0195f3a00000700c81d2e3f400000001",
         "slug": "custom_evaluation_profile",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",

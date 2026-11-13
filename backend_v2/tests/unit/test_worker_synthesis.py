@@ -239,6 +239,7 @@ async def test_worker_extracts_synthesis_from_trace() -> None:
     mock_repo.seed_raw_step(
         "sp_0195f3a0000070018234567812345678",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "sp_0195f3a0000070018234567812345678",
             "slug": "synthesis_step",
             "name": {"translations": {"en": "Synth"}},

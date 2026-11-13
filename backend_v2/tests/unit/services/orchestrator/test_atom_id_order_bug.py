@@ -15,6 +15,7 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
     from backend_v2.models.enums import BlockDataType
 
     mock_matrix_block = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "test_matrix",
         "category_id": "matrix",

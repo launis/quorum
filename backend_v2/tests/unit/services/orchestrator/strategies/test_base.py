@@ -55,6 +55,7 @@ def _make_step(
 ) -> V2Step:
     """Build a valid V2Step instance for hook execution tests."""
     return V2Step(
+        organization_id=_ORG_ID,
         id=_STEP_ID,
         slug="s1",
         name=_STEP_NAME,

@@ -65,6 +65,7 @@ VALID_MCP_GATEWAY: dict[str, JsonValue] = {
 }
 
 VALID_PROMPT_BLOCK: dict[str, JsonValue] = {
+    "organization_id": "org_0195f3a0000070008000000000000001",
     "id": "blk_0195f3a0000070018234567890abcdef",
     "slug": "rule_clean",
     "label": {"translations": {"en": "Rule", "fi": "Saanto"}},
@@ -75,6 +76,7 @@ VALID_PROMPT_BLOCK: dict[str, JsonValue] = {
 }
 
 VALID_STEP: dict[str, JsonValue] = {
+    "organization_id": "org_0195f3a0000070008000000000000001",
     "id": "stp_0195f3a0000070018234567890abcdef",
     "slug": "step_guard",
     "name": {"translations": {"en": "Guard Step", "fi": "Suojavaihe"}},
@@ -83,6 +85,7 @@ VALID_STEP: dict[str, JsonValue] = {
 }
 
 VALID_WORKFLOW: dict[str, JsonValue] = {
+    "organization_id": "org_0195f3a0000070008000000000000001",
     "id": "wf_0195f3a0000070018234567890abcdef",
     "slug": "test_workflow",
     "name": "Test Workflow",
@@ -98,6 +101,7 @@ VALID_WORKFLOW: dict[str, JsonValue] = {
 }
 
 VALID_OUTPUT_PROFILE: dict[str, JsonValue] = {
+    "organization_id": "org_0195f3a0000070008000000000000001",
     "id": "prf_0195f3a0000070018234567890abcdef",
     "slug": "test_profile",
     "name": {"translations": {"en": "Test Profile", "fi": "Testiprofiili"}},
@@ -107,6 +111,7 @@ VALID_OUTPUT_PROFILE: dict[str, JsonValue] = {
 }
 
 VALID_TASK_BRIEF: dict[str, JsonValue] = {
+    "organization_id": "org_0195f3a0000070008000000000000001",
     "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6001",
     "slug": "test_task_brief",
     "label": {"translations": {"en": "Task Brief", "fi": "Tehtavananto"}},

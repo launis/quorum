@@ -23,6 +23,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step(
         "blp_0195f3a0000070018234567890abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "cognitive_tier": "fast",
@@ -136,6 +137,7 @@ async def test_dag_executor_preflight_execution(
     mock_repo.seed_raw_step(
         "blp_0195f3a0000070018234567890abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "cognitive_tier": "fast",
@@ -207,6 +209,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
     mock_repo.seed_raw_step(
         "blp_0195f3a0000070018234567890abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "pre_hooks": ["synthesis_distiller_hook"],
@@ -277,6 +280,7 @@ async def test_dag_executor_virtual_step(
     mock_repo.seed_raw_step(
         "blp_0195f3a0000070018234567890abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "cognitive_tier": "fast",
@@ -350,6 +354,7 @@ async def test_dag_executor_preflight_ignores_system_keys(
     )
 
     step_data = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "blp_test",
         "name": {"translations": {"en": "blp_test"}},

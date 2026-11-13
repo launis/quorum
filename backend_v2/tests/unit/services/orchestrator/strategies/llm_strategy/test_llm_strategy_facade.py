@@ -61,7 +61,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
                 "slug": "test",
                 "name": {"translations": {"en": "Test"}},
                 "workflow_id": "wf_123",
-                "organization_id": "root",
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "matrix_synthesis_groups": [
                     {
                         "id": "grp_0195f3a0000070018234567890123456",
@@ -74,6 +74,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     )
     repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wf_0195f3a0000070008123456789abcdef",
             "slug": "test",
             "name": {"translations": {"en": "Test"}},
@@ -241,6 +242,7 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -293,6 +295,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -307,6 +310,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust_extraction_protocol",
                 "category_id": "system_rule",
@@ -366,6 +370,7 @@ async def test_execute_success_path_structured_output(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -379,6 +384,7 @@ async def test_execute_success_path_structured_output(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0123456789abcdef0123456789abcdef",
                 "slug": "test_block",
                 "category_id": "system_rule",
@@ -388,6 +394,7 @@ async def test_execute_success_path_structured_output(
                 "instruction_text": "Test Block AI Desc",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust_extraction_protocol",
                 "category_id": "system_rule",
@@ -400,6 +407,7 @@ async def test_execute_success_path_structured_output(
     )
     mock_repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -471,6 +479,7 @@ async def test_llm_strategy_missing_atoms_crash(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_matrix",
             "name": {"translations": {"en": "Test"}},
@@ -483,6 +492,7 @@ async def test_llm_strategy_missing_atoms_crash(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070018111111111111111",
                 "slug": "matrix_block",
                 "category_id": "matrix",
@@ -525,6 +535,7 @@ async def test_llm_strategy_missing_atoms_crash(
                 ],
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070028222222222222222",
                 "slug": "system_block",
                 "category_id": "system_rule",
@@ -580,6 +591,7 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_matrix",
             "name": {"translations": {"en": "Test"}},
@@ -592,6 +604,7 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070018111111111111111",
                 "slug": "matrix_block",
                 "category_id": "matrix",
@@ -634,6 +647,7 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
                 ],
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070028222222222222222",
                 "slug": "system_block",
                 "category_id": "system_rule",
@@ -690,6 +704,7 @@ async def test_execute_with_role_and_persona_and_protocol(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "full_step",
             "name": {"translations": {"en": "Full Step", "fi": "Täysi vaihe"}},
@@ -704,6 +719,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070018111111111111111",
                 "slug": "role_lead",
                 "category_id": "agent_role",
@@ -713,6 +729,7 @@ async def test_execute_with_role_and_persona_and_protocol(
                 "role_enforcement": "Act as an expert auditor.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070028222222222222222",
                 "slug": "persona_strict",
                 "category_id": "execution_persona",
@@ -722,6 +739,7 @@ async def test_execute_with_role_and_persona_and_protocol(
                 "role_enforcement": "Strict Persona.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -731,6 +749,7 @@ async def test_execute_with_role_and_persona_and_protocol(
                 "protocol_instructions": "Zero trust protocol.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -744,6 +763,7 @@ async def test_execute_with_role_and_persona_and_protocol(
 
     mock_repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test_wf",
             "name": {"translations": {"en": "Workflow"}},
@@ -843,6 +863,7 @@ async def test_execute_synthesis_engine_path(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "synth_step",
             "name": {"translations": {"en": "Synth"}},
@@ -857,6 +878,7 @@ async def test_execute_synthesis_engine_path(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -866,6 +888,7 @@ async def test_execute_synthesis_engine_path(
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -963,6 +986,7 @@ async def test_execute_anomaly_retry_flow(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "retry_step",
             "name": {"translations": {"en": "Retry"}},
@@ -976,6 +1000,7 @@ async def test_execute_anomaly_retry_flow(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -985,6 +1010,7 @@ async def test_execute_anomaly_retry_flow(
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1074,6 +1100,7 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -1123,6 +1150,7 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -1136,6 +1164,7 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1189,6 +1218,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -1200,6 +1230,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -1209,6 +1240,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
                 "instruction_text": "Evaluate clarity.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1271,6 +1303,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -1282,6 +1315,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -1291,6 +1325,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
                 "instruction_text": "Evaluate clarity.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1491,6 +1526,7 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -1502,6 +1538,7 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -1511,6 +1548,7 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1563,6 +1601,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -1574,6 +1613,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -1583,6 +1623,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1654,6 +1695,7 @@ async def test_execute_matrix_chunking_flow(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "matrix_step",
             "name": {"translations": {"en": "Matrix"}},
@@ -1665,6 +1707,7 @@ async def test_execute_matrix_chunking_flow(
     )
 
     matrix_block_dict = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "blk_0195f3a0000070058555555555555555",
         "slug": "eval_matrix",
         "category_id": "matrix",
@@ -1693,6 +1736,7 @@ async def test_execute_matrix_chunking_flow(
         [
             matrix_block_dict,
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1706,6 +1750,7 @@ async def test_execute_matrix_chunking_flow(
 
     mock_repo.set_output_profile(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "prof_0123456789abcdef0123456789abcdef",
             "slug": "exec_profile",
             "workflow_id": "wf_0123456789abcdef0123456789abcdef",
@@ -1813,6 +1858,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018111111111111111",
             "slug": "mcp_step",
             "name": {"translations": {"en": "MCP Step"}},
@@ -1828,6 +1874,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070018111111111111111",
                 "slug": "eval_matrix",
                 "category_id": "matrix",
@@ -1843,6 +1890,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
                 "is_lightweight_protocol": True,
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -1856,6 +1904,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
 
     mock_repo.set_output_profile(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "prf_0195f3a0000070018111111111111111",
             "slug": "mcp_profile",
             "workflow_id": "wor_0195f3a0000070018111111111111111",
@@ -1986,6 +2035,7 @@ async def test_execute_with_empty_mcp_tools_bypasses_retrieval(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070028222222222222222",
             "slug": "no_mcp_step",
             "name": {"translations": {"en": "No MCP Step"}},
@@ -2001,6 +2051,7 @@ async def test_execute_with_empty_mcp_tools_bypasses_retrieval(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070028222222222222222",
                 "slug": "eval_matrix_2",
                 "category_id": "matrix",
@@ -2016,6 +2067,7 @@ async def test_execute_with_empty_mcp_tools_bypasses_retrieval(
                 "is_lightweight_protocol": True,
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -2029,6 +2081,7 @@ async def test_execute_with_empty_mcp_tools_bypasses_retrieval(
 
     mock_repo.set_output_profile(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "prf_0195f3a0000070028222222222222222",
             "slug": "no_mcp_profile",
             "workflow_id": "wor_0195f3a0000070028222222222222222",
@@ -2134,6 +2187,7 @@ async def test_execute_mcp_retrieval_failure_propagates_app_exception(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070038333333333333333",
             "slug": "mcp_fail_step",
             "name": {"translations": {"en": "MCP Fail Step"}},
@@ -2149,6 +2203,7 @@ async def test_execute_mcp_retrieval_failure_propagates_app_exception(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "eval_matrix_3",
                 "category_id": "matrix",
@@ -2164,6 +2219,7 @@ async def test_execute_mcp_retrieval_failure_propagates_app_exception(
                 "is_lightweight_protocol": True,
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -2177,6 +2233,7 @@ async def test_execute_mcp_retrieval_failure_propagates_app_exception(
 
     mock_repo.set_output_profile(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "prf_0195f3a0000070038333333333333333",
             "slug": "fail_mcp_profile",
             "workflow_id": "wor_0195f3a0000070038333333333333333",
@@ -2264,6 +2321,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "retry_max_step",
             "name": {"translations": {"en": "Retry Max"}},
@@ -2277,6 +2335,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -2286,6 +2345,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -2351,6 +2411,7 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -2402,6 +2463,7 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "matrix_step",
             "name": {"translations": {"en": "Matrix"}},
@@ -2414,6 +2476,7 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070058555555555555555",
                 "slug": "eval_matrix",
                 "category_id": "matrix",
@@ -2437,6 +2500,7 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
                 ],
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -2499,6 +2563,7 @@ async def test_llm_node_strategy_execute_without_concurrency(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "str_step",
             "name": {"translations": {"en": "Str Step"}},
@@ -2512,6 +2577,7 @@ async def test_llm_node_strategy_execute_without_concurrency(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -2521,6 +2587,7 @@ async def test_llm_node_strategy_execute_without_concurrency(
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -2596,6 +2663,7 @@ async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -2608,6 +2676,7 @@ async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -2617,6 +2686,7 @@ async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
@@ -2703,6 +2773,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
 
     prompt_blocks_raw = [
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070048444444444444444",
             "slug": "criteria_rule",
             "category_id": "system_rule",
@@ -2712,6 +2783,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
             "instruction_text": "Evaluate.",
         },
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070038333333333333333",
             "slug": "zero_trust",
             "category_id": "protocol",
@@ -2733,6 +2805,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "packed_step",
             "name": {"translations": {"en": "Packed Step"}},
@@ -2845,6 +2918,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
     prompt_blocks_raw = [
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070048444444444444444",
             "slug": "criteria_rule",
             "category_id": "system_rule",
@@ -2854,6 +2928,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
             "instruction_text": "Evaluate.",
         },
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070038333333333333333",
             "slug": "zero_trust",
             "category_id": "protocol",
@@ -2875,6 +2950,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "scoped_step",
             "name": {"translations": {"en": "Scoped Step"}},
@@ -3028,6 +3104,7 @@ async def test_execute_fails_fast_on_missing_protocol_block(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -3040,6 +3117,7 @@ async def test_execute_fails_fast_on_missing_protocol_block(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0123456789abcdef0123456789abcdef",
                 "slug": "criteria_block",
                 "category_id": "system_rule",
@@ -3094,6 +3172,7 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -3106,6 +3185,7 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0123456789abcdef0123456789abcdef",
                 "slug": "criteria_block",
                 "category_id": "system_rule",
@@ -3115,6 +3195,7 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
                 "instruction_text": "Criteria block",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "protocol_block",
                 "category_id": "system_rule",
@@ -3317,6 +3398,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
     wf_id = "wf_0195f3a0000070008123456789abcdef"
     mock_repo.set_workflow(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": wf_id,
             "slug": "test_schema_wf",
             "name": {"translations": {"en": "Test Schema Workflow"}},
@@ -3341,6 +3423,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_11111111111111112222222222222222",
             "slug": "bp_matrix",
             "name": {"translations": {"en": "Matrix Step Blueprint"}},
@@ -3353,6 +3436,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
     )
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "bp_text",
             "name": {"translations": {"en": "Text Step Blueprint"}},
@@ -3489,6 +3573,7 @@ async def test_execute_configuration_errors_emit_rfc7807_dual_logs(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -3543,6 +3628,7 @@ async def test_execute_fails_fast_on_corrupted_execution_record_in_db(
 
     mock_repo.set_step(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0123456789abcdef0123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test"}},
@@ -3554,6 +3640,7 @@ async def test_execute_fails_fast_on_corrupted_execution_record_in_db(
     mock_repo.set_prompt_blocks(
         [
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070048444444444444444",
                 "slug": "criteria_rule",
                 "category_id": "system_rule",
@@ -3563,6 +3650,7 @@ async def test_execute_fails_fast_on_corrupted_execution_record_in_db(
                 "instruction_text": "Evaluate.",
             },
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",

@@ -80,6 +80,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_prompt_block(
         "blk_0195f3a00000700080009f6d2c1b0a5e",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a00000700080009f6d2c1b0a5e",
             "slug": "causal_cohesion_matrix",
             "name": {"translations": {"en": "Causal Cohesion Matrix"}},
@@ -110,6 +111,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step(
         "stp_0195f3a0000070008000111122223333",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070008000111122223333",
             "type": "causal_discovery",
             "slug": "causal_step",
@@ -125,6 +127,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step(
         "stp_0195f3a0000070008000555566667777",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070008000555566667777",
             "type": "llm",
             "slug": "tda_step",

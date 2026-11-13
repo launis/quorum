@@ -444,7 +444,7 @@ def test_matrix_domain_parser_rejects_invalid_level_key() -> None:
             "slug": "test_profile",
             "name": {"translations": {"en": "Test Profile"}},
             "workflow_id": "wor_0123456789abcdef0123456789abcdef",
-            "organization_id": "root",
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "matrix_visible_columns": [ReportMatrixColumn.LABEL.value, ReportMatrixColumn.DISTRIBUTION.value],
             "target_block_order": [],
             "matrix_synthesis_groups": [],

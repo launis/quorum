@@ -88,6 +88,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "causal_discovery",
             "slug": "causal_step",
@@ -103,6 +104,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step(
         "blp_0195f3a0000070058555666677778888",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070058555666677778888",
             "type": "llm",
             "slug": "tda_step",
@@ -830,6 +832,7 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_step",
@@ -913,6 +916,7 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "s1",
@@ -925,6 +929,7 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "s2",
@@ -1020,6 +1025,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_source",
@@ -1032,6 +1038,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
     repo.seed_raw_step(
         "blp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
@@ -1167,6 +1174,7 @@ async def test_dag_executor_input_delta_variants() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "s1",
@@ -1259,6 +1267,7 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_source",
@@ -1271,6 +1280,7 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
@@ -1370,6 +1380,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_source",
@@ -1382,6 +1393,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
     repo.seed_raw_step(
         "blp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
@@ -1510,6 +1522,7 @@ async def test_dag_executor_causal_source_missing_from_steps_by_id() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
@@ -1592,6 +1605,7 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_up",
@@ -1604,6 +1618,7 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
@@ -1707,6 +1722,7 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_up",
@@ -1719,6 +1735,7 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
     repo.seed_raw_step(
         "blp_0195f3a0000070028222333344445555",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",

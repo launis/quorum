@@ -98,7 +98,7 @@ async def test_dag_executor_atom_ceiling(
     step_def = Step(
         id="blp_0195f3a0000070018234567890abcdef",
         slug="test_step",
-        organization_id="org_1",
+        organization_id="org_0195f3a0000070008000000000000001",
         name=I18nText(translations={"en": "test"}),
         description=I18nText(translations={"en": "test"}),
         type="llm",

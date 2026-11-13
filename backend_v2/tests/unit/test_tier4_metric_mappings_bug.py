@@ -6,6 +6,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 def test_worker_db_hydration_metric_mappings_bug() -> None:
     """Verify that worker.py hydrates a raw DB profile containing matrix_synthesis_groups cleanly."""
     db_profile_dict: dict[str, JsonValue] = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "prf_0195f3a0000070018234abcd1234abcd",
         "slug": "test_slug",
         "workflow_id": "wf_0195f3a0000070018234abcd1234abcd",

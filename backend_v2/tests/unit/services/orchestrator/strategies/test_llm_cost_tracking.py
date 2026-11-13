@@ -40,7 +40,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
                     "slug": "test",
                     "name": {"translations": {"en": "Test"}},
                     "workflow_id": "wf_123",
-                    "organization_id": "root",
+                    "organization_id": "org_0195f3a0000070008000000000000001",
                     "matrix_synthesis_groups": [
                         {
                             "id": "grp_0195f3a0000070018234567890123456",
@@ -55,6 +55,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_workflow(
         "wf_0123456789abcdef0123456789abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test",
             "name": {"translations": {"en": "Test"}},
@@ -191,6 +192,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     context.strictness_level = 0
 
     step_payload = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -204,6 +206,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     mock_repo.seed_raw_prompt_block(
         "blk_0123456789abcdef0123456789abcdef",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0123456789abcdef0123456789abcdef",
             "slug": "test_block",
             "category_id": "system_rule",
@@ -216,6 +219,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     mock_repo.seed_raw_prompt_block(
         "blk_0195f3a000007005873802341db9d68c",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a000007005873802341db9d68c",
             "slug": "zero_trust_extraction_protocol",
             "category_id": "system_rule",

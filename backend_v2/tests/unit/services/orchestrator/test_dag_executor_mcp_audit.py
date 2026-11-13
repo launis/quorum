@@ -24,6 +24,7 @@ def mock_repo() -> Any:
     repo.seed_raw_step(
         "stp_0195f3a0000070018111222233334444",
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018111222233334444",
             "slug": "logic",
             "type": "logic",

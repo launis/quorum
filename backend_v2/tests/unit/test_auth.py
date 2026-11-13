@@ -381,11 +381,12 @@ async def test_auth_router_impersonate_profile_and_logout_timeout_negative(
 
 
 def test_system_organizations_is_system() -> None:
-    """Verify SystemOrganizations.is_system recognizes canonical ROOT_SYSTEM and SYSTEM sentinel."""
+    """Verify SystemOrganizations.is_system recognizes only canonical ROOT_SYSTEM."""
     assert SystemOrganizations.is_system(SystemOrganizations.ROOT_SYSTEM) is True
-    assert SystemOrganizations.is_system("SYSTEM") is True
-    assert SystemOrganizations.is_system(None) is True
-    assert SystemOrganizations.is_system("") is True
+    assert SystemOrganizations.is_system(SystemOrganizations.ROOT_SYSTEM.value) is True
+    assert SystemOrganizations.is_system("SYSTEM") is False
+    assert SystemOrganizations.is_system(None) is False
+    assert SystemOrganizations.is_system("") is False
     assert SystemOrganizations.is_system("org_0195f3a00000700e8531d2ed8a6641f6") is False
 
 
