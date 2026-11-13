@@ -23,6 +23,7 @@ void main() {
   late ProviderContainer container;
 
   final validWorkflow = Workflow(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'wf_0123456789abcdef',
     slug: 'test-wf',
     name: const I18nText(translations: {'en': 'Test'}),
@@ -32,6 +33,7 @@ void main() {
   );
 
   final validBlock = PromptBlock.systemRule(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'blk_0123456789abcdef',
     slug: 'test-block',
     label: const I18nText(translations: {'en': 'Test Block'}),
@@ -77,6 +79,7 @@ void main() {
 
   group('PromptBlocksController Operations & Exception Handling', () {
     final validBlock = PromptBlock.systemRule(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'blk_0123456789abcdef',
       slug: 'test-block',
       label: const I18nText(translations: {'en': 'Test Block'}),

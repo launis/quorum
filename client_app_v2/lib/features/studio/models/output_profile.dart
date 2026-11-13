@@ -34,7 +34,9 @@ abstract class OutputProfile with _$OutputProfile {
     @StrictOpaqueIdConverter() required String id,
     @Default('') String slug,
     @StrictOpaqueIdConverter() required String workflowId,
-    String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText name,
     I18nText? description,
     @JsonKey(name: 'user_role_label') I18nText? userRoleLabel,

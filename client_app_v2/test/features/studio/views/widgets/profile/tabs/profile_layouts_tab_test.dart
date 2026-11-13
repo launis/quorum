@@ -90,6 +90,7 @@ void main() {
         });
 
         final testWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_test',
           slug: 'wf-test',
           name: const I18nText(translations: {'en': 'Test Flow'}),
@@ -101,6 +102,7 @@ void main() {
         );
 
         final initialProfile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_test',
           workflowId: 'wf_test',
           name: const I18nText(translations: {'en': 'Test Profile'}),

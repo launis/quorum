@@ -38,6 +38,7 @@ void main() {
     final validTaskBriefJson = <String, Object?>{
       'id': testTaskBriefId,
       'slug': 'test_task_brief',
+      'organization_id': 'org_0195f3a0000070008000000000000001',
       'label': <String, Object?>{
         'translations': <String, Object?>{
           'en': 'Test Brief',
@@ -58,6 +59,7 @@ void main() {
       'category_id': 'system_rule',
       'id': testBlockId,
       'slug': 'test_rule',
+      'organization_id': 'org_0195f3a0000070008000000000000001',
       'label': <String, Object?>{
         'translations': <String, Object?>{'en': 'Test Rule'},
       },
@@ -75,6 +77,7 @@ void main() {
     final validWorkflowJson = <String, Object?>{
       'id': testWorkflowId,
       'slug': 'test_workflow',
+      'organization_id': 'org_0195f3a0000070008000000000000001',
       'name': <String, Object?>{
         'translations': <String, Object?>{'en': 'Test Workflow'},
       },
@@ -88,6 +91,7 @@ void main() {
       'type': 'llm',
       'id': testStepId,
       'slug': 'test_step',
+      'organization_id': 'org_0195f3a0000070008000000000000001',
       'name': <String, Object?>{
         'translations': <String, Object?>{'en': 'Test Step'},
       },
@@ -116,6 +120,7 @@ void main() {
       'id': testProfileId,
       'slug': 'test_profile',
       'workflow_id': testWorkflowId,
+      'organization_id': 'org_0195f3a0000070008000000000000001',
       'name': <String, Object?>{
         'translations': <String, Object?>{'en': 'Test Profile'},
       },
@@ -157,6 +162,7 @@ void main() {
         expect(singleBlock.id, equals(testBlockId));
 
         const blockModel = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: testBlockId,
           slug: 'test_rule',
           label: I18nText(translations: {'en': 'Test Rule'}),
@@ -1034,6 +1040,7 @@ void main() {
 
         // Also test simulatePromptBlock with empty/invalid block ID
         const emptyBlock = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: '',
           slug: 'empty_test',
           label: I18nText(translations: {'en': 'Empty'}),

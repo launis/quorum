@@ -11,6 +11,7 @@ Workflow _buildTestWorkflow({
   List<StepRule>? steps,
 }) {
   return Workflow(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: id,
     slug: 'test-dag-workflow',
     name: const I18nText(

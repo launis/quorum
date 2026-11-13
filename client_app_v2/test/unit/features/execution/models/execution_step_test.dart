@@ -126,6 +126,7 @@ void main() {
         // 1. Empty simulation states (0 items)
         final emptyBlockSimReq = PromptBlockSimulationRequest(
           block: PromptBlock.matrix(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: blockId,
             slug: 'test_block',
             label: const I18nText(
@@ -189,6 +190,7 @@ void main() {
         // Also verify StepSimulationRequest and LlmModelConfig typed additionalParams
         final stepSimReq = StepSimulationRequest(
           step: NodeStrategy.llm(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: stepId,
             slug: 'step_1',
             name: const I18nText(

@@ -19,6 +19,7 @@ void main() {
     int? rowExplanationLengthConstraint,
   }) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: validPrfId,
       workflowId: validWfId,
       name: const I18nText(translations: {'en': 'Test Profile'}),

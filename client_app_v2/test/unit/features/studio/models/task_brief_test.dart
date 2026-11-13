@@ -67,6 +67,7 @@ void main() {
         final shortIdJson = <String, dynamic>{
           'id': 'tbr_0195f3a00000700d8a1b2c3d4e5f600',
           'slug': 'short_id_brief',
+          'organization_id': validOrgId,
           'label': sampleLabel.toJson(),
           'description': sampleDesc.toJson(),
           'instruction_text': 'Valid instructions',
@@ -79,6 +80,7 @@ void main() {
         final longIdJson = <String, dynamic>{
           'id': 'tbr_0195f3a00000700d8a1b2c3d4e5f6001a',
           'slug': 'long_id_brief',
+          'organization_id': validOrgId,
           'label': sampleLabel.toJson(),
           'description': sampleDesc.toJson(),
           'instruction_text': 'Valid instructions',
@@ -96,6 +98,7 @@ void main() {
         final pollutedJson = <String, dynamic>{
           'id': validBriefId,
           'slug': 'polluted_brief',
+          'organization_id': validOrgId,
           'label': sampleLabel.toJson(),
           'description': sampleDesc.toJson(),
           'instruction_text': 'Valid instructions',
@@ -113,6 +116,40 @@ void main() {
         await expectLater(
           TaskBrief.parseListInBackground(<Object?>['invalid_item']),
           throwsA(isA<AppException>()),
+        );
+      },
+    );
+
+    test(
+      'Negative Partition 3: TaskBrief rejects null, omitted, or legacy SYSTEM organization_id',
+      () {
+        final omittedOrgJson = <String, dynamic>{
+          'id': validBriefId,
+          'slug': 'omitted_org_brief',
+          'label': sampleLabel.toJson(),
+          'description': sampleDesc.toJson(),
+        };
+        expect(
+          () => TaskBrief.fromJson(omittedOrgJson),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        final nullOrgJson = <String, dynamic>{
+          ...omittedOrgJson,
+          'organization_id': null,
+        };
+        expect(
+          () => TaskBrief.fromJson(nullOrgJson),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        final systemOrgJson = <String, dynamic>{
+          ...omittedOrgJson,
+          'organization_id': 'SYSTEM',
+        };
+        expect(
+          () => TaskBrief.fromJson(systemOrgJson),
+          throwsA(isA<CheckedFromJsonException>()),
         );
       },
     );

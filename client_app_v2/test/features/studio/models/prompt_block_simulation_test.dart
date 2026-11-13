@@ -8,6 +8,7 @@ void main() {
       'category_id': 'system_rule',
       'id': 'blk_0195f3a0000070008000000000000001',
       'slug': 'test-block',
+      'organization_id': 'org_0195f3a0000070008000000000000001',
       'label': {
         'translations': {'en': 'Test Block'},
       },

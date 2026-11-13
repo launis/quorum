@@ -15,6 +15,7 @@ void main() {
     setUp(() {
       mockBlueprints = [
         const NodeStrategy.logic(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_input_processing',
           slug: 'input_processing',
           name: I18nText(
@@ -29,6 +30,7 @@ void main() {
           zone: StepZone.zoneA,
         ),
         const NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_specialist_coach',
           slug: 'executive_coach',
           name: I18nText(
@@ -42,6 +44,7 @@ void main() {
           zone: StepZone.zoneB,
         ),
         const NodeStrategy.causalDiscovery(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_causal_discovery',
           slug: 'causal_discovery',
           name: I18nText(
@@ -55,6 +58,7 @@ void main() {
           zone: StepZone.zoneB,
         ),
         const NodeStrategy.causalDiscovery(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_causal_discovery_deletable',
           slug: 'causal_discovery_deletable',
           name: I18nText(
@@ -68,6 +72,7 @@ void main() {
           zone: StepZone.zoneB,
         ),
         const NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_ai_steering',
           slug: 'ai_steering',
           name: I18nText(
@@ -81,6 +86,7 @@ void main() {
           zone: StepZone.zoneB,
         ),
         const NodeStrategy.logic(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_xai_reporter',
           slug: 'xai_reporter',
           name: I18nText(
@@ -97,6 +103,7 @@ void main() {
       ];
 
       mockWorkflow = const Workflow(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'wf_test_workflow_01',
         slug: 'test_workflow',
         name: I18nText(

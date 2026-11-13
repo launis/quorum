@@ -46,6 +46,7 @@ void main() {
     List<String> expectedInputs = const ['product_text', 'prior_analysis'],
   }) {
     return NodeStrategy.llm(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'sp_1111222233334444',
       slug: 'sample_simulation_step',
       name: const I18nText(translations: {'en': 'Sample Simulation Step'}),

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TaskBrief {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@JsonKey(name: 'organization_id') String? get organizationId; I18nText get label; I18nText get description;@JsonKey(name: 'instruction_text') String? get instructionText;@JsonKey(name: 'source_url') String? get sourceUrl;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId; I18nText get label; I18nText get description;@JsonKey(name: 'instruction_text') String? get instructionText;@JsonKey(name: 'source_url') String? get sourceUrl;
 /// Create a copy of TaskBrief
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $TaskBriefCopyWith<$Res>  {
   factory $TaskBriefCopyWith(TaskBrief value, $Res Function(TaskBrief) _then) = _$TaskBriefCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'instruction_text') String? instructionText,@JsonKey(name: 'source_url') String? sourceUrl
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId, I18nText label, I18nText description,@JsonKey(name: 'instruction_text') String? instructionText,@JsonKey(name: 'source_url') String? sourceUrl
 });
 
 
@@ -58,12 +58,12 @@ class _$TaskBriefCopyWithImpl<$Res>
 
 /// Create a copy of TaskBrief
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? instructionText = freezed,Object? sourceUrl = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = null,Object? label = null,Object? description = null,Object? instructionText = freezed,Object? sourceUrl = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
-as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
-as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText,instructionText: freezed == instructionText ? _self.instructionText : instructionText // ignore: cast_nullable_to_non_nullable
 as String?,sourceUrl: freezed == sourceUrl ? _self.sourceUrl : sourceUrl // ignore: cast_nullable_to_non_nullable
@@ -170,7 +170,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskBrief() when $default != null:
 return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.instructionText,_that.sourceUrl);case _:
@@ -191,7 +191,7 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)  $default,) {final _that = this;
 switch (_that) {
 case _TaskBrief():
 return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.instructionText,_that.sourceUrl);case _:
@@ -211,7 +211,7 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'instruction_text')  String? instructionText, @JsonKey(name: 'source_url')  String? sourceUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskBrief() when $default != null:
 return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.instructionText,_that.sourceUrl);case _:
@@ -226,12 +226,12 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _TaskBrief extends TaskBrief {
-  const _TaskBrief({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'instruction_text') this.instructionText, @JsonKey(name: 'source_url') this.sourceUrl}): super._();
+  const _TaskBrief({@StrictOpaqueIdConverter() required this.id, required this.slug, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, required this.label, required this.description, @JsonKey(name: 'instruction_text') this.instructionText, @JsonKey(name: 'source_url') this.sourceUrl}): super._();
   factory _TaskBrief.fromJson(Map<String, dynamic> json) => _$TaskBriefFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override@JsonKey(name: 'organization_id') final  String? organizationId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') final  String organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
 @override@JsonKey(name: 'instruction_text') final  String? instructionText;
@@ -263,7 +263,7 @@ abstract mixin class _$TaskBriefCopyWith<$Res> implements $TaskBriefCopyWith<$Re
   factory _$TaskBriefCopyWith(_TaskBrief value, $Res Function(_TaskBrief) _then) = __$TaskBriefCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'instruction_text') String? instructionText,@JsonKey(name: 'source_url') String? sourceUrl
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId, I18nText label, I18nText description,@JsonKey(name: 'instruction_text') String? instructionText,@JsonKey(name: 'source_url') String? sourceUrl
 });
 
 
@@ -280,12 +280,12 @@ class __$TaskBriefCopyWithImpl<$Res>
 
 /// Create a copy of TaskBrief
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? instructionText = freezed,Object? sourceUrl = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = null,Object? label = null,Object? description = null,Object? instructionText = freezed,Object? sourceUrl = freezed,}) {
   return _then(_TaskBrief(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
-as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
-as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText,instructionText: freezed == instructionText ? _self.instructionText : instructionText // ignore: cast_nullable_to_non_nullable
 as String?,sourceUrl: freezed == sourceUrl ? _self.sourceUrl : sourceUrl // ignore: cast_nullable_to_non_nullable

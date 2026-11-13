@@ -11,6 +11,7 @@ void main() {
     WidgetTester tester,
   ) async {
     OutputProfile payload = const OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'profile_1',
       workflowId: 'wf_1',
       name: I18nText(translations: {'en': 'Test Profile'}),
@@ -53,6 +54,7 @@ void main() {
     'BibliographyBlockCard toggles display mode and summary box switch',
     (WidgetTester tester) async {
       OutputProfile payload = const OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'profile_1',
         workflowId: 'wf_1',
         name: I18nText(translations: {'en': 'Test Profile'}),
@@ -109,6 +111,7 @@ void main() {
     'BibliographyBlockCard suppresses body controls when excluded and enables cleanly without duplicate entries (negative/boundary)',
     (WidgetTester tester) async {
       OutputProfile payload = const OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'profile_1',
         workflowId: 'wf_1',
         name: I18nText(translations: {'en': 'Test Profile'}),
@@ -162,6 +165,7 @@ void main() {
     'BibliographyBlockCard renders without overflow in narrow viewport with dragHandle (boundary)',
     (WidgetTester tester) async {
       const payload = OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'profile_1',
         workflowId: 'wf_1',
         name: I18nText(translations: {'en': 'Test Profile'}),

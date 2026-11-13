@@ -44,6 +44,7 @@ void main() {
     Map<String, OutputProfile> outputProfiles = const {},
   }) {
     return Workflow(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id,
       slug: 'slug_$id',
       name: I18nText(translations: {'en': name, 'fi': 'FI $name'}),

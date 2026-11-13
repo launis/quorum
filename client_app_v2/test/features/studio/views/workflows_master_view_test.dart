@@ -54,6 +54,7 @@ class MockWorkflowsController extends WorkflowsController {
       return await onClone!(id);
     }
     return Workflow(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: '${id}_clone',
       slug: '$id-clone',
       name: const I18nText(translations: {'en': 'Cloned Workflow'}),
@@ -68,6 +69,7 @@ class MockWorkflowsController extends WorkflowsController {
       return await onCreateDraft!();
     }
     return const Workflow(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'wf_01950000000070008000000000000099',
       slug: 'draft-workflow',
       name: I18nText(translations: {'en': 'Draft Workflow'}),
@@ -163,6 +165,7 @@ void main() {
     return List.generate(
       count,
       (i) => Workflow(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'wf_${i.toString().padLeft(3, '0')}',
         slug: 'workflow-slug-$i',
         name: I18nText(
@@ -230,6 +233,7 @@ void main() {
     testWidgets('instant search filters workflows in-memory', (tester) async {
       final mockList = [
         Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_alpha',
           slug: 'alpha-analysis',
           name: const I18nText(translations: {'en': 'Alpha Diagnostic'}),
@@ -237,6 +241,7 @@ void main() {
           modelRegistryId: 'mr_1',
         ),
         Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_beta',
           slug: 'beta-synthesis',
           name: const I18nText(translations: {'en': 'Beta Reporting'}),
@@ -274,6 +279,7 @@ void main() {
     ) async {
       final mockList = [
         Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_alpha',
           slug: 'alpha-analysis',
           name: const I18nText(translations: {'en': 'Alpha Diagnostic'}),
@@ -372,6 +378,7 @@ void main() {
         try {
           final mockList = [
             const Workflow(
+              organizationId: 'org_0195f3a0000070008000000000000001',
               id: 'wf_empty_slug',
               slug: '',
               name: I18nText(translations: {'en': 'Empty Slug Workflow'}),

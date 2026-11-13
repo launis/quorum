@@ -100,6 +100,7 @@ class ProfileEditorView extends HookConsumerWidget {
           newProfiles['default'] = OutputProfile(
             id: 'default',
             workflowId: payload.id,
+            organizationId: payload.organizationId,
             name: const I18nText(
               translations: {'fi': 'Oletusraportti', 'en': 'Default Report'},
             ),
@@ -177,6 +178,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 newProfiles[newId] = OutputProfile(
                   id: newId,
                   workflowId: payload.id,
+                  organizationId: payload.organizationId,
                   name: const I18nText(
                     translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
                   ),

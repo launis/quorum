@@ -25,6 +25,7 @@ void main() {
   late _MockLoggerService mockLogger;
 
   const stepWithInputs = NodeStrategy.llm(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'sp_01965b80000070008000000000000010',
     slug: 'step_sim_test',
     name: I18nText(translations: {'en': 'Simulation Step'}),
@@ -32,6 +33,7 @@ void main() {
   );
 
   const stepWithoutInputs = NodeStrategy.llm(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'sp_01965b80000070008000000000000011',
     slug: 'step_no_inputs',
     name: I18nText(translations: {'en': 'No Inputs Step'}),

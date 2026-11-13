@@ -23,6 +23,7 @@ void main() {
   const testWfId = 'wor_01b1d71000000001';
 
   final testWorkflow = Workflow(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: testWfId,
     slug: 'test-workflow-slug',
     name: const I18nText(
@@ -36,6 +37,7 @@ void main() {
     expectedInputs: const [],
     outputProfiles: {
       'profile_main': const OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'profile_main',
         workflowId: testWfId,
         name: I18nText(

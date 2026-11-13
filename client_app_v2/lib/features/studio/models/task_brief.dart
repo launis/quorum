@@ -19,7 +19,9 @@ abstract class TaskBrief with _$TaskBrief {
   const factory TaskBrief({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText label,
     required I18nText description,
     @JsonKey(name: 'instruction_text') String? instructionText,

@@ -26,6 +26,7 @@ void main() {
   const testReportId = 'rep_0195f3a0000070008000000000000001';
 
   const testProfile = OutputProfile(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: testProfileId,
     workflowId: testWorkflowId,
     name: I18nText(translations: {'fi': 'Testiprofiili', 'en': 'Test Profile'}),

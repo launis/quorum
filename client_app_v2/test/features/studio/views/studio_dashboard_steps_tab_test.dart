@@ -28,6 +28,7 @@ void main() {
     late MockLoggerService mockLogger;
 
     final specialistStep = NodeStrategyLogic(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'sp_01965b80000070008000000000000001',
       slug: 'specialist_step',
       name: const I18nText(translations: {'en': 'Specialist Step'}),
@@ -37,6 +38,7 @@ void main() {
     );
 
     final systemCoreStep = NodeStrategyCausalDiscovery(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'sp_01965b80000070008000000000000002',
       slug: 'step_causal_discovery',
       name: const I18nText(translations: {'en': 'Causal Discovery'}),
@@ -234,6 +236,7 @@ void main() {
         });
 
         final corruptedEmptyIdStep = NodeStrategyLogic(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: '',
           slug: 'corrupted_step',
           name: const I18nText(translations: {'en': 'Corrupted Step'}),
@@ -242,6 +245,7 @@ void main() {
         );
 
         final corruptedMissingTranslationStep = NodeStrategyLogic(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_01965b80000070008000000000000003',
           slug: 'untranslated_step',
           name: const I18nText(translations: {}),
@@ -275,6 +279,7 @@ void main() {
         });
 
         final corruptedRegularBlock = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: '',
           slug: 'missing_id_rule',
           label: const I18nText(translations: {'en': 'Broken Rule'}),
@@ -282,6 +287,7 @@ void main() {
         );
 
         final corruptedMatrixBlock = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_01965b80000070008000000000000002',
           slug: '',
           label: const I18nText(translations: {'en': 'Broken Matrix'}),

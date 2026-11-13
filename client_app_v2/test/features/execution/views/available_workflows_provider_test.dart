@@ -13,6 +13,7 @@ void main() {
     test('test_available_workflows_provider_typed_resolution', () async {
       final mockStudioClient = MockStudioClient();
       final workflow = Workflow(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'wor_1234567812345678',
         slug: 'test_wf',
         name: const I18nText(translations: {'en': 'Test Workflow'}),

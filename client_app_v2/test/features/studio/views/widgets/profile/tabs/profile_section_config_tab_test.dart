@@ -60,6 +60,7 @@ OutputProfile _createProfile({
   int? synthesisLengthConstraint,
 }) {
   return OutputProfile(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'prf_test',
     workflowId: workflowId,
     slug: 'prf-test',
@@ -110,6 +111,7 @@ void main() {
       (WidgetTester tester) async {
         final profile = _createProfile();
         final testWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_test',
           slug: 'wf-test',
           name: const I18nText(translations: {'en': 'Test Flow'}),
@@ -193,6 +195,7 @@ void main() {
               ],
             );
         final testWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_test',
           slug: 'wf-test',
           name: const I18nText(translations: {'en': 'Test Flow'}),
@@ -208,6 +211,7 @@ void main() {
           ],
         );
         const systemCoreStep = NodeStrategy.causalDiscovery(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: causalStepId,
           slug: 'step_causal_discovery',
           name: I18nText(translations: {'en': 'Causal Discovery'}),
@@ -216,6 +220,7 @@ void main() {
           criteriaBlockIds: [cohesionBlockId],
         );
         const cohesionBlock = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: cohesionBlockId,
           slug: 'matrix_causal_cohesion',
           label: I18nText(translations: {'en': 'Causal Cohesion Matrix'}),

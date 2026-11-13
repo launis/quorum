@@ -99,6 +99,7 @@ void main() {
           'type': 'llm',
           'id': validStepId,
           'slug': 'step-llm',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'name': sampleName.toJson(),
           'role_block_id': validPbId,
           'extraction_protocol_block_id': validPbId,
@@ -117,6 +118,7 @@ void main() {
           'type': 'logic',
           'id': validStepId,
           'slug': 'step-logic',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'name': sampleName.toJson(),
           'hook': 'guard_hook',
           'zone': 'zone_a',
@@ -128,6 +130,7 @@ void main() {
           'type': 'causal_discovery',
           'id': validStepId,
           'slug': 'step-causal',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'name': sampleName.toJson(),
           'zone': 'zone_c',
         });
@@ -141,6 +144,7 @@ void main() {
       'Positive: Workflow.parseInBackground and parseListInBackground deserialize valid JSON payloads',
       () async {
         const wf = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validWfId,
           slug: 'bg-workflow',
           name: sampleName,
@@ -165,6 +169,7 @@ void main() {
         final shortWfJson = <String, Object?>{
           'id': 'wf_0195f3a000007000800000000000001',
           'slug': 'short-wf',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'name': sampleName.toJson(),
           'description': sampleDesc.toJson(),
           'model_registry_id': validSysId,
@@ -184,6 +189,7 @@ void main() {
         final longRegWfJson = <String, Object?>{
           'id': validWfId,
           'slug': 'long-reg-wf',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'name': sampleName.toJson(),
           'description': sampleDesc.toJson(),
           'model_registry_id': 'sys_0195f3a0000070008000000000000005a',
@@ -212,6 +218,7 @@ void main() {
         final pollutedWfJson = <String, Object?>{
           'id': validWfId,
           'slug': 'polluted-wf',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'name': sampleName.toJson(),
           'description': sampleDesc.toJson(),
           'model_registry_id': validSysId,
@@ -226,6 +233,7 @@ void main() {
           'type': 'llm',
           'id': validStepId,
           'slug': 'polluted-node',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'name': sampleName.toJson(),
           'extra_field': 'forbidden',
         };

@@ -463,7 +463,10 @@ MatrixPromptBlock _$MatrixPromptBlockFromJson(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       label: $checkedConvert(
         'label',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -548,7 +551,9 @@ Map<String, dynamic> _$MatrixPromptBlockToJson(MatrixPromptBlock instance) =>
     <String, dynamic>{
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
       'slug': instance.slug,
-      'organization_id': instance.organizationId,
+      'organization_id': const StrictOpaqueIdConverter().toJson(
+        instance.organizationId,
+      ),
       'label': instance.label.toJson(),
       'description': instance.description.toJson(),
       'ai_description': instance.aiDescription,
@@ -609,7 +614,10 @@ SystemRulePromptBlock _$SystemRulePromptBlockFromJson(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       label: $checkedConvert(
         'label',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -669,7 +677,9 @@ Map<String, dynamic> _$SystemRulePromptBlockToJson(
 ) => <String, dynamic>{
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'label': instance.label.toJson(),
   'description': instance.description.toJson(),
   'is_evaluative': instance.isEvaluative,
@@ -713,7 +723,10 @@ ExecutionPersonaPromptBlock _$ExecutionPersonaPromptBlockFromJson(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       label: $checkedConvert(
         'label',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -779,7 +792,9 @@ Map<String, dynamic> _$ExecutionPersonaPromptBlockToJson(
 ) => <String, dynamic>{
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'label': instance.label.toJson(),
   'description': instance.description.toJson(),
   'is_evaluative': instance.isEvaluative,
@@ -824,7 +839,10 @@ AgentRolePromptBlock _$AgentRolePromptBlockFromJson(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       label: $checkedConvert(
         'label',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -890,7 +908,9 @@ Map<String, dynamic> _$AgentRolePromptBlockToJson(
 ) => <String, dynamic>{
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'label': instance.label.toJson(),
   'description': instance.description.toJson(),
   'is_evaluative': instance.isEvaluative,
@@ -904,100 +924,105 @@ Map<String, dynamic> _$AgentRolePromptBlockToJson(
   'category_id': instance.$type,
 };
 
-ProtocolPromptBlock _$ProtocolPromptBlockFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  'ProtocolPromptBlock',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
+ProtocolPromptBlock _$ProtocolPromptBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      'ProtocolPromptBlock',
       json,
-      allowedKeys: const [
-        'id',
-        'slug',
-        'organization_id',
-        'label',
-        'description',
-        'is_evaluative',
-        'type',
-        'allow_decimals',
-        'output_extensions',
-        'theory_grounding',
-        'is_lightweight_protocol',
-        'protocol_instructions',
-        'category_id',
-      ],
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'id',
+            'slug',
+            'organization_id',
+            'label',
+            'description',
+            'is_evaluative',
+            'type',
+            'allow_decimals',
+            'output_extensions',
+            'theory_grounding',
+            'is_lightweight_protocol',
+            'protocol_instructions',
+            'category_id',
+          ],
+        );
+        final val = ProtocolPromptBlock(
+          id: $checkedConvert(
+            'id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          slug: $checkedConvert('slug', (v) => v as String),
+          organizationId: $checkedConvert(
+            'organization_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          label: $checkedConvert(
+            'label',
+            (v) => I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          description: $checkedConvert(
+            'description',
+            (v) => I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          isEvaluative: $checkedConvert(
+            'is_evaluative',
+            (v) => v as bool? ?? false,
+          ),
+          type: $checkedConvert(
+            'type',
+            (v) =>
+                $enumDecodeNullable(_$BlockDataTypeEnumMap, v) ??
+                BlockDataType.instruction,
+          ),
+          allowDecimals: $checkedConvert(
+            'allow_decimals',
+            (v) => v as bool? ?? false,
+          ),
+          outputExtensions: $checkedConvert(
+            'output_extensions',
+            (v) =>
+                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+                const [],
+          ),
+          theoryGrounding: $checkedConvert(
+            'theory_grounding',
+            (v) => v == null
+                ? null
+                : TheoryGrounding.fromJson(v as Map<String, dynamic>),
+          ),
+          isLightweightProtocol: $checkedConvert(
+            'is_lightweight_protocol',
+            (v) => v as bool? ?? false,
+          ),
+          protocolInstructions: $checkedConvert(
+            'protocol_instructions',
+            (v) => v as String?,
+          ),
+          $type: $checkedConvert('category_id', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'organizationId': 'organization_id',
+        'isEvaluative': 'is_evaluative',
+        'allowDecimals': 'allow_decimals',
+        'outputExtensions': 'output_extensions',
+        'theoryGrounding': 'theory_grounding',
+        'isLightweightProtocol': 'is_lightweight_protocol',
+        'protocolInstructions': 'protocol_instructions',
+        r'$type': 'category_id',
+      },
     );
-    final val = ProtocolPromptBlock(
-      id: $checkedConvert(
-        'id',
-        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-      ),
-      slug: $checkedConvert('slug', (v) => v as String),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
-      label: $checkedConvert(
-        'label',
-        (v) => I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      description: $checkedConvert(
-        'description',
-        (v) => I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      isEvaluative: $checkedConvert(
-        'is_evaluative',
-        (v) => v as bool? ?? false,
-      ),
-      type: $checkedConvert(
-        'type',
-        (v) =>
-            $enumDecodeNullable(_$BlockDataTypeEnumMap, v) ??
-            BlockDataType.instruction,
-      ),
-      allowDecimals: $checkedConvert(
-        'allow_decimals',
-        (v) => v as bool? ?? false,
-      ),
-      outputExtensions: $checkedConvert(
-        'output_extensions',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      theoryGrounding: $checkedConvert(
-        'theory_grounding',
-        (v) => v == null
-            ? null
-            : TheoryGrounding.fromJson(v as Map<String, dynamic>),
-      ),
-      isLightweightProtocol: $checkedConvert(
-        'is_lightweight_protocol',
-        (v) => v as bool? ?? false,
-      ),
-      protocolInstructions: $checkedConvert(
-        'protocol_instructions',
-        (v) => v as String?,
-      ),
-      $type: $checkedConvert('category_id', (v) => v as String?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'organizationId': 'organization_id',
-    'isEvaluative': 'is_evaluative',
-    'allowDecimals': 'allow_decimals',
-    'outputExtensions': 'output_extensions',
-    'theoryGrounding': 'theory_grounding',
-    'isLightweightProtocol': 'is_lightweight_protocol',
-    'protocolInstructions': 'protocol_instructions',
-    r'$type': 'category_id',
-  },
-);
 
 Map<String, dynamic> _$ProtocolPromptBlockToJson(
   ProtocolPromptBlock instance,
 ) => <String, dynamic>{
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'label': instance.label.toJson(),
   'description': instance.description.toJson(),
   'is_evaluative': instance.isEvaluative,
@@ -1040,7 +1065,10 @@ RuntimeVariablesPromptBlock _$RuntimeVariablesPromptBlockFromJson(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       label: $checkedConvert(
         'label',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -1100,7 +1128,9 @@ Map<String, dynamic> _$RuntimeVariablesPromptBlockToJson(
 ) => <String, dynamic>{
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'label': instance.label.toJson(),
   'description': instance.description.toJson(),
   'is_evaluative': instance.isEvaluative,

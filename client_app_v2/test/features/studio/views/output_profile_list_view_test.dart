@@ -47,6 +47,7 @@ class MockOutputProfilesController extends OutputProfilesController {
       return await onClone!(id);
     }
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: '${id}_clone',
       slug: '$id-clone',
       workflowId: 'wf_test',
@@ -60,6 +61,7 @@ class MockOutputProfilesController extends OutputProfilesController {
       return await onCreateDraft!();
     }
     return const OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'prf_draft',
       slug: 'draft-profile',
       workflowId: 'wf_test',
@@ -125,6 +127,7 @@ void main() {
 
   OutputProfile createProfile(String id, String name, String slug) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id,
       slug: slug,
       workflowId: 'wf_test',

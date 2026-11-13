@@ -54,6 +54,7 @@ class MockPromptBlocksController extends PromptBlocksController {
       return await onClone!(id);
     }
     return PromptBlock.matrix(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: '${id}_clone',
       slug: '$id-clone',
       label: const I18nText(translations: {'en': 'Cloned Matrix'}),
@@ -68,6 +69,7 @@ class MockPromptBlocksController extends PromptBlocksController {
       return await onCreateDraft!(categoryId: categoryId);
     }
     return PromptBlock.matrix(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'blk_draft',
       slug: 'draft-matrix',
       label: const I18nText(translations: {'en': 'Draft Matrix'}),
@@ -161,6 +163,7 @@ void main() {
 
   PromptBlock createMatrixBlock(String id, String name, String slug) {
     return PromptBlock.matrix(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id,
       slug: slug,
       label: I18nText(translations: {'en': name, 'fi': name}),
@@ -255,6 +258,7 @@ void main() {
       final mockBlocks = [
         createMatrixBlock('blk_matrix', 'Active Matrix', 'matrix-slug'),
         const PromptBlock.executionPersona(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_persona',
           slug: 'persona-slug',
           label: I18nText(translations: {'en': 'Executive Coach Persona'}),

@@ -7,6 +7,7 @@ void main() {
       final json = {
         'id': 'pb_0195f3a0000070008000000000000001',
         'slug': 'test-slug',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'label': {
           'translations': {'en': 'Test Label', 'fi': 'Testi'},
         },

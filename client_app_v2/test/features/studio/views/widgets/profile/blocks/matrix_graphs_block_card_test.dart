@@ -24,6 +24,7 @@ void main() {
     int? matrixGraphLengthConstraint,
   }) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: validPrfId,
       workflowId: validWfId,
       name: const I18nText(translations: {'en': 'Test Profile'}),
@@ -34,6 +35,7 @@ void main() {
   }
 
   final mockPromptBlock1 = const PromptBlock.matrix(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: validBlkId1,
     slug: 'matrix_block_1',
     label: I18nText(translations: {'en': 'Matrix Block 1'}),
@@ -42,6 +44,7 @@ void main() {
   );
 
   final mockPromptBlock2 = const PromptBlock.matrix(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: validBlkId2,
     slug: 'matrix_block_2',
     label: I18nText(translations: {'en': 'Matrix Block 2'}),

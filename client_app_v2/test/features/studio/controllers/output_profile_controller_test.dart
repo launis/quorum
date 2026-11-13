@@ -40,6 +40,7 @@ void main() {
 
         const emptyI18n = I18nText(translations: {'en': ''});
         final profile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validProfileId,
           workflowId: validWorkflowId,
           name: const I18nText(translations: {'en': 'Valid Name'}),
@@ -104,6 +105,7 @@ void main() {
           addTearDown(container.dispose);
 
           final profileMissingBounds = OutputProfile(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: validProfileId,
             workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
@@ -152,6 +154,7 @@ void main() {
           addTearDown(container.dispose);
 
           final profileInvertedBounds = OutputProfile(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: validProfileId,
             workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
@@ -200,6 +203,7 @@ void main() {
           addTearDown(container.dispose);
 
           final profileEqualBounds = OutputProfile(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: validProfileId,
             workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
@@ -248,6 +252,7 @@ void main() {
           addTearDown(container.dispose);
 
           final validCustomProfile = OutputProfile(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: validProfileId,
             workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
@@ -303,6 +308,7 @@ void main() {
         addTearDown(container.dispose);
 
         final invalidProfile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: '',
           workflowId: validWorkflowId,
           name: const I18nText(translations: {'en': 'Test'}),
@@ -335,6 +341,7 @@ void main() {
         addTearDown(container.dispose);
 
         final noNameProfile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validProfileId,
           workflowId: validWorkflowId,
           name: const I18nText(translations: {}),
@@ -367,6 +374,7 @@ void main() {
         addTearDown(container.dispose);
 
         final validProfile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validProfileId,
           workflowId: validWorkflowId,
           name: const I18nText(translations: {'en': 'Test'}),

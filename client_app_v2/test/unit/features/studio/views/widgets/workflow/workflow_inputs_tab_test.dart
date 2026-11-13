@@ -13,6 +13,7 @@ Workflow _buildValidWorkflow({
   List<ExpectedInput> expectedInputs = const <ExpectedInput>[],
 }) {
   return Workflow(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: id,
     slug: 'test-workflow',
     name: const I18nText(translations: <String, String>{'en': 'Test Workflow'}),

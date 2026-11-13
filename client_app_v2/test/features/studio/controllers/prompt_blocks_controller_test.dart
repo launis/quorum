@@ -20,6 +20,7 @@ void main() {
   late ProviderContainer container;
 
   const validBlock = PromptBlock.systemRule(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'blk_01965b80000070008000000000000001',
     slug: 'system-rule-default',
     label: I18nText(translations: {'en': 'System Rule'}),
@@ -237,6 +238,7 @@ void main() {
         await container.read(promptBlocksControllerProvider.future);
 
         const clonedBlock = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_01965b80000070008000000000000003',
           slug: 'system-rule-default-copy',
           label: I18nText(translations: {'en': 'System Rule (Copy)'}),
@@ -299,6 +301,7 @@ void main() {
         await container.read(promptBlocksControllerProvider.future);
 
         const draftBlock = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_01965b80000070008000000000000004',
           slug: 'draft-matrix',
           label: I18nText(translations: {'en': 'Draft Matrix'}),

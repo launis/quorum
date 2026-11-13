@@ -86,6 +86,7 @@ class _FakeStudioClient extends StudioClient {
       _throwError('output-profiles/');
     }
     final draft = OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: generateOpaqueUuid7('prf'),
       workflowId: generateOpaqueUuid7('wkf'),
       name: const I18nText(translations: {'en': 'Draft Profile'}),
@@ -122,6 +123,7 @@ void main() {
     double? customScaleMax,
   }) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id ?? validProfileId,
       workflowId: workflowId ?? validWorkflowId,
       name: name ?? const I18nText(translations: {'en': 'Valid Name'}),
@@ -173,6 +175,7 @@ void main() {
 
         const emptyI18n = I18nText(translations: {'en': ''});
         final profile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validProfileId,
           workflowId: validWorkflowId,
           name: const I18nText(translations: {'en': 'Valid Name'}),

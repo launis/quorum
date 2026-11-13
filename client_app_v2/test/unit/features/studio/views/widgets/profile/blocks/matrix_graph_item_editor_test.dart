@@ -17,6 +17,7 @@ void main() {
   const String validRuleBlkId = 'blk_01964528b7707d5081986327cf9a6e84';
 
   const matrixBlock1 = PromptBlock.matrix(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: validBlkId1,
     slug: 'matrix_1',
     label: I18nText(translations: {'en': 'Matrix 1'}),
@@ -24,6 +25,7 @@ void main() {
     scales: [],
   );
   const matrixBlock2 = PromptBlock.matrix(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: validBlkId2,
     slug: 'matrix_2',
     label: I18nText(translations: {'en': 'Matrix 2'}),
@@ -31,6 +33,7 @@ void main() {
     scales: [],
   );
   const matrixBlock3 = PromptBlock.matrix(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: validBlkId3,
     slug: 'matrix_3',
     label: I18nText(translations: {'en': 'Matrix 3'}),
@@ -38,6 +41,7 @@ void main() {
     scales: [],
   );
   const nonMatrixBlock = PromptBlock.systemRule(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: validRuleBlkId,
     slug: 'rule_1',
     label: I18nText(translations: {'en': 'Rule 1'}),

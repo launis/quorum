@@ -178,6 +178,7 @@ void main() {
       'Positive: serializes and deserializes StepSimulationRequest and StepSimulationResponse',
       () {
         const step = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validStepId,
           slug: 'step_analysis',
           name: I18nText(

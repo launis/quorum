@@ -16,6 +16,7 @@ const String _kBlueprint2Id = 'stp_0195f3a0000070008000000000000020';
 List<NodeStrategy> _buildTestBlueprints() {
   return const <NodeStrategy>[
     NodeStrategy.llm(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: _kBlueprint1Id,
       slug: 'analyst-blueprint',
       name: I18nText(
@@ -26,6 +27,7 @@ List<NodeStrategy> _buildTestBlueprints() {
       ),
     ),
     NodeStrategy.logic(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: _kBlueprint2Id,
       slug: 'validator-blueprint',
       hook: 'validation_hook',
@@ -36,6 +38,7 @@ List<NodeStrategy> _buildTestBlueprints() {
 
 Workflow _buildTestWorkflow({String id = _kWorkflowId, List<StepRule>? steps}) {
   return Workflow(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: id,
     slug: 'inspector-test-workflow',
     name: const I18nText(
@@ -364,6 +367,7 @@ void main() {
               workflow: _buildTestWorkflow(),
               availableBlueprints: const <NodeStrategy>[
                 NodeStrategy.llm(
+                  organizationId: 'org_0195f3a0000070008000000000000001',
                   id: '   ',
                   slug: 'empty-id',
                   name: I18nText(translations: <String, String>{'en': 'Valid'}),
@@ -384,6 +388,7 @@ void main() {
               workflow: _buildTestWorkflow(),
               availableBlueprints: const <NodeStrategy>[
                 NodeStrategy.llm(
+                  organizationId: 'org_0195f3a0000070008000000000000001',
                   id: _kBlueprint1Id,
                   slug: 'missing-translation',
                   name: I18nText(translations: <String, String>{}),

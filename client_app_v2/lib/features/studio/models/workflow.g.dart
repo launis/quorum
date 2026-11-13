@@ -408,7 +408,10 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
             $enumDecodeNullable(_$CognitiveTierEnumMap, v) ??
             CognitiveTier.fast,
       ),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       isSystemCore: $checkedConvert(
         'is_system_core',
         (v) => v as bool? ?? false,
@@ -477,7 +480,9 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       ),
       'expected_inputs': instance.expectedInputs,
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
-      'organization_id': instance.organizationId,
+      'organization_id': const StrictOpaqueIdConverter().toJson(
+        instance.organizationId,
+      ),
       'is_system_core': instance.isSystemCore,
       'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
       'zone': _$StepZoneEnumMap[instance.zone]!,
@@ -620,7 +625,10 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
             $enumDecodeNullable(_$CognitiveTierEnumMap, v) ??
             CognitiveTier.fast,
       ),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       isSystemCore: $checkedConvert(
         'is_system_core',
         (v) => v as bool? ?? false,
@@ -689,7 +697,9 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       ),
       'expected_inputs': instance.expectedInputs,
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
-      'organization_id': instance.organizationId,
+      'organization_id': const StrictOpaqueIdConverter().toJson(
+        instance.organizationId,
+      ),
       'is_system_core': instance.isSystemCore,
       'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
       'zone': _$StepZoneEnumMap[instance.zone]!,
@@ -812,7 +822,10 @@ NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
             $enumDecodeNullable(_$CognitiveTierEnumMap, v) ??
             CognitiveTier.fast,
       ),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       isSystemCore: $checkedConvert(
         'is_system_core',
         (v) => v as bool? ?? false,
@@ -884,7 +897,9 @@ Map<String, dynamic> _$NodeStrategyCausalDiscoveryToJson(
   ),
   'expected_inputs': instance.expectedInputs,
   'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'is_system_core': instance.isSystemCore,
   'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
   'zone': _$StepZoneEnumMap[instance.zone]!,
@@ -941,7 +956,10 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       status: $checkedConvert('status', (v) => v as String? ?? "draft"),
       version: $checkedConvert('version', (v) => (v as num?)?.toInt() ?? 1),
       isPublic: $checkedConvert('is_public', (v) => v as bool? ?? false),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       outputProfiles: $checkedConvert(
         'output_profiles',
         (v) =>
@@ -1058,7 +1076,9 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'status': instance.status,
   'version': instance.version,
   'is_public': instance.isPublic,
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'output_profiles': instance.outputProfiles.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),

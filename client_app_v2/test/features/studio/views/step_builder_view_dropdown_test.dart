@@ -29,6 +29,7 @@ void main() {
       final originalErrorBuilder = ErrorWidget.builder;
 
       final mockStep = NodeStrategy.llm(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'test_step_1',
         slug: 'test_slug',
         name: const I18nText(translations: {'en': 'Test'}),
@@ -37,12 +38,14 @@ void main() {
 
       final List<PromptBlock> mockPromptBlocks = [
         const PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'block_a',
           slug: 'block_a',
           label: I18nText(translations: {'en': 'Block A'}),
           description: I18nText(translations: {'en': 'Desc A'}),
         ),
         const PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'block_b',
           slug: 'block_b',
           label: I18nText(translations: {'en': 'Block B'}),
@@ -114,6 +117,7 @@ void main() {
         };
 
         final mockStep = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'test_step_1',
           slug: 'test_slug',
           name: const I18nText(translations: {'en': 'Test'}),
@@ -122,12 +126,14 @@ void main() {
 
         final List<PromptBlock> mockPromptBlocks = [
           const PromptBlock.systemRule(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: 'block_a',
             slug: 'block_a',
             label: I18nText(translations: {'en': 'Block A'}),
             description: I18nText(translations: {'en': 'Desc A'}),
           ),
           const PromptBlock.runtimeVariables(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: 'block_c',
             slug: 'block_c',
             label: I18nText(translations: {'en': 'Block C'}),
@@ -190,6 +196,7 @@ void main() {
         final originalErrorBuilder = ErrorWidget.builder;
 
         final mockStep = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'test_step_1',
           slug: 'test_slug',
           name: const I18nText(translations: {'en': 'Test Step'}),
@@ -273,6 +280,7 @@ void main() {
         final originalErrorBuilder = ErrorWidget.builder;
 
         final mockStep = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'test_step_1',
           slug: 'test_slug',
           name: const I18nText(translations: {'en': 'Test Step'}),
@@ -328,6 +336,7 @@ void main() {
         final originalErrorBuilder = ErrorWidget.builder;
 
         final mockStep = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'test_step_1',
           slug: 'test_slug',
           name: const I18nText(translations: {'en': 'Test Step'}),
@@ -336,6 +345,7 @@ void main() {
 
         final List<PromptBlock> mockPromptBlocks = [
           const PromptBlock.systemRule(
+            organizationId: 'org_0195f3a0000070008000000000000001',
             id: 'block_missing_i18n',
             slug: 'block_missing_i18n',
             label: I18nText(translations: {}),
@@ -394,6 +404,7 @@ void main() {
         final originalErrorBuilder = ErrorWidget.builder;
 
         final mockStep = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'test_step_1',
           slug: 'test_slug',
           name: const I18nText(translations: {'en': 'Actual Step Name'}),

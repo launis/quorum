@@ -20,6 +20,7 @@ void main() {
     String? fiLabel,
   }) {
     return PromptBlock.matrix(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id,
       slug: 'matrix_$id',
       label: I18nText(translations: {'en': enLabel, 'fi': ?fiLabel}),
@@ -33,6 +34,7 @@ void main() {
 
   PromptBlock createSystemRuleBlock({required String id}) {
     return PromptBlock.systemRule(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id,
       slug: 'sys_$id',
       label: const I18nText(translations: {'en': 'System Rule'}),
@@ -48,6 +50,7 @@ void main() {
     String? varianceTargetBlock = matrixBlockId1,
   }) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'prf_0195f3a00000700a8000000000000001',
       workflowId: 'wf_0195f3a00000700a8000000000000002',
       name: const I18nText(translations: {'en': 'Test Profile'}),

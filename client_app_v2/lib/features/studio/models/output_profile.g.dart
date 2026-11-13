@@ -116,7 +116,10 @@ _OutputProfile _$OutputProfileFromJson(
         'workflow_id',
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       name: $checkedConvert(
         'name',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -361,7 +364,9 @@ Map<String, dynamic> _$OutputProfileToJson(
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
-  'organization_id': instance.organizationId,
+  'organization_id': const StrictOpaqueIdConverter().toJson(
+    instance.organizationId,
+  ),
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
   'user_role_label': instance.userRoleLabel?.toJson(),

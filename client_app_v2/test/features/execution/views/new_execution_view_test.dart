@@ -89,6 +89,7 @@ void main() {
     String defaultProfileId = '',
   }) {
     return Workflow(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id,
       slug: 'slug_$id',
       name: I18nText(translations: {'en': name, 'fi': name}),
@@ -347,6 +348,7 @@ void main() {
         );
 
         final profile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: profId,
           workflowId: wfId,
           name: const I18nText(

@@ -26,6 +26,7 @@ void main() {
   const testWfId = 'wor_01965b10000070008000000000000001';
 
   final testWorkflow = Workflow(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: testWfId,
     slug: 'test-workflow-slug',
     name: const I18nText(

@@ -91,6 +91,7 @@ void main() {
           final block = PromptBlock.fromJson({
             'id': validPbId,
             'slug': 'test-$category',
+            'organization_id': 'org_0195f3a0000070008000000000000099',
             'label': sampleLabel.toJson(),
             'description': sampleDesc.toJson(),
             'category_id': category,
@@ -117,12 +118,14 @@ void main() {
         expect(RegExp(r'^tda_[a-f0-9]{32}$').hasMatch(tda.tdaId), isTrue);
 
         const ruleBlock = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validPbId,
           slug: 'test-rule',
           label: sampleLabel,
           description: sampleDesc,
         );
         const protocolBlock = PromptBlock.protocol(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validPbId,
           slug: 'test-protocol',
           label: sampleLabel,
@@ -151,6 +154,7 @@ void main() {
         final shortIdJson = {
           'id': 'pb_0195f3a000007000800000000000001',
           'slug': 'short-id',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'label': sampleLabel.toJson(),
           'description': sampleDesc.toJson(),
           'category_id': 'system_rule',
@@ -164,6 +168,7 @@ void main() {
         final longIdJson = {
           'id': 'pb_0195f3a0000070008000000000000001a',
           'slug': 'long-id',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'label': sampleLabel.toJson(),
           'description': sampleDesc.toJson(),
           'category_id': 'system_rule',
@@ -199,6 +204,7 @@ void main() {
         final pollutedBlockJson = {
           'id': validPbId,
           'slug': 'polluted-protocol',
+          'organization_id': 'org_0195f3a0000070008000000000000099',
           'label': sampleLabel.toJson(),
           'description': sampleDesc.toJson(),
           'category_id': 'protocol',

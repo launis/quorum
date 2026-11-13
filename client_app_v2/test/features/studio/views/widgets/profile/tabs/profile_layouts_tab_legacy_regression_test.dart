@@ -69,6 +69,7 @@ void main() {
         });
 
         final testWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_test',
           slug: 'wf-test',
           name: const I18nText(translations: {'en': 'Test Flow'}),
@@ -81,6 +82,7 @@ void main() {
 
         // Historical / seed database output profile containing legacy synthesisTextBlock in targetBlockOrder
         final legacyProfile = OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_legacy',
           workflowId: 'wf_test',
           name: const I18nText(translations: {'en': 'Legacy Profile'}),

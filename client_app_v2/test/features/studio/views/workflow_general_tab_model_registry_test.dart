@@ -18,6 +18,7 @@ void main() {
     String modelRegistryId = 'mrg_0195f3a0000070008000bf23c2670ad5',
   }) {
     return Workflow(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'wf_0195f3a0000070008000000000000001',
       slug: 'test-workflow',
       name: const I18nText(translations: {'en': 'Test Workflow'}),
@@ -264,6 +265,7 @@ void main() {
           taskBlueprint: 'sp_1234567890abcdef',
         );
         const blueprint = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_1234567890abcdef',
           slug: 'web_research_specialist',
           name: I18nText(translations: {'en': 'Web Research Specialist'}),
@@ -323,6 +325,7 @@ void main() {
           taskBlueprint: 'sp_1234567890abcdef',
         );
         const blueprint = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_1234567890abcdef',
           slug: 'no_tools_specialist',
           name: I18nText(translations: {'en': 'No Tools Specialist'}),
@@ -434,6 +437,7 @@ class MockOutputProfilesController extends AsyncNotifier<List<OutputProfile>>
   Future<void> deleteProfile(String id) async {}
   @override
   Future<OutputProfile> cloneProfile(String id) async => const OutputProfile(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'cloned',
     workflowId: 'wor_123',
     slug: 'cloned',
@@ -441,6 +445,7 @@ class MockOutputProfilesController extends AsyncNotifier<List<OutputProfile>>
   );
   @override
   Future<OutputProfile> createOutputProfileDraft() async => const OutputProfile(
+    organizationId: 'org_0195f3a0000070008000000000000001',
     id: 'draft',
     workflowId: 'wor_123',
     slug: 'draft',

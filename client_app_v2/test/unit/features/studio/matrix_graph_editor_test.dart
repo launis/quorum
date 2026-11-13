@@ -42,6 +42,7 @@ void main() {
 
   group('MatrixGraphItemEditor Slot & ViewType Constraints', () {
     final matrixBlock1 = MatrixPromptBlock(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'blk_mat_1',
       slug: 'matrix_1',
       label: const I18nText(translations: {'en': 'Matrix 1'}),
@@ -49,6 +50,7 @@ void main() {
       scales: const [],
     );
     final matrixBlock2 = MatrixPromptBlock(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'blk_mat_2',
       slug: 'matrix_2',
       label: const I18nText(translations: {'en': 'Matrix 2'}),
@@ -56,6 +58,7 @@ void main() {
       scales: const [],
     );
     final matrixBlock3 = MatrixPromptBlock(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'blk_mat_3',
       slug: 'matrix_3',
       label: const I18nText(translations: {'en': 'Matrix 3'}),
@@ -63,6 +66,7 @@ void main() {
       scales: const [],
     );
     final nonMatrixBlock = SystemRulePromptBlock(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'blk_rule_1',
       slug: 'rule_1',
       label: const I18nText(translations: {'en': 'Rule 1'}),

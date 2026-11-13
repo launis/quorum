@@ -74,6 +74,7 @@ void main() {
 
   setUp(() {
     baseWorkflow = const Workflow(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: validWfId,
       slug: 'executive-audit',
       name: I18nText(
@@ -94,6 +95,7 @@ void main() {
 
     mockProfiles = [
       const OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: validProfId1,
         slug: 'exec-summary',
         workflowId: validWfId,
@@ -102,6 +104,7 @@ void main() {
         ),
       ),
       const OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: validProfId2,
         slug: 'deep-dive',
         workflowId: validWfId,
@@ -259,6 +262,7 @@ void main() {
       'Negative 1 (Unmapped / Orphan IDs & Empty Collections): safely handles empty provider lists and unmapped IDs without dropdown assertion crashes',
       (WidgetTester tester) async {
         const orphanWf = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validWfId,
           slug: 'orphan-wf',
           name: I18nText(translations: {'en': 'Orphan Workflow'}),

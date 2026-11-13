@@ -121,6 +121,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_sysrule',
           slug: 'test_rule',
           label: I18nText(translations: {'en': 'System Rule A'}),
@@ -153,6 +154,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.executionPersona(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_persona',
           slug: 'test_persona',
           label: I18nText(translations: {'en': 'Persona Executive'}),
@@ -202,6 +204,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.agentRole(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_agent_role',
           slug: 'agent_role',
           label: I18nText(translations: {'en': 'Agent Role'}),
@@ -227,6 +230,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       const block = PromptBlock.protocol(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'blk_test_protocol',
         slug: 'protocol_test',
         label: I18nText(translations: {'en': 'Protocol Block'}),
@@ -252,6 +256,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       const block = PromptBlock.runtimeVariables(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'blk_test_vars',
         slug: 'runtime_vars',
         label: I18nText(translations: {'en': 'Runtime Variables'}),
@@ -274,6 +279,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       const block = PromptBlock.matrix(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'blk_test_matrix',
         slug: 'matrix_test',
         label: I18nText(translations: {'en': 'Matrix Block'}),
@@ -322,6 +328,7 @@ void main() {
       );
 
       const block = PromptBlock.systemRule(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'blk_test_preview',
         slug: 'test_preview',
         label: I18nText(translations: {'en': 'System Rule Preview'}),
@@ -402,6 +409,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       const block = PromptBlock.systemRule(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'blk_test_empty_en',
         slug: 'test_empty',
         label: I18nText(translations: {'en': ''}),
@@ -438,6 +446,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_matrix_overflow',
           slug: 'matrix_overflow',
           label: I18nText(
@@ -475,6 +484,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_matrix_active_controls',
           slug: 'matrix_active_controls',
           label: I18nText(
@@ -513,6 +523,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.executionPersona(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_persona_narrow',
           slug: 'test_persona_narrow',
           label: I18nText(translations: {'en': 'Persona', 'fi': 'Persoona'}),
@@ -539,6 +550,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_long_title',
           slug: 'long_title',
           label: I18nText(
@@ -580,6 +592,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_ultrawide',
           slug: 'ultrawide',
           label: I18nText(translations: {'en': 'Matrix', 'fi': 'Matriisi'}),
@@ -623,6 +636,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_matrix_positive',
           slug: 'matrix_pos',
           label: I18nText(translations: {'en': 'Matrix Sensor'}),
@@ -658,6 +672,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_sysrule_pruned',
           slug: 'sysrule_pruned',
           label: I18nText(translations: {'en': 'System Rule'}),
@@ -685,6 +700,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.protocol(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_proto_pruned',
           slug: 'proto_pruned',
           label: I18nText(translations: {'en': 'Protocol'}),
@@ -712,6 +728,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
 
         const block = PromptBlock.executionPersona(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_test_persona_pruned',
           slug: 'persona_pruned',
           label: I18nText(translations: {'en': 'Persona'}),
@@ -741,6 +758,7 @@ void main() {
         PromptBlock? savedPayload;
         // id 'new' ensures isMatrix is false when no scales/rows/cols exist
         const block = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'new',
           slug: 'new_block',
           label: I18nText(translations: {'en': 'Switchable Block'}),
@@ -806,6 +824,7 @@ void main() {
 
         final saveCompleter = Completer<void>();
         const block = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_0195f3a00000700a8000000000000001',
           slug: 'sys_rule_async_save',
           label: I18nText(translations: {'en': 'Async Save Rule'}),

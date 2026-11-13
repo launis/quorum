@@ -14,6 +14,7 @@ void main() {
     setUp(() {
       mockBlueprints = [
         const NodeStrategy.logic(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_db849f9790984585',
           slug: 'input_processing',
           name: I18nText(
@@ -27,6 +28,7 @@ void main() {
           zone: StepZone.zoneA,
         ),
         const NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_agent_specialist_1',
           slug: 'senior_executive_coach',
           name: I18nText(
@@ -40,6 +42,7 @@ void main() {
           zone: StepZone.zoneB,
         ),
         const NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_agent_specialist_2',
           slug: 'strategy_analyst',
           name: I18nText(
@@ -53,6 +56,7 @@ void main() {
           zone: StepZone.zoneB,
         ),
         const NodeStrategy.logic(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_192910b5f5a34c79',
           slug: 'xai_reporter',
           name: I18nText(
@@ -66,6 +70,7 @@ void main() {
           zone: StepZone.zoneC,
         ),
         const NodeStrategy.causalDiscovery(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_causal_discovery_1',
           slug: 'causal_discovery_1',
           name: I18nText(
@@ -78,6 +83,7 @@ void main() {
           zone: StepZone.zoneB,
         ),
         const NodeStrategy.causalDiscovery(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'sp_causal_discovery_2',
           slug: 'causal_discovery_2',
           name: I18nText(

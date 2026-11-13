@@ -164,7 +164,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
     CognitiveTier cognitiveTier,
-    String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
     @JsonKey(name: 'engine_type')
     @Default(EngineType.prompt)
@@ -196,7 +198,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
     CognitiveTier cognitiveTier,
-    String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
     @JsonKey(name: 'engine_type')
     @Default(EngineType.prompt)
@@ -228,7 +232,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
     CognitiveTier cognitiveTier,
-    String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
     @JsonKey(name: 'engine_type')
     @Default(EngineType.causalDiscovery)
@@ -253,7 +259,9 @@ abstract class Workflow with _$Workflow {
     @Default("draft") String status,
     @Default(1) int version,
     @Default(false) bool isPublic,
-    String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     @Default({}) Map<String, OutputProfile> outputProfiles,
     @Default("default") String defaultProfileId,
     @StrictOpaqueIdConverter()

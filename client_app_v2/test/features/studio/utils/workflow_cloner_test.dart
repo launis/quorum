@@ -28,6 +28,7 @@ void main() {
         const mrId = 'mr_0195f3a0000070008000000000000400';
 
         const original = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: wfId,
           slug: 'exec_coaching_v2',
           name: sampleTitle,
@@ -37,6 +38,7 @@ void main() {
           defaultProfileId: opId,
           outputProfiles: {
             opId: OutputProfile(
+              organizationId: 'org_0195f3a0000070008000000000000001',
               id: opId,
               slug: 'exec_profile',
               workflowId: wfId,
@@ -106,6 +108,7 @@ void main() {
       'Negative 1: throws AppException when StepRule dependsOn references an unmapped step',
       () {
         const original = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_0195f3a0000070008000000000000001',
           slug: 'broken_dep_wf',
           name: sampleTitle,
@@ -137,6 +140,7 @@ void main() {
       'Negative 2 (Boundary): throws AppException when StepRule has empty ID or causalSourceStepId is omitted from dependsOn',
       () {
         const emptyStepWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_0195f3a0000070008000000000000001',
           slug: 'empty_step_id_wf',
           name: sampleTitle,
@@ -156,6 +160,7 @@ void main() {
         );
 
         const missingCausalDepWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_0195f3a0000070008000000000000001',
           slug: 'missing_causal_dep_wf',
           name: sampleTitle,

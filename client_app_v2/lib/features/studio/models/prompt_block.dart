@@ -246,7 +246,9 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.matrix({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText label,
     required I18nText description,
     @JsonKey(name: 'ai_description') String? aiDescription,
@@ -276,7 +278,9 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.systemRule({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText label,
     required I18nText description,
     @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
@@ -297,7 +301,9 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.executionPersona({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText label,
     required I18nText description,
     @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
@@ -319,7 +325,9 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.agentRole({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText label,
     required I18nText description,
     @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
@@ -341,7 +349,9 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.protocol({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText label,
     required I18nText description,
     @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
@@ -362,7 +372,9 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.runtimeVariables({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    @JsonKey(name: 'organization_id') String? organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     required I18nText label,
     required I18nText description,
     @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,

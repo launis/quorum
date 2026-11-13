@@ -12,6 +12,7 @@ void main() {
     List<String> visibleMetadata = const ['date', 'organization'],
   }) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'prf_test',
       workflowId: 'wf_test',
       name: const I18nText(translations: {'en': 'Test Profile'}),

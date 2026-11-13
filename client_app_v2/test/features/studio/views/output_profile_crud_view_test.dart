@@ -133,6 +133,7 @@ void main() {
     ],
   }) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: id,
       slug: slug,
       workflowId: workflowId,
@@ -360,6 +361,7 @@ void main() {
     ) async {
       // Input: Valid OutputProfile with workflowId "wf_test" and available extensions ["citation", "justification"]
       final testWorkflow = Workflow(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'wf_test',
         slug: 'wf-test',
         name: const I18nText(translations: {'en': 'Test Flow'}),
@@ -515,6 +517,7 @@ void main() {
       'test_crud_view_navigates_to_section_config_and_displays_metadata_card',
       (WidgetTester tester) async {
         final testWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_test',
           slug: 'wf-test',
           name: const I18nText(translations: {'en': 'Test Flow'}),
@@ -569,6 +572,7 @@ void main() {
       'test_crud_view_navigates_to_section_config_and_displays_xai_card',
       (WidgetTester tester) async {
         final testWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_test',
           slug: 'wf-test',
           name: const I18nText(translations: {'en': 'Test Flow'}),

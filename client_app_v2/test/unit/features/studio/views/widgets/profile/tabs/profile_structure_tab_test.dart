@@ -42,6 +42,7 @@ void main() {
     List<XaiExtensionType> visibleWorkflowExtensions = const [],
   }) {
     return OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: testProfileId,
       slug: 'test_profile',
       workflowId: testWorkflowId,

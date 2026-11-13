@@ -11,6 +11,7 @@ void main() {
       final payload = {
         'id': 'st_0195f3a0000070008000000000000000',
         'slug': 'test_slug',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test'},
         },
@@ -41,6 +42,7 @@ void main() {
         final payload = {
           'id': 'st_0195f3a0000070008000000000000001',
           'slug': 'test_slug',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Test'},
           },
@@ -65,6 +67,7 @@ void main() {
         final payload = {
           'id': 'st_0195f3a0000070008000000000000002',
           'slug': 'logic_slug',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Test'},
           },
@@ -170,6 +173,7 @@ void main() {
         final json = {
           'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Test'},
           },
@@ -196,6 +200,7 @@ void main() {
         final json = {
           'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Test'},
           },
@@ -223,6 +228,7 @@ void main() {
         final json = {
           'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Test'},
           },
@@ -250,6 +256,7 @@ void main() {
         final json = {
           'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Test'},
           },
@@ -271,6 +278,7 @@ void main() {
       final llmJson = {
         'id': 'st_0195f3a0000070008000000000000003',
         'slug': 'test_llm',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test LLM'},
         },
@@ -292,6 +300,7 @@ void main() {
       final logicJson = {
         'id': 'st_0195f3a0000070008000000000000003',
         'slug': 'test_logic',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Logic'},
         },
@@ -314,6 +323,7 @@ void main() {
       final cdJson = {
         'id': 'st_0195f3a0000070008000000000000003',
         'slug': 'test_cd',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test CD'},
         },
@@ -336,6 +346,7 @@ void main() {
   group('Workflow Schema Parity & Purged Fields Verification', () {
     test('Workflow.toJson() must not contain purged legacy field ui_schema', () {
       const workflow = Workflow(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'wf_0195f3a0000070008000000000000001',
         slug: 'test_wf',
         name: I18nText(translations: {'en': 'Test Workflow'}),
@@ -356,6 +367,7 @@ void main() {
       'NodeStrategy.toJson() must not contain purged legacy field output_schema',
       () {
         const node = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'st_0195f3a0000070008000000000000004',
           slug: 'test_step',
           name: I18nText(translations: {'en': 'Test Step'}),
@@ -376,12 +388,14 @@ void main() {
       'NodeStrategy enforces reference equality (equal: false) to prevent O(N^2) list comparison',
       () {
         final nodeA = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'st_0195f3a0000070008000000000000004',
           slug: 'test_step',
           name: const I18nText(translations: {'en': 'Test Step'}),
           criteriaBlockIds: ['blk_0195f3a0000070008000000000000001'],
         );
         final nodeB = NodeStrategy.llm(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'st_0195f3a0000070008000000000000004',
           slug: 'test_step',
           name: const I18nText(translations: {'en': 'Test Step'}),
@@ -398,6 +412,7 @@ void main() {
         final json = {
           'id': 'wf_0195f3a0000070008000000000000001',
           'slug': 'test_wf',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Workflow'},
           },
@@ -426,6 +441,7 @@ void main() {
         final json = {
           'id': 'wf_0195f3a0000070008000000000000001',
           'slug': 'test_wf',
+          'organization_id': 'org_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Workflow'},
           },
@@ -447,6 +463,7 @@ void main() {
       final json = {
         'id': 'wf_0195f3a0000070008000000000000001',
         'slug': 'test_wf',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Workflow'},
         },
@@ -498,6 +515,7 @@ void main() {
       final json = {
         'id': 'st_0195f3a0000070008000000000000004',
         'slug': 'causal_step',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Causal Step'},
         },
@@ -518,7 +536,7 @@ void main() {
       final json = {
         'id': 'sp_0195f3a0000070008000000000000002',
         'slug': 'step_causal_discovery',
-        'organization_id': 'SYSTEM',
+        'organization_id': 'org_0195f3a0000070008000000000000001',
         'name': {
           'translations': {
             'fi': 'Kausaalipäättelyn ja Argumentaation Louhinta',
@@ -557,6 +575,13 @@ void main() {
         case NodeStrategyLogic _:
           fail('Should be CausalDiscovery');
       }
+
+      final legacySystemJson = Map<String, Object?>.from(json)
+        ..['organization_id'] = 'SYSTEM';
+      expect(
+        () => NodeStrategy.fromJson(legacySystemJson),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
     });
   });
 }

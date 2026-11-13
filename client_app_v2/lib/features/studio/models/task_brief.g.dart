@@ -28,7 +28,10 @@ _TaskBrief _$TaskBriefFromJson(Map<String, dynamic> json) => $checkedCreate(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       label: $checkedConvert(
         'label',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -53,7 +56,9 @@ Map<String, dynamic> _$TaskBriefToJson(_TaskBrief instance) =>
     <String, dynamic>{
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
       'slug': instance.slug,
-      'organization_id': instance.organizationId,
+      'organization_id': const StrictOpaqueIdConverter().toJson(
+        instance.organizationId,
+      ),
       'label': instance.label.toJson(),
       'description': instance.description.toJson(),
       'instruction_text': instance.instructionText,

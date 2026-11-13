@@ -30,6 +30,7 @@ void main() {
         const mrId = 'mr_0195f3a0000070008000000000000400';
 
         const original = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: wfId,
           slug: 'exec_coaching_v2',
           name: sampleTitle,
@@ -39,6 +40,7 @@ void main() {
           defaultProfileId: opId,
           outputProfiles: {
             opId: OutputProfile(
+              organizationId: 'org_0195f3a0000070008000000000000001',
               id: opId,
               slug: 'exec_profile',
               workflowId: wfId,
@@ -114,6 +116,7 @@ void main() {
       'Negative Partition 1: throws AppException when dependsOn or causalSourceStepId references an unmapped step',
       () {
         const brokenWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_0195f3a0000070008000000000000001',
           slug: 'broken_wf',
           name: sampleTitle,
@@ -145,6 +148,7 @@ void main() {
       'Negative Partition 2 (BVA): throws AppException when step ID is empty (min-1 length 0) or causalSourceStepId is omitted from dependsOn',
       () {
         const emptyStepWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_0195f3a0000070008000000000000001',
           slug: 'empty_step_wf',
           name: sampleTitle,
@@ -164,6 +168,7 @@ void main() {
         );
 
         const missingCausalDepWorkflow = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'wf_0195f3a0000070008000000000000001',
           slug: 'missing_causal_dep_wf',
           name: sampleTitle,

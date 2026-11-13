@@ -147,6 +147,7 @@ void main() {
       () {
         const title = I18nText(translations: {'en': 'Test WF', 'fi': 'Testi'});
         const wfZeroInputs = Workflow(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: validWorkflowId,
           slug: 'zero_inputs_wf',
           name: title,

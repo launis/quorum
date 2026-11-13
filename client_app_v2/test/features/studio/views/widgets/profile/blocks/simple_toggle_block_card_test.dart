@@ -13,6 +13,7 @@ void main() {
       'test_toggle_variance_block_adds_and_removes_variance_validation_extension',
       (WidgetTester tester) async {
         OutputProfile payload = const OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_0195f000000070008000000000000001',
           workflowId: 'wkf_0195f000000070008000000000000001',
           name: I18nText(translations: {'en': 'Test Profile'}),
@@ -84,6 +85,7 @@ void main() {
       WidgetTester tester,
     ) async {
       OutputProfile payload = const OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'prf_0195f000000070008000000000000001',
         workflowId: 'wkf_0195f000000070008000000000000001',
         name: I18nText(translations: {'en': 'Test Profile'}),
@@ -153,6 +155,7 @@ void main() {
       'test_toggle_penalties_block_leaves_workflow_extensions_unchanged',
       (WidgetTester tester) async {
         OutputProfile payload = const OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_0195f000000070008000000000000001',
           workflowId: 'wkf_0195f000000070008000000000000001',
           name: I18nText(translations: {'en': 'Test Profile'}),
@@ -211,6 +214,7 @@ void main() {
       'test_toggle_already_included_block_prevents_duplicates_in_order_and_extensions',
       (WidgetTester tester) async {
         OutputProfile payload = const OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_0195f000000070008000000000000001',
           workflowId: 'wkf_0195f000000070008000000000000001',
           name: I18nText(translations: {'en': 'Test Profile'}),

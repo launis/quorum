@@ -130,6 +130,7 @@ void main() {
         });
 
         const block = PromptBlock.matrix(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_0195f000000070008000000000000001',
           slug: 'matrix_test',
           label: I18nText(translations: {'en': 'Matrix Block'}),
@@ -178,6 +179,7 @@ void main() {
         });
 
         const block = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_0195f000000070008000000000000002',
           slug: 'empty_en_rule',
           label: I18nText(translations: {'en': ''}),
@@ -253,6 +255,7 @@ void main() {
         });
 
         const validBlock = PromptBlock.protocol(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_0195f000000070008000000000000003',
           slug: 'proto_fail_sim',
           label: I18nText(translations: {'en': 'Protocol', 'fi': 'Protokolla'}),
@@ -298,6 +301,7 @@ void main() {
         });
 
         const blockWithoutTranslations = PromptBlock.systemRule(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'blk_0195f000000070008000000000000009',
           slug: 'no_trans_rule',
           label: I18nText(translations: {'en': '   '}),

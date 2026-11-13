@@ -7,6 +7,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
@@ -172,6 +173,76 @@ void main() {
           () => McpGateway.fromJson(tamperedGateway),
           throwsA(isA<CheckedFromJsonException>()),
         );
+      },
+    );
+
+    test(
+      'test_studio_models_and_dtos_reject_none_or_legacy_system_organization_id_and_serialize_organization_id',
+      () {
+        final rawBlocks = seedData['prompt_blocks'] as List<dynamic>;
+        final rawBriefs = seedData['task_briefs'] as List<dynamic>;
+        final rawWorkflows = seedData['workflows'] as List<dynamic>;
+        final rawSteps = seedData['steps'] as List<dynamic>;
+        final rawProfiles = seedData['output_profiles'] as List<dynamic>;
+
+        final parsedSteps = rawSteps
+            .map((e) => NodeStrategy.fromJson(e as Map<String, dynamic>))
+            .toList();
+        expect(parsedSteps.length, rawSteps.length);
+        for (final step in parsedSteps) {
+          expect(step.organizationId, startsWith('org_'));
+        }
+
+        final parsedProfiles = rawProfiles
+            .map((e) => OutputProfile.fromJson(e as Map<String, dynamic>))
+            .toList();
+        expect(parsedProfiles.length, rawProfiles.length);
+        for (final profile in parsedProfiles) {
+          expect(profile.organizationId, startsWith('org_'));
+          expect(profile.toJson()['organization_id'], profile.organizationId);
+        }
+
+        for (final invalidOrg in <Object?>[null, 'SYSTEM']) {
+          final badBlock = Map<String, dynamic>.from(
+            rawBlocks.first as Map<String, dynamic>,
+          )..['organization_id'] = invalidOrg;
+          expect(
+            () => PromptBlock.fromJson(badBlock),
+            throwsA(isA<CheckedFromJsonException>()),
+          );
+
+          final badBrief = Map<String, dynamic>.from(
+            rawBriefs.first as Map<String, dynamic>,
+          )..['organization_id'] = invalidOrg;
+          expect(
+            () => TaskBrief.fromJson(badBrief),
+            throwsA(isA<CheckedFromJsonException>()),
+          );
+
+          final badWorkflow = Map<String, dynamic>.from(
+            rawWorkflows.first as Map<String, dynamic>,
+          )..['organization_id'] = invalidOrg;
+          expect(
+            () => Workflow.fromJson(badWorkflow),
+            throwsA(isA<CheckedFromJsonException>()),
+          );
+
+          final badStep = Map<String, dynamic>.from(
+            rawSteps.first as Map<String, dynamic>,
+          )..['organization_id'] = invalidOrg;
+          expect(
+            () => NodeStrategy.fromJson(badStep),
+            throwsA(isA<CheckedFromJsonException>()),
+          );
+
+          final badProfile = Map<String, dynamic>.from(
+            rawProfiles.first as Map<String, dynamic>,
+          )..['organization_id'] = invalidOrg;
+          expect(
+            () => OutputProfile.fromJson(badProfile),
+            throwsA(isA<CheckedFromJsonException>()),
+          );
+        }
       },
     );
   });

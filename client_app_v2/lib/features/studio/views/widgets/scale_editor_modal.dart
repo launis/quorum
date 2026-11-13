@@ -175,6 +175,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
       final transientBlock = PromptBlock.matrix(
         id: 'blk_0195f3a0000070008000000000000000',
         slug: 'sim_preview',
+        organizationId: 'org_0195f3a0000070008000000000000001',
         label: const I18nText(translations: {'en': 'Simulation'}),
         description: const I18nText(translations: {'en': 'Simulation'}),
         scales: [_editableScale],

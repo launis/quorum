@@ -38,6 +38,7 @@ class MockValidOutputProfileForm extends OutputProfileForm {
 void main() {
   OutputProfile createTestProfile() {
     return const OutputProfile(
+      organizationId: 'org_0195f3a0000070008000000000000001',
       id: 'prf_test',
       workflowId: 'wf_test',
       name: I18nText(translations: {'en': 'Test Profile'}),

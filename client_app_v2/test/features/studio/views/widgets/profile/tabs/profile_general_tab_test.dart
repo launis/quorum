@@ -85,6 +85,7 @@ void main() {
       });
 
       final profile = OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'prf_test',
         workflowId: 'wf_test',
         slug: 'prf-test',
@@ -171,6 +172,7 @@ void main() {
       });
 
       final profile = OutputProfile(
+        organizationId: 'org_0195f3a0000070008000000000000001',
         id: 'prf_boundary',
         workflowId: 'wf_dangling',
         slug: 'prf-boundary',

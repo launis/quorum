@@ -97,6 +97,7 @@ void main() {
       final mockStudioClient = MockStudioClient();
       const profiles = [
         OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_01b1d71000000001',
           workflowId: 'wor_01b1d71000000001',
           name: I18nText(
@@ -107,6 +108,7 @@ void main() {
           ),
         ),
         OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_01b1d71000000002',
           workflowId: 'wor_01b1d71000000002',
           name: I18nText(
@@ -153,6 +155,7 @@ void main() {
       final mockExecClient = MockExecutionClient();
       const profiles = [
         OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_01b1d71000000001',
           workflowId: 'wor_01b1d71000000001',
           name: I18nText(
@@ -163,6 +166,7 @@ void main() {
           ),
         ),
         OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_01b1d71000000002',
           workflowId: 'wor_01b1d71000000002',
           name: I18nText(
@@ -218,6 +222,7 @@ void main() {
       final mockStudioClient = MockStudioClient();
       const profiles = [
         OutputProfile(
+          organizationId: 'org_0195f3a0000070008000000000000001',
           id: 'prf_01b1d71000000002',
           workflowId: 'wor_01b1d71000000002',
           name: I18nText(
