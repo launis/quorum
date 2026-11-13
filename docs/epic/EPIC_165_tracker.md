@@ -34,7 +34,7 @@
 ### Phase 2: 21-Table PostgreSQL 19 DDL Evolution, `system_configs` Split (`model_registries` & `mcp_gateways`), Junction Tables (`step_criteria_blocks` & `workflow_step_refs`), `Workflow.version` SQL OCC & Typed UUID Foreign Keys
 **Plan:** @[docs/epic/tasks_EPIC_165/02_phase2_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/02_phase2_plan.md] @[docs/epic/EPIC_165_tracker.md]` (`e8f894872`)
   - [x] Step 2.1: system_configs Split into model_registries (mrg_) & mcp_gateways (mcp_), tenant_secrets.mcp_gateway_id FK, ModelProfile / LLMProviderConfig Cleanup & QGR030 Prefix Ratchet
   - [x] Step 2.2: Junction Tables (step_criteria_blocks & workflow_step_refs), Deferrable default_profile_id, Typed UUID FKs, VIRTUAL created_at, Single-UoW clone_workflow & Workflow.version SQL OCC
   - [x] Step 2.3: Source-Level seed_data.json Structural Split (model_registries & mcp_gateways), Operational Seed Scripts & DTO Parity Registry
@@ -42,12 +42,12 @@
 
 ### Phase 3: `task_briefs` <-> `execution_assignments` Publication Snapshot (`task_brief_snapshot JSONB`), `ON DELETE RESTRICT`, `organization_id NOT NULL ON DELETE CASCADE` & $O(1)$ Indexed SQL Query Pushdown
 **Plan:** @[docs/epic/tasks_EPIC_165/03_phase3_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]`
   - [ ] Step 3.1: Immutable task_brief_snapshot JSONB Parity & Fail-Fast TaskBrief Resolution on execution_assignments
-  - [ ] Step 3.2: Kernel-Level ON DELETE RESTRICT & ROOT_SYSTEM organization_id NOT NULL ON DELETE CASCADE Across 123 Seed Rows
+  - [ ] Step 3.2: Kernel-Level ON DELETE RESTRICT & ROOT_SYSTEM organization_id NOT NULL ON DELETE CASCADE Across All 120 Tenant-Scoped System Seed Rows
   - [ ] Step 3.3: O(1) Indexed SQL Query Pushdown for Execution Assignments & Executions
-  - [ ] Step 3.4: Flutter Studio Freezed organizationId Non-Null Parity (TaskBrief, Workflow, PromptBlock, OutputProfile)
+  - [ ] Step 3.4: Flutter Studio Freezed organizationId Non-Null Parity Across Models, NodeStrategy & Studio Views
 
 ### Phase 4: `executions` + `execution_payloads` (`COMPRESSION lz4`) 1:1 Sidecar Split, Atomic Single-Statement `state_version` SQL OCC, Full-Duplex `ExecutionRecord.step_states` Eradication, Constraint-Enforcing `InMemoryUnitOfWork` & `audit_zero_orm_strictness.py` 22-Table Gate
 **Plan:** @[docs/epic/tasks_EPIC_165/04_phase4_plan.md]
@@ -130,6 +130,7 @@
   - [ ] @[backend_v2/services/execution/override_service.py]
   - [ ] @[backend_v2/services/execution/resumption_service.py]
   - [ ] @[backend_v2/services/export/metadata_resolver.py]
+  - [ ] @[backend_v2/services/factories/output_profile_factory.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/__init__.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
@@ -182,6 +183,9 @@
   - [ ] @[client_app_v2/lib/features/studio/models/task_brief.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
 
 ### Documentation & Knowledge Item Update
@@ -225,10 +229,10 @@
 | REQ-165-006 | Add `step_criteria_blocks` and `workflow_step_refs` (`ON DELETE RESTRICT`), deferrable `workflows.default_profile_id`, typed UUID FKs on `*_target_block` and `*.created_by`, `VIRTUAL` `created_at`, FK/tenant B-Tree indexes, and `Workflow.version` SQL OCC. | Phase 2, Step 2.2 | [x] Completed |
 | REQ-165-007 | Split `"system_config"` in `seed_data.json`, `seed_registry.py`, `run_seed.py`, and operational CLI scripts into `"model_registries"` and `"mcp_gateways"` (`mcp_0195f3a00000700080008172bda70c86`) with 100% coaching prompt preservation. | Phase 2, Step 2.3 | [x] Completed |
 | REQ-165-008 | Synchronize Flutter `EntityPrefix` (`enums.dart`), remove `apiKey` and `parsingMode` from `LlmModelConfig` and `ModelRegistryView`, and enforce required `McpGateway.organizationId`. | Phase 2, Step 2.4 | [x] Completed |
-| REQ-165-009 | Add immutable `task_brief_snapshot JSONB` (`enforce_assignment_task_brief_snapshot_parity`) to `ExecutionAssignment` and `execution_assignments`, freeze at cohort publication time, and drop `strict: bool = False` in `_validate_and_resolve_task_brief`. | Phase 3, Step 3.1 | [ ] Pending |
-| REQ-165-010 | Enforce kernel `ON DELETE RESTRICT` on `execution_assignments` FKs (dropping `_check_active_assignment_usage`) and `organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE` across all 123 `ROOT_SYSTEM` seed rows and Studio models/DTOs. | Phase 3, Step 3.2 | [ ] Pending |
-| REQ-165-011 | Expose and wire $O(1)$ indexed SQL query methods (`get_execution_assignment_by_token_hash`, `get_execution_assignment_by_execution_id`, `list_execution_assignments_by_organization`, `list_executions_filtered`) on `EntityPersistencePort`, dropping `count_executions_by_matrix`. | Phase 3, Step 3.3 | [ ] Pending |
-| REQ-165-012 | Synchronize non-nullable `required String organizationId` across Flutter Studio Freezed models (`TaskBrief`, `Workflow`, `PromptBlock`, `OutputProfile`). | Phase 3, Step 3.4 | [ ] Pending |
+| REQ-165-009 | Add immutable `task_brief_snapshot JSONB` (`enforce_assignment_task_brief_snapshot_parity`) to `ExecutionAssignment` and `execution_assignments` via frozen `TaskAssignmentBriefDTO(V2CoreBase)` in `task_brief.py`, freeze at cohort publication time, and drop `strict: bool = False` in `_validate_and_resolve_task_brief`. | Phase 3, Step 3.1 | [ ] Pending |
+| REQ-165-010 | Enforce kernel `ON DELETE RESTRICT` on `execution_assignments` FKs (dropping `_check_active_assignment_usage`) and `organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE` across all 120 tenant-scoped `ROOT_SYSTEM` seed rows (`119` Studio rows hydrated + `1` existing `mcp_gateways` row) and Studio models/DTOs. | Phase 3, Step 3.2 | [ ] Pending |
+| REQ-165-011 | Expose and wire $O(1)$ indexed SQL query methods (`get_execution_assignment_by_token_hash`, `get_execution_assignment_by_execution_id`, `list_execution_assignments_by_organization`, `list_executions_filtered`) on `EntityPersistencePort` and `PostgresEntityAdapter`, dropping `count_executions_by_matrix`. | Phase 3, Step 3.3 | [ ] Pending |
+| REQ-165-012 | Synchronize non-nullable `@StrictOpaqueIdConverter() required String organizationId` across Flutter Studio Freezed models (`TaskBrief`, `Workflow`, `NodeStrategy`, `PromptBlock`, `OutputProfile`) and their 3 Studio UI callers. | Phase 3, Step 3.4 | [ ] Pending |
 | REQ-165-013 | Split `executions` into the lean 30-column hot table and 1:1 `execution_payloads` (`COMPRESSION lz4`) sidecar table, delete `_offload_payloads`/`_hydrate_payloads`, and enforce atomic single-statement `WHERE state_version = $2` SQL OCC. | Phase 4, Step 4.1 | [ ] Pending |
 | REQ-165-014 | Eradicate `ExecutionRecord.step_states`, `active_profile_id`, `pdf_report_path`, and `*_storage_path` across all Python models, DTOs, services, DAG Orchestrator stages, workers, and CLI scripts while preserving Stage 2 `profile_syntheses`. | Phase 4, Step 4.2 | [ ] Pending |
 | REQ-165-015 | Upgrade `InMemoryUnitOfWork` and `InMemoryEntityAdapter` to enforce 22-table FK/UNIQUE/OCC constraints in unit tests, and update `audit_zero_orm_strictness.py` to the 22-table topology, 16-table `CANONICAL_ENTITY_PK_TABLES`, and `ZORM008`. | Phase 4, Step 4.3 | [ ] Pending |
@@ -239,25 +243,27 @@
 
 ## Achieved
 - Executed Tier 1 Epic Planning (`/tier1-planner`), Tier 0 Red-Teaming, and Tier 2 Full-Auto Execution across Phase 1 (`@[docs/epic/tasks_EPIC_165/01_phase1_plan.md]`): implemented `validate_hydrated_row` and `translate_postgres_exception`, closed Studio multi-tenant `PUT` IDOR vulnerabilities via 4-Phase In-Place Upsert and single-UoW `clone_workflow`, migrated `audit_logs` (`aud_`) and `usage_records` (`usg_`) onto PostgreSQL 19 ledgers, and eradicated `StorageDriver`, `PostgresStorageDriver`, and all dead V1 ghost repositories across 9 active `EntityPersistencePort`-backed repositories.
-- Completed Tier 0 Red-Teaming and Tier 2 Full-Auto Execution across all 4 steps of Phase 2 (`@[docs/epic/tasks_EPIC_165/02_phase2_plan.md]`):
-  - **Step 2.1 (`system_configs` Split, `tenant_secrets.mcp_gateway_id`, `ModelProfile` / `LLMProviderConfig` Cleanup & `QGR030` Prefix Ratchet)**: Split `system_configs` into `model_registries` (`mrg_`) and `mcp_gateways` (`mcp_`) in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, bound `tenant_secrets.mcp_gateway_id ON DELETE CASCADE`, dropped `ModelProfile.api_key`, `ModelProfile.parsing_mode`, and `LLMProviderConfig.parsing_mode`, demolished all 15 retired `system_config` union/DTO/adapter symbols, and ratcheted `_QGR030_ENTITY_PREFIXES` in `@[scripts/_ast_guardrails.py]`.
-  - **Step 2.2 (21-Table DDL, `step_criteria_blocks` & `workflow_step_refs`, Typed UUID FKs, `VIRTUAL created_at`, Single-UoW `clone_workflow` & `Workflow.version` SQL OCC)**: Added `step_criteria_blocks` and `workflow_step_refs` (`ON DELETE RESTRICT`), dropped `steps.criteria_block_ids JSONB` in favor of ordered junction projection (`ORDER BY scb.position ASC`), wired deferrable `workflows.default_profile_id`, enforced typed UUID foreign keys and `GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL` `created_at` timestamps, implemented `WHERE workflows.version = $6 RETURNING version` SQL OCC, and verified 21-table Zero-ORM strictness in `@[scripts/audit_zero_orm_strictness.py]`.
-  - **Step 2.3 (`seed_data.json` Structural Split, Seed CLI Scripts & DTO Parity Registry)**: Split `"system_config"` in `@[backend_v2/data/seed_data.json]` into root `"model_registries"` and `"mcp_gateways"` (`mcp_0195f3a00000700080008172bda70c86`) with 100% coaching prompt preservation (`350` atoms verified), updated `@[backend_v2/database/seed_registry.py]` and `@[backend_v2/scripts/run_seed.py]`, and registered `"systemconfigmodelregistry": "modelconfig"` and `"modelprofile": "llmmodelconfig"` in `@[scripts/audit_dto_parity.py]`.
-  - **Step 2.4 (Flutter Studio `EntityPrefix`, `ModelConfig` / `LlmModelConfig`, `ModelRegistryView`, `McpGateway` & `OrganizationIamSettingsView` Freezed Parity)**: Synchronized `EntityPrefix` in `@[client_app_v2/lib/core/models/enums.dart]`, removed `apiKey` and `parsingMode` from `@[client_app_v2/lib/features/studio/models/model_config.dart]` and `@[client_app_v2/lib/features/studio/views/model_registry_view.dart]`, enforced required `organizationId` on `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`, updated `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`, regenerated Freezed/JSON artifacts, and verified 100% green `backend_audit_loop.py`, `flutter_audit_loop.py --build --strict` (`1,394` Flutter tests passing), `audit_dto_parity.py --fail-on-mismatch` (`95` shared models 1:1 aligned), and `test_sdui_semantic_parity.py`.
+- Completed Tier 0 Red-Teaming and Tier 2 Full-Auto Execution across all 4 steps of Phase 2 (`@[docs/epic/tasks_EPIC_165/02_phase2_plan.md]`, commit `e8f894872`): split `system_configs` into `model_registries` (`mrg_`) and `mcp_gateways` (`mcp_`), added `step_criteria_blocks` and `workflow_step_refs` (`ON DELETE RESTRICT`), enforced `Workflow.version` SQL OCC, split `"system_config"` in `seed_data.json` with 100% coaching prompt preservation, and synchronized Flutter Studio Freezed models (`1,394` Flutter tests passing, `95` shared DTOs 1:1 aligned).
+- Completed Tier 0 System 2 Red-Teaming & Hardening for Phase 3 (`@[docs/epic/tasks_EPIC_165/03_phase3_plan.md]`):
+  - Fixed the `execution_assignments` DDL specification (`invited_role DEFAULT 'MEMBER'` + uppercase `UserRole` check, `AssignmentStatus` including `'completed'`, `AssignmentResultVisibility` `'full_report_access'`, `VARCHAR(32)` `email_delivery_status`, `NOT NULL` `hard_deadline_at`, all 9 `enforce_assignment_*_uuidv7` constraints, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` parity for `ZORM007`, and `ZORM006` column registration).
+  - Eliminated a circular runtime `ImportError` (`auth.py` <-> `execution.py`) and mutable DTO violation by moving `TaskAssignmentBriefDTO(V2CoreBase)` (`frozen=True`) into `@[backend_v2/models/domain/task_brief.py]` and re-exporting it in `@[backend_v2/models/auth.py]`.
+  - Closed the `OutputProfileResponseDTO` `exclude=True` wire-stripping bug and missing `organization_id` in `StudioWorkflowService._to_output_profile_dto`, eradicated `"SYSTEM"` / `default_system=True` coercion shims in `coercion_and_constants.py` and Studio stage hydrators, corrected the tenant-scoped system seed count to **120** (`119` Studio rows hydrated + `1` existing `mcp_gateways` row, keeping global `model_registries` tenant-agnostic), added pre-seed idempotent `DO $$` SQL backfill rules, and mapped all missing Python/Flutter targets (`PostgresEntityAdapter` facade, `ExecutionRepositoryImpl`, `AuditRepositoryImpl`, `WorkflowRepositoryImpl`, `output_profile_factory.py`, `sanitize_seed_vault.py`, `audit_database_atoms.py`, `NodeStrategy`, `@StrictOpaqueIdConverter()`, and 3 Studio UI callers).
+  - Verified `0` findings on `audit_markdown_boundaries.py --file docs/epic/tasks_EPIC_165/03_phase3_plan.md`, `audit_technical_debt.py --plan docs/epic/tasks_EPIC_165/03_phase3_plan.md --include-one-hop`, and `audit_tracker_output.py --tracker docs/epic/EPIC_165_tracker.md`.
 
 ## Learned
 - Defining `ModelFactory[TraceEvent]` or `ModelFactory[ErrorTraceEvent]` via Polyfactory hangs Python collection inside `polyfactory.field_meta.from_type` due to the recursive PEP 695 `JsonValue` type alias on `TraceEvent.content`; deterministic `TraceEventFactory.build` and `ErrorTraceEventFactory.build` builders in `@[backend_v2/tests/factories/model_factories.py]` eliminate collection recursion while enforcing full Pydantic V2 validation.
 - Virtual UUIDv7 `created_at` columns require factory builders (`ExecutionRecordFactory`, `ReportArtifactFactory`) to derive default `created_at` directly from the generated UUIDv7 identifier so unit tests match PostgreSQL 19 `uuid_extract_timestamp(id)` semantics.
+- `run_seed.py` executes `apply_migrations()` BEFORE `seed_collection_batch`, and `test_execution_and_report_stage.py` asserts `"UPDATE executions" not in ddl_sql`; therefore Phase 3 SQL migrations in `001_pg19_uuidv7_schema.sql` must backfill `organization_id` and `task_brief_snapshot` idempotently inside a `DO $$` block prior to `SET NOT NULL` / `ADD CONSTRAINT` without ever emitting `"UPDATE executions"`.
+- `OutputProfileResponseDTO` inherits `BaseResponseDTO.organization_id` (`Field(default=None, exclude=True)`), so enforcing `required String organizationId` on Flutter `OutputProfile` requires overriding `organization_id` with `exclude=False` on `OutputProfileResponseDTO` and passing `organization_id=profile.organization_id` in `StudioWorkflowService._to_output_profile_dto`.
 
 ## Remaining
-- Execute Tier 0 System 2 Red-Teaming for Phase 3 (`/tier0-research-plan @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]`), followed by Phase 3 Tier 2 Execution, Phase 4 Tier 0 Red-Teaming and Tier 2 Execution, the Full-Stack Integration Checkpoint, Tier 2 Hardening (Backend & Frontend), `/tier7-describe-architecture`, and `/tier8-audit-epic`.
+- Execute Phase 3 Tier 2 Full-Auto Execution (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]`), followed by Phase 4 Tier 0 Red-Teaming and Tier 2 Execution, the Full-Stack Integration Checkpoint, Tier 2 Hardening (Backend & Frontend), `/tier7-describe-architecture`, and `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-# Interactive Next Action (Start a fresh chat session for Phase 3 Red-Teaming):
-/tier0-research-plan @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]
+# Interactive Next Action (Start a fresh chat session for Phase 3 Execution):
+/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/03_phase3_plan.md] @[docs/epic/EPIC_165_tracker.md]
 
-# Unattended Start-to-Finish Full-Lifecycle Batch Pipeline (Phases 3-4 Tier 0 -> Tier 2 -> Hardening -> Seed/Parity/Audits -> Tier 7 -> Tier 8):
+# Unattended Start-to-Finish Full-Lifecycle Batch Pipeline (Phases 3-4 Tier 2 -> Tier 0 -> Tier 2 -> Hardening -> Seed/Parity/Audits -> Tier 7 -> Tier 8):
 $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_165_tracker.md --full-lifecycle --timeout 86400 --max-retries 6
 ```
-
