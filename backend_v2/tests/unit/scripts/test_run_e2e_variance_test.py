@@ -1572,9 +1572,12 @@ class TestCoverageExpansion:
         exec_record: dict[str, JsonValue] = {
             "status": "PASSED",
             "inputs": {"doc": "This is authoritative ground truth text."},
-            "step_states": {
-                "st_1": {"evaluations": [{"status": "PASSED", "source_quotes": ["ground truth"], "tda_id": "a_1"}]}
-            },
+            "steps": [
+                {
+                    "id": "st_1",
+                    "evaluations": [{"status": "PASSED", "source_quotes": ["ground truth"], "tda_id": "a_1"}],
+                }
+            ],
         }
         ok, msg = validate_execution_kelvollisuus(exec_record)
         assert ok is True
@@ -1586,17 +1589,18 @@ class TestCoverageExpansion:
         exec_record: dict[str, JsonValue] = {
             "status": "PASSED",
             "inputs": {"doc": "This is authoritative ground truth text."},
-            "step_states": {
-                "st_1": {
+            "steps": [
+                {
+                    "id": "st_1",
                     "evaluations": [
                         {
                             "status": "PASSED",
                             "source_quotes": ["completely fabricated quote"],
                             "tda_id": "a_hallucinated",
                         }
-                    ]
+                    ],
                 }
-            },
+            ],
         }
         ok, msg = validate_execution_kelvollisuus(exec_record)
         assert ok is False
@@ -1616,7 +1620,7 @@ class TestCoverageExpansion:
         exec_record: dict[str, JsonValue] = {
             "status": "PASSED",
             "inputs": {"doc": "Here is a valid slice of text in corpus."},
-            "step_states": {},
+            "steps": [],
         }
         ok, msg = validate_execution_kelvollisuus(exec_record, trace_path=trace_file)
         assert ok is True
@@ -1630,7 +1634,7 @@ class TestCoverageExpansion:
             encoding="utf-8",
         )
 
-        exec_record: dict[str, JsonValue] = {"status": "PASSED", "inputs": {}, "step_states": {}}
+        exec_record: dict[str, JsonValue] = {"status": "PASSED", "inputs": {}, "steps": []}
         ok, msg = validate_execution_kelvollisuus(exec_record, trace_path=trace_file)
         assert ok is False
         assert "Trace event starvation" in msg

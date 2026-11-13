@@ -203,7 +203,6 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
                 v = update_dict[k]
                 if v is None and k in (
                     "steps",
-                    "step_states",
                     "profile_syntheses",
                     "source_identity_manifest",
                     "context_variables",

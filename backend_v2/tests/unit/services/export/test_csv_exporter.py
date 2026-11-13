@@ -31,12 +31,14 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryPromptBlockRep
 def _build_sample_execution(
     status: ExecutionStatus = ExecutionStatus.PASSED, has_atoms: bool = True
 ) -> ExecutionRecord:
-    step_states: dict[str, ExecutionStepState] = {}
+    steps: list[ExecutionStepState] = []
     if has_atoms:
-        step_states["stp_0195f3a0000070008123456789abcdef"] = ExecutionStepState(
-            id="stp_0195f3a0000070008123456789abcdef",
-            label="Matrix Step Label",
-            status=ExecutionStatus.PASSED,
+        steps.append(
+            ExecutionStepState(
+                id="stp_0195f3a0000070008123456789abcdef",
+                label="Matrix Step Label",
+                status=ExecutionStatus.PASSED,
+            )
         )
 
     return ExecutionRecord(
@@ -45,7 +47,7 @@ def _build_sample_execution(
         organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=status,
-        step_states=step_states,
+        steps=steps,
     )
 
 

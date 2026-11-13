@@ -464,7 +464,6 @@ async def test_resume_execution_forwards_prompt_block_repo_for_merkle_invalidati
         organization_id=org_id,
         status=ExecutionStatus.FAILED,
         steps=[drifted_step_state],
-        step_states={step_rule_id: drifted_step_state},
     )
     await exec_repo.save_execution(record)
 
@@ -479,13 +478,13 @@ async def test_resume_execution_forwards_prompt_block_repo_for_merkle_invalidati
 
     resumed = await service.resume_execution(owner, execution_id, arq_pool)
     assert resumed.status == ExecutionStatus.RUNNING
-    assert resumed.step_states[step_rule_id].status == ExecutionStatus.PENDING
+    assert next(s for s in resumed.steps if s.id == step_rule_id).status == ExecutionStatus.PENDING
     arq_pool.enqueue_job.assert_awaited_once()
 
     persisted = await exec_repo.get_execution(execution_id)
     assert persisted is not None
     assert persisted.status == ExecutionStatus.RUNNING
-    assert persisted.step_states[step_rule_id].status == ExecutionStatus.PENDING
+    assert next(s for s in persisted.steps if s.id == step_rule_id).status == ExecutionStatus.PENDING
 
 
 @pytest.mark.asyncio

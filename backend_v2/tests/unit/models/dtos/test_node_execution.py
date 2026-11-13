@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState
+from backend_v2.models.domain.execution import ExecutionStep
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
 from backend_v2.models.dtos.node_execution import (
@@ -24,16 +24,10 @@ from backend_v2.models.execution_core import ExecutionMetadata
 def test_node_execution_update_dto() -> None:
     """Test NodeExecutionUpdateDTO creation, conversion to ExecutionUpdateDTO, and immutability."""
     step_id = generate_opaque_id(EntityPrefix.STEP)
-    step_state = ExecutionStepState(
-        id=step_id,
-        label="Step 1",
-        status=ExecutionStatus.PASSED,
-    )
     cv = ContextVariablesDTO(variables={"key": "val"})
     dto = NodeExecutionUpdateDTO(
         status=ExecutionStatus.RUNNING,
         execution_trace=[],
-        step_states={step_id: step_state},
         frozen_context=None,
         context_variables=cv,
         error=None,
@@ -45,7 +39,6 @@ def test_node_execution_update_dto() -> None:
     update_dto = dto.to_execution_update_dto()
     assert isinstance(update_dto, ExecutionUpdateDTO)
     assert update_dto.status == ExecutionStatus.RUNNING
-    assert update_dto.step_states == {step_id: step_state}
     assert update_dto.context_variables == cv
     assert update_dto.context_variables is not None
     assert update_dto.context_variables["key"] == "val"
@@ -112,7 +105,6 @@ def test_node_execution_update_dto_negative_extra_forbid() -> None:
             {
                 "status": ExecutionStatus.RUNNING,
                 "execution_trace": [],
-                "step_states": {},
                 "forbidden_extra": "invalid",
             }
         )
@@ -124,14 +116,12 @@ def test_node_execution_update_dto_negative_state_version_bounds() -> None:
         NodeExecutionUpdateDTO(
             status=ExecutionStatus.RUNNING,
             execution_trace=[],
-            step_states={},
             expected_state_version=0,
         )
     with pytest.raises(ValidationError):
         NodeExecutionUpdateDTO(
             status=ExecutionStatus.RUNNING,
             execution_trace=[],
-            step_states={},
             state_version=0,
         )
 

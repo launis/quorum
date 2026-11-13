@@ -11,7 +11,7 @@ from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.core_base import I18nText, generate_opaque_id
-from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, FrozenContext
+from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
@@ -328,13 +328,6 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
         ),
     )
 
-    v_step = ExecutionStep(
-        id=f"sys_render_{prof_id}",
-        label="Initial",
-        status=ExecutionStatus.QUEUED,
-        progress=0,
-        has_warning=False,
-    )
     rec = _make_execution_record(
         exec_id=exec_id,
         wf_id=wf_id,
@@ -348,7 +341,7 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
                 content=fusion_result,
             )
         ],
-    ).model_copy(update={"step_states": {f"sys_render_{prof_id}": v_step}})
+    )
     prof = _make_base_profile(prof_id, wf_id)
     wf = _make_base_workflow(wf_id, prof_id)
 
@@ -476,8 +469,8 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
 
 
 @pytest.mark.asyncio
-async def test_synthesis_worker_with_causal_graph_payload_in_step_states() -> None:
-    """Test causal diagnosis extraction from execution.step_states containing CausalGraphPayloadDTO."""
+async def test_synthesis_worker_with_causal_graph_payload_in_execution_trace() -> None:
+    """Test causal diagnosis extraction from execution_trace output event containing CausalGraphPayloadDTO."""
     prof_id = "pro_0195f3a00000700283456789abcdef01"
     wf_id = "wor_0195f3a00000700283456789abcdef01"
     exec_id = "exe_0195f3a00000700283456789abcdef01"
@@ -497,14 +490,26 @@ async def test_synthesis_worker_with_causal_graph_payload_in_step_states() -> No
         cycle_detected=False,
     )
 
-    base_rec = _make_execution_record(exec_id=exec_id, wf_id=wf_id, prof_id=prof_id)
     step_out = StepOutputDTO(
         step_id="stp_0195f3a00000700283456789abcdef01",
-        block_id="blk_0195f3a00000700283456789abcdef01",
+        block_id="graph",
         data_type="causal",
         payload=graph_payload,
     )
-    rec = base_rec.model_copy(update={"step_states": {"causal_step": step_out}})
+    rec = _make_execution_record(
+        exec_id=exec_id,
+        wf_id=wf_id,
+        prof_id=prof_id,
+        trace_events=[
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(UTC),
+                event_type="output",
+                step_name="stp_0195f3a00000700283456789abcdef01",
+                content=step_out,
+            )
+        ],
+    )
     prof = _make_base_profile(prof_id, wf_id)
     wf = _make_base_workflow(wf_id, prof_id)
 
@@ -1216,7 +1221,6 @@ def _build_strict_typed_synthesis_fixtures(
             mcp_tool_audit=[],
         ),
         steps=[],
-        step_states={},
         profile_syntheses={},
         source_identity_manifest={},
         models_used={},
@@ -1525,4 +1529,6 @@ async def test_synthesis_worker_byok_secret_resolution_failure_fails_fast() -> N
     assert exc_info.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
     updated_exec = await mock_repo.get_execution(exec_id)
     assert updated_exec is not None
-    assert updated_exec.step_states[f"sys_render_{prof_id}"].status == ExecutionStatus.FAILED
+    assert updated_exec.status == ExecutionStatus.PASSED
+    assert updated_exec.status_message is not None
+    assert f"Synthesis failed for profile {prof_id}:" in updated_exec.status_message

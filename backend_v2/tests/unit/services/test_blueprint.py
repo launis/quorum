@@ -2690,7 +2690,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
 async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
     mock_repo_transformer: MagicMock,
 ) -> None:
-    """Test step_states updating and reverse lookup for MCP audit data."""
+    """Test canonical steps scorecard lookup and reverse lookup for MCP audit data."""
     from backend_v2.models.domain.execution import ExecutionStepState, FrozenContext
     from backend_v2.models.domain.system_config import MCPAuditTrace
     from backend_v2.models.dtos.matrix_scorecard import HumanOverrideDTO, ScorecardAtomDTO
@@ -2821,7 +2821,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         created_at=datetime.now(UTC),
         metadata=ExecutionMetadata(),
         frozen_context=FrozenContext(mcp_tool_audit=[audit_trace]),
-        step_states={"step_1": step_state},
+        steps=[step_state],
         execution_trace=[
             TraceEvent(
                 step_name="step_1",
@@ -3158,7 +3158,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
 
 @pytest.mark.asyncio
 async def test_blueprint_transformer_direct_results_and_human_overrides(mock_repo_transformer: Any) -> None:
-    """Test direct results/hydrated_references and human_override preservation in step_states."""
+    """Test direct results/hydrated_references and human_override preservation in canonical steps."""
     from datetime import datetime
 
     from backend_v2.models.core_base import I18nText
@@ -3262,7 +3262,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         output_profile_id=profile.id,
         status=ExecutionStatus.PASSED,
         metadata=ExecutionMetadata(),
-        step_states={"sr_0195f3a0000070008000000000000001": step_state},
+        steps=[step_state],
         prompt_tokens=100,
         completion_tokens=50,
         reasoning_tokens=20,
@@ -3496,14 +3496,14 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
         output_profile_id=profile.id,
         status=ExecutionStatus.PASSED,
         metadata=ExecutionMetadata(),
-        step_states={
-            "sr_0195f3a0000070008000000000000001": ExecutionStep(
+        steps=[
+            ExecutionStep(
                 id="sr_0195f3a0000070008000000000000001",
                 label="Step 1",
                 status=ExecutionStatus.PASSED,
                 scorecard_atoms={},
             )
-        },
+        ],
         prompt_tokens=50,
         completion_tokens=25,
         reasoning_tokens=10,
@@ -4217,7 +4217,9 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
         payload=causal_payload,
     )
 
-    exec_record = ExecutionRecord.model_construct(
+    from backend_v2.models.state import TraceEvent
+
+    exec_record = ExecutionRecord(
         id="exe_0195f3a00000700080000000000000c2",
         workflow_id=wf.id,
         organization_id="org_0195f3a0000070008000000000000001",
@@ -4227,8 +4229,14 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
         completion_tokens=10,
         reasoning_tokens=0,
         dag_cost_usd=0.01,
-        execution_trace=[],
-        step_states={"stp_causal_eval": step_output},
+        execution_trace=[
+            TraceEvent(
+                step_name="stp_causal_eval",
+                event_type="output",
+                content=step_output,
+            )
+        ],
+        steps=[],
         metadata=ExecutionMetadata(),
         target_locale="en",
         profile_syntheses={},

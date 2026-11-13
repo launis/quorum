@@ -117,7 +117,7 @@ class AuditEventLoggerProtocol(Protocol):
 
 
 def redact_execution_for_confirmation_only(record: ExecutionRecord) -> ExecutionRecord:
-    """Strip forensic SDUI, synthesis, and PDF report payloads for CONFIRMATION_ONLY visibility.
+    """Strip forensic SDUI, synthesis, and step scorecard payloads for CONFIRMATION_ONLY visibility.
 
     Args:
         record: Full ExecutionRecord model.
@@ -126,13 +126,9 @@ def redact_execution_for_confirmation_only(record: ExecutionRecord) -> Execution
         Redacted ExecutionRecord containing only submission confirmation and status metadata.
     """
     redacted_steps = [step.model_copy(update={"scorecard_atoms": {}}) for step in record.steps]
-    redacted_step_states = {
-        step_id: state.model_copy(update={"scorecard_atoms": {}}) for step_id, state in record.step_states.items()
-    }
     return record.model_copy(
         update={
             "profile_syntheses": {},
-            "pdf_report_path": None,
             "frozen_context": FrozenContext(
                 compiled_prompts={},
                 injected_theory=InjectedTheoryManifestDTO(theories={}),
@@ -140,9 +136,7 @@ def redact_execution_for_confirmation_only(record: ExecutionRecord) -> Execution
                 ui_hints_snapshot={},
                 mcp_tool_audit=[],
             ),
-            "frozen_context_storage_path": None,
             "steps": redacted_steps,
-            "step_states": redacted_step_states,
         }
     )
 

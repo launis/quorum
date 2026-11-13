@@ -644,15 +644,14 @@ async def test_blueprint_event_metadata_warning_and_mcp_axis_enrichment(
                         cost_usd=0.04,
                     )
                 ),
-            )
+            ),
+            _make_trace_event(
+                step_name="sr_0195f3a0000070008000000000000099",
+                event_type="output",
+                content=causal_graph,
+            ),
         ],
-    ).model_copy(
-        update={
-            "step_states": {
-                _STEP_ID: step_state,
-                "sr_0195f3a0000070008000000000000099": causal_graph,
-            }
-        }
+        steps=[step_state],
     )
     mock_blueprint_repos.set_execution(record)
 

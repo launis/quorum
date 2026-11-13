@@ -24,7 +24,7 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend_v2.models.auth import TokenData
+from backend_v2.models.auth import SystemOrganizations, TokenData
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs, WorkflowInputsIngress
@@ -104,7 +104,6 @@ def create_execution_record(
     metadata: ExecutionMetadata | None = None,
     status: ExecutionStatus = ExecutionStatus.PENDING,
     steps: list[ExecutionStep] | None = None,
-    step_states: dict[str, ExecutionStep] | None = None,
     created_by: str | None = None,
     organization_id: str | None = None,
 ) -> ExecutionRecord:
@@ -121,7 +120,6 @@ def create_execution_record(
         metadata: Optional execution telemetry and metadata.
         status: Initial execution status.
         steps: Optional list of execution steps.
-        step_states: Optional dictionary mapping step IDs to steps.
         created_by: Optional creator user identifier.
         organization_id: Optional owning organization identifier.
 
@@ -143,10 +141,6 @@ def create_execution_record(
         if steps is not None:
             final_steps = steps
 
-        final_step_states: dict[str, ExecutionStep] = {}
-        if step_states is not None:
-            final_step_states = step_states
-
         now_utc = datetime.now(UTC)
         return ExecutionRecord(
             id=execution_id,
@@ -159,7 +153,6 @@ def create_execution_record(
             frozen_context=frozen_context,
             source_identity_manifest=source_identity_manifest,
             steps=final_steps,
-            step_states=final_step_states,
             execution_trace=[],
             context_variables=ContextVariablesDTO(variables={}),
             profile_syntheses={},
@@ -186,19 +179,17 @@ def create_execution_record(
 
 
 class SduiHintsGenerationDTO(V2CoreBase):
-    """Result of generating SDUI hints and initial timeline step states.
+    """Result of generating SDUI hints and initial timeline steps.
 
     Attributes:
         ui_hints: Mapping of prompt block IDs to SDUI data dictionary field hints.
         steps: Ordered list of initial ExecutionStep instances.
-        step_states: Mapping of step rule IDs to initial ExecutionStep instances.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     ui_hints: Annotated[dict[str, DataDictionaryField], Field(default_factory=dict)]
     steps: Annotated[list[ExecutionStep], Field(default_factory=list)]
-    step_states: Annotated[dict[str, ExecutionStep], Field(default_factory=dict)]
 
 
 async def _generate_sdui_hints(
@@ -207,7 +198,7 @@ async def _generate_sdui_hints(
     workflow_repo: IWorkflowRepository,
     target_locale: str,
 ) -> SduiHintsGenerationDTO:
-    """Generate SDUI hints and initial timeline step states.
+    """Generate SDUI hints and initial timeline steps.
 
     Args:
         workflow: Workflow domain model containing step rules.
@@ -216,7 +207,7 @@ async def _generate_sdui_hints(
         target_locale: Target localization code.
 
     Returns:
-        SduiHintsGenerationDTO containing ui_hints, steps, and step_states.
+        SduiHintsGenerationDTO containing ui_hints and steps.
 
     Raises:
         ConfigurationError: If a referenced step or prompt block blueprint is missing (ErrorCodes.VALIDATION_FAILED).
@@ -225,7 +216,6 @@ async def _generate_sdui_hints(
     """
     ui_hints: dict[str, DataDictionaryField] = {}
     steps: list[ExecutionStep] = []
-    step_states: dict[str, ExecutionStep] = {}
 
     for step_rule in workflow.steps:
         step_obj = await _load_and_validate_step_blueprint(workflow_repo, step_rule.task_blueprint)
@@ -236,7 +226,6 @@ async def _generate_sdui_hints(
             scorecard_atoms={},
         )
         steps.append(st)
-        step_states[step_rule.id] = st
         await _populate_step_prompt_block_hints(
             step_obj=step_obj,
             task_blueprint_id=step_rule.task_blueprint,
@@ -244,7 +233,7 @@ async def _generate_sdui_hints(
             ui_hints=ui_hints,
         )
 
-    return SduiHintsGenerationDTO(ui_hints=ui_hints, steps=steps, step_states=step_states)
+    return SduiHintsGenerationDTO(ui_hints=ui_hints, steps=steps)
 
 
 async def _load_and_validate_step_blueprint(workflow_repo: IWorkflowRepository, task_blueprint_id: str) -> Step:
@@ -631,7 +620,7 @@ class ExecutionIngressService:
             target_locale: Target locale code.
 
         Returns:
-            SduiHintsGenerationDTO with ui_hints, steps, and step_states.
+            SduiHintsGenerationDTO with ui_hints and steps.
 
         Raises:
             ConfigurationError: If referenced step or prompt block blueprint is missing (ErrorCodes.VALIDATION_FAILED).
@@ -770,12 +759,17 @@ class ExecutionIngressService:
         Returns:
             Initial ExecutionRecord in PENDING status.
         """
+        effective_org_id = (
+            initiator.organization_id
+            if initiator.organization_id is not None
+            else SystemOrganizations.ROOT_SYSTEM.value
+        )
         injected_carrier = inject_trace_context()
         exec_metadata = ExecutionMetadata(
             matrix_sampling_strategy=payload.matrix_sampling_strategy,
             workflow_version=workflow.version,
             global_context_vars=GlobalContextVarsDTO(
-                organization_id=initiator.organization_id,
+                organization_id=effective_org_id,
                 initiator_id=initiator.id,
                 target_locale=payload.target_locale,
                 profile_id=resolved_profile_id,
@@ -789,10 +783,9 @@ class ExecutionIngressService:
             workflow_id=workflow.id,
             target_locale=payload.target_locale,
             status=ExecutionStatus.PENDING.value,
-            active_profile_id=resolved_profile_id,
             output_profile_id=resolved_profile_id,
             raw_inputs=payload.raw_inputs,
-            organization_id=initiator.organization_id,
+            organization_id=effective_org_id,
             created_by=initiator.id,
             metadata=exec_metadata,
         )
@@ -818,10 +811,9 @@ class ExecutionIngressService:
             output_profile_id=resolved_profile_id,
             target_locale=payload.target_locale,
             steps=sdui_hints.steps,
-            step_states=sdui_hints.step_states,
             metadata=exec_metadata,
             created_by=initiator.id,
-            organization_id=initiator.organization_id,
+            organization_id=effective_org_id,
         )
 
         await arq_pool.enqueue_job(
@@ -829,7 +821,7 @@ class ExecutionIngressService:
             workflow_id=workflow.id,
             inputs=payload.raw_inputs.model_dump(mode="json"),
             execution_id=execution_id,
-            organization_id=initiator.organization_id,
+            organization_id=effective_org_id,
             user_id=initiator.id,
         )
 

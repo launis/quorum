@@ -77,9 +77,7 @@ class ExecutionCoreFields(V2CoreBase):
         status: Current lifecycle status of the execution.
         target_locale: Target locale code for execution output.
         execution_trace: Append-only log of all trace events.
-        execution_trace_storage_path: Cloud Storage offload path for large traces.
         context_variables: Dynamic blackboard for cross-step data sharing.
-        context_variables_storage_path: Cloud Storage offload path for large context.
         progress: Overall execution progress percentage (0-100).
         status_message: Human-readable progress or status description.
     """
@@ -98,10 +96,6 @@ class ExecutionCoreFields(V2CoreBase):
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
         Field(default_factory=list, description="Immutable log of all events."),
     ]
-    execution_trace_storage_path: Annotated[
-        str | None,
-        Field(description="Path to offloaded trace JSON in Cloud Storage."),
-    ] = None
     context_variables: Annotated[
         ContextVariablesDTO,
         Field(
@@ -109,10 +103,6 @@ class ExecutionCoreFields(V2CoreBase):
             description="Current snapshots of context variables (the dynamic blackboard).",
         ),
     ]
-    context_variables_storage_path: Annotated[
-        str | None,
-        Field(description="Path to offloaded context variables JSON in Cloud Storage."),
-    ] = None
     progress: Annotated[
         int | None,
         Field(ge=0, le=100, description="Overall execution progress percentage."),

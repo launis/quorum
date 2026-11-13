@@ -323,8 +323,8 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_execution_worker_offloaded_trace_reading() -> None:
-    """Verify trace hydration from storage driver when local execution_trace has no metadata."""
+async def test_execution_worker_hydrated_trace_reading() -> None:
+    """Verify trace telemetry extraction from hydrated execution_trace dict metadata envelope."""
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
@@ -345,14 +345,15 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
             token_usage=usage,
         )
     )
-    blob_json = (
-        f'[{{"step_name": "step1", "event_type": "output", "content": {meta_env.model_dump_json(by_alias=True)}}}]'
+    trace_event = TraceEvent(
+        step_name="step1",
+        event_type="output",
+        content=meta_env.model_dump(mode="json", by_alias=True),
     )
 
     mock_executed_record = base_record.model_copy(
         update={
-            "execution_trace": [],
-            "execution_trace_storage_path": "traces/exe_0195f3a0000070008123456789abcdef.json",
+            "execution_trace": [trace_event],
         }
     )
 
@@ -363,21 +364,17 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
 
-    mock_driver = MagicMock()
-    mock_driver.read = AsyncMock(return_value=blob_json)
-
-    with patch("backend_v2.workers.execution_worker.get_storage_driver", return_value=mock_driver):
-        ctx = {
-            "repository": mock_repo,
-            "engine": mock_engine,
-            "redis": None,
-        }
-        result = await execute_workflow_job(
-            ctx=ctx,
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
-            inputs=ExecutionInputsDTO(),
-            execution_id="exe_0195f3a0000070008123456789abcdef",
-        )
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        inputs=ExecutionInputsDTO(),
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+    )
 
     assert result.status == "COMPLETED"
     updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
@@ -386,45 +383,30 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
 
 
 @pytest.mark.asyncio
-async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
-    """Verify storage driver read failure routes to DLQ and marks execution FAILED."""
+async def test_execution_worker_missing_execution_record_routes_to_dlq() -> None:
+    """Verify missing ExecutionRecord before execution routes to DLQ cleanly."""
     mock_workflow = _create_mock_workflow()
-    base_record = _create_mock_record()
-
-    mock_executed_record = base_record.model_copy(
-        update={
-            "execution_trace": [],
-            "execution_trace_storage_path": "traces/exe_0195f3a0000070008123456789abcdef.json",
-        }
-    )
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_workflow(mock_workflow)
-    await mock_repo.save_execution(base_record)
 
     mock_engine = MagicMock()
-    mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
+    mock_engine.execute_workflow = AsyncMock()
 
-    mock_driver = MagicMock()
-    mock_driver.read = AsyncMock(side_effect=OSError("Disk read failure"))
-
-    with patch("backend_v2.workers.execution_worker.get_storage_driver", return_value=mock_driver):
-        ctx = {
-            "repository": mock_repo,
-            "engine": mock_engine,
-            "redis": None,
-        }
-        result = await execute_workflow_job(
-            ctx=ctx,
-            workflow_id="wor_0195f3a0000070008123456789abcdef",
-            inputs=ExecutionInputsDTO(),
-            execution_id="exe_0195f3a0000070008123456789abcdef",
-        )
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        inputs=ExecutionInputsDTO(),
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+    )
 
     assert result.status == "FAILED/DLQ"
-    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
-    assert updated_rec is not None
-    assert updated_rec.status == ExecutionStatus.FAILED
+    mock_engine.execute_workflow.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -627,14 +609,14 @@ async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> Non
                     content=envelope_instance,
                 ),
             ],
-            "step_states": {
-                step_id: ExecutionStep(
+            "steps": [
+                ExecutionStep(
                     id=step_id,
                     label="Analytical Step",
                     status=ExecutionStatus.PASSED,
                     progress=100,
                 )
-            },
+            ],
         }
     )
 

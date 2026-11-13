@@ -110,7 +110,6 @@ def _build_state(
         source_identity_manifest={},
         status=ExecutionStatus.RUNNING,
         steps=exec_steps,
-        step_states={s.id: s for s in exec_steps},
         execution_trace=[],
         metadata=ExecutionMetadata(
             workflow_version=1,
@@ -167,9 +166,10 @@ async def test_execute_topological_waves_stage_runs_parallel_wave_steps() -> Non
 
     assert set(executed_order[:2]) == {step_a.id, step_b.id}
     assert executed_order[2] == step_c.id
-    assert record.step_states[step_a.id].status == ExecutionStatus.PASSED
-    assert record.step_states[step_b.id].status == ExecutionStatus.PASSED
-    assert record.step_states[step_c.id].status == ExecutionStatus.PASSED
+    steps_by_id = {s.id: s for s in record.steps}
+    assert steps_by_id[step_a.id].status == ExecutionStatus.PASSED
+    assert steps_by_id[step_b.id].status == ExecutionStatus.PASSED
+    assert steps_by_id[step_c.id].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -210,9 +210,10 @@ async def test_execute_topological_waves_stage_marks_downstream_steps_blocked_on
 
     assert exc_info.value.status_code == 500
     assert state.exec_record.status == ExecutionStatus.FAILED
-    assert state.exec_record.step_states[step_fail.id].status == ExecutionStatus.FAILED
-    assert state.exec_record.step_states[step_sibling.id].status == ExecutionStatus.FAILED
-    assert state.exec_record.step_states[step_downstream.id].status == ExecutionStatus.BLOCKED
+    steps_by_id = {s.id: s for s in state.exec_record.steps}
+    assert steps_by_id[step_fail.id].status == ExecutionStatus.FAILED
+    assert steps_by_id[step_sibling.id].status == ExecutionStatus.FAILED
+    assert steps_by_id[step_downstream.id].status == ExecutionStatus.BLOCKED
     dlq_ids = {sid for sid, _ in dlq_events}
     assert {step_fail.id, step_sibling.id, step_downstream.id}.issubset(dlq_ids)
 
@@ -353,7 +354,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
         upstream_graph=graph,
     )
 
-    assert state.exec_record.step_states[tda_step.id].status == ExecutionStatus.PASSED
+    assert next(s for s in state.exec_record.steps if s.id == tda_step.id).status == ExecutionStatus.PASSED
     assert state.global_context_vars.passivity_detected is True
     assert state.global_context_vars.evaluative_matrices is not None
     assert "blk_0195f3a0000070008000111122223333" in state.global_context_vars.evaluative_matrices
@@ -418,7 +419,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
             rag_preflight=_FailingPreflight(),
         )
     assert exc_unexp.value.status_code == 500
-    assert state_unexp.exec_record.step_states[causal_step.id].status == ExecutionStatus.FAILED
+    assert next(s for s in state_unexp.exec_record.steps if s.id == causal_step.id).status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -469,8 +470,9 @@ async def test_execute_topological_waves_stage_traps_direct_runtime_error_and_ap
             committer=committer,
         )
     assert exc_outer_rt.value.status_code == 500
-    assert state_outer_rt.exec_record.step_states[step_a.id].status == ExecutionStatus.FAILED
-    assert state_outer_rt.exec_record.step_states[step_a.id].last_error == "compiler crash while step running"
+    outer_step = next(s for s in state_outer_rt.exec_record.steps if s.id == step_a.id)
+    assert outer_step.status == ExecutionStatus.FAILED
+    assert outer_step.last_error == "compiler crash while step running"
 
 
 @pytest.mark.asyncio
@@ -522,7 +524,7 @@ async def test_wave_orchestrator_stage_raises_quota_exceeded_when_tokens_or_cost
         committer=committer_ok,
         step_runner_fn=_pass_runner,
     )
-    assert res_ok.step_states[step_1.id].status == ExecutionStatus.PASSED
+    assert next(s for s in res_ok.steps if s.id == step_1.id).status == ExecutionStatus.PASSED
 
     # 2. Negative: 5001 tokens (limit + 1) raises QUOTA_EXCEEDED (429) and marks PENDING steps BLOCKED
     state_tok = _build_state(steps=[step_1, step_2])
@@ -540,8 +542,9 @@ async def test_wave_orchestrator_stage_raises_quota_exceeded_when_tokens_or_cost
     assert exc_tok.value.status_code == 429
     assert exc_tok.value.details["error_code"] == ErrorCodes.QUOTA_EXCEEDED
     assert state_tok.exec_record.status == ExecutionStatus.FAILED
-    assert state_tok.exec_record.step_states[step_1.id].status == ExecutionStatus.BLOCKED
-    assert state_tok.exec_record.step_states[step_2.id].status == ExecutionStatus.BLOCKED
+    tok_steps = {s.id: s for s in state_tok.exec_record.steps}
+    assert tok_steps[step_1.id].status == ExecutionStatus.BLOCKED
+    assert tok_steps[step_2.id].status == ExecutionStatus.BLOCKED
 
     # 3. Negative: Cost breach after wave 1 completes blocks wave 2
     mock_settings.max_tokens_per_run = 0
@@ -563,8 +566,9 @@ async def test_wave_orchestrator_stage_raises_quota_exceeded_when_tokens_or_cost
         )
     assert exc_cost.value.status_code == 429
     assert exc_cost.value.details["error_code"] == ErrorCodes.QUOTA_EXCEEDED
-    assert state_cost.exec_record.step_states[step_1.id].status == ExecutionStatus.PASSED
-    assert state_cost.exec_record.step_states[step_2.id].status == ExecutionStatus.BLOCKED
+    cost_steps = {s.id: s for s in state_cost.exec_record.steps}
+    assert cost_steps[step_1.id].status == ExecutionStatus.PASSED
+    assert cost_steps[step_2.id].status == ExecutionStatus.BLOCKED
 
     # 4. Negative: Step count breach (max_total_steps_per_run = 1) after wave 1 completes
     mock_settings.max_cost_usd_per_run = 0.0
@@ -585,4 +589,4 @@ async def test_wave_orchestrator_stage_raises_quota_exceeded_when_tokens_or_cost
         )
     assert exc_steps.value.status_code == 429
     assert exc_steps.value.details["error_code"] == ErrorCodes.QUOTA_EXCEEDED
-    assert state_steps.exec_record.step_states[step_2.id].status == ExecutionStatus.BLOCKED
+    assert next(s for s in state_steps.exec_record.steps if s.id == step_2.id).status == ExecutionStatus.BLOCKED

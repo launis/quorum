@@ -807,7 +807,7 @@ class BlueprintTransformer:
         results: list[StepOutputDTO],
         execution: ExecutionRecord,
     ) -> CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None:
-        """Resolve causal discovery fusion or graph payload from folded results, trace, or step_states.
+        """Resolve causal discovery fusion or graph payload from folded results or execution trace.
 
         Args:
             results: Folded StepOutputDTO list from StateProjector.
@@ -837,14 +837,6 @@ class BlueprintTransformer:
         for evt in reversed(execution.execution_trace):
             if isinstance(evt.content, CausalTdaFusionResultDTO | CausalGraphPayloadDTO):
                 return evt.content
-
-        for state_val in execution.step_states.values():
-            if isinstance(state_val, StepOutputDTO):
-                match state_val.payload:
-                    case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                        return state_val.payload
-            elif isinstance(state_val, CausalTdaFusionResultDTO | CausalGraphPayloadDTO):
-                return state_val
 
         return None
 

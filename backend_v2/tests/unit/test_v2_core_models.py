@@ -45,21 +45,21 @@ def test_execution_record_fail_fast_on_corrupt_status() -> None:
 
 
 def test_embedded_output_profile_description_parsing() -> None:
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.tests.factories.model_factories import I18nTextFactory, OutputProfileFactory
+
     # 1. Success case with valid I18nText
-    valid_data: dict[str, JsonValue] = {
-        "organization_id": "org_0195f3a0000070008000000000000001",
-        "id": "prf_0195f3a0000070018234567890123456",
-        "slug": "test-profile",
-        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
-        "name": {"translations": {"en": "My Profile", "fi": "My Profile"}},
-        "description": {
-            "translations": {"en": "A valid description", "fi": "A valid description"},
-        },
-        "display_scale": DisplayScale.ORIGINAL,
-        "target_block_order": ["metadata_block", "executive_summary_block"],
-        "matrix_synthesis_groups": [],
-    }
-    profile_success = OutputProfile.model_validate(valid_data)
+    profile_success = OutputProfileFactory.build(
+        organization_id="org_0195f3a0000070008000000000000001",
+        id="prf_0195f3a0000070018234567890123456",
+        slug="test-profile",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
+        name=I18nTextFactory.build(translations={"en": "My Profile", "fi": "My Profile"}),
+        description=I18nTextFactory.build(translations={"en": "A valid description", "fi": "A valid description"}),
+        display_scale=DisplayScale.ORIGINAL,
+        target_block_order=[TargetBlockType.METADATA_BLOCK, TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+        matrix_synthesis_groups=[],
+    )
     assert profile_success.description is not None
     assert profile_success.description.resolve("en") == "A valid description"
 
@@ -79,18 +79,18 @@ def test_embedded_output_profile_description_parsing() -> None:
 
 
 def test_execution_record_has_context_variables() -> None:
-    data = {
-        "id": "exe_0195f3a0000070018234567890123456",
-        "workflow_id": "wf_1234567890",
-        "output_profile_id": "prof_0195f3a0000070018234567890123456",
-        "status": "PENDING",
-        "target_locale": "fi",
-        "metadata": {},
-        "raw_inputs": {},
-        "context_variables": {"report_context": "summary text"},
-    }
+    from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 
-    record = ExecutionRecord.model_validate(data, strict=False)
+    record = ExecutionRecordFactory.build(
+        id="exe_0195f3a0000070018234567890123456",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
+        output_profile_id="prf_0195f3a0000070018234567890123456",
+        status=ExecutionStatus.PENDING,
+        target_locale="fi",
+        context_variables=ContextVariablesDTO(report_context="summary text"),
+    )
     assert record.context_variables.report_context == "summary text"
     assert record.context_variables["report_context"] == "summary text"
 
@@ -113,9 +113,7 @@ def test_execution_core_fields_inheritance_on_execution_record() -> None:
         "status",
         "target_locale",
         "execution_trace",
-        "execution_trace_storage_path",
         "context_variables",
-        "context_variables_storage_path",
         "progress",
         "status_message",
     }

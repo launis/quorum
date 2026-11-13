@@ -70,7 +70,7 @@ def _create_dummy_execution(
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        step_states={"stp_1": step},
+        steps=[step],
         profile_syntheses={"prf_0195f3a0000070018234567890abcdef": RenderedSynthesisCache()},
         metadata=ExecutionMetadata(
             provider_override=LLMProvider.VERTEX_AI,
@@ -285,8 +285,10 @@ async def test_process_artifact_compilation_failure_isolation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify compilation updates ExecutionRecord.pdf_report_path and sys_render step state."""
+async def test_process_artifact_compilation_preserves_canonical_execution_steps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify compilation marks ReportArtifact READY without injecting synthetic sys_render steps into ExecutionRecord."""
     repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
@@ -323,13 +325,14 @@ async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: 
     )
     await service.process_artifact_compilation(report.id)
 
+    completed_rep = await repo.get_report_artifact(report.id)
+    assert completed_rep is not None
+    assert completed_rep.status == ReportStatus.READY
+    assert completed_rep.storage_paths.pdf_path == f"artifacts/reports/{report.id}/report.pdf"
+
     updated_exec = await repo.get_execution(execution.id)
     assert updated_exec is not None
-    assert updated_exec.pdf_report_path == f"artifacts/reports/{report.id}/report.pdf"
-    assert updated_exec.step_states is not None
-    assert f"sys_render_{report.profile_id}" in updated_exec.step_states
-    assert updated_exec.step_states[f"sys_render_{report.profile_id}"].status == ExecutionStatus.PASSED
-    assert updated_exec.step_states[f"sys_render_{report.profile_id}"].progress == 100
+    assert [s.id for s in updated_exec.steps] == ["stp_1"]
 
 
 @pytest.mark.asyncio

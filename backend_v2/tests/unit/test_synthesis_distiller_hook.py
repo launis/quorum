@@ -77,7 +77,7 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion() -> None:
         target_locale="en",
         output_profile_id=prof_id,
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
-        step_states={},
+        steps=[],
     )
     await repo.save_execution(exe)
 

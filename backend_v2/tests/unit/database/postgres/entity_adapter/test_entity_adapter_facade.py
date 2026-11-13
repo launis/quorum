@@ -381,9 +381,7 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
         step = _build_step(blk.id, org.id)
         wf = WorkflowFactory.build(organization_id=org.id, model_registry_id=cfg.id)
         prf = OutputProfileFactory.build(workflow_id=wf.id, organization_id=org.id, content_blocks=[])
-        exec_rec = ExecutionRecordFactory.build(
-            workflow_id=wf.id, organization_id=org.id, active_profile_id=prf.id, output_profile_id=prf.id
-        )
+        exec_rec = ExecutionRecordFactory.build(workflow_id=wf.id, organization_id=org.id, output_profile_id=prf.id)
         rep = ReportArtifactFactory.build(execution_id=exec_rec.id, workflow_id=wf.id, profile_id=prf.id)
         bin_dto = ReportBinaryPayloadDTO(
             report_id=rep.id,

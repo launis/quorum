@@ -73,7 +73,7 @@ def _create_dummy_execution(
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        step_states={"stp_1": step},
+        steps=[step],
         profile_syntheses={
             "prf_0195f3a0000070018234567890abcdef": RenderedSynthesisCache(variance_explanation="Executive summary")
         },
@@ -334,17 +334,7 @@ async def test_get_or_create_default_artifact_execution_not_found() -> None:
 @pytest.mark.asyncio
 async def test_get_or_create_default_artifact_workflow_default_and_fallback() -> None:
     """Verify get_or_create_default_artifact resolves workflow default_profile_id and fallback profiles."""
-    repo = InMemoryUnifiedWorkflowRepository()
     execution = _create_dummy_execution()
-    await repo.save_execution(execution)
-
-    # Active profile ID resolution
-    exec_active = execution.model_copy(update={"active_profile_id": "prf_0195f3a0000070018234567890abcdef"})
-    await repo.save_execution(exec_active)
-    await repo.save_output_profile(_create_dummy_profile())
-    service_active = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
-    created_active = await service_active.get_or_create_default_artifact(exec_active.id)
-    assert created_active.profile_id == "prf_0195f3a0000070018234567890abcdef"
 
     # Case 1: Workflow has default_profile_id
     repo1 = InMemoryUnifiedWorkflowRepository()

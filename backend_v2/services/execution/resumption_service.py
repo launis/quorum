@@ -104,7 +104,7 @@ class ExecutionResumptionService:
 
         Rules for is_resumable = True:
         1. Execution status must be FAILED.
-        2. DAG workflow blueprint exists, step IDs match step_states, and version has not drifted.
+        2. DAG workflow blueprint exists, step IDs match steps, and version has not drifted.
         3. Tenant organization has sufficient FinOps quota.
 
         Args:
@@ -121,7 +121,8 @@ class ExecutionResumptionService:
             return False
 
         workflow_step_ids = {step.id for step in workflow.steps}
-        if not workflow_step_ids.issubset(record.step_states.keys()):
+        recorded_step_ids = {step.id for step in record.steps}
+        if not workflow_step_ids.issubset(recorded_step_ids):
             return False
 
         orig_version = record.metadata.workflow_version if record.metadata is not None else record.workflow_version
@@ -226,7 +227,6 @@ class ExecutionResumptionService:
             ExecutionUpdateDTO(
                 status=ExecutionStatus.RUNNING,
                 steps=record.steps,
-                step_states=record.step_states,
             ),
         )
 

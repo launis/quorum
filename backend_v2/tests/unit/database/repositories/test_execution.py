@@ -76,9 +76,6 @@ def valid_execution_doc() -> ExecutionRecord:
         organization_id=_ORG_ID,
         created_by=_USR_ID,
         completed_at=datetime(2026, 8, 30, 12, 0, 0, tzinfo=UTC),
-        execution_trace_storage_path=None,
-        frozen_context_storage_path=None,
-        context_variables_storage_path=None,
     )
 
 
@@ -115,7 +112,6 @@ async def test_create_update_append_delete_and_matrix_count(
         workflow_id=_WF_ID,
         output_profile_id=_PRF_ID,
         target_locale="fi",
-        active_profile_id=_PRF_ID,
         organization_id=_ORG_ID,
         created_by=_USR_ID,
     )
@@ -179,9 +175,6 @@ async def test_get_all_executions_filters_and_recent_completed(
         organization_id=_ORG_OTHER,
         created_by=_USR_OTHER,
         completed_at=datetime(2026, 8, 29, 8, 0, 0),
-        execution_trace_storage_path=None,
-        frozen_context_storage_path=None,
-        context_variables_storage_path=None,
     )
     running_rec = ExecutionRecordFactory.build(
         workflow_id=_WF_ID,
@@ -189,9 +182,6 @@ async def test_get_all_executions_filters_and_recent_completed(
         organization_id=_ORG_ID,
         created_by=_USR_OTHER,
         completed_at=None,
-        execution_trace_storage_path=None,
-        frozen_context_storage_path=None,
-        context_variables_storage_path=None,
     )
     null_completed_ts = ExecutionRecordFactory.build(
         workflow_id=_WF_ID,
@@ -199,9 +189,6 @@ async def test_get_all_executions_filters_and_recent_completed(
         organization_id=_ORG_ID,
         created_by=_USR_ID,
         completed_at=None,
-        execution_trace_storage_path=None,
-        frozen_context_storage_path=None,
-        context_variables_storage_path=None,
     )
 
     async with InMemoryUnitOfWork(base_uow.store) as uow:
@@ -244,9 +231,6 @@ async def test_frozen_context_preserves_mcp_tool_audit_inline(
         workflow_id=_WF_ID,
         status=ExecutionStatus.PASSED,
         frozen_context=fc,
-        execution_trace_storage_path=None,
-        frozen_context_storage_path=None,
-        context_variables_storage_path=None,
     )
     async with InMemoryUnitOfWork(base_uow.store) as uow:
         await uow.entities.save_execution(rec)

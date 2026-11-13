@@ -295,21 +295,20 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
                 ui_hints_snapshot={},
                 mcp_tool_audit=[],
             ),
-            steps=[],
+            steps=[
+                ExecutionStepState(
+                    id="sr_0195f3a0000070008123456789abcdef",
+                    label="Test Step",
+                    status=ExecutionStatus.RUNNING,
+                    scorecard_atoms={},
+                )
+            ],
             profile_syntheses={},
             source_identity_manifest={},
             models_used={},
             created_at=now,
             updated_at=now,
             metadata=ExecutionMetadata(),
-            step_states={
-                "sr_0195f3a0000070008123456789abcdef": ExecutionStepState(
-                    id="sr_0195f3a0000070008123456789abcdef",
-                    label="Test Step",
-                    status=ExecutionStatus.RUNNING,
-                    scorecard_atoms={},
-                )
-            },
         )
     )
     return repo
@@ -335,7 +334,7 @@ async def test_execute_anomaly_retry_flow(
     in_memory_repo: InMemoryUnifiedWorkflowRepository,
     strategy_deps: StrategyDependencies,
 ) -> None:
-    """Verify execute_engine_retry_stage retries on llm_anomaly_retry_requested and updates step_states in DB."""
+    """Verify execute_engine_retry_stage retries on llm_anomaly_retry_requested and updates steps in DB."""
     rule_block = _create_rule_block()
     stage1, stage2 = _build_stage1_and_stage2(repo=in_memory_repo, criteria_blocks=[rule_block])
     step = StepRule(
@@ -433,11 +432,12 @@ async def test_execute_anomaly_retry_flow(
     assert len(result.post_events) == 1
     assert result.usage_agg.total_tokens == 45
 
-    # Verify stateful roundtrip persistence on ExecutionRecord.step_states
+    # Verify stateful roundtrip persistence on ExecutionRecord.steps
     persisted_exec = await in_memory_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert persisted_exec is not None
-    assert persisted_exec.step_states["sr_0195f3a0000070008123456789abcdef"].status == ExecutionStatus.RUNNING
-    assert persisted_exec.step_states["sr_0195f3a0000070008123456789abcdef"].message_code == "event_llm_anomaly_retry"
+    persisted_step = next(s for s in persisted_exec.steps if s.id == "sr_0195f3a0000070008123456789abcdef")
+    assert persisted_step.status == ExecutionStatus.RUNNING
+    assert persisted_step.message_code == "event_llm_anomaly_retry"
 
 
 @pytest.mark.asyncio

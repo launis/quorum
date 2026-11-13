@@ -61,7 +61,6 @@ def test_reconcile_storage_check_dry_run_does_not_mutate(
                 "workflow_id": "wor_default",
                 "target_locale": "en",
                 "output_profile_id": "prof_default",
-                "execution_trace_storage_path": f"executions/{orphaned_id}/execution_trace.json",
             }
         ],
     )
@@ -105,7 +104,6 @@ def test_reconcile_storage_fix_reconstitutes_and_prunes(
                 "workflow_id": "wor_default",
                 "target_locale": "en",
                 "output_profile_id": "prof_default",
-                "execution_trace_storage_path": f"executions/{orphaned_id}/execution_trace.json",
             }
         ],
     )
@@ -154,7 +152,6 @@ def test_reconcile_storage_when_already_synced(
                 "workflow_id": "wor_default",
                 "target_locale": "fi",
                 "output_profile_id": "prof_default",
-                "execution_trace_storage_path": f"executions/{synced_id}/execution_trace.json",
             }
         ],
     )
@@ -360,7 +357,6 @@ def test_load_execution_records_fallback_list_and_empty(tmp_path: Path) -> None:
         "workflow_id": "wor_default",
         "target_locale": "en",
         "output_profile_id": "prof_default",
-        "execution_trace_storage_path": "executions/exe_0195f3a0000070018111222233334444/execution_trace.json",
     }
     list_file.write_text(json.dumps([record_json]), encoding="utf-8")
     records = _load_execution_records(list_file)
@@ -397,8 +393,8 @@ def test_reconstitute_execution_record_with_template(tmp_path: Path) -> None:
     assert rec.id == exe_id
     assert rec.workflow_id == "wor_custom_template"
     assert rec.output_profile_id == "prof_template"
-    assert rec.pdf_report_path is not None
-    assert rec.context_variables_storage_path is not None
+    assert rec.steps == []
+    assert rec.completed_at is not None
 
 
 def test_load_execution_records_invalid_json_error(tmp_path: Path) -> None:

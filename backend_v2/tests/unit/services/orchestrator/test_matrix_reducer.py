@@ -93,7 +93,6 @@ def test_reduce_matrix() -> None:
     record.id = "exe_12345678901234567890123456789012"
     record.duration_ms = 100
     record.steps = []
-    record.step_states = {}
 
     class MockOutputModel(BaseModel):
         step_2: dict[str, JsonValue]
@@ -151,13 +150,12 @@ def test_reduce_matrix() -> None:
     assert len(reduced.raw_extensions) == 2
 
 
-def test_reduce_matrix_empty_step_states() -> None:
-    """Tests that reduce_matrix handles empty step_states gracefully."""
+def test_reduce_matrix_empty_steps() -> None:
+    """Tests that reduce_matrix handles empty steps gracefully."""
     record = MagicMock()
     record.id = "exe_empty0000000000000000000000000"
     record.duration_ms = 50
     record.steps = []
-    record.step_states = {}
     record.execution_trace = []
 
     reduced = MatrixReducer.reduce_matrix(record)
@@ -200,11 +198,7 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     record.duration_ms = 250
     empty_state = MagicMock()
     empty_state.scorecard_atoms = {}
-    record.step_states = {
-        "sr_step_1": empty_state,
-        "sr_step_2": empty_state,
-    }
-    record.steps = []
+    record.steps = [empty_state, empty_state]
 
     evt_step_1 = MagicMock(
         event_type="output",
@@ -257,7 +251,6 @@ def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
     record = MagicMock()
     record.id = "exe_11111111111111111111111111111111"
     record.duration_ms = 300
-    record.step_states = {}
     record.steps = []
 
     evt_dto_dict = MagicMock(
@@ -293,7 +286,6 @@ def test_reduce_matrix_invalid_atom_raises_app_exception() -> None:
     record = MagicMock()
     record.id = "exe_22222222222222222222222222222222"
     record.duration_ms = 100
-    record.step_states = {}
     record.steps = []
 
     evt_corrupted = MagicMock(

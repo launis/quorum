@@ -35,43 +35,40 @@ def test_trace_matrix_payload_strictness() -> None:
 
 def test_trace_matrix_payload_accepts_allowed_extensions() -> None:
     """Strict TDD: Test that TraceMatrixPayloadDTO accepts allowed_extensions field without raising ValidationError."""
-    payload = {
-        "raw_score": 4.5,
-        "normalized_score": 90.0,
-        "justification": "Test justification",
-        "allowed_extensions": ["falsification", "coaching", "remediation_steps"],
-    }
-    # This should succeed without raising any ValidationError
-    dto = TraceMatrixPayloadDTO.model_validate(payload)
+    dto = TraceMatrixPayloadDTO(
+        raw_score=4.5,
+        normalized_score=90.0,
+        justification="Test justification",
+        allowed_extensions=["falsification", "coaching", "remediation_steps"],
+    )
     assert dto.raw_score == 4.5
     assert dto.allowed_extensions == ["falsification", "coaching", "remediation_steps"]
 
 
 def test_trace_matrix_payload_accepts_atom_quotes() -> None:
     """Strict TDD: Test that TraceMatrixPayloadDTO accepts atom_quotes field without raising ValidationError."""
-    payload_none = {
-        "raw_score": 4.5,
-        "normalized_score": 90.0,
-        "justification": "Test justification",
-        "atom_quotes": None,
-    }
-    dto_none = TraceMatrixPayloadDTO.model_validate(payload_none)
+    dto_none = TraceMatrixPayloadDTO(
+        raw_score=4.5,
+        normalized_score=90.0,
+        justification="Test justification",
+        atom_quotes=None,
+    )
     assert dto_none.atom_quotes is None
 
-    payload_list = {
-        "raw_score": 4.5,
-        "normalized_score": 90.0,
-        "justification": "Test justification",
-        "atom_quotes": ["Evidence quote"],
-    }
-    dto_list = TraceMatrixPayloadDTO.model_validate(payload_list)
+    dto_list = TraceMatrixPayloadDTO(
+        raw_score=4.5,
+        normalized_score=90.0,
+        justification="Test justification",
+        atom_quotes=["Evidence quote"],
+    )
     assert dto_list.atom_quotes == ["Evidence quote"]
 
 
 def test_trace_matrix_payload_coerces_failed_string() -> None:
     """Test that TraceMatrixPayloadDTO correctly coerces 'FAILED' string to ExecutionStatus.FAILED."""
-    payload = {"raw_score": 4.5, "evaluated_atoms": {"a0": "FAILED", "a1": "PASSED"}}
-    dto = TraceMatrixPayloadDTO.model_validate(payload)
+    dto = TraceMatrixPayloadDTO.model_validate_json(
+        '{"raw_score": 4.5, "evaluated_atoms": {"a0": "FAILED", "a1": "PASSED"}}'
+    )
     assert dto.evaluated_atoms is not None
     assert dto.evaluated_atoms["a0"] == ExecutionStatus.FAILED
     assert dto.evaluated_atoms["a1"] == ExecutionStatus.PASSED
@@ -109,7 +106,7 @@ def test_execution_create_and_update_dto_negative_partitions() -> None:
         ExecutionCreateDTO.model_validate({})
 
     # ExecutionCreateDTO: output_profile_id is optional per Ingress Decoupling
-    valid_no_profile = ExecutionCreateDTO.model_validate({"workflow_id": "wor_0195f3a0000070018234567890abcdef"})
+    valid_no_profile = ExecutionCreateDTO(workflow_id="wor_0195f3a0000070018234567890abcdef")
     assert valid_no_profile.output_profile_id is None
 
     # Negative ExecutionCreateDTO: extra forbidden field
@@ -140,6 +137,25 @@ def test_execution_create_and_update_dto_negative_partitions() -> None:
     with pytest.raises(ValidationError) as exc_up:
         ExecutionUpdateDTO.model_validate({"progress": 20, "unauthorized_extra": True})
     assert "extra_forbidden" in str(exc_up.value) or "Extra inputs are not permitted" in str(exc_up.value)
+
+    # Negative ExecutionCreateDTO and ExecutionUpdateDTO: reject removed shadow/pointer fields
+    for removed_key in (
+        "active_profile_id",
+        "step_states",
+        "pdf_report_path",
+        "frozen_context_storage_path",
+        "execution_trace_storage_path",
+        "context_variables_storage_path",
+    ):
+        with pytest.raises(ValidationError):
+            ExecutionCreateDTO.model_validate(
+                {
+                    "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+                    removed_key: "forbidden",
+                }
+            )
+        with pytest.raises(ValidationError):
+            ExecutionUpdateDTO.model_validate({removed_key: "forbidden"})
 
 
 def test_progress_trace_payload_dto_validation_and_strictness() -> None:
@@ -197,14 +213,16 @@ def test_trace_event_metadata_dto_validation_and_strictness() -> None:
 
 def test_trace_event_metadata_envelope_hydration() -> None:
     """Test TraceEventMetadataEnvelope model_validate with canonical key and ignored legacy alias."""
-    # 1. Branch: dict with ignored legacy alias yields None
-    payload_underscore = {"_step_metadata": {"model_strategy": "fast", "chunk_size": 2}}
-    env_underscore = TraceEventMetadataEnvelope.model_validate(payload_underscore)
+    # 1. Branch: JSON with ignored legacy alias yields None
+    env_underscore = TraceEventMetadataEnvelope.model_validate_json(
+        '{"_step_metadata": {"model_strategy": "fast", "chunk_size": 2}}'
+    )
     assert env_underscore.step_metadata is None
 
-    # 2. Branch: dict with step_metadata
-    payload_clean = {"step_metadata": {"model_strategy": "deep", "chunk_size": 4}}
-    env_clean = TraceEventMetadataEnvelope.model_validate(payload_clean)
+    # 2. Branch: JSON with step_metadata
+    env_clean = TraceEventMetadataEnvelope.model_validate_json(
+        '{"step_metadata": {"model_strategy": "deep", "chunk_size": 4}}'
+    )
     assert env_clean.step_metadata is not None
     assert env_clean.step_metadata.model_strategy == "deep"
     assert env_clean.step_metadata.chunk_size == 4

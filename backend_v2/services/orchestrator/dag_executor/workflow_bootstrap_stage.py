@@ -282,16 +282,17 @@ def invalidate_drifted_passed_steps(
             upstream_hashes=expected_hashes,
         )
 
+    steps_by_id = {s.id: s for s in exec_record.steps}
     invalidated_ids: set[str] = set()
-    for step_id, s_state in list(exec_record.step_states.items()):
+    for step_id, s_state in list(steps_by_id.items()):
         if s_state.status == ExecutionStatus.FAILED:
             invalidated_ids.add(step_id)
 
     for step_rule in workflow.steps:
         step_id = step_rule.id
-        if step_id not in exec_record.step_states:
+        if step_id not in steps_by_id:
             continue
-        s_state = exec_record.step_states[step_id]
+        s_state = steps_by_id[step_id]
         if s_state.status == ExecutionStatus.PASSED:
             stored_hash = s_state.input_merkle_hash
             if stored_hash is None or stored_hash != expected_hashes[step_id]:
@@ -305,18 +306,16 @@ def invalidate_drifted_passed_steps(
                 continue
             if any(
                 dep_id in invalidated_ids
-                or (
-                    dep_id in exec_record.step_states
-                    and exec_record.step_states[dep_id].status != ExecutionStatus.PASSED
-                )
+                or (dep_id in steps_by_id and steps_by_id[dep_id].status != ExecutionStatus.PASSED)
                 for dep_id in step_rule.depends_on
             ):
                 invalidated_ids.add(step_rule.id)
                 changed = True
 
     updated_record = exec_record
+    existing_step_ids = {s.id for s in updated_record.steps}
     for step_id in invalidated_ids:
-        if step_id in updated_record.step_states:
+        if step_id in existing_step_ids:
             updated_record = updated_record.transition_step(
                 step_id=step_id,
                 status=ExecutionStatus.PENDING,
@@ -396,7 +395,7 @@ async def bootstrap_workflow_execution_state(
         step_label = s_name.resolve(target_loc) if isinstance(s_name, I18nText) else raw_lbl
         steps.append(ExecutionStep(id=step.id, label=step_label, status=ExecutionStatus.PENDING, scorecard_atoms={}))
 
-    step_states = {s.id: s for s in steps}
+    step_labels = {s.id: s.label for s in steps}
     default_meta = ExecutionMetadata(workflow_version=workflow.version, model_registry_id=workflow.model_registry_id)
     run_st = ExecutionStatus.RUNNING
     if existing_record:
@@ -405,14 +404,13 @@ async def bootstrap_workflow_execution_state(
             effective_meta = effective_meta.model_copy(update={"model_registry_id": workflow.model_registry_id})
         base_steps = existing_record.steps if existing_record.steps else steps
         up_steps = [
-            s.model_copy(update={"label": step_states[s.id].label if s.id in step_states else s.label})
+            s.model_copy(update={"label": step_labels[s.id] if s.id in step_labels else s.label})
             if (s.label == s.id or not s.label)
             else s
             for s in base_steps
         ]
-        up_map = {s.id: s for s in up_steps}
         exec_record = existing_record.model_copy(
-            update={"status": run_st, "metadata": effective_meta, "steps": up_steps, "step_states": up_map}
+            update={"status": run_st, "metadata": effective_meta, "steps": up_steps}
         )
     else:
         tel = default_meta.telemetry if default_meta.telemetry is not None else inject_trace_context()
@@ -434,16 +432,13 @@ async def bootstrap_workflow_execution_state(
                 mcp_tool_audit=[],
             ),
             steps=[],
-            step_states={},
             profile_syntheses={},
             source_identity_manifest={},
             models_used={},
             created_at=now_utc,
             updated_at=now_utc,
         )
-        exec_record = rec_base.model_copy(
-            update={"status": run_st, "steps": steps, "step_states": step_states, "output_profile_id": def_prof}
-        )
+        exec_record = rec_base.model_copy(update={"status": run_st, "steps": steps, "output_profile_id": def_prof})
 
     if exec_record.target_locale:
         set_language(exec_record.target_locale)
@@ -570,7 +565,12 @@ async def safe_commit_execution_state(
         st = status_override if status_override is not None else cur.status
         err = error_override if error_override is not None else cur.error
         await committer.commit_trace(
-            cur.execution_trace, st, cur.step_states, err, cur.frozen_context, cur.context_variables, cur.steps
+            trace=cur.execution_trace,
+            status=st,
+            error=err,
+            frozen_context=cur.frozen_context,
+            context_variables=cur.context_variables,
+            steps=cur.steps,
         )
         return cur
 

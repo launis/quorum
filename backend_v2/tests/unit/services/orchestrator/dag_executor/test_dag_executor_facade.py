@@ -226,7 +226,7 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
 
     assert executor.committer.execution_id == exec_id
     assert result.status == ExecutionStatus.RUNNING
-    assert result.step_states[step_id].status == ExecutionStatus.PASSED
+    assert next(s for s in result.steps if s.id == step_id).status == ExecutionStatus.PASSED
 
     # Negative case: missing step blueprint raises ExceptionGroup containing AppException(CONFIGURATION_ERROR)
     empty_executor = _build_dag_executor(InMemoryUnifiedWorkflowRepository())

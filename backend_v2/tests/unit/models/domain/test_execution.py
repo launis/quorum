@@ -10,6 +10,7 @@ from backend_v2.models.domain.execution import (
     EvidenceRejectionRequest,
     ExecutionAssignment,
     ExecutionCreate,
+    ExecutionRecord,
     ExecutionStep,
     ExecutionSummarySnapshot,
     FrozenContext,
@@ -199,7 +200,6 @@ def test_execution_record_instantiation() -> None:
     assert rec.workflow_id == "wor_0195f3a0000070018234567890abcdef"
     assert rec.status == ExecutionStatus.PENDING
     assert rec.steps == []
-    assert rec.step_states == {}
     assert rec.profile_syntheses == {}
 
 
@@ -220,16 +220,13 @@ def test_execution_record_transition_step_new_step() -> None:
     )
     # Original record must remain immutable
     assert rec.steps == []
-    assert rec.step_states == {}
 
-    # Updated record contains newly transitioned step in both steps list and step_states dict
-    assert "stp_0195f3a0000070018234567890abcdef" in updated.step_states
+    # Updated record contains newly transitioned step in steps list
     assert len(updated.steps) == 1
     assert updated.steps[0].id == "stp_0195f3a0000070018234567890abcdef"
     assert updated.steps[0].status == ExecutionStatus.RUNNING
     assert updated.steps[0].progress == 25
     assert updated.steps[0].label == "Analyze Dialogue"
-    assert updated.step_states["stp_0195f3a0000070018234567890abcdef"] == updated.steps[0]
 
 
 def test_execution_record_transition_step_existing_step() -> None:
@@ -245,7 +242,6 @@ def test_execution_record_transition_step_existing_step() -> None:
         target_locale="fi",
         status=ExecutionStatus.RUNNING,
         steps=[initial_step],
-        step_states={"stp_0195f3a0000070018234567890abcdef": initial_step},
         created_at=datetime.now(UTC),
     )
     updated = rec.transition_step(
@@ -263,7 +259,6 @@ def test_execution_record_transition_step_existing_step() -> None:
     assert step.progress == 50
     assert step.last_error == "Network timeout"
     assert step.has_warning is True
-    assert updated.step_states["stp_0195f3a0000070018234567890abcdef"] == step
 
 
 def test_execution_record_with_step_passed_forwarder() -> None:
@@ -276,14 +271,12 @@ def test_execution_record_with_step_passed_forwarder() -> None:
         created_at=datetime.now(UTC),
     )
     updated = rec.with_step_passed(step_id="stp_render", label="Render Report")
-    assert "stp_render" in updated.step_states
     assert len(updated.steps) == 1
     step = updated.steps[0]
     assert step.id == "stp_render"
     assert step.label == "Render Report"
     assert step.status == ExecutionStatus.PASSED
     assert step.progress == 100
-    assert updated.step_states["stp_render"] == step
 
 
 def test_execution_record_without_profile_synthesis() -> None:
@@ -336,22 +329,7 @@ def test_execution_record_with_updated_and_cleared_profile_syntheses() -> None:
     assert "prf_0195f3a0000070018234567890abcdef" in updated_only_cache.profile_syntheses
     assert updated_only_cache.steps == []
 
-    render_step = ExecutionStepFactory.build(
-        id="stp_render",
-        label="Render Step",
-        status=ExecutionStatus.PASSED,
-    )
-    updated_with_step = rec.with_updated_profile_synthesis(
-        profile_id="prf_0195f3a0000070018234567890abcdef",
-        cache=cache_item,
-        step_id="stp_render",
-        step_state=render_step,
-    )
-    assert "prf_0195f3a0000070018234567890abcdef" in updated_with_step.profile_syntheses
-    assert "stp_render" in updated_with_step.step_states
-    assert len(updated_with_step.steps) == 1
-
-    cleared = updated_with_step.with_cleared_profile_syntheses()
+    cleared = updated_only_cache.with_cleared_profile_syntheses()
     assert cleared.profile_syntheses == {}
 
 
@@ -368,7 +346,6 @@ def test_execution_record_transition_step_updates_label_and_merkle_hash() -> Non
         target_locale="fi",
         status=ExecutionStatus.RUNNING,
         steps=[initial_step],
-        step_states={"stp_0195f3a0000070018234567890abcdef": initial_step},
         created_at=datetime.now(UTC),
     )
     updated = rec.transition_step(
@@ -379,6 +356,27 @@ def test_execution_record_transition_step_updates_label_and_merkle_hash() -> Non
     )
     assert updated.steps[0].label == "Updated Label"
     assert updated.steps[0].input_merkle_hash == "a" * 64
+
+
+@pytest.mark.parametrize(
+    "removed_key",
+    [
+        "step" + "_states",
+        "active" + "_profile_id",
+        "pdf" + "_report_path",
+        "execution_trace" + "_storage_path",
+        "frozen_context" + "_storage_path",
+        "context_variables" + "_storage_path",
+    ],
+)
+def test_execution_record_python_and_flutter_reject_removed_step_states_and_storage_path_keys(
+    removed_key: str,
+) -> None:
+    """ISTQB Negative Test: ExecutionRecord.model_validate strictly rejects removed legacy keys under extra='forbid'."""
+    valid_payload = ExecutionRecordFactory.build().model_dump(mode="json")
+    valid_payload[removed_key] = "legacy_value"
+    with pytest.raises(ValidationError):
+        ExecutionRecord.model_validate(valid_payload)
 
 
 @pytest.mark.parametrize("invalid_strictness", [-1, 101])

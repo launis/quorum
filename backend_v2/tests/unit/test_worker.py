@@ -429,7 +429,6 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
             status=ExecutionStatus.PENDING,
             target_locale="en",
             metadata=ExecutionMetadata(),
-            step_states={},
             output_profile_id=None,
         )
     )
@@ -454,7 +453,6 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         id="exe_0195f3a0000070018234567890123456",
         workflow_id="wf_0195f3a0000070018234567890123456",
         status=ExecutionStatus.PENDING,
-        step_states={},
         target_locale="en",
         metadata=ExecutionMetadata(),
     ).model_copy(update={"target_locale": ""})
@@ -482,7 +480,6 @@ async def test_execute_workflow_job_cancelled() -> None:
             output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.PENDING,
             target_locale="fi",
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -529,7 +526,6 @@ async def test_execute_workflow_job_cancelled_update_error() -> None:
             output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.PENDING,
             target_locale="fi",
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -562,7 +558,6 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
             output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.PENDING,
             target_locale="fi",
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -626,7 +621,6 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
                 status=ExecutionStatus.PASSED,
             )
         ],
-        step_states={},
         execution_trace=mock_trace,
     )
     mock_engine = AsyncMock()
@@ -690,7 +684,6 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached(
                 status=ExecutionStatus.RUNNING,
                 target_locale="fi",
                 metadata=ExecutionMetadata(),
-                step_states={},
                 profile_syntheses={"prof_0195f3a0000070018111222233334444": cached_entry},
             )
         )
@@ -724,7 +717,6 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 status=ExecutionStatus.RUNNING,
                 target_locale="fi",
                 metadata=ExecutionMetadata(),
-                step_states={},
                 profile_syntheses={},
             )
         )
@@ -779,7 +771,6 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 status=ExecutionStatus.RUNNING,
                 target_locale="fi",
                 metadata=ExecutionMetadata(),
-                step_states={},
                 profile_syntheses={},
             )
         )
@@ -856,7 +847,6 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                 status=ExecutionStatus.RUNNING,
                 target_locale="fi",
                 metadata=ExecutionMetadata(),
-                step_states={},
                 profile_syntheses={},
                 context_variables=_CONTEXT_VARS_ADAPTER.validate_python(
                     {
@@ -933,7 +923,6 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         output_profile_id="prof_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
-        step_states={},
         metadata=ExecutionMetadata(),
     )
     await mock_repo.save_execution(initial_exec)
@@ -992,7 +981,6 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 status=ExecutionStatus.RUNNING,
                 target_locale="fi",
                 metadata=ExecutionMetadata(),
-                step_states={},
                 profile_syntheses={},
                 context_variables=ContextVariablesDTO(variables={}),
                 execution_trace=[trace_event],
@@ -1102,7 +1090,6 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
                 status=ExecutionStatus.RUNNING,
                 target_locale="fi",
                 metadata=ExecutionMetadata(),
-                step_states={},
             )
         )
         mock_repo.set_output_profiles([_get_minimal_profile(workflow_id=missing_wf_id)])
@@ -1131,11 +1118,6 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             event_type="output",
             content={"event_type": "starvation", "total_atoms": 0, "reason": "No atoms"},
         )
-        render_step = _DeterministicExecutionStepFactory.build(
-            id="sys_render_prof_1",
-            label="Rendering",
-            status=ExecutionStatus.RUNNING,
-        )
         await mock_repo.save_execution(
             _DeterministicExecutionRecordFactory.build(
                 id="exe_0195f3a0000070018234567890123456",
@@ -1144,7 +1126,6 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
                 status=ExecutionStatus.RUNNING,
                 target_locale="en",
                 execution_trace=[starvation_event],
-                step_states={"sys_render_prof_1": render_step},
                 metadata=ExecutionMetadata(),
             )
         )
@@ -1172,8 +1153,8 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
 
 
 @pytest.mark.asyncio
-async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None:
-    """Verify execute_workflow_job hydrates offloaded blob trace when in-memory trace lacks metadata."""
+async def test_execute_workflow_job_hydrates_trace_telemetry() -> None:
+    """Verify execute_workflow_job aggregates step telemetry and FinOps metrics from hydrated execution_trace."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_workflow(_get_base_workflow())
     mock_repo.set_output_profiles([_get_minimal_profile()])
@@ -1184,19 +1165,40 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
             output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.PENDING,
             target_locale="fi",
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
 
-    in_memory_trace: list[TraceEvent] = [
+    hydrated_trace: list[TraceEvent] = [
         _TraceEventFactory.build(
             v=1,
             timestamp=datetime.now(UTC),
             event_type="progress",
             step_name="stp_preflight",
             content={"message": "running", "percentage": 50},
-        )
+        ),
+        _TraceEventFactory.build(
+            v=1,
+            timestamp=datetime.now(UTC),
+            event_type="output",
+            step_name="step_dag",
+            content={
+                "step_metadata": {
+                    "model_strategy": "fast",
+                    "physical_model": "test_model",
+                    "system_fingerprint": "fp_1",
+                    "chunk_size": 1,
+                    "token_usage": {
+                        "prompt_tokens": 500,
+                        "completion_tokens": 100,
+                        "cached_tokens": 20,
+                        "reasoning_tokens": 10,
+                        "total_tokens": 600,
+                        "cost_usd": 0.05,
+                    },
+                }
+            },
+        ),
     ]
 
     mock_exec_record = _DeterministicExecutionRecordFactory.build(
@@ -1206,50 +1208,29 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         metadata=ExecutionMetadata(),
-        step_states={
-            "step_dag": _DeterministicExecutionStepFactory.build(
-                id="step_dag",
-                label="Step DAG",
-                status=ExecutionStatus.PASSED,
-            )
-        },
         steps=[
             _DeterministicExecutionStepFactory.build(
                 id="step_dag",
                 label="Step DAG",
-                status=ExecutionStatus.PENDING,
+                status=ExecutionStatus.PASSED,
             )
         ],
-        execution_trace=in_memory_trace,
-        execution_trace_storage_path="executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
+        execution_trace=hydrated_trace,
     )
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record
 
-    offloaded_blob = (
-        b'[{"v": 1, "step_name": "step_dag", "event_type": "output", "content": '
-        b'{"step_metadata": {"model_strategy": "fast", "physical_model": "test_model", '
-        b'"system_fingerprint": "fp_1", "chunk_size": 1, "token_usage": {"prompt_tokens": 500, '
-        b'"completion_tokens": 100, "cached_tokens": 20, "reasoning_tokens": 10, "total_tokens": 600, '
-        b'"cost_usd": 0.05}}}}]'
+    ctx = {"repository": mock_repo, "engine": mock_engine, "redis": None}
+    res = await execute_workflow_job(
+        ctx,
+        workflow_id="wf_0195f3a0000070018234567890123456",
+        inputs=_empty_inputs(),
+        execution_id="exe_0195f3a0000070018234567890123456",
+        organization_id="org_test",
+        user_id="usr_test",
     )
 
-    mock_storage = AsyncMock()
-    mock_storage.read.return_value = offloaded_blob
-
-    with patch("backend_v2.workers.execution_worker.get_storage_driver", return_value=mock_storage):
-        ctx = {"repository": mock_repo, "engine": mock_engine, "redis": None}
-        res = await execute_workflow_job(
-            ctx,
-            workflow_id="wf_0195f3a0000070018234567890123456",
-            inputs=_empty_inputs(),
-            execution_id="exe_0195f3a0000070018234567890123456",
-            organization_id="org_test",
-            user_id="usr_test",
-        )
-
     assert res.status == "COMPLETED"
-    mock_storage.read.assert_called_once_with("executions/exe_0195f3a0000070018234567890123456/execution_trace.json")
 
     assert mock_repo.get_call_count("update_execution") >= 1
     updated_rec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
@@ -1269,13 +1250,41 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
-    """Verify synthesis task recovers DAG telemetry from offloaded blob when dag_cost_usd is zero."""
+    """Verify synthesis task recovers DAG telemetry from hydrated execution_trace when dag_cost_usd is zero."""
     get_settings().use_mock_llm = True
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_workflow(_get_base_workflow())
     mock_repo.set_output_profiles([_get_minimal_profile()])
     mock_repo.set_prompt_blocks([])
     mock_repo.set_model_registry(_get_base_model_registry())
+    hydrated_events = [
+        _TraceEventFactory.build(
+            v=1,
+            timestamp=datetime.now(UTC),
+            step_name="step_dag",
+            event_type="output",
+            content={
+                "step_metadata": {
+                    "model_strategy": "fast",
+                    "token_usage": {
+                        "prompt_tokens": 800,
+                        "completion_tokens": 200,
+                        "cached_tokens": 50,
+                        "reasoning_tokens": 20,
+                        "total_tokens": 1070,
+                        "cost_usd": 0.15,
+                    },
+                }
+            },
+        ),
+        _TraceEventFactory.build(
+            v=1,
+            timestamp=datetime.now(UTC),
+            step_name="unrelated",
+            event_type="output",
+            content={"unrelated": 1},
+        ),
+    ]
     await mock_repo.save_execution(
         _DeterministicExecutionRecordFactory.build(
             id="exe_0195f3a0000070018234567890123456",
@@ -1289,33 +1298,13 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
             completion_tokens=0,
             cumulative_synthesis_cost=0.0,
             cumulative_synthesis_tokens=0,
-            execution_trace=[],
-            execution_trace_storage_path="executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
-            step_states={
-                "sys_render_prof_1": _DeterministicExecutionStepFactory.build(
-                    id="sys_render_prof_1",
-                    label="Rendering",
-                    status=ExecutionStatus.RUNNING,
-                )
-            },
+            execution_trace=hydrated_events,
             metadata=ExecutionMetadata(),
         )
     )
 
-    offloaded_blob = (
-        b'[{"v": 1, "step_name": "step_dag", "event_type": "output", "content": '
-        b'{"step_metadata": {"model_strategy": "fast", "token_usage": {"prompt_tokens": 800, '
-        b'"completion_tokens": 200, "cached_tokens": 50, "reasoning_tokens": 20, "total_tokens": 1070, '
-        b'"cost_usd": 0.15}}}}, '
-        b'{"v": 1, "step_name": "unrelated", "event_type": "output", "content": {"unrelated": 1}}]'
-    )
-
-    mock_storage = AsyncMock()
-    mock_storage.read.return_value = offloaded_blob
-
     with (
         patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo),
-        patch("backend_v2.workers.synthesis_reducers.get_storage_driver", return_value=mock_storage),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
@@ -1334,7 +1323,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
             redis=mock_redis,
         )
 
-    assert mock_storage.read.called
     assert mock_repo.get_call_count("update_execution") >= 1
     updated_exec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
     assert updated_exec is not None
@@ -1370,8 +1358,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
             cumulative_synthesis_cost=0.25,
             cumulative_synthesis_tokens=100,
             execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -1417,8 +1403,6 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -1463,8 +1447,6 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -1509,8 +1491,6 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -1562,8 +1542,6 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -1599,8 +1577,6 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -1641,8 +1617,6 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
-            execution_trace_storage_path=None,
-            step_states={},
             metadata=ExecutionMetadata(),
         )
     )
@@ -1687,7 +1661,6 @@ async def test_worker_execution_persists_completed_record_in_memory_roundtrip() 
         output_profile_id="prof_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
-        step_states={},
         metadata=ExecutionMetadata(),
     )
     await mock_repo.save_execution(initial_record)
@@ -1696,13 +1669,13 @@ async def test_worker_execution_persists_completed_record_in_memory_roundtrip() 
     mock_engine.execute_workflow.return_value = initial_record.model_copy(
         update={
             "status": ExecutionStatus.PASSED,
-            "step_states": {
-                "stp_0195f3a0000070018234567890123456": _DeterministicExecutionStepFactory.build(
+            "steps": [
+                _DeterministicExecutionStepFactory.build(
                     id="stp_0195f3a0000070018234567890123456",
                     label="Step 1",
                     status=ExecutionStatus.PASSED,
                 )
-            },
+            ],
         }
     )
 

@@ -143,57 +143,6 @@ class ExecutionOverrideService:
         )
         return record
 
-    async def _delete_stale_pdf_report(self, pdf_report_path: str) -> None:
-        """Delete an invalidated PDF report blob while tolerating missing artifacts.
-
-        Args:
-            pdf_report_path: Storage path of the stale PDF report artifact.
-
-        Raises:
-            AppException: If blob deletion fails with a lock conflict (ErrorCodes.CONFLICT)
-                or storage error (ErrorCodes.INTERNAL_SERVER_ERROR).
-        """
-        try:
-            await self.storage.delete(pdf_report_path)
-        except AppException as e:
-            if e.status_code == 404:
-                logger.warning("[ExecutionOverrideService] Old PDF blob %s not found, ignoring.", pdf_report_path)
-            elif e.status_code == 409:
-                logger.error(
-                    "[ExecutionOverrideService] %s: Conflict deleting PDF blob %s",
-                    ErrorCodes.CONFLICT.name,
-                    pdf_report_path,
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.CONFLICT.value},
-                )
-                raise
-            else:
-                logger.error(
-                    "[ExecutionOverrideService] %s: Failed to delete old PDF blob %s",
-                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                    pdf_report_path,
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                )
-                raise AppException(
-                    message="Failed to delete old PDF blob",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                ) from e
-        except Exception as e:
-            logger.error(
-                "[ExecutionOverrideService] %s: Unexpected error deleting old PDF blob %s",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                pdf_report_path,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-            )
-            raise AppException(
-                message="Failed to delete old PDF blob",
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-            ) from e
-
     async def _append_override_trace_event(
         self,
         execution_id: str,
@@ -258,17 +207,11 @@ class ExecutionOverrideService:
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=execution_rec.workflow_id)
 
-        target_pdf_path = execution_rec.pdf_report_path
-        if profile_id == workflow_obj.default_profile_id and execution_rec.pdf_report_path:
-            await self._delete_stale_pdf_report(execution_rec.pdf_report_path)
-            target_pdf_path = None
-
         # Pass expected_state_version for optimistic concurrency control.
         await self.exec_repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
                 profile_syntheses=execution_rec.profile_syntheses,
-                pdf_report_path=target_pdf_path,
                 updated_at=datetime.now(UTC),
                 expected_state_version=execution_rec.state_version,
             ),
@@ -286,28 +229,25 @@ class ExecutionOverrideService:
         payload: HumanOverrideRequest,
         override_dto: HumanOverrideDTO,
     ) -> ExecutionRecord:
-        """Apply human override to step_states and evaluated matrix context variables on the record.
+        """Apply human override to canonical steps, clear stale syntheses, and update matrix context variables.
 
         Args:
             record: Target execution record to update.
-            found_step_id: Step state key containing the target atom.
+            found_step_id: Step identifier containing the target atom.
             atom_id: Identifier of the atom being overridden.
             payload: Incoming human override request payload.
             override_dto: Constructed HumanOverrideDTO to attach to the atom.
 
         Returns:
-            Updated ExecutionRecord with modified step_states and context_variables.
+            Updated ExecutionRecord with modified steps, cleared profile_syntheses, and context_variables.
         """
-        target_state = record.step_states[found_step_id]
+        target_step = next(step for step in record.steps if step.id == found_step_id)
         updated_atoms = {
-            **target_state.scorecard_atoms,
-            atom_id: target_state.scorecard_atoms[atom_id].model_copy(update={"human_override": override_dto}),
+            **target_step.scorecard_atoms,
+            atom_id: target_step.scorecard_atoms[atom_id].model_copy(update={"human_override": override_dto}),
         }
-        new_step_states = {
-            **record.step_states,
-            found_step_id: target_state.model_copy(update={"scorecard_atoms": updated_atoms}),
-        }
-        record = record.model_copy(update={"step_states": new_step_states})
+        updated_step = target_step.model_copy(update={"scorecard_atoms": updated_atoms})
+        record = record.with_updated_step_state(found_step_id, updated_step).with_cleared_profile_syntheses()
 
         cv_updates: dict[str, ContextVariableValue] = {}
         for k, v in record.context_variables.variables.items():
@@ -369,7 +309,7 @@ class ExecutionOverrideService:
             audit_repo=None,
             system_repo=self.system_repo,
         )
-        return await scoring.recalculate(record.context_variables, record.active_profile_id, deps)
+        return await scoring.recalculate(record.context_variables, record.output_profile_id, deps)
 
     async def override_atom(
         self,
@@ -390,7 +330,7 @@ class ExecutionOverrideService:
             ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
             PermissionDeniedError: If the initiator lacks permission to modify the execution
                 (ErrorCodes.PERMISSION_DENIED).
-            AppException: If the target atom is not found in any step state (ErrorCodes.RESOURCE_NOT_FOUND),
+            AppException: If the target atom is not found in any step (ErrorCodes.RESOURCE_NOT_FOUND),
                 required hook repositories are missing (ErrorCodes.CONFIGURATION_ERROR), or an optimistic
                 concurrency conflict occurs (ErrorCodes.CONFLICT).
         """
@@ -403,11 +343,11 @@ class ExecutionOverrideService:
         )
 
         found_step_id = next(
-            (step_id for step_id, state in record.step_states.items() if atom_id in state.scorecard_atoms),
+            (step.id for step in record.steps if atom_id in step.scorecard_atoms),
             None,
         )
         if not found_step_id:
-            msg = f"Atom '{atom_id}' not found in any step_states"
+            msg = f"Atom '{atom_id}' not found in any execution steps"
             logger.error(
                 "[ExecutionOverrideService] %s: %s",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -434,7 +374,8 @@ class ExecutionOverrideService:
         await self.exec_repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
-                step_states=record.step_states,
+                steps=record.steps,
+                profile_syntheses=record.profile_syntheses,
                 context_variables=record.context_variables,
                 expected_state_version=record.state_version,
             ),

@@ -1,6 +1,5 @@
 """Unit tests for synthesis_reducers.py covering user role extraction, starvation handling, result processing, and telemetry recovery."""
 
-import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -404,37 +403,46 @@ async def test_recover_trace_telemetry_from_blob() -> None:
         event_type="output",
         content=env.model_dump(mode="json", exclude_none=True),
     )
-    blob_bytes = json.dumps([trace_item.model_dump(mode="json", exclude_none=True)]).encode("utf-8")
 
-    exec_rec = _make_execution([])
-    exec_rec = exec_rec.model_copy(update={"execution_trace_storage_path": "traces/exec1.json"})
+    exec_rec = _make_execution([trace_item])
 
-    mock_storage = AsyncMock()
-    mock_storage.read.return_value = blob_bytes
-
-    with patch("backend_v2.workers.synthesis_reducers.get_storage_driver", return_value=mock_storage):
-        telemetry = await recover_trace_telemetry(exec_rec, 0.0)
-        assert telemetry.final_cost == 0.015
-        assert telemetry.prompt_tokens == 50
-        assert telemetry.completion_tokens == 25
-        assert telemetry.cached_tokens == 10
-        assert telemetry.reasoning_tokens == 5
+    telemetry = await recover_trace_telemetry(exec_rec, 0.0)
+    assert telemetry.final_cost == 0.015
+    assert telemetry.prompt_tokens == 50
+    assert telemetry.completion_tokens == 25
+    assert telemetry.cached_tokens == 10
+    assert telemetry.reasoning_tokens == 5
 
 
 @pytest.mark.asyncio
-async def test_recover_trace_telemetry_error_raises_corruption() -> None:
-    """Test recover_trace_telemetry raises DATA_CORRUPTION on storage exception."""
-    exec_rec = _make_execution([])
-    exec_rec = exec_rec.model_copy(update={"execution_trace_storage_path": "traces/exec1.json"})
-
-    mock_storage = AsyncMock()
-    mock_storage.read.side_effect = OSError("Disk read failure")
-
-    with patch("backend_v2.workers.synthesis_reducers.get_storage_driver", return_value=mock_storage):
-        with pytest.raises(AppException) as exc_info:
-            await recover_trace_telemetry(exec_rec, 0.0)
-        assert exc_info.value.status_code == 500
-        assert exc_info.value.details["error_code"] == "DATA_CORRUPTION"
+async def test_recover_trace_telemetry_typed_envelope_recovers_usage() -> None:
+    """Test recover_trace_telemetry recovers usage from typed TraceEventMetadataEnvelope instance."""
+    env = TraceEventMetadataEnvelope(
+        step_metadata=StepTraceMetadataDTO(
+            token_usage=TokenUsage(
+                prompt_tokens=30,
+                completion_tokens=15,
+                total_tokens=45,
+                cached_tokens=5,
+                reasoning_tokens=2,
+                cost_usd=0.01,
+            )
+        )
+    )
+    trace_item = TraceEvent(
+        v=1,
+        step_name="step_typed",
+        timestamp=datetime.now(UTC),
+        event_type="output",
+        content=env,
+    )
+    exec_rec = _make_execution([trace_item])
+    telemetry = await recover_trace_telemetry(exec_rec, 0.0)
+    assert telemetry.final_cost == 0.01
+    assert telemetry.prompt_tokens == 30
+    assert telemetry.completion_tokens == 15
+    assert telemetry.cached_tokens == 5
+    assert telemetry.reasoning_tokens == 2
 
 
 @pytest.mark.asyncio
@@ -516,14 +524,10 @@ async def test_recover_trace_telemetry_corrupted_envelope_raises() -> None:
         event_type="output",
         content={"step_metadata": "corrupted_non_dict"},
     )
-    blob_bytes = json.dumps([trace_item.model_dump(mode="json", exclude_none=True)]).encode("utf-8")
-    exec_rec = _make_execution([]).model_copy(update={"execution_trace_storage_path": "traces/exec1.json"})
-    mock_storage = AsyncMock()
-    mock_storage.read.return_value = blob_bytes
-    with patch("backend_v2.workers.synthesis_reducers.get_storage_driver", return_value=mock_storage):
-        with pytest.raises(AppException) as exc_info:
-            await recover_trace_telemetry(exec_rec, 0.0)
-        assert exc_info.value.status_code == 500
+    exec_rec = _make_execution([trace_item])
+    with pytest.raises(AppException) as exc_info:
+        await recover_trace_telemetry(exec_rec, 0.0)
+    assert exc_info.value.status_code == 500
 
 
 @pytest.mark.asyncio
@@ -533,16 +537,14 @@ async def test_handle_synthesis_failure_state_none_profile() -> None:
 
 
 @pytest.mark.asyncio
-async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
-    """Test handle_synthesis_failure_state updates virtual step and execution record."""
+async def test_handle_synthesis_failure_state_quarantines_on_current_step_without_mutating_steps() -> None:
+    """Test handle_synthesis_failure_state records failure message in current_step without mutating canonical steps."""
     prof_id = "pro_0195f3a00000700283456789abcdef01"
-    v_step_id = f"sys_render_{prof_id}"
-    v_step = ExecutionStep(id=v_step_id, label="Render", status=ExecutionStatus.PENDING)
+    dag_step = ExecutionStep(id="stp_0195f3a00000700283456789abcdef01", label="DAG Step", status=ExecutionStatus.PASSED)
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_record = _make_execution().model_copy(
         update={
-            "step_states": {v_step_id: v_step},
-            "steps": [v_step],
+            "steps": [dag_step],
         }
     )
     await mock_repo.save_execution(mock_record)
@@ -554,7 +556,8 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
         )
         saved_rec = await mock_repo.get_execution("exe_0195f3a00000700283456789abcdef01")
         assert saved_rec is not None
-        assert saved_rec.step_states[v_step_id].status == ExecutionStatus.FAILED
+        assert saved_rec.status_message == f"Synthesis failed for profile {prof_id}: Synthesis error"
+        assert saved_rec.steps == [dag_step]
 
 
 @pytest.mark.asyncio
@@ -576,12 +579,11 @@ async def test_handle_synthesis_failure_state_db_error_raises() -> None:
 
 
 def test_execution_record_with_updated_step_state_returns_new_frozen_instance() -> None:
-    """Verify with_updated_step_state returns a new ExecutionRecord with synchronized step_states and steps."""
+    """Verify with_updated_step_state returns a new ExecutionRecord with updated canonical steps."""
     step_id = "stp_0195f3a00000700283456789abcdef01"
     initial_step = ExecutionStep(id=step_id, label="Initial Step", status=ExecutionStatus.PENDING, progress=0)
     record = _make_execution().model_copy(
         update={
-            "step_states": {step_id: initial_step},
             "steps": [initial_step],
         }
     )
@@ -590,16 +592,13 @@ def test_execution_record_with_updated_step_state_returns_new_frozen_instance() 
     new_record = record.with_updated_step_state(step_id, updated_step)
 
     assert new_record is not record
-    assert new_record.step_states[step_id] == updated_step
     assert new_record.steps == [updated_step]
-    assert record.step_states[step_id] == initial_step
     assert record.steps == [initial_step]
 
     # Also verify appending a step not yet present in steps list
-    second_step_id = "sys_render_pro_0195f3a00000700283456789abcdef01"
-    second_step = ExecutionStep(id=second_step_id, label="Render Step", status=ExecutionStatus.RUNNING, progress=50)
+    second_step_id = "stp_0195f3a00000700283456789abcdef02"
+    second_step = ExecutionStep(id=second_step_id, label="Second Step", status=ExecutionStatus.RUNNING, progress=50)
     new_record_with_append = new_record.with_updated_step_state(second_step_id, second_step)
-    assert new_record_with_append.step_states[second_step_id] == second_step
     assert len(new_record_with_append.steps) == 2
     assert new_record_with_append.steps[1] == second_step
 
@@ -619,13 +618,6 @@ def test_execution_record_with_updated_profile_synthesis_preserves_existing_prof
     assert updated_record.profile_syntheses[new_pid] == new_cache
     assert new_pid not in record.profile_syntheses
 
-    # Verify optional atomic step_state update
-    v_step_id = f"sys_render_{new_pid}"
-    v_step = ExecutionStep(id=v_step_id, label="Done", status=ExecutionStatus.PASSED, progress=100)
-    updated_with_step = record.with_updated_profile_synthesis(new_pid, new_cache, step_id=v_step_id, step_state=v_step)
-    assert updated_with_step.profile_syntheses[new_pid] == new_cache
-    assert updated_with_step.step_states[v_step_id] == v_step
-
 
 def test_execution_record_with_cleared_profile_syntheses_empties_cache() -> None:
     """Verify with_cleared_profile_syntheses returns a new ExecutionRecord with empty profile_syntheses."""
@@ -642,16 +634,18 @@ def test_execution_record_with_cleared_profile_syntheses_empties_cache() -> None
 
 @pytest.mark.asyncio
 async def test_synthesis_reducers_atomic_persistence_roundtrip() -> None:
-    """Verify profile synthesis and step state updates persist roundtrip in InMemoryUnifiedWorkflowRepository."""
+    """Verify profile synthesis updates persist roundtrip in InMemoryUnifiedWorkflowRepository."""
     repo = InMemoryUnifiedWorkflowRepository()
     exec_id = "exe_0195f3a00000700283456789abcdef01"
     prof_1 = "pro_0195f3a00000700283456789abcdef01"
     prof_2 = "pro_0195f3a00000700283456789abcdef02"
-    v_step_1_id = f"sys_render_{prof_1}"
-    v_step_2_id = f"sys_render_{prof_2}"
 
-    step_1 = ExecutionStep(id=v_step_1_id, label="Render 1", status=ExecutionStatus.PENDING, progress=0)
-    step_2 = ExecutionStep(id=v_step_2_id, label="Render 2", status=ExecutionStatus.PENDING, progress=0)
+    dag_step = ExecutionStep(
+        id="stp_0195f3a00000700283456789abcdef01",
+        label="DAG Step",
+        status=ExecutionStatus.PASSED,
+        progress=100,
+    )
     starvation_evt = TraceEvent(
         v=1,
         step_name="step_test",
@@ -661,8 +655,7 @@ async def test_synthesis_reducers_atomic_persistence_roundtrip() -> None:
     )
     initial_rec = _make_execution([starvation_evt]).model_copy(
         update={
-            "step_states": {v_step_1_id: step_1, v_step_2_id: step_2},
-            "steps": [step_1, step_2],
+            "steps": [dag_step],
         }
     )
     await repo.save_execution(initial_rec)
@@ -697,7 +690,6 @@ async def test_synthesis_reducers_atomic_persistence_roundtrip() -> None:
             AsyncMock(),
         )
 
-    # Also update virtual step state via handle_synthesis_failure_state
     with patch.object(synthesis_reducers_mod, "UnifiedWorkflowRepository", return_value=repo):
         await handle_synthesis_failure_state(exec_id, prof_2, ValueError("Render warning"))
 
@@ -706,4 +698,5 @@ async def test_synthesis_reducers_atomic_persistence_roundtrip() -> None:
     validated = ExecutionRecord.model_validate_json(reconstituted.model_dump_json())
     assert prof_1 in validated.profile_syntheses
     assert prof_2 in validated.profile_syntheses
-    assert validated.step_states[v_step_2_id].status == ExecutionStatus.FAILED
+    assert validated.status_message == f"Synthesis failed for profile {prof_2}: Render warning"
+    assert validated.steps == [dag_step]

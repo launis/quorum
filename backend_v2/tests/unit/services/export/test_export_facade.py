@@ -39,7 +39,6 @@ from backend_v2.models.dtos.export import (
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
     LaxSDUIComponentType,
@@ -60,12 +59,14 @@ from backend_v2.tests.fakes.in_memory_repositories import (
 def _build_sample_execution(
     status: ExecutionStatus = ExecutionStatus.PASSED, has_atoms: bool = True
 ) -> ExecutionRecord:
-    step_states: dict[str, ExecutionStepState] = {}
+    steps: list[ExecutionStepState] = []
     if has_atoms:
-        step_states["stp_0195f3a0000070008123456789abcdef"] = ExecutionStepState(
-            id="stp_0195f3a0000070008123456789abcdef",
-            label="Matrix Step Label",
-            status=ExecutionStatus.PASSED,
+        steps.append(
+            ExecutionStepState(
+                id="stp_0195f3a0000070008123456789abcdef",
+                label="Matrix Step Label",
+                status=ExecutionStatus.PASSED,
+            )
         )
 
     return ExecutionRecord(
@@ -74,7 +75,7 @@ def _build_sample_execution(
         organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=status,
-        step_states=step_states,
+        steps=steps,
     )
 
 
@@ -297,10 +298,10 @@ async def test_export_flat_csv_success() -> None:
 
 @pytest.mark.asyncio
 async def test_export_excel_with_report_dto_results_atoms() -> None:
-    """Regression test proving failure when atoms are passed in report_dto.results.
+    """Regression test proving export succeeds when atoms are passed in report_dto.results.
 
-    During real runtime DAG execution, ExecutionRecord.step_states has empty scorecard_atoms={}.
-    The evaluated atoms exist exclusively as AtomResultDTOs inside report_dto.results and
+    During runtime DAG execution, ExecutionRecord.steps may carry empty scorecard_atoms={}.
+    The evaluated atoms exist as AtomResultDTOs inside report_dto.results and
     hydrated_references. ExportService must extract raw data rows from report_dto.results
     instead of failing with 'Execution has no scoreable atoms'.
     """
@@ -308,7 +309,7 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
     from backend_v2.models.enums import ExecutionStatus
 
     service = ExportService()
-    # Real execution has empty scorecard_atoms in step_states
+    # Real execution has empty scorecard_atoms in steps
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
 
     atom_result = AtomResultDTO(
@@ -1722,74 +1723,17 @@ def test_extract_causal_result_from_trace_fusion_and_graph() -> None:
     assert res_raw is None
 
 
-def test_extract_causal_result_from_step_states() -> None:
-    """Verify _extract_causal_result extracts from step_states when trace does not contain it."""
-    graph, fusion = _build_test_causal_payloads()
-
-    # 1. StepOutputDTO with CausalTdaFusionResultDTO payload
-    exec_step_fusion = ExecutionRecord.model_construct(
+def test_extract_causal_result_empty_trace_returns_none() -> None:
+    """Verify _extract_causal_result returns None when execution_trace has no causal output events."""
+    exec_empty = ExecutionRecord(
         id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
-        step_states={
-            "causal_step": StepOutputDTO(
-                step_id="stp_0195f3a0000070008123456789abcdef",
-                block_id="blk_0195f3a0000070008123456789abcdef",
-                data_type="causal",
-                payload=fusion,
-            )
-        },
+        execution_trace=[],
     )
-    assert isinstance(ExportService._extract_causal_result(exec_step_fusion), CausalTdaFusionResultDTO)
-
-    # 2. StepOutputDTO with CausalGraphPayloadDTO payload
-    exec_step_graph = ExecutionRecord.model_construct(
-        id="exe_0195f3a0000070008123456789abcdef",
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
-        organization_id="org_0195f3a0000070008123456789abcdef",
-        target_locale="en",
-        status=ExecutionStatus.PASSED,
-        step_states={
-            "causal_step": StepOutputDTO(
-                step_id="stp_0195f3a0000070008123456789abcdef",
-                block_id="blk_0195f3a0000070008123456789abcdef",
-                data_type="causal",
-                payload=graph,
-            )
-        },
-    )
-    assert isinstance(ExportService._extract_causal_result(exec_step_graph), CausalGraphPayloadDTO)
-
-    # 3. Direct causal DTO in step_states
-    exec_direct = ExecutionRecord.model_construct(
-        id="exe_0195f3a0000070008123456789abcdef",
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
-        organization_id="org_0195f3a0000070008123456789abcdef",
-        target_locale="en",
-        status=ExecutionStatus.PASSED,
-        step_states={"causal_step": graph},
-    )
-    assert isinstance(ExportService._extract_causal_result(exec_direct), CausalGraphPayloadDTO)
-
-    # 4. StepOutputDTO with non-causal payload
-    exec_other = ExecutionRecord.model_construct(
-        id="exe_0195f3a0000070008123456789abcdef",
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
-        organization_id="org_0195f3a0000070008123456789abcdef",
-        target_locale="en",
-        status=ExecutionStatus.PASSED,
-        step_states={
-            "text_step": StepOutputDTO(
-                step_id="stp_0195f3a0000070008123456789abcdef",
-                block_id="blk_0195f3a0000070008123456789abcdef",
-                data_type="text",
-                payload="unrelated text",
-            )
-        },
-    )
-    assert ExportService._extract_causal_result(exec_other) is None
+    assert ExportService._extract_causal_result(exec_empty) is None
 
 
 def test_resolve_causal_meta_all_branches() -> None:

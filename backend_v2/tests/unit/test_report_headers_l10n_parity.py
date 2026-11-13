@@ -266,13 +266,13 @@ async def test_mathematical_dumb_painter_invariance() -> None:
         organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
-        step_states={
-            "stp_1": ExecutionStepState(
+        steps=[
+            ExecutionStepState(
                 id="stp_1",
                 label="Step 1",
                 status=ExecutionStatus.PASSED,
             )
-        },
+        ],
     )
 
     matrices = [
@@ -406,3 +406,17 @@ def test_tabular_rows_tab_arb_and_backend_parity() -> None:
             assert arb_l10n[arb_key] == json_l10n[json_key], (
                 f"Mismatch for {arb_key} vs {json_key} in {locale}: '{arb_l10n[arb_key]}' != '{json_l10n[json_key]}'"
             )
+
+
+def test_execution_record_invalid_pdf_report_path_failure() -> None:
+    """ISTQB Negative: Verify ExecutionRecord rejects legacy pdf_report_path keys."""
+    with pytest.raises(ValidationError):
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070008123456789abcdef",
+                "workflow_id": "wf_0195f3a0000070008123456789abcdef",
+                "status": "PASSED",
+                "target_locale": "fi",
+                "pdf_report_path": "reports/legacy.pdf",
+            }
+        )

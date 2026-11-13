@@ -66,7 +66,7 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
     now = datetime.now(UTC)
     mock_record = ExecutionRecord.model_construct(
         id="exe_0195f3a00000700384567890abcdef12",
-        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        workflow_id="wf_0195f3a00000700384567890abcdef12",
         organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
@@ -101,7 +101,7 @@ async def test_retrieve_precedent_hook_success() -> None:
     now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
-        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        workflow_id="wf_0195f3a00000700384567890abcdef12",
         organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
@@ -159,49 +159,58 @@ async def test_retrieve_precedent_hook_success() -> None:
 
 
 @pytest.mark.asyncio
-async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_retrieve_precedent_hook_hydrates_sidecar_execution_trace_from_postgres_repo() -> None:
+    from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+
     state = HookState(
-        workflow_id="wf_1",
-        execution_id="exec_1",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        execution_id="exe_0195f3a00000700384567890abcdef99",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
     now = datetime.now(UTC)
-    mock_record = ExecutionRecord(
+    persisted_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
-        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        workflow_id="wf_0195f3a00000700384567890abcdef12",
         organization_id="org_0195f3a00000700384567890abcdef12",
-        output_profile_id="prof_123",
+        output_profile_id="prf_0195f3a00000700384567890abcdef12",
         status="PASSED",
         target_locale="en",
         metadata=ExecutionMetadata(),
         created_at=now,
         updated_at=now,
         completed_at=now,
-        raw_inputs={},
-        execution_trace=[],
+        execution_trace=[
+            TraceEvent(
+                event_type="output",
+                step_name="step_judge_accuracy",
+                timestamp=now,
+                content={
+                    "thought_process": "Thought",
+                    "conclusion": "Concl",
+                    "confidence_score": 1.0,
+                    "matrix_id": "blk_0195f3a00000700384567890abcdef12",
+                    "scale_min": 1.0,
+                    "scale_max": 5.0,
+                    "score_card": {
+                        "agent_name": "Judge",
+                        "total_score": 4.0,
+                        "max_score": 5,
+                        "verdict": "Good",
+                        "scale_min": 1.0,
+                        "scale_max": 5.0,
+                        "dimensions": [{"dimension_id": "d1", "score": 4.0, "reasoning": "R"}],
+                    },
+                },
+            )
+        ],
     )
 
-    class MockDiskStorage:
-        async def exists(self, path: str) -> bool:
-            return True
-
-        async def read(self, path: str) -> str:
-            return (
-                '[{"event_type": "output", "step_name": "step_judge_accuracy", '
-                '"timestamp": "2026-08-31T10:00:00Z", "content": {'
-                '"thought_process": "Thought", "conclusion": "Concl", "confidence_score": 1.0, '
-                '"matrix_id": "mat_1", "scale_min": 1.0, "scale_max": 5.0, '
-                '"score_card": {"agent_name": "Judge", "total_score": 4.0, "max_score": 5, '
-                '"verdict": "Good", "scale_min": 1.0, "scale_max": 5.0, "dimensions": ['
-                '{"dimension_id": "d1", "score": 4.0, "reasoning": "R"}]}}}]'
-            )
-
-    monkeypatch.setattr(backend_v2.hooks.archival, "get_storage_driver", lambda: MockDiskStorage())
-
-    exec_repo = InMemoryUnifiedWorkflowRepository()
-    await exec_repo.save_execution(mock_record)
+    uow = InMemoryUnitOfWork()
+    exec_repo = ExecutionRepositoryImpl(uow_factory=lambda: uow)
+    await uow.entities.save_execution(persisted_record)
 
     deps = MagicMock(spec=HookDependencies)
     deps.exec_repo = exec_repo
@@ -210,6 +219,7 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
     assert result.success is True
     assert isinstance(result.state_delta.delta, ArchivistPrecedentsResultDTO)
     assert len(result.state_delta.delta.archivist_precedents) == 1
+    assert result.state_delta.delta.archivist_precedents[0].id == persisted_record.id
 
 
 @pytest.mark.asyncio
@@ -224,7 +234,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
     now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
-        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        workflow_id="wf_0195f3a00000700384567890abcdef12",
         organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
@@ -257,7 +267,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
 
 
 @pytest.mark.asyncio
-async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_retrieve_precedent_hook_empty_execution_trace_skips_record() -> None:
     state = HookState(
         workflow_id="wf_1",
         execution_id="exec_1",
@@ -268,7 +278,7 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
     now = datetime.now(UTC)
     mock_record = ExecutionRecord(
         id="exe_0195f3a00000700384567890abcdef12",
-        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        workflow_id="wf_0195f3a00000700384567890abcdef12",
         organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
@@ -280,12 +290,6 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
         raw_inputs={},
         execution_trace=[],
     )
-
-    class MockDiskStorageMissing:
-        async def exists(self, path: str) -> bool:
-            return False
-
-    monkeypatch.setattr(backend_v2.hooks.archival, "get_storage_driver", lambda: MockDiskStorageMissing())
 
     exec_repo = InMemoryUnifiedWorkflowRepository()
     await exec_repo.save_execution(mock_record)
@@ -297,52 +301,6 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
     assert result.success is True
     assert isinstance(result.state_delta.delta, ArchivistPrecedentsResultDTO)
     assert result.state_delta.delta.archivist_precedents == []
-
-
-@pytest.mark.asyncio
-async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    state = HookState(
-        workflow_id="wf_1",
-        execution_id="exec_1",
-        inputs=ExecutionInputsDTO(),
-        global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(),
-    )
-    now = datetime.now(UTC)
-    mock_record = ExecutionRecord(
-        id="exe_0195f3a00000700384567890abcdef12",
-        workflow_id="wor_0195f3a00000700384567890abcdef12",
-        organization_id="org_0195f3a00000700384567890abcdef12",
-        output_profile_id="prof_123",
-        status="PASSED",
-        target_locale="en",
-        metadata=ExecutionMetadata(),
-        created_at=now,
-        updated_at=now,
-        completed_at=now,
-        raw_inputs={},
-        execution_trace=[],
-    )
-
-    class MockDiskStorageError:
-        async def exists(self, path: str) -> bool:
-            return True
-
-        async def read(self, path: str) -> str:
-            raise OSError("Disk read error")
-
-    monkeypatch.setattr(backend_v2.hooks.archival, "get_storage_driver", lambda: MockDiskStorageError())
-
-    exec_repo = InMemoryUnifiedWorkflowRepository()
-    await exec_repo.save_execution(mock_record)
-
-    deps = MagicMock(spec=HookDependencies)
-    deps.exec_repo = exec_repo
-
-    with pytest.raises(AppException) as exc:
-        await retrieve_precedent_hook(state, deps)
-    assert exc.value.status_code == 500
-    assert exc.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
 
 
 @pytest.mark.asyncio

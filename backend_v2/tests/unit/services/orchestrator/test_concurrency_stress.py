@@ -28,14 +28,12 @@ def _build_test_execution_record(execution_id: str, step_count: int) -> Executio
         )
         for i in range(step_count)
     ]
-    step_states: dict[str, ExecutionStep] = {s.id: s for s in steps}
     return ExecutionRecord(
         id=execution_id,
         workflow_id="wf_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.RUNNING,
         steps=steps,
-        step_states=step_states,
     )
 
 
@@ -54,7 +52,7 @@ async def test_concurrency_stress_50_atoms_no_deadlock() -> None:
         # Perform atomic thread-safe state transition under lock
         async with update_lock:
             nonlocal exec_record
-            current_state = exec_record.step_states[step_id]
+            current_state = next(s for s in exec_record.steps if s.id == step_id)
             updated_state = current_state.model_copy(
                 update={
                     "status": ExecutionStatus.PASSED,
@@ -62,11 +60,9 @@ async def test_concurrency_stress_50_atoms_no_deadlock() -> None:
                     "completion_tokens": 40 + index,
                 }
             )
-            new_states = {**exec_record.step_states, step_id: updated_state}
             new_steps = [updated_state if s.id == step_id else s for s in exec_record.steps]
             exec_record = exec_record.model_copy(
                 update={
-                    "step_states": new_states,
                     "steps": new_steps,
                     "prompt_tokens": exec_record.prompt_tokens + 150 + index,
                     "completion_tokens": exec_record.completion_tokens + 40 + index,
@@ -83,7 +79,6 @@ async def test_concurrency_stress_50_atoms_no_deadlock() -> None:
     assert len(completed_steps) == step_count
     assert len(set(completed_steps)) == step_count
     assert all(s.status == ExecutionStatus.PASSED for s in exec_record.steps)
-    assert all(st.status == ExecutionStatus.PASSED for st in exec_record.step_states.values())
     assert exec_record.prompt_tokens > 0
     assert exec_record.completion_tokens > 0
 
@@ -100,23 +95,22 @@ async def test_concurrency_stress_100_atoms_high_frequency_lock() -> None:
         nonlocal exec_record, transition_counter
 
         async with update_lock:
-            running_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.RUNNING})
-            new_states = {**exec_record.step_states, step_id: running_state}
-            exec_record = exec_record.model_copy(update={"step_states": new_states})
+            current_step = next(s for s in exec_record.steps if s.id == step_id)
+            running_state = current_step.model_copy(update={"status": ExecutionStatus.RUNNING})
+            exec_record = exec_record.with_updated_step_state(step_id, running_state)
             transition_counter += 1
 
         # Simulate micro-work
         await asyncio.sleep(0.002 * (index % 4))
 
         async with update_lock:
-            passed_state = exec_record.step_states[step_id].model_copy(
+            current_step = next(s for s in exec_record.steps if s.id == step_id)
+            passed_state = current_step.model_copy(
                 update={"status": ExecutionStatus.PASSED, "prompt_tokens": 100, "completion_tokens": 50}
             )
-            new_states = {**exec_record.step_states, step_id: passed_state}
             new_steps = [passed_state if s.id == step_id else s for s in exec_record.steps]
             exec_record = exec_record.model_copy(
                 update={
-                    "step_states": new_states,
                     "steps": new_steps,
                     "prompt_tokens": exec_record.prompt_tokens + 100,
                     "completion_tokens": exec_record.completion_tokens + 50,
@@ -131,7 +125,6 @@ async def test_concurrency_stress_100_atoms_high_frequency_lock() -> None:
 
     assert transition_counter == step_count * 2
     assert all(s.status == ExecutionStatus.PASSED for s in exec_record.steps)
-    assert all(st.status == ExecutionStatus.PASSED for st in exec_record.step_states.values())
     assert exec_record.prompt_tokens == step_count * 100
     assert exec_record.completion_tokens == step_count * 50
 
@@ -161,9 +154,9 @@ async def test_concurrency_stress_fault_injection_cancels_cleanly() -> None:
             await asyncio.sleep(1.0)
             async with update_lock:
                 nonlocal exec_record
-                passed_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.PASSED})
-                new_states = {**exec_record.step_states, step_id: passed_state}
-                exec_record = exec_record.model_copy(update={"step_states": new_states})
+                current_step = next(s for s in exec_record.steps if s.id == step_id)
+                passed_state = current_step.model_copy(update={"status": ExecutionStatus.PASSED})
+                exec_record = exec_record.with_updated_step_state(step_id, passed_state)
         except asyncio.CancelledError:
             cleaned_up_tasks.add(index)
             raise
@@ -259,3 +252,19 @@ async def test_concurrency_stress_snapshot_isolation_under_concurrency() -> None
         assert snap.id == record.id
         assert snap.workflow_id == record.workflow_id
         assert snap.prompt_tokens >= 0
+
+
+def test_concurrency_stress_invalid_step_states_field_failure() -> None:
+    """ISTQB Negative: Verify ExecutionRecord rejects legacy step_states payloads under concurrent fixture hydration."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070008000000000000009",
+                "workflow_id": "wf_0195f3a0000070008000000000000001",
+                "status": "PENDING",
+                "target_locale": "en",
+                "step_states": {},
+            }
+        )

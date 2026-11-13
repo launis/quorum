@@ -38,9 +38,7 @@ class TestExecutionCoreFieldsStructure:
             "status",
             "target_locale",
             "execution_trace",
-            "execution_trace_storage_path",
             "context_variables",
-            "context_variables_storage_path",
             "progress",
             "status_message",
         }
@@ -70,30 +68,12 @@ class TestExecutionCoreFieldsDefaults:
         instance = ExecutionRecordFactory.build(target_locale="en")
         assert instance.execution_trace == []
 
-    def test_default_execution_trace_storage_path_is_none(self) -> None:
-        """Execution trace storage path must default to None."""
-        instance = ExecutionCoreFields(
-            target_locale="en",
-            execution_trace=[],
-            context_variables=ContextVariablesDTO.empty(),
-        )
-        assert instance.execution_trace_storage_path is None
-
     def test_default_context_variables_is_empty_dto(self) -> None:
         """Context variables must default to an empty ContextVariablesDTO."""
         instance = ExecutionRecordFactory.build(target_locale="en")
         assert isinstance(instance.context_variables, ContextVariablesDTO)
         assert len(instance.context_variables) == 0
         assert instance.context_variables.variables == {}
-
-    def test_default_context_variables_storage_path_is_none(self) -> None:
-        """Context variables storage path must default to None."""
-        instance = ExecutionCoreFields(
-            target_locale="en",
-            execution_trace=[],
-            context_variables=ContextVariablesDTO.empty(),
-        )
-        assert instance.context_variables_storage_path is None
 
     def test_default_progress_is_none(self) -> None:
         """Progress must default to None."""
@@ -211,8 +191,8 @@ class TestExecutionCoreFieldsValidation:
         with pytest.raises(ValidationError):
             ExecutionRecord.model_validate(payload)
 
-    def test_execution_record_accepts_null_frozen_context_when_offloaded(self) -> None:
-        """Contract: Verify ExecutionRecord accepts null frozen_context when offloaded to storage."""
+    def test_execution_record_accepts_null_frozen_context_on_summary_row(self) -> None:
+        """Contract: Verify ExecutionRecord accepts null frozen_context on summary hydration."""
         record = ExecutionRecordFactory.build(
             id="exe_0195f3a0000070018234567890abcdef",
             workflow_id="wor_0195f3a0000070018234567890abcdef",
@@ -220,13 +200,9 @@ class TestExecutionCoreFieldsValidation:
             target_locale="en",
             status=ExecutionStatus.PASSED,
             frozen_context=None,
-            frozen_context_storage_path="executions/exe_0195f3a0000070018234567890abcdef/frozen_context.json",
         )
         assert record.id == "exe_0195f3a0000070018234567890abcdef"
         assert record.frozen_context is None
-        assert (
-            record.frozen_context_storage_path == "executions/exe_0195f3a0000070018234567890abcdef/frozen_context.json"
-        )
 
 
 class TestExecutionMetadata:

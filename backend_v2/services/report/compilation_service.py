@@ -251,29 +251,6 @@ class ReportCompilationService:
                 report_id,
                 ReportArtifactUpdateDTO(status=ReportStatus.READY, storage_paths=paths, metadata=meta),
             )
-
-            v_step_id = f"sys_render_{report.profile_id}"
-            exec_refreshed = await self.repo.get_execution(report.execution_id, hydrate=False)
-            step_states = None
-            steps = None
-            if exec_refreshed:
-                exec_obj = exec_refreshed.transition_step(
-                    step_id=v_step_id,
-                    status=ExecutionStatus.PASSED,
-                    progress=100,
-                    label="Report Render",
-                )
-                step_states = exec_obj.step_states
-                steps = exec_obj.steps
-
-            await self.repo.update_execution(
-                report.execution_id,
-                ExecutionUpdateDTO(
-                    pdf_report_path=pdf_path,
-                    steps=steps,
-                    step_states=step_states,
-                ),
-            )
             logger.info("[ReportService] Successfully compiled report artifact: %s", report_id)
         except Exception as exc:
             await self._dispatch_report_compilation_dlq(report_id, exc)

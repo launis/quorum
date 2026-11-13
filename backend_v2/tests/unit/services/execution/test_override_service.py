@@ -30,7 +30,7 @@ from backend_v2.tests.fakes.in_memory_repositories import (
 
 EXEC_ID = "exe_0195f3a0000070018234567890abcdef"
 MISSING_EXEC_ID = "exe_0195f3a0000070018234567890abc999"
-WORKFLOW_ID = "wor_0195f3a0000070008123456789abcdef"
+WORKFLOW_ID = "wf_0195f3a0000070008123456789abcdef"
 PROFILE_ID = "prf_0195f3a0000070008123456789abcdef"
 OTHER_PROFILE_ID = "prf_0195f3a0000070008123456789abc999"
 MODEL_REGISTRY_ID = "mrg_0195f3a00000700e826807f3bfa3454d"
@@ -74,7 +74,6 @@ def _create_mock_record(
     org_id: str = ORG_ID,
     user_id: str = USER_ID,
     atom_id: str = ATOM_ID,
-    pdf_path: str | None = None,
 ) -> ExecutionRecord:
     atom = _create_mock_atom(atom_id)
     step_state = ExecutionStepState(
@@ -91,9 +90,7 @@ def _create_mock_record(
         organization_id=org_id,
         created_by=user_id,
         output_profile_id=PROFILE_ID,
-        active_profile_id=PROFILE_ID,
-        pdf_report_path=pdf_path,
-        step_states={STEP_ID: step_state},
+        steps=[step_state],
         profile_syntheses={
             PROFILE_ID: RenderedSynthesisCache(
                 section_syntheses={},
@@ -152,7 +149,7 @@ def _create_mock_service(
 
 @pytest.mark.asyncio
 async def test_override_atom_success() -> None:
-    """Verify applying a human override updates step_states, context_variables, and appends trace event."""
+    """Verify applying a human override updates steps, context_variables, and appends trace event."""
     service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record()
     assert re.match(OPAQUE_STRIPE_ID_REGEX, record.id)
@@ -181,14 +178,63 @@ async def test_override_atom_success() -> None:
         reconstituted = ExecutionRecord.model_validate(updated.model_dump(mode="json"), strict=False)
         assert re.match(OPAQUE_STRIPE_ID_REGEX, reconstituted.id)
         assert updated.context_variables == ContextVariablesDTO(variables={"recalculated": True})
-        updated_atom = updated.step_states[STEP_ID].scorecard_atoms[ATOM_ID]
+        updated_step = next(s for s in updated.steps if s.id == STEP_ID)
+        updated_atom = updated_step.scorecard_atoms[ATOM_ID]
         assert updated_atom.human_override is not None
         assert updated_atom.human_override.new_status == ExecutionStatus.PASSED
+        assert updated.profile_syntheses == {}
 
         assert exec_repo.get_call_count("append_trace_event") > 0
         assert len(updated.execution_trace) > 0
         event = updated.execution_trace[-1]
         assert event.event_type == "evidence_override"
+
+
+@pytest.mark.asyncio
+async def test_override_atom_mutates_canonical_steps_and_clears_profile_syntheses_atomically() -> None:
+    """Verify override_atom mutates canonical steps and clears profile_syntheses atomically in PostgreSQL fake."""
+    from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+
+    uow = InMemoryUnitOfWork()
+    exec_repo = ExecutionRepositoryImpl(uow_factory=lambda: uow)
+    workflow_repo = InMemoryUnifiedWorkflowRepository()
+    service = ExecutionOverrideService(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        prompt_block_repo=workflow_repo,
+        output_profile_repo=workflow_repo,
+        identity_repo=workflow_repo,
+        system_repo=workflow_repo,
+        storage_driver=MagicMock(spec=FileDriver),
+    )
+    record = _create_mock_record()
+    await uow.entities.save_execution(record)
+
+    initiator = TokenData(id=USER_ID, role=UserRole.MEMBER, organization_id=ORG_ID)
+    payload = HumanOverrideRequest(
+        new_status=ExecutionStatus.PASSED,
+        reason="Verified valid claim with atomic synthesis clear",
+        evidence_quotes=[],
+    )
+
+    with patch("backend_v2.hooks.scoring.recalculate", new_callable=AsyncMock) as mock_recalc:
+        mock_recalc.return_value = ContextVariablesDTO(variables={"recalculated": True})
+        await service.override_atom(
+            initiator=initiator,
+            execution_id=record.id,
+            atom_id=ATOM_ID,
+            payload=payload,
+        )
+
+    persisted = await exec_repo.get_execution(record.id, hydrate=True)
+    assert persisted is not None
+    assert persisted.profile_syntheses == {}
+    assert persisted.state_version == 2
+    persisted_step = next(s for s in persisted.steps if s.id == STEP_ID)
+    override_dto = persisted_step.scorecard_atoms[ATOM_ID].human_override
+    assert override_dto is not None
+    assert override_dto.new_status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -254,7 +300,7 @@ async def test_override_atom_permission_denied() -> None:
 
 @pytest.mark.asyncio
 async def test_override_atom_invalid_atom_id_not_found_error() -> None:
-    """Verify modifying an atom_id not present in step_states raises 404 AppException."""
+    """Verify modifying an atom_id not present in steps raises 404 AppException."""
     service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record()
     await exec_repo.save_execution(record)
@@ -308,12 +354,10 @@ async def test_override_atom_missing_repos_configuration_error() -> None:
 
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_success() -> None:
-    """Verify clear_profile_synthesis removes profile data and deletes PDF if default profile."""
-    storage_mock = MagicMock(spec=FileDriver)
-    storage_mock.delete = AsyncMock()
-    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
+    """Verify clear_profile_synthesis removes the targeted profile synthesis entry."""
+    service, exec_repo, workflow_repo = _create_mock_service()
 
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    record = _create_mock_record()
     await exec_repo.save_execution(record)
 
     mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id=PROFILE_ID)
@@ -326,22 +370,33 @@ async def test_clear_profile_synthesis_success() -> None:
         profile_id=PROFILE_ID,
     )
 
-    storage_mock.delete.assert_called_once_with("reports/pdf_1.pdf")
     assert exec_repo.get_call_count("update_execution") > 0
     updated = await exec_repo.get_execution(record.id)
     assert updated is not None
     assert PROFILE_ID not in updated.profile_syntheses
-    assert updated.pdf_report_path is None
 
 
 @pytest.mark.asyncio
-async def test_clear_profile_synthesis_pdf_delete_404_ignored() -> None:
-    """Verify 404 on PDF deletion is caught and ignored cleanly."""
-    storage_mock = MagicMock(spec=FileDriver)
-    storage_mock.delete = AsyncMock(side_effect=AppException("Not found", 404))
-    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
-
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+async def test_clear_profile_synthesis_preserves_other_profiles() -> None:
+    """Verify clearing a single profile_id preserves unrelated cached syntheses."""
+    service, exec_repo, workflow_repo = _create_mock_service()
+    other_cache = RenderedSynthesisCache(
+        section_syntheses={},
+        row_explanations={"blk_0195f3a0000070008123456789abcdef": "Retained"},
+        row_curated_quotes={},
+        cited_sources=[],
+        xai_highlights=[],
+        created_at=datetime.now(UTC),
+    )
+    record = _create_mock_record()
+    record = record.model_copy(
+        update={
+            "profile_syntheses": {
+                **record.profile_syntheses,
+                OTHER_PROFILE_ID: other_cache,
+            }
+        }
+    )
     await exec_repo.save_execution(record)
 
     mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id=PROFILE_ID)
@@ -353,22 +408,29 @@ async def test_clear_profile_synthesis_pdf_delete_404_ignored() -> None:
         execution_id=record.id,
         profile_id=PROFILE_ID,
     )
-    assert exec_repo.get_call_count("update_execution") > 0
+    updated = await exec_repo.get_execution(record.id)
+    assert updated is not None
+    assert PROFILE_ID not in updated.profile_syntheses
+    assert OTHER_PROFILE_ID in updated.profile_syntheses
 
 
 @pytest.mark.asyncio
-async def test_clear_profile_synthesis_pdf_delete_409_reraised() -> None:
-    """Verify 409 Conflict on PDF deletion is re-raised."""
-    storage_mock = MagicMock(spec=FileDriver)
-    storage_mock.delete = AsyncMock(side_effect=AppException("Conflict", 409))
-    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
-
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+async def test_clear_profile_synthesis_occ_conflict_raises_409() -> None:
+    """Verify clear_profile_synthesis raises 409 CONFLICT when state_version advances concurrently."""
+    service, exec_repo, workflow_repo = _create_mock_service()
+    record = _create_mock_record()
     await exec_repo.save_execution(record)
-
     mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id=PROFILE_ID)
     await workflow_repo.save_workflow(mock_wf)
 
+    async def _stale_getter(initiator: TokenData, execution_id: str) -> ExecutionRecord:
+        await exec_repo.update_execution(
+            execution_id,
+            ExecutionUpdateDTO(expected_state_version=1, current_step="advanced"),
+        )
+        return record
+
+    service._get_execution = _stale_getter
     initiator = TokenData(id=USER_ID, role=UserRole.MEMBER, organization_id=ORG_ID)
     with pytest.raises(AppException) as exc_info:
         await service.clear_profile_synthesis(
@@ -476,56 +538,64 @@ async def test_default_get_execution_not_found() -> None:
 
 
 @pytest.mark.asyncio
-async def test_clear_profile_synthesis_storage_delete_500_failure() -> None:
-    """Verify 500/unhandled AppException on PDF deletion raises 500."""
-    storage_mock = MagicMock(spec=FileDriver)
-    storage_mock.delete = AsyncMock(side_effect=AppException("Server Error", 500))
-    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
+async def test_clear_profile_synthesis_update_500_failure() -> None:
+    """Verify 500 AppException on persistence update during clear_profile_synthesis propagates."""
+    service, exec_repo, workflow_repo = _create_mock_service()
 
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    record = _create_mock_record()
     await exec_repo.save_execution(record)
 
     mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id=PROFILE_ID)
     await workflow_repo.save_workflow(mock_wf)
 
-    initiator = TokenData(id=USER_ID, role=UserRole.MEMBER, organization_id=ORG_ID)
-    with pytest.raises(AppException) as exc_info:
-        await service.clear_profile_synthesis(
-            initiator=initiator,
-            execution_id=record.id,
-            profile_id=PROFILE_ID,
-        )
-    assert exc_info.value.status_code == 500
+    exec_repo.inject_fault("update_execution", AppException("Server Error", 500), trigger_count=1)
+    try:
+        initiator = TokenData(id=USER_ID, role=UserRole.MEMBER, organization_id=ORG_ID)
+        with pytest.raises(AppException) as exc_info:
+            await service.clear_profile_synthesis(
+                initiator=initiator,
+                execution_id=record.id,
+                profile_id=PROFILE_ID,
+            )
+        assert exc_info.value.status_code == 500
+    finally:
+        exec_repo.clear_faults()
 
 
 @pytest.mark.asyncio
-async def test_clear_profile_synthesis_unexpected_storage_error() -> None:
-    """Verify generic unexpected exception on PDF deletion wraps into 500 AppException."""
-    storage_mock = MagicMock(spec=FileDriver)
-    storage_mock.delete = AsyncMock(side_effect=RuntimeError("Storage connection failed"))
-    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
+async def test_clear_profile_synthesis_injected_conflict_fault_raises_409() -> None:
+    """Verify injected 409 conflict fault on clear_profile_synthesis propagates 409 AppException."""
+    service, exec_repo, workflow_repo = _create_mock_service()
 
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    record = _create_mock_record()
     await exec_repo.save_execution(record)
 
     mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id=PROFILE_ID)
     await workflow_repo.save_workflow(mock_wf)
 
-    initiator = TokenData(id=USER_ID, role=UserRole.MEMBER, organization_id=ORG_ID)
-    with pytest.raises(AppException) as exc_info:
-        await service.clear_profile_synthesis(
-            initiator=initiator,
-            execution_id=record.id,
-            profile_id=PROFILE_ID,
-        )
-    assert exc_info.value.status_code == 500
+    exec_repo.inject_fault(
+        "update_execution",
+        AppException("OCC Conflict", 409, details={"error_code": ErrorCodes.CONFLICT.value}),
+        trigger_count=1,
+    )
+    try:
+        initiator = TokenData(id=USER_ID, role=UserRole.MEMBER, organization_id=ORG_ID)
+        with pytest.raises(AppException) as exc_info:
+            await service.clear_profile_synthesis(
+                initiator=initiator,
+                execution_id=record.id,
+                profile_id=PROFILE_ID,
+            )
+        assert exc_info.value.status_code == 409
+    finally:
+        exec_repo.clear_faults()
 
 
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_profile_not_in_syntheses() -> None:
     """Verify clearing a profile synthesis when the profile is not cached executes cleanly."""
     service, exec_repo, workflow_repo = _create_mock_service()
-    record = _create_mock_record(pdf_path=None)
+    record = _create_mock_record()
     await exec_repo.save_execution(record)
 
     mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id=PROFILE_ID)
@@ -641,4 +711,5 @@ async def test_override_service_raises_conflict_409_when_worker_advances_state_v
     persisted = await exec_repo.get_execution(record.id)
     assert persisted is not None
     assert persisted.state_version == 2
-    assert persisted.step_states[STEP_ID].scorecard_atoms[ATOM_ID].human_override is None
+    persisted_step = next(s for s in persisted.steps if s.id == STEP_ID)
+    assert persisted_step.scorecard_atoms[ATOM_ID].human_override is None

@@ -254,10 +254,8 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
     )
     ui_hints = hints_dto.ui_hints
     steps = hints_dto.steps
-    step_states = hints_dto.step_states
 
     assert len(steps) == 1
-    assert len(step_states) == 1
     assert steps[0].id == "stp_0195f3a0000070008123456789abcdef"
     assert steps[0].label == "Analytical Step"
     assert "blk_0195f3a0000070028123456789abcdef" in ui_hints

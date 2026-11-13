@@ -190,9 +190,7 @@ async def test_database_package_factories_and_entity_adapter_roundtrip() -> None
         )
         wf = WorkflowFactory.build(organization_id=org.id, model_registry_id=cfg.id)
         prf = OutputProfileFactory.build(workflow_id=wf.id, organization_id=org.id, content_blocks=[])
-        exec_rec = ExecutionRecordFactory.build(
-            workflow_id=wf.id, organization_id=org.id, active_profile_id=prf.id, output_profile_id=prf.id
-        )
+        exec_rec = ExecutionRecordFactory.build(workflow_id=wf.id, organization_id=org.id, output_profile_id=prf.id)
         rep = ReportArtifactFactory.build(execution_id=exec_rec.id, workflow_id=wf.id, profile_id=prf.id)
         rep_uuid = parse_prefixed_uuid7(rep.id, EntityPrefix.REPORT)
         rep_ts_ms = (rep_uuid.int >> 80) & ((1 << 48) - 1)

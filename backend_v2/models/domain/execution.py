@@ -261,12 +261,10 @@ class ExecutionRecord(ExecutionCoreFields):
             list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
             Field(default_factory=list),
         ]
-        execution_trace_storage_path: Annotated[str | None, Field(default=None)] = None
         context_variables: Annotated[
             ContextVariablesDTO,
             Field(default_factory=lambda: ContextVariablesDTO(variables={})),
         ]
-        context_variables_storage_path: Annotated[str | None, Field(default=None)] = None
         progress: Annotated[int | None, Field(default=None)] = None
         status_message: Annotated[str | None, Field(default=None)] = None
 
@@ -277,10 +275,6 @@ class ExecutionRecord(ExecutionCoreFields):
         int,
         Field(ge=1, default=1, description="Monotonically increasing optimistic concurrency control version"),
     ] = 1
-    active_profile_id: Annotated[
-        str | None,
-        Field(default=None, description="The ID of the output profile selected for formatting and printing."),
-    ] = None
     raw_inputs: Annotated[
         WorkflowInputs,
         Field(default_factory=lambda: WorkflowInputs(dynamic_inputs={}), description="Raw user inputs by role"),
@@ -289,14 +283,6 @@ class ExecutionRecord(ExecutionCoreFields):
         FrozenContext | None,
         Field(default_factory=FrozenContext, description="Immutable snapshot of context"),
     ]
-    frozen_context_storage_path: Annotated[
-        str | None,
-        Field(default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON"),
-    ] = None
-    pdf_report_path: Annotated[
-        str | None,
-        Field(default=None, description="Path to the generated PDF Execution Report."),
-    ] = None
     output_profile_id: Annotated[
         str | None,
         Field(default=None, description="Target profile ID for formatting instructions and synthesis."),
@@ -307,10 +293,6 @@ class ExecutionRecord(ExecutionCoreFields):
             default_factory=list,
             description="Real-time status tracking and FinOps telemetry for DAG nodes (SSOT)",
         ),
-    ]
-    step_states: Annotated[
-        dict[str, ExecutionStepState],
-        Field(default_factory=dict, description="Transitional step_states lookup mapping"),
     ]
     profile_syntheses: Annotated[
         dict[str, RenderedSynthesisCache],
@@ -416,47 +398,36 @@ class ExecutionRecord(ExecutionCoreFields):
         return self.model_copy(update={"profile_syntheses": updated_syntheses})
 
     def with_updated_step_state(self, step_id: str, step_state: ExecutionStep) -> Self:
-        """Return an immutable copy with an updated step state and synchronized steps list.
+        """Return an immutable copy with an updated step entry in the canonical steps list.
 
         Args:
             step_id: Canonical identifier of the execution step to update.
             step_state: New immutable ExecutionStep state instance.
 
         Returns:
-            Cloned execution record with updated step_states and steps.
+            Cloned execution record with updated steps.
         """
-        updated_step_states: dict[str, ExecutionStep] = {
-            k: v for k, v in self.step_states.items() if isinstance(v, ExecutionStep)
-        }
-        updated_step_states[step_id] = step_state
         updated_steps = [step_state if s.id == step_id else s for s in self.steps]
         if not any(s.id == step_id for s in self.steps):
             updated_steps.append(step_state)
-        return self.model_copy(update={"step_states": updated_step_states, "steps": updated_steps})
+        return self.model_copy(update={"steps": updated_steps})
 
     def with_updated_profile_synthesis(
         self,
         profile_id: str,
         cache: RenderedSynthesisCache,
-        step_id: str | None = None,
-        step_state: ExecutionStep | None = None,
     ) -> Self:
         """Return an immutable copy with the specified profile synthesis cache updated.
 
         Args:
             profile_id: Canonical identifier of the output profile.
             cache: Rendered synthesis cache entry to bind to the profile.
-            step_id: Optional virtual render step identifier to update atomically.
-            step_state: Optional virtual render step state to synchronize atomically.
 
         Returns:
-            Cloned execution record with updated profile_syntheses and optional step state.
+            Cloned execution record with updated profile_syntheses.
         """
         updated_syntheses = {**self.profile_syntheses, profile_id: cache}
-        record = self.model_copy(update={"profile_syntheses": updated_syntheses})
-        if step_id is not None and step_state is not None:
-            return record.with_updated_step_state(step_id, step_state)
-        return record
+        return self.model_copy(update={"profile_syntheses": updated_syntheses})
 
     def with_cleared_profile_syntheses(self) -> Self:
         """Return an immutable copy with all cached profile syntheses cleared.
@@ -476,7 +447,7 @@ class ExecutionRecord(ExecutionCoreFields):
         has_warning: bool | None = None,
         input_merkle_hash: str | None = None,
     ) -> Self:
-        """Atomically transition step state across steps list and step_states dictionary.
+        """Atomically transition step state in the canonical steps list.
 
         Args:
             step_id: Canonical identifier of the execution step.
@@ -490,11 +461,7 @@ class ExecutionRecord(ExecutionCoreFields):
         Returns:
             Cloned execution record with atomically synchronized steps.
         """
-        existing_step: ExecutionStep | None = (
-            self.step_states[step_id]
-            if step_id in self.step_states
-            else next((s for s in self.steps if s.id == step_id), None)
-        )
+        existing_step: ExecutionStep | None = next((s for s in self.steps if s.id == step_id), None)
 
         if existing_step is not None:
             updated_data = existing_step.model_dump(mode="python")
@@ -535,7 +502,7 @@ class ExecutionRecord(ExecutionCoreFields):
             label: Human-readable display label for the step.
 
         Returns:
-            Cloned execution record with updated steps and step_states.
+            Cloned execution record with updated steps.
         """
         return self.transition_step(
             step_id=step_id,

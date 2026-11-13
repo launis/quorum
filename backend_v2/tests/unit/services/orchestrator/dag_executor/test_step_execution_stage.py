@@ -104,7 +104,6 @@ def _build_state(
         source_identity_manifest={},
         status=ExecutionStatus.RUNNING,
         steps=exec_steps,
-        step_states={s.id: s for s in exec_steps},
         execution_trace=list(trace) if trace else [],
         metadata=ExecutionMetadata(
             workflow_version=1,
@@ -241,7 +240,8 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
 
     mock_reduce.assert_called_once()
     assert len(progress_errors) == 1
-    assert state.exec_record.step_states[step_rule.id].status == ExecutionStatus.PASSED
+    target_step = next(s for s in state.exec_record.steps if s.id == step_rule.id)
+    assert target_step.status == ExecutionStatus.PASSED
     expected_merkle = compute_step_input_merkle_hash(
         step_rule=step_rule,
         step_def=bp,
@@ -249,7 +249,7 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
         blocks_by_id=state.blocks_by_id,
         upstream_hashes={},
     )
-    assert state.exec_record.step_states[step_rule.id].input_merkle_hash == expected_merkle
+    assert target_step.input_merkle_hash == expected_merkle
     assert len(expected_merkle) == 64
     assert state.exec_record.context_variables.matrix_reducer_output == reduced_dto
     assert state.exec_record.frozen_context is not None
@@ -360,7 +360,7 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
         await prepare_step_strategy_context(state=state_empty_nodes, step_id=tda_step.id)
     assert exc_empty_nodes.value.details["error_code"] == ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION
 
-    # 6. Pre-synthesis step with upstream causal step in step_states but 0 evaluated matrix atoms emits no matrix_reducer TraceEvent
+    # 6. Pre-synthesis step with upstream causal step in steps but 0 evaluated matrix atoms emits no matrix_reducer TraceEvent
     bp = Step(
         organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070058555666677778888",
@@ -436,7 +436,7 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
         node_executor=NodeExecutor(deps=_build_deps(repo)),
         committer=committer,
     )
-    assert state_blocked.exec_record.step_states[child_step.id].status == ExecutionStatus.BLOCKED
+    assert next(s for s in state_blocked.exec_record.steps if s.id == child_step.id).status == ExecutionStatus.BLOCKED
 
     # 3. Step raising known step_exceptions (AppException) appends ErrorTraceEvent and records FAILED
     class _AppExcNodeExecutor(NodeExecutor):
@@ -457,7 +457,7 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
             committer=committer,
             dlq_on_step_failure=lambda sid, code, _exc: app_dlq_calls.append((sid, code)),
         )
-    assert state_app_err.exec_record.step_states[dep_step.id].status == ExecutionStatus.FAILED
+    assert next(s for s in state_app_err.exec_record.steps if s.id == dep_step.id).status == ExecutionStatus.FAILED
     assert app_dlq_calls == [(dep_step.id, "VALIDATION_FAILED")]
     assert any(isinstance(evt, ErrorTraceEvent) for evt in state_app_err.exec_record.execution_trace)
 
@@ -481,8 +481,9 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
             committer=committer,
             dlq_on_step_failure=lambda sid, code, _exc: dlq_calls.append((sid, code)),
         )
-    assert state_crash.exec_record.step_states[dep_step.id].status == ExecutionStatus.FAILED
-    assert state_crash.exec_record.step_states[dep_step.id].input_merkle_hash is None
+    crashed_step = next(s for s in state_crash.exec_record.steps if s.id == dep_step.id)
+    assert crashed_step.status == ExecutionStatus.FAILED
+    assert crashed_step.input_merkle_hash is None
     assert dlq_calls == [(dep_step.id, "UNEXPECTED_STEP_EXCEPTION")]
 
     # Verify _extract_app_exception_error_code branches

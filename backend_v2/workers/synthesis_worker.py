@@ -25,12 +25,11 @@ from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundErro
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.core_base import PrefixedUUID7
-from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import (
     CausalSynthesisBriefDTO,
     MatrixExplanationContextDTO,
@@ -40,7 +39,6 @@ from backend_v2.models.dtos.synthesis import (
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import (
     CognitiveTier,
-    ExecutionStatus,
     TargetBlockType,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -132,7 +130,6 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         accept_language = accept_language.strip()
-        v_step_id = f"sys_render_{profile_id}"
 
         syntheses: dict[str, RenderedSynthesisCache] = {}
         if execution.profile_syntheses is not None:
@@ -153,33 +150,16 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         async def _update_render_status(msg: str) -> None:
-            """Update the execution step state for the active profile synthesis task.
+            """Update the execution status message for the active profile synthesis task.
 
             Args:
-                msg: Status label message to persist on the execution step.
+                msg: Status label message to persist on the execution record.
             """
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local is not None:
-                old_state: ExecutionStep | None = None
-                if v_step_id in exec_record_local.step_states and isinstance(
-                    exec_record_local.step_states[v_step_id], ExecutionStep
-                ):
-                    old_state = exec_record_local.step_states[v_step_id]
-                if old_state is not None:
-                    updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING})
-                else:
-                    updated_state = ExecutionStep(
-                        id=v_step_id,
-                        label=msg,
-                        status=ExecutionStatus.RUNNING,
-                        progress=0,
-                        has_warning=False,
-                        scorecard_atoms={},
-                    )
-                updated_record = exec_record_local.with_updated_step_state(v_step_id, updated_state)
                 await repo.update_execution(
                     execution_id,
-                    ExecutionUpdateDTO(steps=updated_record.steps, step_states=updated_record.step_states),
+                    ExecutionUpdateDTO(current_step=msg),
                 )
 
         await _update_render_status("Calculating dynamic results...")
@@ -388,18 +368,6 @@ async def generate_profile_synthesis_and_pdf_task(
                 match evt.content:
                     case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
                         causal_payload = evt.content
-                        break
-                    case _:
-                        continue
-
-        if causal_payload is None and execution.step_states:
-            for state_val in execution.step_states.values():
-                match state_val:
-                    case StepOutputDTO(payload=CausalTdaFusionResultDTO() | CausalGraphPayloadDTO() as inner_payload):
-                        causal_payload = inner_payload
-                        break
-                    case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                        causal_payload = state_val
                         break
                     case _:
                         continue

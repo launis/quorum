@@ -340,8 +340,7 @@ class WorkflowState(ExecutionCoreFields):
         ),
     ]
     trace_version: Annotated[int, Field(default=0, description="Optimistic Concurrency Control version.")] = 0
-    # Inherit status, execution_trace, execution_trace_storage_path,
-    # context_variables, and context_variables_storage_path
+    # Inherit status, execution_trace, and context_variables
     # from ExecutionCoreFields (SSOT).
 
     workflow_name: Annotated[str | None, Field(default=None, description="Human-readable name of the workflow.")] = None
@@ -710,6 +709,14 @@ class StateProjector:
             elif isinstance(content, list) and all(isinstance(x, AtomResultDTO) for x in content):
                 atoms: list[AtomResultDTO] = [x for x in content if isinstance(x, AtomResultDTO)]
                 self._append_atom_results(event.step_name, atoms)
+            elif isinstance(content, StepOutputDTO):
+                if event.step_name in self._snapshot:
+                    existing = self._snapshot[event.step_name]
+                    new_data = dict(existing.data)
+                    new_data[content.block_id] = content.payload
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
+                else:
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data={content.block_id: content.payload})
             elif isinstance(content, BaseModel):
                 self._snapshot[event.step_name] = StepOutputContentDTO(
                     data={event.step_name: content.model_dump(mode="json", exclude_none=True)}

@@ -307,7 +307,7 @@ async def test_dag_executor_virtual_step(
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
 
-        virtual_steps = [s for k, s in record.step_states.items() if s.label == "system.rag.preflight"]
+        virtual_steps = [s for s in record.steps if s.label == "system.rag.preflight"]
         assert len(virtual_steps) == 1
         assert virtual_steps[0].status == ExecutionStatus.PASSED
 
@@ -406,9 +406,20 @@ async def test_dag_executor_preflight_ignores_system_keys(
             )
         )
 
+        from backend_v2.tests.factories.model_factories import I18nTextFactory, StepFactory
+
         await executor.rag_preflight.execute(
             target_step=workflow.steps[0],
-            step_def=Step.model_validate(step_data),
+            step_def=StepFactory.build(
+                organization_id="org_0195f3a0000070008000000000000001",
+                id="stp_0195f3a0000070018234567890abcdef",
+                slug="blp_test",
+                name=I18nTextFactory.build(translations={"en": "blp_test"}),
+                cognitive_tier="fast",
+                criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+                extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
+                type="llm",
+            ),
             exec_record=exec_record,
             emit_progress=AsyncMock(),
         )
@@ -444,17 +455,17 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
         input_mappings={},
         depends_on=[],
     )
-    step_def = Step.model_validate(
-        {
-            "organization_id": "org_0195f3a0000070008000000000000001",
-            "id": "stp_0195f3a0000070018234567890abcdef",
-            "slug": "blp_test",
-            "name": {"translations": {"en": "blp_test"}},
-            "cognitive_tier": "fast",
-            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
-            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
-            "type": "llm",
-        }
+    from backend_v2.tests.factories.model_factories import I18nTextFactory, StepFactory
+
+    step_def = StepFactory.build(
+        organization_id="org_0195f3a0000070008000000000000001",
+        id="stp_0195f3a0000070018234567890abcdef",
+        slug="blp_test",
+        name=I18nTextFactory.build(translations={"en": "blp_test"}),
+        cognitive_tier="fast",
+        criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
+        type="llm",
     )
     exec_record = ExecutionRecord(
         id="exe_0195f3a0000070018234567890abcdef",
@@ -500,17 +511,17 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
         input_mappings={},
         depends_on=[],
     )
-    step_def = Step.model_validate(
-        {
-            "organization_id": "org_0195f3a0000070008000000000000001",
-            "id": "stp_0195f3a0000070018234567890abcdef",
-            "slug": "blp_test",
-            "name": {"translations": {"en": "blp_test"}},
-            "cognitive_tier": "fast",
-            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
-            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
-            "type": "llm",
-        }
+    from backend_v2.tests.factories.model_factories import I18nTextFactory, StepFactory
+
+    step_def = StepFactory.build(
+        organization_id="org_0195f3a0000070008000000000000001",
+        id="stp_0195f3a0000070018234567890abcdef",
+        slug="blp_test",
+        name=I18nTextFactory.build(translations={"en": "blp_test"}),
+        cognitive_tier="fast",
+        criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
+        type="llm",
     )
     reflection_text = (
         "Emme ehtineet testata tietoturvaa lainkaan sovelluksessa ennen ensimmäistä "
@@ -555,3 +566,18 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
         assert mock_atomizer.execute_phase_0.called is True
         assert mock_atomizer.execute_phase_1_drafts.called is True
         assert "reflection_text" in result.atoms_by_input
+
+
+def test_rag_preflight_step_invalid_missing_organization_id_failure() -> None:
+    """ISTQB Negative: Verify Step rejects missing organization_id with ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        Step.model_validate(
+            {
+                "id": "stp_0195f3a0000070018234567890abcdef",
+                "slug": "blp_invalid",
+                "name": {"translations": {"en": "blp_invalid"}},
+                "type": "llm",
+            }
+        )

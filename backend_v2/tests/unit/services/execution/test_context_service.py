@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import logging
 import re
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
@@ -16,7 +17,7 @@ from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import EntityPrefix, ExecutionStatus
 from backend_v2.services.execution.context_service import ExecutionContextService
-from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
+from backend_v2.tests.factories.model_factories import ExecutionRecordFactory, MCPAuditTraceFactory
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryExecutionRepository
 
 
@@ -37,7 +38,6 @@ def _make_record(
     user_id: str | None = None,
     status: ExecutionStatus = ExecutionStatus.PASSED,
     frozen_context: FrozenContext | None = None,
-    frozen_context_storage_path: str | None = None,
 ) -> ExecutionRecord:
     """Build a canonical ExecutionRecord via Polyfactory with optional overrides."""
     resolved_exec_id = execution_id if execution_id is not None else generate_opaque_id(EntityPrefix.EXECUTION)
@@ -49,7 +49,6 @@ def _make_record(
         created_by=resolved_user_id,
         status=status,
         frozen_context=frozen_context,
-        frozen_context_storage_path=frozen_context_storage_path,
     )
     validated = ExecutionRecord.model_validate(record.model_dump(mode="json", exclude_none=True), strict=False)
     assert re.fullmatch(OPAQUE_STRIPE_ID_REGEX, validated.id) is not None
@@ -203,13 +202,25 @@ async def test_default_get_execution_admin_cross_org_permission_denied(
 
 @pytest.mark.asyncio
 async def test_get_frozen_context_bytes_inline_frozen_context(member_token: TokenData, org_id: str) -> None:
-    """Verify get_frozen_context_bytes serializes inline FrozenContext when storage path is unset."""
-    fc = _empty_frozen_context()
+    """Verify get_frozen_context_bytes serializes hydrated FrozenContext including mcp_tool_audit."""
+    fc = FrozenContext(
+        compiled_prompts={"stp_0195f3a0000070008123456789abcdef": "System prompt"},
+        injected_theory=InjectedTheoryManifestDTO(theories={}),
+        generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+        ui_hints_snapshot={},
+        mcp_tool_audit=[
+            MCPAuditTraceFactory.build(
+                gateway_id="mcp_0195f3a0000070008123456789abcdef",
+                tool_id="fetch_filing",
+                step_name="stp_0195f3a0000070008123456789abcdef",
+                duration_ms=42,
+            )
+        ],
+    )
     rec = _make_record(
         org_id=org_id,
         user_id=member_token.id,
         frozen_context=fc,
-        frozen_context_storage_path=None,
     )
     exec_repo = InMemoryExecutionRepository()
     await exec_repo.save_execution(rec)
@@ -220,18 +231,18 @@ async def test_get_frozen_context_bytes_inline_frozen_context(member_token: Toke
     assert filename == f"frozen_context_{rec.id}.json"
     parsed = FrozenContext.model_validate_json(payload_bytes)
     assert parsed == fc
+    assert len(parsed.mcp_tool_audit) == 1
 
 
 @pytest.mark.asyncio
 async def test_get_frozen_context_bytes_none_frozen_context_defaults_empty(
     member_token: TokenData, org_id: str
 ) -> None:
-    """Verify get_frozen_context_bytes returns empty FrozenContext JSON when both storage path and inline context are None."""
+    """Verify get_frozen_context_bytes returns empty FrozenContext JSON when inline context is None."""
     rec = _make_record(
         org_id=org_id,
         user_id=member_token.id,
         frozen_context=None,
-        frozen_context_storage_path=None,
     )
 
     async def custom_get_exec(initiator: TokenData, execution_id: str) -> ExecutionRecord:
@@ -247,111 +258,19 @@ async def test_get_frozen_context_bytes_none_frozen_context_defaults_empty(
 
 
 @pytest.mark.asyncio
-async def test_get_frozen_context_bytes_from_storage_success(member_token: TokenData, org_id: str) -> None:
-    """Verify get_frozen_context_bytes reads and formats offloaded frozen context from storage."""
-    exec_id = generate_opaque_id(EntityPrefix.EXECUTION)
-    storage_path = f"executions/{exec_id}/frozen_context.json"
-    rec = _make_record(
-        execution_id=exec_id,
-        org_id=org_id,
-        user_id=member_token.id,
-        frozen_context=None,
-        frozen_context_storage_path=storage_path,
-    )
+async def test_get_frozen_context_bytes_missing_execution_raises_404(member_token: TokenData) -> None:
+    """ISTQB Negative: get_frozen_context_bytes raises ResourceNotFoundError when execution does not exist."""
     exec_repo = InMemoryExecutionRepository()
-    await exec_repo.save_execution(rec)
+    service = ExecutionContextService(exec_repo=exec_repo)
+    missing_id = generate_opaque_id(EntityPrefix.EXECUTION)
 
-    expected_fc = _empty_frozen_context()
-    mock_driver = AsyncMock()
-    mock_driver.read.return_value = expected_fc.model_dump_json().encode("utf-8")
-
-    with patch("backend_v2.services.execution.context_service.storage.get_storage_driver", return_value=mock_driver):
-        service = ExecutionContextService(exec_repo=exec_repo, storage_driver=mock_driver)
-        payload_bytes, filename = await service.get_frozen_context_bytes(member_token, exec_id)
-
-    assert filename == f"frozen_context_{exec_id}.json"
-    mock_driver.read.assert_awaited_once_with(storage_path)
-    assert FrozenContext.model_validate_json(payload_bytes) == expected_fc
-
-
-@pytest.mark.asyncio
-async def test_get_frozen_context_bytes_storage_read_failure_raises_404(
-    member_token: TokenData, org_id: str, caplog: pytest.LogCaptureFixture
-) -> None:
-    """ISTQB Negative: get_frozen_context_bytes logs error and raises 404 AppException when storage read fails."""
-    exec_id = generate_opaque_id(EntityPrefix.EXECUTION)
-    rec = _make_record(
-        execution_id=exec_id,
-        org_id=org_id,
-        user_id=member_token.id,
-        frozen_context=None,
-        frozen_context_storage_path=f"executions/{exec_id}/missing.json",
-    )
-    exec_repo = InMemoryExecutionRepository()
-    await exec_repo.save_execution(rec)
-
-    mock_driver = AsyncMock()
-    mock_driver.read.side_effect = OSError("Blob not found on disk")
-
-    with patch("backend_v2.services.execution.context_service.storage.get_storage_driver", return_value=mock_driver):
-        service = ExecutionContextService(exec_repo=exec_repo, storage_driver=mock_driver)
-        with caplog.at_level(logging.ERROR), pytest.raises(AppException) as exc_info:
-            await service.get_frozen_context_bytes(member_token, exec_id)
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await service.get_frozen_context_bytes(member_token, missing_id)
 
     assert exc_info.value.status_code == 404
-    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
-    assert "Failed to fetch frozen context from storage" in caplog.text
 
 
-@pytest.mark.asyncio
-async def test_get_frozen_context_bytes_corrupt_storage_json_raises_404(member_token: TokenData, org_id: str) -> None:
-    """ISTQB Negative Boundary: get_frozen_context_bytes raises 404 AppException when offloaded JSON is malformed."""
-    exec_id = generate_opaque_id(EntityPrefix.EXECUTION)
-    rec = _make_record(
-        execution_id=exec_id,
-        org_id=org_id,
-        user_id=member_token.id,
-        frozen_context=None,
-        frozen_context_storage_path=f"executions/{exec_id}/corrupt.json",
-    )
-    exec_repo = InMemoryExecutionRepository()
-    await exec_repo.save_execution(rec)
-
-    mock_driver = AsyncMock()
-    mock_driver.read.return_value = b"{not-valid-json"
-
-    with patch("backend_v2.services.execution.context_service.storage.get_storage_driver", return_value=mock_driver):
-        service = ExecutionContextService(exec_repo=exec_repo, storage_driver=mock_driver)
-        with pytest.raises(AppException) as exc_info:
-            await service.get_frozen_context_bytes(member_token, exec_id)
-
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
-
-
-@pytest.mark.asyncio
-async def test_get_frozen_context_bytes_extra_field_storage_json_raises_404(
-    member_token: TokenData, org_id: str
-) -> None:
-    """ISTQB Negative Boundary: extra='forbid' rejects unexpected keys in offloaded FrozenContext JSON."""
-    exec_id = generate_opaque_id(EntityPrefix.EXECUTION)
-    rec = _make_record(
-        execution_id=exec_id,
-        org_id=org_id,
-        user_id=member_token.id,
-        frozen_context=None,
-        frozen_context_storage_path=f"executions/{exec_id}/extra.json",
-    )
-    exec_repo = InMemoryExecutionRepository()
-    await exec_repo.save_execution(rec)
-
-    mock_driver = AsyncMock()
-    mock_driver.read.return_value = b'{"unexpected_schema_key": "forbid_me"}'
-
-    with patch("backend_v2.services.execution.context_service.storage.get_storage_driver", return_value=mock_driver):
-        service = ExecutionContextService(exec_repo=exec_repo, storage_driver=mock_driver)
-        with pytest.raises(AppException) as exc_info:
-            await service.get_frozen_context_bytes(member_token, exec_id)
-
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+def test_frozen_context_invalid_extra_field_rejected() -> None:
+    """ISTQB Negative Boundary: extra='forbid' rejects unexpected keys in FrozenContext JSON."""
+    with pytest.raises(ValidationError):
+        FrozenContext.model_validate_json(b'{"unexpected_schema_key": "forbid_me"}')

@@ -1031,9 +1031,7 @@ async def test_execute_anomaly_retry_flow(
         output_profile_id="prof_123",
         target_locale="en",
         metadata=ExecutionMetadata(),
-        step_states={
-            "step_retry": ExecutionStepState(id="step_retry", label="Retry Step", status=ExecutionStatus.RUNNING)
-        },
+        steps=[ExecutionStepState(id="step_retry", label="Retry Step", status=ExecutionStatus.RUNNING)],
     )
     mock_repo.set_execution(mock_exec_record)
 

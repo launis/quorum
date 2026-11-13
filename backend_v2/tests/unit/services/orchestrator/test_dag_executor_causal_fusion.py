@@ -872,7 +872,6 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 
@@ -906,7 +905,10 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
         assert rec.status in (ExecutionStatus.PASSED, ExecutionStatus.RUNNING)
         persisted = await repo.get_execution("exe_0195f3a0000070018111222233334444")
         assert persisted is not None
-        assert persisted.step_states["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
+        assert (
+            next(s for s in persisted.steps if s.id == "stp_0195f3a0000070018111222233334444").status
+            == ExecutionStatus.PASSED
+        )
 
 
 @pytest.mark.asyncio
@@ -973,7 +975,6 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 
@@ -1014,8 +1015,9 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
 
         persisted = await repo.get_execution("exe_0195f3a0000070018111222233334444")
         assert persisted is not None
-        assert persisted.step_states["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.FAILED
-        assert persisted.step_states["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.BLOCKED
+        persisted_steps = {s.id: s for s in persisted.steps}
+        assert persisted_steps["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.FAILED
+        assert persisted_steps["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.BLOCKED
 
 
 @pytest.mark.asyncio
@@ -1083,7 +1085,6 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 
@@ -1164,7 +1165,10 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
         assert rec.status in (ExecutionStatus.PASSED, ExecutionStatus.RUNNING)
         persisted = await repo.get_execution("exe_0195f3a0000070018111222233334444")
         assert persisted is not None
-        assert persisted.step_states["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.PASSED
+        assert (
+            next(s for s in persisted.steps if s.id == "stp_0195f3a0000070028222333344445555").status
+            == ExecutionStatus.PASSED
+        )
 
 
 @pytest.mark.asyncio
@@ -1211,7 +1215,6 @@ async def test_dag_executor_input_delta_variants() -> None:
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 
@@ -1325,7 +1328,6 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 
@@ -1438,7 +1440,6 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 
@@ -1561,7 +1562,6 @@ async def test_dag_executor_causal_source_missing_from_steps_by_id() -> None:
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 
@@ -1661,12 +1661,11 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
-        steps=[],
-        step_states={
-            "stp_0195f3a0000070018111222233334444": ExecutionStepState(
+        steps=[
+            ExecutionStepState(
                 id="stp_0195f3a0000070018111222233334444", label="Causal Up", status=ExecutionStatus.FAILED
             ),
-        },
+        ],
     )
     await repo.save_execution(initial_record)
 
@@ -1780,7 +1779,6 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await repo.save_execution(initial_record)
 

@@ -1132,15 +1132,18 @@ def validate_execution_kelvollisuus(
         corpus_buffer = "\n\n".join(corpus_text_parts)
         evals_to_check: list[JSONRaw] = []
 
-        # Collect atom evaluations from step_states
-        step_states = target_exec["step_states"] if "step_states" in target_exec else {}
-        if type(step_states) is dict:
-            for st in step_states.values():
+        # Collect atom evaluations from steps
+        steps = target_exec["steps"] if "steps" in target_exec else []
+        if isinstance(steps, list):
+            for st in steps:
                 if type(st) is dict:
                     for k in ("evaluations", "results", "extracted_atoms"):
                         items = st[k] if k in st else None
                         if isinstance(items, list):
                             evals_to_check.extend(item for item in items if type(item) is dict)
+                    atoms_map = st["scorecard_atoms"] if "scorecard_atoms" in st else None
+                    if type(atoms_map) is dict:
+                        evals_to_check.extend(item for item in atoms_map.values() if type(item) is dict)
 
         # Also collect from trace_data if present
         if trace_data:
@@ -2084,20 +2087,11 @@ def run_variance_test(
             print("Timeout waiting for execution!")
             sys.exit(1)
 
-        # Persist execution_trace to disk if available on target_exec and not already stored by StorageDriver
+        # Persist execution_trace to disk if available on target_exec
         trace_file = Path(f"data/files/executions/{exec_id}/execution_trace.json")
         trace_file.parent.mkdir(parents=True, exist_ok=True)
         if not (trace_file.exists() and trace_file.stat().st_size > 100):
-            storage_path = (
-                target_exec["execution_trace_storage_path"] if "execution_trace_storage_path" in target_exec else None
-            )
-            if (
-                storage_path
-                and Path(f"data/files/{storage_path}").exists()
-                and Path(f"data/files/{storage_path}").stat().st_size > 100
-            ):
-                pass
-            elif "execution_trace" in target_exec and target_exec["execution_trace"]:
+            if "execution_trace" in target_exec and target_exec["execution_trace"]:
                 with trace_file.open("w", encoding="utf-8") as tf:
                     json.dump(target_exec["execution_trace"], tf, indent=2)
 

@@ -807,7 +807,6 @@ async def test_assignment_jit_onboarding_draft_and_confirmation_only_visibility(
     )
     enriched_record = submitted_record.model_copy(
         update={
-            "pdf_report_path": "reports/confidential.pdf",
             "profile_syntheses": {
                 PROFILE_ID: RenderedSynthesisCache(
                     section_syntheses={},
@@ -819,7 +818,6 @@ async def test_assignment_jit_onboarding_draft_and_confirmation_only_visibility(
                 )
             },
             "steps": [populated_step],
-            "step_states": {STEP_ID: populated_step},
         }
     )
     await wf_repo.save_execution(enriched_record)
@@ -829,7 +827,6 @@ async def test_assignment_jit_onboarding_draft_and_confirmation_only_visibility(
         initiator=assignee_tok,
         execution_id=submitted_record.id,
     )
-    assert member_view.pdf_report_path is None
     assert member_view.profile_syntheses == {}
     assert member_view.steps[0].scorecard_atoms == {}
 
@@ -838,7 +835,6 @@ async def test_assignment_jit_onboarding_draft_and_confirmation_only_visibility(
         initiator=_manager_token(),
         execution_id=submitted_record.id,
     )
-    assert manager_view.pdf_report_path == "reports/confidential.pdf"
     assert PROFILE_ID in manager_view.profile_syntheses
     assert len(manager_view.steps[0].scorecard_atoms) == 1
 

@@ -33,7 +33,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 @pytest.mark.asyncio
 async def test_execution_committer_dual_storage_and_lightweight_db_update() -> None:
-    """Verify ExecutionCommitter.commit_trace persists trace, frozen_context, and step_states."""
+    """Verify ExecutionCommitter.commit_trace persists trace, frozen_context, and steps."""
     repo = InMemoryUnifiedWorkflowRepository()
     execution_id = "exe_0195f3a0000070018111222233334444"
     initial_record = ExecutionRecord(
@@ -45,7 +45,6 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
         output_profile_id="prf_0195f3a0000070018111222233334444",
     )
     repo.set_execution(initial_record)
@@ -60,12 +59,6 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
         status=ExecutionStatus.PASSED,
         progress=100,
     )
-    step_state = ExecutionStepState(
-        id="stp_0195f3a0000070018111222233334444",
-        status=ExecutionStatus.PASSED,
-        progress=100,
-        label="Step 1",
-    )
     trace_events = [
         TraceEvent(
             step_name="stp_0195f3a0000070018111222233334444",
@@ -79,7 +72,6 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
     await committer.commit_trace(
         trace=trace_events,
         status=ExecutionStatus.RUNNING,
-        step_states={"stp_0195f3a0000070018111222233334444": step_state},
         error=None,
         frozen_context=frozen_ctx,
         context_variables=ctx_vars,
@@ -91,10 +83,9 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
     assert updated.status == ExecutionStatus.RUNNING
     assert len(updated.execution_trace) == 1
     assert updated.execution_trace[0].step_name == "stp_0195f3a0000070018111222233334444"
-    assert "stp_0195f3a0000070018111222233334444" in updated.step_states
-    assert updated.step_states["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
     assert len(updated.steps) == 1
     assert updated.steps[0].id == "stp_0195f3a0000070018111222233334444"
+    assert updated.steps[0].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -110,7 +101,6 @@ async def test_execution_committer_repository_failure_raises_progress_update_fai
             await committer.commit_trace(
                 trace=[],
                 status=ExecutionStatus.FAILED,
-                step_states={},
                 error="Step failed",
             )
     finally:
@@ -135,7 +125,6 @@ async def test_execution_committer_empty_execution_id_raises_progress_update_fai
         await committer.commit_trace(
             trace=[],
             status=ExecutionStatus.RUNNING,
-            step_states={},
         )
 
     assert exc_info.value.status_code == 500
@@ -156,7 +145,6 @@ async def test_execution_committer_timeout_failure_raises_progress_update_failed
             await committer.commit_trace(
                 trace=[],
                 status=ExecutionStatus.RUNNING,
-                step_states={},
             )
     finally:
         repo.clear_faults()
@@ -218,13 +206,12 @@ async def test_execution_committer_preserves_concurrent_human_overrides_and_incr
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         status=ExecutionStatus.RUNNING,
-        steps=[],
-        step_states={step_id: initial_step_state, extra_step_id: extra_step_state},
+        steps=[initial_step_state, extra_step_state],
         output_profile_id="prf_0195f3a0000070108111222233334444",
     )
     repo.set_execution(initial_record)
 
-    # Simulate a concurrent human override persisted to the repository while worker holds un-overridden step_state.
+    # Simulate a concurrent human override persisted to the repository while worker holds un-overridden step.
     override_dto = HumanOverrideDTO(
         new_status=ExecutionStatus.PASSED,
         reason="Verified manually by auditor",
@@ -246,7 +233,7 @@ async def test_execution_committer_preserves_concurrent_human_overrides_and_incr
         }
     )
     overridden_step_state = initial_step_state.model_copy(
-        update={"scorecard_atoms": {atom_id: overridden_atom, extra_atom_id: extra_overridden_atom}}
+        update={"scorecard_atoms": {atom_id: overridden_atom, extra_overridden_atom.atom_id: extra_overridden_atom}}
     )
     override_event = TraceEvent(
         step_name="manual_override",
@@ -256,7 +243,7 @@ async def test_execution_committer_preserves_concurrent_human_overrides_and_incr
     await repo.update_execution(
         execution_id,
         ExecutionUpdateDTO(
-            step_states={step_id: overridden_step_state, extra_step_id: extra_step_state},
+            steps=[overridden_step_state, extra_step_state],
             execution_trace=[override_event],
             expected_state_version=1,
         ),
@@ -265,22 +252,23 @@ async def test_execution_committer_preserves_concurrent_human_overrides_and_incr
     assert after_override is not None
     assert after_override.state_version == 2
 
-    # Worker commits its trace with the older in-memory step_state lacking human_override and extra_step_id.
+    # Worker commits its trace with the older in-memory step lacking human_override and extra_step_id.
     committer = ExecutionCommitter(exec_repo=repo, execution_id=execution_id)
     await committer.commit_trace(
         trace=[TraceEvent(step_name=step_id, event_type="output", content="done")],
         status=ExecutionStatus.PASSED,
-        step_states={step_id: initial_step_state},
+        steps=[initial_step_state],
     )
 
     committed = await repo.get_execution(execution_id)
     assert committed is not None
     assert committed.state_version == 3
     assert committed.status == ExecutionStatus.PASSED
-    assert extra_step_id in committed.step_states
-    preserved_atom = committed.step_states[step_id].scorecard_atoms[atom_id]
+    steps_by_id = {s.id: s for s in committed.steps}
+    assert extra_step_id in steps_by_id
+    preserved_atom = steps_by_id[step_id].scorecard_atoms[atom_id]
     assert preserved_atom.human_override is not None
     assert preserved_atom.human_override.reason == "Verified manually by auditor"
     assert preserved_atom.status == ExecutionStatus.PASSED
-    assert extra_atom_id in committed.step_states[step_id].scorecard_atoms
+    assert extra_atom_id in steps_by_id[step_id].scorecard_atoms
     assert any(evt.event_type == "evidence_override" for evt in committed.execution_trace)

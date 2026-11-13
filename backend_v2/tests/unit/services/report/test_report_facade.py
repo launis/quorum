@@ -91,7 +91,7 @@ def _create_dummy_execution(
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        step_states={"stp_1": step},
+        steps=[step],
         profile_syntheses={
             "prf_0195f3a0000070018234567890abcdef": RenderedSynthesisCache(variance_explanation="Executive summary")
         },

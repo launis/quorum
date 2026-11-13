@@ -213,8 +213,6 @@ class ReportLifecycleService:
         """
         if execution.output_profile_id:
             return execution.output_profile_id
-        if execution.active_profile_id:
-            return execution.active_profile_id
 
         workflow = await self.repo.get_workflow(execution.workflow_id)
         if not workflow:

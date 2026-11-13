@@ -12,7 +12,7 @@ from pydantic import JsonValue
 
 from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionStepState, FrozenContext
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
@@ -32,10 +32,53 @@ __all__ = [
 ]
 
 type FrozenContextUpdate = list[MCPAuditTrace] | GeneratedSchemaManifestDTO
-type ExecutionRecordUpdate = (
-    ContextVariablesDTO | FrozenContext | ExecutionMetadata | dict[str, ExecutionStepState] | list[ExecutionStep]
-)
+type ExecutionRecordUpdate = ContextVariablesDTO | FrozenContext | ExecutionMetadata | list[ExecutionStep]
 type StepOutputContentValue = DomainInputValue | JsonValue
+
+
+def _merge_step_human_overrides(
+    incoming_steps: list[ExecutionStep] | None,
+    existing_steps: list[ExecutionStep],
+) -> list[ExecutionStep] | None:
+    """Merge persisted human overrides from existing ExecutionStep entries into incoming steps."""
+    if incoming_steps is None:
+        return None
+    if not existing_steps:
+        return list(incoming_steps)
+
+    existing_by_id = {step.id: step for step in existing_steps}
+    incoming_ids = {step.id for step in incoming_steps}
+    merged_steps: list[ExecutionStep] = []
+
+    for incoming_step in incoming_steps:
+        if incoming_step.id in existing_by_id:
+            existing_step = existing_by_id[incoming_step.id]
+            if existing_step.scorecard_atoms:
+                merged_atoms = dict(incoming_step.scorecard_atoms)
+                atoms_mutated = False
+                for atom_id, existing_atom in existing_step.scorecard_atoms.items():
+                    if existing_atom.human_override is not None:
+                        if atom_id in merged_atoms:
+                            if merged_atoms[atom_id].human_override is None:
+                                merged_atoms[atom_id] = merged_atoms[atom_id].model_copy(
+                                    update={
+                                        "human_override": existing_atom.human_override,
+                                        "status": existing_atom.status,
+                                    }
+                                )
+                                atoms_mutated = True
+                        else:
+                            merged_atoms[atom_id] = existing_atom
+                            atoms_mutated = True
+                if atoms_mutated:
+                    incoming_step = incoming_step.model_copy(update={"scorecard_atoms": merged_atoms})
+        merged_steps.append(incoming_step)
+
+    for existing_step in existing_steps:
+        if existing_step.id not in incoming_ids:
+            merged_steps.append(existing_step)
+
+    return merged_steps
 
 
 class ExecutionCommitter:
@@ -60,7 +103,6 @@ class ExecutionCommitter:
         self,
         trace: list[TraceEvent],
         status: ExecutionStatus,
-        step_states: dict[str, ExecutionStepState],
         error: str | None = None,
         frozen_context: FrozenContext | None = None,
         context_variables: ContextVariablesDTO | None = None,
@@ -71,7 +113,6 @@ class ExecutionCommitter:
         Args:
             trace: Current sequence of workflow events.
             status: Target execution status boundary.
-            step_states: Execution state dictionary mapping per-step states.
             error: Optional execution failure message to record.
             frozen_context: Frozen context snapshot state if provided.
             context_variables: Execution level global variables.
@@ -87,48 +128,24 @@ class ExecutionCommitter:
             if not self.execution_id.strip():
                 raise ValueError("Execution ID cannot be empty when committing trace.")
             existing = await self.exec_repo.get_execution(self.execution_id, hydrate=False)
-            merged_step_states = dict(step_states)
+            merged_steps: list[ExecutionStep] | None = None
+            if steps is not None:
+                merged_steps = list(steps)
             merged_trace = list(trace)
             expected_version: int | None = None
             if isinstance(existing, ExecutionRecord):
                 expected_version = existing.state_version
-                for s_id, existing_s_state in existing.step_states.items():
-                    if s_id not in merged_step_states:
-                        merged_step_states[s_id] = existing_s_state
-                        continue
-                    incoming_s_state = merged_step_states[s_id]
-                    if existing_s_state.scorecard_atoms:
-                        merged_atoms = dict(incoming_s_state.scorecard_atoms)
-                        atoms_mutated = False
-                        for atom_id, existing_atom in existing_s_state.scorecard_atoms.items():
-                            if existing_atom.human_override is not None:
-                                if atom_id in merged_atoms:
-                                    if merged_atoms[atom_id].human_override is None:
-                                        merged_atoms[atom_id] = merged_atoms[atom_id].model_copy(
-                                            update={
-                                                "human_override": existing_atom.human_override,
-                                                "status": existing_atom.status,
-                                            }
-                                        )
-                                        atoms_mutated = True
-                                else:
-                                    merged_atoms[atom_id] = existing_atom
-                                    atoms_mutated = True
-                        if atoms_mutated:
-                            merged_step_states[s_id] = incoming_s_state.model_copy(
-                                update={"scorecard_atoms": merged_atoms}
-                            )
+                merged_steps = _merge_step_human_overrides(merged_steps, existing.steps)
                 for evt in existing.execution_trace:
                     if evt.event_type in ("atom_override", "evidence_override") and evt not in merged_trace:
                         merged_trace.append(evt)
             update_node = NodeExecutionUpdateDTO(
                 status=status,
                 execution_trace=merged_trace,
-                step_states=merged_step_states,
                 frozen_context=frozen_context,
                 context_variables=context_variables,
                 error=error,
-                steps=steps,
+                steps=merged_steps,
                 expected_state_version=expected_version,
             )
             update_dto = update_node.to_execution_update_dto()

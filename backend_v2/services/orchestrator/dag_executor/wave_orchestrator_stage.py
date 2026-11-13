@@ -69,9 +69,9 @@ def _extract_evaluated_atoms(events: list[TraceEvent]) -> list[AtomResultDTO]:
 
 
 async def _commit_record_snapshot(committer: ExecutionCommitter, rec: ExecutionRecord, err: str | None = None) -> None:
-    """Persist ExecutionRecord trace, status, step_states, and context_variables via ExecutionCommitter."""
+    """Persist ExecutionRecord trace, status, steps, and context_variables via ExecutionCommitter."""
     await committer.commit_trace(
-        rec.execution_trace, rec.status, rec.step_states, err, context_variables=rec.context_variables, steps=rec.steps
+        rec.execution_trace, rec.status, err, context_variables=rec.context_variables, steps=rec.steps
     )
 
 
@@ -280,21 +280,26 @@ async def _fail_wave_and_commit(
     """Transition wave and downstream steps on TaskGroup failure and commit the failed record snapshot."""
     _update_lock = state.update_lock
     async with _update_lock:
+        steps_by_id = {s.id: s for s in state.exec_record.steps}
         for s_rule in waves[wave_idx]:
-            curr_st = state.exec_record.step_states[s_rule.id]
-            if curr_st.status in (ExecutionStatus.RUNNING, ExecutionStatus.PENDING):
-                state.exec_record = state.exec_record.transition_step(
-                    step_id=s_rule.id, status=ExecutionStatus.FAILED, last_error=str(primary_err), has_warning=True
-                )
-                dlq_on_step_failure(s_rule.id, "WAVE_TASKGROUP_CANCELLED", primary_err)
+            if s_rule.id in steps_by_id:
+                curr_st = steps_by_id[s_rule.id]
+                if curr_st.status in (ExecutionStatus.RUNNING, ExecutionStatus.PENDING):
+                    state.exec_record = state.exec_record.transition_step(
+                        step_id=s_rule.id, status=ExecutionStatus.FAILED, last_error=str(primary_err), has_warning=True
+                    )
+                    dlq_on_step_failure(s_rule.id, "WAVE_TASKGROUP_CANCELLED", primary_err)
+        steps_by_id = {s.id: s for s in state.exec_record.steps}
         for remaining_wave in waves[wave_idx + 1 :]:
             for ds in remaining_wave:
-                if state.exec_record.step_states[ds.id].status == ExecutionStatus.PENDING:
-                    blk_err = f"Blocked due to wave {wave_idx} failure: {primary_err}"
-                    state.exec_record = state.exec_record.transition_step(
-                        step_id=ds.id, status=ExecutionStatus.BLOCKED, last_error=blk_err, has_warning=True
-                    )
-                    dlq_on_step_failure(ds.id, "DOWNSTREAM_WAVE_BLOCKED", primary_err)
+                if ds.id in steps_by_id:
+                    ds_st = steps_by_id[ds.id]
+                    if ds_st.status == ExecutionStatus.PENDING:
+                        blk_err = f"Blocked due to wave {wave_idx} failure: {primary_err}"
+                        state.exec_record = state.exec_record.transition_step(
+                            step_id=ds.id, status=ExecutionStatus.BLOCKED, last_error=blk_err, has_warning=True
+                        )
+                        dlq_on_step_failure(ds.id, "DOWNSTREAM_WAVE_BLOCKED", primary_err)
         state.exec_record = state.exec_record.model_copy(
             update={"status": ExecutionStatus.FAILED, "error": str(primary_err)}
         )
@@ -332,14 +337,14 @@ def _enforce_execution_budget(state: WorkflowExecutionState) -> None:
 
     rec = state.exec_record
     record_tokens = rec.prompt_tokens + rec.completion_tokens + rec.reasoning_tokens
-    step_tokens = sum(s.prompt_tokens + s.completion_tokens + s.reasoning_tokens for s in rec.step_states.values())
+    step_tokens = sum(s.prompt_tokens + s.completion_tokens + s.reasoning_tokens for s in rec.steps)
     cumulative_tokens = max(record_tokens, step_tokens)
 
     record_cost = max(rec.dag_cost_usd, rec.cost_estimate)
-    step_cost = sum(s.cost_usd for s in rec.step_states.values())
+    step_cost = sum(s.cost_usd for s in rec.steps)
     cumulative_cost_usd = max(record_cost, step_cost)
 
-    executed_steps = sum(1 for s in rec.step_states.values() if s.status == ExecutionStatus.PASSED)
+    executed_steps = sum(1 for s in rec.steps if s.status == ExecutionStatus.PASSED)
 
     breach_reason: str | None = None
     if settings.max_tokens_per_run > 0 and cumulative_tokens > settings.max_tokens_per_run:
@@ -361,10 +366,10 @@ def _enforce_execution_budget(state: WorkflowExecutionState) -> None:
         state.execution_id,
         extra={"error_code": ErrorCodes.QUOTA_EXCEEDED.name, "execution_id": state.execution_id},
     )
-    for step_id, step_state in list(rec.step_states.items()):
+    for step_state in list(rec.steps):
         if step_state.status == ExecutionStatus.PENDING:
             state.exec_record = state.exec_record.transition_step(
-                step_id=step_id,
+                step_id=step_state.id,
                 status=ExecutionStatus.BLOCKED,
                 last_error=breach_reason,
                 has_warning=True,
@@ -418,7 +423,10 @@ async def execute_topological_waves_stage(
             await execute_rag_preflight_stage(state, rag_preflight, committer, dlq_on_progress_commit_error)
         waves = DAGCompilerService.compute_topological_waves(state.workflow.steps)
         for wave_idx, wave in enumerate(waves):
-            steps_to_run = [s for s in wave if state.exec_record.step_states[s.id].status != ExecutionStatus.PASSED]
+            steps_by_id = {s.id: s for s in state.exec_record.steps}
+            steps_to_run = [
+                s for s in wave if s.id not in steps_by_id or steps_by_id[s.id].status != ExecutionStatus.PASSED
+            ]
             if not steps_to_run:
                 continue
             _enforce_execution_budget(state)
@@ -444,7 +452,7 @@ async def execute_topological_waves_stage(
             _enforce_execution_budget(state)
 
         failed_statuses = (ExecutionStatus.FAILED, ExecutionStatus.BLOCKED)
-        if any(s.status in failed_statuses for s in state.exec_record.step_states.values()):
+        if any(s.status in failed_statuses for s in state.exec_record.steps):
             _update_lock = state.update_lock
             async with _update_lock:
                 state.exec_record = state.exec_record.model_copy(update={"status": ExecutionStatus.FAILED})

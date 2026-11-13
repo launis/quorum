@@ -289,7 +289,6 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
         source_identity_manifest={},
         status=ExecutionStatus.FAILED,
         steps=[failed_step],
-        step_states={"stp_0195f3a0000070008000aaaa1111bbbb": failed_step},
         metadata=ExecutionMetadata(
             workflow_version=1,
             model_registry_id=None,
@@ -313,7 +312,10 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
 
     assert state.strictness_level == 75
     assert state.lexical_strictness_level == 80
-    assert state.exec_record.step_states["stp_0195f3a0000070008000aaaa1111bbbb"].status == ExecutionStatus.PENDING
+    assert (
+        next(s for s in state.exec_record.steps if s.id == "stp_0195f3a0000070008000aaaa1111bbbb").status
+        == ExecutionStatus.PENDING
+    )
     assert state.exec_record.steps[0].label == "Resolved Label"
     assert state.exec_record.metadata is not None
     assert state.exec_record.metadata.model_registry_id == "mrg_0195f3a0000070008000111122223333"
@@ -382,9 +384,9 @@ async def test_safe_commit_execution_state_and_execute_rag_preflight_stage() -> 
 
     assert len(commit_errors) == 1
     assert state.exec_record.context_variables.global_atom_blackboard == GlobalAtomBlackboard(atoms_by_input={})
-    sys_steps = [k for k in state.exec_record.step_states if k.startswith("sys_rag_")]
+    sys_steps = [s for s in state.exec_record.steps if s.id.startswith("sys_rag_")]
     assert len(sys_steps) == 1
-    assert state.exec_record.step_states[sys_steps[0]].status == ExecutionStatus.PASSED
+    assert sys_steps[0].status == ExecutionStatus.PASSED
 
     # Verify failing preflight transitions virtual step to FAILED and raises WorkflowExecutionError
     class _FailingRAGPreflight(RAGPreflightService):

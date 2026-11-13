@@ -28,7 +28,6 @@ from backend_v2.models.dtos.matrix_scorecard import (
     MatrixScorecardRowDTO,
     ScorecardAtomDTO,
 )
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.export import ExportService
@@ -460,8 +459,8 @@ def test_resolve_context_target_empty_target() -> None:
     assert resolve_context_target(parent_m, "fi") == ""
 
 
-def test_extract_causal_result_dict_and_step_states() -> None:
-    """Verify extract_causal_result extracts from dict trace events and step states."""
+def test_extract_causal_result_trace_events_only() -> None:
+    """Verify extract_causal_result extracts from trace events and returns None when absent."""
     c_node = CausalNodeDTO(
         node_id="c_0123456789abcdef",
         claim="Claim A",
@@ -527,52 +526,34 @@ def test_extract_causal_result_dict_and_step_states() -> None:
     # 3. None execution record returns None
     assert extract_causal_result(None) is None
 
-    # 4. Step states with StepOutputDTO
-    exec_step_output = ExecutionRecord.model_construct(
-        id="exe_0195f3a0000070008123456789abcdef",
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
-        organization_id="org_0195f3a0000070008123456789abcdef",
-        target_locale="fi",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[],
-        step_states={
-            "causal": StepOutputDTO(
-                step_id="stp_causal",
-                block_id="blk_causal",
-                data_type="causal",
-                payload=graph,
-            )
-        },
-    )
-    assert extract_causal_result(exec_step_output) == graph
 
-    # 4. Step states with StepOutputDTO non-causal payload
-    exec_step_non_causal = ExecutionRecord.model_construct(
-        id="exe_0195f3a0000070008123456789abcdef",
-        workflow_id="wor_0195f3a0000070008123456789abcdef",
-        organization_id="org_0195f3a0000070008123456789abcdef",
-        target_locale="fi",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[],
-        step_states={
-            "non_causal": StepOutputDTO(
-                step_id="stp_text",
-                block_id="blk_text",
-                data_type="text",
-                payload="simple text",
-            )
-        },
-    )
-    assert extract_causal_result(exec_step_non_causal) is None
+def test_extract_causal_result_invalid_non_causal_trace_returns_none() -> None:
+    """ISTQB Negative: Verify extract_causal_result returns None when trace contains only non-causal payloads."""
+    from pydantic import ValidationError
 
-    # 5. Step states with direct causal DTO
-    exec_step_direct = ExecutionRecord.model_construct(
+    exec_non_causal = ExecutionRecord(
         id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
         organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
-        execution_trace=[],
-        step_states={"causal": fusion},
+        execution_trace=[
+            TraceEvent(
+                step_name="plain_step",
+                event_type="output",
+                content="plain string output",
+            )
+        ],
     )
-    assert extract_causal_result(exec_step_direct) == fusion
+    assert extract_causal_result(exec_non_causal) is None
+
+    with pytest.raises(ValidationError):
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070008123456789abcdef",
+                "workflow_id": "wor_0195f3a0000070008123456789abcdef",
+                "target_locale": "fi",
+                "status": "PASSED",
+                "step_states": {},
+            }
+        )

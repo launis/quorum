@@ -171,7 +171,6 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
         execution_trace=[],
     )
     await mock_repo.save_execution(record)
@@ -180,7 +179,6 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
     await committer.commit_trace(
         trace=[],
         status=ExecutionStatus.PENDING,
-        step_states={},
         error="test error",
         context_variables=ContextVariablesDTO(variables={"test_key": "test_val"}),
     )
@@ -322,7 +320,6 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
             source_identity_manifest={},
             status=ExecutionStatus.PENDING,
             steps=[],
-            step_states={},
         )
         await mock_repo.save_execution(initial_record)
 
@@ -836,11 +833,9 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
-        step_states={
-            "stp_0195f3a0000070018111222233334444": ExecutionStepState(
-                id="stp_0195f3a0000070018111222233334444", label="Step 1", status=ExecutionStatus.FAILED
-            )
-        },
+        steps=[
+            ExecutionStepState(id="stp_0195f3a0000070018111222233334444", label="Step 1", status=ExecutionStatus.FAILED)
+        ],
         execution_trace=[TraceEvent(step_name="raw_inputs", event_type="input", content={})],
     )
     await mock_repo.save_execution(existing_record)
@@ -914,7 +909,6 @@ async def test_execution_committer_raises_app_exception_on_update_failure(mock_r
         await committer.commit_trace(
             trace=[],
             status=ExecutionStatus.PENDING,
-            step_states={},
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.PROGRESS_UPDATE_FAILED
 
@@ -1314,8 +1308,8 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock_repo: Any, mock_compiler: Any) -> None:
-    """Regression Test: step_states resolves human-readable step name instead of raw rule ID."""
+async def test_dag_executor_steps_resolves_human_readable_step_labels(mock_repo: Any, mock_compiler: Any) -> None:
+    """Regression Test: steps resolves human-readable step name instead of raw rule ID."""
     step_rule = StepRule(
         id="sr_0195f3a00000700f80a26d17cc9b48a7",
         task_blueprint="bp_11112222333344445555666677778888",
@@ -1378,7 +1372,9 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         )
 
     # Step label must be human-readable resolved Finnish name, NOT 'sr_f0a26d17cc9b48a7'
-    assert record.step_states["sr_0195f3a00000700f80a26d17cc9b48a7"].label == "Johtoryhmän analyysi"
+    assert (
+        next(s for s in record.steps if s.id == "sr_0195f3a00000700f80a26d17cc9b48a7").label == "Johtoryhmän analyysi"
+    )
 
 
 @pytest.mark.asyncio
@@ -1450,9 +1446,12 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
             result = await executor.execute_workflow(
                 execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
-                raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
+                raw_inputs=WorkflowInputs(dynamic_inputs={"log": "test"}),
             )
-            assert result.step_states["sr_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
+            assert (
+                next(s for s in result.steps if s.id == "sr_0195f3a0000070018111222233334444").status
+                == ExecutionStatus.PASSED
+            )
 
 
 @pytest.mark.asyncio
@@ -1531,9 +1530,12 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
             result = await executor.execute_workflow(
                 execution_id="exe_0195f3a0000070028222333344445555",
                 workflow=workflow,
-                raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
+                raw_inputs=WorkflowInputs(dynamic_inputs={"log": "test"}),
             )
-            assert result.step_states["sr_0195f3a0000070028222333344445555"].status == ExecutionStatus.PASSED
+            assert (
+                next(s for s in result.steps if s.id == "sr_0195f3a0000070028222333344445555").status
+                == ExecutionStatus.PASSED
+            )
 
 
 @pytest.mark.asyncio
@@ -1628,11 +1630,6 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
         steps=[
             ExecutionStep(id="stp_0195f3a0000070028222333344445555", label="Old Label", status=ExecutionStatus.PENDING)
         ],
-        step_states={
-            "stp_0195f3a0000070028222333344445555": ExecutionStep(
-                id="stp_0195f3a0000070028222333344445555", label="Old Label", status=ExecutionStatus.PENDING
-            )
-        },
     ).model_copy(update={"metadata": None})
     await mock_repo.save_execution(existing_record)
 
@@ -1665,7 +1662,9 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
     assert record.metadata is not None
     assert record.metadata.model_registry_id == "mrg_0195f3a00000700e826807f3bfa34599"
     assert record.metadata.workflow_version == 3
-    assert record.step_states["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.PASSED
+    assert (
+        next(s for s in record.steps if s.id == "stp_0195f3a0000070028222333344445555").status == ExecutionStatus.PASSED
+    )
 
 
 @pytest.mark.asyncio
@@ -1748,17 +1747,6 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
             ),
             ExecutionStep(id="stp_0195f3a0000070048444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
         ],
-        step_states={
-            "stp_0195f3a0000070038333444455556666": ExecutionStep(
-                id="stp_0195f3a0000070038333444455556666",
-                label="Step 1",
-                status=ExecutionStatus.PASSED,
-                input_merkle_hash=step1_merkle_hash,
-            ),
-            "stp_0195f3a0000070048444555566667777": ExecutionStep(
-                id="stp_0195f3a0000070048444555566667777", label="Step 2", status=ExecutionStatus.FAILED
-            ),
-        },
         metadata=ExecutionMetadata(workflow_version=1, model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d"),
     )
     await mock_repo.save_execution(existing_record)
@@ -1795,8 +1783,9 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
     # Step 1 was PASSED, so it should NOT be executed again. Step 2 should be executed.
     assert "stp_0195f3a0000070038333444455556666" not in executed_step_ids
     assert "stp_0195f3a0000070048444555566667777" in executed_step_ids
-    assert record.step_states["stp_0195f3a0000070038333444455556666"].status == ExecutionStatus.PASSED
-    assert record.step_states["stp_0195f3a0000070048444555566667777"].status == ExecutionStatus.PASSED
+    steps_by_id = {s.id: s for s in record.steps}
+    assert steps_by_id["stp_0195f3a0000070038333444455556666"].status == ExecutionStatus.PASSED
+    assert steps_by_id["stp_0195f3a0000070048444555566667777"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -1848,14 +1837,11 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
     committed_step_statuses: list[ExecutionStatus] = []
 
     async def mock_commit_trace(*args: Any, **kwargs: Any) -> None:
-        if ("step_states" in kwargs and "stp_0195f3a0000070058555666677778888" in kwargs["step_states"]) or (
-            len(args) > 2 and "stp_0195f3a0000070058555666677778888" in args[2]
-        ):
-            committed_step_statuses.append(
-                (kwargs["step_states"] if "step_states" in kwargs else args[2])[
-                    "stp_0195f3a0000070058555666677778888"
-                ].status
-            )
+        steps_list = kwargs.get("steps")
+        if isinstance(steps_list, list):
+            for s in steps_list:
+                if s.id == "stp_0195f3a0000070058555666677778888":
+                    committed_step_statuses.append(s.status)
 
     async def mock_node_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
         if len(committed_step_statuses) > 0:
@@ -1878,13 +1864,15 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
     assert dispatch_step_status == [ExecutionStatus.RUNNING]
     # QUEUED was never emitted for this step
     assert ExecutionStatus.QUEUED not in committed_step_statuses
-    # Exactly one dispatch commit occurred before node execution, followed by step completion and workflow finalization
-    assert committed_step_statuses == [
+    # Bootstrap initializes PENDING, followed by RUNNING dispatch, step completion PASSED, and workflow finalization PASSED
+    assert committed_step_statuses[-3:] == [
         ExecutionStatus.RUNNING,
         ExecutionStatus.PASSED,
         ExecutionStatus.PASSED,
     ]
-    assert record.step_states["stp_0195f3a0000070058555666677778888"].status == ExecutionStatus.PASSED
+    assert (
+        next(s for s in record.steps if s.id == "stp_0195f3a0000070058555666677778888").status == ExecutionStatus.PASSED
+    )
 
 
 @pytest.mark.asyncio
@@ -2094,7 +2082,6 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[],
-        step_states={},
     )
     await mock_repo.save_execution(initial_record)
 
@@ -2140,15 +2127,16 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
     assert persisted is not None
     assert persisted.status == ExecutionStatus.FAILED
 
-    # Check step states
-    assert persisted.step_states["stp_0195f3a0000070018111111111111111"].status == ExecutionStatus.FAILED
-    assert persisted.step_states["stp_0195f3a0000070028222222222222222"].status == ExecutionStatus.FAILED
-    assert persisted.step_states["stp_0195f3a0000070038333333333333333"].status == ExecutionStatus.BLOCKED
+    # Check steps
+    persisted_steps = {s.id: s for s in persisted.steps}
+    assert persisted_steps["stp_0195f3a0000070018111111111111111"].status == ExecutionStatus.FAILED
+    assert persisted_steps["stp_0195f3a0000070028222222222222222"].status == ExecutionStatus.FAILED
+    assert persisted_steps["stp_0195f3a0000070038333333333333333"].status == ExecutionStatus.BLOCKED
 
     # Zero steps remain in PENDING or RUNNING
-    for s_id, s_state in persisted.step_states.items():
+    for s_state in persisted.steps:
         assert s_state.status not in (ExecutionStatus.PENDING, ExecutionStatus.RUNNING), (
-            f"Step {s_id} is {s_state.status}"
+            f"Step {s_state.id} is {s_state.status}"
         )
 
     # Verify DLQ calls recorded all 3 steps

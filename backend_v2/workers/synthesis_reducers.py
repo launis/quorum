@@ -6,7 +6,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated, Any, cast
 
-from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import ConfigDict, Field, ValidationError
 
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -27,16 +27,10 @@ from backend_v2.models.dtos.trace import (
     ExecutionUpdateDTO,
     TraceEventMetadataEnvelope,
 )
-from backend_v2.models.enums import ExecutionStatus, RoleClassification
-from backend_v2.models.state import (
-    ErrorTraceEvent,
-    TombstoneEvent,
-    TraceEvent,
-)
+from backend_v2.models.enums import RoleClassification
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
 from backend_v2.services.report import ReportService
-from backend_v2.services.storage import get_storage_driver
 
 __all__ = [
     "ExecutiveSummaryReductionDTO",
@@ -460,17 +454,17 @@ async def recover_trace_telemetry(
     execution: ExecutionRecord,
     dag_cost: float,
 ) -> RecoveredTelemetryDTO:
-    """Recover DAG telemetry tokens and cost from offloaded execution trace blob if needed.
+    """Recover DAG telemetry tokens and cost from persisted execution trace events if needed.
 
     Args:
-        execution: Execution record containing offloaded trace storage path.
+        execution: Execution record containing hydrated execution trace events.
         dag_cost: Baseline DAG execution cost in USD.
 
     Returns:
         A RecoveredTelemetryDTO with final_cost, prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens.
 
     Raises:
-        AppException: If storage reading fails (ErrorCodes.DATA_CORRUPTION) or metadata envelope is invalid (ErrorCodes.VALIDATION_FAILED).
+        AppException: If metadata envelope validation fails (ErrorCodes.VALIDATION_FAILED).
     """
     rec_p = None
     rec_c = None
@@ -478,64 +472,45 @@ async def recover_trace_telemetry(
     rec_r = None
     final_cost = dag_cost
 
-    if final_cost == 0.0 and execution.execution_trace_storage_path:
-        try:
-            storage_driver = get_storage_driver()
-            blob_data = await storage_driver.read(execution.execution_trace_storage_path)
-            if blob_data:
-                stored_trace = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(blob_data)
-                p, c, cac, r, cost = 0, 0, 0, 0, 0.0
-                for ev in stored_trace:
-                    if ev.content:
-                        if isinstance(ev.content, TraceEventMetadataEnvelope):
-                            env = ev.content
-                            if env.step_metadata and env.step_metadata.token_usage:
-                                u = env.step_metadata.token_usage
-                                p += u.prompt_tokens
-                                c += u.completion_tokens
-                                cac += u.cached_tokens
-                                r += u.reasoning_tokens
-                                cost += u.cost_usd
-                        elif type(ev.content) is dict and (
-                            "_step_metadata" in ev.content or "step_metadata" in ev.content
-                        ):
-                            try:
-                                env = TraceEventMetadataEnvelope.model_validate(ev.content)
-                                if env.step_metadata and env.step_metadata.token_usage:
-                                    u = env.step_metadata.token_usage
-                                    p += u.prompt_tokens
-                                    c += u.completion_tokens
-                                    cac += u.cached_tokens
-                                    r += u.reasoning_tokens
-                                    cost += u.cost_usd
-                            except (ValidationError, ValueError) as err:
-                                logger.error(
-                                    "[Task] Corrupted TraceEventMetadataEnvelope in storage blob: %s",
-                                    err,
-                                    exc_info=True,
-                                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                )
-                                raise AppException(
-                                    message=f"Corrupted TraceEventMetadataEnvelope in execution trace: {err}",
-                                    status_code=500,
-                                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                                ) from err
-                if cost > 0.0:
-                    final_cost = cost
-                if p > 0 or c > 0:
-                    rec_p, rec_c, rec_cac, rec_r = p, c, cac, r
-        except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
-            logger.error(
-                "[Task] Failed to recover DAG telemetry from storage blob: %s",
-                err,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.DATA_CORRUPTION.value},
-            )
-            raise AppException(
-                message=f"Failed to recover DAG telemetry from storage blob for execution {execution.id}: {err}",
-                status_code=500,
-                details={"error_code": ErrorCodes.DATA_CORRUPTION},
-            ) from err
+    if final_cost == 0.0 and execution.execution_trace:
+        p, c, cac, r, cost = 0, 0, 0, 0, 0.0
+        for ev in execution.execution_trace:
+            if ev.content:
+                if isinstance(ev.content, TraceEventMetadataEnvelope):
+                    env = ev.content
+                    if env.step_metadata and env.step_metadata.token_usage:
+                        u = env.step_metadata.token_usage
+                        p += u.prompt_tokens
+                        c += u.completion_tokens
+                        cac += u.cached_tokens
+                        r += u.reasoning_tokens
+                        cost += u.cost_usd
+                elif type(ev.content) is dict and ("_step_metadata" in ev.content or "step_metadata" in ev.content):
+                    try:
+                        env = TraceEventMetadataEnvelope.model_validate(ev.content)
+                        if env.step_metadata and env.step_metadata.token_usage:
+                            u = env.step_metadata.token_usage
+                            p += u.prompt_tokens
+                            c += u.completion_tokens
+                            cac += u.cached_tokens
+                            r += u.reasoning_tokens
+                            cost += u.cost_usd
+                    except (ValidationError, ValueError) as err:
+                        logger.error(
+                            "[Task] Corrupted TraceEventMetadataEnvelope in execution trace: %s",
+                            err,
+                            exc_info=True,
+                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                        raise AppException(
+                            message=f"Corrupted TraceEventMetadataEnvelope in execution trace: {err}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        ) from err
+        if cost > 0.0:
+            final_cost = cost
+        if p > 0 or c > 0:
+            rec_p, rec_c, rec_cac, rec_r = p, c, cac, r
 
     return RecoveredTelemetryDTO(
         final_cost=final_cost,
@@ -552,7 +527,7 @@ async def handle_synthesis_failure_state(
     error: Exception,
     repo: UnifiedWorkflowRepository | None = None,
 ) -> None:
-    """Quarantine Phase 3 failure by updating virtual step state without failing ExecutionRecord status.
+    """Quarantine synthesis failure on ExecutionRecord status message without failing DAG execution status.
 
     Args:
         execution_id: Authoritative identifier of the execution record.
@@ -571,32 +546,14 @@ async def handle_synthesis_failure_state(
     try:
         if repo is None:
             repo = UnifiedWorkflowRepository()
-        v_step_id = f"sys_render_{profile_id}"
-        fail_step_states = None
-        fail_steps = None
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
-        if exec_record_local is not None and v_step_id in exec_record_local.step_states:
-            old_state = exec_record_local.step_states[v_step_id]
-            updated_state = old_state.model_copy(
-                update={
-                    "status": ExecutionStatus.FAILED,
-                    "last_error": str(error),
-                    "progress": None,
-                    "has_warning": True,
-                }
+        if exec_record_local is not None:
+            await repo.update_execution(
+                execution_id,
+                ExecutionUpdateDTO(
+                    current_step=f"Synthesis failed for profile {profile_id}: {error}",
+                ),
             )
-            exec_record_local = exec_record_local.with_updated_step_state(v_step_id, updated_state)
-            fail_step_states = exec_record_local.step_states
-            fail_steps = exec_record_local.steps
-
-        # Quarantine synthesis rendering failure on the virtual step without failing the DAG execution status.
-        await repo.update_execution(
-            execution_id,
-            ExecutionUpdateDTO(
-                steps=fail_steps,
-                step_states=fail_step_states,
-            ),
-        )
     except (OSError, ValidationError, ValueError, KeyError) as err:
         logger.error(
             "[Task] Failed to update execution failure status: %s",

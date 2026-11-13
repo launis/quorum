@@ -182,8 +182,9 @@ async def test_independent_steps_continue_on_sibling_failure(
 
             rec = await mock_repo.get_execution("exe_0195f3a0000070018111222233334444")
             assert rec is not None
-            assert rec.step_states["stp_0195f3a0000070058555222255552222"].status == ExecutionStatus.FAILED
-            assert rec.step_states["stp_0195f3a00000700f8fff1111ffff1111"].status == ExecutionStatus.FAILED
+            steps_by_id = {s.id: s for s in rec.steps}
+            assert steps_by_id["stp_0195f3a0000070058555222255552222"].status == ExecutionStatus.FAILED
+            assert steps_by_id["stp_0195f3a00000700f8fff1111ffff1111"].status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -274,8 +275,9 @@ async def test_dependent_steps_fail_fast_on_parent_failure(
 
             rec = await mock_repo.get_execution("exe_0195f3a0000070018111222233334444")
             assert rec is not None
-            assert rec.step_states["stp_0195f3a00000700a8aaa1111aaaa1111"].status == ExecutionStatus.FAILED
-            assert rec.step_states["stp_0195f3a00000700c8ccc3333cccc3333"].status == ExecutionStatus.BLOCKED
+            steps_by_id = {s.id: s for s in rec.steps}
+            assert steps_by_id["stp_0195f3a00000700a8aaa1111aaaa1111"].status == ExecutionStatus.FAILED
+            assert steps_by_id["stp_0195f3a00000700c8ccc3333cccc3333"].status == ExecutionStatus.BLOCKED
 
 
 @pytest.mark.asyncio
@@ -365,7 +367,8 @@ async def test_step_transient_failure_exhausts_retries(
 
                 rec = await mock_repo.get_execution("exe_0195f3a0000070018111222233334444")
                 assert rec is not None
-                assert rec.step_states["stp_0195f3a00000700f8faa9999ffaa9999"].status == ExecutionStatus.FAILED
+                steps_by_id = {s.id: s for s in rec.steps}
+                assert steps_by_id["stp_0195f3a00000700f8faa9999ffaa9999"].status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -567,6 +570,7 @@ async def test_intermediate_progress_callback_lock_failure_does_not_crash_step(
                     workflow=workflow,
                     raw_inputs=WorkflowInputs(dynamic_inputs={"log": "test"}),
                 )
-                assert result.step_states["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
+                steps_by_id = {s.id: s for s in result.steps}
+                assert steps_by_id["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
     finally:
         mock_repo.clear_faults()

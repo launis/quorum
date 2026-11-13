@@ -72,7 +72,6 @@ def _make_test_record(
         "raw_inputs": WorkflowInputs(),
         "frozen_context": FrozenContext(),
         "metadata": ExecutionMetadata(),
-        "step_states": {},
         "execution_trace": [],
         "profile_syntheses": {},
         "steps": [],
@@ -505,7 +504,7 @@ async def test_override_atom_success() -> None:
 
     record = record.model_copy(
         update={
-            "step_states": {"sr_1": step_state},
+            "steps": [step_state],
             "organization_id": "org_0195f3a0000070018000000000000001",
             "created_by": "usr_0195f3a0000070008000000000000002",
         }
@@ -559,7 +558,6 @@ def test_execution_create_dto_preserves_output_profile_id() -> None:
     dto = ExecutionCreateDTO(
         workflow_id="wf_0195f3a0000070018234567890abcdef",
         target_locale="fi",
-        active_profile_id="prof_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
         metadata=ExecutionMetadata(),
     )
@@ -974,7 +972,6 @@ async def test_get_frozen_context_bytes() -> None:
         is_public=False,
         status=ExecutionStatus.PASSED,
         frozen_context=FrozenContext(),
-        frozen_context_storage_path=None,
     )
     repo.set_execution(rec1)
 
@@ -982,27 +979,8 @@ async def test_get_frozen_context_bytes() -> None:
     assert b1 is not None
     assert name1 == "frozen_context_exe_0195f3a0000070008123456789abcde1.json"
 
-    rec2 = _make_test_record(
-        id="exe_0195f3a0000070008123456789abcde2",
-        organization_id="org_0195f3a0000070018000000000000001",
-        is_public=False,
-        status=ExecutionStatus.PASSED,
-        frozen_context=None,
-        frozen_context_storage_path="storage/fc.json",
-    )
-    repo.set_execution(rec2)
-
-    with patch("backend_v2.services.storage.get_storage_driver") as mock_storage_driver:
-        mock_driver = AsyncMock()
-        mock_driver.read.return_value = FrozenContext().model_dump_json().encode("utf-8")
-        mock_storage_driver.return_value = mock_driver
-
-        b2, name2 = await service.get_frozen_context_bytes(initiator, "exe_0195f3a0000070008123456789abcde2")
-        assert b2 is not None
-
-        mock_driver.read.side_effect = Exception("Storage failed")
-        with pytest.raises(AppException):
-            await service.get_frozen_context_bytes(initiator, "exe_0195f3a0000070008123456789abcde2")
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_frozen_context_bytes(initiator, "exe_0195f3a0000070008123456789abcde2")
 
 
 @pytest.mark.asyncio
@@ -1021,17 +999,16 @@ async def test_clear_profile_synthesis() -> None:
         is_public=False,
         status=ExecutionStatus.PASSED,
         profile_syntheses={"prof_1": RenderedSynthesisCache()},
-        pdf_report_path="reports/report.pdf",
     )
     repo.set_execution(rec)
 
     wf = _make_test_workflow(default_profile_id="prof_1")
     repo.set_workflow(wf)
 
-    driver = AsyncMock()
-    service._override.storage = driver
     await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prof_1")
-    driver.delete.assert_called_once_with("reports/report.pdf")
+    updated = await repo.get_execution("exe_0195f3a0000070008123456789abcdef")
+    assert updated is not None
+    assert "prof_1" not in updated.profile_syntheses
 
     repo.set_workflow(None)
     with pytest.raises(ResourceNotFoundError):
@@ -1183,15 +1160,14 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
 
 
 @pytest.mark.asyncio
-async def test_clear_profile_synthesis_storage_delete_branches() -> None:
+async def test_clear_profile_synthesis_persistence_error_branches() -> None:
     service, repo = _create_test_service()
     rec = _make_test_record(
         id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_0195f3a0000070018000000000000001",
         status=ExecutionStatus.PASSED,
         workflow_id="wor_0195f3a0000070008123456789abcdef",
-        pdf_report_path="executions/exe_0195f3a0000070008123456789abcdef/report.pdf",
-        profile_syntheses={"prf_default": {}},
+        profile_syntheses={"prf_default": RenderedSynthesisCache()},
     )
     repo.set_execution(rec)
 
@@ -1199,34 +1175,19 @@ async def test_clear_profile_synthesis_storage_delete_branches() -> None:
     repo.set_workflow(wf)
     initiator = TokenData(id="usr_root", role=UserRole.ROOT)
 
-    storage_mock = AsyncMock()
-    service._override.storage = storage_mock
-
-    storage_mock.delete.side_effect = AppException("Not found", status_code=404)
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
-        assert repo.get_call_count("update_execution") >= 1
-
-    repo.set_execution(rec)
-    storage_mock.delete.side_effect = AppException("Conflict", status_code=409)
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
+    try:
+        repo.inject_fault("update_execution", AppException("Conflict", status_code=409))
         with pytest.raises(AppException) as exc_info:
             await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 409
 
-    repo.set_execution(rec)
-    storage_mock.delete.side_effect = AppException("Server Error", status_code=500)
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
+        repo.clear_faults()
+        repo.inject_fault("update_execution", AppException("Server Error", status_code=500))
         with pytest.raises(AppException) as exc_info:
             await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 500
-
-    repo.set_execution(rec)
-    storage_mock.delete.side_effect = Exception("Unexpected")
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        with pytest.raises(AppException) as exc_info:
-            await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
-        assert exc_info.value.status_code == 500
+    finally:
+        repo.clear_faults()
 
 
 @pytest.mark.asyncio
@@ -1237,7 +1198,7 @@ async def test_override_atom_branches() -> None:
         organization_id="org_0195f3a0000070018000000000000001",
         created_by="usr_0195f3a0000070008000000000000012",
         status=ExecutionStatus.PASSED,
-        step_states={},
+        steps=[],
     )
     repo.set_execution(rec)
 
@@ -1289,7 +1250,7 @@ async def test_override_atom_branches() -> None:
         organization_id="org_0195f3a0000070018000000000000001",
         created_by="usr_0195f3a0000070008000000000000012",
         status=ExecutionStatus.PASSED,
-        step_states={"stp_1": step_state},
+        steps=[step_state],
         context_variables=ContextVariablesDTO(
             variables={
                 "var_1": EvaluatedMatrixContextDTO(
@@ -1298,7 +1259,6 @@ async def test_override_atom_branches() -> None:
                 )
             }
         ),
-        active_profile_id="prf_1",
     )
     repo.set_execution(rec_with_atoms)
 
@@ -1413,7 +1373,7 @@ async def test_check_resumability_string_version() -> None:
     rec = _make_test_record(
         status=ExecutionStatus.FAILED,
         metadata=ExecutionMetadata.model_construct(workflow_version="1"),
-        step_states={"stp_1": ExecutionStep(id="stp_1", label="Step 1", status=ExecutionStatus.FAILED)},
+        steps=[ExecutionStep(id="stp_1", label="Step 1", status=ExecutionStatus.FAILED)],
     )
 
     wf = _make_test_workflow(
@@ -1724,14 +1684,14 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
     repo.set_workflow(wf_with_step)
     rec_valid_version = rec_valid_version.model_copy(
         update={
-            "step_states": {
-                step_id: ExecutionStep(
+            "steps": [
+                ExecutionStep(
                     id=step_id,
                     label="Resume Step",
                     status=ExecutionStatus.FAILED,
                     scorecard_atoms={},
                 )
-            }
+            ]
         }
     )
     usage_mock.check_quota.return_value = True
@@ -1750,3 +1710,30 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
     repo.set_workflow(None)
     unchanged = await resumption._invalidate_drifted_steps(rec_valid_version)
     assert unchanged == rec_valid_version
+
+
+@pytest.mark.asyncio
+async def test_start_execution_binds_root_system_when_initiator_organization_none() -> None:
+    """Verify start_execution binds SystemOrganizations.ROOT_SYSTEM when initiator.organization_id is None."""
+    from backend_v2.models.auth import SystemOrganizations
+
+    arq_pool = AsyncMock()
+    service, repo = _create_test_service()
+    service.usage_service.check_quota.return_value = True
+
+    wf = _make_test_workflow(default_profile_id=None)
+    repo.set_workflow(wf)
+
+    payload = ExecutionCreate(
+        workflow_id=wf.id,
+        raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
+        target_locale="en",
+    )
+    initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000001",
+        role=UserRole.ROOT,
+        organization_id=None,
+    )
+
+    result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
+    assert result.organization_id == SystemOrganizations.ROOT_SYSTEM.value

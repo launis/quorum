@@ -287,6 +287,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(
                 ExecutionRecordFactory.build(
                     id="exe_0195f3a0000070018231231231231231",
                     workflow_id="wf_0195f3a0000070058555555555555555",
+                    organization_id="org_0195f3a0000070008000000000000001",
                     status=ExecutionStatus.PENDING,
                     target_locale="fi",
                     output_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
@@ -367,6 +368,8 @@ async def test_dag_executor_prompt_blocks_missing_execution_error(
             StepRule(
                 id="stp_0195f3a0000070018111111111111112",
                 task_blueprint="stp_0195f3a0000070019999999999999999",
+                depends_on=[],
+                input_mappings={},
             )
         ],
     )

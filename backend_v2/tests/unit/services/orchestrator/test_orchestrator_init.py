@@ -177,7 +177,7 @@ async def test_orchestrator_init_public_interface_and_resolution() -> None:
             workflow=single_wf,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Test document"}),
         )
-    assert record.step_states[step_1_id].status == ExecutionStatus.PASSED
+    assert next(s for s in record.steps if s.id == step_1_id).status == ExecutionStatus.PASSED
 
 
 def test_negative_orchestrator_init_cyclic_dag_raises_app_exception() -> None:

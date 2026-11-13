@@ -923,7 +923,6 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
     status: ExecutionStatus = ExecutionStatus.PENDING
     workflow_version: int = 1
     organization_id = Use(generate_opaque_id, EntityPrefix.ORGANIZATION)
-    active_profile_id: str | None = None
     output_profile_id: str | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
@@ -978,15 +977,6 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
             Empty list of ExecutionStep models.
         """
         return []
-
-    @classmethod
-    def step_states(cls) -> dict[str, ExecutionStep]:
-        """Generate an empty step states dictionary.
-
-        Returns:
-            Empty dictionary mapping step IDs to ExecutionStep instances.
-        """
-        return {}
 
     @classmethod
     def profile_syntheses(cls) -> dict[str, RenderedSynthesisCache]:

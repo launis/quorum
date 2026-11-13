@@ -534,7 +534,6 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
         status_message="Completed",
         context_variables=ContextVariablesDTO(variables={}),
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
-        step_states={},
         profile_syntheses={},
         source_identity_manifest={},
         frozen_context=FrozenContext(
@@ -673,18 +672,8 @@ def test_schema_dto_naming_parity() -> None:
         "execution_trace",
         "profile_syntheses",
     }
-    deprecated_domain_fields = {
-        "active_profile_id",
-        "frozen_context_storage_path",
-        "pdf_report_path",
-        "step_states",
-        "execution_trace_storage_path",
-        "context_variables_storage_path",
-    }
     assert parsed_tables["execution_payloads"] == sidecar_payload_fields | {"execution_id", "updated_at"}
-    assert parsed_tables["executions"] == (
-        set(ExecutionRecord.model_fields.keys()) - sidecar_payload_fields - deprecated_domain_fields
-    )
+    assert parsed_tables["executions"] == set(ExecutionRecord.model_fields.keys()) - sidecar_payload_fields
 
     # 5. report_artifacts <-> ReportArtifact + has_pdf sidecar flag
     assert parsed_tables["report_artifacts"] == set(ReportArtifact.model_fields.keys()) | {"has_pdf"}
@@ -1379,7 +1368,6 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
                 raw_inputs=WorkflowInputs(dynamic_inputs={}),
                 frozen_context=None,
                 steps=[],
-                step_states={},
                 profile_syntheses={},
                 source_identity_manifest={},
                 models_used={},
@@ -1449,7 +1437,6 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
             frozen_context=None,
             steps=[],
-            step_states={},
             profile_syntheses={},
             source_identity_manifest={},
             models_used={},
@@ -1830,7 +1817,6 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
         frozen_context=None,
         steps=[],
-        step_states={},
         profile_syntheses={},
         source_identity_manifest={},
         models_used={},

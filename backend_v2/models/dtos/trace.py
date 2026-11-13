@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Self, override
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, TypeAdapter, field_validator
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import V2CoreBase, parse_prefixed_uuid7
@@ -18,7 +18,6 @@ from backend_v2.models.enums import EntityPrefix, LaxExecutionStatus
 if TYPE_CHECKING:
     from backend_v2.models.domain.execution import (
         ExecutionStep,
-        ExecutionStepState,
         ExecutionSummarySnapshot,
         FrozenContext,
     )
@@ -52,7 +51,6 @@ class ExecutionCreateDTO(BaseDTO):
     workflow_id: Annotated[str, Field(min_length=1, description="Target workflow ID")]
     target_locale: Annotated[str, Field(default="fi", description="Target locale code")] = "fi"
     status: Annotated[str, Field(default="PENDING", description="Initial lifecycle status")] = "PENDING"
-    active_profile_id: Annotated[str | None, Field(default=None, description="Active profile ID")] = None
     output_profile_id: Annotated[
         str | None, Field(default=None, description="Optional presentation profile identifier")
     ] = None
@@ -97,9 +95,6 @@ class ExecutionUpdateDTO(BaseDTO):
     progress: Annotated[int | None, Field(default=None, ge=0, le=100, description="Completion percentage 0-100")] = None
     error: Annotated[str | None, Field(default=None, description="Failure error message")] = None
     steps: Annotated[list[ExecutionStep] | None, Field(default=None, description="DAG steps list (SSOT)")] = None
-    step_states: Annotated[
-        dict[str, ExecutionStepState] | None, Field(default=None, description="DAG step states mapping")
-    ] = None
     execution_trace: Annotated[
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent] | None,
         Field(default=None, description="Execution trace events"),
@@ -108,8 +103,6 @@ class ExecutionUpdateDTO(BaseDTO):
     profile_syntheses: Annotated[
         dict[str, RenderedSynthesisCache] | None, Field(default=None, description="Rendered synthesis cache (SSOT)")
     ] = None
-    pdf_report_path: Annotated[str | None, Field(default=None, description="Generated PDF report path")] = None
-    active_profile_id: Annotated[str | None, Field(default=None, description="Active profile ID")] = None
     output_profile_id: Annotated[str | None, Field(default=None, description="Target profile ID")] = None
     metadata: Annotated[ExecutionMetadata | None, Field(default=None, description="Execution metadata SSOT")] = None
     context_variables: Annotated[
@@ -225,6 +218,44 @@ class TraceEventMetadataEnvelope(BaseDTO):
             )
         return super().model_validate(
             obj, *args, strict=strict, from_attributes=from_attributes, context=context, **kwargs
+        )
+
+    @classmethod
+    @override
+    def model_validate_json(
+        cls,
+        json_data: str | bytes | bytearray,
+        *,
+        strict: bool | None = None,
+        extra: Any | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        by_name: bool | None = None,
+    ) -> Self:
+        """Hydrate metadata envelope from raw JSON string or bytes.
+
+        Args:
+            json_data: JSON string or byte sequence to parse and validate.
+            strict: Strict validation flag.
+            extra: Extra fields policy override forwarded to model_validate.
+            context: Validation context object.
+            by_alias: Whether to validate fields by alias.
+            by_name: Whether to validate fields by field name.
+
+        Returns:
+            Validated TraceEventMetadataEnvelope instance.
+
+        Raises:
+            ValidationError: If JSON parsing or model validation fails.
+        """
+        parsed: JsonSchemaNode = TypeAdapter(JsonSchemaNode).validate_json(json_data)
+        return cls.model_validate(
+            parsed,
+            strict=strict,
+            extra=extra,
+            context=context,
+            by_alias=by_alias,
+            by_name=by_name,
         )
 
 

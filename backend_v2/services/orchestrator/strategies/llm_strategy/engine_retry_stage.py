@@ -405,14 +405,17 @@ async def _persist_anomaly_retry_status(
         deps: Strategy dependencies container holding exec_repo.
     """
     exec_record = await deps.exec_repo.get_execution(execution_id)
-    if exec_record is not None and step_id in exec_record.step_states:
-        new_state = exec_record.step_states[step_id].model_copy(
-            update={"status": ExecutionStatus.RUNNING, "message_code": "event_llm_anomaly_retry"}
-        )
-        await deps.exec_repo.update_execution(
-            execution_id,
-            ExecutionUpdateDTO(step_states={**exec_record.step_states, step_id: new_state}),
-        )
+    if exec_record is not None:
+        matched_step = next((s for s in exec_record.steps if s.id == step_id), None)
+        if matched_step is not None:
+            new_state = matched_step.model_copy(
+                update={"status": ExecutionStatus.RUNNING, "message_code": "event_llm_anomaly_retry"}
+            )
+            updated_record = exec_record.with_updated_step_state(step_id, new_state)
+            await deps.exec_repo.update_execution(
+                execution_id,
+                ExecutionUpdateDTO(steps=updated_record.steps),
+            )
 
 
 def _compute_retry_output_digest(final_dict: dict[str, DomainInputValue]) -> str:

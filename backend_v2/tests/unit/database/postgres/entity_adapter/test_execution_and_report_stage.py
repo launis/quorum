@@ -72,7 +72,6 @@ async def test_execution_report_and_seed_collection_roundtrip_parity() -> None:
     conn = await pool.acquire()
     try:
         exec_full = ExecutionRecordFactory.build(
-            active_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
             output_profile_id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
             execution_summary=ExecutionSummarySnapshot(
                 strictness_level=90,
@@ -95,7 +94,6 @@ async def test_execution_report_and_seed_collection_roundtrip_parity() -> None:
         assert fetched_exec.metadata == exec_full.metadata
 
         exec_minimal = ExecutionRecordFactory.build(
-            active_profile_id=None,
             output_profile_id=None,
             frozen_context=None,
             execution_summary=None,
@@ -187,7 +185,7 @@ async def test_report_binary_size_mismatch_and_invalid_prefix_raise_validation_f
 async def test_collection_crud_and_report_artifact_fault_translation() -> None:
     """Verify driver faults in execution, report binary, and report artifact stage raise AppException."""
     pool = InMemoryAsyncPgPool()
-    exec_rec = ExecutionRecordFactory.build(active_profile_id=None, output_profile_id=None)
+    exec_rec = ExecutionRecordFactory.build(output_profile_id=None)
     artifact = ReportArtifactFactory.build(execution_id=exec_rec.id, workflow_id=exec_rec.workflow_id)
     binary_dto = ReportBinaryPayloadDTO(
         report_id=artifact.id,
@@ -265,7 +263,6 @@ async def test_save_execution_row_increments_state_version_on_matching_expected_
     conn = await pool.acquire()
     try:
         exec_rec = ExecutionRecordFactory.build(
-            active_profile_id=None,
             output_profile_id=None,
             state_version=1,
         )
@@ -295,7 +292,6 @@ async def test_save_execution_row_raises_conflict_409_on_stale_expected_state_ve
     conn = await pool.acquire()
     try:
         exec_rec = ExecutionRecordFactory.build(
-            active_profile_id=None,
             output_profile_id=None,
             state_version=2,
             progress=40,
@@ -336,7 +332,6 @@ async def test_save_execution_row_excludes_none_in_metadata_and_encode_jsonb_bin
     try:
         org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
         exec_rec = ExecutionRecordFactory.build(
-            active_profile_id=None,
             output_profile_id=None,
             execution_summary=ExecutionSummarySnapshot(
                 strictness_level=80,
@@ -449,12 +444,8 @@ async def test_list_update_occ_and_delete_execution_and_report_rows_roundtrip() 
             mcp_tool_audit=[],
         )
         exec_rec = ExecutionRecordFactory.build(
-            active_profile_id=None,
             output_profile_id=None,
             frozen_context=empty_frozen,
-            frozen_context_storage_path="gs://bucket/frozen.json",
-            execution_trace_storage_path="gs://bucket/trace.json",
-            context_variables_storage_path="gs://bucket/ctx.json",
             status_message="Initial",
             state_version=1,
         )
@@ -478,8 +469,6 @@ async def test_list_update_occ_and_delete_execution_and_report_rows_roundtrip() 
         assert after_occ.status == ExecutionStatus.RUNNING
         assert after_occ.status_message == "Evaluating Matrix"
         assert after_occ.progress == 60
-        assert after_occ.execution_trace_storage_path is None
-        assert after_occ.frozen_context_storage_path is None
 
         clear_frozen_update = ExecutionUpdateDTO(
             current_step="Finalizing",

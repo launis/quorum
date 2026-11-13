@@ -268,9 +268,7 @@ def test_workflow_state_inherits_execution_core_fields() -> None:
     core_field_names = {
         "status",
         "execution_trace",
-        "execution_trace_storage_path",
         "context_variables",
-        "context_variables_storage_path",
     }
     ws_fields = set(WorkflowState.model_fields.keys())
     missing = core_field_names - ws_fields
@@ -761,26 +759,24 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
 
 def test_execution_context_step_outputs_boundary_types() -> None:
     """Verify empty and multi-step StepOutputDTO entries preserve O(1) typed lookup and immutability."""
+    from backend_v2.tests.factories.model_factories import TraceEventFactory
+
     empty_projector = StateProjector([])
     assert empty_projector.snapshot == []
 
-    empty_content = StepOutputContentDTO.model_validate({"data": {}})
+    empty_content = StepOutputContentDTO(data={})
     assert len(empty_content.data) == 0
     assert "missing" not in empty_content
 
-    event_1 = TraceEvent.model_validate(
-        {
-            "step_name": "stp_0195f3a0000070008000000000000001",
-            "event_type": "output",
-            "content": StepOutputContentDTO.model_validate({"data": {"blk_1": "alpha", "blk_2": 42}}),
-        }
+    event_1 = TraceEventFactory.build(
+        step_name="stp_0195f3a0000070008000000000000001",
+        event_type="output",
+        content=StepOutputContentDTO(data={"blk_1": "alpha", "blk_2": 42}),
     )
-    event_2 = TraceEvent.model_validate(
-        {
-            "step_name": "stp_0195f3a0000070008000000000000002",
-            "event_type": "output",
-            "content": StepOutputContentDTO.model_validate({"data": {"blk_3": ["item_a", "item_b"]}}),
-        }
+    event_2 = TraceEventFactory.build(
+        step_name="stp_0195f3a0000070008000000000000002",
+        event_type="output",
+        content=StepOutputContentDTO(data={"blk_3": ["item_a", "item_b"]}),
     )
     multi_projector = StateProjector([event_1, event_2])
     outputs = multi_projector.snapshot

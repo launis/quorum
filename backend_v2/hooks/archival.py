@@ -20,7 +20,6 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.judge import JudgeOutput
 from backend_v2.models.dtos.hook_delta import ArchivistPrecedentsResultDTO
 from backend_v2.models.state import TraceEvent
-from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 
@@ -30,40 +29,19 @@ __all__ = ["retrieve_precedent_hook"]
 
 
 async def _load_trace_events(res: ExecutionRecord) -> list[TraceEvent]:
-    """Load trace events from the execution record or fallback disk storage.
+    """Load validated trace events from the hydrated execution record.
 
     Args:
         res: Completed execution record to inspect.
 
     Returns:
         List of validated trace events for the execution, or empty list if none exist.
-
-    Raises:
-        AppException: Raised with ErrorCodes.STATE_INTEGRITY_ERROR if reading or validating
-            the disk trace file fails.
     """
     if res.execution_trace:
         return res.execution_trace
 
-    try:
-        driver = get_storage_driver()
-        trace_path = f"executions/{res.id}/execution_trace.json"
-
-        if await driver.exists(trace_path):
-            raw_trace = await driver.read(trace_path)
-            ta = TypeAdapter(list[TraceEvent])
-            return ta.validate_json(raw_trace)
-
-        logger.warning("[ArchivalHook] Execution %s has no trace events in DB or Disk. Skipping.", res.id)
-        return []
-    except Exception as e:
-        msg = f"Failed to load trace events from disk for {res.id}: {e}"
-        logger.error("[ArchivalHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=True)
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value, "execution_id": res.id},
-        ) from e
+    logger.warning("[ArchivalHook] Execution %s has no persisted trace events. Skipping.", res.id)
+    return []
 
 
 def _extract_judge_outputs(trace_events: list[TraceEvent]) -> dict[str, JudgeOutput]:

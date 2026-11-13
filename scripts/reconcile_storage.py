@@ -233,13 +233,13 @@ def _extract_profile_id(trace_file: Path) -> str | None:
     return None
 
 
-def _resolve_trace_path(storage_dir: Path, exe_id: str, trace_path_raw: str | None) -> Path | None:
+def _resolve_trace_path(storage_dir: Path, exe_id: str, trace_path_raw: str | None = None) -> Path | None:
     """Resolves the physical trace file path on disk.
 
     Args:
         storage_dir: Base execution artifacts directory.
         exe_id: Canonical opaque execution ID.
-        trace_path_raw: Raw storage path from the database record.
+        trace_path_raw: Optional explicit trace file path override.
 
     Returns:
         Path if physical trace file exists on disk, None otherwise.
@@ -274,14 +274,10 @@ def _reconstitute_execution_record(
     exe_dir = storage_dir / exe_id
     trace_file = exe_dir / "execution_trace.json"
     pdf_file = exe_dir / "report.pdf"
-    cv_file = exe_dir / "context_variables.json"
 
     workflow_id, target_locale = _extract_trace_metadata(trace_file)
     profile_id = _extract_profile_id(trace_file)
 
-    trace_storage_path = f"executions/{exe_id}/execution_trace.json"
-    cv_storage_path = f"executions/{exe_id}/context_variables.json" if cv_file.exists() else None
-    pdf_storage_path = str(pdf_file).replace("\\", "/") if pdf_file.exists() else None
     status = ExecutionStatus.PASSED
     now_dt = datetime.now(UTC)
 
@@ -304,9 +300,6 @@ def _reconstitute_execution_record(
                 "output_profile_id": resolved_prf_id,
                 "target_locale": target_locale,
                 "status": status,
-                "execution_trace_storage_path": trace_storage_path,
-                "context_variables_storage_path": cv_storage_path,
-                "pdf_report_path": pdf_storage_path,
                 "steps": [],
                 "execution_trace": [],
                 "context_variables": ContextVariablesDTO(variables={}),
@@ -323,14 +316,10 @@ def _reconstitute_execution_record(
         target_locale=target_locale,
         output_profile_id=profile_id or "prof_default",
         status=status,
-        execution_trace_storage_path=trace_storage_path,
-        context_variables_storage_path=cv_storage_path,
-        pdf_report_path=pdf_storage_path,
         is_resumable=False,
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
         frozen_context=None,
         steps=[],
-        step_states={},
         profile_syntheses={},
         source_identity_manifest={},
         models_used={},
@@ -417,8 +406,7 @@ def reconcile_storage(
             continue
         db_execution_ids.add(rec_id)
 
-        trace_path_raw = rec.execution_trace_storage_path
-        resolved_trace = _resolve_trace_path(storage_dir, rec_id, trace_path_raw)
+        resolved_trace = _resolve_trace_path(storage_dir, rec_id)
         if resolved_trace is None:
             orphaned_db_ids.append(rec_id)
 

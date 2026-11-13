@@ -50,7 +50,6 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        step_states={},
         profile_syntheses={},  # profile_id not in profile_syntheses
     )
 
@@ -142,7 +141,6 @@ async def test_synthesis_task_locale_as_profile_id_not_found_error(monkeypatch: 
         status=ExecutionStatus.PASSED,
         execution_trace=[],
         steps=[],
-        step_states={},
         profile_syntheses={},
         target_locale="fi",
         raw_inputs=WorkflowInputs(),

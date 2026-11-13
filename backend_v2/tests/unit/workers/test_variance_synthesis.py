@@ -106,7 +106,6 @@ def _make_execution(
             mcp_tool_audit=[],
         ),
         steps=[],
-        step_states={},
         profile_syntheses={},
         source_identity_manifest={},
         models_used={},

@@ -29,7 +29,6 @@ from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDT
 from backend_v2.models.enums import EntityPrefix, ExecutionStatus
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.services.localization import set_language
-from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 
 __all__ = ["execute_workflow_job"]
@@ -217,51 +216,15 @@ async def _fetch_and_validate_execution(
 async def _load_trace_events(
     updated_exec_record: ExecutionRecord,
 ) -> list[ErrorTraceEvent | TombstoneEvent | TraceEvent]:
-    """Load execution trace events, hydrating from offloaded blob storage if present.
+    """Return execution trace events hydrated on the ExecutionRecord.
 
     Args:
         updated_exec_record: ExecutionRecord returned from GraphEngine execution.
 
     Returns:
         Complete list of trace events for FinOps and telemetry aggregation.
-
-    Raises:
-        AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if offloaded trace reading fails.
     """
-    trace_events = list(updated_exec_record.execution_trace)
-    if not updated_exec_record.execution_trace_storage_path:
-        return trace_events
-
-    try:
-        storage_driver = get_storage_driver()
-        blob_data = await storage_driver.read(updated_exec_record.execution_trace_storage_path)
-        if blob_data:
-            offloaded_events = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(blob_data)
-            if len(offloaded_events) >= len(trace_events):
-                return offloaded_events
-    except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
-        trace_path = updated_exec_record.execution_trace_storage_path
-        msg = f"Failed to hydrate offloaded trace from '{trace_path}' for telemetry: {err}"
-        logger.error(
-            "[ExecutionWorker] %s: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            msg,
-            extra={
-                "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                "execution_id": updated_exec_record.id,
-                "path": updated_exec_record.execution_trace_storage_path,
-            },
-            exc_info=True,
-        )
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={
-                "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value,
-                "execution_id": updated_exec_record.id,
-            },
-        ) from err
-    return trace_events
+    return list(updated_exec_record.execution_trace)
 
 
 def _extract_step_trace_metadata(
@@ -369,48 +332,13 @@ def _reconcile_execution_steps(
     Returns:
         List of updated ExecutionStep instances.
     """
-    existing_steps = (
-        updated_exec_record.steps
-        if updated_exec_record.steps
-        else [
-            ExecutionStep(
-                id=k,
-                label=v.label,
-                status=v.status,
-                last_error=v.last_error,
-                message_code=v.message_code,
-                scorecard_atoms=v.scorecard_atoms,
-                progress=v.progress,
-                has_warning=v.has_warning,
-            )
-            for k, v in updated_exec_record.step_states.items()
-        ]
-    )
     updated_steps: list[ExecutionStep] = []
-    for st in existing_steps:
-        st_state = None
-        if st.id in updated_exec_record.step_states:
-            st_state = updated_exec_record.step_states[st.id]
-        actual_status = st_state.status if st_state else st.status
-        last_err = st_state.last_error if st_state else st.last_error
-        msg_code = st_state.message_code if st_state else st.message_code
-        scorecard = st_state.scorecard_atoms if st_state else st.scorecard_atoms
-        actual_progress = st_state.progress if st_state else st.progress
-        actual_warning = st_state.has_warning if st_state else st.has_warning
-
-        tel = None
+    for st in updated_exec_record.steps:
         if st.id in step_telemetry:
             tel = step_telemetry[st.id]
-        if tel:
             updated_steps.append(
                 st.model_copy(
                     update={
-                        "status": actual_status,
-                        "last_error": last_err,
-                        "message_code": msg_code,
-                        "scorecard_atoms": scorecard,
-                        "progress": actual_progress,
-                        "has_warning": actual_warning,
                         "model_strategy": tel.model_strategy,
                         "physical_model": tel.physical_model,
                         "system_fingerprint": tel.system_fingerprint,
@@ -424,18 +352,7 @@ def _reconcile_execution_steps(
                 )
             )
         else:
-            updated_steps.append(
-                st.model_copy(
-                    update={
-                        "status": actual_status,
-                        "last_error": last_err,
-                        "message_code": msg_code,
-                        "scorecard_atoms": scorecard,
-                        "progress": actual_progress,
-                        "has_warning": actual_warning,
-                    }
-                )
-            )
+            updated_steps.append(st)
     return updated_steps
 
 
@@ -520,7 +437,6 @@ async def _finalize_and_persist_execution(
             status=ExecutionStatus.PASSED,
             completed_at=datetime.now(UTC),
             steps=updated_steps,
-            step_states=updated_exec_record.step_states,
             duration_ms=duration_ms,
             models_used=models_used,
             metadata=updated_exec_record.metadata,

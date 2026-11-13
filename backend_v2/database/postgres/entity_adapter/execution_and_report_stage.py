@@ -868,10 +868,6 @@ def _apply_nullable_execution_fields(record: ExecutionRecord, updates: Execution
         update={
             "progress": updates.progress if "progress" in fields_set else record.progress,
             "error": updates.error if "error" in fields_set else record.error,
-            "pdf_report_path": updates.pdf_report_path if "pdf_report_path" in fields_set else record.pdf_report_path,
-            "active_profile_id": (
-                updates.active_profile_id if "active_profile_id" in fields_set else record.active_profile_id
-            ),
             "output_profile_id": (
                 updates.output_profile_id if "output_profile_id" in fields_set else record.output_profile_id
             ),
@@ -909,14 +905,10 @@ def apply_execution_updates(existing: ExecutionRecord, updates: ExecutionUpdateD
             "status": _coalesce_optional(updates.status, stage1.status),
             "status_message": _resolve_updated_status_message(stage1, updates),
             "steps": _coalesce_optional(updates.steps, stage1.steps),
-            "step_states": _coalesce_optional(updates.step_states, stage1.step_states),
             "execution_trace": _coalesce_optional(updates.execution_trace, stage1.execution_trace),
-            "execution_trace_storage_path": None,
             "frozen_context": next_frozen_context,
-            "frozen_context_storage_path": None,
             "profile_syntheses": _coalesce_optional(updates.profile_syntheses, stage1.profile_syntheses),
             "context_variables": _coalesce_optional(updates.context_variables, stage1.context_variables),
-            "context_variables_storage_path": None,
             "is_resumable": _coalesce_optional(updates.is_resumable, stage1.is_resumable),
             "prompt_tokens": _coalesce_optional(updates.prompt_tokens, stage1.prompt_tokens),
             "completion_tokens": _coalesce_optional(updates.completion_tokens, stage1.completion_tokens),

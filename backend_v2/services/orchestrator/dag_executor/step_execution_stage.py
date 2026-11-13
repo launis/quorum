@@ -119,10 +119,8 @@ async def prepare_step_strategy_context(
             logger.error("[DAGExecutor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        if (
-            src_id not in state.exec_record.step_states
-            or state.exec_record.step_states[src_id].status != ExecutionStatus.PASSED
-        ):
+        src_step = next((s for s in state.exec_record.steps if s.id == src_id), None)
+        if src_step is None or src_step.status != ExecutionStatus.PASSED:
             logger.error(
                 "[DAGExecutor] %s: Upstream causal step '%s' did not pass.",
                 ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name,
@@ -188,7 +186,7 @@ async def prepare_step_strategy_context(
     if step_obj.task_blueprint is not None and step_obj.task_blueprint in state.step_definitions:
         step_def = state.step_definitions[step_obj.task_blueprint]
     if step_def and ("atom_flattening_hook" in step_def.pre_hooks or "synthesis_distiller_hook" in step_def.pre_hooks):
-        has_evaluated_atoms = any(state.exec_record.step_states.values()) or any(
+        has_evaluated_atoms = bool(state.exec_record.steps) or any(
             evt.event_type == "output" and evt.step_name != "matrix_reducer"
             for evt in state.exec_record.execution_trace
         )
@@ -273,7 +271,8 @@ async def execute_dag_step_wrapper(
         WorkflowExecutionError: Triggered when pre-synthesis reduction or step execution fails.
     """
     step_obj = state.steps_by_id[step_id]
-    if state.exec_record.step_states[step_id].status == ExecutionStatus.PASSED:
+    current_step = next((s for s in state.exec_record.steps if s.id == step_id), None)
+    if current_step is not None and current_step.status == ExecutionStatus.PASSED:
         return
 
     _update_lock = state.update_lock
@@ -287,10 +286,8 @@ async def execute_dag_step_wrapper(
 
     try:
         for dep in step_obj.depends_on:
-            if (
-                dep in state.exec_record.step_states
-                and state.exec_record.step_states[dep].status != ExecutionStatus.PASSED
-            ):
+            dep_step = next((s for s in state.exec_record.steps if s.id == dep), None)
+            if dep_step is not None and dep_step.status != ExecutionStatus.PASSED:
                 async with _update_lock:
                     blk_err = f"Dependency {dep} did not pass"
                     state.exec_record = state.exec_record.transition_step(
@@ -303,9 +300,10 @@ async def execute_dag_step_wrapper(
         upstream_graph, node_step_def = await prepare_step_strategy_context(state=state, step_id=step_id)
         upstream_merkle_hashes: dict[str, str | None] = {}
         for dep_id in step_obj.depends_on:
+            dep_step = next((s for s in state.exec_record.steps if s.id == dep_id), None)
             dep_merkle_hash: str | None = None
-            if dep_id in state.exec_record.step_states:
-                dep_merkle_hash = state.exec_record.step_states[dep_id].input_merkle_hash
+            if dep_step is not None:
+                dep_merkle_hash = dep_step.input_merkle_hash
             upstream_merkle_hashes[dep_id] = dep_merkle_hash
         step_merkle_hash = compute_step_input_merkle_hash(
             step_rule=step_obj,
@@ -335,7 +333,8 @@ async def execute_dag_step_wrapper(
                 label = f"Evaluating batch {completed}/{total}..."
 
             async with _update_lock:
-                cur_st = state.exec_record.step_states[step_id].status
+                prog_step = next((s for s in state.exec_record.steps if s.id == step_id), None)
+                cur_st = prog_step.status if prog_step is not None else ExecutionStatus.RUNNING
                 state.exec_record = state.exec_record.transition_step(step_id, cur_st, prog, label)
                 state.exec_record = state.exec_record.model_copy(update={"progress": prog, "status_message": label})
             try:

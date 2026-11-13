@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState, FrozenContext
+from backend_v2.models.domain.execution import ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
@@ -36,7 +36,6 @@ class NodeExecutionUpdateDTO(V2CoreBase):
     Attributes:
         status: Target execution status.
         execution_trace: Current trace event list.
-        step_states: Step states mapping.
         frozen_context: Frozen context snapshot.
         context_variables: Context variables mapping.
         error: Error message if failed.
@@ -52,7 +51,6 @@ class NodeExecutionUpdateDTO(V2CoreBase):
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
         Field(description="Current trace event list"),
     ]
-    step_states: Annotated[dict[str, ExecutionStepState], Field(description="Step states mapping")]
     frozen_context: Annotated[FrozenContext | None, Field(default=None, description="Frozen context snapshot")] = None
     context_variables: Annotated[
         ContextVariablesDTO | None, Field(default=None, description="Context variables mapping")
@@ -78,7 +76,6 @@ class NodeExecutionUpdateDTO(V2CoreBase):
         return ExecutionUpdateDTO(
             status=self.status,
             execution_trace=self.execution_trace,
-            step_states=self.step_states,
             frozen_context=self.frozen_context,
             context_variables=self.context_variables,
             error=self.error,

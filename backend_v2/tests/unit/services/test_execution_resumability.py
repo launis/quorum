@@ -56,7 +56,7 @@ def _create_record(
     workflow_id: str = "wor_0195f3a0000070018234567890abcdef",
     status: ExecutionStatus = ExecutionStatus.FAILED,
     workflow_version: int = 1,
-    step_states: dict[str, ExecutionStepState] | None = None,
+    steps: list[ExecutionStepState] | None = None,
     execution_trace: list[TraceEvent] | None = None,
     organization_id: str = "org_0195f3a0000070018000000000000001",
     created_by: str = "usr_0195f3a0000070008000000000000001",
@@ -70,8 +70,7 @@ def _create_record(
         created_by=created_by,
         workflow_version=workflow_version,
         output_profile_id="prf_0195f3a0000070008123456789abcdef",
-        active_profile_id="prf_0195f3a0000070008123456789abcdef",
-        step_states=step_states or {},
+        steps=steps or [],
         execution_trace=execution_trace or [],
         profile_syntheses={"prf_0195f3a0000070008123456789abcdef": RenderedSynthesisCache()},
         context_variables=ContextVariablesDTO(),
@@ -121,7 +120,7 @@ async def test_check_resumability_allows_zero_outputs() -> None:
 
     step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
     record = _create_record(
-        step_states={step_id: step_state},
+        steps=[step_state],
         execution_trace=[TraceEvent(step_name="inputs", event_type="input", content={})],
     )
 
@@ -130,7 +129,7 @@ async def test_check_resumability_allows_zero_outputs() -> None:
 
 
 @pytest.mark.asyncio
-async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
+async def test_check_resumability_allows_virtual_steps() -> None:
     usage_mock = AsyncMock()
     service, repo = _create_test_service(usage_service=usage_mock)
     usage_mock.check_quota.return_value = True
@@ -140,9 +139,9 @@ async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
     await repo.save_workflow(wf)
 
     step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
-    virtual_state = ExecutionStepState(id="sys_render_prof_1", label="Render", status=ExecutionStatus.PASSED)
+    virtual_state = ExecutionStepState(id="sys_rag_preflight", label="RAG Preflight", status=ExecutionStatus.PASSED)
     record = _create_record(
-        step_states={step_id: step_state, "sys_render_prof_1": virtual_state},
+        steps=[step_state, virtual_state],
     )
 
     is_res = await service.check_resumability(record)
@@ -165,7 +164,7 @@ async def test_check_resumability_structural_mismatch() -> None:
 
     step_state1 = ExecutionStepState(id=step_id1, label="Step 1", status=ExecutionStatus.FAILED)
     record = _create_record(
-        step_states={step_id1: step_state1},
+        steps=[step_state1],
         execution_trace=[TraceEvent(step_name=step_id1, event_type="output", content={})],
     )
 
@@ -184,7 +183,7 @@ async def test_check_resumability_workflow_version_drift() -> None:
     step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
     record = _create_record(
         workflow_version=1,
-        step_states={step_id: step_state},
+        steps=[step_state],
         execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
     )
 
@@ -205,7 +204,7 @@ async def test_check_resumability_quota_exceeded() -> None:
     step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
     record = _create_record(
         organization_id="org_0195f3a0000070018000000000000001",
-        step_states={step_id: step_state},
+        steps=[step_state],
         execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
     )
 
@@ -227,7 +226,7 @@ async def test_check_resumability_successful_resumption() -> None:
     step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
     record = _create_record(
         organization_id="org_0195f3a0000070018000000000000001",
-        step_states={step_id: step_state},
+        steps=[step_state],
         execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
     )
 
@@ -265,15 +264,15 @@ async def test_resume_execution_firewall_denied() -> None:
 
 
 @pytest.mark.asyncio
-async def test_check_resumability_missing_step_in_step_states_returns_false() -> None:
-    """ISTQB Negative: Missing workflow step from step_states returns False."""
+async def test_check_resumability_missing_step_in_steps_returns_false() -> None:
+    """ISTQB Negative: Missing workflow step from canonical steps list returns False."""
     service, repo = _create_test_service()
 
     step_id = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
     wf = _create_workflow(steps=[StepRule(id=step_id, task_blueprint="b1")])
     await repo.save_workflow(wf)
 
-    record = _create_record(step_states={})
+    record = _create_record(steps=[])
     is_res = await service.check_resumability(record)
     assert is_res is False
 
@@ -393,9 +392,9 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
     )
     record = _create_record(
         status=ExecutionStatus.FAILED,
-        step_states={step_1_id: state_1, step_2_id: state_2, step_3_id: state_3},
+        steps=[state_1, state_2, state_3],
         execution_trace=[TraceEvent(step_name="inputs", event_type="input", content={})],
-    ).model_copy(update={"steps": [state_1, state_2, state_3]})
+    )
     await repo.save_execution(record)
 
     # Mutate step_2's prompt block so step_2's current Merkle hash drifts while step_1's hash remains valid
@@ -406,13 +405,14 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
     arq_pool = AsyncMock()
     resumed = await service.resume_execution(initiator=initiator, execution_id=record.id, arq_pool=arq_pool)
 
+    resumed_by_id = {s.id: s for s in resumed.steps}
     assert resumed.status == ExecutionStatus.RUNNING
-    assert resumed.step_states[step_1_id].status == ExecutionStatus.PASSED
-    assert resumed.step_states[step_1_id].input_merkle_hash == hash_1
-    assert resumed.step_states[step_2_id].status == ExecutionStatus.PENDING
-    assert resumed.step_states[step_2_id].input_merkle_hash is None
-    assert resumed.step_states[step_3_id].status == ExecutionStatus.PENDING
-    assert resumed.step_states[step_3_id].input_merkle_hash is None
+    assert resumed_by_id[step_1_id].status == ExecutionStatus.PASSED
+    assert resumed_by_id[step_1_id].input_merkle_hash == hash_1
+    assert resumed_by_id[step_2_id].status == ExecutionStatus.PENDING
+    assert resumed_by_id[step_2_id].input_merkle_hash is None
+    assert resumed_by_id[step_3_id].status == ExecutionStatus.PENDING
+    assert resumed_by_id[step_3_id].input_merkle_hash is None
 
     # Verify bootstrap_workflow_execution_state also enforces the exact same Merkle drift invalidation
     await repo.save_execution(record)
@@ -432,6 +432,7 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
         raw_inputs=record.raw_inputs,
         deps=deps,
     )
-    assert bootstrapped.exec_record.step_states[step_1_id].status == ExecutionStatus.PASSED
-    assert bootstrapped.exec_record.step_states[step_2_id].status == ExecutionStatus.PENDING
-    assert bootstrapped.exec_record.step_states[step_3_id].status == ExecutionStatus.PENDING
+    bootstrapped_by_id = {s.id: s for s in bootstrapped.exec_record.steps}
+    assert bootstrapped_by_id[step_1_id].status == ExecutionStatus.PASSED
+    assert bootstrapped_by_id[step_2_id].status == ExecutionStatus.PENDING
+    assert bootstrapped_by_id[step_3_id].status == ExecutionStatus.PENDING

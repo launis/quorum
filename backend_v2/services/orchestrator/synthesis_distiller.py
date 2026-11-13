@@ -70,13 +70,20 @@ async def _fetch_historical_context(
         mode.value,
     )
     all_execs = await deps.exec_repo.get_all_executions(organization_id=org_id, user_id=user_id)
+    passed_candidates = [
+        e
+        for e in all_execs
+        if e.id != state.execution_id and e.status in (ExecutionStatus.PASSED, "completed", "PASSED")
+    ]
+    passed_candidates.sort(key=lambda item: item.completed_at or item.created_at, reverse=True)
 
-    valid_past = []
-    for e in all_execs:
-        if e.id == state.execution_id:
-            continue
-        if e.status not in (ExecutionStatus.PASSED, "completed", "PASSED"):
-            continue
+    valid_past: list[tuple[ExecutionRecord, str]] = []
+    for candidate in passed_candidates:
+        e = candidate
+        if not e.profile_syntheses:
+            hydrated = await deps.exec_repo.get_execution(candidate.id)
+            if isinstance(hydrated, ExecutionRecord):
+                e = hydrated
 
         best_cache = None
         if e.profile_syntheses:
@@ -96,11 +103,8 @@ async def _fetch_historical_context(
             continue
 
         valid_past.append((e, json.dumps([b.model_dump(mode="json") for b in all_blocks], ensure_ascii=False)))
-
-    valid_past.sort(key=lambda x: x[0].completed_at or x[0].created_at, reverse=True)
-
-    if mode == HistoricalContextMode.SLIDING_WINDOW_3:
-        valid_past = valid_past[:3]
+        if mode == HistoricalContextMode.SLIDING_WINDOW_3 and len(valid_past) >= 3:
+            break
 
     if not valid_past:
         return ""

@@ -250,7 +250,6 @@ async def test_seed_collection_batch_and_verify_counts_roundtrip_parity() -> Non
         exec_rec = ExecutionRecordFactory.build(
             workflow_id=wf.id,
             organization_id=org.id,
-            active_profile_id=prf.id,
             output_profile_id=prf.id,
         )
         rep = ReportArtifactFactory.build(execution_id=exec_rec.id, workflow_id=wf.id, profile_id=prf.id)

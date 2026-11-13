@@ -27,7 +27,6 @@ from backend_v2.models.dtos.matrix_scorecard import (
     MatrixScorecardRowDTO,
     ScorecardAtomDTO,
 )
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import ExecutionStatus
 
 if TYPE_CHECKING:
@@ -198,7 +197,7 @@ def resolve_context_target(parent_m: MatrixScorecardRowDTO | None, locale: str) 
 def extract_causal_result(
     execution: ExecutionRecord | None,
 ) -> CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None:
-    """Extracts CausalTdaFusionResultDTO or CausalGraphPayloadDTO from execution trace or step states.
+    """Extracts CausalTdaFusionResultDTO or CausalGraphPayloadDTO from execution trace.
 
     Args:
         execution: Optional ExecutionRecord to extract causal data from.
@@ -215,17 +214,6 @@ def extract_causal_result(
                 return evt.content
             case _:
                 continue
-
-    if execution.step_states:
-        for state_val in execution.step_states.values():
-            if isinstance(state_val, StepOutputDTO):
-                match state_val.payload:
-                    case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                        return state_val.payload
-                    case _:
-                        continue
-            elif isinstance(state_val, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
-                return state_val
 
     return None
 

@@ -134,6 +134,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         ExecutionRecordFactory.build(
             id="exe_0195f3a0000070018111222233334444",
             workflow_id="wf_0195f3a0000070008000000000000000",
+            organization_id="org_0195f3a0000070008000000000000001",
             output_profile_id="prof_0195f3a0000070008000000000000000",
             status=ExecutionStatus.PENDING,
             target_locale="en",

@@ -390,6 +390,67 @@ async def test_build_historical_context_all_branches() -> None:
     res_empty = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, state, "prof_1")
     assert res_empty == ""
 
+    # 5. Summary rows returned by ExecutionRepositoryImpl.get_all_executions are hydrated via get_execution
+    from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
+
+    uow = InMemoryUnitOfWork()
+    pg_exec_repo = ExecutionRepositoryImpl(uow_factory=lambda: uow)
+    pg_past_exec = ExecutionRecord(
+        id="exe_0195f3a0000070018111111111111111",
+        workflow_id="wf_0195f3a0000070018111111111111111",
+        output_profile_id="prf_0195f3a0000070018111111111111111",
+        status=ExecutionStatus.PASSED,
+        progress=100,
+        status_message="Completed",
+        completed_at=datetime.now(UTC),
+        target_locale="en",
+        organization_id="org_0195f3a0000070018111111111111111",
+        created_by="usr_0195f3a0000070008000000000000001",
+        metadata=ExecutionMetadata(),
+        profile_syntheses={
+            "prf_0195f3a0000070018111111111111111": RenderedSynthesisCache(
+                section_syntheses={
+                    "sec1": [ParagraphBlock(text="Hydrated sidecar synthesis", exact_quotes=[], citations=[])]
+                },
+            )
+        },
+    )
+    await uow.entities.save_execution(pg_past_exec)
+    summary_rows = await pg_exec_repo.get_all_executions(
+        organization_id="org_0195f3a0000070018111111111111111",
+        user_id="usr_0195f3a0000070008000000000000001",
+    )
+    assert len(summary_rows) == 1
+    assert summary_rows[0].profile_syntheses == {}
+
+    pg_deps = HookDependencies(
+        exec_repo=pg_exec_repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
+    pg_state = HookState(
+        execution_id="exe_0195f3a0000070008000000000000000",
+        workflow_id="wor_0195f3a0000070018111111111111111",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(
+            initiator_id="usr_0195f3a0000070008000000000000001",
+            organization_id="org_0195f3a0000070018111111111111111",
+        ),
+        inputs=ExecutionInputsDTO(),
+    )
+    res_hydrated = await _fetch_historical_context(
+        HistoricalContextMode.SLIDING_WINDOW_3,
+        pg_deps,
+        pg_state,
+        "prf_0195f3a0000070018111111111111111",
+    )
+    assert "Hydrated sidecar synthesis" in res_hydrated
+
 
 @pytest.mark.asyncio
 async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
@@ -569,3 +630,21 @@ def test_compress_synthesis_payload_preserves_all_evaluations_by_default() -> No
     pruned = compressed_dict["results"]
     assert len(pruned) == 50
     assert pruned[0]["semantic_reasoning"] == long_reasoning.strip()
+
+
+def test_synthesis_distiller_execution_record_invalid_step_states_failure() -> None:
+    """ISTQB Negative: Verify ExecutionRecord rejects legacy step_states keys during synthesis hydration."""
+    from pydantic import ValidationError
+
+    from backend_v2.models.domain.execution import ExecutionRecord
+
+    with pytest.raises(ValidationError):
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_0195f3a0000070018111111111111111",
+                "workflow_id": "wf_0195f3a0000070018111111111111111",
+                "status": "PASSED",
+                "target_locale": "en",
+                "step_states": {},
+            }
+        )

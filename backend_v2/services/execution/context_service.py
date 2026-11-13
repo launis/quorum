@@ -7,7 +7,7 @@ from collections.abc import Awaitable
 from typing import Protocol
 
 from backend_v2.database.interfaces import IExecutionRepository
-from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
@@ -129,30 +129,8 @@ class ExecutionContextService:
         Raises:
             ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
             PermissionDeniedError: If the initiator lacks permission to view the execution (ErrorCodes.PERMISSION_DENIED).
-            AppException: If reading or validating the offloaded context file from storage fails (ErrorCodes.RESOURCE_NOT_FOUND).
         """
         record = await self._get_execution(initiator=initiator, execution_id=execution_id)
-
-        if record.frozen_context_storage_path:
-            storage_drv = storage.get_storage_driver()
-            try:
-                raw_bytes = await storage_drv.read(record.frozen_context_storage_path)
-                parsed_context = FrozenContext.model_validate_json(raw_bytes)
-                pretty_bytes = parsed_context.model_dump_json(indent=2).encode("utf-8")
-                return pretty_bytes, f"frozen_context_{execution_id}.json"
-            except Exception as strg_err:
-                logger.error(
-                    "[ExecutionContextService] %s: Failed to fetch frozen context from storage for execution '%s'",
-                    ErrorCodes.RESOURCE_NOT_FOUND.name,
-                    execution_id,
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": execution_id},
-                )
-                raise AppException(
-                    message="Forensic context file not found in storage",
-                    status_code=404,
-                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-                ) from strg_err
 
         fc = (
             record.frozen_context
