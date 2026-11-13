@@ -31,7 +31,7 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
-from backend_v2.models.enums import EntityPrefix
+from backend_v2.models.enums import EntityPrefix, ExecutionStatus
 from backend_v2.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,7 @@ __all__ = [
     "hydrate_execution_row",
     "hydrate_report_artifact_row",
     "list_execution_rows",
+    "list_executions_filtered_rows",
     "list_report_artifacts_by_execution_row",
     "save_execution_row",
     "save_report_binary_row",
@@ -585,6 +586,72 @@ async def list_execution_rows(conn: _Conn, timeout: float) -> list[ExecutionReco
     effective_timeout = resolve_effective_timeout(timeout)
     try:
         rows = await conn.fetch(_LIST_EXECUTIONS_SQL, timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="executions",
+            entity_id="*",
+        ) from exc
+    return [hydrate_execution_row(r) for r in rows]
+
+
+async def list_executions_filtered_rows(
+    conn: _Conn,
+    timeout: float,
+    *,
+    organization_id: str | None = None,
+    created_by: str | None = None,
+    workflow_id: str | None = None,
+    status: ExecutionStatus | None = None,
+    limit: int = 100,
+) -> list[ExecutionRecord]:
+    """List ExecutionRecord rows filtered by indexed columns and ordered by id DESC.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        organization_id: Optional canonical org_<32_hex> organization filter.
+        created_by: Optional canonical usr_<32_hex> creator filter.
+        workflow_id: Optional canonical wf_<32_hex> workflow filter.
+        status: Optional ExecutionStatus filter.
+        limit: Maximum number of records to return.
+
+    Returns:
+        List of hydrated ExecutionRecord models ordered by id DESC.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid filter ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    conditions: list[str] = []
+    params: list[object] = []
+    if organization_id is not None:
+        org_uuid = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
+        params.append(org_uuid)
+        conditions.append(f"organization_id = ${len(params)}::uuid")
+    if created_by is not None:
+        usr_uuid = parse_prefixed_uuid7(created_by, EntityPrefix.USER)
+        params.append(usr_uuid)
+        conditions.append(f"created_by = ${len(params)}::uuid")
+    if workflow_id is not None:
+        wf_uuid = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+        params.append(wf_uuid)
+        conditions.append(f"workflow_id = ${len(params)}::uuid")
+    if status is not None:
+        params.append(status.value)
+        conditions.append(f"status = ${len(params)}")
+    if limit <= 0:
+        return []
+    where_clause = ""
+    if conditions:
+        where_clause = f" WHERE {' AND '.join(conditions)}"
+    params.append(limit)
+    sql = f"{_SELECT_EXECUTIONS_BASE_SQL}{where_clause} ORDER BY id DESC LIMIT ${len(params)}"
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        rows = await conn.fetch(sql, *params, timeout=effective_timeout)
     except AppException:
         raise
     except Exception as exc:

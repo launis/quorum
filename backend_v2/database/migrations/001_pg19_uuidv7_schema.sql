@@ -379,6 +379,7 @@ CREATE INDEX IF NOT EXISTS idx_executions_active_profile_id ON executions(active
 CREATE INDEX IF NOT EXISTS idx_executions_output_profile_id ON executions(output_profile_id);
 CREATE INDEX IF NOT EXISTS idx_executions_created_by ON executions(created_by);
 CREATE INDEX IF NOT EXISTS idx_executions_organization_id ON executions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_executions_org_id_created ON executions(organization_id, id DESC);
 
 -- 12. Report Artifacts (Materialized Report Metadata)
 CREATE TABLE IF NOT EXISTS report_artifacts (
@@ -699,6 +700,8 @@ CREATE INDEX IF NOT EXISTS idx_execution_assignments_output_profile_id ON execut
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_task_brief_id ON execution_assignments(task_brief_id);
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_execution_id ON execution_assignments(execution_id);
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_created_by ON execution_assignments(created_by);
+CREATE INDEX IF NOT EXISTS idx_execution_assignments_org_created ON execution_assignments(organization_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_execution_assignments_batch_id ON execution_assignments(batch_id);
 
 -- 20. Audit Logs (Append-Only Compliance Ledger)
 CREATE TABLE IF NOT EXISTS audit_logs (

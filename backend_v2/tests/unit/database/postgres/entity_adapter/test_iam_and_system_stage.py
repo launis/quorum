@@ -19,6 +19,8 @@ from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     delete_mcp_gateway_row,
     delete_model_registry_row,
     delete_tenant_secret_row,
+    get_execution_assignment_by_execution_id_row,
+    get_execution_assignment_by_token_hash_row,
     get_execution_assignment_row,
     get_invitation_row,
     get_mcp_gateway_row,
@@ -39,6 +41,7 @@ from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     insert_usage_record_row,
     list_audit_log_rows,
     list_execution_assignment_rows,
+    list_execution_assignments_by_organization_rows,
     list_invitation_rows,
     list_mcp_gateway_rows,
     list_model_registry_rows,
@@ -1034,4 +1037,151 @@ async def test_execution_assignment_mismatched_task_brief_id_and_snapshot_raises
             await upsert_execution_assignment_row(conn, _TIMEOUT, bypassed)
         assert "enforce_assignment_task_brief_snapshot_parity" in sql_exc.value.message
     finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_indexed_execution_assignment_queries_roundtrip_and_ordering() -> None:
+    """Verify O(1) token_hash, execution_id, and organization/batch/workflow assignment SQL queries."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        org_a = "org_0195f3a0000070008000000000000010"
+        org_b = "org_0195f3a0000070008000000000000020"
+        batch_1 = "tsk_0195f3a0000070008000000000000900"
+        wf_1 = "wf_0195f3a0000070008000000000000201"
+        wf_2 = "wf_0195f3a0000070008000000000000202"
+        exe_shared = "exe_0195f3a0000070008000000000000501"
+        hash_older = "a" * 64
+        hash_newer = "b" * 64
+        hash_other = "c" * 64
+
+        asg_older = ExecutionAssignmentFactory.build(
+            id="tsk_0195f3a0000070008000000000000001",
+            organization_id=org_a,
+            batch_id=batch_1,
+            workflow_id=wf_1,
+            execution_id=exe_shared,
+            token_hash=hash_older,
+            task_brief_id=None,
+            task_brief_snapshot=None,
+        )
+        asg_newer = ExecutionAssignmentFactory.build(
+            id="tsk_0195f3a0000070008000000000000002",
+            organization_id=org_a,
+            batch_id=batch_1,
+            workflow_id=wf_1,
+            execution_id=exe_shared,
+            token_hash=hash_newer,
+            task_brief_id=None,
+            task_brief_snapshot=None,
+        )
+        asg_other = ExecutionAssignmentFactory.build(
+            id="tsk_0195f3a0000070008000000000000003",
+            organization_id=org_b,
+            batch_id=None,
+            workflow_id=wf_2,
+            execution_id=None,
+            token_hash=hash_other,
+            task_brief_id=None,
+            task_brief_snapshot=None,
+        )
+        await upsert_execution_assignment_row(conn, _TIMEOUT, asg_older)
+        await upsert_execution_assignment_row(conn, _TIMEOUT, asg_newer)
+        await upsert_execution_assignment_row(conn, _TIMEOUT, asg_other)
+
+        by_hash = await get_execution_assignment_by_token_hash_row(conn, _TIMEOUT, hash_older)
+        assert by_hash is not None
+        assert by_hash.id == asg_older.id
+        assert await get_execution_assignment_by_token_hash_row(conn, _TIMEOUT, "d" * 64) is None
+        assert await get_execution_assignment_by_token_hash_row(conn, _TIMEOUT, "   ") is None
+
+        by_exe = await get_execution_assignment_by_execution_id_row(conn, _TIMEOUT, exe_shared)
+        assert by_exe is not None
+        assert by_exe.id == asg_newer.id
+        assert (
+            await get_execution_assignment_by_execution_id_row(conn, _TIMEOUT, "exe_0195f3a0000070008000000000000999")
+            is None
+        )
+
+        by_org_filtered = await list_execution_assignments_by_organization_rows(
+            conn,
+            _TIMEOUT,
+            org_a,
+            batch_id=batch_1,
+            workflow_id=wf_1,
+            limit=10,
+        )
+        assert [a.id for a in by_org_filtered] == [asg_newer.id, asg_older.id]
+
+        by_org_limit_1 = await list_execution_assignments_by_organization_rows(
+            conn,
+            _TIMEOUT,
+            org_a,
+            limit=1,
+        )
+        assert [a.id for a in by_org_limit_1] == [asg_newer.id]
+        assert await list_execution_assignments_by_organization_rows(conn, _TIMEOUT, org_a, limit=0) == []
+    finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_indexed_execution_assignment_queries_invalid_ids_and_faults_fail_fast() -> None:
+    """Verify assignment indexed lookups reject malformed IDs and translate driver faults."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    valid_exe = "exe_0195f3a0000070008000000000000501"
+    valid_org = "org_0195f3a0000070008000000000000010"
+    direct_app_err = AppException(
+        message="pre-existing assignment app exception",
+        status_code=400,
+        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+    )
+    try:
+        with pytest.raises(AppException) as bad_exe:
+            await get_execution_assignment_by_execution_id_row(conn, _TIMEOUT, "tsk_0195f3a0000070008000000000000001")
+        assert bad_exe.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_org:
+            await list_execution_assignments_by_organization_rows(conn, _TIMEOUT, "SYSTEM")
+        assert bad_org.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_batch:
+            await list_execution_assignments_by_organization_rows(
+                conn,
+                _TIMEOUT,
+                valid_org,
+                batch_id="org_0195f3a0000070008000000000000010",
+            )
+        assert bad_batch.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_wf:
+            await list_execution_assignments_by_organization_rows(
+                conn,
+                _TIMEOUT,
+                valid_org,
+                workflow_id="org_0195f3a0000070008000000000000010",
+            )
+        assert bad_wf.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        pool.inject_fault("fetchrow", RuntimeError("simulated fetchrow fault"))
+        with pytest.raises(AppException) as hash_fault:
+            await get_execution_assignment_by_token_hash_row(conn, _TIMEOUT, "a" * 64)
+        assert hash_fault.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as exe_fault:
+            await get_execution_assignment_by_execution_id_row(conn, _TIMEOUT, valid_exe)
+        assert exe_fault.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("fetchrow", direct_app_err)
+        with pytest.raises(AppException) as hash_app:
+            await get_execution_assignment_by_token_hash_row(conn, _TIMEOUT, "a" * 64)
+        assert hash_app.value is direct_app_err
+
+        with pytest.raises(AppException) as exe_app:
+            await get_execution_assignment_by_execution_id_row(conn, _TIMEOUT, valid_exe)
+        assert exe_app.value is direct_app_err
+    finally:
+        pool.clear_faults()
         await pool.release(conn)

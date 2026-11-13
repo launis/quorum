@@ -10,10 +10,13 @@ from datetime import UTC, datetime
 
 import pytest
 
-from backend_v2.exceptions import ErrorCodes, ServiceUnavailableError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError, ServiceUnavailableError
 from backend_v2.models.auth import (
+    Organization,
     OrganizationCreate,
     OrganizationUpdateDTO,
+    SubscriptionStatus,
+    User,
     UserCreate,
     UserRole,
     UserUpdate,
@@ -313,7 +316,6 @@ async def test_all_9_active_v2_fake_repositories_and_facade() -> None:
     assert await exec_repo.append_trace_event(e_id, event)
     assert len(await exec_repo.get_all_executions(organization_id=_ORG_ID)) == 1
     assert len(await exec_repo.get_recent_completed_executions()) == 1
-    assert await exec_repo.count_executions_by_matrix(_MTX_ID) == 0
     assert await exec_repo.delete_execution(e_id)
     assert not await exec_repo.delete_execution(_EXE_ID)
 
@@ -543,7 +545,6 @@ async def test_all_9_active_v2_fake_repositories_and_facade() -> None:
     await unified.append_trace_event(u_exec_id, _make_trace_event(step_name="step1", message="ok"))
     assert len(await unified.get_all_executions()) == 1
     assert len(await unified.get_recent_completed_executions()) == 1
-    assert await unified.count_executions_by_matrix(_MTX_ID) == 0
     assert await unified.delete_execution(u_exec_id)
 
     u_org_id = await unified.create_organization(
@@ -649,3 +650,252 @@ async def test_all_9_active_v2_fake_repositories_and_facade() -> None:
     assert len(await unified.list_report_artifacts_by_execution(_EXE_ID)) == 1
     await unified.update_report_artifact(_REP_ID, ReportArtifactUpdateDTO(error_message="Err2"))
     assert await unified.delete_report_artifact(_REP_ID)
+
+
+@pytest.mark.asyncio
+async def test_in_memory_fk_restrict_and_not_found_contracts() -> None:
+    """Verify FK usage restrictions and ResourceNotFoundError paths across fake repositories."""
+    unified = InMemoryUnifiedWorkflowRepository()
+    block = SystemRulePromptBlockFactory.build(id=_BLK_ID, organization_id=_ORG_ID)
+    await unified.create_prompt_block(block)
+
+    with pytest.raises(AppException) as missing_blk_exc:
+        await unified.get_prompt_blocks_by_ids(["blk_0195f3a0000070008000000000999999"], strict=True)
+    assert missing_blk_exc.value.status_code == 404
+    assert await unified.get_prompt_blocks_by_ids(["blk_0195f3a0000070008000000000999999"], strict=False) == []
+
+    step_dto = StepCreateDTO(
+        slug="fk-step",
+        name=I18nTextFactory.build(translations={"en": "FK Step", "fi": "FK Step"}),
+        type=StepType.LOGIC,
+        hook="fk_hook",
+        criteria_block_ids=[_BLK_ID],
+        pre_hooks=[],
+        post_hooks=[],
+        allowed_mcp_tools=[],
+        mcp_tool_params={},
+        expected_inputs=[],
+    )
+    step_id = await unified.create_step(step_dto)
+    with pytest.raises(AppException) as step_fk_exc:
+        await unified.delete_prompt_block(_BLK_ID)
+    assert step_fk_exc.value.status_code == 400
+    assert await unified.delete_step(step_id) is True
+
+    profile = OutputProfileFactory.build(
+        id=_PRF_ID,
+        workflow_id=_WF_ID,
+        organization_id=_ORG_ID,
+        variance_target_block=_BLK_ID,
+    )
+    await unified.save_output_profile(profile)
+    with pytest.raises(AppException) as prof_blk_exc:
+        await unified.delete_prompt_block(_BLK_ID)
+    assert prof_blk_exc.value.status_code == 400
+
+    wf_id = await unified.create_workflow(
+        WorkflowCreateDTO(
+            slug="fk-wf",
+            name="FK Workflow",
+            description="FK test",
+            default_profile_id=_PRF_ID,
+            model_registry_id=_MRG_REG_ID,
+            mcp_gateway_id=_MCP_GW_ID,
+            expected_inputs=[],
+            steps=[],
+        )
+    )
+    with pytest.raises(AppException):
+        await unified.delete_output_profile(_PRF_ID)
+    with pytest.raises(AppException):
+        await unified.delete_model_registry(_MRG_REG_ID)
+    with pytest.raises(AppException):
+        await unified.delete_mcp_gateways(_MCP_GW_ID)
+    assert await unified.delete_workflow(wf_id) is True
+
+    art = ReportArtifactFactory.build(
+        id=_REP_ID,
+        execution_id=_EXE_ID,
+        workflow_id=_WF_ID,
+        profile_id=_PRF_ID,
+        locale="en",
+        title="FK Report",
+        status=ReportStatus.READY,
+    )
+    unified.save_report_artifact(art)
+    with pytest.raises(AppException):
+        await unified.delete_output_profile(_PRF_ID)
+    assert await unified.delete_report_artifact(_REP_ID) is True
+
+    assert await unified.delete_output_profile(_PRF_ID) is True
+    assert await unified.delete_output_profile(_PRF_ID) is False
+    assert await unified.delete_prompt_block(_BLK_ID) is True
+    assert await unified.delete_prompt_block(_BLK_ID) is False
+    assert (
+        await unified.update_task_brief(_TBR_ID, TaskBriefFactory.build(id=_TBR_ID, organization_id=_ORG_ID)) is False
+    )
+    assert await unified.delete_task_brief(_TBR_ID) is False
+
+    sys_repo = InMemorySystemRepository()
+    with pytest.raises(ResourceNotFoundError):
+        await sys_repo.get_model_registry("")
+    with pytest.raises(ResourceNotFoundError):
+        await sys_repo.get_mcp_gateways("mcp_0195f3a0000070008000000000999999")
+    assert len(await sys_repo.get_all_model_registries()) >= 1
+    reg = await sys_repo.get_model_registry(_MRG_REG_ID)
+    sys_repo.seed_raw_system_config("custom_cfg", {"enabled": True})
+    assert await sys_repo.get_system_config("custom_cfg") == {"enabled": True}
+    assert (await sys_repo.get_system_config(_MRG_REG_ID)).id == _MRG_REG_ID
+    assert (await sys_repo.get_system_config(_MCP_GW_ID)).id == _MCP_GW_ID
+    sys_repo.remove_system_config("custom_cfg")
+    sys_repo.remove_system_config(_MCP_GW_ID)
+    assert await sys_repo.delete_mcp_gateways("mcp_0195f3a0000070008000000000999999") is False
+    assert await sys_repo.delete_model_registry(_MRG_REG_ID) is True
+    assert await sys_repo.delete_model_registry("mrg_0195f3a0000070008000000000999999") is False
+    sys_repo.set_model_registry(None)
+    assert await sys_repo.get_all_model_registries() == []
+    sys_repo.set_model_registry(reg, registry_id="mrg_0195f3a0000070008000000000888888")
+    assert (await sys_repo.get_model_registry("mrg_0195f3a0000070008000000000888888")).id == reg.id
+
+
+@pytest.mark.asyncio
+async def test_unified_workflow_repository_seeding_and_system_helpers() -> None:
+    """Verify InMemoryUnifiedWorkflowRepository test-seeding helpers and execution org auto-seed."""
+    unified = InMemoryUnifiedWorkflowRepository()
+    tenant_org_id = "org_0195f3a0000070008000000000000777"
+
+    exec_id = await unified.create_execution(
+        ExecutionCreateDTO(
+            workflow_id=_WF_ID,
+            output_profile_id=_PRF_ID,
+            organization_id=tenant_org_id,
+            created_by=_USR_ID,
+        )
+    )
+    exec_rec = await unified.get_execution(exec_id)
+    assert exec_rec is not None
+    await unified.save_execution(exec_rec)
+    assert len(await unified.get_all_executions(organization_id=tenant_org_id, user_id=_USR_ID)) == 1
+    auto_org = await unified.get_organization(tenant_org_id)
+    assert auto_org is not None
+    assert auto_org.id == tenant_org_id
+
+    unified.set_org_usage_total(tenant_org_id, 42.5)
+    assert await unified.get_org_usage_total(tenant_org_id) == 42.5
+
+    brief = TaskBriefFactory.build(id=_TBR_ID, organization_id=tenant_org_id)
+    unified.set_task_briefs([brief])
+    assert len(await unified.get_all_task_briefs()) == 1
+
+    profile = OutputProfileFactory.build(id=_PRF_ID, workflow_id=_WF_ID, organization_id=tenant_org_id)
+    unified.set_output_profile(profile)
+    assert await unified.get_output_profile(_PRF_ID) is not None
+    fetched_prof = await unified.get_by_id(_PRF_ID)
+    assert fetched_prof is not None
+    assert fetched_prof.id == _PRF_ID
+    unified.set_output_profile(None)
+    assert await unified.get_output_profile(_PRF_ID) is None
+
+    block = SystemRulePromptBlockFactory.build(id=_BLK_ID, organization_id=tenant_org_id)
+    unified.set_prompt_blocks([block])
+    fetched_blk = await unified.get_by_id(_BLK_ID)
+    assert fetched_blk is not None
+    assert fetched_blk.id == _BLK_ID
+    unified.seed_raw_prompt_block(_BLK_ID, block)
+
+    wf_id = await unified.create_workflow(_make_workflow_dto(slug="seed-wf", name="Seed WF", description="Desc"))
+    wf_model = await unified.get_workflow(wf_id)
+    assert wf_model is not None
+    with pytest.raises(AppException) as occ_exc:
+        await unified.save_workflow(wf_model.model_copy(update={"version": 99}))
+    assert occ_exc.value.status_code == 409
+    with pytest.raises(AppException):
+        await unified.update_workflow("wf_0195f3a0000070008000000000999999", WorkflowUpdateDTO(name="Missing"))
+    assert await unified.delete_workflow("wf_0195f3a0000070008000000000999999") is False
+    assert len(await unified._workflows.get_all_workflows(organization_id=tenant_org_id, role="MEMBER")) == 1
+    assert len(await unified._workflows.get_all_workflows(organization_id=tenant_org_id, role="ROOT")) == 0
+    unified.set_workflow(None)
+    assert await unified.get_workflow(wf_id) is None
+    await unified.save_workflow(wf_model)
+    unified.seed_raw_workflow(wf_id, wf_model)
+    assert await unified.get_workflow(wf_id) is not None
+    unified.set_workflow(None)
+
+    step_id = await unified.create_step(_make_step_dto(slug="seed-stp", label="Seed Step", hook="h"))
+    step_model = await unified.get_step(step_id)
+    assert step_model is not None
+    with pytest.raises(AppException):
+        await unified.update_step("stp_0195f3a0000070008000000000999999", StepUpdateDTO(hook="missing"))
+    assert await unified.delete_step("stp_0195f3a0000070008000000000999999") is False
+    unified.set_step(None)
+    assert await unified.get_step("stp_0195f3a0000070008000000000999999") is None
+    unified.set_step(step_model)
+    assert await unified.get_step("stp_0195f3a0000070008000000000999999") is not None
+    unified.set_step(step_model, step_id=step_id)
+    unified.seed_raw_step(step_id, step_model)
+
+    unified.set_execution(None)
+    assert await unified.get_execution(exec_id) is None
+    unified.set_execution(exec_rec)
+    assert await unified.get_execution(exec_id) is not None
+
+    org_model = Organization(
+        id=tenant_org_id,
+        name="Explicit Tenant",
+        contact_email="tenant@example.com",
+        is_active=True,
+        tier="pro",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=1000000,
+        rpm_limit=120,
+        allowed_email_domains=[],
+    )
+    unified.set_organization(None)
+    assert await unified.create_organization(org_model) == tenant_org_id
+    assert (
+        await unified.update_organization("org_0195f3a0000070008000000000999999", OrganizationUpdateDTO(name="No"))
+        is False
+    )
+    assert await unified.delete_organization("org_0195f3a0000070008000000000999999") is False
+    unified.set_organization(org_model)
+    assert (await unified.get_organization(tenant_org_id)) is not None
+
+    user_model = User(
+        id=_USR_ID,
+        email="member@example.com",
+        name="Member",
+        role=UserRole.MEMBER,
+        organization_id=tenant_org_id,
+        is_active=True,
+        language=SystemLocale.EN,
+        theme_mode="system",
+        created_at=datetime.now(UTC),
+    )
+    unified.set_user(None)
+    assert await unified.get_user(_USR_ID) is None
+    assert await unified.get_user_by_email("missing@example.com") is None
+    assert await unified.create_user(user_model) == _USR_ID
+    assert await unified.update_user("usr_0195f3a0000070008000000000999999", UserUpdate(name="No")) is False
+    assert await unified.delete_user("usr_0195f3a0000070008000000000999999") is False
+    unified.set_user(user_model)
+    assert (await unified.get_user(_USR_ID)) is not None
+
+    reg = await unified.get_model_registry(_MRG_REG_ID)
+    assert len(await unified.get_all_model_registries()) >= 1
+    unified.set_model_registry(reg)
+    unified.seed_system_config("sys_flag", {"ready": True})
+    assert await unified.get_system_config("sys_flag") == {"ready": True}
+    unified.remove_system_config("sys_flag")
+    assert await unified.delete_model_registry(_MRG_REG_ID) is True
+
+    gw = SystemConfigMCPGateways(
+        id=_MCP_EXTRA_ID,
+        organization_id=tenant_org_id,
+        name="Seeded GW",
+        slug="seeded_gw",
+        tools=[],
+    )
+    unified.set_mcp_gateways(None)
+    unified.set_mcp_gateways(gw)
+    assert (await unified.get_mcp_gateways(_MCP_EXTRA_ID)).id == _MCP_EXTRA_ID

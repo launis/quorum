@@ -384,25 +384,21 @@ class ExecutionRepositoryImpl(BaseRepository):
         organization_id: str | None = None,
         user_id: str | None = None,
     ) -> list[ExecutionRecord]:
-        """List execution records filtered by organization_id and creator user_id.
+        """List execution records filtered by organization_id and creator user_id via indexed SQL.
 
         Args:
             organization_id: Optional organization filter.
             user_id: Optional creator user filter matched against ExecutionRecord.created_by.
 
         Returns:
-            List of matching ExecutionRecord domain models.
+            List of matching ExecutionRecord domain models ordered by id DESC.
         """
         async with self._acquire_entities() as entities:
-            records = await entities.list_executions()
-        filtered: list[ExecutionRecord] = []
-        for rec in records:
-            if organization_id is not None and rec.organization_id != organization_id:
-                continue
-            if user_id is not None and rec.created_by != user_id:
-                continue
-            filtered.append(rec)
-        return filtered
+            return await entities.list_executions_filtered(
+                organization_id=organization_id,
+                created_by=user_id,
+                limit=1000,
+            )
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
         """Retrieve the most recently completed execution runs ordered by completed_at DESC.
@@ -416,25 +412,9 @@ class ExecutionRepositoryImpl(BaseRepository):
         if limit <= 0:
             return []
         async with self._acquire_entities() as entities:
-            records = await entities.list_executions()
-        completed = [rec for rec in records if rec.status == ExecutionStatus.PASSED]
+            completed = await entities.list_executions_filtered(
+                status=ExecutionStatus.PASSED,
+                limit=max(limit * 5, 100),
+            )
         completed.sort(key=_completed_at_sort_key, reverse=True)
         return completed[:limit]
-
-    async def count_executions_by_matrix(self, matrix_id: str) -> int:
-        """Count persisted executions referencing a target matrix identifier in context_variables.
-
-        Args:
-            matrix_id: Canonical blk_<hex32> matrix identifier.
-
-        Returns:
-            Count of matching execution records.
-        """
-        async with self._acquire_entities() as entities:
-            records = await entities.list_executions()
-        return sum(
-            1
-            for rec in records
-            if "matrix_id" in rec.context_variables.variables
-            and rec.context_variables.variables["matrix_id"] == matrix_id
-        )

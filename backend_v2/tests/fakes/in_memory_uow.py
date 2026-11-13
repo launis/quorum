@@ -92,6 +92,7 @@ from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import (
     DependencyRelationType,
     EntityPrefix,
+    ExecutionStatus,
     PropositionNodeType,
     SecretScope,
 )
@@ -1032,6 +1033,80 @@ class InMemoryEntityAdapter:
         assignments.sort(key=lambda a: a.id)
         return assignments
 
+    async def get_execution_assignment_by_token_hash(self, token_hash: str) -> ExecutionAssignment | None:
+        """Retrieve an ExecutionAssignment by indexed SHA-256 token_hash lookup in memory.
+
+        Args:
+            token_hash: 64-character hex SHA-256 token digest.
+
+        Returns:
+            Matching ExecutionAssignment or None.
+        """
+        normalized_hash = token_hash.strip()
+        if not normalized_hash:
+            return None
+        for item in self._store.seed_tables["execution_assignments"].values():
+            if isinstance(item, ExecutionAssignment) and item.token_hash == normalized_hash:
+                return item
+        return None
+
+    async def get_execution_assignment_by_execution_id(self, execution_id: str) -> ExecutionAssignment | None:
+        """Retrieve the newest ExecutionAssignment referencing execution_id in memory.
+
+        Args:
+            execution_id: Canonical exe_<uuid7_hex> execution identifier.
+
+        Returns:
+            Matching ExecutionAssignment or None.
+        """
+        _ = parse_prefixed_uuid7(execution_id, EntityPrefix.EXECUTION)
+        matched = [
+            item
+            for item in self._store.seed_tables["execution_assignments"].values()
+            if isinstance(item, ExecutionAssignment) and item.execution_id == execution_id
+        ]
+        if not matched:
+            return None
+        matched.sort(key=lambda a: parse_prefixed_uuid7(a.id, EntityPrefix.ASSIGNMENT), reverse=True)
+        return matched[0]
+
+    async def list_execution_assignments_by_organization(
+        self,
+        organization_id: str,
+        *,
+        batch_id: str | None = None,
+        workflow_id: str | None = None,
+        limit: int = 100,
+    ) -> list[ExecutionAssignment]:
+        """List ExecutionAssignments for an organization ordered by id DESC with optional filters.
+
+        Args:
+            organization_id: Canonical org_<uuid7_hex> organization identifier.
+            batch_id: Optional canonical tsk_<uuid7_hex> batch identifier filter.
+            workflow_id: Optional canonical wor_<uuid7_hex> workflow identifier filter.
+            limit: Maximum number of assignments to return.
+
+        Returns:
+            List of matching ExecutionAssignment models ordered by id DESC.
+        """
+        _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
+        if batch_id is not None:
+            _ = parse_prefixed_uuid7(batch_id, EntityPrefix.ASSIGNMENT)
+        if workflow_id is not None:
+            _ = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+        if limit <= 0:
+            return []
+        matched = [
+            item
+            for item in self._store.seed_tables["execution_assignments"].values()
+            if isinstance(item, ExecutionAssignment)
+            and item.organization_id == organization_id
+            and (batch_id is None or item.batch_id == batch_id)
+            and (workflow_id is None or item.workflow_id == workflow_id)
+        ]
+        matched.sort(key=lambda a: parse_prefixed_uuid7(a.id, EntityPrefix.ASSIGNMENT), reverse=True)
+        return matched[:limit]
+
     async def upsert_task_brief(self, brief: TaskBrief) -> str:
         """Upsert a TaskBrief entity in memory.
 
@@ -1203,6 +1278,47 @@ class InMemoryEntityAdapter:
         records = list(self._store.executions.values())
         records.sort(key=lambda r: r.created_at, reverse=True)
         return records
+
+    async def list_executions_filtered(
+        self,
+        *,
+        organization_id: str | None = None,
+        created_by: str | None = None,
+        workflow_id: str | None = None,
+        status: ExecutionStatus | None = None,
+        limit: int = 100,
+    ) -> list[ExecutionRecord]:
+        """List ExecutionRecord entities filtered by indexed attributes and ordered by id DESC.
+
+        Args:
+            organization_id: Optional canonical org_<uuid7_hex> organization filter.
+            created_by: Optional canonical usr_<uuid7_hex> creator filter.
+            workflow_id: Optional canonical wor_<uuid7_hex> workflow filter.
+            status: Optional ExecutionStatus filter.
+            limit: Maximum number of records to return.
+
+        Returns:
+            List of matching ExecutionRecord models ordered by id DESC.
+        """
+        if organization_id is not None:
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
+        if created_by is not None:
+            _ = parse_prefixed_uuid7(created_by, EntityPrefix.USER)
+        if workflow_id is not None:
+            _ = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+        if limit <= 0:
+            return []
+        matched = list(self._store.executions.values())
+        if organization_id is not None:
+            matched = [r for r in matched if r.organization_id == organization_id]
+        if created_by is not None:
+            matched = [r for r in matched if r.created_by == created_by]
+        if workflow_id is not None:
+            matched = [r for r in matched if r.workflow_id == workflow_id]
+        if status is not None:
+            matched = [r for r in matched if r.status == status]
+        matched.sort(key=lambda r: parse_prefixed_uuid7(r.id, EntityPrefix.EXECUTION), reverse=True)
+        return matched[:limit]
 
     @staticmethod
     def _normalize_optional_org_filter(organization_id: str | None) -> str | None:
@@ -2917,10 +3033,11 @@ class InMemoryAsyncPgConnection:
             return self._fetch_usage_record_rows(normalized, args)
 
         if "FROM EXECUTIONS" in normalized:
-            sorted_execs = sorted(self._store.executions.values(), key=lambda r: r.created_at, reverse=True)
-            return tuple(self._build_execution_record_row(rec) for rec in sorted_execs)
+            return self._fetch_execution_rows(normalized, args)
 
         outer_tbl = self._extract_outer_from_table(query)
+        if outer_tbl == "execution_assignments":
+            return self._fetch_execution_assignment_rows(query, normalized, args)
         for tbl in (
             "organizations",
             "users",
@@ -3289,6 +3406,28 @@ class InMemoryAsyncPgConnection:
             return None
 
         outer_tbl = self._extract_outer_from_table(query)
+        if outer_tbl == "execution_assignments" and args:
+            if "WHERE TOKEN_HASH = $1" in normalized:
+                cols = self._extract_select_columns(query)
+                for entry in self._store.seed_tables["execution_assignments"].values():
+                    if isinstance(entry, Sequence):
+                        mapped = self._zip_select_row(cols, entry)
+                        if "token_hash" in mapped and mapped["token_hash"] == args[0]:
+                            return InMemoryAsyncPgRecord(mapped)
+                return None
+            if "WHERE EXECUTION_ID = $1" in normalized:
+                cols = self._extract_select_columns(query)
+                matched_rows: list[dict[str, _ColumnValue]] = []
+                for entry in self._store.seed_tables["execution_assignments"].values():
+                    if isinstance(entry, Sequence):
+                        mapped = self._zip_select_row(cols, entry)
+                        if "execution_id" in mapped and mapped["execution_id"] == args[0]:
+                            matched_rows.append(mapped)
+                if not matched_rows:
+                    return None
+                matched_rows.sort(key=lambda m: uuid.UUID(str(m["id"])), reverse=True)
+                return InMemoryAsyncPgRecord(matched_rows[0])
+
         for tbl in (
             "organizations",
             "users",
@@ -3314,6 +3453,93 @@ class InMemoryAsyncPgConnection:
                     return InMemoryAsyncPgRecord(self._zip_select_row(cols, entry))
 
         return None
+
+    def _fetch_execution_rows(
+        self,
+        normalized: str,
+        args: Sequence[object],
+    ) -> tuple[AsyncPgRecordProtocol, ...]:
+        """Filter, order, and serialize stored ExecutionRecord models into InMemoryAsyncPgRecord rows."""
+        matched = list(self._store.executions.values())
+        where_part = normalized.split("WHERE", 1)[1] if "WHERE" in normalized else ""
+        param_idx = 0
+        if "ORGANIZATION_ID = $" in where_part and param_idx < len(args):
+            target_org = args[param_idx]
+            param_idx += 1
+            matched = [
+                r
+                for r in matched
+                if r.organization_id is not None
+                and parse_prefixed_uuid7(r.organization_id, EntityPrefix.ORGANIZATION) == target_org
+            ]
+        if "CREATED_BY = $" in where_part and param_idx < len(args):
+            target_usr = args[param_idx]
+            param_idx += 1
+            matched = [
+                r
+                for r in matched
+                if r.created_by is not None and parse_prefixed_uuid7(r.created_by, EntityPrefix.USER) == target_usr
+            ]
+        if "WORKFLOW_ID = $" in where_part and param_idx < len(args):
+            target_wf = args[param_idx]
+            param_idx += 1
+            matched = [r for r in matched if parse_prefixed_uuid7(r.workflow_id, EntityPrefix.WORKFLOW) == target_wf]
+        if "STATUS = $" in where_part and param_idx < len(args):
+            target_status = str(args[param_idx])
+            param_idx += 1
+            matched = [r for r in matched if r.status.value == target_status]
+
+        if "ORDER BY ID DESC" in normalized:
+            matched.sort(key=lambda r: parse_prefixed_uuid7(r.id, EntityPrefix.EXECUTION), reverse=True)
+        else:
+            matched.sort(key=lambda r: r.created_at, reverse=True)
+
+        if "LIMIT $" in normalized and param_idx < len(args):
+            limit_val = int(str(args[param_idx]))
+            matched = matched[:limit_val]
+
+        return tuple(self._build_execution_record_row(rec) for rec in matched)
+
+    def _fetch_execution_assignment_rows(
+        self,
+        query: str,
+        normalized: str,
+        args: Sequence[object],
+    ) -> tuple[AsyncPgRecordProtocol, ...]:
+        """Filter, order, and serialize stored execution_assignments tuple rows into InMemoryAsyncPgRecord rows."""
+        cols = self._extract_select_columns(query)
+        mapped_rows: list[dict[str, _ColumnValue]] = [
+            self._zip_select_row(cols, entry)
+            for entry in self._store.seed_tables["execution_assignments"].values()
+            if isinstance(entry, Sequence)
+        ]
+        where_part = normalized.split("WHERE", 1)[1] if "WHERE" in normalized else ""
+        param_idx = 0
+        if "ORGANIZATION_ID = $" in where_part and param_idx < len(args):
+            target_org = args[param_idx]
+            param_idx += 1
+            mapped_rows = [m for m in mapped_rows if "organization_id" in m and m["organization_id"] == target_org]
+        if "BATCH_ID = $" in where_part and param_idx < len(args):
+            target_batch = args[param_idx]
+            param_idx += 1
+            mapped_rows = [m for m in mapped_rows if "batch_id" in m and m["batch_id"] == target_batch]
+        if "WORKFLOW_ID = $" in where_part and param_idx < len(args):
+            target_wf = args[param_idx]
+            param_idx += 1
+            mapped_rows = [m for m in mapped_rows if "workflow_id" in m and m["workflow_id"] == target_wf]
+        if "EXECUTION_ID = $" in where_part and param_idx < len(args):
+            target_exe = args[param_idx]
+            param_idx += 1
+            mapped_rows = [m for m in mapped_rows if "execution_id" in m and m["execution_id"] == target_exe]
+
+        if "ORDER BY ID DESC" in normalized:
+            mapped_rows.sort(key=lambda m: uuid.UUID(str(m["id"])), reverse=True)
+
+        if "LIMIT $" in normalized and param_idx < len(args):
+            limit_val = int(str(args[param_idx]))
+            mapped_rows = mapped_rows[:limit_val]
+
+        return tuple(InMemoryAsyncPgRecord(m) for m in mapped_rows)
 
     def _fetch_audit_log_rows(
         self,

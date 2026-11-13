@@ -250,7 +250,6 @@ async def test_all_9_active_protocol_delegations_roundtrip() -> None:
     assert await repo.append_trace_event(exe_id, event) is True
     assert len(await repo.get_all_executions(organization_id=_ORG_ID)) == 1
     assert len(await repo.get_recent_completed_executions()) == 1
-    assert await repo.count_executions_by_matrix(_BLK_ID) == 0
 
     art = ReportArtifactFactory.build(id=_REP_ID, execution_id=exe_id, workflow_id=wf_id, profile_id=_PRF_ID)
     await repo.create_report_artifact(art)

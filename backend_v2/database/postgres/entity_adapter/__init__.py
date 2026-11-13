@@ -20,6 +20,7 @@ from backend_v2.models.domain.system_config import SystemConfigMCPGateways, Syst
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.settings import get_settings
 
 # Explicit redundant re-exports (Symbol as Symbol) across all 6 stage sub-modules
@@ -65,6 +66,7 @@ from .execution_and_report_stage import get_report_binary_row as get_report_bina
 from .execution_and_report_stage import hydrate_execution_row as hydrate_execution_row
 from .execution_and_report_stage import hydrate_report_artifact_row as hydrate_report_artifact_row
 from .execution_and_report_stage import list_execution_rows as list_execution_rows
+from .execution_and_report_stage import list_executions_filtered_rows as list_executions_filtered_rows
 from .execution_and_report_stage import (
     list_report_artifacts_by_execution_row as list_report_artifacts_by_execution_row,
 )
@@ -79,6 +81,12 @@ from .iam_and_system_stage import _DELETE_MODEL_REGISTRY_SQL as _DELETE_MODEL_RE
 from .iam_and_system_stage import _DELETE_ORGANIZATION_SQL as _DELETE_ORGANIZATION_SQL
 from .iam_and_system_stage import _DELETE_TENANT_SECRET_SQL as _DELETE_TENANT_SECRET_SQL
 from .iam_and_system_stage import _DELETE_USER_SQL as _DELETE_USER_SQL
+from .iam_and_system_stage import (
+    _GET_EXECUTION_ASSIGNMENT_BY_EXECUTION_ID_SQL as _GET_EXECUTION_ASSIGNMENT_BY_EXECUTION_ID_SQL,
+)
+from .iam_and_system_stage import (
+    _GET_EXECUTION_ASSIGNMENT_BY_TOKEN_HASH_SQL as _GET_EXECUTION_ASSIGNMENT_BY_TOKEN_HASH_SQL,
+)
 from .iam_and_system_stage import _GET_EXECUTION_ASSIGNMENT_SQL as _GET_EXECUTION_ASSIGNMENT_SQL
 from .iam_and_system_stage import _GET_INVITATION_SQL as _GET_INVITATION_SQL
 from .iam_and_system_stage import _GET_MCP_GATEWAY_SQL as _GET_MCP_GATEWAY_SQL
@@ -118,6 +126,12 @@ from .iam_and_system_stage import delete_model_registry_row as delete_model_regi
 from .iam_and_system_stage import delete_organization_row as delete_organization_row
 from .iam_and_system_stage import delete_tenant_secret_row as delete_tenant_secret_row
 from .iam_and_system_stage import delete_user_row as delete_user_row
+from .iam_and_system_stage import (
+    get_execution_assignment_by_execution_id_row as get_execution_assignment_by_execution_id_row,
+)
+from .iam_and_system_stage import (
+    get_execution_assignment_by_token_hash_row as get_execution_assignment_by_token_hash_row,
+)
 from .iam_and_system_stage import get_execution_assignment_row as get_execution_assignment_row
 from .iam_and_system_stage import get_invitation_row as get_invitation_row
 from .iam_and_system_stage import get_mcp_gateway_row as get_mcp_gateway_row
@@ -139,6 +153,9 @@ from .iam_and_system_stage import insert_audit_log_row as insert_audit_log_row
 from .iam_and_system_stage import insert_usage_record_row as insert_usage_record_row
 from .iam_and_system_stage import list_audit_log_rows as list_audit_log_rows
 from .iam_and_system_stage import list_execution_assignment_rows as list_execution_assignment_rows
+from .iam_and_system_stage import (
+    list_execution_assignments_by_organization_rows as list_execution_assignments_by_organization_rows,
+)
 from .iam_and_system_stage import list_invitation_rows as list_invitation_rows
 from .iam_and_system_stage import list_mcp_gateway_rows as list_mcp_gateway_rows
 from .iam_and_system_stage import list_model_registry_rows as list_model_registry_rows
@@ -304,6 +321,40 @@ class PostgresEntityAdapter:
             AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
         """
         return await get_execution_row(self._conn, self.command_timeout_seconds, execution_id)
+
+    async def list_executions_filtered(
+        self,
+        *,
+        organization_id: str | None = None,
+        created_by: str | None = None,
+        workflow_id: str | None = None,
+        status: ExecutionStatus | None = None,
+        limit: int = 100,
+    ) -> list[ExecutionRecord]:
+        """List ExecutionRecord rows filtered by indexed columns and ordered by id DESC.
+
+        Args:
+            organization_id: Optional canonical org_<32_hex> organization filter.
+            created_by: Optional canonical usr_<32_hex> creator filter.
+            workflow_id: Optional canonical wf_<32_hex> workflow filter.
+            status: Optional ExecutionStatus filter.
+            limit: Maximum number of records to return.
+
+        Returns:
+            List of hydrated ExecutionRecord models ordered by id DESC.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_executions_filtered_rows(
+            self._conn,
+            self.command_timeout_seconds,
+            organization_id=organization_id,
+            created_by=created_by,
+            workflow_id=workflow_id,
+            status=status,
+            limit=limit,
+        )
 
     async def _execute_upsert(self, sql: str, *args: object, entity_label: str, entity_id: str) -> str:
         """Execute a parameterized upsert statement and translate transport errors to AppException.
@@ -531,6 +582,67 @@ class PostgresEntityAdapter:
         """
         return await list_execution_assignment_rows(
             self._conn, self.command_timeout_seconds, organization_id=organization_id
+        )
+
+    async def get_execution_assignment_by_token_hash(self, token_hash: str) -> ExecutionAssignment | None:
+        """Fetch an ExecutionAssignment by indexed SHA-256 token_hash lookup.
+
+        Args:
+            token_hash: 64-character hex SHA-256 token digest.
+
+        Returns:
+            Hydrated ExecutionAssignment instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await get_execution_assignment_by_token_hash_row(self._conn, self.command_timeout_seconds, token_hash)
+
+    async def get_execution_assignment_by_execution_id(self, execution_id: str) -> ExecutionAssignment | None:
+        """Fetch the newest ExecutionAssignment referencing execution_id via indexed SQL lookup.
+
+        Args:
+            execution_id: Canonical exe_<32_hex> execution identifier.
+
+        Returns:
+            Hydrated ExecutionAssignment instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await get_execution_assignment_by_execution_id_row(
+            self._conn, self.command_timeout_seconds, execution_id
+        )
+
+    async def list_execution_assignments_by_organization(
+        self,
+        organization_id: str,
+        *,
+        batch_id: str | None = None,
+        workflow_id: str | None = None,
+        limit: int = 100,
+    ) -> list[ExecutionAssignment]:
+        """List ExecutionAssignments for an organization with optional batch_id and workflow_id filters.
+
+        Args:
+            organization_id: Canonical org_<32_hex> organization identifier.
+            batch_id: Optional canonical tsk_<32_hex> batch identifier filter.
+            workflow_id: Optional canonical wf_<32_hex> workflow identifier filter.
+            limit: Maximum number of assignments to return.
+
+        Returns:
+            List of hydrated ExecutionAssignment models ordered by id DESC.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_execution_assignments_by_organization_rows(
+            self._conn,
+            self.command_timeout_seconds,
+            organization_id,
+            batch_id=batch_id,
+            workflow_id=workflow_id,
+            limit=limit,
         )
 
     async def upsert_model_registry(self, registry: SystemConfigModelRegistry) -> str:

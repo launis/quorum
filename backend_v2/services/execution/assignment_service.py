@@ -463,20 +463,25 @@ class ExecutionAssignmentService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        all_records = await self._list_all_assignments(
-            organization_id=None if initiator.role == UserRole.ROOT else initiator.organization_id
-        )
-        if initiator.role == UserRole.ROOT:
-            visible = all_records
-        elif initiator.role in (UserRole.ADMIN, UserRole.MANAGER):
-            visible = [a for a in all_records if a.organization_id == initiator.organization_id]
-        else:
-            visible = [
-                a
-                for a in all_records
-                if a.assigned_user_id == initiator.id
-                or (initiator.email is not None and a.assigned_email.lower() == initiator.email.lower())
-            ]
+        async with self._acquire_entity_port() as port:
+            if initiator.role == UserRole.ROOT:
+                visible = await port.list_execution_assignments(organization_id=None)
+            elif not initiator.organization_id:
+                visible = []
+            else:
+                org_records = await port.list_execution_assignments_by_organization(
+                    initiator.organization_id,
+                    limit=1000,
+                )
+                if initiator.role in (UserRole.ADMIN, UserRole.MANAGER):
+                    visible = org_records
+                else:
+                    visible = [
+                        a
+                        for a in org_records
+                        if a.assigned_user_id == initiator.id
+                        or (initiator.email is not None and a.assigned_email.lower() == initiator.email.lower())
+                    ]
         return [self._to_assignment_response(a) for a in visible]
 
     async def resend_assignment_email(
@@ -754,7 +759,7 @@ class ExecutionAssignmentService:
         return record
 
     async def get_assignment_by_execution_id(self, execution_id: str) -> ExecutionAssignment | None:
-        """Look up the ExecutionAssignment that triggered a specific execution_id, if any.
+        """Look up the ExecutionAssignment that triggered a specific execution_id via indexed SQL.
 
         Args:
             execution_id: Canonical ExecutionRecord ID (exe_<hex32>).
@@ -764,12 +769,10 @@ class ExecutionAssignmentService:
 
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
+            AppException: With ErrorCodes.VALIDATION_FAILED if execution_id is malformed.
         """
-        persisted = await self._list_all_assignments()
-        for item in persisted:
-            if item.execution_id == execution_id:
-                return item
-        return None
+        async with self._acquire_entity_port() as port:
+            return await port.get_execution_assignment_by_execution_id(execution_id)
 
     async def _authorize_and_load_assignment_org(
         self,
@@ -1702,7 +1705,7 @@ class ExecutionAssignmentService:
             return await port.list_execution_assignments(organization_id=organization_id)
 
     async def _find_assignment_by_token_hash(self, token_hash: str) -> ExecutionAssignment | None:
-        """Locate an ExecutionAssignment matching the SHA-256 token digest in constant time.
+        """Locate an ExecutionAssignment matching the SHA-256 token digest via O(1) indexed SQL lookup.
 
         Args:
             token_hash: 64-character hex SHA-256 digest of the raw assignment token.
@@ -1713,10 +1716,10 @@ class ExecutionAssignmentService:
         Raises:
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if no persistence backend is configured.
         """
-        persisted = await self._list_all_assignments()
-        for item in persisted:
-            if secrets.compare_digest(item.token_hash, token_hash):
-                return item
+        async with self._acquire_entity_port() as port:
+            matched = await port.get_execution_assignment_by_token_hash(token_hash)
+        if matched is not None and secrets.compare_digest(matched.token_hash, token_hash):
+            return matched
         return None
 
     async def _resolve_assignment_by_raw_token_or_raise(

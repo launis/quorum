@@ -262,18 +262,6 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
         self._check_fault("get_recent_completed_executions")
         return self._list_isolated()[:limit]
 
-    async def count_executions_by_matrix(self, matrix_id: str) -> int:
-        self._check_fault("count_executions_by_matrix")
-        count = 0
-        for x in self._storage.values():
-            if (
-                x.context_variables is not None
-                and "matrix_id" in x.context_variables.variables
-                and x.context_variables.variables["matrix_id"] == matrix_id
-            ):
-                count += 1
-        return count
-
     async def save_execution(self, record: ExecutionRecord) -> str:
         """Saves an ExecutionRecord directly with snapshot isolation."""
         self._check_fault("save_execution")
@@ -1321,9 +1309,6 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
         return await self._executions.get_recent_completed_executions(limit)
-
-    async def count_executions_by_matrix(self, matrix_id: str) -> int:
-        return await self._executions.count_executions_by_matrix(matrix_id)
 
     async def save_execution(self, record: ExecutionRecord) -> str:
         if (

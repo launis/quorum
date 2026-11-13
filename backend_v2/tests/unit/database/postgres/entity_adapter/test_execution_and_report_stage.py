@@ -26,6 +26,7 @@ from backend_v2.database.postgres.entity_adapter.execution_and_report_stage impo
     hydrate_execution_row,
     hydrate_report_artifact_row,
     list_execution_rows,
+    list_executions_filtered_rows,
     list_report_artifacts_by_execution_row,
     save_execution_row,
     save_report_binary_row,
@@ -535,6 +536,115 @@ async def test_list_and_delete_execution_and_report_rows_fault_and_invalid_id_fa
         with pytest.raises(AppException) as direct_rep_err:
             await list_report_artifacts_by_execution_row(conn, _TIMEOUT, valid_exe_id)
         assert direct_rep_err.value is direct_app_err
+    finally:
+        pool.clear_faults()
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_list_executions_filtered_rows_filters_and_orders_by_id_desc() -> None:
+    """Verify list_executions_filtered_rows filters by indexed columns and orders deterministically by id DESC."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        org_a = "org_0195f3a0000070008000000000000010"
+        org_b = "org_0195f3a0000070008000000000000020"
+        usr_a = "usr_0195f3a0000070008000000000000101"
+        usr_b = "usr_0195f3a0000070008000000000000102"
+        wf_a = "wf_0195f3a0000070008000000000000201"
+        wf_b = "wf_0195f3a0000070008000000000000202"
+        older_id = "exe_0195f3a0000070008000000000000001"
+        newer_id = "exe_0195f3a0000070008000000000000002"
+        other_id = "exe_0195f3a0000070008000000000000003"
+
+        rec_older = ExecutionRecordFactory.build(
+            id=older_id,
+            organization_id=org_a,
+            created_by=usr_a,
+            workflow_id=wf_a,
+            status=ExecutionStatus.PASSED,
+        )
+        rec_newer = ExecutionRecordFactory.build(
+            id=newer_id,
+            organization_id=org_a,
+            created_by=usr_a,
+            workflow_id=wf_a,
+            status=ExecutionStatus.PASSED,
+        )
+        rec_other = ExecutionRecordFactory.build(
+            id=other_id,
+            organization_id=org_b,
+            created_by=usr_b,
+            workflow_id=wf_b,
+            status=ExecutionStatus.RUNNING,
+        )
+        await save_execution_row(conn, _TIMEOUT, rec_older)
+        await save_execution_row(conn, _TIMEOUT, rec_newer)
+        await save_execution_row(conn, _TIMEOUT, rec_other)
+
+        matched_all = await list_executions_filtered_rows(
+            conn,
+            _TIMEOUT,
+            organization_id=org_a,
+            created_by=usr_a,
+            workflow_id=wf_a,
+            status=ExecutionStatus.PASSED,
+            limit=10,
+        )
+        assert [r.id for r in matched_all] == [newer_id, older_id]
+
+        matched_limit_1 = await list_executions_filtered_rows(
+            conn,
+            _TIMEOUT,
+            organization_id=org_a,
+            status=ExecutionStatus.PASSED,
+            limit=1,
+        )
+        assert [r.id for r in matched_limit_1] == [newer_id]
+
+        assert await list_executions_filtered_rows(conn, _TIMEOUT, limit=0) == []
+        assert (
+            await list_executions_filtered_rows(conn, _TIMEOUT, organization_id=org_a, status=ExecutionStatus.FAILED)
+            == []
+        )
+    finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_list_executions_filtered_rows_invalid_ids_and_faults_fail_fast() -> None:
+    """Verify list_executions_filtered_rows rejects malformed IDs and translates driver faults."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    direct_app_err = AppException(
+        message="pre-existing app exception",
+        status_code=400,
+        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+    )
+    try:
+        with pytest.raises(AppException) as bad_org:
+            await list_executions_filtered_rows(conn, _TIMEOUT, organization_id="SYSTEM")
+        assert bad_org.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_usr:
+            await list_executions_filtered_rows(conn, _TIMEOUT, created_by="org_0195f3a0000070008000000000000010")
+        assert bad_usr.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bad_wf:
+            await list_executions_filtered_rows(conn, _TIMEOUT, workflow_id="exe_0195f3a0000070008000000000000010")
+        assert bad_wf.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        assert await list_executions_filtered_rows(conn, _TIMEOUT, limit=-1) == []
+
+        pool.inject_fault("fetch", RuntimeError("simulated filtered execution fetch fault"))
+        with pytest.raises(AppException) as fault_err:
+            await list_executions_filtered_rows(conn, _TIMEOUT)
+        assert fault_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("fetch", direct_app_err)
+        with pytest.raises(AppException) as app_err:
+            await list_executions_filtered_rows(conn, _TIMEOUT)
+        assert app_err.value is direct_app_err
     finally:
         pool.clear_faults()
         await pool.release(conn)

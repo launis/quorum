@@ -154,7 +154,6 @@ async def test_create_update_append_delete_and_matrix_count(
         )
         is True
     )
-    assert await repo.count_executions_by_matrix(_BLK_ID) == 1
 
     event = _make_trace_event("step completed")
     assert await repo.append_trace_event(created_id, event) is True

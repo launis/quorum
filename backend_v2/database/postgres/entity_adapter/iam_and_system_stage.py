@@ -42,6 +42,8 @@ __all__ = [
     "_DELETE_ORGANIZATION_SQL",
     "_DELETE_TENANT_SECRET_SQL",
     "_DELETE_USER_SQL",
+    "_GET_EXECUTION_ASSIGNMENT_BY_EXECUTION_ID_SQL",
+    "_GET_EXECUTION_ASSIGNMENT_BY_TOKEN_HASH_SQL",
     "_GET_EXECUTION_ASSIGNMENT_SQL",
     "_GET_INVITATION_SQL",
     "_GET_MCP_GATEWAY_SQL",
@@ -79,6 +81,8 @@ __all__ = [
     "delete_organization_row",
     "delete_tenant_secret_row",
     "delete_user_row",
+    "get_execution_assignment_by_execution_id_row",
+    "get_execution_assignment_by_token_hash_row",
     "get_execution_assignment_row",
     "get_invitation_row",
     "get_mcp_gateway_row",
@@ -100,6 +104,7 @@ __all__ = [
     "insert_usage_record_row",
     "list_audit_log_rows",
     "list_execution_assignment_rows",
+    "list_execution_assignments_by_organization_rows",
     "list_invitation_rows",
     "list_mcp_gateway_rows",
     "list_model_registry_rows",
@@ -229,6 +234,12 @@ _LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL: str = """SELECT id, batch_id, organizati
        result_visibility, hard_deadline_at, relative_duration_seconds, activated_at, submitted_at, execution_id,
        created_by, created_at
 FROM execution_assignments WHERE organization_id = $1::uuid"""
+
+_GET_EXECUTION_ASSIGNMENT_BY_TOKEN_HASH_SQL: str = f"{_LIST_EXECUTION_ASSIGNMENTS_SQL} WHERE token_hash = $1 LIMIT 1"
+
+_GET_EXECUTION_ASSIGNMENT_BY_EXECUTION_ID_SQL: str = (
+    f"{_LIST_EXECUTION_ASSIGNMENTS_SQL} WHERE execution_id = $1::uuid ORDER BY id DESC LIMIT 1"
+)
 
 _UPSERT_MODEL_REGISTRY_SQL: str = """INSERT INTO model_registries (id, slug, name, default_provider, tier_definitions)
 VALUES ($1::uuid, $2, $3, $4, $5::jsonb)
@@ -1009,6 +1020,132 @@ async def list_execution_assignment_rows(
         rows = await _fetch_list_rows(
             conn, timeout, _LIST_EXECUTION_ASSIGNMENTS_SQL, table_label="execution_assignments"
         )
+    return [hydrate_execution_assignment_row(r) for r in rows]
+
+
+async def get_execution_assignment_by_token_hash_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    token_hash: str,
+) -> ExecutionAssignment | None:
+    """Fetch an ExecutionAssignment by indexed SHA-256 token_hash lookup.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        token_hash: 64-character hex SHA-256 token digest.
+
+    Returns:
+        Hydrated ExecutionAssignment instance if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
+    """
+    normalized_hash = token_hash.strip()
+    if not normalized_hash:
+        return None
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        row = await conn.fetchrow(
+            _GET_EXECUTION_ASSIGNMENT_BY_TOKEN_HASH_SQL,
+            normalized_hash,
+            timeout=effective_timeout,
+        )
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="execution_assignments",
+            entity_id="token_hash",
+        ) from exc
+    if row is None:
+        return None
+    return hydrate_execution_assignment_row(row)
+
+
+async def get_execution_assignment_by_execution_id_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    execution_id: str,
+) -> ExecutionAssignment | None:
+    """Fetch the newest ExecutionAssignment referencing execution_id via indexed SQL lookup.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        execution_id: Canonical exe_<32_hex> execution identifier.
+
+    Returns:
+        Hydrated ExecutionAssignment instance if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid execution_id or STORAGE_ACCESS_FAILED on query error.
+    """
+    exe_uuid = parse_prefixed_uuid7(execution_id, EntityPrefix.EXECUTION)
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        row = await conn.fetchrow(
+            _GET_EXECUTION_ASSIGNMENT_BY_EXECUTION_ID_SQL,
+            exe_uuid,
+            timeout=effective_timeout,
+        )
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="SELECT",
+            table_name="execution_assignments",
+            entity_id=execution_id,
+        ) from exc
+    if row is None:
+        return None
+    return hydrate_execution_assignment_row(row)
+
+
+async def list_execution_assignments_by_organization_rows(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    organization_id: str,
+    *,
+    batch_id: str | None = None,
+    workflow_id: str | None = None,
+    limit: int = 100,
+) -> list[ExecutionAssignment]:
+    """List ExecutionAssignments for an organization with optional batch_id and workflow_id filters.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        organization_id: Canonical org_<32_hex> organization identifier.
+        batch_id: Optional canonical tsk_<32_hex> batch identifier filter.
+        workflow_id: Optional canonical wf_<32_hex> workflow identifier filter.
+        limit: Maximum number of assignments to return.
+
+    Returns:
+        List of hydrated ExecutionAssignment models ordered by id DESC.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid filter ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    org_uuid = parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
+    params: list[object] = [org_uuid]
+    conditions: list[str] = ["organization_id = $1::uuid"]
+    if batch_id is not None:
+        batch_uuid = parse_prefixed_uuid7(batch_id, EntityPrefix.ASSIGNMENT)
+        params.append(batch_uuid)
+        conditions.append(f"batch_id = ${len(params)}::uuid")
+    if workflow_id is not None:
+        wf_uuid = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+        params.append(wf_uuid)
+        conditions.append(f"workflow_id = ${len(params)}::uuid")
+    if limit <= 0:
+        return []
+    params.append(limit)
+    sql = f"{_LIST_EXECUTION_ASSIGNMENTS_SQL} WHERE {' AND '.join(conditions)} ORDER BY id DESC LIMIT ${len(params)}"
+    rows = await _fetch_list_rows(conn, timeout, sql, *params, table_label="execution_assignments")
     return [hydrate_execution_assignment_row(r) for r in rows]
 
 

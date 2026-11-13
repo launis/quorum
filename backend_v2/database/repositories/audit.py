@@ -16,6 +16,7 @@ from backend_v2.models.domain.base import (
     UsageRecord,
     UsageRollupSummaryDTO,
 )
+from backend_v2.models.domain.execution import ExecutionRecord
 
 logger = logging.getLogger(__name__)
 
@@ -204,14 +205,21 @@ class AuditRepositoryImpl(BaseRepository):
         """
         since_dt = self._parse_since_iso(since)
 
+        exec_org_filter: str | None = None
+        if scope in ("org", "organization") and target_id:
+            exec_org_filter = target_id
+        exec_user_filter: str | None = None
+        if scope == "user" and target_id:
+            exec_user_filter = target_id
+
         async with self._acquire_entities() as entities:
-            all_execs = await entities.list_executions()
-            filtered_execs = []
-            for item in all_execs:
-                if scope == "user" and target_id and item.created_by != target_id:
-                    continue
-                if scope in ("org", "organization") and target_id and item.organization_id != target_id:
-                    continue
+            candidate_execs = await entities.list_executions_filtered(
+                organization_id=exec_org_filter,
+                created_by=exec_user_filter,
+                limit=10000,
+            )
+            filtered_execs: list[ExecutionRecord] = []
+            for item in candidate_execs:
                 if since_dt is not None:
                     if item.completed_at is None:
                         continue

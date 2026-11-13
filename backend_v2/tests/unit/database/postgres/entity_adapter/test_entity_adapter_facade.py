@@ -125,6 +125,7 @@ from backend_v2.models.enums import (
     CognitiveTier,
     EngineType,
     EntityPrefix,
+    ExecutionStatus,
     LLMProvider,
     MCPAuthType,
     MCPTransportType,
@@ -137,6 +138,7 @@ from backend_v2.models.enums import (
 from backend_v2.settings import get_settings
 from backend_v2.tests.factories.model_factories import (
     AuditLogRecordFactory,
+    ExecutionAssignmentFactory,
     ExecutionRecordFactory,
     OutputProfileFactory,
     ReportArtifactFactory,
@@ -145,7 +147,7 @@ from backend_v2.tests.factories.model_factories import (
     UsageRecordFactory,
     WorkflowFactory,
 )
-from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
+from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryUnitOfWork
 
 
 def _build_org() -> Organization:
@@ -554,4 +556,104 @@ async def test_entity_adapter_facade_negative_driver_fault_and_count_boundary_vi
         assert get_err.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
     finally:
         pool.clear_faults()
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_indexed_assignment_and_execution_queries_filter_and_order_deterministically() -> None:
+    """Verify PostgresEntityAdapter and InMemoryEntityAdapter indexed assignment/execution queries match 1:1."""
+    org_id = "org_0195f3a0000070008000000000000010"
+    usr_id = "usr_0195f3a0000070008000000000000101"
+    wf_id = "wf_0195f3a0000070008000000000000201"
+    batch_id = "tsk_0195f3a0000070008000000000000900"
+    exe_older_id = "exe_0195f3a0000070008000000000000001"
+    exe_newer_id = "exe_0195f3a0000070008000000000000002"
+
+    asg_older = ExecutionAssignmentFactory.build(
+        id="tsk_0195f3a0000070008000000000000001",
+        organization_id=org_id,
+        batch_id=batch_id,
+        workflow_id=wf_id,
+        execution_id=exe_older_id,
+        token_hash="1" * 64,
+        task_brief_id=None,
+        task_brief_snapshot=None,
+    )
+    asg_newer = ExecutionAssignmentFactory.build(
+        id="tsk_0195f3a0000070008000000000000002",
+        organization_id=org_id,
+        batch_id=batch_id,
+        workflow_id=wf_id,
+        execution_id=exe_newer_id,
+        token_hash="2" * 64,
+        task_brief_id=None,
+        task_brief_snapshot=None,
+    )
+    rec_older = ExecutionRecordFactory.build(
+        id=exe_older_id,
+        organization_id=org_id,
+        created_by=usr_id,
+        workflow_id=wf_id,
+        status=ExecutionStatus.PASSED,
+    )
+    rec_newer = ExecutionRecordFactory.build(
+        id=exe_newer_id,
+        organization_id=org_id,
+        created_by=usr_id,
+        workflow_id=wf_id,
+        status=ExecutionStatus.PASSED,
+    )
+
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        pg_adapter = PostgresEntityAdapter(connection=conn, command_timeout_seconds=5.0)
+        async with InMemoryUnitOfWork() as mem_uow:
+            for adapter in (pg_adapter, mem_uow.entities):
+                await adapter.upsert_execution_assignment(asg_older)
+                await adapter.upsert_execution_assignment(asg_newer)
+                await adapter.save_execution(rec_older)
+                await adapter.save_execution(rec_newer)
+
+                found_hash = await adapter.get_execution_assignment_by_token_hash("1" * 64)
+                assert found_hash is not None
+                assert found_hash.id == asg_older.id
+                assert await adapter.get_execution_assignment_by_token_hash("9" * 64) is None
+                assert await adapter.get_execution_assignment_by_token_hash("   ") is None
+
+                found_exe = await adapter.get_execution_assignment_by_execution_id(exe_newer_id)
+                assert found_exe is not None
+                assert found_exe.id == asg_newer.id
+                assert (
+                    await adapter.get_execution_assignment_by_execution_id("exe_0195f3a0000070008000000000000999")
+                    is None
+                )
+
+                listed_asg = await adapter.list_execution_assignments_by_organization(
+                    org_id,
+                    batch_id=batch_id,
+                    workflow_id=wf_id,
+                    limit=10,
+                )
+                assert [a.id for a in listed_asg] == [asg_newer.id, asg_older.id]
+                assert await adapter.list_execution_assignments_by_organization(org_id, limit=0) == []
+
+                listed_exe = await adapter.list_executions_filtered(
+                    organization_id=org_id,
+                    created_by=usr_id,
+                    workflow_id=wf_id,
+                    status=ExecutionStatus.PASSED,
+                    limit=1,
+                )
+                assert [r.id for r in listed_exe] == [exe_newer_id]
+                assert await adapter.list_executions_filtered(limit=0) == []
+
+                with pytest.raises(AppException) as bad_org_err:
+                    await adapter.list_execution_assignments_by_organization("SYSTEM")
+                assert bad_org_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+                with pytest.raises(AppException) as bad_exe_err:
+                    await adapter.list_executions_filtered(organization_id="SYSTEM")
+                assert bad_exe_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    finally:
         await pool.release(conn)
