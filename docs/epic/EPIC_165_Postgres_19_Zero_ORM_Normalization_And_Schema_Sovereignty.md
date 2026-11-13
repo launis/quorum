@@ -247,12 +247,20 @@ Beyond silent error swallows and table normalization, auditing the Studio servic
 #### 1.4.1 Evolved PostgreSQL 19 DDL Definitions (`001_pg19_uuidv7_schema.sql`)
 
 ```sql
--- 0. Idempotent Pre-Production Schema Cutover Gate (when legacy STI system_configs exists on local Docker volumes)
+-- 0. Idempotent Pre-Production Schema Cutover Gate (when legacy STI system_configs or pre-Phase 4 41-column executions exists on local Docker volumes)
 DO $$
 BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.tables
         WHERE table_schema = 'public' AND table_name = 'system_configs'
+    )
+    OR EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'executions' AND column_name = 'step_states'
+    )
+    OR NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'execution_payloads'
     ) THEN
         DROP TABLE IF EXISTS
             report_binaries, report_artifacts, quorum_edges, quorum_nodes,
@@ -401,10 +409,20 @@ CREATE TABLE IF NOT EXISTS executions (
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    completed_at TIMESTAMPTZ
+    completed_at TIMESTAMPTZ,
+    CONSTRAINT enforce_execution_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_execution_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
+    CONSTRAINT enforce_execution_output_profile_uuidv7 CHECK (
+        output_profile_id IS NULL OR uuid_extract_version(output_profile_id) = 7
+    ),
+    CONSTRAINT enforce_execution_created_by_uuidv7 CHECK (
+        created_by IS NULL OR uuid_extract_version(created_by) = 7
+    )
 );
+ALTER TABLE executions ADD COLUMN IF NOT EXISTS state_version INTEGER NOT NULL DEFAULT 1;
 CREATE INDEX IF NOT EXISTS idx_executions_org_id_created ON executions(organization_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_executions_workflow_id ON executions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_executions_output_profile_id ON executions(output_profile_id);
 CREATE INDEX IF NOT EXISTS idx_executions_created_by ON executions(created_by);
 CREATE INDEX IF NOT EXISTS idx_executions_status ON executions(status);
 
@@ -415,7 +433,8 @@ CREATE TABLE IF NOT EXISTS execution_payloads (
     context_variables JSONB COMPRESSION lz4 NOT NULL,
     execution_trace JSONB COMPRESSION lz4 NOT NULL,
     profile_syntheses JSONB COMPRESSION lz4 NOT NULL DEFAULT '{}'::jsonb,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT enforce_execution_payload_uuidv7 CHECK (uuid_extract_version(execution_id) = 7)
 );
 
 -- 6. Append-Only audit_logs (aud_<hex32>) & usage_records (usg_<hex32>) Ledgers
@@ -550,6 +569,11 @@ Because there is no production database legacy to coddle, the following layers a
 - `clear_collection_documents`
 - `_offload_payloads`
 - `_hydrate_payloads`
+- `_offload_record_blobs`
+- `_hydrate_record_blobs`
+- `_save_blob_payload`
+- `_updates_exceed_blob_threshold`
+- `_BLOB_OFFLOAD_THRESHOLD_BYTES`
 - `_check_active_assignment_usage`
 - `_upsert_usage_aggregates`
 - `upsert_usage_aggregate`
@@ -560,6 +584,8 @@ Because there is no production database legacy to coddle, the following layers a
 - `execution_trace_storage_path`
 - `context_variables_storage_path`
 - `pdf_report_path`
+- `active_profile_id`
+- `step_states`
 </demolish>
 
 | Symbol / File / Field | Current Location | Target Destination / Disposition |
@@ -917,23 +943,26 @@ Because there is no production database legacy to coddle, the following layers a
 ### Phase 4: `executions` + `execution_payloads` (`COMPRESSION lz4`) 1:1 Sidecar Split, Atomic Single-Statement `state_version` SQL OCC, Full-Duplex `ExecutionRecord.step_states` Eradication, Constraint-Enforcing `InMemoryUnitOfWork` & `audit_zero_orm_strictness.py` 22-Table Gate
 
 * **DAG Orchestrator Permission Gate (`orchestrator_god_object_fragility`):**
-  * Mutating `backend_v2/services/orchestrator/dag_executor/` and `backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py` to remove `step_states` / `active_profile_id` references requires explicit `"PERMISSION GRANTED to mutate DAG Orchestrator ecosystem"` in the Phase 4 implementation plan prior to `/tier2-execute`, followed by the full `backend_audit_loop.py` gate.
+  * Mutating `@[backend_v2/services/orchestrator/synthesis_distiller.py]`, `backend_v2/services/orchestrator/dag_executor/` (`execution_committer.py`, `workflow_bootstrap_stage.py`, `step_execution_stage.py`, `wave_orchestrator_stage.py`), and `backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py` to remove `step_states` / `active_profile_id` references and hydrate historical `profile_syntheses` by primary key requires explicit `"PERMISSION GRANTED to mutate DAG Orchestrator ecosystem"` in the Phase 4 implementation plan prior to `/tier2-execute`, followed by the full `backend_audit_loop.py` gate.
 * **Target Files:**
   * `[MODIFY]` `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L1-L407]`
-  * `[MODIFY]` `@[backend_v2/models/domain/execution.py#L249-L520]` (`backend_v2/models/domain/execution.py#L221-L320`)
+  * `[MODIFY]` `@[backend_v2/models/domain/execution.py#L252-L545]`
   * `[MODIFY]` `@[backend_v2/models/execution_core.py#L70-L123]`
   * `[MODIFY]` `@[backend_v2/models/state.py]`
-  * `[MODIFY]` `@[backend_v2/models/dtos/trace.py#L66-L128]`
+  * `[MODIFY]` `@[backend_v2/models/dtos/trace.py#L66-L86]`
   * `[MODIFY]` `@[backend_v2/models/dtos/node_execution.py]`
-  * `[MODIFY]` `@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py#L322-L441]`
-  * `[MODIFY]` `@[backend_v2/database/repositories/execution.py#L41-L440]`
+  * `[MODIFY]` `@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py#L333-L452]`
+  * `[MODIFY]` `@[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]`
+  * `[MODIFY]` `@[backend_v2/database/repositories/execution.py#L41-L420]`
+  * `[MODIFY]` `@[backend_v2/hooks/archival.py]`
   * `[MODIFY]` `@[backend_v2/services/blueprint.py#L89-L1076]`
-  * `[MODIFY]` `@[backend_v2/services/execution/assignment_service.py#L150-L1959]`
+  * `[MODIFY]` `@[backend_v2/services/execution/assignment_service.py#L150-L1929]`
   * `[MODIFY]` `@[backend_v2/services/execution/context_service.py]`
   * `[MODIFY]` `@[backend_v2/services/execution/ingress_service.py]`
   * `[MODIFY]` `@[backend_v2/services/execution/override_service.py#L35-L482]`
   * `[MODIFY]` `@[backend_v2/services/execution/lifecycle_service.py#L25-L324]`
   * `[MODIFY]` `@[backend_v2/services/execution/resumption_service.py#L30-L242]`
+  * `[MODIFY]` `@[backend_v2/services/orchestrator/synthesis_distiller.py]`
   * `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor/execution_committer.py#L41-L143]`
   * `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py#WorkflowBootstrapStage]`
   * `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]`
@@ -949,7 +978,7 @@ Because there is no production database legacy to coddle, the following layers a
   * `[MODIFY]` `@[scripts/reconcile_storage.py#L59-L71]`
   * `[MODIFY]` `@[scripts/diff_executions.py]`
   * `[MODIFY]` `@[scripts/run_e2e_variance_test.py]`
-  * `[MODIFY]` `@[scripts/audit_zero_orm_strictness.py#L432-L452]` (`@[scripts/audit_zero_orm_strictness.py#L859-L1053]`)
+  * `[MODIFY]` `@[scripts/audit_zero_orm_strictness.py#L439-L459]`
   * `[MODIFY]` `@[scripts/audit_technical_debt.py#L253-L579]`
   * `[MODIFY]` `@[scripts/_ast_guardrails.py#L110-L129]`
   * `[MODIFY]` `@[scripts/audit_dict_eradication.py#L169-L628]`
@@ -959,7 +988,7 @@ Because there is no production database legacy to coddle, the following layers a
   * `[MODIFY]` `@[.agents/rules/04_directory_reference.md]`
   * `[MODIFY]` `@[.agents/skills/tier2-hardening-backend/SKILL.md]`
   * `[NEW]` `@[ki_zero_orm_postgres_enforcement.md]`
-  * `[MODIFY]` `@[backend_v2/tests/fakes/in_memory_uow.py#L2001-L2012]` (`backend_v2/tests/fakes/in_memory_uow.py#L1-L561`)
+  * `[MODIFY]` `@[backend_v2/tests/fakes/in_memory_uow.py#L1996-L2007]` (`backend_v2/tests/fakes/in_memory_uow.py#L1-L561`)
   * `[MODIFY]` `@[client_app_v2/lib/features/execution/models/execution_record.dart#L15-L162]`
   * `[MODIFY]` `@[client_app_v2/lib/features/execution/models/execution_step.dart#L15-L45]` (`@[client_app_v2/lib/features/execution/models/execution_step.dart#L1-L45]`)
   * `[MODIFY]` `@[client_app_v2/lib/features/execution/views/execution_view.dart]`
@@ -968,39 +997,100 @@ Because there is no production database legacy to coddle, the following layers a
   * **Companion Test & Factory Files:**
     * `[MODIFY]` `@[backend_v2/tests/factories/model_factories.py]`
     * `[MODIFY]` `@[backend_v2/tests/fakes/in_memory_repositories.py]`
-    * `[MODIFY]` `@[backend_v2/tests/unit/database/test_postgres.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/database/postgres/entity_adapter/test_entity_adapter_facade.py]`
     * `[MODIFY]` `@[backend_v2/tests/unit/database/postgres/entity_adapter/test_execution_and_report_stage.py]`
-    * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]`
-    * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_audit_technical_debt.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/database/postgres/entity_adapter/test_seed_and_collection_stage.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/database/repositories/test_execution.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/database/test___init__.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/database/test_postgres.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/database/test_repository.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/fakes/test_in_memory_repositories.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/hooks/test_archival.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/hooks/test_scoring.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/models/domain/test_execution.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/models/dtos/test_node_execution.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/models/dtos/test_trace.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/models/test_execution_core.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/models/test_state.py]`
     * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`
     * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_audit_dict_eradication.py]`
     * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_audit_skills_architecture.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_audit_technical_debt.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]`
     * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_reconcile_storage.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_run_e2e_variance_test.py]`
     * `[MODIFY]` `@[backend_v2/tests/unit/scripts/test_scripts_cli_help.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/execution/test_assignment_service.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/execution/test_context_service.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/execution/test_facade.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/execution/test_ingress_service.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/execution/test_override_service.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/export/test_csv_exporter.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/export/test_excel_exporter.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/export/test_export_facade.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/export/test_metadata_resolver.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/dag_executor/test_dag_executor_facade.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/dag_executor/test_execution_committer.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/dag_executor/test_step_execution_stage.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/dag_executor/test_wave_orchestrator_stage.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/dag_executor/test_workflow_bootstrap_stage.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_engine_retry_stage.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_llm_strategy_facade.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_concurrency_stress.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_causal_fusion.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_preflight.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_matrix_reducer.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_orchestrator_init.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/report/test_compilation_service.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/report/test_lifecycle_service.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/report/test_report_facade.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/test_blueprint.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/test_blueprint_combined_costs.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/test_execution.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/test_execution_resumability.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/services/test_report_service_synthesis_args.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_dag_taskgroup.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_interfaces.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_report_headers_l10n_parity.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_repositories_v2.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_rest_only_pipeline_boundary.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_v2_core_models.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/test_worker.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/workers/test_execution_worker.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/workers/test_synthesis_reducers.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/workers/test_synthesis_worker.py]`
+    * `[MODIFY]` `@[backend_v2/tests/unit/workers/test_variance_synthesis.py]`
     * `[MODIFY]` `@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`
+    * `[MODIFY]` `@[client_app_v2/test/core/api/sse_client_test.dart]`
+    * `[MODIFY]` `@[client_app_v2/test/features/execution/models/execution_models_test.dart]`
     * `[MODIFY]` `@[client_app_v2/test/unit/features/execution/models/execution_record_test.dart]`
     * `[MODIFY]` `@[client_app_v2/test/unit/features/execution/models/execution_step_test.dart]`
+    * `[MODIFY]` `@[client_app_v2/test/unit/features/execution/views/execution_view_test.dart]`
 * **Implementation Mandates:**
-  1. **`executions` + `execution_payloads` (`COMPRESSION lz4`) 1:1 Sidecar Split & Single-Statement SQL OCC:**
-     * Split `executions` in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L1-L407]` and `@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py#L322-L441]` into the lean 30-column `executions` table (`models_used DEFAULT '{}'::jsonb`, `duration_ms BIGINT NOT NULL DEFAULT 0`) and the 1:1 `execution_payloads` sidecar table (`execution_id UUID PRIMARY KEY REFERENCES executions(id) ON DELETE CASCADE`, `raw_inputs JSONB COMPRESSION lz4 NOT NULL`, `frozen_context JSONB COMPRESSION lz4` retaining `mcp_tool_audit`, `context_variables JSONB COMPRESSION lz4 NOT NULL`, `execution_trace JSONB COMPRESSION lz4 NOT NULL`, and `profile_syntheses JSONB COMPRESSION lz4 NOT NULL DEFAULT '{}'::jsonb`).
-     * Drop `_offload_payloads` and `_hydrate_payloads` local filesystem offload (`frozen_context_storage_path`, `execution_trace_storage_path`, `context_variables_storage_path`) from `@[backend_v2/database/repositories/execution.py#L41-L440]`.
-     * Replace the two-step `SELECT state_version`-then-`UPSERT` in `save_execution_row` with an atomic single-statement SQL OCC update (`UPDATE executions SET ..., state_version = state_version + 1 WHERE id = $1 AND state_version = $2 RETURNING state_version`) paired with `INSERT INTO execution_payloads ... ON CONFLICT (execution_id) DO UPDATE` inside the same transaction, distinguishing missing `id` (`ResourceNotFoundError` 404) from stale `state_version` (`AppException(ErrorCodes.CONFLICT, status_code=409)`). For lean list projections (`list_executions_filtered`), omit joining cold `execution_payloads` blobs unless hydrating a single execution by primary key (`get_execution_row`).
+  1. **`executions` + `execution_payloads` (`COMPRESSION lz4`) 1:1 Sidecar Split & Two-Branch Single-Statement SQL OCC:**
+     * Extend the `DO $$` cutover guard in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L1-L407]` to check `executions.step_states` or missing `execution_payloads`, include `execution_payloads` in both `DROP TABLE IF EXISTS ... CASCADE` and `@[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]` (`TRUNCATE TABLE`), and split `executions` in `@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py#L333-L452]` into the lean 30-column `executions` table (`models_used DEFAULT '{}'::jsonb`, `duration_ms BIGINT NOT NULL DEFAULT 0`, `idx_executions_output_profile_id`, UUIDv7 FK `CHECK` constraints, `ALTER TABLE executions ADD COLUMN IF NOT EXISTS state_version`) and the 1:1 `execution_payloads` sidecar table (`execution_id UUID PRIMARY KEY REFERENCES executions(id) ON DELETE CASCADE`, `raw_inputs JSONB COMPRESSION lz4 NOT NULL`, `frozen_context JSONB COMPRESSION lz4` retaining `mcp_tool_audit`, `context_variables JSONB COMPRESSION lz4 NOT NULL`, `execution_trace JSONB COMPRESSION lz4 NOT NULL`, and `profile_syntheses JSONB COMPRESSION lz4 NOT NULL DEFAULT '{}'::jsonb`).
+     * Drop `_offload_record_blobs`, `_hydrate_record_blobs`, `_save_blob_payload`, `_updates_exceed_blob_threshold`, and `_BLOB_OFFLOAD_THRESHOLD_BYTES` local filesystem offload (`frozen_context_storage_path`, `execution_trace_storage_path`, `context_variables_storage_path`) from `@[backend_v2/database/repositories/execution.py#L41-L420]`.
+     * Replace the two-step `SELECT state_version`-then-`UPSERT` in `save_execution_row` (enforcing non-null `organization_id` at the persistence boundary and defaulting `ExecutionRecordFactory.organization_id` while keeping domain `ExecutionRecord.organization_id: str | None = None` untouched): execute `INSERT INTO executions (...) VALUES (...) ON CONFLICT (id) DO UPDATE` + `execution_payloads` upsert when `expected_state_version is None` (`create_execution`, initial `append_trace_event`, `seed_collection_batch_rows`), and execute an atomic single-statement SQL OCC update (`UPDATE executions SET ..., state_version = state_version + 1 WHERE id = $1::uuid AND state_version = $2 RETURNING state_version`) paired with `INSERT INTO execution_payloads ... ON CONFLICT (execution_id) DO UPDATE` inside the same transaction when `expected_state_version is not None`, distinguishing missing `id` (`ResourceNotFoundError` 404) from stale `state_version` (`AppException(ErrorCodes.CONFLICT, status_code=409)`), unified across `update_execution_occ_row` and `InMemoryEntityAdapter.save_execution`. Split hydration into primary-key `hydrate_execution_row` (`INNER JOIN execution_payloads`) and payload-free `hydrate_execution_summary_row` (`frozen_context=None`) for `list_executions_filtered`, while hydrating matched records via `get_execution` in `ExecutionRepositoryImpl.get_recent_completed_executions` and `@[backend_v2/services/orchestrator/synthesis_distiller.py]`.
   2. **Full-Duplex Eradication of `ExecutionRecord.step_states`, `active_profile_id`, `pdf_report_path` & `*_storage_path` (Preserving `profile_syntheses`):**
-     * Drop `step_states`, `active_profile_id`, `pdf_report_path`, `frozen_context_storage_path`, `execution_trace_storage_path`, and `context_variables_storage_path` from `@[backend_v2/models/domain/execution.py#L249-L520]` (`backend_v2/models/domain/execution.py#L221-L320`), `@[backend_v2/models/execution_core.py#L70-L123]`, `@[backend_v2/models/state.py]`, `@[backend_v2/models/dtos/trace.py#L66-L128]` (`ExecutionCreateDTO` & `ExecutionUpdateDTO`), and `@[backend_v2/models/dtos/node_execution.py]` (`NodeExecutionUpdateDTO`) with **zero `@computed_field` transition shims**, while retaining `ExecutionRecord.profile_syntheses: dict[str, RenderedSynthesisCache]` and its immutable helpers (`with_updated_profile_synthesis`, `with_cleared_profile_syntheses`).
-     * Update `ExecutionRecord.with_updated_step_state`, `ExecutionOverrideService.override_atom` (`@[backend_v2/services/execution/override_service.py#L35-L482]`), `ExecutionAssignmentService.redact_execution_for_confirmation_only`, `ExecutionContextService`, `ExecutionIngressService`, `ExecutionLifecycleService`, `ExecutionResumptionService`, DAG Orchestrator stages (`ExecutionCommitter`, `WorkflowBootstrapStage`, `StepExecutionStage`, `WaveOrchestratorStage`, `EngineRetryStage`), `BlueprintTransformer`, `ReportCompilationService` (dropping synthetic `"sys_render_{profile_id}"` step keys), `ExportMetadataResolver`, `SduiMapperService`, CLI scripts (`reconcile_storage.py`, `diff_executions.py`, `run_e2e_variance_test.py`), and background workers (`execution_worker.py`, `synthesis_reducers.py`, `synthesis_worker.py`) to read and mutate `ExecutionRecord.steps` (`list[ExecutionStep]`) and `output_profile_id` exclusively.
-     * Synchronize Flutter Freezed models and views in `@[client_app_v2/lib/features/execution/models/execution_record.dart#L15-L162]`, `@[client_app_v2/lib/features/execution/models/execution_step.dart#L15-L45]` (`@[client_app_v2/lib/features/execution/models/execution_step.dart#L1-L45]`), `@[client_app_v2/lib/features/execution/views/execution_view.dart]` (replacing `record.activeProfileId` with `record.outputProfileId`), `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`, and `@[client_app_v2/lib/shared/widgets/result_dashboard.dart]`, dropping `stepStates`, `activeProfileId`, `pdfReportPath`, and `*_StoragePath` while preserving `profileSyntheses` (`ProfileSynthesisEntryDto`) and `@JsonSerializable(disallowUnrecognizedKeys: true)` under `uv run python scripts/audit_dto_parity.py --fail-on-mismatch`.
+     * Drop `step_states`, `active_profile_id`, `pdf_report_path`, `frozen_context_storage_path`, `execution_trace_storage_path`, and `context_variables_storage_path` from `@[backend_v2/models/domain/execution.py#L252-L545]`, `@[backend_v2/models/execution_core.py#L70-L123]` (`ExecutionCoreFields`), `@[backend_v2/models/state.py]`, `@[backend_v2/models/dtos/trace.py#L66-L86]` (`ExecutionCreateDTO` & `ExecutionUpdateDTO`), and `@[backend_v2/models/dtos/node_execution.py]` (`NodeExecutionUpdateDTO`) with **zero `@computed_field` transition shims**, while retaining `ExecutionStepState = ExecutionStep`, `ExecutionRecord.profile_syntheses: dict[str, RenderedSynthesisCache]`, `with_updated_profile_synthesis` (dropping optional `step_id`/`step_state` `sys_render_` arguments), and `with_cleared_profile_syntheses`.
+     * Bind `effective_org_id` (`initiator.organization_id` or `SystemOrganizations.ROOT_SYSTEM.value`) in `ExecutionIngressService`, delete legacy `get_storage_driver()` disk trace fallbacks in `@[backend_v2/hooks/archival.py]` and `@[backend_v2/workers/synthesis_reducers.py#persist_profile_synthesis_atomic]`, and update `ExecutionRecord.with_updated_step_state`, `ExecutionOverrideService.override_atom` (`@[backend_v2/services/execution/override_service.py#L35-L482]`), `ExecutionAssignmentService.redact_execution_for_confirmation_only`, `ExecutionContextService`, `ExecutionLifecycleService`, `ExecutionResumptionService`, DAG Orchestrator stages (`ExecutionCommitter`, `WorkflowBootstrapStage`, `StepExecutionStage`, `WaveOrchestratorStage`, `EngineRetryStage`, `SynthesisDistiller`), `BlueprintTransformer`, `ReportCompilationService` (dropping synthetic `"sys_render_{profile_id}"` step keys), `ExportMetadataResolver`, `SduiMapperService`, CLI scripts (`reconcile_storage.py`, `diff_executions.py`, `run_e2e_variance_test.py`), background workers, and all 58 backend unit/integration test suites to read and mutate `ExecutionRecord.steps` (`list[ExecutionStep]`) and `output_profile_id` exclusively.
+     * Synchronize Flutter Freezed models, views, and 5 Dart test suites in `@[client_app_v2/lib/features/execution/models/execution_record.dart#L15-L162]`, `@[client_app_v2/lib/features/execution/models/execution_step.dart#L15-L45]` (`@[client_app_v2/lib/features/execution/models/execution_step.dart#L1-L45]`), `@[client_app_v2/lib/features/execution/views/execution_view.dart]` (replacing `record.activeProfileId` with `record.outputProfileId`), `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`, `@[client_app_v2/lib/shared/widgets/result_dashboard.dart]`, `sse_client_test.dart`, `execution_models_test.dart`, `execution_record_test.dart`, `execution_step_test.dart`, and `execution_view_test.dart`, dropping `stepStates`, `activeProfileId`, `pdfReportPath`, and `*_StoragePath` while preserving `profileSyntheses` (`ProfileSynthesisEntryDto`) and `@JsonSerializable(disallowUnrecognizedKeys: true)` under `uv run python scripts/audit_dto_parity.py --fail-on-mismatch`.
   3. **Constraint-Enforcing `InMemoryUnitOfWork` & 22-Table `audit_zero_orm_strictness.py` (`ZORM004`–`ZORM008`):**
-     * Upgrade `@[backend_v2/tests/fakes/in_memory_uow.py#L741-L1887]` (`backend_v2/tests/fakes/in_memory_uow.py#L1-L561`) and `InMemoryEntityAdapter` to enforce `ON DELETE RESTRICT` (`ErrorCodes.DELETE_BLOCKED_BY_USAGE` 400), `ON DELETE NO ACTION DEFERRABLE` (`workflows.default_profile_id`), `ON DELETE CASCADE` (including `organization_id` and `tenant_secrets.mcp_gateway_id`), `UNIQUE` constraints (`ErrorCodes.CONFLICT` 409), and `state_version` / `version` OCC across all 22 tables.
-     * Update `CLOSED_POSTGRES_TABLES` (22 tables), `CANONICAL_ENTITY_PK_TABLES` (strictly the **16** UUIDv7-PK tables—adding `model_registries`, `mcp_gateways`, `audit_logs`, `usage_records` and dropping `system_configs`, while **excluding** composite/sidecar tables `step_criteria_blocks`, `workflow_step_refs`, `execution_payloads`, `report_binaries`, `quorum_nodes`, `quorum_edges` so `ZORM004` remains exact), `CANONICAL_NAMED_ENTITY_TABLES`, and `APPROVED_ADAPTER_RECORD_COLUMNS` in `@[scripts/audit_zero_orm_strictness.py#L432-L452]` (`@[scripts/audit_zero_orm_strictness.py#L859-L1053]`), and add `ZORM008` banning `StorageDriver` imports, unwrapped `.model_validate(` calls in `entity_adapter/` stage modules, and unparameterized `SELECT *` list scans.
+     * Upgrade `@[backend_v2/tests/fakes/in_memory_uow.py#L1996-L2007]` (`backend_v2/tests/fakes/in_memory_uow.py#L1-L561`), `_InMemoryPostgresStore` (`_StoreSnapshot` / `restore_snapshot` deep-copying `seed_tables` and `execution_payloads`), and `InMemoryEntityAdapter` to enforce `ON DELETE RESTRICT` (`ErrorCodes.DELETE_BLOCKED_BY_USAGE` 400), `ON DELETE NO ACTION DEFERRABLE` (`workflows.default_profile_id`), `ON DELETE CASCADE` (including `DELETE FROM EXECUTIONS` child cascades, `organization_id`, and `tenant_secrets.mcp_gateway_id`), `UNIQUE` constraints (`ErrorCodes.CONFLICT` 409), populated-parent child `INSERT` validation (`if parent_table_non_empty`), and `state_version` / `version` OCC across all 22 tables.
+     * Update `CLOSED_POSTGRES_TABLES` (22 tables), `CANONICAL_ENTITY_PK_TABLES` (strictly the **16** UUIDv7-PK tables—adding `model_registries`, `mcp_gateways`, `audit_logs`, `usage_records` and dropping `system_configs`, while **excluding** composite/sidecar tables `step_criteria_blocks`, `workflow_step_refs`, `execution_payloads`, `report_binaries`, `quorum_nodes`, `quorum_edges` so `ZORM004` remains exact), `CANONICAL_NAMED_ENTITY_TABLES`, and `APPROVED_ADAPTER_RECORD_COLUMNS` (`ZORM006` dropping the 6 demolished columns) in `@[scripts/audit_zero_orm_strictness.py#L439-L459]`, and add `ZORM008` banning `StorageDriver` imports, unwrapped `.model_validate(` calls in `entity_adapter/` stage modules, and unparameterized `SELECT *` list scans.
   4. **Single-Pipeline Governance Lock in `audit_technical_debt.py`, `_ast_guardrails.py`, `audit_dict_eradication.py`, `.agents/rules/` & Knowledge Items (`ki_*.md`):**
      * **Extend `@[scripts/audit_technical_debt.py#L253-L579]`:** Add 3 fatal AST technical debt checks so every pre-flight `--targets --include-one-hop` sweep permanently enforces the single persistence pipeline:
-       1. `TD_EXCEPT_SWALLOW_RETURN`: Flag `except (Exception, AppException, ValidationError)` blocks that return `None`, `False`, `[]`, or `{}` without `logger.error` and `raise AppException(...)`.
-       2. `TD_LEGACY_STORAGE_DRIVER`: Flag any import or attribute reference to `StorageDriver`, `PostgresStorageDriver`, `Filter`, `QueryCondition`, `AppendOnlyRepositoryBase`, or dead V1 ghost repository classes (`KnowledgeRepositoryImpl`, `ComponentRepositoryImpl`, `AgentRepositoryImpl`, `RoleRepositoryImpl`, `TaskBlueprintRepositoryImpl`).
+       1. `TD_EXCEPT_SWALLOW_RETURN`: Flag `except (Exception, AppException, ValidationError)` blocks that return `None`, `False`, `[]`, or `{}` without `logger.error` and `raise AppException(...)` (skipping `_is_test_file` and `_is_boundary_exempt` so `backend_v2/core/telemetry.py` startup probes pass `--include-one-hop`).
+       2. `TD_LEGACY_STORAGE_DRIVER`: Flag any import or attribute reference to `StorageDriver`, `PostgresStorageDriver`, `QueryCondition`, `AppendOnlyRepositoryBase`, `backend_v2.database` `Filter` (excluding stdlib `logging.Filter`), or dead V1 ghost repository classes (`KnowledgeRepositoryImpl`, `ComponentRepositoryImpl`, `AgentRepositoryImpl`, `RoleRepositoryImpl`, `TaskBlueprintRepositoryImpl`).
        3. `TD_UNWRAPPED_HYDRATION`: Flag direct `.model_validate(` or `.validate_python(` calls inside `backend_v2/database/postgres/` outside `validate_hydrated_row(...)`.
-     * **Tighten `@[scripts/_ast_guardrails.py#L110-L129]` & `@[scripts/audit_dict_eradication.py#L169-L628]`:** Drop `"backend_v2/database/postgres/storage_driver.py"` and `"backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py"` from `BOUNDARY_EXEMPTION_FILES`, add `"backend_v2/database/postgres/storage_driver.py"` and `"backend_v2/database/driver.py"` to `QGR017` retired monoliths, update `_QGR030_ENTITY_PREFIXES` (`mrg`, `mcp`, `tbr`, `tsk`, `aud`, `usg`, `inv`, `sec`; scope retired `sys_` detection strictly to `^sys_[0-9a-fA-F]{32}$` and `EntityPrefix.SYSTEM_CONFIG` so `sys_rag_*` and `_sys_initiator_id` never collide), and drop obsolete `Filter`/`QueryCondition` (`_QGR031_*`) exemptions.
+     * **Tighten `@[scripts/_ast_guardrails.py#L110-L129]` & `@[scripts/audit_dict_eradication.py#L169-L628]`:** Drop `"backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py"` from `BOUNDARY_EXEMPTION_FILES` (`12 -> 11` entries), add `"backend_v2/database/postgres/storage_driver.py"` and `"backend_v2/database/driver.py"` to `QGR017` retired monoliths, drop the obsolete `test_postgres.py` exemption in `_check_qgr031_filter_call`, and retain `_QGR030_ENTITY_PREFIXES` (`^sys_[0-9a-fA-F]{32}$` and `EntityPrefix.SYSTEM_CONFIG` so `sys_rag_*` and `_sys_initiator_id` never collide).
      * **Synchronize `.agents/rules/` & Knowledge Items (`ki_*.md`):**
        1. Update `@[.agents/rules/01-python-backend.md]` (`primary_key_lookup_o1_mandate`, `in_place_upsert_standard_mandate`, `crud_and_clone_lifecycle_standard_mandate`, `zero_orm_ddl_column_evolution_and_preflight_mandate`, `service_layer_hydration_firewall`), `@[.agents/rules/03_seed_vault.md]`, and `@[.agents/rules/04_directory_reference.md]` to codify the single `EntityPersistencePort` pipeline, the 22-table PostgreSQL 19 topology, `validate_hydrated_row`, `translate_postgres_exception`, `ON DELETE RESTRICT` on active blueprints/assignments, `organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE` (`ROOT_SYSTEM`), and the 9-collection `seed_data.json`.
-       2. Create and synchronize `[NEW]` `@[ki_zero_orm_postgres_enforcement.md]` (alongside updating `ki_router_ssot_and_crud_clone_lifecycle.md`, `ki_global_config_sovereignty.md`, `ki_mcp_gateway_architecture.md`, and `ki_zero_permissive_typing.md`) in `<appDataDir>\knowledge\`, register `ki_zero_orm_postgres_enforcement.md` in `DEFAULT_CANONICAL_KI_ARTIFACTS` (`@[scripts/audit_skills_architecture.py#L160-L175]`) and `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, verify pairwise rule and static checker orthogonality via `uv run python scripts/audit_skills_architecture.py` (`pairwise_rule_and_guardrail_orthogonality_mandate`), and route architectural manifesto updates via `/tier7-describe-architecture` (`dual_axis_documentation_mandate`).
+       2. Create and synchronize `[NEW]` `@[ki_zero_orm_postgres_enforcement.md]` (alongside updating `ki_router_ssot_and_crud_clone_lifecycle.md`, `ki_global_config_sovereignty.md`, `ki_mcp_gateway_architecture.md`, and `ki_zero_permissive_typing.md`) in `<appDataDir>/knowledge/`, register `ki_zero_orm_postgres_enforcement.md` in `DEFAULT_CANONICAL_KI_ARTIFACTS` (`@[scripts/audit_skills_architecture.py#L160-L175]`) and `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, verify pairwise rule and static checker orthogonality via `uv run python scripts/audit_skills_architecture.py` (`pairwise_rule_and_guardrail_orthogonality_mandate`), and route architectural manifesto updates via `/tier7-describe-architecture` (`dual_axis_documentation_mandate`).
 * **Phase 4 Verification Command:**
   * `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets backend_v2/database backend_v2/services --include-one-hop; uv run --no-sync --offline python scripts/audit_skills_architecture.py; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/ scripts/audit_zero_orm_strictness.py scripts/audit_technical_debt.py scripts/_ast_guardrails.py scripts/audit_dict_eradication.py scripts/audit_skills_architecture.py scripts/reconcile_storage.py scripts/diff_executions.py scripts/run_e2e_variance_test.py backend_v2/tests/unit/scripts/ --test --ast-strict; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/ --build`
 
