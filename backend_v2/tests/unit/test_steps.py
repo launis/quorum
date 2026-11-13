@@ -38,6 +38,7 @@ def sample_step() -> Step:
     protocol_block_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
     criteria_block_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=generate_opaque_id(EntityPrefix.STEP),
         slug="sample_step",
         name=I18nText(translations={"en": "Sample Step", "fi": "Esimerkkivaihe"}),

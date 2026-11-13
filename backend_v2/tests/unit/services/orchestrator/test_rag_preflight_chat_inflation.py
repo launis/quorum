@@ -26,6 +26,7 @@ def _make_step_def() -> Step:
     """Creates a valid Step for testing."""
     return Step.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018234567890abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test Step"}},

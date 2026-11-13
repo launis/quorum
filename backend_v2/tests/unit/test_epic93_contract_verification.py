@@ -326,6 +326,7 @@ class TestPhase2PipelineUnification:
 
         def _make_pb(block_id: str, label_en: str, tda_id: str) -> PromptBlock:
             return MatrixPromptBlock(
+                organization_id="org_0195f3a0000070008000000000000001",
                 id=block_id,
                 slug=f"slug_{block_id}",
                 label=I18nText(translations={"en": label_en}),

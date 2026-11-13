@@ -97,6 +97,7 @@ def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFac
     """Verify that build_dynamic_schema enforces dynamic Literal validation on source_document_ids."""
     criteria: list[AnyPromptBlock] = [
         SystemRulePromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="blk_1234567890abcdef1234567890abcdef",
             slug="test-slug-1",
             label=I18nText(translations={"en": "Test Label"}),

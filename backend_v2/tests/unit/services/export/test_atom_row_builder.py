@@ -55,6 +55,7 @@ def _create_sample_blocks_and_matrices() -> tuple[
         claims=[claim],
     )
     block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=blk_id,
         slug="matrix_1",
         label=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
@@ -584,6 +585,7 @@ def test_build_atom_rows_and_denorm_fallback_to_scorecard_and_meta_criterion() -
         claims=[claim_inv],
     )
     block_inv = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         slug="matrix_inv",
         label=I18nText(translations={"fi": "Matriisi Inv", "en": "Matrix Inv"}),

@@ -253,6 +253,7 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_starvation",
@@ -365,6 +366,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_fusion_pop",
@@ -694,6 +696,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_standalone_causal",
@@ -839,6 +842,7 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_causal_slug",
@@ -931,6 +935,7 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_cascade_slug",
@@ -1037,6 +1042,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_causal_fusion_slug",
@@ -1171,6 +1177,7 @@ async def test_dag_executor_input_delta_variants() -> None:
         },
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_delta_slug",
@@ -1274,6 +1281,7 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_causal_fusion_invalid",
@@ -1384,6 +1392,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_snap_slug",
@@ -1720,6 +1729,7 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_snap_err_slug",

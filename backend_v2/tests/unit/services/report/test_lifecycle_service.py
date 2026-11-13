@@ -82,6 +82,7 @@ def _create_dummy_execution(
 
 def _create_dummy_profile(profile_id: str = "prf_0195f3a0000070018234567890abcdef") -> OutputProfile:
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=profile_id,
         slug="executive_report",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
@@ -349,6 +350,7 @@ async def test_get_or_create_default_artifact_workflow_default_and_fallback() ->
     repo1 = InMemoryUnifiedWorkflowRepository()
     await repo1.save_execution(execution)
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=execution.workflow_id,
         slug="standard_flow",
         name="Standard Workflow",

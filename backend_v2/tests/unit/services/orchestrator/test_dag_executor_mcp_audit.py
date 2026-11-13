@@ -47,6 +47,7 @@ def workflow_fixture() -> Workflow:
         id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
     )
     return Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wor_0195f3a0000070018111222233334444",

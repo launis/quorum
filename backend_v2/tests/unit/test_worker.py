@@ -1004,6 +1004,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
 
         typed_matrix = PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a0000070018111222233334444",
                 "slug": "matrix_block",
                 "type": "float",

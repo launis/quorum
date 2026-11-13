@@ -67,7 +67,11 @@ async def test_save_output_profile_allows_target_block_types(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
     """Test that virtual blocks from TargetBlockType and step criteria matrix block are allowed."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000010",
+    )
 
     cohesion_block_id = "blk_0195f3a00000700080009f6d2c1b0a5e"
     workflow = AsyncMock()
@@ -86,7 +90,7 @@ async def test_save_output_profile_allows_target_block_types(
         "prf_0195f3a00000700080001234567890ab",
         "opt_123",
         "wf_0195f3a0000070008000000000000123",
-        "root",
+        "org_0195f3a0000070008000000000000010",
         "Test",
     )
     profile = profile.model_copy(
@@ -113,7 +117,11 @@ async def test_save_output_profile_unmapped_block_fails(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
     """ISTQB Negative: Target component absent from allowed_blocks raises AppException(400, VALIDATION_FAILED)."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000010",
+    )
 
     workflow = AsyncMock()
     workflow.id = "wf_0195f3a0000070008000000000000123"
@@ -129,7 +137,7 @@ async def test_save_output_profile_unmapped_block_fails(
         "prf_0195f3a00000700080001234567890ab",
         "opt_123",
         "wf_0195f3a0000070008000000000000123",
-        "root",
+        "org_0195f3a0000070008000000000000010",
         "Test",
     )
     profile = profile.model_copy(
@@ -538,7 +546,11 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         workflow_service=real_wf_service,
     )
 
-    initiator = TokenData(id="usr_0195f3a00000700a8000000000000001", role=UserRole.ROOT, organization_id="SYSTEM")
+    initiator = TokenData(
+        id="usr_0195f3a00000700a8000000000000001",
+        role=UserRole.ROOT,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
     cohesion_block_id = "blk_0195f3a00000700c80a1e50000000001"
     causal_step_id = "stp_0195f3a00000700c84a5a1d15c00438a"
     workflow_id = "wf_0195f3a00000700a88f1d71000000001"
@@ -549,7 +561,7 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         slug="step_causal_discovery",
         name=I18nText(translations={"en": "Causal Discovery"}),
         type=StepType.CAUSAL_DISCOVERY,
-        organization_id="SYSTEM",
+        organization_id="org_0195f3a0000070008000000000000001",
         safety="safe",
         mcp_tool_params={},
         cognitive_tier=CognitiveTier.FAST,
@@ -570,7 +582,7 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         description=I18nText(translations={"en": "Desc"}),
         status="active",
         version=1,
-        organization_id="SYSTEM",
+        organization_id="org_0195f3a0000070008000000000000001",
         expected_inputs=[],
         steps=[
             StepRule(
@@ -590,7 +602,7 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         profile_id,
         "prf_board_audit",
         workflow_id,
-        "SYSTEM",
+        "org_0195f3a0000070008000000000000001",
         "Board Profile",
     ).model_copy(
         update={

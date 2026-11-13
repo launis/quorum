@@ -12,12 +12,19 @@ from pydantic import (
     Field,
     StringConstraints,
     TypeAdapter,
+    field_validator,
     model_validator,
 )
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import (
+    OPAQUE_STRIPE_ID_REGEX,
+    I18nText,
+    V2CoreBase,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.domain.matrix import MatrixRow, MatrixScale, TheoryGrounding
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, EntityPrefix, PromptBlockCategory
 
 __all__ = [
     "AnyPromptBlock",
@@ -48,7 +55,13 @@ class PromptBlockBase(V2CoreBase):
         ),
     ]
     slug: Annotated[StrictStr, Field(description="URL routing helper field. Strictly no data relation role.")]
-    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID.")] = None
+    organization_id: Annotated[
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Owning tenant organization ID (org_<hex32>).",
+        ),
+    ]
     label: Annotated[I18nText, Field(description="Localizable label for the UI.")]
     description: Annotated[I18nText, Field(description="Localizable description or help text for the UI.")]
     output_extensions: Annotated[
@@ -65,6 +78,26 @@ class PromptBlockBase(V2CoreBase):
             description="Fetches and injects source theory as <theory_context>.",
         ),
     ] = None
+
+    @field_validator("organization_id")
+    @classmethod
+    def _validate_organization_id(cls, v: str) -> str:
+        """Validate that organization_id uses the canonical org_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate organization identifier string.
+
+        Returns:
+            Validated organization identifier string.
+
+        Raises:
+            ValueError: If organization_id fails org_<hex32> UUIDv7 validation.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.ORGANIZATION)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
 
 class MatrixPromptBlock(PromptBlockBase):

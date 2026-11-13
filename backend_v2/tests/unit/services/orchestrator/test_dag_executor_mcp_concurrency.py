@@ -44,6 +44,7 @@ def mock_repos() -> MockDependenciesContainer:
         repo.seed_raw_step(
             bp_id,
             Step(
+                organization_id="org_0195f3a0000070008000000000000001",
                 id=bp_id,
                 type="logic",
                 cognitive_tier=CognitiveTier.FAST,
@@ -62,6 +63,7 @@ def mock_repos() -> MockDependenciesContainer:
         repo.seed_raw_workflow(
             wf_id,
             Workflow(
+                organization_id="org_0195f3a0000070008000000000000001",
                 id=wf_id,
                 slug=f"slug_{wf_id}",
                 name=I18nText(translations={"en": name}),
@@ -123,6 +125,7 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
     ]
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018111111111111111",
         slug="wf_concurrency_1",
         name=I18nText(translations={"en": "Concurrency Test"}),
@@ -234,6 +237,7 @@ async def test_dag_executor_generated_schemas_accumulation(mock_repos: MockDepen
     ]
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070028222222222222222",
         slug="wf_concurrency_2",
         name=I18nText(translations={"en": "Schema Test"}),

@@ -77,6 +77,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixP
         )
 
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug=f"slug-{block_id}",
         label=I18nText(translations={"en": f"Label {block_id}", "fi": f"Label {block_id}"}),
@@ -104,6 +105,7 @@ def base_hook_state() -> HookState:
 @pytest.fixture
 def mock_step() -> Step:
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="step_0123456789abcdef0123456789abcdef",
         name=I18nText(translations={"en": "Test Step", "fi": "Test Step"}),
         slug="test-step",
@@ -335,6 +337,7 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
     )
     scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
     mock_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0123456789abcdef0123456789abcdef",
         slug="slug-test-deps",
         label=I18nText(translations={"en": "Label", "fi": "Label"}),
@@ -446,6 +449,7 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     scale_1 = MatrixScale(score=1, ai_label="Level 1", claims=[claim_1])
     scale_5 = MatrixScale(score=5, ai_label="Level 5", claims=[claim_5])
     mock_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0123456789abcdef0123456789abcdef",
         slug="slug-transitive",
         label=I18nText(translations={"en": "Label", "fi": "Label"}),

@@ -8,7 +8,13 @@ import logging
 import re
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, generate_opaque_id
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import (
+    OPAQUE_STRIPE_ID_REGEX,
+    I18nText,
+    generate_opaque_id,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.domain.output_profile import STANDARD_MATRIX_VISIBLE_COLUMNS, OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import EntityPrefix, PresetView, TargetBlockType
@@ -86,7 +92,7 @@ DEFAULT_FACTORY_VARIANCE_DIRECTIVE: str = (
 def build_draft_output_profile(
     profile_id: str,
     workflow_id: str,
-    organization_id: str | None = None,
+    organization_id: str = SystemOrganizations.ROOT_SYSTEM.value,
     initial_target_block: str | None = None,
 ) -> OutputProfile:
     """Build a fully populated, runnable OutputProfile draft for headless API and Studio creation.
@@ -94,7 +100,7 @@ def build_draft_output_profile(
     Args:
         profile_id: Canonical Opaque Stripe ID for the new OutputProfile.
         workflow_id: Identifier of the associated Workflow.
-        organization_id: Optional tenant organization ID owning the draft profile.
+        organization_id: Canonical org_<hex32> tenant organization ID owning the draft profile.
         initial_target_block: Optional initial PromptBlock ID to bind to default synthesis group and variance.
 
     Returns:
@@ -102,12 +108,15 @@ def build_draft_output_profile(
 
     Raises:
         AppException (ErrorCodes.VALIDATION_FAILED): If profile_id fails OPAQUE_STRIPE_ID_REGEX,
-            workflow_id is empty, or initial_target_block is an empty/whitespace string.
+            organization_id fails org_<hex32> UUIDv7 validation, workflow_id is empty,
+            or initial_target_block is an empty/whitespace string.
     """
     if not profile_id or not re.match(OPAQUE_STRIPE_ID_REGEX, profile_id):
         msg = f"Invalid profile_id '{profile_id}'. Must conform to OPAQUE_STRIPE_ID_REGEX."
         logger.error("[OutputProfileFactory] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+    parse_prefixed_uuid7(organization_id, EntityPrefix.ORGANIZATION)
 
     if not workflow_id or not workflow_id.strip():
         msg = f"workflow_id cannot be empty for OutputProfile '{profile_id}'."

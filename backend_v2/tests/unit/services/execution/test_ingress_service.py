@@ -190,6 +190,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
     workflow = _create_test_workflow()
 
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step", "fi": "Analyysi"}),
@@ -206,6 +207,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
     )
 
     role_block = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="role-block",
         category_id=PromptBlockCategory.AGENT_ROLE,
@@ -215,6 +217,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         tone_directives=[],
     )
     protocol_block = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018123456789abcdef",
         slug="protocol-block",
         category_id=PromptBlockCategory.PROTOCOL,
@@ -223,6 +226,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         output_extensions=[],
     )
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070028123456789abcdef",
         slug="matrix-block",
         category_id=PromptBlockCategory.MATRIX,
@@ -284,6 +288,7 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     workflow = _create_test_workflow()
 
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step", "fi": "Analyysi"}),
@@ -298,6 +303,7 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     )
 
     profile_obj = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
@@ -486,6 +492,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
 
     # Case 2: Missing output_profile_repo when profile requested
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="step-slug",
         name=I18nText(translations={"en": "Analytical Step"}),
@@ -552,6 +559,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
 
     # Case 5: Missing system_repo
     matching_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="matching",
         name=I18nText(translations={"en": "Matching"}),
@@ -617,6 +625,7 @@ async def test_generate_sdui_hints_missing_and_invalid_prompt_block_raises() -> 
     """Verify _generate_sdui_hints raises ConfigurationError on missing PB and AppException on malformed PB."""
     workflow = _create_test_workflow()
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step"}),
@@ -660,6 +669,7 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
     """Verify start_execution invokes doc_service.process_ingress_payload when provided."""
     workflow = _create_test_workflow()
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step"}),
@@ -673,6 +683,7 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
         mcp_tool_params={},
     )
     profile_obj = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
@@ -727,6 +738,7 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
     """Verify start_execution raises 404 when model_registry_id resolves to empty."""
     workflow = _create_test_workflow()
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step"}),
@@ -740,6 +752,7 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
         mcp_tool_params={},
     )
     profile_obj = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
@@ -838,6 +851,7 @@ async def test_start_execution_without_default_profile_and_workflow_inputs(initi
     """Verify start_execution supports None profile resolution and WorkflowInputs normalization."""
     workflow = _create_test_workflow().model_copy(update={"default_profile_id": None})
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step"}),

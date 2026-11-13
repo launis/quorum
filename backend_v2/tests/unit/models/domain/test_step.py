@@ -25,6 +25,7 @@ from backend_v2.models.enums import CognitiveTier, StepType, StepZone
 def test_step_valid_llm() -> None:
     """Test valid instantiation of an LLM Step."""
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700080000123456789ab",
         slug="step_analyst",
         name=I18nText(translations={"en": "Analyst Step"}),
@@ -44,6 +45,7 @@ def test_step_valid_llm() -> None:
 def test_step_valid_logic() -> None:
     """Test valid instantiation of a logic hook Step."""
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700080000123456789ab",
         slug="step_transform",
         name=I18nText(translations={"en": "Transform Step"}),
@@ -59,6 +61,7 @@ def test_step_llm_missing_criteria_block_ids_fails() -> None:
     """Test that LLM step without criteria_block_ids fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700080000123456789ab",
             slug="step_broken",
             name=I18nText(translations={"en": "Broken Step"}),
@@ -76,6 +79,7 @@ def test_step_llm_missing_extraction_protocol_fails() -> None:
     """Test that LLM step without extraction_protocol_block_id fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700080000123456789ab",
             slug="step_broken",
             name=I18nText(translations={"en": "Broken Step"}),
@@ -93,6 +97,7 @@ def test_step_consistency_missing_cognitive_tier_raises_app_exception() -> None:
     """Test that LLM step without cognitive_tier fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700080000123456789ab",
             slug="step_broken",
             name=I18nText(translations={"en": "Broken Step"}),
@@ -110,6 +115,7 @@ def test_step_logic_missing_hook_fails() -> None:
     """Test that Logic step without hook target fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700080000123456789ab",
             slug="step_logic_broken",
             name=I18nText(translations={"en": "Logic Broken"}),
@@ -125,6 +131,7 @@ def test_step_extra_fields_forbidden() -> None:
     with pytest.raises(ValidationError):
         Step.model_validate(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "stp_0195f3a00000700080000123456789ab",
                 "slug": "step_extra",
                 "name": {"translations": {"en": "Extra Step"}},
@@ -399,6 +406,7 @@ def test_allowed_input_modes_ssot() -> None:
 def test_step_causal_discovery_valid_with_criteria() -> None:
     """Test valid instantiation of a CAUSAL_DISCOVERY Step with bound criteria_block_ids."""
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700080000123456789ab",
         slug="step_causal",
         name=I18nText(translations={"en": "Causal Discovery Step"}),
@@ -418,6 +426,7 @@ def test_step_causal_discovery_missing_criteria_raises_app_exception() -> None:
     """Test that CAUSAL_DISCOVERY step without criteria_block_ids fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700080000123456789ab",
             slug="step_causal_broken",
             name=I18nText(translations={"en": "Broken Step"}),
@@ -435,6 +444,7 @@ def test_step_causal_discovery_missing_extraction_protocol_raises_app_exception(
     """Test that CAUSAL_DISCOVERY step without extraction_protocol_block_id fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700080000123456789ab",
             slug="step_causal_broken",
             name=I18nText(translations={"en": "Broken Step"}),
@@ -452,6 +462,7 @@ def test_step_causal_discovery_missing_cognitive_tier_raises_app_exception() -> 
     """Test that CAUSAL_DISCOVERY step without cognitive_tier fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700080000123456789ab",
             slug="step_causal_broken",
             name=I18nText(translations={"en": "Broken Step"}),
@@ -505,6 +516,7 @@ def test_step_zone_assignment_and_default() -> None:
     """Test Step zone default value, explicit assignment, and validation."""
     # 1. Default zone should be ZONE_B
     step_default = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700080000123456789ab",
         slug="step_default_zone",
         name=I18nText(translations={"en": "Default Zone"}),
@@ -515,6 +527,7 @@ def test_step_zone_assignment_and_default() -> None:
 
     # 2. Explicit ZONE_A
     step_zone_a = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700080000123456789ab",
         slug="step_zone_a",
         name=I18nText(translations={"en": "Zone A Step"}),
@@ -526,6 +539,7 @@ def test_step_zone_assignment_and_default() -> None:
 
     # 3. Explicit ZONE_C via string
     step_zone_c = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700080000123456789ab",
         slug="step_zone_c",
         name=I18nText(translations={"en": "Zone C Step"}),
@@ -539,6 +553,7 @@ def test_step_zone_assignment_and_default() -> None:
     with pytest.raises(ValidationError):
         Step.model_validate(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "stp_0195f3a00000700080000123456789ab",
                 "slug": "step_invalid_zone",
                 "name": {"translations": {"en": "Invalid Zone"}},

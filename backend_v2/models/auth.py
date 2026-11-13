@@ -118,15 +118,15 @@ class SystemOrganizations(StrEnum):
 
     @classmethod
     def is_system(cls, org_id: str | None) -> bool:
-        """Check whether an organization identifier belongs to the global system scope.
+        """Check whether an organization identifier equals the canonical ROOT_SYSTEM organization.
 
         Args:
             org_id: Organization identifier to evaluate, or None.
 
         Returns:
-            True if the identifier represents a global system scope, False otherwise.
+            True if org_id matches ROOT_SYSTEM strictly, False otherwise.
         """
-        return not org_id or org_id in (cls.ROOT_SYSTEM.value, "SYSTEM")
+        return org_id == cls.ROOT_SYSTEM.value
 
 
 # --- Base & Domain Models ---

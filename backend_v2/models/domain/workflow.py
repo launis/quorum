@@ -39,7 +39,13 @@ class Workflow(V2CoreBase):
     status: str
     version: int
     is_public: Annotated[bool, Field(default=False)] = False
-    organization_id: Annotated[str | None, Field(default=None)] = None
+    organization_id: Annotated[
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Owning tenant organization ID (org_<hex32>).",
+        ),
+    ]
     default_profile_id: Annotated[
         str | None,
         Field(default=None, description="The ID of the default output profile to use."),
@@ -143,6 +149,26 @@ class Workflow(V2CoreBase):
         LaxHistoricalContextMode,
         Field(description="Mode for fetching historical context at workflow level."),
     ]
+
+    @field_validator("organization_id")
+    @classmethod
+    def _validate_organization_id(cls, v: str) -> str:
+        """Validate that organization_id uses the canonical org_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate organization identifier string.
+
+        Returns:
+            Validated organization identifier string.
+
+        Raises:
+            ValueError: If organization_id fails org_<hex32> UUIDv7 validation.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.ORGANIZATION)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     @field_validator("mcp_gateway_id")
     @classmethod

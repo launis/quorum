@@ -58,6 +58,7 @@ def mock_studio_services() -> tuple[AsyncMock, AsyncMock]:
 @pytest.fixture
 def sample_step() -> Step:
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="sp_0195f3a0000070018234567890abcdef",
         slug="test_step",
         name=I18nText(translations={"fi": "Testi", "en": "Test"}),

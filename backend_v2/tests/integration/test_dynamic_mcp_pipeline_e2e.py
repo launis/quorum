@@ -275,6 +275,7 @@ async def test_dynamic_mcp_pipeline_full_lifecycle_e2e(root_token: TokenData) ->
 
     # 5. Verify SDUI rendering via McpAuditAdapter and PrintableSourcesAdapter
     mock_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018111222233334444",
         slug="default_profile",
         workflow_id="wor_0195f3a0000070018111222233334444",

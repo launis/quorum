@@ -6,7 +6,7 @@ import logging
 
 from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.enums import EntityPrefix, StepFilterScope
@@ -15,6 +15,7 @@ from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
     is_resource_accessible,
+    resolve_create_organization_id,
 )
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 
@@ -243,7 +244,7 @@ class StudioOutputProfileService:
         existing = await self._require_output_profile(initiator, id)
         enforce_modification_rights(initiator, existing.organization_id)
 
-        target_org: str | None = existing.organization_id
+        target_org: str = existing.organization_id
         if initiator.role == UserRole.ROOT:
             target_org = data.organization_id
             enforce_modification_rights(initiator, target_org)
@@ -302,7 +303,7 @@ class StudioOutputProfileService:
         matrix_block = next(iter(prompt_blocks), None)
 
         new_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
-        target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
+        target_org = resolve_create_organization_id(initiator)
         draft = build_draft_output_profile(
             profile_id=new_id,
             workflow_id=target_wf_id,
@@ -330,7 +331,10 @@ class StudioOutputProfileService:
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
 
         new_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
-        target_org = profile.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = profile.organization_id
+        else:
+            target_org = resolve_create_organization_id(initiator)
         cloned_name = profile.name.with_copy_suffix()
 
         cloned_obj = profile.model_copy(

@@ -19,6 +19,7 @@ from backend_v2.workers.execution_worker import execute_workflow_job
 
 def _create_mock_workflow(strictness: int = 1, lexical_strictness: int = 50) -> Workflow:
     return Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_0195f3a0000070008123456789abcdef",
         slug="test-workflow",
         name="Test Workflow",

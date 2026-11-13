@@ -30,6 +30,7 @@ async def test_worker_preserves_models_used() -> None:
 
     # Seed typed Workflow
     mock_workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=workflow_id,
         name="Test Workflow",
         status="active",

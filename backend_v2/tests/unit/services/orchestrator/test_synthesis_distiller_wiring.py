@@ -81,6 +81,7 @@ def _build_mock_deps() -> HookDependencies:
         [
             OutputProfile.model_validate(
                 {
+                    "organization_id": "org_0195f3a0000070008000000000000001",
                     "id": "pro_0195f3a00000700283456789abcdef01",
                     "slug": "prof_standard",
                     "workflow_id": "wor_0195f3a00000700283456789abcdef01",

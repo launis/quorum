@@ -69,8 +69,16 @@ class _PersonaPromptBlockFactory(ModelFactory[PersonaPromptBlock]):
 
     category_id: PromptBlockCategory = PromptBlockCategory.EXECUTION_PERSONA
     type: BlockDataType = BlockDataType.INSTRUCTION
-    organization_id: str | None = None
     role_enforcement: str = "Strict analytical auditor."
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a canonical organization Opaque Stripe ID.
+
+        Returns:
+            Canonical org_<hex32> identifier.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
 
     @classmethod
     def id(cls) -> str:
@@ -134,8 +142,17 @@ class _StepFactory(ModelFactory[Step]):
 
     type: StepType = StepType.LOGIC
     hook: str | None = "sample_hook"
-    organization_id: str | None = None
     role_block_id: str | None = None
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a canonical organization Opaque Stripe ID.
+
+        Returns:
+            Canonical org_<hex32> identifier.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
     extraction_protocol_block_id: str | None = None
     execution_persona_block_id: str | None = None
 
@@ -288,7 +305,7 @@ def _create_sample_workflow(
         description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
         status="active",
         version=1,
-        organization_id=None,
+        organization_id="org_0195f3a0000070008000000000000001",
         default_profile_id=profile_id,
         mcp_gateway_id=None,
         default_strictness_level=50,
@@ -315,7 +332,7 @@ def _create_sample_output_profile(profile_id: str, workflow_id: str) -> OutputPr
         slug="test_profile",
         name=I18nText(translations={"en": "Test Profile", "fi": "Testiprofiili"}),
         description=I18nText(translations={"en": "Profile Desc", "fi": "Profiilin kuvaus"}),
-        organization_id=None,
+        organization_id="org_0195f3a0000070008000000000000001",
         workflow_id=workflow_id,
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
         matrix_synthesis_groups=[],

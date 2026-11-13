@@ -81,6 +81,7 @@ def mock_studio_services() -> tuple[AsyncMock, AsyncMock]:
 def sample_block() -> PromptBlock:
     """Provide a valid SystemRulePromptBlock instance."""
     return SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018234567890abcdef",
         slug="test_block",
         label=I18nText(translations={"fi": "Testi", "en": "Test"}),
@@ -95,6 +96,7 @@ def sample_block() -> PromptBlock:
 def sample_empty_matrix_block() -> MatrixPromptBlock:
     """Provide a MatrixPromptBlock whose scale has zero claims/assertions for boundary testing."""
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8bcdef1234567890",
         slug="test_matrix_block",
         label=I18nText(translations={"fi": "Matriisi", "en": "Matrix"}),

@@ -58,6 +58,7 @@ async def test_blueprint_variance_validation_success() -> None:
     step_rule_id = "sr_0195f3a0000070018234567812345678"
 
     pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=variance_target_id,
         slug="cognitive-depth",
         category_id=PromptBlockCategory.MATRIX,
@@ -73,6 +74,7 @@ async def test_blueprint_variance_validation_success() -> None:
     repo.set_prompt_blocks([pb])
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567812345678",
         slug="test",
         workflow_id="wf_0195f3a0000070018234567812345678",
@@ -85,6 +87,7 @@ async def test_blueprint_variance_validation_success() -> None:
     await repo._output_profiles.create_output_profile(profile)
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018234567812345678",
         slug="test",
         name=I18nText(translations={"en": "test"}),
@@ -164,6 +167,7 @@ async def test_blueprint_build_report_missing_profile_error() -> None:
     """Verify build_report_dto raises 404 RESOURCE_NOT_FOUND when output profile does not exist."""
     repo = InMemoryUnifiedWorkflowRepository()
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018234567812345678",
         slug="test",
         name=I18nText(translations={"en": "test"}),

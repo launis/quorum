@@ -59,6 +59,7 @@ def _create_matrix_block(
         ]
 
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug=f"slug_{block_id}",
         label=I18nText(translations={"en": "Matrix Label", "fi": "Matriisin Otsikko"}),

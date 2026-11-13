@@ -174,6 +174,7 @@ def test_matrix_summary_table_adapter_populates_short_circuited_by_claims() -> N
     profile_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
     block_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=profile_id,
         slug="test_profile",
         workflow_id="wf_test",
@@ -305,6 +306,7 @@ def test_causal_graph_adapter_populates_falsified_warrant_claims() -> None:
     warrant_id = generate_opaque_id(EntityPrefix.NODE)
     claim_id = generate_opaque_id(EntityPrefix.NODE)
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=profile_id,
         slug="test_profile",
         workflow_id="wf_test",
@@ -475,6 +477,7 @@ def test_causal_graph_adapter_null_causal_result_raises() -> None:
     """Verify CausalGraphAdapter.build_action_card raises AppException when causal_result is None."""
     profile_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=profile_id,
         slug="test_profile",
         workflow_id="wf_test",

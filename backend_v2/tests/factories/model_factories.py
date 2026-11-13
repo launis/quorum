@@ -278,7 +278,6 @@ class StepFactory(ModelFactory[Step]):
     __model__ = Step
     __set_as_default_factory_for_type__ = True
 
-    organization_id: str | None = None
     type: StepType = StepType.LLM
     cognitive_tier: CognitiveTier = CognitiveTier.FAST
     hook: str | None = None
@@ -288,6 +287,15 @@ class StepFactory(ModelFactory[Step]):
     is_system_core: bool = False
     engine_type: EngineType = EngineType.PROMPT
     zone: StepZone = StepZone.ZONE_B
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generate a valid Opaque Stripe ID with 'org_' prefix.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'org_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
 
     @classmethod
     def id(cls) -> str:

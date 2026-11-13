@@ -116,7 +116,6 @@ BANNED_ALTERNATIVE_PK_KEYS: frozenset[str] = frozenset(
 )
 
 _OPAQUE_STRIPE_ID_COMPILED = re.compile(OPAQUE_STRIPE_ID_REGEX)
-_SYSTEM_ORGANIZATION_SENTINELS: frozenset[str] = frozenset({"SYSTEM", "ROOT_SYSTEM"})
 
 
 class AuditIssue(V2CoreBase):
@@ -1277,7 +1276,7 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
                     )
                 )
 
-    organization_ids = collection_ids["organizations"] | set(_SYSTEM_ORGANIZATION_SENTINELS)
+    organization_ids = collection_ids["organizations"]
     model_registry_ids = collection_ids["model_registries"]
     mcp_gateway_ids = collection_ids["mcp_gateways"]
     output_profile_ids = collection_ids["output_profiles"]
@@ -1288,14 +1287,44 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
     for idx, gw in enumerate(mcp_gateways):
         gw_id = str(gw["id"]) if "id" in gw else f"mcp_gateways[{idx}]"
         org_id = gw["organization_id"] if "organization_id" in gw else None
-        if org_id is not None and str(org_id) not in organization_ids:
+        if not isinstance(org_id, str) or org_id not in organization_ids:
             issues.append(
                 AuditIssue(
                     collection="mcp_gateways",
                     entity_id=gw_id,
                     field_path="organization_id",
                     issue_type="ORPHAN_ORGANIZATION_ID",
-                    message=f"MCPGateway '{gw_id}' references unknown organization_id '{org_id}'.",
+                    message=f"MCPGateway '{gw_id}' references unknown or missing organization_id '{org_id}'.",
+                )
+            )
+
+    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
+    for idx, blk in enumerate(prompt_blocks):
+        blk_id = str(blk["id"]) if "id" in blk else f"prompt_blocks[{idx}]"
+        org_id = blk["organization_id"] if "organization_id" in blk else None
+        if not isinstance(org_id, str) or org_id not in organization_ids:
+            issues.append(
+                AuditIssue(
+                    collection="prompt_blocks",
+                    entity_id=blk_id,
+                    field_path="organization_id",
+                    issue_type="ORPHAN_ORGANIZATION_ID",
+                    message=f"PromptBlock '{blk_id}' references unknown or missing organization_id '{org_id}'.",
+                )
+            )
+
+    steps = data["steps"] if "steps" in data else []
+    for idx, stp in enumerate(steps):
+        stp_id = str(stp["id"]) if "id" in stp else f"steps[{idx}]"
+        org_id = stp["organization_id"] if "organization_id" in stp else None
+        if not isinstance(org_id, str) or org_id not in organization_ids:
+            issues.append(
+                AuditIssue(
+                    collection="steps",
+                    entity_id=stp_id,
+                    field_path="organization_id",
+                    issue_type="ORPHAN_ORGANIZATION_ID",
+                    message=f"Step '{stp_id}' references unknown or missing organization_id '{org_id}'.",
                 )
             )
 
@@ -1354,14 +1383,14 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
             )
 
         org_id = wf["organization_id"] if "organization_id" in wf else None
-        if org_id is not None and str(org_id) not in organization_ids:
+        if not isinstance(org_id, str) or org_id not in organization_ids:
             issues.append(
                 AuditIssue(
                     collection="workflows",
                     entity_id=wf_id,
                     field_path="organization_id",
                     issue_type="ORPHAN_ORGANIZATION_ID",
-                    message=f"Workflow '{wf_id}' references unknown organization_id '{org_id}'.",
+                    message=f"Workflow '{wf_id}' references unknown or missing organization_id '{org_id}'.",
                 )
             )
 
@@ -1381,14 +1410,14 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
             )
 
         org_id = prof["organization_id"] if "organization_id" in prof else None
-        if org_id is not None and str(org_id) not in organization_ids:
+        if not isinstance(org_id, str) or org_id not in organization_ids:
             issues.append(
                 AuditIssue(
                     collection="output_profiles",
                     entity_id=prof_id,
                     field_path="organization_id",
                     issue_type="ORPHAN_ORGANIZATION_ID",
-                    message=f"OutputProfile '{prof_id}' references unknown organization_id '{org_id}'.",
+                    message=f"OutputProfile '{prof_id}' references unknown or missing organization_id '{org_id}'.",
                 )
             )
 
@@ -1409,14 +1438,14 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
     for idx, tb in enumerate(task_briefs):
         tb_id = str(tb["id"]) if "id" in tb else f"task_briefs[{idx}]"
         org_id = tb["organization_id"] if "organization_id" in tb else None
-        if org_id is not None and str(org_id) not in organization_ids:
+        if not isinstance(org_id, str) or org_id not in organization_ids:
             issues.append(
                 AuditIssue(
                     collection="task_briefs",
                     entity_id=tb_id,
                     field_path="organization_id",
                     issue_type="ORPHAN_ORGANIZATION_ID",
-                    message=f"TaskBrief '{tb_id}' references unknown organization_id '{org_id}'.",
+                    message=f"TaskBrief '{tb_id}' references unknown or missing organization_id '{org_id}'.",
                 )
             )
 

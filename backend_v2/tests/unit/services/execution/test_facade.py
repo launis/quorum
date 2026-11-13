@@ -418,6 +418,7 @@ async def test_resume_execution_forwards_prompt_block_repo_for_merkle_invalidati
     step_blueprint_id = generate_opaque_id(EntityPrefix.STEP)
     step_rule_id = generate_opaque_id(EntityPrefix.STEP_REFERENCE)
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_blueprint_id,
         slug="merkle-step",
         name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
@@ -588,6 +589,7 @@ async def test_facade_assignment_lifecycle_end_to_end() -> None:
     )
     await repo.save_step(
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=stp_id,
             slug="stp-slug",
             name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),

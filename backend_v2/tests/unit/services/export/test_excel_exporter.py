@@ -262,6 +262,7 @@ async def test_export_excel_with_prompt_block_repo() -> None:
     desc = I18nText(translations={"fi": "Kuvaus 1", "en": "Description 1"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=blk_id,
         slug="m_slug",
         label=lbl,
@@ -433,6 +434,7 @@ async def test_export_excel_with_components_list() -> None:
     lbl = I18nText(translations={"fi": "Matriisi C", "en": "Matrix C"})
     desc = I18nText(translations={"fi": "Kuvaus C", "en": "Description C"})
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=blk_id,
         slug="m_slug_c",
         label=lbl,

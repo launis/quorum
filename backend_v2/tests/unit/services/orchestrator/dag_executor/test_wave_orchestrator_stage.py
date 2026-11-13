@@ -80,6 +80,7 @@ def _build_state(
     blocks_by_id: dict[str, AnyPromptBlock] | None = None,
 ) -> WorkflowExecutionState:
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070008000111122223333",
         slug="wf_wave_orch",
         name=I18nText(translations={"en": "Wave WF", "fi": "Aalto WF"}),
@@ -232,6 +233,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
     )
     cohesion_mat_id = "blk_0195f3a0000070008000440a5fef9331"
     cohesion_mat = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=cohesion_mat_id,
         slug="mat_causal_cohesion",
         label=I18nText(translations={"en": "Causal Cohesion", "fi": "Kausaalinen koheesio"}),
@@ -262,6 +264,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
         ],
     )
     causal_bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=causal_step.task_blueprint,
         slug="step_causal",
         name=I18nText(translations={"en": "Causal Step", "fi": "Kausaaliaskel"}),

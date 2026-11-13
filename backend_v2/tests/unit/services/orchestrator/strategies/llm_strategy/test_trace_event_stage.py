@@ -69,6 +69,7 @@ def _build_stages_for_trace(
     """Build Stage 1, Stage 2, and Stage 3 results for Stage 4 unit testing."""
     repo = InMemoryUnifiedWorkflowRepository()
     proto_blk = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
@@ -77,6 +78,7 @@ def _build_stages_for_trace(
         protocol_instructions="Extract exact quotes.",
     )
     rule_blk = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="rule-blk",
         label=I18nText(translations={"en": "Rule", "fi": "Saanto"}),
@@ -101,6 +103,7 @@ def _build_stages_for_trace(
         is_system_core=False,
     )
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
         workflow_id="wf_0195f3a0000070008123456789abcdef",

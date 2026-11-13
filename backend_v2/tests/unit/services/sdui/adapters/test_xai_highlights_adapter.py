@@ -35,6 +35,7 @@ from backend_v2.services.sdui.adapters.xai_highlights_adapter import (
 def valid_output_profile_fixture() -> OutputProfile:
     """Fixture for a valid output profile to use in tests."""
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         workflow_id="wfw_test",
@@ -427,6 +428,7 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
 
     for i, ext_type in enumerate(block_extensions):
         profile = OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=f"prf_0195f3a000007000{i:016x}",
             slug=f"profile-{ext_type.value}",
             workflow_id="wfw_test",

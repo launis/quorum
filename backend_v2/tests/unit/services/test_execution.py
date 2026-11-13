@@ -326,6 +326,7 @@ async def test_start_execution_success() -> None:
     service, repo = _create_test_service(executor=executor_mock)
 
     valid_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
@@ -365,6 +366,7 @@ async def test_start_execution_model_registry_override() -> None:
     service, repo = _create_test_service(executor=executor_mock)
 
     valid_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wor_0195f3a0000070008123456789abcdef",
@@ -814,6 +816,7 @@ async def test_start_execution_with_steps_and_blocks() -> None:
     service.usage_service.check_quota.return_value = True
 
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix-block",
         label=I18nText(translations={"en": "Matrix Label"}),
@@ -828,6 +831,7 @@ async def test_start_execution_with_steps_and_blocks() -> None:
     repo.set_prompt_blocks([matrix_block])
 
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="step-1",
         name=I18nText(translations={"en": "Step 1"}),
@@ -1221,6 +1225,7 @@ async def test_start_execution_additional_error_branches() -> None:
     )
 
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_0195f3a0000070008123456789abcdef",
         slug="test-wf",
         version=1,
@@ -1254,6 +1259,7 @@ async def test_start_execution_additional_error_branches() -> None:
     assert exc_info.value.status_code == 400
 
     valid_step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="step-slug",
         name=I18nText(translations={"en": "Step 1"}),
@@ -1357,6 +1363,7 @@ async def test_start_execution_fails_fast_when_profile_workflow_mismatch() -> No
     repo.set_workflow(wf)
 
     mismatch_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="other-profile",
         workflow_id="wor_other_workflow",
@@ -1564,6 +1571,7 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
     # Valid resumability + successful resume_execution roundtrip with step blueprint hydration
     block_id = "blk_0195f3a0000070008123456789abcdef"
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug="matrix-resume",
         label=I18nText(translations={"en": "Resume Matrix"}),
@@ -1578,6 +1586,7 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
     repo.set_prompt_blocks([matrix_block])
     step_id = "stp_0195f3a0000070008123456789abcdef"
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         slug="step-resume",
         name=I18nText(translations={"en": "Resume Step"}),

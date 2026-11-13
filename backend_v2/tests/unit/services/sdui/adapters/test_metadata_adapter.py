@@ -30,6 +30,7 @@ def _create_sample_profile(locale: str = "en") -> OutputProfile:
     """
     _ = locale
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -130,6 +131,7 @@ def test_metadata_adapter_builds_header_block_bilingual_fi() -> None:
 def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
     """Positive: populates all visible_metadata fields including pre-formatted local_time_str, cost, and tokens."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="full-test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -184,6 +186,7 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
 def test_metadata_adapter_negative_omits_missing_optional_context_fields() -> None:
     """Negative: omits user, org, date, scoring_engine, cost, and tokens when context values are None."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="sparse-test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -222,6 +225,7 @@ def test_metadata_adapter_negative_omits_missing_optional_context_fields() -> No
 def test_metadata_adapter_boundary_empty_visible_metadata_and_strict_schema() -> None:
     """Boundary & Negative: empty visible_metadata produces empty lines; strict DTO rejects extra keys."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="empty-meta",
         workflow_id="wf_0123456789abcdef0123456789abcdef",

@@ -54,6 +54,7 @@ async def test_dag_executor_atom_ceiling(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",

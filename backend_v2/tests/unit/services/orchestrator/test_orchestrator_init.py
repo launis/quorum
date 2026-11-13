@@ -43,6 +43,7 @@ def _build_workflow(
 ) -> Workflow:
     """Create a canonical Workflow domain instance for orchestrator facade testing."""
     return Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=generate_opaque_id(EntityPrefix.WORKFLOW),
         slug="wf_orchestrator_init_test",
         name=I18nText(translations={"en": "Orchestrator Init WF", "fi": "Orkestroija WF"}),
@@ -128,6 +129,7 @@ async def test_orchestrator_init_public_interface_and_resolution() -> None:
 
     repo.set_step(
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=step_1_id,
             slug="step_1_test",
             name=I18nText(translations={"en": "Step 1", "fi": "Vaihe 1"}),

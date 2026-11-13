@@ -314,7 +314,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
                 w
                 for w in items
                 if (w.organization_id if isinstance(w, Workflow) else None)
-                in (organization_id, SystemOrganizations.ROOT_SYSTEM, None)
+                in (organization_id, SystemOrganizations.ROOT_SYSTEM.value)
             ]
         elif organization_id is not None:
             items = [w for w in items if (w.organization_id if isinstance(w, Workflow) else None) == organization_id]
@@ -343,6 +343,8 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
         data_dict = workflow_data.model_dump(mode="python")
         data_dict["id"] = wf_id
+        if "organization_id" not in data_dict or data_dict["organization_id"] is None:
+            data_dict["organization_id"] = SystemOrganizations.ROOT_SYSTEM.value
         if "default_profile_id" not in data_dict or data_dict["default_profile_id"] is None:
             data_dict["default_profile_id"] = None
         if "status" not in data_dict or data_dict["status"] is None:
@@ -418,6 +420,8 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         s_id = generate_opaque_id(EntityPrefix.STEP)
         data_dict = step_data.model_dump(mode="python")
         data_dict["id"] = s_id
+        if "organization_id" not in data_dict or data_dict["organization_id"] is None:
+            data_dict["organization_id"] = SystemOrganizations.ROOT_SYSTEM.value
         model = Step.model_validate(data_dict)
         self._steps[s_id] = Step.model_validate(model.model_dump(mode="python"), strict=False)
         return s_id

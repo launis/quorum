@@ -158,6 +158,7 @@ def mock_repo_transformer() -> Any:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.set_workflow(
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070018234abcd1234abcd",
             slug="wf_1",
             name=I18nText(translations={"en": "Mock Workflow", "fi": "Testi Työnkulku"}),
@@ -175,6 +176,7 @@ def mock_repo_transformer() -> Any:
         fix_mock_dict(
             [
                 OutputProfile(
+                    organization_id="org_0195f3a0000070008000000000000001",
                     id="prf_0195f3a00000700d8ddd1111dddd1111",
                     slug="default",
                     workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -303,6 +305,7 @@ def mock_repo_microcot() -> Any:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.set_workflow(
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070018234567890abcdef",
             slug="mock_workflow",
             description=I18nText(translations={"en": "desc", "fi": "desc"}),
@@ -449,6 +452,7 @@ def mock_repo_sdui() -> Any:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.set_workflow(
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070018234abcd1234abcd",
             slug="wf_test",
             name=I18nText(translations={"en": "Mock", "fi": "Mock"}),
@@ -779,6 +783,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
 
     mock_repo_transformer.set_workflow(
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070018234abcd1234abcd",
             slug="wf_1",
             name=I18nText(translations={"en": "Workflow Name"}),
@@ -1077,6 +1082,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     # Configure workflow steps
     mock_repo_transformer.set_workflow(
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070018234abcd1234abcd",
             slug="wf_1",
             name=I18nText(translations={"en": "Workflow Name"}),
@@ -1480,6 +1486,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 
     pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700f8b15f8dcf23f4865",
         slug="matrix-archivist",
         category_id=PromptBlockCategory.MATRIX,
@@ -1556,6 +1563,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
         fix_mock_dict(
             [
                 OutputProfile(
+                    organization_id="org_0195f3a0000070008000000000000001",
                     id="prf_0195f3a00000700d8ddd1111dddd1111",
                     slug="default",
                     workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -1759,6 +1767,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
 
     # 1. Provide custom scale and normalized_100 profiles to hit 337-339, 354-355
     profile_custom = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018111111111111111",
         slug="test",
         workflow_id="wf_0195f3a0000070018111111111111111",
@@ -1823,6 +1832,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
     mock_claim = I18nText(translations={"en": "claim"})
 
     mock_matrix_pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018234abcd1234abcd",
         slug="matrix_logic1234",
         category_id=PromptBlockCategory.MATRIX,
@@ -1922,6 +1932,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018111111111111111",
         slug="test",
         workflow_id="wf_0195f3a0000070018111111111111111",
@@ -1974,6 +1985,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         ],
     )
     base_matrix = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018234abcd1234abcd",
         slug="matrix_logic1234",
         category_id=PromptBlockCategory.MATRIX,
@@ -2254,6 +2266,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
     from backend_v2.models.view.sdui import AccordionBlock, ParagraphBlock, SduiMetadataBlock
 
     custom_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018111222233334444",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -2353,6 +2366,7 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
 ) -> None:
     """Negative: unmapped target block type in hydrators raises AppException."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -2452,6 +2466,7 @@ async def test_blueprint_transformer_fail_fast_branches(
 
     # 3. Missing locale -> 400
     mock_wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018234abcd1234abcd",
         slug="test_wf",
         name=I18nText(translations={"en": "Test WF"}),
@@ -2516,6 +2531,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -2607,6 +2623,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -2684,6 +2701,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -2743,6 +2761,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
     )
 
     pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_1234567890abcdef1234567890abcdef",
         slug="matrix_test",
         category_id=PromptBlockCategory.MATRIX,
@@ -2850,6 +2869,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234abcd1234abcd",
@@ -2973,6 +2993,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_99998888777766665555444433332222",
         slug="starvation-profile",
         workflow_id="wf_1234abcd1234abcd1234abcd1234abcd",
@@ -2996,6 +3017,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
     mock_repo_transformer.set_output_profiles([profile])
 
     mock_wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_1234abcd1234abcd1234abcd1234abcd",
         slug="test_wf_2",
         name=I18nText(translations={"en": "Test WF 2"}),
@@ -3053,6 +3075,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
     from backend_v2.services.blueprint import BlueprintTransformer
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008000000000000001",
         slug="mcp-profile",
         workflow_id="wf_0195f3a0000070008000000000000001",
@@ -3148,6 +3171,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
     from backend_v2.models.state import TraceEvent
 
     pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008000000000000001",
         slug="matrix-block",
         label=I18nText(translations={"en": "Matrix Block", "fi": "Matriisilohko"}),
@@ -3161,6 +3185,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008000000000000002",
         slug="profile-override",
         workflow_id="wf_0195f3a0000070008000000000000002",
@@ -3310,6 +3335,7 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
 
     pb_id = "blk_0195f3a0000070008000000000000001"
     pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=pb_id,
         slug="test_matrix",
         category_id=PromptBlockCategory.MATRIX,
@@ -3324,6 +3350,7 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
     )
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prof_0195f3a0000070008000000000000001",
         slug="test_profile",
         workflow_id="wor_0195f3a0000070008000000000000001",
@@ -3409,6 +3436,7 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
     from backend_v2.models.execution_core import ExecutionMetadata
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008000000000000001",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070008000000000000001",
@@ -3441,6 +3469,7 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
     from backend_v2.models.domain.matrix import MatrixScale
 
     pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008000000000000001",
         slug="test_matrix",
         category_id=PromptBlockCategory.MATRIX,
@@ -3528,6 +3557,7 @@ async def test_blueprint_variance_target_block_adherence(
     variance_target_id = "blk_0195f3a0000070008000000000000001"
     step_rule_id = "sr_0195f3a0000070008000000000000001"
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008000000000000002",
         slug="variance-profile",
         workflow_id="wf_0195f3a0000070008000000000000002",
@@ -3554,6 +3584,7 @@ async def test_blueprint_variance_target_block_adherence(
     )
 
     pb = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=variance_target_id,
         slug="variance-target",
         category_id=PromptBlockCategory.MATRIX,
@@ -3632,6 +3663,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     from backend_v2.models.enums import SDUIComponentType
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008000000000000001",
         slug="test-p",
         workflow_id="wf_0195f3a0000070008000000000000001",
@@ -3639,6 +3671,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         target_block_order=[TargetBlockType.METADATA_BLOCK],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070008000000000000001",
         slug="wf-1",
         name=I18nText(translations={"en": "WF"}),
@@ -3877,6 +3910,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
 
     repo = InMemoryUnifiedWorkflowRepository()
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008000000000000001",
         slug="test-p-fb",
         workflow_id="wf_0195f3a0000070008000000000000001",
@@ -3884,6 +3918,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         target_block_order=[TargetBlockType.METADATA_BLOCK],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070008000000000000001",
         slug="wf-fb",
         name=I18nText(translations={"en": "WF"}),
@@ -4027,6 +4062,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_trace() -> Non
 
     repo = InMemoryUnifiedWorkflowRepository()
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a00000700080000000000000c1",
         slug="profile-causal-1",
         workflow_id="wf_0195f3a00000700080000000000000c1",
@@ -4034,6 +4070,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_trace() -> Non
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a00000700080000000000000c1",
         slug="wf-causal",
         name=I18nText(translations={"en": "WF Causal"}),
@@ -4122,6 +4159,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
 
     repo = InMemoryUnifiedWorkflowRepository()
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a00000700080000000000000c2",
         slug="profile-causal-2",
         workflow_id="wf_0195f3a00000700080000000000000c2",
@@ -4129,6 +4167,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a00000700080000000000000c2",
         slug="wf-causal-2",
         name=I18nText(translations={"en": "WF Causal 2"}),
@@ -4223,6 +4262,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_output_dt
 
     repo = InMemoryUnifiedWorkflowRepository()
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a00000700080000000000000c3",
         slug="profile-causal-3",
         workflow_id="wf_0195f3a00000700080000000000000c3",
@@ -4230,6 +4270,7 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_output_dt
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a00000700080000000000000c3",
         slug="wf-causal-3",
         name=I18nText(translations={"en": "WF Causal 3"}),

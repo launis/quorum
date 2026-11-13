@@ -155,6 +155,7 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     """
     profile_1 = OutputProfile.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "prof_0123456789abcdef0123456789abcde1",
             "slug": "formal_coaching",
             "workflow_id": "wor_0195f3a0000070008123456789abcdef",
@@ -171,6 +172,7 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     )
     profile_2 = OutputProfile.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "prof_0123456789abcdef0123456789abcde2",
             "slug": "executive_summary",
             "workflow_id": "wor_0195f3a0000070008123456789abcdef",

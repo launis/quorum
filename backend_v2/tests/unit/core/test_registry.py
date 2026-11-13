@@ -189,6 +189,7 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
     strat = GridSchemaStrategy(_mock_resolve_i18n)
 
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a0000070018234567890abcdef",
         slug="matrix-1",
         label=I18nText(translations={"en": "Matrix 1"}),
@@ -220,6 +221,7 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
     )
 
     crit_instruction = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a0000070028234567890abcdef",
         slug="instruction-1",
         label=I18nText(translations={"en": "Instruction 1"}),
@@ -229,6 +231,7 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
     )
 
     crit_eval = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a0000070038234567890abcdef",
         slug="eval-1",
         label=I18nText(translations={"en": "Eval Criterion"}),
@@ -265,6 +268,7 @@ def test_grid_schema_strategy_matrix_zero_evidence_omitted() -> None:
     strat = GridSchemaStrategy(_mock_resolve_i18n)
 
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a0000070048234567890abcdef",
         slug="no-ev-matrix",
         label=I18nText(translations={"en": "No Evidence Matrix"}),
@@ -358,6 +362,7 @@ def test_grid_schema_strategy_instruction_block() -> None:
     """Test GridSchemaStrategy with instruction type prompt block."""
     strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
     instruction_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111222233334444",
         slug="inst-block",
         label=I18nText(translations={"en": "Instruction Label"}),
@@ -379,6 +384,7 @@ def test_grid_schema_strategy_numeric_and_boolean_output_extensions() -> None:
     """Test GridSchemaStrategy with confidence and risk_flag output extensions."""
     strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
     block_with_ext = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070058555666677778888",
         slug="ext-block",
         label=I18nText(translations={"en": "Extended Block"}),
@@ -432,6 +438,7 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
     strat = GridSchemaStrategy(_mock_resolve_i18n)
 
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a0000070018234567890abcdef",
         slug="test-matrix",
         label=I18nText(translations={"en": "Test Matrix"}),
@@ -524,6 +531,7 @@ def test_grid_schema_strategy_matrix_more_than_six_extensions_warning() -> None:
     """Test that GridSchemaStrategy logs warning when matrix has >6 dynamic output extensions."""
     strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a0000070018111222233334444",
         slug="many-ext-matrix",
         label=I18nText(translations={"en": "Many Ext Matrix"}),

@@ -71,6 +71,7 @@ def test_dag_compiler_should_reject_generic_inputs_preflight() -> None:
     This test asserts that DAGCompilerService raises WorkflowCompilationError on generic '$inputs'.
     """
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070008000000000000001",
         slug="test-workflow",
         name="wf",

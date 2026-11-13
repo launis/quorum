@@ -20,6 +20,7 @@ from backend_v2.services.sdui.adapters.printable_sources_adapter import (
 def valid_output_profile_fixture() -> OutputProfile:
     """Fixture for a valid output profile to use in tests."""
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_0123456789abcdef0123456789abcdef",

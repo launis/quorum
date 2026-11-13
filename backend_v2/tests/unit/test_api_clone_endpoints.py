@@ -63,6 +63,7 @@ def mock_studio_service() -> AsyncMock:
     """Provides a mocked Studio service pre-configured with cloned entity models."""
     service = AsyncMock()
     service.clone_workflow.return_value = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070038333333333333333",
@@ -74,6 +75,7 @@ def mock_studio_service() -> AsyncMock:
         description=I18nText(translations={"en": "test"}),
     )
     service.clone_step.return_value = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111111111111112",
         slug="test_step_clone",
         name=I18nText(translations={"en": "Step (Copy)", "fi": "Step (Copy)"}),
@@ -85,6 +87,7 @@ def mock_studio_service() -> AsyncMock:
         mcp_tool_params={},
     )
     service.clone_prompt_block.return_value = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111111111111112",
         slug="test_block_clone",
         label=I18nText(translations={"en": "Block (Copy)", "fi": "Block (Copy)"}),
@@ -112,6 +115,7 @@ def mock_studio_service() -> AsyncMock:
         tools=[],
     )
     service.clone_output_profile.return_value = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prof_0195f3a0000070018111111111111112",
         slug="test_prof_clone",
         workflow_id="wf_0195f3a0000070038333333333333333",

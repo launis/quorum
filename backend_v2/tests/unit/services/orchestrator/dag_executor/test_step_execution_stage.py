@@ -74,6 +74,7 @@ def _build_state(
     trace: list[TraceEvent] | None = None,
 ) -> WorkflowExecutionState:
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_step_exec",
         name=I18nText(translations={"en": "Step Exec WF", "fi": "Step Exec WF"}),
@@ -131,6 +132,7 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
     """Contract: execute_dag_step_wrapper prepares context, reduces matrix, runs NodeExecutor, and commits trace."""
     repo = InMemoryUnifiedWorkflowRepository()
     bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111222233334444",
         slug="synth_step",
         name=I18nText(translations={"en": "Synth", "fi": "Synteesi"}),
@@ -360,6 +362,7 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
 
     # 6. Pre-synthesis step with upstream causal step in step_states but 0 evaluated matrix atoms emits no matrix_reducer TraceEvent
     bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070058555666677778888",
         slug="synth_fail",
         name=I18nText(translations={"en": "Synth", "fi": "Synteesi"}),

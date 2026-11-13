@@ -6,6 +6,7 @@ def test_bug_metric_mappings_silent_override() -> None:
     """Ensures matrix_synthesis_groups is retained across API read/write cycles."""
     # 1. Simulate the OutputProfile in the Database
     db_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prof_0195f3a0000070018234abcd1234abcd",
         slug="test",
         workflow_id="wf_1234",

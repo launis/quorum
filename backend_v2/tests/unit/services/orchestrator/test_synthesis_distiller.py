@@ -137,6 +137,7 @@ def test_build_title_map_with_blocks_and_steps() -> None:
 
     blocks_by_id: dict[str, PromptBlock] = {
         "blk_0195f3a0000070018234567890abcdef": SystemRulePromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="blk_0195f3a0000070018234567890abcdef",
             slug="test_block",
             type=BlockDataType.INSTRUCTION,
@@ -147,6 +148,7 @@ def test_build_title_map_with_blocks_and_steps() -> None:
     }
 
     step_blueprint = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="sp_0195f3a0000070018111111111111111",
         slug="step_one",
         name=I18nText(translations={"en": "Step Blueprint Name"}),
@@ -156,6 +158,7 @@ def test_build_title_map_with_blocks_and_steps() -> None:
     )
 
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018111111111111111",
         slug="test_wf",
         name=I18nText(translations={"en": "Workflow Name"}),
@@ -201,6 +204,7 @@ def test_build_title_map_missing_blueprint_raises() -> None:
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018111111111111111",
         slug="test_wf",
         name=I18nText(translations={"en": "Workflow Name"}),
@@ -408,6 +412,7 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
 
     deps = _build_mock_deps()
     bp1 = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="bp_0195f3a00000700283456789abcdef01",
         slug="step_bp1",
         name=I18nText(translations={"en": "Blueprint 1"}),
@@ -416,6 +421,7 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
         hook="text_consolidation_hook",
     )
     bp2 = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="bp_0195f3a00000700283456789abcdef02",
         slug="step_bp2",
         name=I18nText(translations={"en": "Blueprint 2"}),

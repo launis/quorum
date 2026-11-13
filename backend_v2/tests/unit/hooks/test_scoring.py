@@ -123,6 +123,7 @@ def _build_valid_pb(
 def _build_valid_step(prompt_blocks: list[str], step_id: str = "st_0195f3a0000070018234567890123456") -> Step:
     """Builds a valid step model."""
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         slug="test_step",
         name=I18nText(translations={"en": "Test Step", "fi": "Test Step"}),
@@ -3396,6 +3397,7 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
     from backend_v2.models.enums import HistoricalContextMode
 
     workflow_model = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_0195f3a0000070018111222233334444",
         slug="wf_test",
         name=I18nText(translations={"en": "Workflow", "fi": "Workflow"}),
@@ -3587,6 +3589,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
 
     pb = _build_toulmin_dual_track_matrix(_TOULMIN_PB_ID)
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_TOULMIN_STEP_ID,
         slug="toulmin_step",
         name=I18nText(translations={"en": "Step", "fi": "Step"}),
@@ -3596,6 +3599,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
         criteria_block_ids=[_TOULMIN_PB_ID],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_TOULMIN_WF_ID,
         slug="wf_toulmin",
         name=I18nText(translations={"en": "WF", "fi": "WF"}),
@@ -3609,6 +3613,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
         steps=[],
     )
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_TOULMIN_PROF_ID,
         slug="prof_toulmin",
         workflow_id=_TOULMIN_WF_ID,
@@ -3810,6 +3815,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
 
     pb = _build_toulmin_dual_track_matrix(_TOULMIN_PB_ID)
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_TOULMIN_STEP_ID,
         slug="toulmin_step",
         name=I18nText(translations={"en": "Step", "fi": "Step"}),
@@ -3819,6 +3825,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
         criteria_block_ids=[_TOULMIN_PB_ID],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_TOULMIN_WF_ID,
         slug="wf_toulmin",
         name=I18nText(translations={"en": "WF", "fi": "WF"}),
@@ -3832,6 +3839,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
         steps=[],
     )
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_TOULMIN_PROF_ID,
         slug="prof_toulmin",
         workflow_id=_TOULMIN_WF_ID,

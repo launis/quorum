@@ -13,7 +13,7 @@ from backend_v2.database.interfaces import (
     open_uow_session,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
@@ -39,6 +39,7 @@ from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
     is_resource_accessible,
+    resolve_create_organization_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -143,6 +144,7 @@ class StudioWorkflowService:
             id=profile.id,
             slug=profile.slug,
             workflow_id=profile.workflow_id,
+            organization_id=profile.organization_id,
             name=profile.name,
             description=profile.description,
             custom_preface=profile.custom_preface,
@@ -403,7 +405,7 @@ class StudioWorkflowService:
             existing = await self._require_workflow(initiator, id)
             enforce_modification_rights(initiator, existing.organization_id)
 
-            target_org: str | None = existing.organization_id
+            target_org: str = existing.organization_id
             if initiator.role == UserRole.ROOT:
                 target_org = data.organization_id
                 enforce_modification_rights(initiator, target_org)
@@ -559,6 +561,7 @@ class StudioWorkflowService:
         if active_gateways:
             chosen_gateway_id = active_gateways[0].id
 
+        target_org = resolve_create_organization_id(initiator)
         draft = Workflow(
             id=new_id,
             slug=new_id,
@@ -566,9 +569,7 @@ class StudioWorkflowService:
             description=I18nText(translations={"en": "Draft workflow", "fi": "Luonnos"}),
             status="draft",
             version=1,
-            organization_id=(
-                SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
-            ),
+            organization_id=target_org,
             expected_inputs=[],
             steps=[],
             historical_context_mode=HistoricalContextMode.DISABLED,
@@ -631,13 +632,15 @@ class StudioWorkflowService:
             profile_mapping: Pre-generated mapping from original profile IDs to cloned profile IDs.
         """
         for p_obj in source_profiles:
+            if initiator.role == UserRole.ROOT:
+                cloned_profile_org = p_obj.organization_id
+            else:
+                cloned_profile_org = resolve_create_organization_id(initiator)
             cloned_profile = p_obj.model_copy(
                 update={
                     "id": profile_mapping[p_obj.id],
                     "workflow_id": target_workflow_id,
-                    "organization_id": (
-                        p_obj.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
-                    ),
+                    "organization_id": cloned_profile_org,
                 }
             )
             await self.output_profile_repo.create_output_profile(cloned_profile)
@@ -665,7 +668,10 @@ class StudioWorkflowService:
             wf = await self._require_workflow(initiator, id)
             enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id, is_public=wf.is_public)
 
-            target_org_id = wf.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+            if initiator.role == UserRole.ROOT:
+                target_org_id = wf.organization_id
+            else:
+                target_org_id = resolve_create_organization_id(initiator)
             enforce_modification_rights(initiator, target_org_id)
 
             all_profiles = await self.output_profile_repo.get_all_output_profiles()
@@ -828,7 +834,7 @@ class StudioWorkflowService:
                     details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
                 )
 
-        target_org: str | None = existing_step.organization_id
+        target_org: str = existing_step.organization_id
         if initiator.role == UserRole.ROOT:
             target_org = data.organization_id
             enforce_modification_rights(initiator, target_org)
@@ -921,7 +927,7 @@ class StudioWorkflowService:
             )
 
         new_id = generate_opaque_id(EntityPrefix.STEP)
-        target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
+        target_org = resolve_create_organization_id(initiator)
         draft = Step(
             id=new_id,
             slug=new_id,
@@ -960,7 +966,10 @@ class StudioWorkflowService:
         enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
 
         new_id = generate_opaque_id(EntityPrefix.STEP)
-        target_org = step.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = step.organization_id
+        else:
+            target_org = resolve_create_organization_id(initiator)
         cloned_name = step.name.with_copy_suffix()
 
         cloned_obj = step.model_copy(

@@ -22,6 +22,7 @@ from backend_v2.services.sdui.adapters.printable_sources_adapter import Printabl
 def base_sources_profile() -> OutputProfile:
     """Fixture providing a standard OutputProfile in VERIFIED_EVIDENCE mode."""
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-sources-profile",
         workflow_id="wf_0123456789abcdef0123456789abcdef",

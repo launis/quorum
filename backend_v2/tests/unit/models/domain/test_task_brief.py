@@ -5,11 +5,29 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO, TaskBrief
-from backend_v2.models.dtos.studio import TaskBriefDeleteResponse, TaskBriefResponseDTO
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
+from backend_v2.models.dtos.studio import (
+    StepResponseDTO,
+    TaskBriefDeleteResponse,
+    TaskBriefResponseDTO,
+    WorkflowResponseDTO,
+)
 from backend_v2.models.enums import EntityPrefix
-from backend_v2.tests.factories.model_factories import I18nTextFactory, TaskBriefFactory
+from backend_v2.tests.factories.model_factories import (
+    I18nTextFactory,
+    OutputProfileFactory,
+    StepFactory,
+    SystemRulePromptBlockFactory,
+    TaskBriefFactory,
+    WorkflowFactory,
+)
 
 
 def test_task_brief_instantiation_and_dto_parity() -> None:
@@ -43,18 +61,57 @@ def test_task_brief_instantiation_and_dto_parity() -> None:
 
 
 def test_task_brief_system_level_exclude_none_roundtrip() -> None:
-    """Verify system-level TaskBrief omits unset organization_id and source_url when dumped with exclude_none."""
+    """Verify system-level TaskBrief retains required ROOT_SYSTEM organization_id while omitting unset source_url."""
     brief = TaskBriefFactory.build(
         id=generate_opaque_id(EntityPrefix.TASK_BRIEF),
-        organization_id=None,
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
         source_url=None,
     )
     dumped = brief.model_dump(mode="json", exclude_none=True)
-    assert "organization_id" not in dumped
+    assert dumped["organization_id"] == SystemOrganizations.ROOT_SYSTEM.value
     assert "source_url" not in dumped
     rehydrated = TaskBrief.model_validate(dumped)
-    assert rehydrated.organization_id is None
+    assert rehydrated.organization_id == SystemOrganizations.ROOT_SYSTEM.value
     assert rehydrated.source_url is None
+
+
+def test_studio_models_and_dtos_reject_none_or_legacy_system_organization_id_and_serialize_organization_id() -> None:
+    """Verify all Studio models and Response DTOs require org_<hex32> organization_id and expose it on wire."""
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    block = SystemRulePromptBlockFactory.build(organization_id=org_id)
+    brief = TaskBriefFactory.build(organization_id=org_id)
+    step = StepFactory.build(organization_id=org_id)
+    workflow = WorkflowFactory.build(organization_id=org_id)
+    profile = OutputProfileFactory.build(workflow_id=workflow.id, organization_id=org_id, content_blocks=[])
+
+    wf_dto = WorkflowResponseDTO.model_validate({**workflow.model_dump(), "output_profiles": {}})
+    stp_dto = StepResponseDTO.model_validate(step.model_dump())
+    tbr_dto = TaskBriefResponseDTO.model_validate(brief.model_dump())
+    prf_dto = OutputProfileResponseDTO.model_validate(profile.model_dump())
+
+    assert wf_dto.model_dump(mode="json")["organization_id"] == org_id
+    assert stp_dto.model_dump(mode="json")["organization_id"] == org_id
+    assert tbr_dto.model_dump(mode="json")["organization_id"] == org_id
+    assert prf_dto.model_dump(mode="json")["organization_id"] == org_id
+
+    instances: tuple[
+        SystemRulePromptBlock
+        | TaskBrief
+        | Step
+        | Workflow
+        | OutputProfile
+        | WorkflowResponseDTO
+        | StepResponseDTO
+        | TaskBriefResponseDTO
+        | OutputProfileResponseDTO,
+        ...,
+    ] = (block, brief, step, workflow, profile, wf_dto, stp_dto, tbr_dto, prf_dto)
+    for instance in instances:
+        valid_payload = instance.model_dump()
+        for bad_org in (None, "SYSTEM", "", "wf_0195f3a0000070008000000000000001"):
+            mutated = {**valid_payload, "organization_id": bad_org}
+            with pytest.raises(ValidationError):
+                type(instance).model_validate(mutated)
 
 
 @pytest.mark.parametrize(

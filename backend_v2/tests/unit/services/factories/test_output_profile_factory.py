@@ -3,6 +3,7 @@
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.enums import PresetView, TargetBlockType
 from backend_v2.services.factories.output_profile_factory import (
     DEFAULT_FACTORY_EXECUTIVE_SUMMARY_DIRECTIVE,
@@ -27,7 +28,7 @@ def test_build_draft_output_profile_default() -> None:
 
     assert profile.id == "prf_0195f3a0000070008000000000000001"
     assert profile.workflow_id == "wf_0195f3a0000070008000000000000001"
-    assert profile.organization_id is None
+    assert profile.organization_id == SystemOrganizations.ROOT_SYSTEM.value
     assert profile.matrix_synthesis_groups == []
 
     # Verify target_block_order contains bare TargetBlockType instances (no string .value)
@@ -151,6 +152,22 @@ def test_build_draft_output_profile_blank_initial_target_block_raises_app_except
             profile_id="prf_0195f3a0000070008000000000000001",
             workflow_id="wf_0195f3a0000070008000000000000001",
             initial_target_block=blank_block_id,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.parametrize("invalid_org_id", ["", "SYSTEM", "default_system", "org_invalid"])
+def test_build_draft_output_profile_invalid_organization_id_raises_app_exception(
+    invalid_org_id: str,
+) -> None:
+    """ISTQB Negative Boundary: Malformed or legacy organization_id raises AppException(VALIDATION_FAILED)."""
+    with pytest.raises(AppException) as exc_info:
+        build_draft_output_profile(
+            profile_id="prf_0195f3a0000070008000000000000001",
+            workflow_id="wf_0195f3a0000070008000000000000001",
+            organization_id=invalid_org_id,
         )
 
     assert exc_info.value.status_code == 400

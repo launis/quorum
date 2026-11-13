@@ -105,6 +105,7 @@ def _make_context(
 def test_build_valid_role_returns_paragraph_block() -> None:
     """Test successful translation of user role into a ParagraphBlock."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -130,6 +131,7 @@ def test_build_valid_role_returns_paragraph_block() -> None:
 def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
     """Test role badge combined with section_syntheses."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -169,6 +171,7 @@ def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
 def test_build_legacy_unmapped_section_key_ignored_negative() -> None:
     """Negative Test: Verify legacy 'executive_summary' key in section_syntheses is strictly ignored."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -214,6 +217,7 @@ def test_build_missing_user_role_returns_empty_list() -> None:
     context = _make_context(
         locale="fi",
         profile=OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="prf_0123456789abcdef0123456789abcdef",
             slug="test",
             workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -232,6 +236,7 @@ def test_build_missing_user_role_returns_empty_list() -> None:
 def test_build_valid_role_with_default_label() -> None:
     """Test role badge resolution when user_role_label is None on OutputProfile."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -258,6 +263,7 @@ def test_build_starved_returns_empty() -> None:
     from backend_v2.models.dtos.trace import DataStarvationEvent
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -281,6 +287,7 @@ def test_build_starved_returns_empty() -> None:
 def test_build_none_profile_cache_returns_empty_list() -> None:
     """Negative Test: Verify that None profile_cache in AdapterContext returns empty list."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -311,6 +318,7 @@ def test_role_classification_l10n_key_strict_mapping() -> None:
 def test_build_matrix_target_block_resolves_deterministic_role_badge() -> None:
     """Test deterministic role badge resolution from context.parsed_matrices."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -334,6 +342,7 @@ def test_build_matrix_target_block_resolves_deterministic_role_badge() -> None:
 def test_build_matrix_target_block_resolves_bilingual_english() -> None:
     """Test deterministic role badge resolution with English level names."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -376,6 +385,7 @@ def test_build_matrix_target_block_resolves_bilingual_english() -> None:
 def test_build_matrix_target_block_clamping_boundary_scores(score: float, expected_role_suffix: str) -> None:
     """Test boundary scores clamping to integer bounds [1, 5] and mapping to canonical enum names."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -405,6 +415,7 @@ def test_role_classification_extreme_boundary_clamping() -> None:
 def test_build_matrix_target_block_custom_levels_not_leaked() -> None:
     """TC-ROLE-002: Negative test ensuring custom level_names from prompt do not leak into role badge."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -430,6 +441,7 @@ def test_build_matrix_target_block_custom_levels_not_leaked() -> None:
 def test_build_matrix_target_block_missing_from_parsed_matrices_omits_badge() -> None:
     """Negative Test: Target block configured but not evaluated in DAG trace returns empty list."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -450,6 +462,7 @@ def test_build_matrix_target_block_missing_from_parsed_matrices_omits_badge() ->
 def test_build_matrix_target_block_score_none_omits_badge_gracefully() -> None:
     """Negative Test: Evaluated target block has score=None, role badge is omitted gracefully."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -481,6 +494,7 @@ def test_build_matrix_target_block_score_none_omits_badge_gracefully() -> None:
 def test_build_matrix_target_block_float_key_lookup() -> None:
     """Test lookup when level_names uses float string keys ('4.0')."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -504,6 +518,7 @@ def test_build_matrix_target_block_float_key_lookup() -> None:
 def test_build_matrix_target_block_raw_score_none_omits_badge() -> None:
     """Test that None raw_score in target matrix omits badge without error."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -525,6 +540,7 @@ def test_build_matrix_target_block_raw_score_none_omits_badge() -> None:
 def test_build_matrix_target_block_with_composite_step_block_id_key() -> None:
     """Regression test: parsed_matrices is keyed by composite f'{step_id}_{block_id}' from MatrixDomainParser."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -552,6 +568,7 @@ def test_build_matrix_target_block_with_composite_step_block_id_key() -> None:
 def test_build_matrix_target_block_absent_omits_badge_without_fallback() -> None:
     """Zero Fallback Mandate: if user_role_target_block is not in parsed_matrices, do not fall back to legacy strings."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -578,6 +595,7 @@ def test_build_matrix_target_block_absent_omits_badge_without_fallback() -> None
 def test_build_section_syntheses_with_bullet_list_and_causal_graph() -> None:
     """Verifies that BulletListBlock is ordered as recommendation and causal action card is injected."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -644,6 +662,7 @@ def test_build_missing_localization_key_raises_app_exception_negative(monkeypatc
     monkeypatch.setitem(LocalizationService._translations, "fi", LocaleTranslationsDTO(translations={}))
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",

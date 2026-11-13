@@ -18,6 +18,7 @@ def test_mcp_source_id_literal_validation() -> None:
     factory = SchemaFactory(resolve_i18n_fn=lambda t, locale: str(t) if t else "")
 
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test",
         description=I18nText(translations={"en": "test"}),
@@ -59,6 +60,7 @@ def test_mcp_source_id_literal_validation_invalid_source_rejected() -> None:
     factory = SchemaFactory(resolve_i18n_fn=lambda t, locale: str(t) if t else "")
 
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test",
         description=I18nText(translations={"en": "test"}),

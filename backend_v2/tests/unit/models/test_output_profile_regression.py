@@ -13,6 +13,7 @@ def test_output_profile_response_dto_schema_parity() -> None:
     payload = {
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
@@ -35,6 +36,7 @@ def test_output_profile_response_dto_target_block_order_parity() -> None:
     payload = {
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK],
@@ -50,6 +52,7 @@ def test_embedded_output_profile_schema_parity() -> None:
     payload = {
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
@@ -71,6 +74,7 @@ def test_output_profile_response_dto_negative_extra_keys() -> None:
     payload = {
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "invalid_extra_key": "should fail",
@@ -85,6 +89,7 @@ def test_embedded_output_profile_negative_wrong_type() -> None:
     payload = {
         "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK],

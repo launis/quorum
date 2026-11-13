@@ -52,6 +52,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
         {
             "id": "prof_0123456789abcdef0123456789abcdef",
             "workflow_id": "wf_0123456789abcdef0123456789abcdef",
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "slug": "test-profile",
             "name": {"translations": {"en": "test"}},
             "matrix_synthesis_groups": [],
@@ -69,7 +70,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
         default_profile_id="prof_0123456789abcdef0123456789abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
-        organization_id="root_org",
+        organization_id="org_0195f3a0000070008000000000000001",
         output_profiles={"prof_0123456789abcdef0123456789abcdef": mock_profile_dto},
     )
 

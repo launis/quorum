@@ -188,6 +188,7 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
     compiler = LocalizationCompiler()
 
     persona = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111111111111111",
         slug="persona_block",
         label=I18nText(translations={"en": "Persona"}),
@@ -197,6 +198,7 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
         role_enforcement="Act as senior analyst in {TARGET_LANGUAGE}",
     )
     protocol = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070028222222222222222",
         slug="protocol_block",
         label=I18nText(translations={"en": "Protocol"}),
@@ -206,6 +208,7 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
         protocol_instructions="Extract exact quotes for {TARGET_LANGUAGE}",
     )
     system_rule = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070038333333333333333",
         slug="system_rule_block",
         label=I18nText(translations={"en": "SystemRule"}),
@@ -255,6 +258,7 @@ def test_compile_dynamic_instructions_polymorphic_system_rule() -> None:
 
     compiler = LocalizationCompiler()
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111222233334444",
         slug="dyn_sys",
         label=I18nText(translations={"en": "DynSys"}),

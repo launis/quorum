@@ -282,6 +282,7 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
     service, repo = _create_test_service(usage_service=usage_mock)
 
     blk_1 = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111222233334444",
         slug="persona_step_1",
         label=I18nText(translations={"en": "Persona 1", "fi": "Persoona 1"}),
@@ -291,6 +292,7 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
         role_enforcement="Static instruction for step 1.",
     )
     blk_2_v1 = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070028222333344445555",
         slug="persona_step_2",
         label=I18nText(translations={"en": "Persona 2", "fi": "Persoona 2"}),
@@ -303,6 +305,7 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
     await repo.create_prompt_block(blk_2_v1)
 
     bp_1 = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111222233334444",
         slug="bp_1",
         name=I18nText(translations={"en": "Step 1", "fi": "Vaihe 1"}),
@@ -316,6 +319,7 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
         mcp_tool_params={},
     )
     bp_2 = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070028222333344445555",
         slug="bp_2",
         name=I18nText(translations={"en": "Step 2", "fi": "Vaihe 2"}),
@@ -329,6 +333,7 @@ async def test_resumption_invalidates_passed_step_when_input_merkle_hash_drifts(
         mcp_tool_params={},
     )
     bp_3 = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070038333444455556666",
         slug="bp_3",
         name=I18nText(translations={"en": "Step 3", "fi": "Vaihe 3"}),

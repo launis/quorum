@@ -283,6 +283,7 @@ def test_result_projector_project_matrix_results():
     )
 
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix_test",
         label=I18nText(translations={"en": "Test Matrix"}),
@@ -375,6 +376,7 @@ def test_result_projector_external_edge_and_missing_context() -> None:
     )
 
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix_test",
         label=I18nText(translations={"en": "Test Matrix"}),

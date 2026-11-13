@@ -780,6 +780,7 @@ def test_schema_dto_naming_parity() -> None:
     assert recovered_gateway == mcp_gateway
 
     step_model = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=generate_uuid7_opaque_id(EntityPrefix.STEP),
         slug="step_mcp_research",
         name=I18nText(translations={"fi": "Tutkimusvaihe", "en": "Research Step"}),

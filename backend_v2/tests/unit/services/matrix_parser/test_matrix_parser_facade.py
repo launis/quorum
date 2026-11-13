@@ -49,6 +49,7 @@ def get_dummy_profile(
         custom_scale_min = 4.0
         custom_scale_max = 10.0
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_1234567890abcdef1234567890abcdef",
         slug="test",
         workflow_id="wor_1234567890abcdef1234567890abcdef",
@@ -83,6 +84,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
     cat_enum = PromptBlockCategory(category) if isinstance(category, str) else category
     if cat_enum != PromptBlockCategory.MATRIX:
         return SystemRulePromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="blk_1234567890abcdef1234567890abcdef",
             slug="test",
             category_id=PromptBlockCategory.SYSTEM_RULE,
@@ -92,6 +94,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
             output_extensions=[],
         )
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",
         category_id=PromptBlockCategory.MATRIX,

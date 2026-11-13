@@ -72,6 +72,7 @@ def _build_deps(repo: InMemoryUnifiedWorkflowRepository) -> StrategyDependencies
 
 def _build_workflow(blueprint_id: str = "stp_0195f3a0000070008000111122223333") -> Workflow:
     return Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070008000111122223333",
         slug="workflow_test",
         name=I18nText(translations={"en": "Test Workflow", "fi": "Testityonkulku"}),
@@ -97,6 +98,7 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
     """Verify bootstrap_workflow_execution_state pre-fetches blueprints via TaskGroup and initializes state."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008000111122223333",
         slug="step_en",
         name=I18nText(translations={"en": "Step EN", "fi": "Vaihe FI"}),
@@ -109,6 +111,7 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
     )
     repo.set_step(step_bp)
     causal_mat = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008000440a5fef9331",
         slug="mat_causal",
         label=I18nText(translations={"en": "Causal", "fi": "Kausaalinen"}),
@@ -119,6 +122,7 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
     )
     await repo.create_prompt_block(causal_mat)
     causal_bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008000222233334444",
         slug="step_causal",
         name=I18nText(translations={"en": "Causal", "fi": "Kausaalinen"}),
@@ -228,6 +232,7 @@ async def test_bootstrap_workflow_execution_state_missing_blueprint_raises_not_f
     # Verify pre-hydration hook exception translates to VALIDATION_FAILED
     repo.set_step(
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a0000070008000999988887777",
             slug="step_missing_hook",
             name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
@@ -259,6 +264,7 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
     """Verify bootstrap_workflow_execution_state resumes existing ExecutionRecord and resets FAILED steps."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008000111122223333",
         slug="step_resolved",
         name=I18nText(translations={"en": "Resolved Label", "fi": "Valmis Otsikko"}),
@@ -318,6 +324,7 @@ async def test_safe_commit_execution_state_and_execute_rag_preflight_stage() -> 
     """Verify safe_commit_execution_state and execute_rag_preflight_stage persist progress and blackboard."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008000111122223333",
         slug="step_preflight",
         name=I18nText(translations={"en": "Preflight Target", "fi": "Esivaihe"}),

@@ -545,6 +545,14 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     id: str
     slug: str
     workflow_id: str
+    organization_id: Annotated[
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            exclude=False,
+            description="Explicitly exposed for Admin Studio UI routing.",
+        ),
+    ]
     name: I18nText
     description: I18nText | None = None
     custom_preface: I18nText | None = None
@@ -651,6 +659,26 @@ class OutputProfileResponseDTO(BaseResponseDTO):
             description="PromptBlock ID providing evaluated score for user role classification.",
         ),
     ] = None
+
+    @field_validator("organization_id")
+    @classmethod
+    def _validate_organization_id(cls, v: str) -> str:
+        """Validate that organization_id uses the canonical org_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate organization identifier string.
+
+        Returns:
+            Validated organization identifier string.
+
+        Raises:
+            ValueError: If organization_id fails org_<hex32> UUIDv7 validation.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.ORGANIZATION)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     @field_validator("matrix_visible_columns")
     @classmethod

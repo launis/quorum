@@ -14,6 +14,7 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
     # 1. Missing criteria_block_ids
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a0000070018234567890123456",
             slug="test_step_missing_criteria",
             name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
@@ -27,6 +28,7 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
     # 2. Missing extraction_protocol_block_id
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a0000070018234567890123457",
             slug="test_step_missing_protocol",
             name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
@@ -49,6 +51,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
 
     role_block = PromptBlockAdapter.validate_python(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070018122334455667788",
             "slug": "role_critic",
             "label": {"translations": {"en": "Role Critic", "fi": "Kriitikko"}},
@@ -61,6 +64,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
 
     protocol_block = PromptBlockAdapter.validate_python(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a0000070098988776655443322",
             "slug": "extraction_protocol",
             "label": {"translations": {"en": "Extraction Protocol", "fi": "Protokolla"}},
@@ -74,6 +78,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
     criteria_blocks = [
         PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_12345678901234567890123456789012",
                 "slug": "criteria_matrix",
                 "label": {"translations": {"en": "Criteria Matrix", "fi": "Matriisi"}},

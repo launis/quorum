@@ -75,6 +75,7 @@ class _SampleSynthesisModel(BaseModel):
 def _create_rule_block(block_id: str = "blk_0195f3a0000070008123456789abcdef") -> SystemRulePromptBlock:
     """Create a valid SystemRulePromptBlock for Stage 3 testing."""
     return SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug="rule-blk",
         label=I18nText(translations={"en": "Rule", "fi": "Saanto"}),
@@ -105,6 +106,7 @@ def _create_matrix_block(block_id: str = "blk_0195f3a0000070058555555555555555")
         tda_assertions=[assertion],
     )
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug="matrix-blk",
         label=I18nText(translations={"en": "Matrix", "fi": "Matriisi"}),
@@ -131,6 +133,7 @@ def _build_stage1_and_stage2(
 ) -> tuple[BlueprintStageResult, PromptAndSchemaStageResult]:
     """Construct paired Stage 1 and Stage 2 containers for Stage 3 unit testing."""
     proto_blk = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
@@ -140,6 +143,7 @@ def _build_stage1_and_stage2(
         output_extensions=[],
     )
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="test-step",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
@@ -158,6 +162,7 @@ def _build_stage1_and_stage2(
         is_system_core=False,
     )
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
         workflow_id="wf_0195f3a0000070008123456789abcdef",

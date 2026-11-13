@@ -75,7 +75,7 @@ class TaskBrief(V2CoreBase):
     Attributes:
         id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).
         slug: Human-readable routing helper identifier with zero data relation role.
-        organization_id: Owning Organization Opaque Stripe ID or None for system-wide briefs.
+        organization_id: Owning Organization Opaque Stripe ID (org_<hex32>).
         label: Localized title of the task brief.
         description: Localized summary description of the task brief.
         instruction_text: Detailed plain-text or markdown task instructions shown to assignees.
@@ -96,9 +96,12 @@ class TaskBrief(V2CoreBase):
         Field(description="Human-readable routing helper field with zero data relation role."),
     ]
     organization_id: Annotated[
-        str | None,
-        Field(default=None, description="Tenant organization ID or None for system briefs."),
-    ] = None
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Owning tenant organization ID (org_<hex32>).",
+        ),
+    ]
     label: Annotated[I18nText, Field(description="Localized title for the UI.")]
     description: Annotated[I18nText, Field(description="Localized summary description for the UI.")]
     instruction_text: Annotated[
@@ -126,6 +129,26 @@ class TaskBrief(V2CoreBase):
         """
         try:
             parse_prefixed_uuid7(v, EntityPrefix.TASK_BRIEF)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
+
+    @field_validator("organization_id")
+    @classmethod
+    def _validate_organization_id(cls, v: str) -> str:
+        """Validate that organization_id uses the canonical org_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate organization identifier string.
+
+        Returns:
+            Validated organization identifier string.
+
+        Raises:
+            ValueError: If the identifier prefix is not 'org' or UUIDv7 validation fails.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.ORGANIZATION)
         except AppException as exc:
             raise ValueError(exc.message) from exc
         return v

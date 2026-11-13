@@ -104,6 +104,7 @@ def _create_dummy_execution(
 
 def _create_dummy_profile(profile_id: str = "prf_0195f3a0000070018234567890abcdef") -> OutputProfile:
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=profile_id,
         slug="executive_report",
         workflow_id="wor_0195f3a0000070008123456789abcdef",

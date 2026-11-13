@@ -58,6 +58,7 @@ async def test_dag_executor_preflight_skip(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
@@ -112,6 +113,7 @@ async def test_dag_executor_preflight_execution(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
@@ -182,6 +184,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
@@ -251,6 +254,7 @@ async def test_dag_executor_virtual_step(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
@@ -325,6 +329,7 @@ async def test_dag_executor_preflight_ignores_system_keys(
     from backend_v2.models.domain.execution import ExecutionRecord
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
@@ -436,6 +441,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
     )
     step_def = Step.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018234567890abcdef",
             "slug": "blp_test",
             "name": {"translations": {"en": "blp_test"}},
@@ -491,6 +497,7 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
     )
     step_def = Step.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "stp_0195f3a0000070018234567890abcdef",
             "slug": "blp_test",
             "name": {"translations": {"en": "blp_test"}},

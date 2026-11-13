@@ -615,6 +615,7 @@ async def test_integration_real_llm_preserves_topological_deficits_and_causal_br
     tda_passed_id = generate_opaque_id(EntityPrefix.TDA)
 
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug="strategic_governance_matrix",
         label=I18nText(translations={"en": "Strategic Governance Matrix", "fi": "Strategisen Hallinnan Matriisi"}),

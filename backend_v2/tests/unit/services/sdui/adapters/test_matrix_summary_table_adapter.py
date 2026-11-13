@@ -34,6 +34,7 @@ from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import (
 
 def test_matrix_summary_table_adapter_empty_parsed_matrices() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -58,6 +59,7 @@ def test_matrix_summary_table_adapter_empty_parsed_matrices() -> None:
 
 def test_matrix_summary_table_adapter_success() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -123,6 +125,7 @@ def test_matrix_summary_table_adapter_success() -> None:
 
 def test_matrix_summary_table_adapter_starved() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -162,6 +165,7 @@ def test_matrix_summary_table_adapter_starved() -> None:
 def test_output_profile_rejects_unsupported_matrix_columns_fail_fast() -> None:
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="prf_0195f3a0000070018234567890abcdef",
             slug="test",
             workflow_id="wf_123",
@@ -180,6 +184,7 @@ def test_output_profile_rejects_unsupported_matrix_columns_fail_fast() -> None:
 
 def test_matrix_summary_table_adapter_straightforward_visible_columns() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -232,6 +237,7 @@ def test_matrix_summary_rules_and_columns() -> None:
 def test_matrix_summary_table_adapter_empty_visible_columns_preserved() -> None:
     """Positive: empty matrix_visible_columns is preserved without falling back to STANDARD_COLUMNS."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -353,6 +359,7 @@ def test_matrix_summary_table_adapter_empty_column_boundary_fails_fast() -> None
 def test_matrix_summary_table_adapter_short_circuit_and_falsification_lineage() -> None:
     """Positive: populates short_circuited_by_claims and falsified_warrant_claims from N_A atoms and causal fusion."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",

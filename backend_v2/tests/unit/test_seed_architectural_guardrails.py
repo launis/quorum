@@ -525,6 +525,7 @@ def test_task_brief_seed_validation_error() -> None:
     with pytest.raises(ValidationError):
         PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007000833180746a954415",
                 "slug": "legacy_task_def",
                 "label": {"translations": {"en": "Legacy", "fi": "Vanha"}},

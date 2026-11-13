@@ -63,6 +63,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
@@ -127,6 +128,7 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
@@ -206,6 +208,7 @@ async def test_dag_executor_pure_dispatch_without_semaphore(mock_repo: Any, mock
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
@@ -278,6 +281,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
     from backend_v2.models.domain.workflow import Workflow
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
@@ -355,6 +359,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     mock_prompt_block_repo.seed_raw_prompt_block(
         "blk_0195f3a0000070018234567890abcdef",
         SystemRulePromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="blk_0195f3a0000070018234567890abcdef",
             slug="synthesis-rule",
             label=I18nText(translations={"en": "Synthesis Rule"}),
@@ -508,6 +513,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
 
     mock_prompt_block_repo = InMemoryUnifiedWorkflowRepository()
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111222233334444",
         slug="matrix-block",
         label=I18nText(translations={"en": "Matrix"}),
@@ -522,6 +528,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         ],
     )
     system_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070058555666677778888",
         slug="sys-block",
         label=I18nText(translations={"en": "Sys"}),
@@ -544,6 +551,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     executor = NodeExecutor(deps=deps)
 
     matrix_step_def = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111222233334444",
         slug="matrix-slug",
         type=StepType.LLM,
@@ -561,6 +569,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     assert isinstance(tda_engine, TDAEngine)
 
     prompt_step_def = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070058555666677778888",
         slug="prompt-slug",
         type=StepType.LLM,
@@ -575,6 +584,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     assert isinstance(prompt_engine, PromptEngine)
 
     synthesis_step_def = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070098999888877776666",
         slug="synthesis-slug",
         type=StepType.LLM,
@@ -606,6 +616,7 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     mock_pb_repo.seed_raw_prompt_block(
         "blk_0195f3a0000070018111222233334444",
         SystemRulePromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="blk_0195f3a0000070018111222233334444",
             slug="rule",
             label=I18nText(translations={"en": "Rule"}),
@@ -685,6 +696,7 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wor_0195f3a0000070018111222233334444",
         slug="wf_cascading",
@@ -780,6 +792,7 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wor_0195f3a0000070018111222233334444",
         slug="wf_resume",
@@ -924,6 +937,7 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
         id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wor_0195f3a0000070018111222233334444",
         slug="wf_preflight_fail",
@@ -982,6 +996,7 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wor_0195f3a0000070018111222233334444",
         slug="wf_matrix_fail",
@@ -1046,6 +1061,7 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wor_0195f3a0000070018111222233334444",
         slug="wf_prog",
@@ -1121,6 +1137,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wor_0195f3a0000070018111222233334444",
         slug="wf_mcp_audit",
@@ -1226,6 +1243,7 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
         ("blk_33334444555566667777888899990000", "persona-block"),
     ]:
         b = SystemRulePromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=b_id,
             slug=slug,
             label=I18nText(translations={"en": slug}),
@@ -1294,6 +1312,7 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         input_mappings={},
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
@@ -1383,6 +1402,7 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_progress_test",
@@ -1459,6 +1479,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070028222333344445555",
         slug="wf_preflight_test",
@@ -1518,6 +1539,7 @@ async def test_dag_executor_step_blueprint_not_found_fails_fast(mock_repo: Any, 
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_missing_bp",
@@ -1557,6 +1579,7 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
         id="stp_0195f3a0000070028222333344445555", task_blueprint="bp_0195f3a0000070028222333344445555"
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070028222333344445555",
         slug="wf_resume_meta",
@@ -1648,6 +1671,7 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
         depends_on=["stp_0195f3a0000070038333444455556666"],
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070038333444455556666",
         slug="wf_resume_skips",
@@ -1766,6 +1790,7 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
 
     step1 = StepRule(id="stp_0195f3a0000070058555666677778888", task_blueprint="bp_0195f3a0000070058555666677778888")
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070058555666677778888",
         slug="wf_watch_run",
@@ -1854,6 +1879,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
 
     step1 = StepRule(id="stp_0195f3a0000070068666777788889999", task_blueprint="bp_0195f3a0000070068666777788889999")
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070068666777788889999",
         slug="wf_schema_merge",
@@ -2029,6 +2055,7 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode="DISABLED",
         id="wf_0195f3a0000070098999888877776666",
         slug="wf_wave_crash_test",

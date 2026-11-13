@@ -23,6 +23,7 @@ def test_synthesis_text_adapter_builds_markdown_blocks() -> None:
     cb = ParagraphBlock(text="Predefined content block", exact_quotes=[], citations=[])
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -55,6 +56,7 @@ def test_synthesis_text_adapter_ignores_section_syntheses() -> None:
     cb = ParagraphBlock(text="Static preface block", exact_quotes=[], citations=[])
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -93,6 +95,7 @@ def test_synthesis_text_adapter_data_starved_returns_empty() -> None:
     """Test that SynthesisTextAdapter returns empty list when execution is data starved."""
     cb = ParagraphBlock(text="Static preface block", exact_quotes=[], citations=[])
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -125,6 +128,7 @@ def test_synthesis_text_adapter_data_starved_returns_empty() -> None:
 def test_synthesis_text_adapter_empty_content_blocks() -> None:
     """Test that SynthesisTextAdapter returns empty list when profile content_blocks is empty."""
     profile_empty_blocks = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",

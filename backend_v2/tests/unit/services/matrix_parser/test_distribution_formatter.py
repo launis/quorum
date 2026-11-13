@@ -46,6 +46,7 @@ def get_dummy_profile(
         custom_scale_min = 4.0
         custom_scale_max = 10.0
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prof_1234567890abcdef1234567890abcdef",
         slug="test",
         workflow_id="wf1",
@@ -87,6 +88,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
             description=desc,
         )
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",
         category_id=PromptBlockCategory.MATRIX,

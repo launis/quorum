@@ -329,6 +329,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
     """Verify Pydantic ValidationError on out-of-bounds lexical strictness level (<0 or >100)."""
     with pytest.raises(ValidationError):
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_0195f3a0000070008123456789abcdef",
             slug="test-wf",
             name="Test Workflow",
@@ -341,6 +342,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
 
     with pytest.raises(ValidationError):
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_0195f3a0000070008123456789abcdef",
             slug="test-wf",
             name="Test Workflow",

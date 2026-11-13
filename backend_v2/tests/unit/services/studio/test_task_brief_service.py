@@ -6,21 +6,27 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.exceptions import (
     AppException,
     ErrorCodes,
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.auth import Organization, SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionAssignment
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.task_brief import TaskAssignmentBriefDTO, TaskBrief
 from backend_v2.models.enums import AssignmentStatus, EntityPrefix
 from backend_v2.services.studio.task_brief_service import StudioTaskBriefService
-from backend_v2.tests.factories.model_factories import TaskBriefFactory
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryTaskBriefRepository
+from backend_v2.tests.factories.model_factories import (
+    OutputProfileFactory,
+    StepFactory,
+    SystemRulePromptBlockFactory,
+    TaskBriefFactory,
+    WorkflowFactory,
+)
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 pytestmark = pytest.mark.asyncio
@@ -30,26 +36,24 @@ ORG_BETA_ID = "org_0195f3a0000070008000000000000222"
 
 
 @pytest.fixture
-def task_brief_repo() -> InMemoryTaskBriefRepository:
-    """Provide an in-memory task brief repository fixture."""
-    return InMemoryTaskBriefRepository()
-
-
-@pytest.fixture
 def uow() -> InMemoryUnitOfWork:
     """Provide an in-memory Unit of Work fixture."""
     return InMemoryUnitOfWork()
 
 
 @pytest.fixture
+def task_brief_repo(uow: InMemoryUnitOfWork) -> TaskBriefRepositoryImpl:
+    """Provide a TaskBriefRepositoryImpl backed by the shared in-memory PostgreSQL store."""
+    return TaskBriefRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(uow.store))
+
+
+@pytest.fixture
 def task_brief_service(
-    task_brief_repo: InMemoryTaskBriefRepository,
-    uow: InMemoryUnitOfWork,
+    task_brief_repo: TaskBriefRepositoryImpl,
 ) -> StudioTaskBriefService:
-    """Provide a StudioTaskBriefService wired to in-memory repository and UoW."""
+    """Provide a StudioTaskBriefService wired to TaskBriefRepositoryImpl."""
     return StudioTaskBriefService(
         task_brief_repo=task_brief_repo,
-        uow_factory=lambda: uow,
     )
 
 
@@ -109,7 +113,7 @@ def sample_brief() -> TaskBrief:
 
 async def test_list_task_briefs_empty_and_tenant_filtering(
     task_brief_service: StudioTaskBriefService,
-    task_brief_repo: InMemoryTaskBriefRepository,
+    task_brief_repo: TaskBriefRepositoryImpl,
     root_token: TokenData,
     admin_token: TokenData,
     sample_brief: TaskBrief,
@@ -142,7 +146,7 @@ async def test_list_task_briefs_empty_and_tenant_filtering(
 
 async def test_create_draft_save_get_and_clone_task_brief_lifecycle(
     task_brief_service: StudioTaskBriefService,
-    task_brief_repo: InMemoryTaskBriefRepository,
+    task_brief_repo: TaskBriefRepositoryImpl,
     root_token: TokenData,
     admin_token: TokenData,
 ) -> None:
@@ -206,7 +210,7 @@ async def test_get_and_clone_task_brief_not_found_error(
 
 async def test_task_brief_rbac_and_tenant_isolation_failure(
     task_brief_service: StudioTaskBriefService,
-    task_brief_repo: InMemoryTaskBriefRepository,
+    task_brief_repo: TaskBriefRepositoryImpl,
     admin_token: TokenData,
     other_admin_token: TokenData,
     member_token: TokenData,
@@ -271,14 +275,14 @@ async def test_task_brief_rbac_and_tenant_isolation_failure(
         await task_brief_service.delete_task_brief(admin_token, sys_brief.id)
 
 
-async def test_delete_task_brief_blocked_by_active_assignment_usage_error(
+async def test_delete_task_brief_referenced_by_assignment_raises_delete_blocked_by_usage(
     task_brief_service: StudioTaskBriefService,
-    task_brief_repo: InMemoryTaskBriefRepository,
+    task_brief_repo: TaskBriefRepositoryImpl,
     uow: InMemoryUnitOfWork,
     admin_token: TokenData,
     sample_brief: TaskBrief,
 ) -> None:
-    """Verify deleting a TaskBrief referenced by an ExecutionAssignment raises DELETE_BLOCKED_BY_USAGE."""
+    """Verify kernel ON DELETE RESTRICT blocks deleting a TaskBrief referenced by an ExecutionAssignment."""
     await task_brief_repo.create_task_brief(sample_brief)
 
     active_assignment = ExecutionAssignment(
@@ -309,18 +313,78 @@ async def test_delete_task_brief_blocked_by_active_assignment_usage_error(
     assert blocked_exc.value.status_code == 400
     assert blocked_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
 
-    # Also verify entity_adapter direct path blocks deletion
-    adapter_service = StudioTaskBriefService(
-        task_brief_repo=task_brief_repo,
-        entity_adapter=uow.entities,
-    )
-    with pytest.raises(AppException) as adapter_blocked_exc:
-        await adapter_service.delete_task_brief(admin_token, sample_brief.id)
-    assert adapter_blocked_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
-
     # Once assignment no longer references sample_brief.id, deletion succeeds
     unlinked_assignment = active_assignment.model_copy(update={"task_brief_id": None, "task_brief_snapshot": None})
     await uow.entities.upsert_execution_assignment(unlinked_assignment)
 
     await task_brief_service.delete_task_brief(admin_token, sample_brief.id)
     assert await task_brief_repo.get_task_brief_by_id(sample_brief.id) is None
+
+
+async def test_delete_tenant_organization_cascades_studio_entities_with_zero_null_promotion(
+    uow: InMemoryUnitOfWork,
+    sample_brief: TaskBrief,
+) -> None:
+    """Verify deleting a tenant Organization cascade-deletes its Studio entities without touching ROOT_SYSTEM."""
+    now = datetime.now(UTC)
+    alpha_org = Organization(
+        id=ORG_ALPHA_ID,
+        name="Alpha Tenant",
+        slug="alpha-tenant",
+        created_at=now,
+        is_active=True,
+        tier="enterprise",
+        subscription_status="active",
+        quota_limit=1000.0,
+        tpm_limit=100000,
+        rpm_limit=100,
+    )
+    system_org = Organization(
+        id=SystemOrganizations.ROOT_SYSTEM.value,
+        name="System Administration",
+        slug="system",
+        created_at=now,
+        is_active=True,
+        tier="system",
+        subscription_status="active",
+        quota_limit=100000.0,
+        tpm_limit=1000000,
+        rpm_limit=1000,
+    )
+    await uow.entities.upsert_organization(alpha_org)
+    await uow.entities.upsert_organization(system_org)
+
+    alpha_block = SystemRulePromptBlockFactory.build(organization_id=ORG_ALPHA_ID)
+    system_block = SystemRulePromptBlockFactory.build(organization_id=SystemOrganizations.ROOT_SYSTEM.value)
+    alpha_step = StepFactory.build(organization_id=ORG_ALPHA_ID)
+    alpha_wf = WorkflowFactory.build(organization_id=ORG_ALPHA_ID)
+    alpha_prf = OutputProfileFactory.build(workflow_id=alpha_wf.id, organization_id=ORG_ALPHA_ID, content_blocks=[])
+    system_brief = sample_brief.model_copy(
+        update={
+            "id": generate_opaque_id(EntityPrefix.TASK_BRIEF),
+            "organization_id": SystemOrganizations.ROOT_SYSTEM.value,
+        }
+    )
+
+    await uow.entities.upsert_prompt_block(alpha_block)
+    await uow.entities.upsert_prompt_block(system_block)
+    await uow.entities.upsert_task_brief(sample_brief)
+    await uow.entities.upsert_task_brief(system_brief)
+    await uow.entities.upsert_step(alpha_step)
+    await uow.entities.upsert_workflow(alpha_wf)
+    await uow.entities.upsert_output_profile(alpha_prf)
+
+    assert await uow.entities.delete_organization(ORG_ALPHA_ID) is True
+
+    assert await uow.entities.get_prompt_block(alpha_block.id) is None
+    assert await uow.entities.get_task_brief(sample_brief.id) is None
+    assert await uow.entities.get_step(alpha_step.id) is None
+    assert await uow.entities.get_workflow(alpha_wf.id) is None
+    assert await uow.entities.get_output_profile(alpha_prf.id) is None
+
+    remaining_block = await uow.entities.get_prompt_block(system_block.id)
+    remaining_brief = await uow.entities.get_task_brief(system_brief.id)
+    assert remaining_block is not None
+    assert remaining_block.organization_id == SystemOrganizations.ROOT_SYSTEM.value
+    assert remaining_brief is not None
+    assert remaining_brief.organization_id == SystemOrganizations.ROOT_SYSTEM.value

@@ -4,21 +4,17 @@ from __future__ import annotations
 
 import logging
 
-from backend_v2.database.interfaces import (
-    EntityPersistencePort,
-    ITaskBriefRepository,
-    UnitOfWorkFactory,
-)
-from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.database.interfaces import ITaskBriefRepository
+from backend_v2.exceptions import ErrorCodes, ResourceNotFoundError
+from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id
-from backend_v2.models.domain.execution import ExecutionAssignment
 from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
     is_resource_accessible,
+    resolve_create_organization_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,25 +27,18 @@ class StudioTaskBriefService:
 
     Attributes:
         task_brief_repo: Repository interface for task brief persistence.
-        entity_adapter: Optional hexagonal persistence port for assignment reference checks.
     """
 
     def __init__(
         self,
         task_brief_repo: ITaskBriefRepository,
-        entity_adapter: EntityPersistencePort | None = None,
-        uow_factory: UnitOfWorkFactory | None = None,
     ) -> None:
         """Initialize the StudioTaskBriefService.
 
         Args:
             task_brief_repo: The task brief repository.
-            entity_adapter: Optional entity persistence port for checking assignment references.
-            uow_factory: Optional UnitOfWork factory for transactional assignment checks.
         """
         self.task_brief_repo = task_brief_repo
-        self.entity_adapter = entity_adapter
-        self._uow_factory = uow_factory
 
     async def _require_task_brief(self, initiator: TokenData, id: str, *, after_save: bool = False) -> TaskBrief:
         """Fetch a task brief by ID or raise ResourceNotFoundError.
@@ -79,48 +68,6 @@ class StudioTaskBriefService:
             )
             raise ResourceNotFoundError(resource_type="task_brief", resource_id=id)
         return brief
-
-    async def _check_active_assignment_usage(self, initiator: TokenData, id: str) -> None:
-        """Reject deletion if any ExecutionAssignment references the target TaskBrief.
-
-        Args:
-            initiator: The authenticated user requesting deletion.
-            id: The canonical tbr_<32_hex> task brief identifier.
-
-        Raises:
-            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If referenced by an assignment.
-        """
-        assignments: list[ExecutionAssignment] = []
-        if self.entity_adapter is not None:
-            assignments = await self.entity_adapter.list_execution_assignments()
-        elif self._uow_factory is not None:
-            async with self._uow_factory() as uow:
-                assignments = await uow.entities.list_execution_assignments()
-
-        for assignment in assignments:
-            if assignment.task_brief_id == id:
-                logger.error(
-                    "[StudioTaskBriefService] %s: Cannot delete task brief %s because it is referenced by assignment %s (Initiator: %s).",
-                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                    id,
-                    assignment.id,
-                    initiator.id,
-                    exc_info=True,
-                    extra={
-                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                        "task_brief_id": id,
-                        "assignment_id": assignment.id,
-                    },
-                )
-                raise AppException(
-                    message=f"Cannot delete task brief {id} because it is referenced by assignment {assignment.id}.",
-                    status_code=400,
-                    details={
-                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                        "task_brief_id": id,
-                        "assignment_id": assignment.id,
-                    },
-                )
 
     async def list_task_briefs(self, initiator: TokenData) -> list[TaskBrief]:
         """List all TaskBrief records accessible to the authenticated user.
@@ -197,7 +144,7 @@ class StudioTaskBriefService:
         existing = await self._require_task_brief(initiator, id)
         enforce_modification_rights(initiator, existing.organization_id)
 
-        target_org: str | None = existing.organization_id
+        target_org: str = existing.organization_id
         if initiator.role == UserRole.ROOT:
             target_org = data.organization_id
             enforce_modification_rights(initiator, target_org)
@@ -207,7 +154,7 @@ class StudioTaskBriefService:
         return await self._require_task_brief(initiator, id, after_save=True)
 
     async def delete_task_brief(self, initiator: TokenData, id: str) -> None:
-        """Delete a TaskBrief by ID after enforcing RBAC and referential integrity.
+        """Delete a TaskBrief by ID after enforcing RBAC and database referential integrity.
 
         Args:
             initiator: The authenticated user.
@@ -220,7 +167,6 @@ class StudioTaskBriefService:
         """
         brief = await self._require_task_brief(initiator, id)
         enforce_modification_rights(initiator, brief.organization_id)
-        await self._check_active_assignment_usage(initiator, id)
         await self.task_brief_repo.delete_task_brief(id)
 
     async def create_task_brief_draft(self, initiator: TokenData) -> TaskBrief:
@@ -237,9 +183,7 @@ class StudioTaskBriefService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are violated.
         """
         new_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
-        target_org = (
-            SystemOrganizations.ROOT_SYSTEM.value if initiator.role == UserRole.ROOT else initiator.organization_id
-        )
+        target_org = resolve_create_organization_id(initiator)
         draft = TaskBrief(
             id=new_id,
             slug=new_id,
@@ -267,7 +211,10 @@ class StudioTaskBriefService:
         """
         original = await self.get_task_brief(initiator, id)
         new_id = generate_opaque_id(EntityPrefix.TASK_BRIEF)
-        target_org = original.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = original.organization_id
+        else:
+            target_org = resolve_create_organization_id(initiator)
         cloned_label = original.label.with_copy_suffix()
         cloned_obj = original.model_copy(
             update={

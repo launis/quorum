@@ -21,6 +21,7 @@ from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MATRIX_GRAPH
 
 def test_matrix_graphs_adapter_empty_groups() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -46,6 +47,7 @@ def test_matrix_graphs_adapter_empty_groups() -> None:
 
 def test_matrix_graphs_adapter_single_group_1d() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -91,6 +93,7 @@ def test_matrix_graphs_adapter_single_group_1d() -> None:
 
 def test_matrix_graphs_adapter_single_group_2d() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -147,6 +150,7 @@ def test_matrix_graphs_adapter_single_group_2d() -> None:
 
 def test_matrix_graphs_adapter_success_3d() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -213,6 +217,7 @@ def test_matrix_graphs_adapter_success_3d() -> None:
 def test_matrix_graphs_adapter_wildcard_target_blocks() -> None:
     """Verify target_blocks=['*'] matches all parsed matrices."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -276,6 +281,7 @@ def test_matrix_graphs_adapter_wildcard_target_blocks() -> None:
 
 def test_matrix_graphs_adapter_with_section_syntheses() -> None:
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
@@ -329,6 +335,7 @@ def test_matrix_graphs_adapter_with_section_syntheses() -> None:
 def test_matrix_graphs_adapter_text_only_with_section_syntheses() -> None:
     """Verify that text_only synthesis group emits MarkdownBlock title header before synthesis text."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test_text_only",
         workflow_id="wf_123",
@@ -383,6 +390,7 @@ def test_matrix_graphs_adapter_text_only_with_section_syntheses() -> None:
 def test_matrix_graphs_adapter_insufficient_axes_with_section_syntheses() -> None:
     """Verify that synthesis group with axes below chart threshold emits MarkdownBlock title header before synthesis text."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test_insufficient_axes",
         workflow_id="wf_123",
@@ -438,6 +446,7 @@ def test_matrix_graphs_adapter_insufficient_axes_with_section_syntheses() -> Non
 def test_matrix_graphs_adapter_data_starvation_returns_empty() -> None:
     """Verify that when context.is_data_starved is True, build() deterministically returns empty list."""
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test_starvation",
         workflow_id="wf_123",
@@ -523,6 +532,7 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 
     # 1. 2D compare
     p_2d = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070028222222222222222",
         slug="test_2d",
         workflow_id="wf_123",
@@ -557,6 +567,7 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 
     # 2. 3D matrix
     p_3d = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070038333333333333333",
         slug="test_3d",
         workflow_id="wf_123",
@@ -590,6 +601,7 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 
     # 3. text_only
     p_text = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070048444444444444444",
         slug="test_text",
         workflow_id="wf_123",
@@ -623,6 +635,7 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 def test_matrix_graphs_adapter_unsupported_view_type_fails_fast() -> None:
     """Negative: Unsupported view_type raises Fail-Fast AppException with CONFIGURATION_ERROR."""
     p_invalid = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070098999999999999999",
         slug="test_invalid",
         workflow_id="wf_123",
@@ -668,6 +681,7 @@ def test_matrix_graphs_adapter_unsupported_view_type_fails_fast() -> None:
 def test_matrix_graphs_adapter_empty_view_type_boundary_fails_fast() -> None:
     """Negative (Boundary): Empty string view_type raises Fail-Fast AppException with CONFIGURATION_ERROR."""
     p_empty_view = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070088888888888888888",
         slug="test_empty_view",
         workflow_id="wf_123",
@@ -713,6 +727,7 @@ def test_matrix_graphs_adapter_empty_view_type_boundary_fails_fast() -> None:
 def test_matrix_graphs_adapter_2d_boundary_insufficient_axes() -> None:
     """Boundary (min_axes - 1): 2d_compare with only 1 matched axis omits scatter plot block."""
     p_2d_under = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070078777777777777777",
         slug="test_2d_under",
         workflow_id="wf_123",
@@ -757,6 +772,7 @@ def test_matrix_graphs_adapter_2d_boundary_insufficient_axes() -> None:
 def test_matrix_graphs_adapter_1d_boundary_insufficient_axes_with_section_syntheses() -> None:
     """Boundary (min_axes - 1): 1d_metrics with 0 matched axes but section_syntheses present emits MarkdownBlock."""
     p_1d_under = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070068666666666666666",
         slug="test_1d_under",
         workflow_id="wf_123",

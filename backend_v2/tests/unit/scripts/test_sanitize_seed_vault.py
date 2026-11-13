@@ -327,7 +327,7 @@ def test_negative_boundaries_and_schema_failures(tmp_path: Path) -> None:
     assert len(sanitized_tbs) == 1
     tb_dict = sanitized_tbs[0]
     assert isinstance(tb_dict, dict)
-    assert "organization_id" not in tb_dict
+    assert tb_dict["organization_id"] == "org_0195f3a0000070008000000000000001"
     assert "<directive>" not in str(tb_dict["instruction_text"])
 
     with pytest.raises(AppException) as exc_tb:

@@ -330,12 +330,14 @@ EXPLICIT_MODEL_ALIASES: Final[dict[str, str]] = {
     "systemconfigmodelregistry": "modelconfig",
     "modelprofile": "llmmodelconfig",
     "taskbriefresponsedto": "taskbrief",
+    "outputprofileresponsedto": "outputprofile",
 }
 
 PREFERRED_BACKEND_ALIASES: Final[dict[str, str]] = {
     "workflow": "workflowresponsedto",
     "user": "useradminview",
     "taskbrief": "taskbriefresponsedto",
+    "outputprofile": "outputprofileresponsedto",
 }
 
 

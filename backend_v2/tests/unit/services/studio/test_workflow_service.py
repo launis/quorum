@@ -147,7 +147,7 @@ def _valid_step(
 def _valid_workflow(
     wf_id: str = "wf_0195f3a00000700080000123456789ab",
     slug: str = "wf_slug",
-    org_id: str | None = "org_0195f3a0000070008000000000000123",
+    org_id: str = "org_0195f3a0000070008000000000000123",
     status: str = "active",
     model_registry_id: str = "mrg_0195f3a0000070008000e26807f3bfa3",
 ) -> Workflow:
@@ -215,11 +215,17 @@ async def test_list_workflows_public_and_system_allowed(
 ) -> None:
     wf_public = _valid_workflow("wf_0195f3a0000070008000000000000001", org_id="org_0195f3a0000070008000000000000999")
     wf_public = wf_public.model_copy(update={"is_public": True})
-    wf_system = _valid_workflow("wf_0195f3a0000070008000000000000002", org_id="SYSTEM")
-    wf_none = _valid_workflow("wf_0195f3a0000070008000000000000003", org_id=None)
+    wf_system = _valid_workflow(
+        "wf_0195f3a0000070008000000000000002",
+        org_id="org_0195f3a0000070008000000000000001",
+    )
+    wf_own = _valid_workflow(
+        "wf_0195f3a0000070008000000000000003",
+        org_id="org_0195f3a0000070008000000000000123",
+    )
     await mock_workflow_repo.save_workflow(wf_public)
     await mock_workflow_repo.save_workflow(wf_system)
-    await mock_workflow_repo.save_workflow(wf_none)
+    await mock_workflow_repo.save_workflow(wf_own)
     res = await workflow_service.list_workflows(admin_token)
     assert len(res) == 3
 
@@ -421,6 +427,7 @@ async def test_clone_workflow_success(admin_token: TokenData) -> None:
         id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
         slug="prof_standard",
         workflow_id=orig_wf.id,
+        organization_id=orig_wf.organization_id,
         name=I18nText(translations={"en": "Standard"}),
         target_block_order=[
             TargetBlockType.METADATA_BLOCK,
@@ -1144,12 +1151,12 @@ async def test_get_workflow_available_extensions_includes_system_core_steps(
     mock_prompt_block_repo: InMemoryPromptBlockRepository,
 ) -> None:
     """Regression test: get_workflow_available_extensions must include extensions from is_system_core=True steps."""
-    wf = _valid_workflow(org_id="SYSTEM")
+    wf = _valid_workflow(org_id="org_0195f3a0000070008000000000000001")
     system_step = _valid_step(
         "stp_0195f3a00000700c84a5a1d15c00438a",
         slug="step_causal_discovery",
         is_system_core=True,
-        org_id="SYSTEM",
+        org_id="org_0195f3a0000070008000000000000001",
     )
     wf_with_steps = wf.model_copy(
         update={

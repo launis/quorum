@@ -135,6 +135,7 @@ def test_system_rule_prompt_block_instantiation(sample_i18n_text: I18nText) -> N
 def test_persona_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
     """Tests direct instantiation and fields of PersonaPromptBlock."""
     block = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-persona",
         label=sample_i18n_text,
@@ -152,6 +153,7 @@ def test_persona_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
 def test_protocol_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
     """Tests direct instantiation and fields of ProtocolPromptBlock."""
     block = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-protocol",
         label=sample_i18n_text,
@@ -217,6 +219,7 @@ def test_matrix_prompt_block_requires_scales(sample_i18n_text: I18nText) -> None
     """Tests that MatrixPromptBlock enforces min_length=1 on scales."""
     with pytest.raises(ValidationError):
         MatrixPromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="blk_0123456789abcdef0123456789abcdef",
             slug="test-matrix",
             label=sample_i18n_text,
@@ -231,6 +234,7 @@ def test_prompt_block_extra_forbid(sample_i18n_text: I18nText) -> None:
     with pytest.raises(ValidationError):
         PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0123456789abcdef0123456789abcdef",
                 "slug": "rule-test",
                 "label": sample_i18n_text.model_dump(),
@@ -268,6 +272,7 @@ def test_prompt_block_invalid_task_definition_category_error(sample_i18n_text: I
     with pytest.raises(ValidationError):
         PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0123456789abcdef0123456789abcdef",
                 "slug": "legacy-task-def",
                 "label": sample_i18n_text.model_dump(),

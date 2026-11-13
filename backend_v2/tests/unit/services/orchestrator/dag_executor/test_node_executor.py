@@ -88,6 +88,7 @@ async def test_node_executor_resolves_engine_and_merges_post_hook_deltas() -> No
     await repo.create_prompt_block(proto_block)
 
     step_bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111222233334444",
         slug="step_test",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
@@ -210,6 +211,7 @@ async def test_node_executor_dlq_error_recording_and_unhandled_exception_propaga
     """Verify NodeExecutor converts runtime/validation errors into ErrorTraceEvent and re-raises unknown exceptions."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111222233334444",
         slug="step_logic",
         name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),

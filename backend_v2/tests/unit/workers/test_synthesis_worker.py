@@ -70,6 +70,7 @@ from scripts.audit_warning_baseline import (
 def _make_base_profile(prof_id: str, wf_id: str) -> OutputProfile:
     """Create a validated OutputProfile fixture for synthesis worker tests."""
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=prof_id,
         slug="prof_test",
         workflow_id=wf_id,
@@ -103,6 +104,7 @@ def _make_base_profile(prof_id: str, wf_id: str) -> OutputProfile:
 def _make_base_workflow(wf_id: str, prof_id: str) -> Workflow:
     """Create a validated Workflow fixture for synthesis worker tests."""
     return Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=wf_id,
         slug="test_wf",
         name=I18nText(translations={"en": "Test Workflow"}),
@@ -238,6 +240,7 @@ async def test_synthesis_worker_workflow_not_found_raises() -> None:
         prof_id=prof_id,
     )
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=prof_id,
         slug="prof_test",
         workflow_id="wor_0195f3a00000700283456789abcdef01",
@@ -1221,6 +1224,7 @@ def _build_strict_typed_synthesis_fixtures(
         updated_at=datetime.now(UTC),
     )
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=prof_id,
         slug="prof_test_strict",
         workflow_id=wf_id,
@@ -1244,6 +1248,7 @@ def _build_strict_typed_synthesis_fixtures(
         content_blocks=[],
     )
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=wf_id,
         slug="wf_test_strict",
         name=I18nText(translations={"en": "Strict Workflow"}),

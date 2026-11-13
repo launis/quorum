@@ -72,6 +72,7 @@ def make_valid_step_def(cognitive_tier: str | None = "fast") -> Step:
     if cognitive_tier is not None:
         resolved_tier = CognitiveTier(cognitive_tier)
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018234567890abcdef",
         slug="test_step",
         name=I18nText(translations={"en": "Test Step"}),

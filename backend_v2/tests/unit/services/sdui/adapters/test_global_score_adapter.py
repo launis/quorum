@@ -18,6 +18,7 @@ from backend_v2.services.sdui.adapters.global_score_adapter import AESTHETICS_RU
 def sample_profile() -> OutputProfile:
     """Fixture providing a valid OutputProfile for testing."""
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         workflow_id="wfw_test",

@@ -24,6 +24,7 @@ async def test_delete_prompt_block_blocks_orphan_data_failure() -> None:
 
     block = SystemRulePromptBlockFactory.build(id=block_id)
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         slug="test_step_ref",
         name=I18nTextFactory.build(translations={"en": "Step 1", "fi": "Vaihe 1"}),

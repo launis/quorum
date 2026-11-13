@@ -350,7 +350,12 @@ class WorkflowResponseDTO(BaseResponseDTO, Workflow):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
-        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            exclude=False,
+            description="Explicitly exposed for Admin Studio UI routing.",
+        ),
     ]
     output_profiles: Annotated[
         dict[str, OutputProfileResponseDTO],
@@ -370,7 +375,12 @@ class StepResponseDTO(BaseResponseDTO, Step):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
-        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            exclude=False,
+            description="Explicitly exposed for Admin Studio UI routing.",
+        ),
     ]
 
 
@@ -388,8 +398,13 @@ class TaskBriefResponseDTO(BaseResponseDTO, TaskBrief):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     organization_id: Annotated[
-        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
-    ] = None
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            exclude=False,
+            description="Explicitly exposed for Admin Studio UI routing.",
+        ),
+    ]
 
 
 class TaskBriefDeleteResponse(BaseResponseDTO):

@@ -204,11 +204,12 @@ def test_update_dto_max_extension_items_boundary_negative() -> None:
 
 
 def test_output_profile_response_dto_strictness() -> None:
-    """Test Response DTO strictness and base class inheritance."""
+    """Test Response DTO strictness and explicit organization_id serialization."""
     dto = OutputProfileResponseDTO.model_validate(
         {
             "id": "prf_1234abcd",
             "slug": "my-profile",
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Name", "fi": "Name"}},
             "target_block_order": [TargetBlockType.METADATA_BLOCK],
@@ -219,9 +220,8 @@ def test_output_profile_response_dto_strictness() -> None:
     assert "date" in dto.visible_metadata
     assert dto.display_scale == DisplayScale.ORIGINAL
 
-    # Must omit organization_id from dump if inherited correctly from BaseResponseDTO
     dump = dto.model_dump()
-    assert "organization_id" not in dump
+    assert dump["organization_id"] == "org_0195f3a0000070008000000000000001"
 
 
 def test_output_profile_create_dto_accepts_string_enums_from_http_payload() -> None:
@@ -276,6 +276,7 @@ def test_output_profile_response_dto_accepts_string_enums_from_storage_payload()
     payload = {
         **_VALID_CREATE_PAYLOAD,
         "id": "prf_1234abcd",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "display_scale": "normalized_100",
         "target_block_order": ["metadata_block", "global_score_block"],
         "user_role_target_block": "blk_0195f3a00000700583f32679aa514fcb",
@@ -305,6 +306,7 @@ def test_output_profile_custom_scale_bounds_positive() -> None:
     domain_payload = {
         **payload,
         "id": "prf_0195f3a0000070018234567890abcdef",
+        "organization_id": "org_0195f3a0000070008000000000000001",
     }
     domain_model = OutputProfile.model_validate(domain_payload)
     assert domain_model.custom_scale_min == 4.0
@@ -332,6 +334,7 @@ def test_output_profile_custom_scale_missing_bounds_negative() -> None:
             {
                 **_VALID_CREATE_PAYLOAD,
                 "id": "prf_0195f3a0000070018234567890abcdef",
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "display_scale": DisplayScale.CUSTOM,
                 "custom_scale_min": 4.0,
                 "custom_scale_max": None,
@@ -358,6 +361,7 @@ def test_output_profile_custom_scale_inverted_bounds_negative() -> None:
             {
                 **_VALID_CREATE_PAYLOAD,
                 "id": "prf_0195f3a0000070018234567890abcdef",
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "display_scale": DisplayScale.CUSTOM,
                 "custom_scale_min": 10.0,
                 "custom_scale_max": 4.0,
@@ -384,6 +388,7 @@ def test_output_profile_custom_scale_equal_bounds_negative() -> None:
             {
                 **_VALID_CREATE_PAYLOAD,
                 "id": "prf_0195f3a0000070018234567890abcdef",
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "display_scale": DisplayScale.CUSTOM,
                 "custom_scale_min": 5.0,
                 "custom_scale_max": 5.0,
@@ -429,6 +434,7 @@ def test_output_profile_sources_config_defaults() -> None:
         {
             **_VALID_CREATE_PAYLOAD,
             "id": "prf_0195f3a0000070018234567890abcdef",
+            "organization_id": "org_0195f3a0000070008000000000000001",
         }
     )
     assert resp_dto.show_sources_summary_box is True
@@ -439,6 +445,7 @@ def test_output_profile_sources_config_defaults() -> None:
         {
             **_VALID_CREATE_PAYLOAD,
             "id": "prf_0195f3a0000070018234567890abcdef",
+            "organization_id": "org_0195f3a0000070008000000000000001",
         }
     )
     assert domain_model.show_sources_summary_box is True
@@ -460,7 +467,13 @@ def test_output_profile_sources_config_explicit_values() -> None:
     assert create_dto.sources_display_mode == SourcesDisplayMode.SIMPLE_BIBLIOGRAPHY
 
     # Domain model
-    domain_model = OutputProfile.model_validate({**payload, "id": "prf_0195f3a0000070018234567890abcdef"})
+    domain_model = OutputProfile.model_validate(
+        {
+            **payload,
+            "id": "prf_0195f3a0000070018234567890abcdef",
+            "organization_id": "org_0195f3a0000070008000000000000001",
+        }
+    )
     assert domain_model.show_sources_summary_box is False
     assert domain_model.sources_display_mode == SourcesDisplayMode.SIMPLE_BIBLIOGRAPHY
 
@@ -487,7 +500,13 @@ def test_output_profile_sources_display_mode_invalid_string_negative() -> None:
         OutputProfileCreateDTO.model_validate(payload)
 
     with pytest.raises(ValidationError, match="Input should be"):
-        OutputProfile.model_validate({**payload, "id": "prf_0195f3a0000070018234567890abcdef"})
+        OutputProfile.model_validate(
+            {
+                **payload,
+                "id": "prf_0195f3a0000070018234567890abcdef",
+                "organization_id": "org_0195f3a0000070008000000000000001",
+            }
+        )
 
     with pytest.raises(ValidationError, match="Input should be"):
         OutputProfileUpdateDTO.model_validate({"sources_display_mode": "invalid_mode"})
@@ -518,6 +537,7 @@ def test_output_profile_language_enum_validation() -> None:
     resp_en = OutputProfileResponseDTO.model_validate(
         {
             "id": "op_0195f3a0000070018234567890abcdef",
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "slug": "default",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test"}},
@@ -573,6 +593,7 @@ def test_output_profile_synthesis_directives() -> None:
     resp_dto = OutputProfileResponseDTO.model_validate(
         {
             "id": "prf_0195f3a0000070018234567890abcdef",
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "slug": "test-prof",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test Profile"}},
@@ -661,6 +682,7 @@ def test_output_profile_matrix_graph_length_constraint_dto_roundtrip() -> None:
     resp_dto = OutputProfileResponseDTO.model_validate(
         {
             "id": "prf_0195f3a0000070018234567890abcdef",
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "slug": "test-prof",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test Profile"}},
@@ -676,6 +698,7 @@ def test_output_profile_variance_target_block_coherence() -> None:
     """Enforce that OutputProfile validates variance_target_block coherence with fail-fast validation."""
     valid_base = {
         "id": "prf_0195f3a0000070018234567890abcdef",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "slug": "test-prof",
         "workflow_id": "wf_0195f3a0000070018234567890abcdef",
         "name": {"translations": {"en": "Test Profile"}},

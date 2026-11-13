@@ -7,7 +7,7 @@ from typing import Literal
 
 from backend_v2.database.interfaces import IPromptBlockRepository, ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.prompt_blocks import (
@@ -21,6 +21,7 @@ from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
     is_resource_accessible,
+    resolve_create_organization_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -187,7 +188,7 @@ class StudioPromptBlockService:
         existing = await self._require_prompt_block(initiator, id)
         enforce_modification_rights(initiator, existing.organization_id)
 
-        target_org: str | None = existing.organization_id
+        target_org: str = existing.organization_id
         if initiator.role == UserRole.ROOT:
             target_org = data.organization_id
             enforce_modification_rights(initiator, target_org)
@@ -245,7 +246,7 @@ class StudioPromptBlockService:
             AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): If atomization fails prior to save.
         """
         new_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
-        target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
+        target_org = resolve_create_organization_id(initiator)
 
         draft: PromptBlock
         if category_id == PromptBlockCategory.MATRIX:
@@ -307,7 +308,10 @@ class StudioPromptBlockService:
         block = await self.get_prompt_block(initiator, id)
 
         new_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
-        target_org = block.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+        if initiator.role == UserRole.ROOT:
+            target_org = block.organization_id
+        else:
+            target_org = resolve_create_organization_id(initiator)
         cloned_label = block.label.with_copy_suffix()
 
         cloned_obj = block.model_copy(

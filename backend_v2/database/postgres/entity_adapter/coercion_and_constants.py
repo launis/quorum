@@ -30,7 +30,6 @@ __all__ = [
     "_COLLECTION_TO_TABLE_MAP",
     "_ROOT_SYSTEM_ORG_UUID7",
     "_ReportBinaryRowDTO",
-    "_SYSTEM_ORG_UUID7",
     "_SqlStateCarrier",
     "_TABLE_TO_ENTITY_PREFIX",
     "_coerce_float",
@@ -109,7 +108,6 @@ _TABLE_TO_ENTITY_PREFIX: dict[str, EntityPrefix] = {
     "usage_records": EntityPrefix.USAGE_RECORD,
 }
 
-_SYSTEM_ORG_UUID7: uuid.UUID = uuid.UUID("0195f3a0-0000-7000-8000-000000000000")
 _ROOT_SYSTEM_ORG_UUID7: uuid.UUID = uuid.UUID("0195f3a0-0000-7000-8000-000000000001")
 
 
@@ -198,18 +196,18 @@ def _format_optional_uuid7(raw: object, prefix: EntityPrefix) -> str | None:
 
 
 def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
-    """Parse an optional organization_id into a 16-byte UUIDv7, bridging 'SYSTEM' deterministically.
+    """Parse an optional organization_id into a 16-byte UUIDv7 or None.
 
     Args:
-        raw: Optional organization identifier ('SYSTEM' or 'org_<32_hex>').
+        raw: Optional canonical organization identifier ('org_<32_hex>') or None.
 
     Returns:
-        Parsed 16-byte uuid.UUID instance, or None for global/SYSTEM scope.
+        Parsed 16-byte uuid.UUID instance, or None when raw is None.
 
     Raises:
         AppException: With VALIDATION_FAILED if raw is not a valid organization identifier.
     """
-    if raw is None or raw == "SYSTEM":
+    if raw is None:
         return None
     return parse_prefixed_uuid7(raw, EntityPrefix.ORGANIZATION)
 
@@ -248,12 +246,11 @@ def _parse_system_safe_user_uuid7(raw: str | None) -> uuid.UUID | None:
     return parse_prefixed_uuid7(raw, EntityPrefix.USER)
 
 
-def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | None:
-    """Format a database organization_id UUID column into 'org_<32_hex>', 'SYSTEM', or None.
+def _format_org_uuid7(raw: object) -> str | None:
+    """Format a database organization_id UUID column into 'org_<32_hex>' or None.
 
     Args:
         raw: Raw database organization_id column value or None.
-        default_system: Whether None should resolve to 'SYSTEM' instead of None.
 
     Returns:
         Canonical organization identifier string or None.
@@ -262,11 +259,8 @@ def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | Non
         AppException: With VALIDATION_FAILED if raw cannot be formatted as a valid organization UUID.
     """
     if raw is None:
-        return "SYSTEM" if default_system else None
-    coerced = _coerce_uuid_or_str(raw)
-    if coerced == _SYSTEM_ORG_UUID7 or str(coerced) in {str(_SYSTEM_ORG_UUID7), "SYSTEM"}:
-        return "SYSTEM"
-    return format_prefixed_uuid7(coerced, EntityPrefix.ORGANIZATION)
+        return None
+    return format_prefixed_uuid7(_coerce_uuid_or_str(raw), EntityPrefix.ORGANIZATION)
 
 
 def _decode_jsonb_column(raw: object) -> object:

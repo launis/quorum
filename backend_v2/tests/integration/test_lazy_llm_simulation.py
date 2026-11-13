@@ -86,6 +86,7 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         claims=[claim],
     )
     criteria_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prb_0195f3a00000700e86f8a9b0c2d3e4f5",
         slug="chronomnesia_matrix",
         label=I18nText(translations={"en": "Chronomnesia Matrix", "fi": "Chronomnesia Matrix"}),

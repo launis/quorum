@@ -108,6 +108,7 @@ def _create_sample_prompt_blocks() -> dict[str, AnyPromptBlock]:
         claims=[claim],
     )
     block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix_1",
         label=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),

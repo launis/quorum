@@ -15,6 +15,7 @@ def test_reproduce_tier4_schema_bug() -> None:
     # The error says field `blk_599645bd5baf44e2` was expected to be a string.
     block = PromptBlockAdapter.validate_python(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": "blk_0195f3a000007005899645bd5baf44e2",
             "type": "string",
             "category_id": PromptBlockCategory.SYSTEM_RULE,

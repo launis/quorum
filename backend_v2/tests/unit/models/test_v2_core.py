@@ -110,6 +110,7 @@ def test_step_model_validation_rules() -> None:
     """Test Step validation rules for LLM and logic steps."""
     # Valid LLM step
     step_llm = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_11111111111111111111111111111111",
         slug="step_llm",
         name=I18nText(translations={"en": "LLM Step"}),
@@ -125,6 +126,7 @@ def test_step_model_validation_rules() -> None:
     # Missing criteria_block_ids in LLM step
     with pytest.raises(AppException):
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_11111111111111111111111111111111",
             slug="step_llm_invalid",
             name=I18nText(translations={"en": "LLM Step"}),
@@ -139,6 +141,7 @@ def test_step_model_validation_rules() -> None:
     # Missing extraction_protocol_block_id in LLM step
     with pytest.raises(AppException):
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_11111111111111111111111111111111",
             slug="step_llm_invalid",
             name=I18nText(translations={"en": "LLM Step"}),
@@ -151,6 +154,7 @@ def test_step_model_validation_rules() -> None:
 
     # Valid logic step
     step_logic = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_22222222222222222222222222222222",
         slug="step_logic",
         name=I18nText(translations={"en": "Logic Step"}),
@@ -163,6 +167,7 @@ def test_step_model_validation_rules() -> None:
     # Logic step missing hook
     with pytest.raises(AppException):
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_22222222222222222222222222222222",
             slug="step_logic_invalid",
             name=I18nText(translations={"en": "Logic Step"}),
@@ -175,6 +180,7 @@ def test_workflow_model_validation_rules() -> None:
     """Test Workflow DAG validations."""
     # Valid workflow
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"en": "Test WF"}),
@@ -211,6 +217,7 @@ def test_workflow_model_validation_rules() -> None:
     # Self dependency cycle
     with pytest.raises(ValidationError):
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_1234567890abcdef1234567890abcdef",
             slug="test_wf_cycle",
             name=I18nText(translations={"en": "Test WF"}),
@@ -233,6 +240,7 @@ def test_workflow_model_validation_rules() -> None:
     # Missing dependency reference in steps
     with pytest.raises(ValidationError):
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_1234567890abcdef1234567890abcdef",
             slug="test_wf_bad_dep",
             name=I18nText(translations={"en": "Test WF"}),
@@ -667,6 +675,7 @@ def test_output_profile_synthesis_properties_and_custom_scale_validation() -> No
     role_blk_id = "blk_0195f3a0000070018234567890abcdef"
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="slug",
         workflow_id="wf_0195f3a0000070018234567890123456",
@@ -688,6 +697,7 @@ def test_output_profile_synthesis_properties_and_custom_scale_validation() -> No
     # Custom scale validation: missing min/max
     with pytest.raises(ValueError, match="custom_scale_min and custom_scale_max are required"):
         OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="prf_0195f3a0000070018234567890abcdef",
             slug="slug",
             workflow_id="wf_0195f3a0000070018234567890123456",
@@ -699,6 +709,7 @@ def test_output_profile_synthesis_properties_and_custom_scale_validation() -> No
     # Custom scale validation: max <= min
     with pytest.raises(ValueError, match="must be strictly greater than custom_scale_min"):
         OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="prf_0195f3a0000070018234567890abcdef",
             slug="slug",
             workflow_id="wf_0195f3a0000070018234567890123456",
@@ -805,6 +816,7 @@ def test_step_type_llm_and_logic_validations() -> None:
     from backend_v2.models.domain.step import Step
 
     valid_llm_base = {
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "id": "stp_11111111111111111111111111111111",
         "slug": "step_test",
         "name": I18nText(translations={"en": "LLM Step"}),
@@ -841,6 +853,7 @@ def test_step_type_llm_and_logic_validations() -> None:
     # Logic Step without hook raises AppException
     with pytest.raises(AppException, match="must define a native 'hook'"):
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_22222222222222222222222222222222",
             slug="step_logic",
             name=I18nText(translations={"en": "Logic Step"}),
@@ -977,6 +990,7 @@ def test_workflow_model_registry_id_binding() -> None:
     # Missing model_registry_id fails validation (required field)
     with pytest.raises(ValidationError, match="Field required"):
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_0195f3a0000070018234567890abcdef",
             slug="test-workflow",
             name="Test Workflow",
@@ -989,6 +1003,7 @@ def test_workflow_model_registry_id_binding() -> None:
 
     # Custom valid model_registry_id
     wf_custom = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_0195f3a0000070018234567890abcdef",
         slug="test-workflow",
         name="Test Workflow",
@@ -1004,6 +1019,7 @@ def test_workflow_model_registry_id_binding() -> None:
     # Invalid pattern fails validation
     with pytest.raises(ValidationError, match="String should match pattern"):
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_0195f3a0000070018234567890abcdef",
             slug="test-workflow",
             name="Test Workflow",

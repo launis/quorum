@@ -12,6 +12,7 @@ from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
     is_resource_accessible,
+    resolve_create_organization_id,
 )
 
 ORG_ALPHA_ID = generate_opaque_id(EntityPrefix.ORGANIZATION)
@@ -105,10 +106,39 @@ def test_enforce_tenant_isolation_same_org_allowed(admin_token: TokenData) -> No
 
 
 def test_enforce_tenant_isolation_system_allowed_by_default(admin_token: TokenData) -> None:
-    """Verify system organization resources are accessible by default."""
+    """Verify ROOT_SYSTEM organization resources are accessible by default while legacy sentinels fail."""
     enforce_tenant_isolation(admin_token, SystemOrganizations.ROOT_SYSTEM, "workflow", WORKFLOW_ID)
-    enforce_tenant_isolation(admin_token, "SYSTEM", "workflow", WORKFLOW_ID)
-    enforce_tenant_isolation(admin_token, None, "workflow", WORKFLOW_ID)
+    with pytest.raises(PermissionDeniedError):
+        enforce_tenant_isolation(admin_token, "SYSTEM", "workflow", WORKFLOW_ID)
+    with pytest.raises(PermissionDeniedError):
+        enforce_tenant_isolation(admin_token, None, "workflow", WORKFLOW_ID)
+
+
+def test_resolve_create_organization_id_positive_and_orphan_denied(
+    root_token: TokenData,
+    admin_token: TokenData,
+) -> None:
+    """Verify resolve_create_organization_id maps ROOT to ROOT_SYSTEM and rejects orphan non-ROOT tokens."""
+    assert resolve_create_organization_id(root_token) == SystemOrganizations.ROOT_SYSTEM.value
+    assert resolve_create_organization_id(admin_token) == ORG_ALPHA_ID
+
+    orphan_admin = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        organization_id=None,
+        email="orphan@example.com",
+        role=UserRole.ADMIN,
+    )
+    with pytest.raises(PermissionDeniedError):
+        resolve_create_organization_id(orphan_admin)
+
+    blank_org_admin = TokenData.model_construct(
+        id=generate_opaque_id(EntityPrefix.USER),
+        organization_id="   ",
+        email="blank@example.com",
+        role=UserRole.ADMIN,
+    )
+    with pytest.raises(PermissionDeniedError):
+        resolve_create_organization_id(blank_org_admin)
 
 
 def test_enforce_tenant_isolation_system_denied_when_disabled_failure(admin_token: TokenData) -> None:
@@ -187,9 +217,9 @@ def test_is_resource_accessible_scenarios(root_token: TokenData, admin_token: To
     assert is_resource_accessible(admin_token, ORG_ALPHA_ID) is True
 
     assert is_resource_accessible(admin_token, SystemOrganizations.ROOT_SYSTEM) is True
-    assert is_resource_accessible(admin_token, "SYSTEM") is True
-    assert is_resource_accessible(admin_token, None) is True
+    assert is_resource_accessible(admin_token, "SYSTEM") is False
+    assert is_resource_accessible(admin_token, None) is False
 
-    assert is_resource_accessible(admin_token, None, allow_system=False) is False
+    assert is_resource_accessible(admin_token, SystemOrganizations.ROOT_SYSTEM, allow_system=False) is False
 
     assert is_resource_accessible(admin_token, ORG_BETA_ID) is False

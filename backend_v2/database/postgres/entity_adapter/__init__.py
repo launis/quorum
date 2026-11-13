@@ -25,7 +25,6 @@ from backend_v2.settings import get_settings
 # Explicit redundant re-exports (Symbol as Symbol) across all 6 stage sub-modules
 from .coercion_and_constants import _COLLECTION_TO_TABLE_MAP as _COLLECTION_TO_TABLE_MAP
 from .coercion_and_constants import _ROOT_SYSTEM_ORG_UUID7 as _ROOT_SYSTEM_ORG_UUID7
-from .coercion_and_constants import _SYSTEM_ORG_UUID7 as _SYSTEM_ORG_UUID7
 from .coercion_and_constants import _TABLE_TO_ENTITY_PREFIX as _TABLE_TO_ENTITY_PREFIX
 from .coercion_and_constants import CANONICAL_SEED_TABLES as CANONICAL_SEED_TABLES
 from .coercion_and_constants import _coerce_float as _coerce_float

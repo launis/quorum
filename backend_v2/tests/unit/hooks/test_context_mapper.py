@@ -24,6 +24,7 @@ def test_context_mapper_build_ordinal_mapping_success() -> None:
         MatrixScale(score=5, ai_label="HIGH", name=I18nText(translations={"en": "High", "fi": "Korkea"})),
     ]
     pb_matrix = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a0000070008123456789abcdef",
         slug="matrix_1",
         label=I18nText(translations={"en": "Matrix", "fi": "Matriisi"}),
@@ -31,6 +32,7 @@ def test_context_mapper_build_ordinal_mapping_success() -> None:
         scales=scales,
     )
     pb_instruction = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a00000700f8edcba9876543210",
         slug="inst_1",
         label=I18nText(translations={"en": "Inst", "fi": "Ohje"}),
@@ -58,6 +60,7 @@ def test_context_mapper_build_ordinal_mapping_invalid_block_type_raises() -> Non
 def test_context_mapper_build_ordinal_mapping_mixed_invalid_element_raises() -> None:
     """Test that a corrupted non-model element after a valid block in all_blocks raises AppException."""
     valid_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pb_0195f3a00000700f8edcba9876543210",
         slug="inst_1",
         label=I18nText(translations={"en": "Inst", "fi": "Ohje"}),

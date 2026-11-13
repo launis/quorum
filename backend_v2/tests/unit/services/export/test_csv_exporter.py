@@ -277,6 +277,7 @@ async def test_export_flat_csv_with_prompt_block_repo() -> None:
     desc = I18nText(translations={"fi": "Kuvaus 1", "en": "Description 1"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=blk_id,
         slug="m_slug",
         label=lbl,
@@ -431,6 +432,7 @@ async def test_export_flat_csv_with_explicit_components() -> None:
     desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=blk_id,
         slug="m_explicit_slug",
         label=lbl,

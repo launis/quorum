@@ -131,6 +131,20 @@ def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix
     return generate_uuid7_opaque_id(expected_prefix)
 
 
+def _resolve_studio_organization_id(record: dict[str, JsonValue]) -> str:
+    """Resolve canonical tenant organization_id for a Studio seed record.
+
+    Args:
+        record: Raw Studio seed dictionary.
+
+    Returns:
+        Canonical org_<hex32> identifier defaulting to ROOT_SYSTEM when absent or legacy sentinel.
+    """
+    if "organization_id" in record and record["organization_id"] not in (None, "SYSTEM"):
+        return _upgrade_or_generate_opaque_id(record["organization_id"], EntityPrefix.ORGANIZATION)
+    return _SYSTEM_ORG_UUID7_ID
+
+
 class SanitizeResult(BaseModel):
     """Result summary of a seed vault sanitization run.
 
@@ -736,6 +750,7 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
         raw_block_id = str(b["id"]) if "id" in b else ""
         block_id = _upgrade_or_generate_opaque_id(raw_block_id, EntityPrefix.PROMPT_BLOCK)
         b["id"] = block_id
+        b["organization_id"] = _resolve_studio_organization_id(b)
         category_id = str(b["category_id"]) if "category_id" in b else ""
 
         for field in ["ai_description", "role_enforcement", "instruction_text", "protocol_instructions"]:
@@ -791,6 +806,7 @@ def sanitize_steps(steps: Sequence[Any]) -> list[JsonValue]:
         raw_step_id = s["id"] if "id" in s else None
         step_id = _upgrade_or_generate_opaque_id(raw_step_id, EntityPrefix.STEP)
         s["id"] = step_id
+        s["organization_id"] = _resolve_studio_organization_id(s)
         for fk_field in ("role_block_id", "extraction_protocol_block_id", "execution_persona_block_id"):
             if fk_field in s and s[fk_field] is not None:
                 s[fk_field] = _upgrade_or_generate_opaque_id(s[fk_field], EntityPrefix.PROMPT_BLOCK)
@@ -919,6 +935,7 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
         raw_w_id = w["id"] if "id" in w else None
         w_id = _upgrade_or_generate_opaque_id(raw_w_id, EntityPrefix.WORKFLOW)
         w["id"] = w_id
+        w["organization_id"] = _resolve_studio_organization_id(w)
 
         if "default_profile_id" in w and w["default_profile_id"] is not None:
             w["default_profile_id"] = _upgrade_or_generate_opaque_id(
@@ -993,6 +1010,7 @@ def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
         raw_p_id = p["id"] if "id" in p else None
         p_id = _upgrade_or_generate_opaque_id(raw_p_id, EntityPrefix.OUTPUT_PROFILE)
         p["id"] = p_id
+        p["organization_id"] = _resolve_studio_organization_id(p)
         if "workflow_id" in p and p["workflow_id"] is not None:
             p["workflow_id"] = _upgrade_or_generate_opaque_id(p["workflow_id"], EntityPrefix.WORKFLOW)
         if "target_block_order" in p and isinstance(p["target_block_order"], list):
@@ -1060,14 +1078,11 @@ def sanitize_task_briefs(task_briefs: Sequence[Any]) -> list[JsonValue]:
     sanitized_briefs: list[JsonValue] = []
 
     for brief in task_briefs:
-        tb: dict[str, JsonValue] = {
-            k: v for k, v in brief.items() if not (k == "organization_id" and v in (None, "SYSTEM"))
-        }
+        tb: dict[str, JsonValue] = dict(brief)
         raw_tb_id = tb["id"] if "id" in tb else None
         tb_id = _upgrade_or_generate_opaque_id(raw_tb_id, EntityPrefix.TASK_BRIEF)
         tb["id"] = tb_id
-        if "organization_id" in tb and tb["organization_id"] is not None:
-            tb["organization_id"] = _upgrade_or_generate_opaque_id(tb["organization_id"], EntityPrefix.ORGANIZATION)
+        tb["organization_id"] = _resolve_studio_organization_id(tb)
         if "instruction_text" in tb and isinstance(tb["instruction_text"], str):
             tb["instruction_text"] = strip_raw_xml(tb["instruction_text"])
         try:

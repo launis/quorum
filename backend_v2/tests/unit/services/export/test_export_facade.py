@@ -145,6 +145,7 @@ async def test_export_excel_success_fi() -> None:
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="m_slug",
         label=lbl,
@@ -172,6 +173,7 @@ async def test_export_excel_success_en_with_prompt_block_repo() -> None:
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="m_slug",
         label=lbl,
@@ -400,6 +402,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
     )
 
     component_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700d8ddddddddddddddd",
         slug="comp_slug",
         label=I18nText(translations={"fi": "Komponentti", "en": "Component"}),
@@ -407,6 +410,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         instruction_text="Component rule instruction",
     )
     tda_matched_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="tda_0195f3a00000700e8eeeeeeeeeeeeeee",
         slug="tda_slug",
         label=I18nText(translations={"fi": "TDA Block", "en": "TDA Block"}),
@@ -414,6 +418,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         instruction_text="TDA matched instruction",
     )
     unmatched_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008000000000000000",
         slug="unmatched_slug",
         label=I18nText(translations={"fi": "Tuntematon", "en": "Unknown"}),
@@ -619,6 +624,7 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
     desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700583f32679aa514fcb",
         slug="active_steering",
         label=lbl,
@@ -690,6 +696,7 @@ async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative
     )
     scale = MatrixScale(score=1, ai_label="L1", claims=[claim])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008000000000000001",
         slug="matrix_0001",
         label=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
@@ -1052,6 +1059,7 @@ async def test_export_flat_csv_resolves_matrix_from_prompt_block_repo() -> None:
     scale = MatrixScale(score=1, ai_label="L1", claims=[claim])
     desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
     informational_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700583f32679aa514fcb",
         slug="m_slug",
         label=lbl,
@@ -1115,6 +1123,7 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     """
     prompt_block_repo = InMemoryPromptBlockRepository()
     info_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111222233334444",
         slug="info_slug",
         label=I18nText(translations={"fi": "Informaatiomatriisi", "en": "Informational Matrix"}),
@@ -2340,6 +2349,7 @@ def test_export_service_proxy_delegations_coverage() -> None:
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="m_slug",
         label=lbl,

@@ -322,11 +322,12 @@ def test_hydrate_prompt_block_row_unknown_category_raises_validation_failed_with
     """Verify hydrate_prompt_block_row rejects unrecognized category_id via PromptBlockAdapter with HTTP 500."""
     blk_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
     blk_uuid = parse_prefixed_uuid7(blk_id, EntityPrefix.PROMPT_BLOCK)
+    org_uuid = parse_prefixed_uuid7(generate_opaque_id(EntityPrefix.ORGANIZATION), EntityPrefix.ORGANIZATION)
     corrupt_row = InMemoryAsyncPgRecord(
         {
             "id": blk_uuid,
             "slug": "corrupt_block",
-            "organization_id": None,
+            "organization_id": org_uuid,
             "label": '{"translations":{"en":"Label","fi":"Nimike"}}',
             "description": '{"translations":{"en":"Desc","fi":"Kuvaus"}}',
             "output_extensions": "[]",
@@ -359,6 +360,80 @@ def test_hydrate_prompt_block_row_unknown_category_raises_validation_failed_with
     assert exc_info.value.details["table_name"] == "prompt_blocks"
     assert exc_info.value.details["entity_id"] == blk_id
     assert ErrorCodes.VALIDATION_FAILED.name in caplog.text
+
+
+def test_hydrate_prompt_block_and_step_null_organization_id_raises_validation_failed() -> None:
+    """Verify corrupt NULL organization_id rows on prompt_blocks and steps fail fast with HTTP 500."""
+    blk_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    blk_uuid = parse_prefixed_uuid7(blk_id, EntityPrefix.PROMPT_BLOCK)
+    corrupt_blk_row = InMemoryAsyncPgRecord(
+        {
+            "id": blk_uuid,
+            "slug": "null_org_block",
+            "organization_id": None,
+            "label": '{"translations":{"en":"Label","fi":"Nimike"}}',
+            "description": '{"translations":{"en":"Desc","fi":"Kuvaus"}}',
+            "output_extensions": "[]",
+            "theory_grounding": None,
+            "category_id": PromptBlockCategory.SYSTEM_RULE.value,
+            "type": "instruction",
+            "is_evaluative": False,
+            "allow_decimals": False,
+            "allow_contextual_override": False,
+            "is_lightweight_protocol": False,
+            "target_input_key": None,
+            "ai_description": None,
+            "scales": None,
+            "rows": None,
+            "columns": None,
+            "computed_min": None,
+            "computed_max": None,
+            "instruction_text": "Valid instruction text",
+            "role_enforcement": None,
+            "tone_directives": None,
+            "protocol_instructions": None,
+        }
+    )
+    with pytest.raises(AppException) as blk_exc:
+        hydrate_prompt_block_row(corrupt_blk_row)
+    assert blk_exc.value.status_code == 500
+    assert blk_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert blk_exc.value.details["table_name"] == "prompt_blocks"
+    assert blk_exc.value.details["entity_id"] == blk_id
+
+    stp_id = generate_opaque_id(EntityPrefix.STEP)
+    stp_uuid = parse_prefixed_uuid7(stp_id, EntityPrefix.STEP)
+    corrupt_stp_row = InMemoryAsyncPgRecord(
+        {
+            "id": stp_uuid,
+            "slug": "null_org_step",
+            "organization_id": None,
+            "name": '{"translations":{"en":"Step","fi":"Vaihe"}}',
+            "description": '{"translations":{"en":"Desc","fi":"Kuvaus"}}',
+            "type": StepType.LOGIC.value,
+            "hook": "normalization_hook",
+            "role_block_id": None,
+            "extraction_protocol_block_id": None,
+            "execution_persona_block_id": None,
+            "criteria_block_ids": [],
+            "cognitive_tier": None,
+            "safety": "safe",
+            "is_system_core": False,
+            "engine_type": EngineType.PROMPT.value,
+            "zone": StepZone.ZONE_B.value,
+            "pre_hooks": "[]",
+            "post_hooks": "[]",
+            "allowed_mcp_tools": "[]",
+            "mcp_tool_params": "{}",
+            "expected_inputs": "[]",
+        }
+    )
+    with pytest.raises(AppException) as stp_exc:
+        hydrate_step_row(corrupt_stp_row)
+    assert stp_exc.value.status_code == 500
+    assert stp_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert stp_exc.value.details["table_name"] == "steps"
+    assert stp_exc.value.details["entity_id"] == stp_id
 
 
 @pytest.mark.asyncio

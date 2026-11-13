@@ -26,6 +26,7 @@ from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage impo
 )
 from backend_v2.database.repositories.components.task_brief import TaskBriefRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.tests.factories.model_factories import (
@@ -69,7 +70,10 @@ async def test_iam_system_and_studio_entities_roundtrip_parity() -> None:
         assert fetched_prf == profile_with_lang
         assert fetched_prf.language == "fi"
 
-        brief_system = TaskBriefFactory.build(organization_id=None, source_url=None)
+        brief_system = TaskBriefFactory.build(
+            organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+            source_url=None,
+        )
         brief_tenant = TaskBriefFactory.build(
             organization_id=generate_opaque_id(EntityPrefix.ORGANIZATION),
             source_url="https://quorum.ai/briefs/1",
@@ -241,7 +245,10 @@ async def test_task_brief_stage_and_repository_crud_and_negative_boundaries() ->
         pool.clear_faults()
         wf = WorkflowFactory.build()
         prf = OutputProfileFactory.build(workflow_id=wf.id, content_blocks=[])
-        brief_row = TaskBriefFactory.build(organization_id=None, source_url=None)
+        brief_row = TaskBriefFactory.build(
+            organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+            source_url=None,
+        )
         await upsert_workflow_row(conn, _TIMEOUT, wf)
         await upsert_output_profile_row(conn, _TIMEOUT, prf)
         await upsert_task_brief_row(conn, _TIMEOUT, brief_row)
@@ -262,7 +269,10 @@ async def test_task_brief_stage_and_repository_crud_and_negative_boundaries() ->
     base_uow = InMemoryUnitOfWork()
     repo = TaskBriefRepositoryImpl(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
-    brief = TaskBriefFactory.build(organization_id=None, source_url="https://example.com/brief")
+    brief = TaskBriefFactory.build(
+        organization_id=SystemOrganizations.ROOT_SYSTEM.value,
+        source_url="https://example.com/brief",
+    )
     created_id = await repo.create_task_brief(brief)
     assert created_id == brief.id
 
@@ -339,7 +349,7 @@ async def test_workflow_version_sql_occ_step_refs_and_deferrable_default_profile
         step_a = Step(
             id=generate_opaque_id(EntityPrefix.STEP),
             slug="step_alpha",
-            organization_id=None,
+            organization_id=SystemOrganizations.ROOT_SYSTEM.value,
             name=I18nText(translations={"en": "Alpha", "fi": "Alfa"}),
             description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
             type=StepType.LOGIC,

@@ -31,6 +31,7 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         claims=[claim],
     )
     matrix = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008123456789abcdef",
         slug="test-matrix-1",
         description=I18nText(translations={"en": "test matrix block"}),

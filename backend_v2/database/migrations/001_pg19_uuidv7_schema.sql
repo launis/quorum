@@ -127,7 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_mcp_gateways_org_id ON mcp_gateways(organization_
 CREATE TABLE IF NOT EXISTS prompt_blocks (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     label JSONB NOT NULL,
     description JSONB NOT NULL,
     output_extensions JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS prompt_blocks (
     protocol_instructions TEXT,
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     CONSTRAINT enforce_prompt_block_uuidv7 CHECK (uuid_extract_version(id) = 7),
-    CONSTRAINT enforce_prompt_block_organization_uuidv7 CHECK (organization_id IS NULL OR uuid_extract_version(organization_id) = 7)
+    CONSTRAINT enforce_prompt_block_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
 CREATE INDEX IF NOT EXISTS idx_prompt_blocks_organization_id ON prompt_blocks(organization_id);
 
@@ -168,7 +168,7 @@ CREATE INDEX IF NOT EXISTS idx_prompt_blocks_organization_id ON prompt_blocks(or
 CREATE TABLE IF NOT EXISTS steps (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name JSONB NOT NULL,
     description JSONB,
     type TEXT NOT NULL DEFAULT 'llm',
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS steps (
     zone TEXT NOT NULL DEFAULT 'zone_b',
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     CONSTRAINT enforce_step_uuidv7 CHECK (uuid_extract_version(id) = 7),
-    CONSTRAINT enforce_step_organization_uuidv7 CHECK (organization_id IS NULL OR uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_step_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
     CONSTRAINT enforce_step_role_block_uuidv7 CHECK (role_block_id IS NULL OR uuid_extract_version(role_block_id) = 7),
     CONSTRAINT enforce_step_protocol_block_uuidv7 CHECK (extraction_protocol_block_id IS NULL OR uuid_extract_version(extraction_protocol_block_id) = 7),
     CONSTRAINT enforce_step_persona_block_uuidv7 CHECK (execution_persona_block_id IS NULL OR uuid_extract_version(execution_persona_block_id) = 7)
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS workflows (
     status TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     is_public BOOLEAN NOT NULL DEFAULT FALSE,
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     default_profile_id UUID,
     mcp_gateway_id UUID REFERENCES mcp_gateways(id) ON DELETE RESTRICT,
     model_registry_id UUID NOT NULL REFERENCES model_registries(id) ON DELETE RESTRICT,
@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS workflows (
     historical_context_mode TEXT NOT NULL,
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     CONSTRAINT enforce_workflow_uuidv7 CHECK (uuid_extract_version(id) = 7),
-    CONSTRAINT enforce_workflow_organization_uuidv7 CHECK (organization_id IS NULL OR uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_workflow_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
     CONSTRAINT enforce_workflow_default_profile_uuidv7 CHECK (default_profile_id IS NULL OR uuid_extract_version(default_profile_id) = 7),
     CONSTRAINT enforce_workflow_mcp_gateway_uuidv7 CHECK (mcp_gateway_id IS NULL OR uuid_extract_version(mcp_gateway_id) = 7),
     CONSTRAINT enforce_workflow_model_registry_uuidv7 CHECK (uuid_extract_version(model_registry_id) = 7)
@@ -261,7 +261,7 @@ CREATE TABLE IF NOT EXISTS output_profiles (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
     workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name JSONB NOT NULL,
     description JSONB,
     user_role_label JSONB,
@@ -301,7 +301,7 @@ CREATE TABLE IF NOT EXISTS output_profiles (
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     CONSTRAINT enforce_output_profile_uuidv7 CHECK (uuid_extract_version(id) = 7),
     CONSTRAINT enforce_output_profile_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
-    CONSTRAINT enforce_output_profile_organization_uuidv7 CHECK (organization_id IS NULL OR uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_output_profile_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
     CONSTRAINT enforce_output_profile_variance_block_uuidv7 CHECK (variance_target_block IS NULL OR uuid_extract_version(variance_target_block) = 7),
     CONSTRAINT enforce_output_profile_user_role_block_uuidv7 CHECK (user_role_target_block IS NULL OR uuid_extract_version(user_role_target_block) = 7)
 );
@@ -499,16 +499,114 @@ CREATE INDEX IF NOT EXISTS idx_tenant_secrets_updated_by ON tenant_secrets(updat
 CREATE TABLE IF NOT EXISTS task_briefs (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     label JSONB NOT NULL,
     description JSONB NOT NULL,
     instruction_text TEXT NOT NULL,
     source_url TEXT,
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     CONSTRAINT enforce_task_brief_uuidv7 CHECK (uuid_extract_version(id) = 7),
-    CONSTRAINT enforce_task_brief_organization_uuidv7 CHECK (organization_id IS NULL OR uuid_extract_version(organization_id) = 7)
+    CONSTRAINT enforce_task_brief_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
 CREATE INDEX IF NOT EXISTS idx_task_briefs_organization_id ON task_briefs(organization_id);
+
+-- Idempotent Studio Organization Ownership Backfill & ON DELETE CASCADE Enforcement
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM prompt_blocks WHERE organization_id IS NULL)
+       OR EXISTS (SELECT 1 FROM task_briefs WHERE organization_id IS NULL)
+       OR EXISTS (SELECT 1 FROM steps WHERE organization_id IS NULL)
+       OR EXISTS (SELECT 1 FROM workflows WHERE organization_id IS NULL)
+       OR EXISTS (SELECT 1 FROM output_profiles WHERE organization_id IS NULL) THEN
+        INSERT INTO organizations (
+            id, slug, name, is_active, tier, contact_email, billing_id,
+            subscription_status, quota_limit, tpm_limit, rpm_limit, allowed_email_domains
+        ) VALUES (
+            '0195f3a0-0000-7000-8000-000000000001'::uuid,
+            'system',
+            'System Administration',
+            TRUE,
+            'enterprise',
+            'root@example.com',
+            NULL,
+            'active',
+            999999999.0,
+            10000000,
+            10000,
+            '[]'::jsonb
+        ) ON CONFLICT (id) DO NOTHING;
+
+        UPDATE prompt_blocks
+        SET organization_id = '0195f3a0-0000-7000-8000-000000000001'::uuid
+        WHERE organization_id IS NULL;
+
+        UPDATE task_briefs
+        SET organization_id = '0195f3a0-0000-7000-8000-000000000001'::uuid
+        WHERE organization_id IS NULL;
+
+        UPDATE steps
+        SET organization_id = '0195f3a0-0000-7000-8000-000000000001'::uuid
+        WHERE organization_id IS NULL;
+
+        UPDATE workflows
+        SET organization_id = '0195f3a0-0000-7000-8000-000000000001'::uuid
+        WHERE organization_id IS NULL;
+
+        UPDATE output_profiles
+        SET organization_id = '0195f3a0-0000-7000-8000-000000000001'::uuid
+        WHERE organization_id IS NULL;
+    END IF;
+
+    ALTER TABLE prompt_blocks DROP CONSTRAINT IF EXISTS prompt_blocks_organization_id_fkey;
+    ALTER TABLE prompt_blocks
+        ADD CONSTRAINT prompt_blocks_organization_id_fkey
+        FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
+    ALTER TABLE prompt_blocks DROP CONSTRAINT IF EXISTS enforce_prompt_block_organization_uuidv7;
+    ALTER TABLE prompt_blocks
+        ADD CONSTRAINT enforce_prompt_block_organization_uuidv7
+        CHECK (uuid_extract_version(organization_id) = 7);
+    ALTER TABLE prompt_blocks ALTER COLUMN organization_id SET NOT NULL;
+
+    ALTER TABLE steps DROP CONSTRAINT IF EXISTS steps_organization_id_fkey;
+    ALTER TABLE steps
+        ADD CONSTRAINT steps_organization_id_fkey
+        FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
+    ALTER TABLE steps DROP CONSTRAINT IF EXISTS enforce_step_organization_uuidv7;
+    ALTER TABLE steps
+        ADD CONSTRAINT enforce_step_organization_uuidv7
+        CHECK (uuid_extract_version(organization_id) = 7);
+    ALTER TABLE steps ALTER COLUMN organization_id SET NOT NULL;
+
+    ALTER TABLE workflows DROP CONSTRAINT IF EXISTS workflows_organization_id_fkey;
+    ALTER TABLE workflows
+        ADD CONSTRAINT workflows_organization_id_fkey
+        FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
+    ALTER TABLE workflows DROP CONSTRAINT IF EXISTS enforce_workflow_organization_uuidv7;
+    ALTER TABLE workflows
+        ADD CONSTRAINT enforce_workflow_organization_uuidv7
+        CHECK (uuid_extract_version(organization_id) = 7);
+    ALTER TABLE workflows ALTER COLUMN organization_id SET NOT NULL;
+
+    ALTER TABLE output_profiles DROP CONSTRAINT IF EXISTS output_profiles_organization_id_fkey;
+    ALTER TABLE output_profiles
+        ADD CONSTRAINT output_profiles_organization_id_fkey
+        FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
+    ALTER TABLE output_profiles DROP CONSTRAINT IF EXISTS enforce_output_profile_organization_uuidv7;
+    ALTER TABLE output_profiles
+        ADD CONSTRAINT enforce_output_profile_organization_uuidv7
+        CHECK (uuid_extract_version(organization_id) = 7);
+    ALTER TABLE output_profiles ALTER COLUMN organization_id SET NOT NULL;
+
+    ALTER TABLE task_briefs DROP CONSTRAINT IF EXISTS task_briefs_organization_id_fkey;
+    ALTER TABLE task_briefs
+        ADD CONSTRAINT task_briefs_organization_id_fkey
+        FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
+    ALTER TABLE task_briefs DROP CONSTRAINT IF EXISTS enforce_task_brief_organization_uuidv7;
+    ALTER TABLE task_briefs
+        ADD CONSTRAINT enforce_task_brief_organization_uuidv7
+        CHECK (uuid_extract_version(organization_id) = 7);
+    ALTER TABLE task_briefs ALTER COLUMN organization_id SET NOT NULL;
+END $$;
 
 -- 19. Execution Assignments (Pre-Configured Task Assignments & Cohort Batches)
 CREATE TABLE IF NOT EXISTS execution_assignments (
@@ -518,9 +616,9 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     assigned_email TEXT NOT NULL,
     assigned_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     invited_role TEXT NOT NULL DEFAULT 'MEMBER' CHECK (invited_role IN ('ROOT', 'ADMIN', 'MANAGER', 'MEMBER', 'VIEWER')),
-    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
-    output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
-    task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL,
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE RESTRICT,
+    output_profile_id UUID REFERENCES output_profiles(id) ON DELETE RESTRICT,
+    task_brief_id UUID REFERENCES task_briefs(id) ON DELETE RESTRICT,
     task_brief_snapshot JSONB,
     target_locale TEXT NOT NULL,
     locked_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -548,7 +646,7 @@ CREATE TABLE IF NOT EXISTS execution_assignments (
     CONSTRAINT enforce_assignment_created_by_uuidv7 CHECK (uuid_extract_version(created_by) = 7),
     CONSTRAINT enforce_assignment_task_brief_snapshot_parity CHECK ((task_brief_id IS NULL) = (task_brief_snapshot IS NULL))
 );
-ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_id UUID REFERENCES task_briefs(id) ON DELETE SET NULL;
+ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_id UUID REFERENCES task_briefs(id) ON DELETE RESTRICT;
 ALTER TABLE execution_assignments ADD COLUMN IF NOT EXISTS task_brief_snapshot JSONB;
 DO $$
 BEGIN
@@ -578,6 +676,21 @@ BEGIN
         ADD CONSTRAINT enforce_assignment_task_brief_snapshot_parity
         CHECK ((task_brief_id IS NULL) = (task_brief_snapshot IS NULL));
     END IF;
+
+    ALTER TABLE execution_assignments DROP CONSTRAINT IF EXISTS execution_assignments_workflow_id_fkey;
+    ALTER TABLE execution_assignments
+        ADD CONSTRAINT execution_assignments_workflow_id_fkey
+        FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE RESTRICT;
+
+    ALTER TABLE execution_assignments DROP CONSTRAINT IF EXISTS execution_assignments_output_profile_id_fkey;
+    ALTER TABLE execution_assignments
+        ADD CONSTRAINT execution_assignments_output_profile_id_fkey
+        FOREIGN KEY (output_profile_id) REFERENCES output_profiles(id) ON DELETE RESTRICT;
+
+    ALTER TABLE execution_assignments DROP CONSTRAINT IF EXISTS execution_assignments_task_brief_id_fkey;
+    ALTER TABLE execution_assignments
+        ADD CONSTRAINT execution_assignments_task_brief_id_fkey
+        FOREIGN KEY (task_brief_id) REFERENCES task_briefs(id) ON DELETE RESTRICT;
 END $$;
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_organization_id ON execution_assignments(organization_id);
 CREATE INDEX IF NOT EXISTS idx_execution_assignments_assigned_user_id ON execution_assignments(assigned_user_id);

@@ -50,7 +50,13 @@ class OutputProfile(V2CoreBase):
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Profile ID")]
     slug: Annotated[str, Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Fallback slug identifier")]
     workflow_id: Annotated[str, Field(description="ID of the associated Workflow")]
-    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID.")] = None
+    organization_id: Annotated[
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Owning tenant organization ID (org_<hex32>).",
+        ),
+    ]
     name: Annotated[
         I18nText,
         Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})"),
@@ -247,6 +253,26 @@ class OutputProfile(V2CoreBase):
             description="PromptBlock ID providing evaluated score for user role classification.",
         ),
     ] = None
+
+    @field_validator("organization_id")
+    @classmethod
+    def _validate_organization_id(cls, v: str) -> str:
+        """Validate that organization_id uses the canonical org_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate organization identifier string.
+
+        Returns:
+            Validated organization identifier string.
+
+        Raises:
+            ValueError: If organization_id fails org_<hex32> UUIDv7 validation.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.ORGANIZATION)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     @field_validator("variance_target_block", "user_role_target_block")
     @classmethod

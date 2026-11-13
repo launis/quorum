@@ -1532,6 +1532,7 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
     )
     await mock_repo.save_step(
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=stp_id,
             slug="uow-step",
             name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
@@ -1547,6 +1548,7 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
     )
     await mock_repo.save_workflow(
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=wf_id,
             slug="uow-wf",
             name="UoW Workflow",
@@ -1589,6 +1591,7 @@ async def test_organization_and_assignment_services_persist_roundtrip_via_uow(
     )
     await mock_repo.save_output_profile(
         OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=prf_id,
             slug="uow-prf",
             name=I18nText(translations={"en": "Profile", "fi": "Profiili"}),

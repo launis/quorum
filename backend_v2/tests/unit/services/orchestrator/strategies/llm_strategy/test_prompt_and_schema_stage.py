@@ -58,6 +58,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 def _create_rule_block(block_id: str, output_extensions: list[str] | None = None) -> SystemRulePromptBlock:
     """Create a valid SystemRulePromptBlock for Stage 2 testing."""
     return SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug=f"slug-{block_id[-4:]}",
         label=I18nText(translations={"en": f"Block {block_id}", "fi": f"Lohko {block_id}"}),
@@ -82,6 +83,7 @@ def _create_matrix_block(block_id: str, output_extensions: list[str] | None = No
         tda_assertions=[assertion],
     )
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug=f"matrix-{block_id[-4:]}",
         label=I18nText(translations={"en": "Matrix", "fi": "Matriisi"}),
@@ -100,6 +102,7 @@ def _create_matrix_block(block_id: str, output_extensions: list[str] | None = No
 def _create_default_profile(workflow_id: str = "wf_0195f3a0000070008123456789abcdef") -> OutputProfile:
     """Create a valid default OutputProfile for Stage 2 testing."""
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
         workflow_id=workflow_id,
@@ -141,6 +144,7 @@ def _build_stage1_result(
 ) -> BlueprintStageResult:
     """Build a deterministic BlueprintStageResult for Stage 2 unit testing."""
     proto_blk = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
@@ -149,6 +153,7 @@ def _build_stage1_result(
         protocol_instructions="Extract exact quotes.",
     )
     step_obj = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="test-step",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
@@ -241,6 +246,7 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     """Verify execute_prompt_and_schema_stage appends execution_parameters to user_payload with static system_prompt."""
     rule_block = _create_rule_block("blk_0195f3a0000070008123456789abcdef")
     profile_1 = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcde1",
         slug="formal-coaching",
         workflow_id="wf_0195f3a0000070008123456789abcdef",
@@ -256,6 +262,7 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
         ],
     )
     profile_2 = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcde2",
         slug="executive-summary",
         workflow_id="wf_0195f3a0000070008123456789abcdef",
@@ -500,6 +507,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
 ) -> None:
     """Verify workflow schema_map resolution, mapping global_context_vars, and frozen_ctx schema compilation."""
     role_blk = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111111111111111",
         slug="role-blk",
         label=I18nText(translations={"en": "Role"}),
@@ -508,6 +516,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         role_enforcement="Act as auditor.",
     )
     proto_blk = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070028222222222222222",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol"}),
@@ -516,6 +525,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         protocol_instructions="Extract quotes.",
     )
     pers_blk = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070038333333333333333",
         slug="pers-blk",
         label=I18nText(translations={"en": "Persona"}),
@@ -527,6 +537,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
     text_blk = _create_rule_block("blk_0195f3a0000070058555555555555555", output_extensions=["ext_text_1"])
 
     bp_matrix = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111111111111111",
         slug="bp-matrix",
         name=I18nText(translations={"en": "Matrix Blueprint"}),
@@ -542,6 +553,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         mcp_tool_params={},
     )
     bp_text = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070028222222222222222",
         slug="bp-text",
         name=I18nText(translations={"en": "Text Blueprint"}),
@@ -558,6 +570,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
     in_memory_repo.seed_raw_step(bp_text.id, bp_text)
 
     wf = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070008123456789abcdef",
         slug="wf-schema",
         name=I18nText(translations={"en": "Workflow"}),
@@ -646,6 +659,7 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy")
     rule_block = _create_rule_block("blk_0195f3a0000070008123456789abcdef")
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
         workflow_id="wf_0195f3a0000070008123456789abcdef",

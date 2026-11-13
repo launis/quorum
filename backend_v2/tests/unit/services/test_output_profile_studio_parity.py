@@ -120,6 +120,7 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 1. 1D Metrics View
     p_1d = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018111111111111111",
         slug="test_1d",
         workflow_id="wf_123",
@@ -152,6 +153,7 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 2. 2D Compare View
     p_2d = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070028222222222222222",
         slug="test_2d",
         workflow_id="wf_123",
@@ -184,6 +186,7 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 3. 3D Radar View
     p_3d = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070038333333333333333",
         slug="test_3d",
         workflow_id="wf_123",
@@ -216,6 +219,7 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 4. Text-Only View
     p_text = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070048444444444444444",
         slug="test_text",
         workflow_id="wf_123",
@@ -262,6 +266,7 @@ def test_matrix_summary_table_adapter_respects_visible_columns() -> None:
     }
     custom_cols = ["label", "raw_score"]
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070058555555555555555",
         slug="test_cols",
         workflow_id="wf_123",

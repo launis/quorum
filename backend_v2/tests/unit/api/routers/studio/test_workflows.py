@@ -80,6 +80,7 @@ def mock_execution_service() -> AsyncMock:
 def sample_workflow() -> Workflow:
     """Create a valid sample Workflow domain model."""
     return Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_0195f3a0000070018234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"fi": "Testi", "en": "Test"}),

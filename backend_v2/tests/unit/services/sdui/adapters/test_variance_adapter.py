@@ -30,6 +30,7 @@ from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
 
 def _create_profile(extensions: list[XaiExtensionType] | None = None) -> OutputProfile:
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",

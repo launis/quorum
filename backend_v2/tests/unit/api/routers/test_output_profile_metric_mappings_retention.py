@@ -49,6 +49,7 @@ def test_output_profile_response_dto_serializes_matrix_synthesis_groups() -> Non
 def test_output_profile_roundtrip_preserves_matrix_synthesis_groups() -> None:
     """Simulates GET -> Flutter Edit -> PUT roundtrip to ensure matrix_synthesis_groups is preserved."""
     db_profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070058d6e7f8091a2b3c4",
         slug="test_profile",
         workflow_id="wf_0195f3a0000070098d68c573802341db",

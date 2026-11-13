@@ -275,6 +275,7 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070008000111122223333",
         slug="wf_starvation",
@@ -387,6 +388,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070008000111122223333",
         slug="wf_fusion_pop",
@@ -716,6 +718,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_0195f3a0000070008000111122223333",
         slug="wf_standalone_causal",

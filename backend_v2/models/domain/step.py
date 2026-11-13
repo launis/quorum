@@ -8,11 +8,17 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 from starlette import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase, generate_opaque_id
+from backend_v2.models.core_base import (
+    OPAQUE_STRIPE_ID_REGEX,
+    I18nText,
+    V2CoreBase,
+    generate_opaque_id,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.dtos.mcp import MCPToolParamOverrides
 from backend_v2.models.enums import (
     CognitiveTier,
@@ -48,7 +54,13 @@ class Step(V2CoreBase):
 
     id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique UUID for storage optionally")]
     slug: Annotated[str, Field(description="Human-readable identifier (e.g., 'step_guard')")]
-    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID.")] = None
+    organization_id: Annotated[
+        str,
+        Field(
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Owning tenant organization ID (org_<hex32>).",
+        ),
+    ]
     name: Annotated[I18nText, Field(description="Localized step name")]
     description: Annotated[I18nText | None, Field(default=None, description="Detailed step context")] = None
     type: Annotated[
@@ -223,6 +235,26 @@ class Step(V2CoreBase):
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
             )
         return self
+
+    @field_validator("organization_id")
+    @classmethod
+    def _validate_organization_id(cls, v: str) -> str:
+        """Validate that organization_id uses the canonical org_ prefix and RFC 9562 UUIDv7 format.
+
+        Args:
+            v: Candidate organization identifier string.
+
+        Returns:
+            Validated organization identifier string.
+
+        Raises:
+            ValueError: If organization_id fails org_<hex32> UUIDv7 validation.
+        """
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.ORGANIZATION)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
 
 class StepRule(V2CoreBase):

@@ -71,6 +71,7 @@ def _create_clean_matrix_block(
         "id": block_id,
         "category_id": "matrix",
         "slug": "clean-matrix-block",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "label": {"translations": {"en": "Clean Matrix"}},
         "description": {"translations": {"en": "Clean description"}},
         "ai_description": "Clean cognitive evaluation instructions.",
@@ -211,7 +212,11 @@ def test_audit_atoms_raw_xml() -> None:
 
     # 3. XML in non-matrix block ai_description and role_enforcement
     non_matrix_block = {
-        "id": "blk_persona_001",
+        "id": "blk_0195f3a0000070008123456789abcde9",
+        "slug": "persona-xml",
+        "organization_id": "org_0195f3a0000070008000000000000001",
+        "label": {"translations": {"en": "Persona"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "execution_persona",
         "ai_description": "<role>Executive Coach</role>",
         "role_enforcement": "<mandate>Be strict</mandate>",
@@ -350,6 +355,7 @@ def test_audit_workflows_input_mappings() -> None:
     workflow = {
         "id": "wor_0195f3a0000070008123456789abcdef",
         "slug": "clean-workflow",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "name": {"translations": {"en": "Clean Workflow"}},
         "description": {"translations": {"en": "Description"}},
         "status": "ACTIVE",
@@ -390,6 +396,7 @@ def test_audit_output_profiles_directives() -> None:
     profile = {
         "id": "prf_0195f3a0000070008123456789abcdef",
         "workflow_id": "wor_0195f3a0000070008123456789abcdef",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "name": {"translations": {"en": "Profile 1"}},
         "slug": "profile-1",
         "description": {"translations": {"en": "Description"}},
@@ -417,6 +424,7 @@ def test_audit_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     """Test CLI exit code 0 on clean pass and code 1 on strict failure."""
     # 1. Clean file
     clean_data = {
+        "organizations": [{"id": "org_0195f3a0000070008000000000000001", "name": "Quorum System"}],
         "prompt_blocks": [_create_clean_matrix_block()],
         "steps": [],
         "workflows": [],
@@ -437,6 +445,7 @@ def test_audit_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     corrupt_block = _create_clean_matrix_block()
     corrupt_block["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "FAIL FAST and abort"
     corrupt_data = {
+        "organizations": [{"id": "org_0195f3a0000070008000000000000001", "name": "Quorum System"}],
         "prompt_blocks": [corrupt_block],
         "steps": [],
         "workflows": [],
@@ -613,6 +622,7 @@ def test_audit_workflow_validation_error_and_orphan_blueprint() -> None:
     wf2 = {
         "id": "wor_0195f3a0000070008123456789abcdef",
         "slug": "clean-workflow-2",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "name": {"translations": {"en": "Workflow 2"}},
         "description": {"translations": {"en": "Description"}},
         "status": "ACTIVE",
@@ -656,6 +666,7 @@ def test_audit_output_profiles_validation_error_and_xml_directive() -> None:
     prof2 = {
         "id": "prf_0195f3a0000070008123456789abcdef",
         "workflow_id": "wor_0195f3a0000070008123456789abcdef",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "name": {"translations": {"en": "Profile XML"}},
         "slug": "profile-xml",
         "description": {"translations": {"en": "Description"}},
@@ -754,6 +765,7 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
                 "id": blk_proto_id,
                 "category_id": "extraction_protocol",
                 "slug": "clean-protocol",
+                "organization_id": org_id,
                 "label": {"translations": {"en": "Clean Protocol"}},
                 "description": {"translations": {"en": "Desc"}},
                 "protocol_instructions": "Extract exact sentences from the source document.",
@@ -763,6 +775,7 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
             {
                 "id": stp_id,
                 "slug": "clean-step",
+                "organization_id": org_id,
                 "name": {"translations": {"en": "Clean Step"}},
                 "type": "llm",
                 "cognitive_tier": "fast",
@@ -943,6 +956,7 @@ def test_run_full_database_audit_negative_and_boundary_partitions(tmp_path: Path
     clean_tb = {
         "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6001",
         "slug": "clean_task_brief",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "label": {"translations": {"en": "Clean Brief", "fi": "Puhdas tehtava"}},
         "description": {"translations": {"en": "Clean desc", "fi": "Puhdas kuvaus"}},
         "instruction_text": "Provide product, chat log, and reflection.",
@@ -954,6 +968,7 @@ def test_run_full_database_audit_negative_and_boundary_partitions(tmp_path: Path
     bad_tb_xml_and_i18n = {
         "id": "tbr_0195f3a00000700d8a1b2c3d4e5f6002",
         "slug": "bad_task_brief",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "label": {"translations": {"en": "Only EN"}},
         "description": {"translations": {"en": "Only EN desc", "fi": "   "}},
         "instruction_text": "<directive>Raw XML brief</directive>",

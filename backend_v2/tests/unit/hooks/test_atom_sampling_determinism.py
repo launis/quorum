@@ -47,6 +47,7 @@ def _build_test_matrix_block(block_id: str, num_atoms_per_scale: int = 10) -> Ma
         )
 
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug=f"slug-{block_id}",
         label=I18nText(translations={"en": f"Label {block_id}", "fi": f"Nimi {block_id}"}),
@@ -60,6 +61,7 @@ def _build_test_matrix_block(block_id: str, num_atoms_per_scale: int = 10) -> Ma
 def _build_test_step(step_id: str, block_id: str) -> Step:
     """Builds a minimal Step referencing the matrix block."""
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         name=I18nText(translations={"en": "Step", "fi": "Askel"}),
         slug="step-test",

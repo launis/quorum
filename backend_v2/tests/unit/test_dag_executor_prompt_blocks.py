@@ -62,6 +62,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     prompt_blocks = [
         PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a00000700c8def0123456789ab",
                 "slug": "task_bp",
                 "label": {"translations": {"fi": "Testi", "en": "Test"}},
@@ -74,6 +75,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         ),
         PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust_extraction_protocol",
                 "category_id": "system_rule",

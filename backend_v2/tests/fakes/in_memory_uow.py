@@ -1042,8 +1042,7 @@ class InMemoryEntityAdapter:
             Canonical tbr_<uuid7_hex> task brief identifier.
         """
         _ = parse_prefixed_uuid7(brief.id, EntityPrefix.TASK_BRIEF)
-        if brief.organization_id is not None and brief.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(brief.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(brief.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["task_briefs"][brief.id] = brief
         return brief.id
 
@@ -1862,8 +1861,7 @@ class InMemoryEntityAdapter:
     async def upsert_prompt_block(self, block: PromptBlock) -> str:
         """Upsert a polymorphic PromptBlock in memory."""
         _ = parse_prefixed_uuid7(block.id, EntityPrefix.PROMPT_BLOCK)
-        if block.organization_id is not None and block.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(block.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(block.organization_id, EntityPrefix.ORGANIZATION)
         self._store.seed_tables["prompt_blocks"][block.id] = block
         return block.id
 
@@ -1937,7 +1935,7 @@ class InMemoryEntityAdapter:
         return False
 
     def _is_output_profile_referenced(self, profile_id: str, profile_uuid: uuid.UUID) -> bool:
-        """Return True if any workflow.default_profile_id or report_artifact.profile_id references profile_id."""
+        """Return True if any workflow, report_artifact, or execution_assignment references profile_id."""
         raw_uuid_str = str(profile_uuid)
         for wf_entry in self._store.seed_tables["workflows"].values():
             if isinstance(wf_entry, Workflow) and wf_entry.default_profile_id == profile_id:
@@ -1957,6 +1955,59 @@ class InMemoryEntityAdapter:
                 and len(rep_entry) > 3
                 and rep_entry[3] is not None
                 and (rep_entry[3] == profile_uuid or str(rep_entry[3]) == raw_uuid_str)
+            ):
+                return True
+        for asg_entry in self._store.seed_tables["execution_assignments"].values():
+            if isinstance(asg_entry, ExecutionAssignment) and asg_entry.output_profile_id == profile_id:
+                return True
+            if (
+                isinstance(asg_entry, Sequence)
+                and len(asg_entry) > 7
+                and asg_entry[7] is not None
+                and (asg_entry[7] == profile_uuid or str(asg_entry[7]) == raw_uuid_str)
+            ):
+                return True
+        return False
+
+    def _is_task_brief_referenced(self, brief_id: str, brief_uuid: uuid.UUID) -> bool:
+        """Return True if any execution_assignment references brief_id (ON DELETE RESTRICT)."""
+        raw_uuid_str = str(brief_uuid)
+        for asg_entry in self._store.seed_tables["execution_assignments"].values():
+            if isinstance(asg_entry, ExecutionAssignment) and asg_entry.task_brief_id == brief_id:
+                return True
+            if (
+                isinstance(asg_entry, Sequence)
+                and len(asg_entry) > 8
+                and asg_entry[8] is not None
+                and (asg_entry[8] == brief_uuid or str(asg_entry[8]) == raw_uuid_str)
+            ):
+                return True
+        return False
+
+    def _is_workflow_referenced(self, workflow_id: str, workflow_uuid: uuid.UUID) -> bool:
+        """Return True if any execution, report_artifact, or execution_assignment references workflow_id."""
+        raw_uuid_str = str(workflow_uuid)
+        for exec_record in self._store.executions.values():
+            if exec_record.workflow_id == workflow_id:
+                return True
+        for rep_entry in self._store.seed_tables["report_artifacts"].values():
+            if isinstance(rep_entry, ReportArtifact) and rep_entry.workflow_id == workflow_id:
+                return True
+            if (
+                isinstance(rep_entry, Sequence)
+                and len(rep_entry) > 2
+                and rep_entry[2] is not None
+                and (rep_entry[2] == workflow_uuid or str(rep_entry[2]) == raw_uuid_str)
+            ):
+                return True
+        for asg_entry in self._store.seed_tables["execution_assignments"].values():
+            if isinstance(asg_entry, ExecutionAssignment) and asg_entry.workflow_id == workflow_id:
+                return True
+            if (
+                isinstance(asg_entry, Sequence)
+                and len(asg_entry) > 6
+                and asg_entry[6] is not None
+                and (asg_entry[6] == workflow_uuid or str(asg_entry[6]) == raw_uuid_str)
             ):
                 return True
         return False
@@ -1980,15 +2031,28 @@ class InMemoryEntityAdapter:
         return self._delete_seed_row("prompt_blocks", block_id, EntityPrefix.PROMPT_BLOCK)
 
     async def delete_task_brief(self, brief_id: str) -> bool:
-        """Delete a TaskBrief by primary key in memory."""
+        """Delete a TaskBrief by primary key in memory (ON DELETE RESTRICT)."""
+        tbr_uuid = parse_prefixed_uuid7(brief_id, EntityPrefix.TASK_BRIEF)
+        if self._is_task_brief_referenced(brief_id, tbr_uuid):
+            msg = f"Task brief '{brief_id}' is referenced by a persisted execution assignment."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                msg,
+                extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": brief_id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+            )
         return self._delete_seed_row("task_briefs", brief_id, EntityPrefix.TASK_BRIEF)
 
     async def upsert_output_profile(self, profile: OutputProfile) -> str:
         """Upsert an OutputProfile in memory."""
         _ = parse_prefixed_uuid7(profile.id, EntityPrefix.OUTPUT_PROFILE)
         _ = parse_prefixed_uuid7(profile.workflow_id, EntityPrefix.WORKFLOW)
-        if profile.organization_id is not None and profile.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(profile.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(profile.organization_id, EntityPrefix.ORGANIZATION)
         if profile.variance_target_block is not None:
             _ = parse_prefixed_uuid7(profile.variance_target_block, EntityPrefix.PROMPT_BLOCK)
         if profile.user_role_target_block is not None:
@@ -2039,8 +2103,7 @@ class InMemoryEntityAdapter:
             _ = parse_prefixed_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE)
         if wf.mcp_gateway_id is not None:
             _ = parse_prefixed_uuid7(wf.mcp_gateway_id, EntityPrefix.MCP_GATEWAY)
-        if wf.organization_id is not None and wf.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(wf.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(wf.organization_id, EntityPrefix.ORGANIZATION)
 
         dedup_steps: list[str] = []
         seen_steps: set[str] = set()
@@ -2112,7 +2175,21 @@ class InMemoryEntityAdapter:
         return workflows
 
     async def delete_workflow(self, workflow_id: str) -> bool:
-        """Delete a Workflow by primary key in memory."""
+        """Delete a Workflow by primary key in memory (ON DELETE RESTRICT on runs/assignments)."""
+        wf_uuid = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+        if self._is_workflow_referenced(workflow_id, wf_uuid):
+            msg = f"Workflow '{workflow_id}' is referenced by a persisted execution, report, or assignment."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                msg,
+                extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": workflow_id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+            )
         deleted = self._delete_seed_row("workflows", workflow_id, EntityPrefix.WORKFLOW)
         if workflow_id in self._store.workflow_step_refs:
             del self._store.workflow_step_refs[workflow_id]
@@ -2128,8 +2205,7 @@ class InMemoryEntityAdapter:
     async def upsert_step(self, step: Step) -> str:
         """Upsert a Step in memory and synchronize step_criteria_blocks."""
         _ = parse_prefixed_uuid7(step.id, EntityPrefix.STEP)
-        if step.organization_id is not None and step.organization_id != "SYSTEM":
-            _ = parse_prefixed_uuid7(step.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(step.organization_id, EntityPrefix.ORGANIZATION)
         for blk_id in step.criteria_block_ids:
             _ = parse_prefixed_uuid7(blk_id, EntityPrefix.PROMPT_BLOCK)
         self._store.seed_tables["steps"][step.id] = step
@@ -2626,6 +2702,22 @@ class InMemoryAsyncPgConnection:
                     if self._entities._is_output_profile_referenced(prf_prefixed, prf_uuid):
                         raise _InMemorySqlStateError(
                             f"update or delete on table 'output_profiles' violates foreign key constraint ({prf_prefixed})",
+                            sqlstate="23503",
+                        )
+                if tbl == "task_briefs" and isinstance(args[0], (uuid.UUID, str)):
+                    tbr_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.TASK_BRIEF)
+                    tbr_uuid = parse_prefixed_uuid7(tbr_prefixed, EntityPrefix.TASK_BRIEF)
+                    if self._entities._is_task_brief_referenced(tbr_prefixed, tbr_uuid):
+                        raise _InMemorySqlStateError(
+                            f"update or delete on table 'task_briefs' violates foreign key constraint ({tbr_prefixed})",
+                            sqlstate="23503",
+                        )
+                if tbl == "workflows" and isinstance(args[0], (uuid.UUID, str)):
+                    wf_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.WORKFLOW)
+                    wf_uuid = parse_prefixed_uuid7(wf_prefixed, EntityPrefix.WORKFLOW)
+                    if self._entities._is_workflow_referenced(wf_prefixed, wf_uuid):
+                        raise _InMemorySqlStateError(
+                            f"update or delete on table 'workflows' violates foreign key constraint ({wf_prefixed})",
                             sqlstate="23503",
                         )
                 if row_id in self._store.seed_tables[tbl]:

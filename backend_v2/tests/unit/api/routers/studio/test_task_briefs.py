@@ -59,7 +59,6 @@ def setup_overrides(task_brief_repo: InMemoryTaskBriefRepository) -> Generator[N
     """Configure and clean up FastAPI dependency overrides for each test."""
     service = StudioTaskBriefService(
         task_brief_repo=task_brief_repo,
-        uow_factory=None,
     )
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
     app.dependency_overrides[get_studio_task_brief_service] = lambda: service

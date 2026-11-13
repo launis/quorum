@@ -155,6 +155,7 @@ def test_process_executive_summary_result_with_budget() -> None:
     )
     usage = TokenUsage(total_tokens=30, prompt_tokens=10, completion_tokens=20, cost_usd=0.005)
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
         workflow_id="wor_0195f3a00000700283456789abcdef01",
@@ -197,6 +198,7 @@ def test_process_xai_highlights_result() -> None:
     xai_res = XaiHighlightsResult(xai_highlights=[highlight])
     usage = TokenUsage(total_tokens=20, prompt_tokens=10, completion_tokens=10, cost_usd=0.001)
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
         workflow_id="wor_0195f3a00000700283456789abcdef01",
@@ -231,6 +233,7 @@ def test_process_row_explanations_result() -> None:
         justification="Justification",
     )
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
         workflow_id="wor_0195f3a00000700283456789abcdef01",

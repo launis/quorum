@@ -220,6 +220,7 @@ def test_prompt_block_simulation_request_strictness() -> None:
     from backend_v2.models.enums import BlockDataType
 
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_11111111111111111111111111111111",
         slug="test_rule",
         label=I18nText(translations={"en": "Rule"}),
@@ -284,6 +285,7 @@ def test_step_simulation_request_strictness() -> None:
     from backend_v2.models.domain.step import Step
 
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070018111111111111111",
         slug="test_step",
         name=I18nText(translations={"en": "Test Step"}),

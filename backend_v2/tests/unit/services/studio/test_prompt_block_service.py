@@ -49,12 +49,12 @@ def root_token() -> TokenData:
 
 @pytest.fixture
 def admin_token() -> TokenData:
-    return TokenData(id="admin_user", role=UserRole.ADMIN, organization_id="org_123")
+    return TokenData(id="admin_user", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000123")
 
 
 @pytest.fixture
 def other_admin_token() -> TokenData:
-    return TokenData(id="other_admin", role=UserRole.ADMIN, organization_id="org_other_999")
+    return TokenData(id="other_admin", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000999")
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ def sample_block() -> PersonaPromptBlock:
         description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
         type=BlockDataType.INSTRUCTION,
-        organization_id="org_123",
+        organization_id="org_0195f3a0000070008000000000000123",
         role_enforcement="Strict enforcement.",
         output_extensions=[],
         tone_directives=[],
@@ -101,7 +101,7 @@ async def test_list_prompt_blocks_tenant_filtering(
 ) -> None:
     await prompt_block_repo.create_prompt_block(sample_block)
     blk_other = sample_block.model_copy(
-        update={"id": "blk_0195f3a0000070058555666677778888", "organization_id": "org_other_999"}
+        update={"id": "blk_0195f3a0000070058555666677778888", "organization_id": "org_0195f3a0000070008000000000000999"}
     )
     await prompt_block_repo.create_prompt_block(blk_other)
     res = await prompt_block_service.list_prompt_blocks(admin_token)
@@ -254,7 +254,7 @@ async def test_delete_protocol_prompt_block_without_force_raises(
         description=I18nText(translations={"en": "Protocol Desc"}),
         category_id=PromptBlockCategory.PROTOCOL,
         type=BlockDataType.INSTRUCTION,
-        organization_id="org_123",
+        organization_id="org_0195f3a0000070008000000000000123",
         output_extensions=[],
         protocol_instructions="Strict protocol enforcement.",
     )
@@ -274,12 +274,12 @@ async def test_create_prompt_block_draft(
 ) -> None:
     draft = await prompt_block_service.create_prompt_block_draft(admin_token)
     assert draft.id.startswith("blk_")
-    assert draft.organization_id == "org_123"
+    assert draft.organization_id == "org_0195f3a0000070008000000000000123"
 
     persisted = await prompt_block_repo.get_prompt_block_by_id(draft.id)
     assert persisted is not None
     assert persisted.id == draft.id
-    assert persisted.organization_id == "org_123"
+    assert persisted.organization_id == "org_0195f3a0000070008000000000000123"
 
 
 async def test_create_matrix_prompt_block_draft(
@@ -335,7 +335,7 @@ async def test_create_runtime_variables_and_system_rule_prompt_block_draft_and_c
     )
     assert isinstance(draft, SystemRulePromptBlock)
     assert draft.category_id == PromptBlockCategory.SYSTEM_RULE
-    assert draft.organization_id == "org_123"
+    assert draft.organization_id == "org_0195f3a0000070008000000000000123"
 
     runtime_draft = await prompt_block_service.create_prompt_block_draft(
         admin_token,
@@ -361,21 +361,21 @@ async def test_save_prompt_block_cross_tenant_idor_org_preservation_and_unknown_
     admin_token: TokenData,
 ) -> None:
     """Verify cross-tenant PUT IDOR rejection, non-ROOT organization_id preservation, and missing ID 404."""
-    missing_block = SystemRulePromptBlockFactory.build(organization_id="org_123")
+    missing_block = SystemRulePromptBlockFactory.build(organization_id="org_0195f3a0000070008000000000000123")
     with pytest.raises(ResourceNotFoundError):
         await prompt_block_service.save_prompt_block(admin_token, missing_block.id, missing_block)
     assert await prompt_block_repo.get_prompt_block_by_id(missing_block.id) is None
 
-    other_org_block = SystemRulePromptBlockFactory.build(organization_id="org_other")
+    other_org_block = SystemRulePromptBlockFactory.build(organization_id="org_0195f3a0000070008000000000000888")
     await prompt_block_repo.create_prompt_block(other_org_block)
-    forged_payload = other_org_block.model_copy(update={"organization_id": "org_123"})
+    forged_payload = other_org_block.model_copy(update={"organization_id": "org_0195f3a0000070008000000000000123"})
     with pytest.raises(PermissionDeniedError):
         await prompt_block_service.save_prompt_block(admin_token, other_org_block.id, forged_payload)
     unchanged = await prompt_block_repo.get_prompt_block_by_id(other_org_block.id)
     assert unchanged is not None
-    assert unchanged.organization_id == "org_other"
+    assert unchanged.organization_id == "org_0195f3a0000070008000000000000888"
 
-    own_block = SystemRulePromptBlockFactory.build(organization_id="org_123")
+    own_block = SystemRulePromptBlockFactory.build(organization_id="org_0195f3a0000070008000000000000123")
     await prompt_block_repo.create_prompt_block(own_block)
     reassigned_payload = own_block.model_copy(
         update={
@@ -384,6 +384,6 @@ async def test_save_prompt_block_cross_tenant_idor_org_preservation_and_unknown_
         }
     )
     saved = await prompt_block_service.save_prompt_block(admin_token, own_block.id, reassigned_payload)
-    assert saved.organization_id == "org_123"
+    assert saved.organization_id == "org_0195f3a0000070008000000000000123"
     assert isinstance(saved, SystemRulePromptBlock)
     assert saved.system_instructions == "Updated own instructions."

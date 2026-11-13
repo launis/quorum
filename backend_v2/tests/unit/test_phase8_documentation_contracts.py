@@ -209,7 +209,7 @@ def _make_workflow(
         status="published",
         version=1,
         is_public=False,
-        organization_id=None,
+        organization_id="org_0195f3a0000070008000000000000001",
         default_profile_id=None,
         mcp_gateway_id="mcp_0195f3a00000700080008172bda70c86",
         model_registry_id="mrg_0195f3a00000700e826807f3bfa3454d",

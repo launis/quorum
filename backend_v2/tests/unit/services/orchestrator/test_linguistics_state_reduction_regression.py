@@ -82,6 +82,7 @@ def test_reduce_hook_delta_linguistics_must_emit_decision_trace_event() -> None:
 def test_variance_adapter_crashes_when_extension_metrics_missing() -> None:
     """Proves the exact crash site in VarianceAdapter when extension_metrics is None."""
     prof = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070058d6e7f8091a2b3c4",
         slug="holistic_audit",
         workflow_id="wf_0195f3a0000070098d68c573802341db",

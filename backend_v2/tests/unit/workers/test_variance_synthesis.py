@@ -40,6 +40,7 @@ def _make_matrix_prompt_block(
     computed_max: int = 3,
 ) -> MatrixPromptBlock:
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug="test_matrix",
         label=I18nText(translations={"en": "Test Matrix"}),
@@ -124,6 +125,7 @@ def _make_profile(
     exts: list[XaiExtensionType] = [XaiExtensionType.VARIANCE_VALIDATION] if has_ext else []
     target_blk = target_block if has_ext else None
     return OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
         workflow_id="wor_0195f3a00000700283456789abcdef01",

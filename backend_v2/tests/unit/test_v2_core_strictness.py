@@ -24,6 +24,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
     scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
 
     valid_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700e8eee5555eeee5555",
         slug="valid_slug",
         label=label,
@@ -39,6 +40,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
     # Should raise error for incompatible type with MatrixPromptBlock
     with pytest.raises(ValidationError) as exc_info:
         MatrixPromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="blk_0195f3a00000700f8fff1111ffff1111",
             slug="invalid_slug",
             label=label,
@@ -57,6 +59,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
 
     # Successful: Has prompt blocks
     valid_blueprint = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700181111111abababab",
         slug="task_bp_valid",
         name=label,
@@ -70,6 +73,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
     # Fails: Nothing defined
     with pytest.raises(AppException) as exc_info:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="stp_0195f3a00000700f8fff1111ffff1111",
             slug="task_bp_err",
             name=label,
@@ -89,6 +93,7 @@ def test_opaque_id_regex_validation() -> None:
     # 1. Test PromptBlock creation rejection
     with pytest.raises(ValidationError) as exc_pb:
         SystemRulePromptBlock(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="legacy-slug-without-prefix",  # INVALID
             slug="valid_slug",
             label=label,
@@ -102,6 +107,7 @@ def test_opaque_id_regex_validation() -> None:
     # 2. Test Step creation rejection
     with pytest.raises(ValidationError) as exc_step:
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="my_custom_slug123",  # INVALID, no prefix separated by underscore
             slug="slug",
             name=label,

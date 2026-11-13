@@ -7,7 +7,7 @@ import logging
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError, WorkflowNotFoundError
 from backend_v2.models.auth import SystemOrganizations
-from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.core_base import I18nText, generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
@@ -66,7 +66,7 @@ class WorkflowRepositoryImpl(BaseRepository):
         async with self._acquire_entities() as entities:
             all_workflows = await entities.list_workflows()
         if role != "ROOT" and organization_id:
-            allowed_orgs = {organization_id, SystemOrganizations.ROOT_SYSTEM.value, "SYSTEM"}
+            allowed_orgs = {organization_id, SystemOrganizations.ROOT_SYSTEM.value}
             return [wf for wf in all_workflows if wf.organization_id in allowed_orgs]
         return all_workflows
 
@@ -119,8 +119,10 @@ class WorkflowRepositoryImpl(BaseRepository):
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        org_id = "SYSTEM"
-        if workflow_data.organization_id is not None:
+        if workflow_data.organization_id is None:
+            org_id = SystemOrganizations.ROOT_SYSTEM.value
+        else:
+            parse_prefixed_uuid7(workflow_data.organization_id, EntityPrefix.ORGANIZATION)
             org_id = workflow_data.organization_id
         desc: I18nText | str = ""
         if workflow_data.description is not None:
@@ -350,8 +352,10 @@ class WorkflowRepositoryImpl(BaseRepository):
         Returns:
             Created canonical stp_<hex32> identifier.
         """
-        org_id = "SYSTEM"
-        if step_data.organization_id is not None:
+        if step_data.organization_id is None:
+            org_id = SystemOrganizations.ROOT_SYSTEM.value
+        else:
+            parse_prefixed_uuid7(step_data.organization_id, EntityPrefix.ORGANIZATION)
             org_id = step_data.organization_id
         step = Step(
             id=generate_opaque_id(EntityPrefix.STEP),

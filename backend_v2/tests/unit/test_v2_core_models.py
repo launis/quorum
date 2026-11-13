@@ -192,6 +192,7 @@ def test_output_profile_computed_properties() -> None:
     from backend_v2.models.enums import TargetBlockType
 
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890abcdef",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234567890abcdef",
@@ -278,6 +279,7 @@ def test_output_profile_validate_matrix_graphs_coherence() -> None:
 
     # Valid: matrix_graphs_block with at least 1 synthesis group
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890123456",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234567890123456",
@@ -290,6 +292,7 @@ def test_output_profile_validate_matrix_graphs_coherence() -> None:
     # Invalid: matrix_graphs_block with empty matrix_synthesis_groups raises ValueError
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="prf_0195f3a0000070018234567890123456",
             slug="test-profile",
             workflow_id="wf_0195f3a0000070018234567890123456",
@@ -421,6 +424,7 @@ def test_output_profile_unique_group_ids_validation() -> None:
 
     with pytest.raises(ValidationError) as exc:
         OutputProfile(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="prf_0195f3a0000070018234567890123456",
             slug="test-profile",
             workflow_id="wf_0195f3a0000070018234567890123456",
@@ -439,6 +443,7 @@ def test_output_profile_plain_string_directives_and_length_constraints() -> None
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     profile = OutputProfile(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="prf_0195f3a0000070018234567890123456",
         slug="test-profile",
         workflow_id="wf_0195f3a0000070018234567890123456",

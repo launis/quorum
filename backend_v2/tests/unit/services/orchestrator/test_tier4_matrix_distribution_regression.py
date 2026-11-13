@@ -88,6 +88,7 @@ def test_matrix_domain_parser_formats_float_level_stats_as_clean_integers() -> N
     pb_id = "blk_0195f3a00000700080009f6d2c1b0a5e"
     pb = MatrixPromptBlock.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": pb_id,
             "slug": "causal_cohesion",
             "label": {"translations": {"en": "Causal Cohesion", "fi": "Kausaalinen eheys"}},
@@ -221,6 +222,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
 
     pb = MatrixPromptBlock.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": pb_id,
             "slug": "matrix_toulmin",
             "label": {"translations": {"fi": "Toulminin Argumentaatiomalli", "en": "Toulmin Argumentation Model"}},
@@ -239,6 +241,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
 
     step = Step.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": step_id,
             "slug": "toulmin_step",
             "name": {"translations": {"en": "Toulmin Step", "fi": "Toulmin vaihe"}},
@@ -250,6 +253,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
 
     wf = Workflow.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": wf_id,
             "slug": "toulmin_wf",
             "name": {"translations": {"en": "Toulmin WF", "fi": "Toulmin WF"}},
@@ -281,6 +285,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
 
     profile = OutputProfile.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": profile_id,
             "slug": "toulmin_profile",
             "workflow_id": wf_id,
@@ -420,6 +425,7 @@ def test_matrix_domain_parser_rejects_invalid_level_key() -> None:
     pb_id = "blk_0195f3a00000700c80a1e50000000001"
     pb = MatrixPromptBlock.model_validate(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": pb_id,
             "slug": "test_matrix",
             "label": {"translations": {"en": "Test", "fi": "Testi"}},

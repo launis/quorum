@@ -64,6 +64,7 @@ def test_token() -> TokenData:
 async def test_simulate_workflow_success(simulation_service: StudioSimulationService, test_token: TokenData) -> None:
     """Test successful DAG resolution and input mapping in workflow simulation."""
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"en": "Test WF"}),
@@ -115,6 +116,7 @@ async def test_simulate_workflow_missing_input(
 ) -> None:
     """Test workflow simulation catches missing input references."""
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"en": "Test WF"}),
@@ -155,6 +157,7 @@ async def test_simulate_workflow_undeclared_dependency(
 ) -> None:
     """Test workflow simulation catches undeclared step dependencies in mappings."""
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"en": "Test WF"}),
@@ -235,6 +238,7 @@ async def test_simulate_workflow_fatal_error(
 async def test_simulate_prompt_block_simple(simulation_service: StudioSimulationService, test_token: TokenData) -> None:
     """Test simple prompt block simulation with template formatting."""
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_11111111111111111111111111111111",
         slug="test_instruction",
         label=I18nText(translations={"en": "Instruction"}),
@@ -263,6 +267,7 @@ async def test_simulate_prompt_block_none_ai_description(
 ) -> None:
     """Test prompt block simulation when instruction_text is None."""
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_11111111111111111111111111111111",
         slug="test_none",
         label=I18nText(translations={"en": "Instruction"}),
@@ -286,6 +291,7 @@ async def test_simulate_prompt_block_matrix_scales(
 ) -> None:
     """Test matrix prompt block simulation compiling XML prompts via MatrixSensorPromptBuilder."""
     block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
         label=I18nText(translations={"en": "Matrix Block"}),
@@ -341,6 +347,7 @@ async def test_simulate_prompt_block_matrix_scales_with_default_context_text(
 ) -> None:
     """Test matrix prompt block simulation with omitted/default context_text."""
     block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
         label=I18nText(translations={"en": "Matrix Block"}),
@@ -408,6 +415,7 @@ async def test_simulate_prompt_block_matrix_scales_filter_target_score(
 ) -> None:
     """Test matrix prompt block simulation filtering to a specific target_scale_score."""
     block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
         label=I18nText(translations={"en": "Matrix Block"}),
@@ -473,6 +481,7 @@ async def test_simulate_prompt_block_matrix_scales_score_not_found(
 ) -> None:
     """Test that target_scale_score not found in block raises 404 AppException."""
     block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
         label=I18nText(translations={"en": "Matrix Block"}),
@@ -519,6 +528,7 @@ async def test_simulate_prompt_block_matrix_scales_zero_claims(
 ) -> None:
     """Test that matrix block with empty claims raises 400 AppException."""
     block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
         label=I18nText(translations={"en": "Matrix Block"}),
@@ -550,6 +560,7 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
     """Test rendering of all concrete polymorphic PromptBlock sub-types."""
     # 1. PersonaPromptBlock with role_enforcement
     persona_block = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_11111111111111111111111111111111",
         slug="persona_test",
         label=I18nText(translations={"en": "Persona"}),
@@ -566,6 +577,7 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
 
     # 2. ProtocolPromptBlock with protocol_instructions
     protocol_block = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_22222222222222222222222222222222",
         slug="protocol_test",
         label=I18nText(translations={"en": "Protocol"}),
@@ -582,6 +594,7 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
 
     # 3. SystemRulePromptBlock with instruction_text
     sys_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_33333333333333333333333333333333",
         slug="sys_rule_test",
         label=I18nText(translations={"en": "System Rule"}),
@@ -610,6 +623,7 @@ async def test_simulate_step_success(
 ) -> None:
     """Test step simulation resolving role, protocol, execution persona, and criteria blocks."""
     mock_block = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_11111111111111111111111111111111",
         slug="role_block",
         label=I18nText(translations={"en": "Role"}),
@@ -621,6 +635,7 @@ async def test_simulate_step_success(
     mock_prompt_block_service.get_prompt_block.return_value = mock_block
 
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_11111111111111111111111111111111",
         slug="step_analyze",
         name=I18nText(translations={"en": "Analyze Step"}),
@@ -659,6 +674,7 @@ async def test_simulate_step_with_execution_inputs_dto(
 ) -> None:
     """Test step simulation accepting strongly typed ExecutionInputsDTO."""
     mock_block = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_11111111111111111111111111111111",
         slug="role_block",
         label=I18nText(translations={"en": "Role"}),
@@ -670,6 +686,7 @@ async def test_simulate_step_with_execution_inputs_dto(
     mock_prompt_block_service.get_prompt_block.return_value = mock_block
 
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_11111111111111111111111111111111",
         slug="step_analyze",
         name=I18nText(translations={"en": "Analyze Step"}),
@@ -702,6 +719,7 @@ async def test_simulate_step_matrix_blocks_success(
 ) -> None:
     """Test step simulation with matrix criteria blocks compiles dynamic messages."""
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_22222222222222222222222222222222",
         slug="matrix_block",
         label=I18nText(translations={"en": "Matrix"}),
@@ -731,6 +749,7 @@ async def test_simulate_step_matrix_blocks_success(
     mock_prompt_block_service.get_prompt_block.return_value = matrix_block
 
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_22222222222222222222222222222222",
         slug="step_matrix",
         name=I18nText(translations={"en": "Matrix Step"}),
@@ -766,6 +785,7 @@ async def test_simulate_step_prompt_block_not_found(
     mock_prompt_block_service.get_prompt_block.side_effect = ResourceNotFoundError("Block not found")
 
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_11111111111111111111111111111111",
         slug="step_missing_block",
         name=I18nText(translations={"en": "Step"}),
@@ -811,6 +831,7 @@ async def test_studio_simulation_returns_strict_dtos(
 ) -> None:
     """Test Contract 1: Verify simulation service methods return strictly typed DTO models."""
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_11111111111111111111111111111111",
         slug="test_instruction",
         label=I18nText(translations={"en": "Instruction"}),
@@ -822,6 +843,7 @@ async def test_studio_simulation_returns_strict_dtos(
     mock_prompt_block_service.get_prompt_block.return_value = block
 
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_11111111111111111111111111111111",
         slug="step_analyze",
         name=I18nText(translations={"en": "Analyze Step"}),
@@ -834,6 +856,7 @@ async def test_studio_simulation_returns_strict_dtos(
     )
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"en": "Test WF"}),

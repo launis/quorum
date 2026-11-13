@@ -13,7 +13,6 @@ from backend_v2.database.postgres.entity_adapter import coercion_and_constants a
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _COLLECTION_TO_TABLE_MAP,
     _ROOT_SYSTEM_ORG_UUID7,
-    _SYSTEM_ORG_UUID7,
     _TABLE_TO_ENTITY_PREFIX,
     CANONICAL_SEED_TABLES,
     _coerce_float,
@@ -65,16 +64,18 @@ def test_coercion_helpers_and_canonical_seed_tables_parity() -> None:
     assert _format_optional_uuid7(parsed_wf, EntityPrefix.WORKFLOW) == wf_id
 
     assert _parse_org_uuid7(None) is None
-    assert _parse_org_uuid7("SYSTEM") is None
+    with pytest.raises(AppException) as sys_parse_exc:
+        _parse_org_uuid7("SYSTEM")
+    assert sys_parse_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert _parse_org_uuid7("org_0195f3a0000070008000000000000001") == _ROOT_SYSTEM_ORG_UUID7
     org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     parsed_org = _parse_org_uuid7(org_id)
     assert isinstance(parsed_org, uuid.UUID)
 
-    assert _format_org_uuid7(None, default_system=False) is None
-    assert _format_org_uuid7(None, default_system=True) == "SYSTEM"
-    assert _format_org_uuid7(_SYSTEM_ORG_UUID7) == "SYSTEM"
-    assert _format_org_uuid7(str(_SYSTEM_ORG_UUID7)) == "SYSTEM"
+    assert _format_org_uuid7(None) is None
+    with pytest.raises(AppException) as sys_fmt_exc:
+        _format_org_uuid7("SYSTEM")
+    assert sys_fmt_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert _format_org_uuid7(_ROOT_SYSTEM_ORG_UUID7) == "org_0195f3a0000070008000000000000001"
     assert _format_org_uuid7("org_0195f3a0000070008000000000000001") == "org_0195f3a0000070008000000000000001"
     assert _format_org_uuid7(parsed_org) == org_id

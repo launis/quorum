@@ -47,6 +47,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 def _create_rule_block(block_id: str) -> SystemRulePromptBlock:
     """Create a valid SystemRulePromptBlock for Stage 1 testing."""
     return SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=block_id,
         slug=f"slug-{block_id[-4:]}",
         label=I18nText(translations={"en": f"Block {block_id}", "fi": f"Lohko {block_id}"}),
@@ -84,6 +85,7 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     """Provide a stateful in-memory repository pre-populated with baseline Stage 1 entities."""
     repo = InMemoryUnifiedWorkflowRepository()
     proto_blk = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
@@ -96,6 +98,7 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
         "blk_0195f3a0000070008123456789abcdef", _create_rule_block("blk_0195f3a0000070008123456789abcdef")
     )
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a0000070008123456789abcdef",
         slug="test-step",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
@@ -112,6 +115,7 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.set_output_profiles(
         [
             OutputProfile(
+                organization_id="org_0195f3a0000070008000000000000001",
                 id="prf_0195f3a0000070008123456789abcdef",
                 slug="default-prf",
                 workflow_id="wf_0195f3a0000070008123456789abcdef",
@@ -130,6 +134,7 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     )
     repo.set_workflow(
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070008123456789abcdef",
             slug="test-wf",
             name=I18nText(translations={"en": "Test Workflow", "fi": "Testityonkulku"}),
@@ -281,6 +286,7 @@ async def test_execute_with_role_and_persona_and_protocol(
 ) -> None:
     """Verify execute_blueprint_and_pre_hooks_stage resolves role, protocol, persona, criteria, and OutputProfile."""
     role_blk = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000001",
         slug="role-blk",
         label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
@@ -289,6 +295,7 @@ async def test_execute_with_role_and_persona_and_protocol(
         role_enforcement="Act as auditor.",
     )
     proto_blk = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
@@ -297,6 +304,7 @@ async def test_execute_with_role_and_persona_and_protocol(
         protocol_instructions="Extract exact quotes.",
     )
     persona_blk = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000003",
         slug="pers-blk",
         label=I18nText(translations={"en": "Persona", "fi": "Persoona"}),
@@ -310,6 +318,7 @@ async def test_execute_with_role_and_persona_and_protocol(
         in_memory_repo.seed_raw_prompt_block(b.id, b)
 
     step_def = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700a8000000000000001",
         slug="full-step",
         name=I18nText(translations={"en": "Full Step", "fi": "Taysi vaihe"}),
@@ -384,6 +393,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(
 
     # 1. Missing role_block_id -> ConfigurationError
     step_role = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="stp_0195f3a00000700b8000000000000001",
         slug="miss-role",
         name=I18nText(translations={"en": "Miss Role", "fi": "Puuttuva rooli"}),
@@ -570,6 +580,7 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
     # 7. Context with explicit prompt_blocks list and mapping global_context_vars
     blk = _create_rule_block("blk_0195f3a0000070008123456789abcdef")
     proto_blk = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),

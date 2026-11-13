@@ -11,6 +11,7 @@ def test_prompt_block_computed_min_max_float() -> None:
     payload = {
         "id": "blk_0195f3a0000070098012345678901234",
         "slug": "test_block",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
         "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
         "ai_description": "AI prompt",
@@ -35,6 +36,7 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
     payload = {
         "id": "blk_0195f3a0000070098012345678901234",
         "slug": "test_block",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
         "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
         "ai_description": "AI prompt",

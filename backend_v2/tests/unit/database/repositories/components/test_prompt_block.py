@@ -112,6 +112,7 @@ async def test_delete_prompt_block_blocked_by_usage_and_force_delete(
     """Negative & Positive: delete_prompt_block enforces ON DELETE RESTRICT regardless of force_delete until unreferenced."""
     await repo.create_prompt_block(sample_system_rule)
     step = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_STP_ID,
         slug="test_step_usage",
         name=I18nTextFactory.build(translations={"en": "Test Step", "fi": "Test Step FI"}),

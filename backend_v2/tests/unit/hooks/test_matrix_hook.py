@@ -65,6 +65,7 @@ class MatrixSetupDTO:
 def _build_test_matrix_block(pb_id: str, tda_id: str) -> MatrixPromptBlock:
     """Construct a valid MatrixPromptBlock for test fixtures."""
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=pb_id,
         slug="test_matrix_block",
         label=I18nText(translations={"en": "Leadership Maturity", "fi": "Johtamisen kypsyys"}),
@@ -115,6 +116,7 @@ def _build_test_matrix_block(pb_id: str, tda_id: str) -> MatrixPromptBlock:
 def _build_test_step(step_id: str, block_id: str) -> Step:
     """Construct a valid Step containing the matrix block reference."""
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         slug="strategic_matrix_step",
         name=I18nText(translations={"en": "Matrix Evaluation Step", "fi": "Matriisiarviointivaihe"}),

@@ -218,6 +218,7 @@ async def _setup_assignment_harness(
     await wf_repo.save_workflow(_build_workflow())
     await wf_repo.save_step(
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=STEP_ID,
             slug="eval-step",
             name=I18nText(translations={"en": "Eval Step", "fi": "Arviointi"}),

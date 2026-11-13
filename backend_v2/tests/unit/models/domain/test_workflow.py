@@ -21,6 +21,7 @@ def _build_test_step(
 ) -> Step:
     """Helper to build a valid Step instance."""
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         slug=f"slug_{step_id}",
         name=I18nText(translations={"fi": "Askel", "en": "Step"}),
@@ -167,6 +168,7 @@ def test_workflow_validation_dag_orphan_reference_fails() -> None:
     """ISTQB Negative: Step with unknown dependency fails DAG validation."""
     with pytest.raises(ValidationError) as exc_info:
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_1234567890abcdef1234567890abcdef",
             slug="test_wf_orphan",
             name=I18nText(translations={"fi": "Työnkulku", "en": "Workflow"}),
@@ -191,6 +193,7 @@ def test_workflow_validation_dag_circular_dependency_fails() -> None:
     """ISTQB Negative: Circular dependency in workflow steps fails DAG validation."""
     with pytest.raises(ValidationError) as exc_info:
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wor_1234567890abcdef1234567890abcdef",
             slug="test_wf_circular",
             name=I18nText(translations={"fi": "Työnkulku", "en": "Workflow"}),
@@ -221,6 +224,7 @@ def test_workflow_model_registry_and_mcp_gateway_uuidv7_validation() -> None:
     from backend_v2.exceptions import AppException, ErrorCodes
 
     wf_valid = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070008000000000000001",
         slug="test_wf_gateways",
         name=I18nText(translations={"fi": "Työnkulku", "en": "Workflow"}),
@@ -238,6 +242,7 @@ def test_workflow_model_registry_and_mcp_gateway_uuidv7_validation() -> None:
 
     with pytest.raises((AppException, ValidationError)) as bad_mrg_exc:
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070008000000000000001",
             slug="test_wf_bad_mrg",
             name=I18nText(translations={"en": "Workflow"}),
@@ -254,6 +259,7 @@ def test_workflow_model_registry_and_mcp_gateway_uuidv7_validation() -> None:
 
     with pytest.raises((AppException, ValidationError)) as bad_mcp_exc:
         Workflow(
+            organization_id="org_0195f3a0000070008000000000000001",
             id="wf_0195f3a0000070008000000000000001",
             slug="test_wf_bad_mcp",
             name=I18nText(translations={"en": "Workflow"}),

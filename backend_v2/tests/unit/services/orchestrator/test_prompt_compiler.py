@@ -788,6 +788,7 @@ def test_compile_static_and_dynamic_instructions() -> None:
 
     compiler = PromptCompiler()
     block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111222233334444",
         slug="static_inst",
         category_id=PromptBlockCategory.SYSTEM_RULE,
@@ -797,6 +798,7 @@ def test_compile_static_and_dynamic_instructions() -> None:
         instruction_text="Static instruction directive",
     )
     dynamic_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070028222333344445555",
         slug="dyn_inst",
         category_id=PromptBlockCategory.SYSTEM_RULE,

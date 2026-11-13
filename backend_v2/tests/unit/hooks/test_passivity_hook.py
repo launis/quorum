@@ -53,6 +53,7 @@ def _build_test_matrix_block(pb_id: str, scales: list[MatrixScale] | None = None
             scales=[],
         )
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=pb_id,
         slug="leadership_matrix",
         category_id=PromptBlockCategory.MATRIX,
@@ -67,6 +68,7 @@ def _build_test_matrix_block(pb_id: str, scales: list[MatrixScale] | None = None
 def _build_test_step(step_id: str, criteria_block_ids: list[str]) -> Step:
     """Construct a valid Step instance."""
     return Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         slug="leadership_eval_step",
         name=I18nText(translations={"en": "Leadership Evaluation"}),
@@ -222,6 +224,7 @@ async def test_passivity_hook_non_matrix_prompt_block_skipped() -> None:
 
     non_matrix_pb = PromptBlockAdapter.validate_python(
         {
+            "organization_id": "org_0195f3a0000070008000000000000001",
             "id": pb_id,
             "slug": "system_instruction",
             "category_id": "system_rule",

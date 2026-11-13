@@ -14,6 +14,7 @@ __all__ = [
     "enforce_modification_rights",
     "enforce_tenant_isolation",
     "is_resource_accessible",
+    "resolve_create_organization_id",
 ]
 
 logger = logging.getLogger(__name__)
@@ -133,3 +134,31 @@ def enforce_modification_rights(
                 data_org_id,
             )
             raise PermissionDeniedError(msg)
+
+
+def resolve_create_organization_id(initiator: TokenData) -> str:
+    """Resolve the authoritative non-null organization_id for Studio draft/clone creation.
+
+    Args:
+        initiator: Authenticated user token context.
+
+    Returns:
+        Canonical org_<hex32> organization identifier owning the created Studio entity.
+
+    Raises:
+        PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If a non-ROOT initiator lacks
+            an assigned organization_id.
+    """
+    if initiator.role == UserRole.ROOT:
+        return SystemOrganizations.ROOT_SYSTEM.value
+    if initiator.organization_id is None or not initiator.organization_id.strip():
+        msg = "Non-ROOT initiator must belong to an organization to create Studio resources."
+        logger.error(
+            "[StudioService] %s: %s User %s (Role: %s)",
+            ErrorCodes.PERMISSION_DENIED.name,
+            msg,
+            initiator.id,
+            initiator.role.name,
+        )
+        raise PermissionDeniedError(msg)
+    return initiator.organization_id

@@ -60,6 +60,7 @@ def test_prompt_factory_build_success(
     criteria_blocks: list[PromptBlock] = [
         PromptBlockAdapter.validate_python(
             {
+                "organization_id": "org_0195f3a0000070008000000000000001",
                 "id": "blk_12345678901234567890123456789012",
                 "slug": "test_slug",
                 "label": {"translations": {"en": "Test Label", "fi": "Testi"}},
@@ -344,6 +345,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(
 ) -> None:
     """Test polymorphic resolution of PersonaPromptBlock, ProtocolPromptBlock, and SystemRulePromptBlock."""
     persona = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111111111111111",
         slug="persona_test",
         label=I18nText(translations={"en": "Persona"}),
@@ -355,6 +357,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(
         tone_directives=[],
     )
     role = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070028222222222222222",
         slug="role_test",
         label=I18nText(translations={"en": "Role"}),
@@ -366,6 +369,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(
         tone_directives=[],
     )
     protocol = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070038333333333333333",
         slug="protocol_test",
         label=I18nText(translations={"en": "Protocol"}),

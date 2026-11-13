@@ -160,6 +160,7 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
 
     step_id = "stp_0195f3a0000070018111222233334444"
     step_def = Step(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=step_id,
         slug="step_facade_test",
         name=I18nText(translations={"en": "Facade Step", "fi": "Julkisivuvaihe"}),
@@ -172,6 +173,7 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
     repo.set_step(step_def)
 
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070018111222233334444",
         slug="wf_facade_test",
         name=I18nText(translations={"en": "Facade WF", "fi": "Julkisivu WF"}),
@@ -261,6 +263,7 @@ async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave
     step_id = "stp_0195f3a0000070028222333344445555"
     repo.set_step(
         Step(
+            organization_id="org_0195f3a0000070008000000000000001",
             id=step_id,
             slug="step_neg_facade",
             name=I18nText(translations={"en": "Neg Step", "fi": "Neg Vaihe"}),
@@ -272,6 +275,7 @@ async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave
         )
     )
     workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wf_0195f3a0000070028222333344445555",
         slug="wf_neg_facade",
         name=I18nText(translations={"en": "Neg WF", "fi": "Neg WF"}),

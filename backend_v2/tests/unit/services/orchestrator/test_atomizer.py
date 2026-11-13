@@ -44,6 +44,7 @@ def _build_matrix_block_with_scale(scale: MatrixScale) -> MatrixPromptBlock:
     )
     seed_scale = MatrixScale(score=1, ai_label="SEED", claims=[seed_claim])
     base_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018234567890abcdef",
         slug="test_block",
         label=I18nText(translations={"en": "Test block", "fi": "Testilohko"}),
@@ -141,6 +142,7 @@ async def test_atomizer_deterministic_mapping() -> None:
 async def test_atomizer_passthrough_for_non_matrix_block() -> None:
     """Verify non-matrix PromptBlocks pass through PromptAtomizer untouched."""
     rule_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018234567890abcdef",
         slug="sys_rule_test",
         label=I18nText(translations={"en": "System Rule", "fi": "Sääntö"}),

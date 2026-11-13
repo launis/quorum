@@ -384,6 +384,7 @@ def test_apply_spatial_slicing_and_rule_descriptions() -> None:
 
     # 2. Blocks hierarchy
     matrix_block = MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070008000111122223333",
         slug="matrix_block",
         category_id=PromptBlockCategory.MATRIX,
@@ -414,6 +415,7 @@ def test_apply_spatial_slicing_and_rule_descriptions() -> None:
     )
 
     sys_block = SystemRulePromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070018111222233334444",
         slug="sys_rule",
         category_id=PromptBlockCategory.SYSTEM_RULE,
@@ -424,6 +426,7 @@ def test_apply_spatial_slicing_and_rule_descriptions() -> None:
     )
 
     persona_block = PersonaPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070028222333344445555",
         slug="persona",
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
@@ -434,6 +437,7 @@ def test_apply_spatial_slicing_and_rule_descriptions() -> None:
     )
 
     protocol_block = ProtocolPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="blk_0195f3a0000070038333444455556666",
         slug="protocol",
         category_id=PromptBlockCategory.PROTOCOL,

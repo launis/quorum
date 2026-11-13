@@ -134,6 +134,7 @@ def test_ast_dag_executor_zero_sys_render_injection() -> None:
 async def test_execution_worker_zero_report_side_effects() -> None:
     """Verify execute_workflow_job does NOT create report records or enqueue report jobs."""
     mock_workflow = Workflow(
+        organization_id="org_0195f3a0000070008000000000000001",
         id="wor_0195f3a0000070008123456789abcdef",
         slug="test-workflow",
         name="Test Workflow",

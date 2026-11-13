@@ -78,6 +78,7 @@ def get_dummy_pb_5_scale() -> MatrixPromptBlock:
         for i in range(1, 6)
     ]
     return MatrixPromptBlock(
+        organization_id="org_0195f3a0000070008000000000000001",
         id=_BLK_ID,
         slug="test",
         category_id=PromptBlockCategory.MATRIX,
