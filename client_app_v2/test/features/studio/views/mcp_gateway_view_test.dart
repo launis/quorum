@@ -106,10 +106,10 @@ void main() {
 
   group('McpGatewayView Widget Tests', () {
     const testGateway = McpGateway(
-      id: 'gw_search',
+      id: 'mcp_0195f3a00000700080008172bda70c86',
+      organizationId: 'org_0195f3a0000070008000000000000001',
       name: 'Search MCP Gateway',
       slug: 'search_gateway',
-      type: 'mcp_gateways',
       endpointUrl: 'https://mcp.example.com/v1',
       transportType: McpTransportType.streamableHttp,
       authType: McpAuthType.bearer,
@@ -150,14 +150,17 @@ void main() {
         await tester.pumpWidget(createTestWidget(gateway: testGateway));
         await tester.pumpAndSettle();
 
-        expect(find.text('gw_search'), findsOneWidget);
+        expect(
+          find.text('mcp_0195f3a00000700080008172bda70c86'),
+          findsOneWidget,
+        );
         expect(
           find.byKey(const ValueKey('gateway_name_field')),
           findsOneWidget,
         );
         expect(find.text('Search MCP Gateway'), findsOneWidget);
         expect(find.text('search_gateway'), findsOneWidget);
-        expect(find.text('mcp_gateways'), findsOneWidget);
+        expect(find.text('mcp_gateways'), findsNothing);
         expect(find.text('https://mcp.example.com/v1'), findsOneWidget);
         expect(find.text('TAVILY_API_KEY'), findsOneWidget);
         expect(find.text('Tool: mcp_tavily_search'), findsOneWidget);

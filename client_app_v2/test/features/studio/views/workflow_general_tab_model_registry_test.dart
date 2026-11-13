@@ -15,10 +15,10 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
   Workflow createTestWorkflow({
-    String modelRegistryId = 'sys_e26807f3bfa3454d',
+    String modelRegistryId = 'mrg_0195f3a0000070008000bf23c2670ad5',
   }) {
     return Workflow(
-      id: 'wor_1234567890abcdef',
+      id: 'wf_0195f3a0000070008000000000000001',
       slug: 'test-workflow',
       name: const I18nText(translations: {'en': 'Test Workflow'}),
       description: const I18nText(translations: {'en': 'Test Description'}),
@@ -68,7 +68,7 @@ void main() {
       addTearDown(() => tester.view.resetPhysicalSize());
 
       final workflow = createTestWorkflow(
-        modelRegistryId: 'sys_e26807f3bfa3454d',
+        modelRegistryId: 'mrg_0195f3a0000070008000bf23c2670ad5',
       );
 
       await tester.pumpWidget(buildTestApp(workflow, onChanged: (_) {}));
@@ -98,7 +98,7 @@ void main() {
         addTearDown(() => tester.view.resetPhysicalSize());
 
         Workflow currentWorkflow = createTestWorkflow(
-          modelRegistryId: 'sys_e26807f3bfa3454d',
+          modelRegistryId: 'mrg_0195f3a0000070008000bf23c2670ad5',
         );
         Workflow? updatedWorkflow;
 
@@ -129,7 +129,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(updatedWorkflow, isNotNull);
-        expect(updatedWorkflow!.modelRegistryId, 'sys_6f8b1c4a2e0d49f1');
+        expect(
+          updatedWorkflow!.modelRegistryId,
+          'mrg_0195f3a0000070008000bf23c2670ad6',
+        );
       },
     );
 
@@ -141,7 +144,7 @@ void main() {
         addTearDown(() => tester.view.resetPhysicalSize());
 
         // Boundary: unmapped / foreign registry ID not present in registered stacks
-        const unmappedId = 'sys_custom_foreign_99999999';
+        const unmappedId = 'mrg_0195f3a0000070008000999999999999';
         final workflow = createTestWorkflow(modelRegistryId: unmappedId);
 
         await tester.pumpWidget(buildTestApp(workflow, onChanged: (_) {}));
@@ -159,7 +162,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(() => tester.view.resetPhysicalSize());
 
-        const testId = 'sys_e26807f3bfa3454d';
+        const testId = 'mrg_0195f3a0000070008000bf23c2670ad5';
         final workflow = createTestWorkflow(modelRegistryId: testId);
 
         // Build with empty registry controller override
@@ -267,7 +270,8 @@ void main() {
           allowedMcpTools: ['default_mcp_gateway__mcp_tavily_search'],
         );
         const gateway = McpGateway(
-          id: 'sys_1234567890abcdef',
+          id: 'mcp_0195f3a00000700080008172bda70c86',
+          organizationId: 'org_0195f3a0000070008000000000000001',
           name: 'Default MCP Gateway',
           slug: 'default_mcp_gateway',
           tools: [
@@ -366,11 +370,15 @@ class MockEmptyModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   @override
   Future<void> deleteConfig(String id) async {}
   @override
-  Future<ModelConfig> createSystemConfigDraft() async =>
-      const ModelConfig(id: 'draft', slug: 'draft', type: 'model_registry');
+  Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
+    id: 'mrg_0195f3a0000070008000000000000091',
+    slug: 'draft',
+  );
   @override
-  Future<ModelConfig> cloneConfig(String id) async =>
-      const ModelConfig(id: 'cloned', slug: 'cloned', type: 'model_registry');
+  Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
+    id: 'mrg_0195f3a0000070008000000000000092',
+    slug: 'cloned',
+  );
 }
 
 class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
@@ -379,17 +387,15 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   Future<List<ModelConfig>> build() async {
     return const [
       ModelConfig(
-        id: 'sys_e26807f3bfa3454d',
+        id: 'mrg_0195f3a0000070008000bf23c2670ad5',
         slug: 'google-stack',
-        type: 'model_registry',
         name: 'Google Gemini Sovereign Stack',
         defaultProvider: 'google',
         tierDefinitions: {},
       ),
       ModelConfig(
-        id: 'sys_6f8b1c4a2e0d49f1',
+        id: 'mrg_0195f3a0000070008000bf23c2670ad6',
         slug: 'openai-stack',
-        type: 'model_registry',
         name: 'OpenAI O-Series Stack',
         defaultProvider: 'openai',
         tierDefinitions: {},
@@ -404,11 +410,15 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   @override
   Future<void> deleteConfig(String id) async {}
   @override
-  Future<ModelConfig> createSystemConfigDraft() async =>
-      const ModelConfig(id: 'draft', slug: 'draft', type: 'model_registry');
+  Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
+    id: 'mrg_0195f3a0000070008000000000000091',
+    slug: 'draft',
+  );
   @override
-  Future<ModelConfig> cloneConfig(String id) async =>
-      const ModelConfig(id: 'cloned', slug: 'cloned', type: 'model_registry');
+  Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
+    id: 'mrg_0195f3a0000070008000000000000092',
+    slug: 'cloned',
+  );
 }
 
 class MockOutputProfilesController extends AsyncNotifier<List<OutputProfile>>
@@ -449,12 +459,24 @@ class MockMcpGatewaysController extends AsyncNotifier<List<McpGateway>>
   @override
   Future<void> deleteGateway(String id) async {}
   @override
-  Future<McpGateway> cloneGateway(String id) async =>
-      const McpGateway(id: 'gw_cloned', name: 'Cloned Gateway', slug: 'cloned');
+  Future<McpGateway> cloneGateway(String id) async => const McpGateway(
+    id: 'mcp_0195f3a0000070008000000000000093',
+    organizationId: 'org_0195f3a0000070008000000000000001',
+    name: 'Cloned Gateway',
+    slug: 'cloned',
+  );
   @override
-  Future<McpGateway> createMcpGatewayDraft() async =>
-      const McpGateway(id: 'gw_draft', name: 'Draft Gateway', slug: 'draft');
+  Future<McpGateway> createMcpGatewayDraft() async => const McpGateway(
+    id: 'mcp_0195f3a0000070008000000000000094',
+    organizationId: 'org_0195f3a0000070008000000000000001',
+    name: 'Draft Gateway',
+    slug: 'draft',
+  );
   @override
-  Future<McpGateway> discoverTools(String id) async =>
-      McpGateway(id: id, name: 'Discovered Gateway', slug: 'discovered');
+  Future<McpGateway> discoverTools(String id) async => McpGateway(
+    id: id,
+    organizationId: 'org_0195f3a0000070008000000000000001',
+    name: 'Discovered Gateway',
+    slug: 'discovered',
+  );
 }

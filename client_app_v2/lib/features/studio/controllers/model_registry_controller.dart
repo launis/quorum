@@ -26,8 +26,7 @@ class ModelRegistryController extends _$ModelRegistryController {
 
   Future<List<ModelConfig>> _fetchConfigs() async {
     final client = ref.read(studioClientProvider);
-    final rawList = await client.getSystemConfigs();
-    return rawList.where((c) => c.type == 'model_registry').toList();
+    return await client.getSystemConfigs();
   }
 
   /// Refreshes the model registry list from the backend.

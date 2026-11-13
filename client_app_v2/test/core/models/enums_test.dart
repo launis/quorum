@@ -145,4 +145,42 @@ void main() {
       },
     );
   });
+
+  group('EntityPrefix Enum Parity', () {
+    test(
+      'exposes all 22 canonical Opaque Stripe ID prefixes including mrg, mcp, aud, and usg without retired sys',
+      () {
+        expect(EntityPrefix.values.length, 22);
+        expect(EntityPrefix.modelRegistry.backendValue, 'mrg');
+        expect(EntityPrefix.mcpGateway.backendValue, 'mcp');
+        expect(EntityPrefix.auditLog.backendValue, 'aud');
+        expect(EntityPrefix.usageRecord.backendValue, 'usg');
+        expect(EntityPrefix.organization.backendValue, 'org');
+        expect(
+          EntityPrefix.values.map((e) => e.backendValue),
+          isNot(contains('sys')),
+        );
+      },
+    );
+
+    test(
+      'EntityPrefix byName rejects retired systemConfig, duplicate org, and empty names (negative/boundary)',
+      () {
+        expect(
+          EntityPrefix.values.byName('modelRegistry'),
+          EntityPrefix.modelRegistry,
+        );
+        expect(
+          EntityPrefix.values.byName('mcpGateway'),
+          EntityPrefix.mcpGateway,
+        );
+        expect(
+          () => EntityPrefix.values.byName('systemConfig'),
+          throwsArgumentError,
+        );
+        expect(() => EntityPrefix.values.byName('org'), throwsArgumentError);
+        expect(() => EntityPrefix.values.byName(''), throwsArgumentError);
+      },
+    );
+  });
 }

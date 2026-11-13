@@ -324,16 +324,14 @@ class _TestModelRegistryController extends AsyncNotifier<List<ModelConfig>>
 
   @override
   Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
-    id: 'sys_0195f000000070008000000000000001',
+    id: 'mrg_0195f000000070008000000000000001',
     slug: 'mock_draft_slug',
-    type: 'model_registry',
   );
 
   @override
   Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
-    id: 'sys_0195f000000070008000000000000002',
+    id: 'mrg_0195f000000070008000000000000002',
     slug: 'cloned_slug',
-    type: 'model_registry',
     tierDefinitions: {},
   );
 }

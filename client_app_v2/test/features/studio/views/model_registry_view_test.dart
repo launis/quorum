@@ -30,15 +30,15 @@ void main() {
     LlmPlatform(id: 'anthropic', label: 'Anthropic', hasRegions: false),
   ];
 
-  const String kStdId = 'cfg_0195f000000070008000000000000001';
-  const String kRawId = 'cfg_0195f000000070008000000000000002';
-  const String kGemId = 'cfg_0195f000000070008000000000000003';
-  const String kDirtyId = 'cfg_0195f000000070008000000000000004';
-  const String kCloneId = 'cfg_0195f000000070008000000000000005';
-  const String kDynId = 'cfg_0195f000000070008000000000000006';
-  const String kSwitchId = 'cfg_0195f000000070008000000000000007';
-  const String kErrId = 'cfg_0195f000000070008000000000000008';
-  const String kValErrId = 'cfg_0195f000000070008000000000000009';
+  const String kStdId = 'mrg_0195f000000070008000000000000001';
+  const String kRawId = 'mrg_0195f000000070008000000000000002';
+  const String kGemId = 'mrg_0195f000000070008000000000000003';
+  const String kDirtyId = 'mrg_0195f000000070008000000000000004';
+  const String kCloneId = 'mrg_0195f000000070008000000000000005';
+  const String kDynId = 'mrg_0195f000000070008000000000000006';
+  const String kSwitchId = 'mrg_0195f000000070008000000000000007';
+  const String kErrId = 'mrg_0195f000000070008000000000000008';
+  const String kValErrId = 'mrg_0195f000000070008000000000000009';
 
   group('ModelRegistryView Desktop Pro Tool UX Tests', () {
     testWidgets(
@@ -63,7 +63,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kStdId,
                   slug: 'syscfg_123_slug',
-                  type: 'model_registry',
                   name: 'Production Sovereign Stack',
                   defaultProvider: 'openai',
                   tierDefinitions: {
@@ -156,7 +155,7 @@ void main() {
         expect(find.text('Frequency Penalty'), findsWidgets);
         expect(find.text('Presence Penalty'), findsWidgets);
         expect(find.text('Max Tokens'), findsWidgets);
-        expect(find.text('Parsing Mode'), findsWidgets);
+        expect(find.text('Parsing Mode'), findsNothing);
       },
     );
 
@@ -179,7 +178,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kRawId,
                   slug: 'syscfg_raw_slug',
-                  type: 'model_registry',
                   defaultProvider: 'vertex_ai',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
@@ -251,7 +249,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kGemId,
                   slug: 'syscfg_gemini38_slug',
-                  type: 'model_registry',
                   defaultProvider: 'ai_studio',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
@@ -305,7 +302,7 @@ void main() {
 
         // 3. Verify non-sampling controls REMAIN visible
         expect(find.text('Max Tokens'), findsWidgets);
-        expect(find.text('Parsing Mode'), findsWidgets);
+        expect(find.text('Parsing Mode'), findsNothing);
 
         // 4. Verify Location dropdown is NOT rendered for AI Studio
         expect(find.text('Location / Region'), findsNothing);
@@ -344,7 +341,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kDirtyId,
                   slug: 'syscfg_dirty_slug',
-                  type: 'model_registry',
                   name: 'Initial Pristine Stack',
                   defaultProvider: 'openai',
                   tierDefinitions: {
@@ -455,7 +451,6 @@ void main() {
               (ref) async => const ModelConfig(
                 id: kCloneId,
                 slug: 'syscfg_clone_slug',
-                type: 'model_registry',
                 name: 'Stack to Clone',
                 defaultProvider: 'openai',
                 tierDefinitions: {},
@@ -514,7 +509,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kDynId,
                   slug: 'syscfg_dynamic_slug',
-                  type: 'model_registry',
                   defaultProvider: 'vertex_ai',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
@@ -587,7 +581,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kSwitchId,
                   slug: 'syscfg_switch_slug',
-                  type: 'model_registry',
                   defaultProvider: 'ai_studio',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
@@ -665,7 +658,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kErrId,
                   slug: 'syscfg_err_slug',
-                  type: 'model_registry',
                   defaultProvider: 'vertex_ai',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
@@ -723,7 +715,6 @@ void main() {
                 (ref) async => const ModelConfig(
                   id: kValErrId,
                   slug: 'syscfg_val_err_slug',
-                  type: 'model_registry',
                   defaultProvider: 'openai',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
@@ -781,9 +772,8 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   Future<List<ModelConfig>> build() async {
     return const [
       ModelConfig(
-        id: 'cfg_0195f000000070008000000000000001',
+        id: 'mrg_0195f000000070008000000000000001',
         slug: 'syscfg_123_slug',
-        type: 'model_registry',
         name: 'Production Sovereign Stack',
         tierDefinitions: {
           'fast': LlmModelConfig(
@@ -810,9 +800,8 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   @override
   Future<ModelConfig> createSystemConfigDraft() async {
     return const ModelConfig(
-      id: 'cfg_0195f000000070008000000000000010',
+      id: 'mrg_0195f000000070008000000000000010',
       slug: 'mock_draft_slug',
-      type: 'model_registry',
     );
   }
 
@@ -821,9 +810,8 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     cloneCalled = true;
     clonedId = id;
     return const ModelConfig(
-      id: 'cfg_0195f000000070008000000000000011',
+      id: 'mrg_0195f000000070008000000000000011',
       slug: 'cloned_slug',
-      type: 'model_registry',
       name: 'Stack to Clone (Copy)',
       tierDefinitions: {},
     );

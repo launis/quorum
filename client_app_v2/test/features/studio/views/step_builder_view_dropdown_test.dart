@@ -450,9 +450,8 @@ class MockPopulatedModelRegistryController
   FutureOr<List<ModelConfig>> build() async {
     return [
       const ModelConfig(
-        id: 'sys_e26807f3bfa3454d',
+        id: 'mrg_0195f3a0000070008000bf23c2670ad5',
         slug: 'default',
-        type: 'model_registry',
         defaultProvider: 'google',
         tierDefinitions: {
           'fast': LlmModelConfig(
@@ -472,15 +471,13 @@ class MockPopulatedModelRegistryController
   Future<void> deleteConfig(String id) async {}
   @override
   Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
-    id: 'mock_draft',
+    id: 'mrg_0195f3a0000070008000000000000091',
     slug: 'mock_draft_slug',
-    type: 'model_registry',
   );
   @override
   Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
-    id: 'cloned',
+    id: 'mrg_0195f3a0000070008000000000000092',
     slug: 'cloned_slug',
-    type: 'model_registry',
     tierDefinitions: {},
   );
 }
@@ -540,15 +537,13 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   Future<void> deleteConfig(String id) async {}
   @override
   Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
-    id: 'mock_draft',
+    id: 'mrg_0195f3a0000070008000000000000091',
     slug: 'mock_draft_slug',
-    type: 'model_registry',
   );
   @override
   Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
-    id: 'cloned',
+    id: 'mrg_0195f3a0000070008000000000000092',
     slug: 'cloned_slug',
-    type: 'model_registry',
     tierDefinitions: {},
   );
 }

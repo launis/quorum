@@ -19,12 +19,11 @@ void main() {
   late MockLoggerService mockLogger;
   late ProviderContainer container;
 
-  const validConfigId = 'cfg_01965b80000070008000000000000001';
+  const validConfigId = 'mrg_01965b80000070008000000000000001';
   const validConfig = ModelConfig(
     id: validConfigId,
     name: 'Enterprise Model Registry',
     slug: 'enterprise-model-registry',
-    type: 'model_registry',
     defaultProvider: 'vertex_ai',
     tierDefinitions: {
       'tier_1': LlmModelConfig(
@@ -36,11 +35,10 @@ void main() {
     },
   );
 
-  const nonRegistryConfig = ModelConfig(
-    id: 'cfg_01965b80000070008000000000000099',
-    name: 'Other System Config',
-    slug: 'other-system-config',
-    type: 'telemetry_config',
+  const secondaryConfig = ModelConfig(
+    id: 'mrg_01965b80000070008000000000000099',
+    name: 'Secondary Model Registry',
+    slug: 'secondary-model-registry',
     defaultProvider: 'ai_studio',
   );
 
@@ -72,20 +70,20 @@ void main() {
 
   group('ModelRegistryController', () {
     test(
-      'build fetches system configs and filters strictly by type == model_registry',
+      'build fetches dedicated model registries directly from getSystemConfigs',
       () async {
         when(
           () => mockClient.getSystemConfigs(),
-        ).thenAnswer((_) async => [validConfig, nonRegistryConfig]);
+        ).thenAnswer((_) async => [validConfig, secondaryConfig]);
 
         container.read(modelRegistryControllerProvider.notifier);
         final result = await container.read(
           modelRegistryControllerProvider.future,
         );
 
-        expect(result.length, 1);
-        expect(result.single.id, validConfigId);
-        expect(result.single.type, 'model_registry');
+        expect(result.length, 2);
+        expect(result.first.id, validConfigId);
+        expect(result.last.id, secondaryConfig.id);
         verify(() => mockClient.getSystemConfigs()).called(1);
       },
     );
@@ -339,7 +337,7 @@ void main() {
     test(
       'cloneConfig appends cloned config and rolls back on failure',
       () async {
-        const clonedId = 'cfg_01965b80000070008000000000000003';
+        const clonedId = 'mrg_01965b80000070008000000000000003';
         when(
           () => mockClient.getSystemConfigs(),
         ).thenAnswer((_) async => [validConfig]);
@@ -353,7 +351,6 @@ void main() {
           id: clonedId,
           name: 'Enterprise Model Registry (Copy)',
           slug: 'enterprise-model-registry-copy',
-          type: 'model_registry',
           defaultProvider: 'vertex_ai',
         );
 
@@ -409,7 +406,7 @@ void main() {
     test(
       'createSystemConfigDraft prepends draft config and rolls back on failure',
       () async {
-        const draftId = 'cfg_01965b80000070008000000000000004';
+        const draftId = 'mrg_01965b80000070008000000000000004';
         when(
           () => mockClient.getSystemConfigs(),
         ).thenAnswer((_) async => [validConfig]);
@@ -423,7 +420,6 @@ void main() {
           id: draftId,
           name: 'Draft Model Registry',
           slug: 'draft-model-registry',
-          type: 'model_registry',
         );
 
         when(

@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/task_brief.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
@@ -127,5 +129,50 @@ void main() {
         expect(brief.id, startsWith('tbr_'));
       }
     });
+
+    test(
+      'ModelConfig.fromJson and McpGateway.fromJson extract split seed collections cleanly and reject retired STI/parsing keys',
+      () {
+        expect(seedData.containsKey('system_config'), isFalse);
+
+        final rawModelRegistries =
+            seedData['model_registries'] as List<dynamic>;
+        expect(rawModelRegistries, isNotEmpty);
+        final parsedRegistries = rawModelRegistries
+            .map((e) => ModelConfig.fromJson(e as Map<String, dynamic>))
+            .toList();
+        expect(parsedRegistries.length, rawModelRegistries.length);
+        for (final reg in parsedRegistries) {
+          expect(reg.id, startsWith('mrg_'));
+        }
+
+        final rawGateways = seedData['mcp_gateways'] as List<dynamic>;
+        expect(rawGateways, isNotEmpty);
+        final parsedGateways = rawGateways
+            .map((e) => McpGateway.fromJson(e as Map<String, dynamic>))
+            .toList();
+        expect(parsedGateways.length, rawGateways.length);
+        for (final gw in parsedGateways) {
+          expect(gw.id, startsWith('mcp_'));
+          expect(gw.organizationId, startsWith('org_'));
+        }
+
+        final tamperedRegistry = Map<String, dynamic>.from(
+          rawModelRegistries.first as Map<String, dynamic>,
+        )..['type'] = 'model_registry';
+        expect(
+          () => ModelConfig.fromJson(tamperedRegistry),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        final tamperedGateway = Map<String, dynamic>.from(
+          rawGateways.first as Map<String, dynamic>,
+        )..['type'] = 'mcp_gateways';
+        expect(
+          () => McpGateway.fromJson(tamperedGateway),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
   });
 }

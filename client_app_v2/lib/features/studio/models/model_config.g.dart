@@ -69,7 +69,6 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
         'id',
         'name',
         'slug',
-        'type',
         'default_provider',
         'tier_definitions',
       ],
@@ -84,7 +83,6 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
         (v) => v as String? ?? 'Default Model Registry',
       ),
       slug: $checkedConvert('slug', (v) => v as String?),
-      type: $checkedConvert('type', (v) => v as String? ?? 'model_registry'),
       defaultProvider: $checkedConvert(
         'default_provider',
         (v) => v as String? ?? 'ai_studio',
@@ -114,7 +112,6 @@ Map<String, dynamic> _$ModelConfigToJson(_ModelConfig instance) =>
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
       'name': instance.name,
       'slug': instance.slug,
-      'type': instance.type,
       'default_provider': instance.defaultProvider,
       'tier_definitions': instance.tierDefinitions.map(
         (k, e) => MapEntry(k, e.toJson()),
@@ -134,7 +131,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
         'model_name',
         'temperature',
         'max_tokens',
-        'parsing_mode',
         'top_p',
         'top_k',
         'frequency_penalty',
@@ -144,7 +140,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
         'supports_grounding',
         'is_active',
         'allowed_tools',
-        'api_key',
         'caching_strategy',
         'thinking_budget_tokens',
         'additional_params',
@@ -158,7 +153,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
         (v) => (v as num?)?.toDouble() ?? 0.0,
       ),
       maxTokens: $checkedConvert('max_tokens', (v) => (v as num?)?.toInt()),
-      parsingMode: $checkedConvert('parsing_mode', (v) => v as String?),
       topP: $checkedConvert('top_p', (v) => (v as num?)?.toDouble()),
       topK: $checkedConvert('top_k', (v) => (v as num?)?.toInt()),
       frequencyPenalty: $checkedConvert(
@@ -182,7 +176,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
             (v as List<dynamic>?)?.map((e) => e as String).toList() ??
             const <String>[],
       ),
-      apiKey: $checkedConvert('api_key', (v) => v as String?),
       cachingStrategy: $checkedConvert('caching_strategy', (v) => v as String?),
       thinkingBudgetTokens: $checkedConvert(
         'thinking_budget_tokens',
@@ -200,7 +193,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
   fieldKeyMap: const {
     'modelName': 'model_name',
     'maxTokens': 'max_tokens',
-    'parsingMode': 'parsing_mode',
     'topP': 'top_p',
     'topK': 'top_k',
     'frequencyPenalty': 'frequency_penalty',
@@ -210,7 +202,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
     'supportsGrounding': 'supports_grounding',
     'isActive': 'is_active',
     'allowedTools': 'allowed_tools',
-    'apiKey': 'api_key',
     'cachingStrategy': 'caching_strategy',
     'thinkingBudgetTokens': 'thinking_budget_tokens',
     'additionalParams': 'additional_params',
@@ -223,7 +214,6 @@ Map<String, dynamic> _$LlmModelConfigToJson(_LlmModelConfig instance) =>
       'model_name': instance.modelName,
       'temperature': instance.temperature,
       'max_tokens': instance.maxTokens,
-      'parsing_mode': instance.parsingMode,
       'top_p': instance.topP,
       'top_k': instance.topK,
       'frequency_penalty': instance.frequencyPenalty,
@@ -233,7 +223,6 @@ Map<String, dynamic> _$LlmModelConfigToJson(_LlmModelConfig instance) =>
       'supports_grounding': instance.supportsGrounding,
       'is_active': instance.isActive,
       'allowed_tools': instance.allowedTools,
-      'api_key': instance.apiKey,
       'caching_strategy': instance.cachingStrategy,
       'thinking_budget_tokens': instance.thinkingBudgetTokens,
       'additional_params': instance.additionalParams.toJson(),

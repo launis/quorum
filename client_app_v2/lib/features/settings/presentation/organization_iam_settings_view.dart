@@ -1669,6 +1669,23 @@ class _ByokSecretsCard extends HookConsumerWidget {
     required this.theme,
   });
 
+  static const String _rootSystemOrgId = 'org_0195f3a0000070008000000000000001';
+
+  static List<McpGateway> _visibleGatewaysForOrg(
+    List<McpGateway> gateways,
+    String orgId,
+    UserRole? role,
+  ) {
+    if (role == UserRole.root) {
+      return gateways;
+    }
+    return [
+      for (final gw in gateways)
+        if (gw.organizationId == orgId || gw.organizationId == _rootSystemOrgId)
+          gw,
+    ];
+  }
+
   static String _llmProviderBackendValue(LLMProvider provider) =>
       switch (provider) {
         LLMProvider.vertexAi => 'vertex_ai',
@@ -1706,8 +1723,7 @@ class _ByokSecretsCard extends HookConsumerWidget {
       _ => null,
     };
     final canManageTelemetry =
-        currentUser?.role == UserRole.root &&
-        orgId == 'org_0195f3a0000070008000000000000001';
+        currentUser?.role == UserRole.root && orgId == _rootSystemOrgId;
     final availableScopes = <SecretScope>[
       for (final scope in SecretScope.values)
         if (scope != SecretScope.telemetry || canManageTelemetry) scope,
@@ -1736,10 +1752,16 @@ class _ByokSecretsCard extends HookConsumerWidget {
             ? selectedTarget.value
             : _llmProviderBackendValue(LLMProvider.openai),
       SecretScope.mcpGateway => switch (gatewaysAsync) {
-        AsyncData(:final value) =>
-          value.any((gw) => gw.id == selectedTarget.value)
+        AsyncData(:final value) => () {
+          final visibleGateways = _visibleGatewaysForOrg(
+            value,
+            orgId,
+            currentUser?.role,
+          );
+          return visibleGateways.any((gw) => gw.id == selectedTarget.value)
               ? selectedTarget.value
-              : (value.isNotEmpty ? value.first.id : null),
+              : (visibleGateways.isNotEmpty ? visibleGateways.first.id : null);
+        }(),
         _ => null,
       },
       SecretScope.telemetry =>
@@ -1824,8 +1846,16 @@ class _ByokSecretsCard extends HookConsumerWidget {
                             );
                           case SecretScope.mcpGateway:
                             selectedTarget.value = switch (gatewaysAsync) {
-                              AsyncData(:final value) when value.isNotEmpty =>
-                                value.first.id,
+                              AsyncData(:final value) => () {
+                                final visibleGateways = _visibleGatewaysForOrg(
+                                  value,
+                                  orgId,
+                                  currentUser?.role,
+                                );
+                                return visibleGateways.isNotEmpty
+                                    ? visibleGateways.first.id
+                                    : null;
+                              }(),
                               _ => null,
                             };
                           case SecretScope.telemetry:
@@ -1901,29 +1931,36 @@ class _ByokSecretsCard extends HookConsumerWidget {
                     stackTrace: stackTrace,
                     compact: true,
                   ),
-                  AsyncData(:final value) => DropdownButtonFormField<String>(
-                    key: const ValueKey<String>('org_secret_target_dropdown'),
-                    isExpanded: true,
-                    initialValue: effectiveTarget,
-                    decoration: InputDecoration(
-                      labelText: l10n.orgSecretTargetIdentifierLabel,
-                      prefixIcon: const Icon(Icons.hub_outlined),
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: [
-                      for (final gw in value)
-                        DropdownMenuItem<String>(
-                          value: gw.id,
-                          child: Text(
-                            '${gw.name} (${gw.id})',
-                            overflow: TextOverflow.ellipsis,
+                  AsyncData(:final value) => () {
+                    final visibleGateways = _visibleGatewaysForOrg(
+                      value,
+                      orgId,
+                      currentUser?.role,
+                    );
+                    return DropdownButtonFormField<String>(
+                      key: const ValueKey<String>('org_secret_target_dropdown'),
+                      isExpanded: true,
+                      initialValue: effectiveTarget,
+                      decoration: InputDecoration(
+                        labelText: l10n.orgSecretTargetIdentifierLabel,
+                        prefixIcon: const Icon(Icons.hub_outlined),
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: [
+                        for (final gw in visibleGateways)
+                          DropdownMenuItem<String>(
+                            value: gw.id,
+                            child: Text(
+                              '${gw.name} (${gw.id})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                    ],
-                    onChanged: (val) {
-                      selectedTarget.value = val;
-                    },
-                  ),
+                      ],
+                      onChanged: (val) {
+                        selectedTarget.value = val;
+                      },
+                    );
+                  }(),
                 },
               ),
               SecretScope.telemetry => KeyedSubtree(

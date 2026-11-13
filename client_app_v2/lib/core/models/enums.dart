@@ -736,4 +736,56 @@ enum SecretStorageMode {
   final String backendValue;
 }
 
+/// Canonical Opaque Stripe ID prefix taxonomy matching `backend_v2/models/enums.py`.
+@JsonEnum()
+enum EntityPrefix {
+  @JsonValue('wf')
+  workflow('wf'),
+  @JsonValue('stp')
+  step('stp'),
+  @JsonValue('sr')
+  stepReference('sr'),
+  @JsonValue('prf')
+  outputProfile('prf'),
+  @JsonValue('grp')
+  synthesisGroup('grp'),
+  @JsonValue('blk')
+  promptBlock('blk'),
+  @JsonValue('tbr')
+  taskBrief('tbr'),
+  @JsonValue('mrg')
+  modelRegistry('mrg'),
+  @JsonValue('mcp')
+  mcpGateway('mcp'),
+  @JsonValue('exe')
+  execution('exe'),
+  @JsonValue('usr')
+  user('usr'),
+  @JsonValue('org')
+  organization('org'),
+  @JsonValue('inv')
+  invitation('inv'),
+  @JsonValue('sec')
+  tenantSecret('sec'),
+  @JsonValue('tsk')
+  assignment('tsk'),
+  @JsonValue('tda')
+  tda('tda'),
+  @JsonValue('rep')
+  report('rep'),
+  @JsonValue('aud')
+  auditLog('aud'),
+  @JsonValue('usg')
+  usageRecord('usg'),
+  @JsonValue('nod')
+  node('nod'),
+  @JsonValue('edg')
+  edge('edg'),
+  @JsonValue('sc')
+  scale('sc');
+
+  const EntityPrefix(this.backendValue);
+  final String backendValue;
+}
+
 // End of enums.dart

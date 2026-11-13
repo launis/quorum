@@ -26,9 +26,9 @@ void main() {
   );
 
   const validGateway = McpGateway(
-    id: 'mcp_0123456789abcdef',
+    id: 'mcp_0195f3a00000700080008172bda70c86',
+    organizationId: 'org_0195f3a0000070008000000000000001',
     name: 'Default MCP Gateway',
-    type: 'mcp_gateways',
     slug: 'default-mcp',
     tools: [validTool],
   );
@@ -64,7 +64,7 @@ void main() {
       final result = await container.read(mcpGatewaysControllerProvider.future);
 
       expect(result.length, 1);
-      expect(result.first.id, 'mcp_0123456789abcdef');
+      expect(result.first.id, 'mcp_0195f3a00000700080008172bda70c86');
       verify(() => mockClient.getMcpGateways()).called(1);
     });
 
@@ -112,7 +112,8 @@ void main() {
           () => mockClient.getMcpGateways(),
         ).thenAnswer((_) async => [validGateway]);
         when(
-          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+          () =>
+              mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
         ).thenAnswer((_) async => validGateway);
 
         final controller = container.read(
@@ -120,19 +121,23 @@ void main() {
         );
         await container.read(mcpGatewaysControllerProvider.future);
         await container.read(
-          mcpGatewayByIdProvider('mcp_0123456789abcdef').future,
+          mcpGatewayByIdProvider('mcp_0195f3a00000700080008172bda70c86').future,
         );
 
         final modifiedGateway = validGateway.copyWith(slug: 'saved-slug');
         when(
-          () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+          () => mockClient.saveMcpGateway(
+            'mcp_0195f3a00000700080008172bda70c86',
+            any(),
+          ),
         ).thenAnswer((_) async => modifiedGateway);
         when(
-          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+          () =>
+              mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
         ).thenAnswer((_) async => modifiedGateway);
 
         final result = await controller.saveGateway(
-          'mcp_0123456789abcdef',
+          'mcp_0195f3a00000700080008172bda70c86',
           modifiedGateway,
         );
 
@@ -142,11 +147,14 @@ void main() {
           'saved-slug',
         );
         final refreshedById = await container.read(
-          mcpGatewayByIdProvider('mcp_0123456789abcdef').future,
+          mcpGatewayByIdProvider('mcp_0195f3a00000700080008172bda70c86').future,
         );
         expect(refreshedById.slug, 'saved-slug');
         verify(
-          () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+          () => mockClient.saveMcpGateway(
+            'mcp_0195f3a00000700080008172bda70c86',
+            any(),
+          ),
         ).called(1);
       },
     );
@@ -169,12 +177,18 @@ void main() {
         );
 
         when(
-          () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+          () => mockClient.saveMcpGateway(
+            'mcp_0195f3a00000700080008172bda70c86',
+            any(),
+          ),
         ).thenThrow(dioError);
 
         final modified = validGateway.copyWith(slug: 'failing-slug');
         expect(
-          () => controller.saveGateway('mcp_0123456789abcdef', modified),
+          () => controller.saveGateway(
+            'mcp_0195f3a00000700080008172bda70c86',
+            modified,
+          ),
           throwsA(isA<AppException>()),
         );
 
@@ -207,10 +221,12 @@ void main() {
         await container.read(mcpGatewaysControllerProvider.future);
 
         when(
-          () => mockClient.deleteMcpGateway('mcp_0123456789abcdef'),
+          () => mockClient.deleteMcpGateway(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ),
         ).thenAnswer((_) async {});
 
-        await controller.deleteGateway('mcp_0123456789abcdef');
+        await controller.deleteGateway('mcp_0195f3a00000700080008172bda70c86');
         expect(container.read(mcpGatewaysControllerProvider).value, isEmpty);
 
         // Negative: delete failure
@@ -246,19 +262,22 @@ void main() {
       await container.read(mcpGatewaysControllerProvider.future);
 
       const cloned = McpGateway(
-        id: 'mcp_cloned12345678',
+        id: 'mcp_0195f3a00000700080008172bda70c87',
+        organizationId: 'org_0195f3a0000070008000000000000001',
         name: 'Default MCP Gateway (Copy)',
-        type: 'mcp_gateways',
         slug: 'default-mcp-copy',
         tools: [validTool],
       );
 
       when(
-        () => mockClient.cloneMcpGateway('mcp_0123456789abcdef'),
+        () =>
+            mockClient.cloneMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
       ).thenAnswer((_) async => cloned);
 
-      final result = await controller.cloneGateway('mcp_0123456789abcdef');
-      expect(result.id, 'mcp_cloned12345678');
+      final result = await controller.cloneGateway(
+        'mcp_0195f3a00000700080008172bda70c86',
+      );
+      expect(result.id, 'mcp_0195f3a00000700080008172bda70c87');
       expect(container.read(mcpGatewaysControllerProvider).value?.length, 2);
 
       // Negative: clone failure rolls back and throws
@@ -288,9 +307,9 @@ void main() {
       await container.read(mcpGatewaysControllerProvider.future);
 
       const draft = McpGateway(
-        id: 'mcp_draft123456789',
+        id: 'mcp_0195f3a00000700080008172bda70c88',
+        organizationId: 'org_0195f3a0000070008000000000000001',
         name: 'New MCP Gateway Draft',
-        type: 'mcp_gateways',
         slug: 'draft-gateway',
         tools: [],
       );
@@ -300,10 +319,10 @@ void main() {
       ).thenAnswer((_) async => draft);
 
       final result = await controller.createMcpGatewayDraft();
-      expect(result.id, 'mcp_draft123456789');
+      expect(result.id, 'mcp_0195f3a00000700080008172bda70c88');
       expect(
         container.read(mcpGatewaysControllerProvider).value?.first.id,
-        'mcp_draft123456789',
+        'mcp_0195f3a00000700080008172bda70c88',
       );
 
       // Negative: create draft failure rolls back and throws
@@ -346,13 +365,18 @@ void main() {
         );
 
         when(
-          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+          () => mockClient.discoverMcpGatewayTools(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ),
         ).thenAnswer((_) async => discoveredGateway);
         when(
-          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+          () =>
+              mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
         ).thenAnswer((_) async => discoveredGateway);
 
-        final result = await controller.discoverTools('mcp_0123456789abcdef');
+        final result = await controller.discoverTools(
+          'mcp_0195f3a00000700080008172bda70c86',
+        );
         expect(result.tools.length, 2);
         expect(
           container
@@ -367,26 +391,33 @@ void main() {
         // Negative 1: DioException with AppException rolls back and rethrows AppException
         final dioError = DioException(
           requestOptions: RequestOptions(
-            path: '/api/studio/mcp-gateways/mcp_0123456789abcdef/discover',
+            path:
+                '/api/studio/mcp-gateways/mcp_0195f3a00000700080008172bda70c86/discover',
           ),
           error: AppException.network('SSRF blocked private IP'),
         );
         when(
-          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+          () => mockClient.discoverMcpGatewayTools(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ),
         ).thenThrow(dioError);
 
         await expectLater(
-          () => controller.discoverTools('mcp_0123456789abcdef'),
+          () =>
+              controller.discoverTools('mcp_0195f3a00000700080008172bda70c86'),
           throwsA(isA<AppException>()),
         );
 
         // Negative 2: Generic exception throws AppException
         when(
-          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+          () => mockClient.discoverMcpGatewayTools(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ),
         ).thenThrow(Exception('Unexpected socket close'));
 
         await expectLater(
-          () => controller.discoverTools('mcp_0123456789abcdef'),
+          () =>
+              controller.discoverTools('mcp_0195f3a00000700080008172bda70c86'),
           throwsA(isA<AppException>()),
         );
         verify(
@@ -404,14 +435,16 @@ void main() {
   group('mcpGatewayByIdProvider', () {
     test('fetches single gateway by ID', () async {
       when(
-        () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+        () => mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
       ).thenAnswer((_) async => validGateway);
 
       final result = await container.read(
-        mcpGatewayByIdProvider('mcp_0123456789abcdef').future,
+        mcpGatewayByIdProvider('mcp_0195f3a00000700080008172bda70c86').future,
       );
-      expect(result.id, 'mcp_0123456789abcdef');
-      verify(() => mockClient.getMcpGateway('mcp_0123456789abcdef')).called(1);
+      expect(result.id, 'mcp_0195f3a00000700080008172bda70c86');
+      verify(
+        () => mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
+      ).called(1);
     });
   });
 
@@ -420,19 +453,24 @@ void main() {
       'addTool, removeTool, and forceRebuild mutate form state correctly',
       () async {
         when(
-          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+          () =>
+              mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
         ).thenAnswer((_) async => validGateway);
 
         final formNotifier = container.read(
-          mcpGatewayFormProvider('mcp_0123456789abcdef').notifier,
+          mcpGatewayFormProvider(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ).notifier,
         );
         await container.read(
-          mcpGatewayFormProvider('mcp_0123456789abcdef').future,
+          mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86').future,
         );
 
         expect(
           container
-              .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+              .read(
+                mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
+              )
               .value
               ?.tools
               .length,
@@ -442,7 +480,9 @@ void main() {
         // Add tool verifies English-only default I18nText without hardcoded Finnish
         formNotifier.addTool();
         final addedTools = container
-            .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+            .read(
+              mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
+            )
             .value
             ?.tools;
         expect(addedTools?.length, 2);
@@ -453,7 +493,9 @@ void main() {
         formNotifier.removeTool(1);
         expect(
           container
-              .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+              .read(
+                mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
+              )
               .value
               ?.tools
               .length,
@@ -462,16 +504,18 @@ void main() {
 
         // Force rebuild
         const modified = McpGateway(
-          id: 'mcp_0123456789abcdef',
+          id: 'mcp_0195f3a00000700080008172bda70c86',
+          organizationId: 'org_0195f3a0000070008000000000000001',
           name: 'Rebuilt MCP Gateway',
-          type: 'mcp_gateways',
           slug: 'rebuilt-gateway',
           tools: [],
         );
         formNotifier.forceRebuild(modified);
         expect(
           container
-              .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+              .read(
+                mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
+              )
               .value
               ?.slug,
           'rebuilt-gateway',
@@ -481,30 +525,35 @@ void main() {
 
     test('submit calls saveGateway and updates form state', () async {
       when(
-        () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+        () => mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
       ).thenAnswer((_) async => validGateway);
       when(
         () => mockClient.getMcpGateways(),
       ).thenAnswer((_) async => [validGateway]);
       when(
-        () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+        () => mockClient.saveMcpGateway(
+          'mcp_0195f3a00000700080008172bda70c86',
+          any(),
+        ),
       ).thenAnswer((_) async => validGateway);
 
       final formNotifier = container.read(
-        mcpGatewayFormProvider('mcp_0123456789abcdef').notifier,
+        mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86').notifier,
       );
       await container.read(
-        mcpGatewayFormProvider('mcp_0123456789abcdef').future,
+        mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86').future,
       );
 
       await formNotifier.submit(validGateway);
 
       expect(
         container
-            .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+            .read(
+              mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
+            )
             .value
             ?.id,
-        'mcp_0123456789abcdef',
+        'mcp_0195f3a00000700080008172bda70c86',
       );
 
       // Verify submit retains previous form value across error transition
@@ -513,7 +562,10 @@ void main() {
         error: AppException.network('Save failed'),
       );
       when(
-        () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+        () => mockClient.saveMcpGateway(
+          'mcp_0195f3a00000700080008172bda70c86',
+          any(),
+        ),
       ).thenThrow(dioSaveErr);
 
       final editedGateway = validGateway.copyWith(slug: 'unsaved-edit');
@@ -522,7 +574,7 @@ void main() {
         throwsA(isA<AppException>()),
       );
       final errFormState = container.read(
-        mcpGatewayFormProvider('mcp_0123456789abcdef'),
+        mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
       );
       expect(errFormState.hasError, isTrue);
       expect(errFormState.hasValue, isTrue);
@@ -546,13 +598,17 @@ void main() {
       'discoverTools saves gateway then triggers discovery and propagates errors unconditionally',
       () async {
         when(
-          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+          () =>
+              mockClient.getMcpGateway('mcp_0195f3a00000700080008172bda70c86'),
         ).thenAnswer((_) async => validGateway);
         when(
           () => mockClient.getMcpGateways(),
         ).thenAnswer((_) async => [validGateway]);
         when(
-          () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+          () => mockClient.saveMcpGateway(
+            'mcp_0195f3a00000700080008172bda70c86',
+            any(),
+          ),
         ).thenAnswer((_) async => validGateway);
 
         const discoveredTool = AllowedMcpTool(
@@ -565,14 +621,18 @@ void main() {
           tools: [discoveredTool],
         );
         when(
-          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+          () => mockClient.discoverMcpGatewayTools(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ),
         ).thenAnswer((_) async => discoveredGateway);
 
         final formNotifier = container.read(
-          mcpGatewayFormProvider('mcp_0123456789abcdef').notifier,
+          mcpGatewayFormProvider(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ).notifier,
         );
         await container.read(
-          mcpGatewayFormProvider('mcp_0123456789abcdef').future,
+          mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86').future,
         );
 
         await formNotifier.discoverTools(
@@ -580,13 +640,17 @@ void main() {
         );
 
         final updatedFormValue = container
-            .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+            .read(
+              mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
+            )
             .value;
         expect(updatedFormValue?.tools.first.toolId, 'mcp_tavily_search');
 
         // Negative 1: discovery error propagates unconditionally via throw state.error!
         when(
-          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+          () => mockClient.discoverMcpGatewayTools(
+            'mcp_0195f3a00000700080008172bda70c86',
+          ),
         ).thenThrow(AppException.network('Discovery endpoint unreachable'));
 
         await expectLater(
@@ -594,11 +658,14 @@ void main() {
           throwsA(isA<AppException>()),
         );
         final failedDiscoveryState = container.read(
-          mcpGatewayFormProvider('mcp_0123456789abcdef'),
+          mcpGatewayFormProvider('mcp_0195f3a00000700080008172bda70c86'),
         );
         expect(failedDiscoveryState.hasError, isTrue);
         expect(failedDiscoveryState.hasValue, isTrue);
-        expect(failedDiscoveryState.value?.id, 'mcp_0123456789abcdef');
+        expect(
+          failedDiscoveryState.value?.id,
+          'mcp_0195f3a00000700080008172bda70c86',
+        );
 
         // Negative 2: uninitialized gateway state without explicit payload throws validation error
         final pendingCompleter = Completer<McpGateway>();

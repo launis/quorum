@@ -31,16 +31,14 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
 
   @override
   Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
-    id: 'sys_draft12345678',
+    id: 'mrg_0195f3a0000070008000000000000091',
     slug: 'draft',
-    type: 'model_registry',
   );
 
   @override
   Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
-    id: 'sys_cloned123456',
+    id: 'mrg_0195f3a0000070008000000000000092',
     slug: 'cloned',
-    type: 'model_registry',
   );
 
   @override
@@ -120,10 +118,9 @@ void main() {
 
         final mockConfigs = [
           const ModelConfig(
-            id: 'sys_e26807f3bfa3454d',
+            id: 'mrg_0195f3a0000070008000bf23c2670ad5',
             name: 'Google Gemini Sovereign Stack',
             slug: 'gemini-stack',
-            type: 'model_registry',
             defaultProvider: 'google',
             tierDefinitions: {
               'fast': LlmModelConfig(
@@ -145,10 +142,9 @@ void main() {
             },
           ),
           const ModelConfig(
-            id: 'sys_6f8b1c4a2e0d49f1',
+            id: 'mrg_0195f3a0000070008000bf23c2670ad6',
             name: 'OpenAI O-Series Stack',
             slug: 'openai-stack',
-            type: 'model_registry',
             defaultProvider: 'openai',
             tierDefinitions: {
               'fast': LlmModelConfig(provider: 'openai', modelName: 'gpt-5.1'),
@@ -182,12 +178,12 @@ void main() {
 
         final mockConfigs = [
           const ModelConfig(
-            id: 'sys_e26807f3bfa3454d',
+            id: 'mrg_0195f3a0000070008000bf23c2670ad5',
             name: 'Google Gemini Sovereign Stack',
             defaultProvider: 'google',
           ),
           const ModelConfig(
-            id: 'sys_6f8b1c4a2e0d49f1',
+            id: 'mrg_0195f3a0000070008000bf23c2670ad6',
             name: 'OpenAI O-Series Stack',
             defaultProvider: 'openai',
           ),
@@ -225,7 +221,7 @@ void main() {
 
       final mockConfigs = [
         const ModelConfig(
-          id: 'sys_e26807f3bfa3454d',
+          id: 'mrg_0195f3a0000070008000bf23c2670ad5',
           name: 'Google Gemini Sovereign Stack',
         ),
       ];

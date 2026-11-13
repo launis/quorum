@@ -266,10 +266,16 @@ class _FakeStudioClient implements StudioClient {
   _FakeStudioClient({
     this.gateways = const <McpGateway>[
       McpGateway(
-        id: 'sys_0195f3a00000700080008172bda70c86',
+        id: 'mcp_0195f3a00000700080008172bda70c86',
+        organizationId: 'org_0195f3a0000070008000000000000001',
         name: 'Tavily MCP Gateway',
         slug: 'default_mcp_gateway',
-        type: 'mcp_gateways',
+      ),
+      McpGateway(
+        id: 'mcp_0195f3a00000700080008172bda70c99',
+        organizationId: _FakeUserRepository.secondaryOrgId,
+        name: 'Foreign Partner Gateway',
+        slug: 'foreign_partner_gateway',
       ),
     ],
     List<TaskBrief>? taskBriefs,
@@ -279,7 +285,7 @@ class _FakeStudioClient implements StudioClient {
          workflows ??
              const <Workflow>[
                Workflow(
-                 id: 'wor_01960000000070008000000000000010',
+                 id: 'wf_01960000000070008000000000000010',
                  slug: 'leadership_workflow',
                  name: I18nText(
                    translations: {
@@ -293,7 +299,7 @@ class _FakeStudioClient implements StudioClient {
                      'fi': 'Arvioi johtamistapaus',
                    },
                  ),
-                 modelRegistryId: 'sys_01960000000070008000000000000090',
+                 modelRegistryId: 'mrg_01960000000070008000000000000090',
                  expectedInputs: [
                    ExpectedInput(
                      inputKey: 'candidate_response',
@@ -1007,12 +1013,18 @@ void main() {
         await tester.tap(find.text(SecretScope.mcpGateway.name).last);
         await tester.pumpAndSettle();
 
-        // Verify MCP gateway dropdown displays '${gw.name} (${gw.id})' and never gw.slug
+        // Verify MCP gateway dropdown displays '${gw.name} (${gw.id})', hides foreign-tenant gateways, and never exposes gw.slug
         expect(
           find.text(
-            'Tavily MCP Gateway (sys_0195f3a00000700080008172bda70c86)',
+            'Tavily MCP Gateway (mcp_0195f3a00000700080008172bda70c86)',
           ),
           findsWidgets,
+        );
+        expect(
+          find.text(
+            'Foreign Partner Gateway (mcp_0195f3a00000700080008172bda70c99)',
+          ),
+          findsNothing,
         );
 
         // Switch storage mode to Cloud Secret Manager
@@ -1041,7 +1053,7 @@ void main() {
         expect(userRepo.lastSavedSecret!.scope, equals(SecretScope.mcpGateway));
         expect(
           userRepo.lastSavedSecret!.targetIdentifier,
-          equals('sys_0195f3a00000700080008172bda70c86'),
+          equals('mcp_0195f3a00000700080008172bda70c86'),
         );
         expect(
           userRepo.lastSavedSecret!.storageMode,
@@ -1115,7 +1127,7 @@ void main() {
             id: 'sec_01960000000070008000000000000003',
             organizationId: _FakeUserRepository.primaryOrgId,
             scope: SecretScope.mcpGateway,
-            targetIdentifier: 'sys_0195f3a00000700080008172bda70c86',
+            targetIdentifier: 'mcp_0195f3a00000700080008172bda70c86',
             storageMode: SecretStorageMode.cloudSecretManager,
             configured: true,
             maskedHint: '****v1',
@@ -1139,7 +1151,7 @@ void main() {
         // Saved MCP gateway secret displays human-readable gateway name + ID and scope/storageMode badges
         expect(
           find.text(
-            'Tavily MCP Gateway (sys_0195f3a00000700080008172bda70c86)',
+            'Tavily MCP Gateway (mcp_0195f3a00000700080008172bda70c86)',
           ),
           findsOneWidget,
         );

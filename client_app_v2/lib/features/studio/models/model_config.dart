@@ -32,7 +32,6 @@ abstract class ModelConfig with _$ModelConfig {
     @StrictOpaqueIdConverter() required String id,
     @Default('Default Model Registry') String name,
     String? slug,
-    @Default('model_registry') String type,
     @JsonKey(name: 'default_provider')
     @Default('ai_studio')
     String defaultProvider,
@@ -56,7 +55,6 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'model_name') @Default('') String modelName,
     @Default(0.0) double temperature,
     @JsonKey(name: 'max_tokens') int? maxTokens,
-    @JsonKey(name: 'parsing_mode') String? parsingMode,
     @JsonKey(name: 'top_p') double? topP,
     @JsonKey(name: 'top_k') int? topK,
     @JsonKey(name: 'frequency_penalty') double? frequencyPenalty,
@@ -68,7 +66,6 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'allowed_tools')
     @Default(<String>[])
     List<String> allowedTools,
-    @JsonKey(name: 'api_key') String? apiKey,
     @JsonKey(name: 'caching_strategy') String? cachingStrategy,
     @JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,
     @JsonKey(name: 'additional_params')

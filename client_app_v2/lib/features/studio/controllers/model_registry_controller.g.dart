@@ -40,7 +40,7 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'8ad97f1427c87d65d50b9c2c5f22060749515bc8';
+    r'e529c75967eca9c29163e0b628b34c007936d7af';
 
 /// Controller managing the Model Registry strictly using immutable [ModelConfig] models.
 /// Implements optimistic UI updates with automatic state rollback on failure.

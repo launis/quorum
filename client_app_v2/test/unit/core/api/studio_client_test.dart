@@ -30,7 +30,7 @@ void main() {
     const testBlockId = 'blk_0195f3a0000070008000000000000001';
     const testWorkflowId = 'wf_0195f3a0000070008000000000000002';
     const testStepId = 'stp_0195f3a0000070008000000000000003';
-    const testRegistryId = 'reg_0195f3a0000070008000000000000004';
+    const testRegistryId = 'mrg_0195f3a0000070008000000000000004';
     const testGatewayId = 'mcp_0195f3a0000070008000000000000005';
     const testProfileId = 'op_0195f3a0000070008000000000000006';
     const testTaskBriefId = 'tbr_0195f3a00000700d8a1b2c3d4e5f6001';
@@ -96,15 +96,14 @@ void main() {
     final validConfigJson = <String, Object?>{
       'id': testRegistryId,
       'name': 'Default Model Registry',
-      'type': 'model_registry',
       'default_provider': 'ai_studio',
       'tier_definitions': <String, Object?>{},
     };
 
     final validGatewayJson = <String, Object?>{
       'id': testGatewayId,
+      'organization_id': 'org_0195f3a0000070008000000000000001',
       'name': 'Default MCP Gateway',
-      'type': 'mcp_gateways',
       'slug': 'default_mcp_gateway',
       'endpoint_url': 'https://mcp.example.com/v1',
       'transport_type': 'streamable_http',

@@ -8,10 +8,9 @@ void main() {
       'Positive: Parses complete Option A ModelConfig with 4 canonical tiers',
       () {
         final payload = {
-          'id': 'sys_0195f3a0000070008000000000000001',
+          'id': 'mrg_0195f3a0000070008000000000000001',
           'name': 'Google Gemini Sovereign Stack',
           'slug': 'gemini-stack',
-          'type': 'model_registry',
           'default_provider': 'google',
           'tier_definitions': {
             'fast': {
@@ -42,7 +41,7 @@ void main() {
         };
 
         final config = ModelConfig.fromJson(payload);
-        expect(config.id, 'sys_0195f3a0000070008000000000000001');
+        expect(config.id, 'mrg_0195f3a0000070008000000000000001');
         expect(config.name, 'Google Gemini Sovereign Stack');
         expect(config.defaultProvider, 'google');
         expect(config.tierDefinitions.length, 4);
@@ -55,7 +54,6 @@ void main() {
     test('Negative 1: Throws CheckedFromJsonException when id is missing', () {
       final payload = {
         'name': 'Invalid Stack',
-        'type': 'model_registry',
         'tier_definitions': <String, dynamic>{},
       };
 
@@ -66,11 +64,10 @@ void main() {
     });
 
     test(
-      'Negative 2: Throws CheckedFromJsonException on unrecognized key in ModelConfig',
+      'Negative 2: Throws CheckedFromJsonException on unrecognized key or retired STI type in ModelConfig',
       () {
         final payload = {
-          'id': 'sys_0195f3a0000070008000000000000002',
-          'type': 'model_registry',
+          'id': 'mrg_0195f3a0000070008000000000000002',
           'unrecognized_extra_key': 'illegal',
           'tier_definitions': <String, dynamic>{},
         };
@@ -79,15 +76,25 @@ void main() {
           () => ModelConfig.fromJson(payload),
           throwsA(isA<CheckedFromJsonException>()),
         );
+
+        final retiredStiPayload = {
+          'id': 'mrg_0195f3a0000070008000000000000002',
+          'type': 'model_registry',
+          'tier_definitions': <String, dynamic>{},
+        };
+
+        expect(
+          () => ModelConfig.fromJson(retiredStiPayload),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
       },
     );
 
     test(
-      'Negative 3: Throws CheckedFromJsonException on unrecognized key in LlmModelConfig',
+      'Negative 3: Throws CheckedFromJsonException on unrecognized key or retired parsing_mode/api_key in LlmModelConfig',
       () {
         final payload = {
-          'id': 'sys_0195f3a0000070008000000000000002',
-          'type': 'model_registry',
+          'id': 'mrg_0195f3a0000070008000000000000002',
           'tier_definitions': {
             'fast': {
               'provider': 'google',
@@ -101,6 +108,38 @@ void main() {
           () => ModelConfig.fromJson(payload),
           throwsA(isA<CheckedFromJsonException>()),
         );
+
+        final retiredParsingModePayload = {
+          'id': 'mrg_0195f3a0000070008000000000000002',
+          'tier_definitions': {
+            'fast': {
+              'provider': 'google',
+              'model_name': 'gemini-3.8-flash',
+              'parsing_mode': 'STRUCTURED_JSON',
+            },
+          },
+        };
+
+        expect(
+          () => ModelConfig.fromJson(retiredParsingModePayload),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+
+        final retiredApiKeyPayload = {
+          'id': 'mrg_0195f3a0000070008000000000000002',
+          'tier_definitions': {
+            'fast': {
+              'provider': 'google',
+              'model_name': 'gemini-3.8-flash',
+              'api_key': 'env_placeholder',
+            },
+          },
+        };
+
+        expect(
+          () => ModelConfig.fromJson(retiredApiKeyPayload),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
       },
     );
 
@@ -108,8 +147,7 @@ void main() {
       'Negative 4: Throws CheckedFromJsonException when numeric field receives invalid type',
       () {
         final payload = {
-          'id': 'sys_0195f3a0000070008000000000000002',
-          'type': 'model_registry',
+          'id': 'mrg_0195f3a0000070008000000000000002',
           'tier_definitions': {
             'fast': {
               'provider': 'google',
@@ -130,8 +168,7 @@ void main() {
       'Positive 2: Parses reasoning_effort from additional_params and exposes via getter',
       () {
         final payload = {
-          'id': 'sys_0195f3a0000070008000000000000002',
-          'type': 'model_registry',
+          'id': 'mrg_0195f3a0000070008000000000000002',
           'tier_definitions': {
             'reasoning': {
               'provider': 'openai',
@@ -171,8 +208,7 @@ void main() {
       'Negative 5: Throws CheckedFromJsonException when reasoning_effort is provided at root level',
       () {
         final payload = {
-          'id': 'sys_0195f3a0000070008000000000000002',
-          'type': 'model_registry',
+          'id': 'mrg_0195f3a0000070008000000000000002',
           'tier_definitions': {
             'reasoning': {
               'provider': 'openai',

@@ -396,12 +396,6 @@ class ModelRegistryView extends HookConsumerWidget {
               AppSpacing.h12,
               _buildLocationDropdown(context, ref, l10n, data),
             ],
-            AppSpacing.h12,
-            TextFormField(
-              initialValue: data.type,
-              decoration: InputDecoration(labelText: l10n.configTypeLabel),
-              readOnly: true,
-            ),
           ],
         ),
       ),
@@ -848,62 +842,12 @@ class ModelRegistryView extends HookConsumerWidget {
                     ),
                   ],
                   AppSpacing.h12,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildIntField(
-                          ValueKey('${tierKey}_max_tokens'),
-                          cfg.maxTokens,
-                          l10n.maxTokensLabel,
-                          l10n,
-                          (val) =>
-                              updateTier(tierKey, cfg.copyWith(maxTokens: val)),
-                        ),
-                      ),
-                      AppSpacing.w12,
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: cfg.parsingMode,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: l10n.parsingModeLabel,
-                            border: const OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          items: [
-                            DropdownMenuItem(
-                              value: 'AUTO',
-                              child: Text(
-                                l10n.presetAutomatic,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'NONE',
-                              child: Text(
-                                l10n.studioViewsNone,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'STRUCTURED_JSON',
-                              child: Text(
-                                l10n.workflowTypeJson,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              updateTier(
-                                tierKey,
-                                cfg.copyWith(parsingMode: val),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ],
+                  _buildIntField(
+                    ValueKey('${tierKey}_max_tokens'),
+                    cfg.maxTokens,
+                    l10n.maxTokensLabel,
+                    l10n,
+                    (val) => updateTier(tierKey, cfg.copyWith(maxTokens: val)),
                   ),
                   _buildBoolField(
                     cfg.supportsGrounding,

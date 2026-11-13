@@ -362,8 +362,8 @@ _McpGateway _$McpGatewayFromJson(Map<String, dynamic> json) => $checkedCreate(
       json,
       allowedKeys: const [
         'id',
+        'organization_id',
         'name',
-        'type',
         'slug',
         'endpoint_url',
         'transport_type',
@@ -379,8 +379,11 @@ _McpGateway _$McpGatewayFromJson(Map<String, dynamic> json) => $checkedCreate(
         'id',
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       name: $checkedConvert('name', (v) => v as String),
-      type: $checkedConvert('type', (v) => v as String? ?? 'mcp_gateways'),
       slug: $checkedConvert(
         'slug',
         (v) => v as String? ?? 'default_mcp_gateway',
@@ -414,6 +417,7 @@ _McpGateway _$McpGatewayFromJson(Map<String, dynamic> json) => $checkedCreate(
     return val;
   },
   fieldKeyMap: const {
+    'organizationId': 'organization_id',
     'endpointUrl': 'endpoint_url',
     'transportType': 'transport_type',
     'authType': 'auth_type',
@@ -426,8 +430,10 @@ _McpGateway _$McpGatewayFromJson(Map<String, dynamic> json) => $checkedCreate(
 Map<String, dynamic> _$McpGatewayToJson(_McpGateway instance) =>
     <String, dynamic>{
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
+      'organization_id': const StrictOpaqueIdConverter().toJson(
+        instance.organizationId,
+      ),
       'name': instance.name,
-      'type': instance.type,
       'slug': instance.slug,
       'endpoint_url': instance.endpointUrl,
       'transport_type': _$McpTransportTypeEnumMap[instance.transportType]!,

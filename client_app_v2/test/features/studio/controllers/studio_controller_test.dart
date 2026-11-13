@@ -40,10 +40,9 @@ void main() {
   );
 
   final validConfig = const ModelConfig(
-    id: 'cfg_0123456789abcdef',
+    id: 'mrg_0195f3a0000070008000bf23c2670ad5',
     name: 'Test Registry',
     slug: 'test-registry',
-    type: 'model_registry',
     defaultProvider: 'ai_studio',
   );
 
@@ -294,14 +293,14 @@ void main() {
           modelRegistryControllerProvider.notifier,
         );
         final result = await controller.saveConfig(
-          'cfg_0123456789abcdef',
+          'mrg_0195f3a0000070008000bf23c2670ad5',
           validConfig,
         );
 
-        expect(result.id, 'cfg_0123456789abcdef');
+        expect(result.id, 'mrg_0195f3a0000070008000bf23c2670ad5');
         verify(
           () => mockClient.saveSystemConfig(
-            'cfg_0123456789abcdef',
+            'mrg_0195f3a0000070008000bf23c2670ad5',
             any(that: isA<ModelConfig>()),
           ),
         ).called(1);
@@ -315,7 +314,8 @@ void main() {
         when(() => mockClient.saveSystemConfig(any(), any())).thenThrow(
           DioException(
             requestOptions: RequestOptions(
-              path: '/studio/system-configs/cfg_0123456789abcdef',
+              path:
+                  '/studio/system-configs/mrg_0195f3a0000070008000bf23c2670ad5',
             ),
             type: DioExceptionType.badResponse,
           ),
@@ -325,7 +325,10 @@ void main() {
           modelRegistryControllerProvider.notifier,
         );
         expect(
-          () => controller.saveConfig('cfg_0123456789abcdef', validConfig),
+          () => controller.saveConfig(
+            'mrg_0195f3a0000070008000bf23c2670ad5',
+            validConfig,
+          ),
           throwsA(isA<AppException>()),
         );
       },
@@ -342,11 +345,14 @@ void main() {
 
         when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
         when(
-          () => mockClient.deleteSystemConfig('cfg_0123456789abcdef'),
+          () => mockClient.deleteSystemConfig(
+            'mrg_0195f3a0000070008000bf23c2670ad5',
+          ),
         ).thenThrow(
           DioException(
             requestOptions: RequestOptions(
-              path: '/studio/system-configs/cfg_0123456789abcdef',
+              path:
+                  '/studio/system-configs/mrg_0195f3a0000070008000bf23c2670ad5',
             ),
             error: appError,
           ),
@@ -356,7 +362,7 @@ void main() {
           modelRegistryControllerProvider.notifier,
         );
         expect(
-          () => controller.deleteConfig('cfg_0123456789abcdef'),
+          () => controller.deleteConfig('mrg_0195f3a0000070008000bf23c2670ad5'),
           throwsA(
             isA<AppException>()
                 .having((e) => e.errorCode, 'errorCode', 'RESOURCE_IN_USE')
@@ -373,14 +379,17 @@ void main() {
         when(() => mockClient.saveSystemConfig(any(), any())).thenThrow(
           DioException(
             requestOptions: RequestOptions(
-              path: '/studio/system-configs/cfg_0123456789abcdef',
+              path:
+                  '/studio/system-configs/mrg_0195f3a0000070008000bf23c2670ad5',
             ),
             type: DioExceptionType.badResponse,
           ),
         );
 
         final form = container.read(
-          modelRegistryFormProvider('cfg_0123456789abcdef').notifier,
+          modelRegistryFormProvider(
+            'mrg_0195f3a0000070008000bf23c2670ad5',
+          ).notifier,
         );
 
         await expectLater(
@@ -389,7 +398,7 @@ void main() {
         );
 
         final state = container.read(
-          modelRegistryFormProvider('cfg_0123456789abcdef'),
+          modelRegistryFormProvider('mrg_0195f3a0000070008000bf23c2670ad5'),
         );
         expect(state.hasError, isTrue);
         expect(state.error, isA<AppException>());

@@ -61,11 +61,11 @@ class _ErrorModelRegistryController extends ModelRegistryController {
 
 void main() {
   const String validWfId = 'wf_01965b80000070008000000000000001';
-  const String validProfId1 = 'prof_01965b80000070008000000000000001';
-  const String validProfId2 = 'prof_01965b80000070008000000000000002';
-  const String validGwId = 'gw_01965b80000070008000000000000001';
-  const String validRegId1 = 'cfg_01965b80000070008000000000000001';
-  const String validRegId2 = 'cfg_01965b80000070008000000000000002';
+  const String validProfId1 = 'prf_01965b80000070008000000000000001';
+  const String validProfId2 = 'prf_01965b80000070008000000000000002';
+  const String validGwId = 'mcp_01965b80000070008000000000000001';
+  const String validRegId1 = 'mrg_01965b80000070008000000000000001';
+  const String validRegId2 = 'mrg_01965b80000070008000000000000002';
 
   late Workflow baseWorkflow;
   late List<OutputProfile> mockProfiles;
@@ -112,6 +112,7 @@ void main() {
     mockGateways = [
       const McpGateway(
         id: validGwId,
+        organizationId: 'org_0195f3a0000070008000000000000001',
         name: 'Tavily MCP Gateway',
         slug: 'tavily_gw',
         tools: [

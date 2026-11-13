@@ -336,12 +336,6 @@ class McpGatewayView extends HookConsumerWidget {
                 );
               },
             ),
-            AppSpacing.h8,
-            TextFormField(
-              initialValue: data.type,
-              decoration: InputDecoration(labelText: l10n.configTypeLabel),
-              readOnly: true,
-            ),
           ],
         ),
       ),
