@@ -214,3 +214,57 @@ def test_workflow_validation_dag_circular_dependency_fails() -> None:
             ],
         )
     assert "Circular dependency detected" in str(exc_info.value)
+
+
+def test_workflow_model_registry_and_mcp_gateway_uuidv7_validation() -> None:
+    """Verify Workflow enforces mrg_ on model_registry_id and optional mcp_ on mcp_gateway_id."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+
+    wf_valid = Workflow(
+        id="wf_0195f3a0000070008000000000000001",
+        slug="test_wf_gateways",
+        name=I18nText(translations={"fi": "Työnkulku", "en": "Workflow"}),
+        description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
+        status="active",
+        version=1,
+        model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
+        mcp_gateway_id="mcp_0195f3a00000700080008172bda70c86",
+        historical_context_mode=LaxHistoricalContextMode.DISABLED,
+        expected_inputs=[],
+        steps=[],
+    )
+    assert wf_valid.model_registry_id == "mrg_0195f3a0000070008000e26807f3bfa3"
+    assert wf_valid.mcp_gateway_id == "mcp_0195f3a00000700080008172bda70c86"
+
+    with pytest.raises((AppException, ValidationError)) as bad_mrg_exc:
+        Workflow(
+            id="wf_0195f3a0000070008000000000000001",
+            slug="test_wf_bad_mrg",
+            name=I18nText(translations={"en": "Workflow"}),
+            description=I18nText(translations={"en": "Description"}),
+            status="active",
+            version=1,
+            model_registry_id="mcp_0195f3a00000700080008172bda70c86",
+            historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            expected_inputs=[],
+            steps=[],
+        )
+    if isinstance(bad_mrg_exc.value, AppException):
+        assert bad_mrg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises((AppException, ValidationError)) as bad_mcp_exc:
+        Workflow(
+            id="wf_0195f3a0000070008000000000000001",
+            slug="test_wf_bad_mcp",
+            name=I18nText(translations={"en": "Workflow"}),
+            description=I18nText(translations={"en": "Description"}),
+            status="active",
+            version=1,
+            model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
+            mcp_gateway_id="mrg_0195f3a0000070008000e26807f3bfa3",
+            historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            expected_inputs=[],
+            steps=[],
+        )
+    if isinstance(bad_mcp_exc.value, AppException):
+        assert bad_mcp_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

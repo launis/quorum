@@ -252,7 +252,7 @@ class StudioOutputProfileService:
         return await self._validate_and_persist_output_profile(initiator, id, normalized)
 
     async def delete_output_profile(self, initiator: TokenData, id: str) -> None:
-        """Delete output profile.
+        """Delete output profile, relying on PostgreSQL immediate constraint check for default_profile_id usage.
 
         Args:
             initiator: The authenticated user.
@@ -261,36 +261,10 @@ class StudioOutputProfileService:
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If output profile is configured as default on a workflow.
+            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If output profile is referenced by a workflow or report.
         """
         profile = await self._require_output_profile(initiator, id)
         enforce_modification_rights(initiator, profile.organization_id)
-
-        workflows = await self.workflow_service.list_workflows(initiator)
-        for wf in workflows:
-            if wf.default_profile_id == id:
-                logger.error(
-                    "[StudioOutputProfileService] %s: Cannot delete output profile %s because it is default_profile_id on workflow %s.",
-                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                    id,
-                    wf.id,
-                    exc_info=True,
-                    extra={
-                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                        "profile_id": id,
-                        "workflow_id": wf.id,
-                    },
-                )
-                raise AppException(
-                    message=f"Cannot delete output profile {id} because it is configured as default on workflow {wf.id}.",
-                    status_code=400,
-                    details={
-                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                        "profile_id": id,
-                        "workflow_id": wf.id,
-                    },
-                )
-
         await self.output_profile_repo.delete_output_profile(id)
 
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:

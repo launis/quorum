@@ -113,7 +113,7 @@ async def test_execution_report_and_seed_collection_roundtrip_parity() -> None:
             mime_type="application/pdf",
             pdf_bytes=pdf_bytes,
             size_bytes=len(pdf_bytes),
-            created_at=datetime.now(UTC),
+            created_at=artifact.created_at,
         )
         await save_report_binary_row(conn, _TIMEOUT, binary_dto)
         fetched_bin = await get_report_binary_row(conn, _TIMEOUT, artifact.id)
@@ -368,8 +368,18 @@ async def test_save_execution_row_excludes_none_in_metadata_and_encode_jsonb_bin
         assert empty_exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
         ddl_sql = Path("backend_v2/database/migrations/001_pg19_uuidv7_schema.sql").read_text(encoding="utf-8")
-        assert "_sys_initiator_id" in ddl_sql
-        assert "jsonb_typeof(metadata) = 'string'" in ddl_sql
+        assert "UPDATE executions" not in ddl_sql
+        assert "GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL" in ddl_sql
+        assert "GENERATED ALWAYS AS (uuid_extract_timestamp(report_id)) VIRTUAL" in ddl_sql
+
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            ExecutionRecordFactory.build(created_by="not_a_user_uuid")
+
+        wrong_prefix_creator = generate_opaque_id(EntityPrefix.ORGANIZATION)
+        with pytest.raises(ValidationError):
+            ExecutionRecordFactory.build(created_by=wrong_prefix_creator)
     finally:
         await pool.release(conn)
 
@@ -408,16 +418,26 @@ async def test_list_update_occ_and_delete_execution_and_report_rows_roundtrip() 
     pool = InMemoryAsyncPgPool()
     conn = await pool.acquire()
     try:
+        from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+        from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
+
         missing_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
-        noop_update = ExecutionUpdateDTO.model_validate({"progress": 25})
+        noop_update = ExecutionUpdateDTO(progress=25)
         assert await update_execution_occ_row(conn, _TIMEOUT, missing_exe_id, noop_update) is False
         assert await delete_execution_row(conn, _TIMEOUT, missing_exe_id) is False
         assert await delete_report_artifact_row(conn, _TIMEOUT, generate_opaque_id(EntityPrefix.REPORT)) is False
 
+        empty_frozen = FrozenContext(
+            compiled_prompts={},
+            injected_theory=InjectedTheoryManifestDTO(theories={}),
+            generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+            ui_hints_snapshot={},
+            mcp_tool_audit=[],
+        )
         exec_rec = ExecutionRecordFactory.build(
             active_profile_id=None,
             output_profile_id=None,
-            frozen_context=FrozenContext.model_validate({}),
+            frozen_context=empty_frozen,
             frozen_context_storage_path="gs://bucket/frozen.json",
             execution_trace_storage_path="gs://bucket/trace.json",
             context_variables_storage_path="gs://bucket/ctx.json",
@@ -429,15 +449,13 @@ async def test_list_update_occ_and_delete_execution_and_report_rows_roundtrip() 
         listed_execs = await list_execution_rows(conn, _TIMEOUT)
         assert [r.id for r in listed_execs] == [exec_rec.id]
 
-        step_name_update = ExecutionUpdateDTO.model_validate(
-            {
-                "status": ExecutionStatus.RUNNING.value,
-                "current_step_name": "Evaluating Matrix",
-                "progress": 60,
-                "execution_trace": [],
-                "frozen_context": {},
-                "expected_state_version": 1,
-            }
+        step_name_update = ExecutionUpdateDTO(
+            status=ExecutionStatus.RUNNING,
+            current_step_name="Evaluating Matrix",
+            progress=60,
+            execution_trace=[],
+            frozen_context=empty_frozen,
+            expected_state_version=1,
         )
         assert await update_execution_occ_row(conn, _TIMEOUT, exec_rec.id, step_name_update) is True
         after_occ = await get_execution_row(conn, _TIMEOUT, exec_rec.id)
@@ -449,13 +467,11 @@ async def test_list_update_occ_and_delete_execution_and_report_rows_roundtrip() 
         assert after_occ.execution_trace_storage_path is None
         assert after_occ.frozen_context_storage_path is None
 
-        clear_frozen_update = ExecutionUpdateDTO.model_validate(
-            {
-                "current_step": "Finalizing",
-                "frozen_context": None,
-                "error": None,
-                "state_version": 5,
-            }
+        clear_frozen_update = ExecutionUpdateDTO(
+            current_step="Finalizing",
+            frozen_context=None,
+            error=None,
+            state_version=5,
         )
         merged_cleared = apply_execution_updates(after_occ, clear_frozen_update)
         assert merged_cleared.status_message == "Finalizing"

@@ -159,6 +159,14 @@ class _StoreSnapshot(V2CoreBase):
     executions: Annotated[dict[str, ExecutionRecord], Field(default_factory=dict, description="Stored executions.")]
     audit_logs: Annotated[dict[str, AuditLogRecord], Field(default_factory=dict, description="Stored audit logs.")]
     usage_records: Annotated[dict[str, UsageRecord], Field(default_factory=dict, description="Stored usage records.")]
+    step_criteria_blocks: Annotated[
+        dict[str, tuple[str, ...]],
+        Field(default_factory=dict, description="Ordered step_criteria_blocks junction rows keyed by step_id."),
+    ]
+    workflow_step_refs: Annotated[
+        dict[str, tuple[str, ...]],
+        Field(default_factory=dict, description="Workflow step reference junction rows keyed by workflow_id."),
+    ]
     seed_counts: Annotated[dict[str, int], Field(default_factory=dict, description="Seeded table counts.")]
     migrations_applied: Annotated[int, Field(default=0, ge=0, description="DDL migrations applied count.")]
 
@@ -218,6 +226,8 @@ class _InMemoryPostgresStore:
             "report_artifacts": {},
             "trace_events": {},
         }
+        self.step_criteria_blocks: dict[str, tuple[str, ...]] = {}
+        self.workflow_step_refs: dict[str, tuple[str, ...]] = {}
         self.migrations_applied: int = 0
         self.current_org_reset_count: int = 0
 
@@ -235,6 +245,8 @@ class _InMemoryPostgresStore:
             executions=dict(self.executions),
             audit_logs=dict(self.audit_logs),
             usage_records=dict(self.usage_records),
+            step_criteria_blocks=dict(self.step_criteria_blocks),
+            workflow_step_refs=dict(self.workflow_step_refs),
             seed_counts={tbl: len(rows) for tbl, rows in self.seed_tables.items()},
             migrations_applied=self.migrations_applied,
         )
@@ -252,6 +264,8 @@ class _InMemoryPostgresStore:
         self.executions = dict(snapshot.executions)
         self.audit_logs = dict(snapshot.audit_logs)
         self.usage_records = dict(snapshot.usage_records)
+        self.step_criteria_blocks = dict(snapshot.step_criteria_blocks)
+        self.workflow_step_refs = dict(snapshot.workflow_step_refs)
         self.migrations_applied = snapshot.migrations_applied
 
 
@@ -306,7 +320,6 @@ _EXECUTION_INSERT_COLUMNS: tuple[str, ...] = (
     "metadata",
     "duration_ms",
     "error",
-    "created_at",
     "updated_at",
     "completed_at",
     "created_by",
@@ -318,7 +331,8 @@ _EXECUTION_INSERT_COLUMNS: tuple[str, ...] = (
 def _hydrate_in_memory_execution_record(args: Sequence[object]) -> ExecutionRecord:
     """Hydrate an ExecutionRecord from parameterized INSERT INTO EXECUTIONS bind arguments.
 
-    Delegates directly to the canonical PostgreSQL `hydrate_execution_row` adapter function.
+    Delegates directly to the canonical PostgreSQL `hydrate_execution_row` adapter function,
+    synthesizing the PostgreSQL 19 VIRTUAL `created_at` column from the UUIDv7 primary key.
 
     Args:
         args: Positional SQL bind parameters for executions insertion.
@@ -333,6 +347,9 @@ def _hydrate_in_memory_execution_record(args: Sequence[object]) -> ExecutionReco
             strict=True,
         )
     )
+    exec_uuid_val = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+    exec_id = format_prefixed_uuid7(exec_uuid_val, EntityPrefix.EXECUTION)
+    row_columns["created_at"] = _extract_uuid7_timestamp(exec_id, EntityPrefix.EXECUTION)
     return hydrate_execution_row(InMemoryAsyncPgRecord(row_columns))
 
 
@@ -801,6 +818,8 @@ class InMemoryEntityAdapter:
         _ = parse_prefixed_uuid7(user.id, EntityPrefix.USER)
         if user.organization_id is not None:
             _ = parse_prefixed_uuid7(user.organization_id, EntityPrefix.ORGANIZATION)
+        if user.created_by is not None:
+            _ = parse_prefixed_uuid7(user.created_by, EntityPrefix.USER)
         self._store.seed_tables["users"][user.id] = user
         return user.id
 
@@ -1081,7 +1100,8 @@ class InMemoryEntityAdapter:
             )
 
         _ = parse_prefixed_uuid7(payload.report_id, EntityPrefix.REPORT)
-        self._store.report_binaries[payload.report_id] = payload
+        virtual_created_at = _extract_uuid7_timestamp(payload.report_id, EntityPrefix.REPORT)
+        self._store.report_binaries[payload.report_id] = payload.model_copy(update={"created_at": virtual_created_at})
         self._store.report_has_pdf[payload.report_id] = True
 
     async def get_report_binary(self, report_id: str) -> ReportBinaryPayloadDTO | None:
@@ -1148,8 +1168,14 @@ class InMemoryEntityAdapter:
                     },
                 )
             target_record = record.model_copy(update={"state_version": actual_version + 1})
+        if record.created_by is not None:
+            _ = parse_prefixed_uuid7(record.created_by, EntityPrefix.USER)
+        virtual_created_at = _extract_uuid7_timestamp(record.id, EntityPrefix.EXECUTION)
         reconstituted = ExecutionRecord.model_validate(
-            target_record.model_dump(mode="json", exclude_none=True),
+            target_record.model_copy(update={"created_at": virtual_created_at}).model_dump(
+                mode="json",
+                exclude_none=True,
+            ),
             strict=False,
         )
         self._store.executions[record.id] = reconstituted
@@ -1484,9 +1510,27 @@ class InMemoryEntityAdapter:
 
         table_bucket = self._store.seed_tables[canonical]
         for idx, item in enumerate(items):
-            dumped = item.model_dump(mode="json")
-            raw_id = dumped["id"] if "id" in dumped else f"{canonical}_{idx}"
-            table_bucket[str(raw_id)] = item
+            if isinstance(item, Step):
+                self._store.step_criteria_blocks[item.id] = tuple(item.criteria_block_ids)
+                table_bucket[item.id] = item
+            elif isinstance(item, Workflow):
+                dedup_steps: list[str] = []
+                seen_steps: set[str] = set()
+                for rule in item.steps:
+                    if rule.task_blueprint not in seen_steps:
+                        seen_steps.add(rule.task_blueprint)
+                        dedup_steps.append(rule.task_blueprint)
+                self._store.workflow_step_refs[item.id] = tuple(dedup_steps)
+                table_bucket[item.id] = item
+            elif isinstance(item, ReportArtifact):
+                normalized_art = item.model_copy(
+                    update={"created_at": _extract_uuid7_timestamp(item.id, EntityPrefix.REPORT)}
+                )
+                table_bucket[item.id] = normalized_art
+            else:
+                dumped = item.model_dump(mode="json")
+                raw_id = dumped["id"] if "id" in dumped else f"{canonical}_{idx}"
+                table_bucket[str(raw_id)] = item
         return len(items)
 
     async def verify_seed_table_counts(
@@ -1848,8 +1892,91 @@ class InMemoryEntityAdapter:
         blocks.sort(key=lambda b: b.id)
         return blocks
 
+    def _is_prompt_block_referenced(self, block_id: str, block_uuid: uuid.UUID) -> bool:
+        """Return True if any persisted step, junction row, or output profile references block_id."""
+        for blk_ids in self._store.step_criteria_blocks.values():
+            if block_id in blk_ids:
+                return True
+        raw_uuid_str = str(block_uuid)
+        for step_entry in self._store.seed_tables["steps"].values():
+            if isinstance(step_entry, Step):
+                if (
+                    block_id
+                    in (
+                        step_entry.role_block_id,
+                        step_entry.extraction_protocol_block_id,
+                        step_entry.execution_persona_block_id,
+                    )
+                    or block_id in step_entry.criteria_block_ids
+                ):
+                    return True
+            elif isinstance(step_entry, Sequence) and len(step_entry) >= 10:
+                for col_idx in (7, 8, 9):
+                    col_val = step_entry[col_idx]
+                    if col_val is not None and (col_val == block_uuid or str(col_val) == raw_uuid_str):
+                        return True
+        for prf_entry in self._store.seed_tables["output_profiles"].values():
+            if isinstance(prf_entry, OutputProfile):
+                if block_id in (prf_entry.variance_target_block, prf_entry.user_role_target_block):
+                    return True
+            elif isinstance(prf_entry, Sequence) and len(prf_entry) >= 40:
+                for col_idx in (38, 39):
+                    col_val = prf_entry[col_idx]
+                    if col_val is not None and (col_val == block_uuid or str(col_val) == raw_uuid_str):
+                        return True
+        return False
+
+    def _is_step_referenced(self, step_id: str) -> bool:
+        """Return True if any workflow or workflow_step_refs junction row references step_id."""
+        for stp_ids in self._store.workflow_step_refs.values():
+            if step_id in stp_ids:
+                return True
+        for wf_entry in self._store.seed_tables["workflows"].values():
+            if isinstance(wf_entry, Workflow) and any(r.task_blueprint == step_id for r in wf_entry.steps):
+                return True
+        return False
+
+    def _is_output_profile_referenced(self, profile_id: str, profile_uuid: uuid.UUID) -> bool:
+        """Return True if any workflow.default_profile_id or report_artifact.profile_id references profile_id."""
+        raw_uuid_str = str(profile_uuid)
+        for wf_entry in self._store.seed_tables["workflows"].values():
+            if isinstance(wf_entry, Workflow) and wf_entry.default_profile_id == profile_id:
+                return True
+            if (
+                isinstance(wf_entry, Sequence)
+                and len(wf_entry) > 8
+                and wf_entry[8] is not None
+                and (wf_entry[8] == profile_uuid or str(wf_entry[8]) == raw_uuid_str)
+            ):
+                return True
+        for rep_entry in self._store.seed_tables["report_artifacts"].values():
+            if isinstance(rep_entry, ReportArtifact) and rep_entry.profile_id == profile_id:
+                return True
+            if (
+                isinstance(rep_entry, Sequence)
+                and len(rep_entry) > 3
+                and rep_entry[3] is not None
+                and (rep_entry[3] == profile_uuid or str(rep_entry[3]) == raw_uuid_str)
+            ):
+                return True
+        return False
+
     async def delete_prompt_block(self, block_id: str) -> bool:
-        """Delete a PromptBlock by primary key in memory."""
+        """Delete a PromptBlock by primary key in memory (ON DELETE RESTRICT)."""
+        blk_uuid = parse_prefixed_uuid7(block_id, EntityPrefix.PROMPT_BLOCK)
+        if self._is_prompt_block_referenced(block_id, blk_uuid):
+            msg = f"Prompt block '{block_id}' is referenced by a persisted step or output profile."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                msg,
+                extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": block_id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+            )
         return self._delete_seed_row("prompt_blocks", block_id, EntityPrefix.PROMPT_BLOCK)
 
     async def delete_task_brief(self, brief_id: str) -> bool:
@@ -1862,6 +1989,10 @@ class InMemoryEntityAdapter:
         _ = parse_prefixed_uuid7(profile.workflow_id, EntityPrefix.WORKFLOW)
         if profile.organization_id is not None and profile.organization_id != "SYSTEM":
             _ = parse_prefixed_uuid7(profile.organization_id, EntityPrefix.ORGANIZATION)
+        if profile.variance_target_block is not None:
+            _ = parse_prefixed_uuid7(profile.variance_target_block, EntityPrefix.PROMPT_BLOCK)
+        if profile.user_role_target_block is not None:
+            _ = parse_prefixed_uuid7(profile.user_role_target_block, EntityPrefix.PROMPT_BLOCK)
         self._store.seed_tables["output_profiles"][profile.id] = profile
         return profile.id
 
@@ -1883,12 +2014,26 @@ class InMemoryEntityAdapter:
         return profiles
 
     async def delete_output_profile(self, profile_id: str) -> bool:
-        """Delete an OutputProfile by primary key in memory."""
+        """Delete an OutputProfile by primary key in memory (ON DELETE RESTRICT / IMMEDIATE FK)."""
+        prf_uuid = parse_prefixed_uuid7(profile_id, EntityPrefix.OUTPUT_PROFILE)
+        if self._is_output_profile_referenced(profile_id, prf_uuid):
+            msg = f"Output profile '{profile_id}' is referenced by a persisted workflow or report artifact."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                msg,
+                extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": profile_id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+            )
         return self._delete_seed_row("output_profiles", profile_id, EntityPrefix.OUTPUT_PROFILE)
 
     async def upsert_workflow(self, wf: Workflow) -> str:
-        """Upsert a Workflow in memory."""
-        _ = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
+        """Upsert a Workflow in memory with SQL OCC version checking and workflow_step_refs sync."""
+        wf_uuid = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
         _ = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.MODEL_REGISTRY)
         if wf.default_profile_id is not None:
             _ = parse_prefixed_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE)
@@ -1896,7 +2041,59 @@ class InMemoryEntityAdapter:
             _ = parse_prefixed_uuid7(wf.mcp_gateway_id, EntityPrefix.MCP_GATEWAY)
         if wf.organization_id is not None and wf.organization_id != "SYSTEM":
             _ = parse_prefixed_uuid7(wf.organization_id, EntityPrefix.ORGANIZATION)
-        self._store.seed_tables["workflows"][wf.id] = wf
+
+        dedup_steps: list[str] = []
+        seen_steps: set[str] = set()
+        for rule in wf.steps:
+            _ = parse_prefixed_uuid7(rule.task_blueprint, EntityPrefix.STEP)
+            if rule.task_blueprint not in seen_steps:
+                seen_steps.add(rule.task_blueprint)
+                dedup_steps.append(rule.task_blueprint)
+
+        wf_bucket = self._store.seed_tables["workflows"]
+        raw_uuid_key = str(wf_uuid)
+        existing_entry: _SeedRowEntry | None = None
+        if wf.id in wf_bucket:
+            existing_entry = wf_bucket[wf.id]
+        elif raw_uuid_key in wf_bucket:
+            existing_entry = wf_bucket[raw_uuid_key]
+
+        persisted_wf = wf
+        if existing_entry is not None:
+            if isinstance(existing_entry, Workflow):
+                actual_version = existing_entry.version
+            elif isinstance(existing_entry, BaseModel):
+                raise TypeError(f"Unexpected BaseModel in workflows bucket: {type(existing_entry).__name__}")
+            else:
+                actual_version = int(str(existing_entry[5]))
+            if actual_version != wf.version:
+                msg = f"Optimistic concurrency conflict for workflow '{wf.id}' at expected version={wf.version}."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.CONFLICT.name,
+                    msg,
+                    extra={
+                        "error_code": ErrorCodes.CONFLICT.value,
+                        "workflow_id": wf.id,
+                        "expected_version": wf.version,
+                        "actual_version": actual_version,
+                    },
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_409_CONFLICT,
+                    details={
+                        "error_code": ErrorCodes.CONFLICT.value,
+                        "workflow_id": wf.id,
+                        "expected_version": wf.version,
+                    },
+                )
+            persisted_wf = wf.model_copy(update={"version": actual_version + 1})
+            if raw_uuid_key in wf_bucket:
+                del wf_bucket[raw_uuid_key]
+
+        wf_bucket[wf.id] = persisted_wf
+        self._store.workflow_step_refs[wf.id] = tuple(dedup_steps)
         return wf.id
 
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
@@ -1917,6 +2114,8 @@ class InMemoryEntityAdapter:
     async def delete_workflow(self, workflow_id: str) -> bool:
         """Delete a Workflow by primary key in memory."""
         deleted = self._delete_seed_row("workflows", workflow_id, EntityPrefix.WORKFLOW)
+        if workflow_id in self._store.workflow_step_refs:
+            del self._store.workflow_step_refs[workflow_id]
         if deleted:
             prf_bucket = self._store.seed_tables["output_profiles"]
             prf_keys = [
@@ -1927,11 +2126,14 @@ class InMemoryEntityAdapter:
         return deleted
 
     async def upsert_step(self, step: Step) -> str:
-        """Upsert a Step in memory."""
+        """Upsert a Step in memory and synchronize step_criteria_blocks."""
         _ = parse_prefixed_uuid7(step.id, EntityPrefix.STEP)
         if step.organization_id is not None and step.organization_id != "SYSTEM":
             _ = parse_prefixed_uuid7(step.organization_id, EntityPrefix.ORGANIZATION)
+        for blk_id in step.criteria_block_ids:
+            _ = parse_prefixed_uuid7(blk_id, EntityPrefix.PROMPT_BLOCK)
         self._store.seed_tables["steps"][step.id] = step
+        self._store.step_criteria_blocks[step.id] = tuple(step.criteria_block_ids)
         return step.id
 
     async def get_step(self, step_id: str) -> Step | None:
@@ -1950,8 +2152,25 @@ class InMemoryEntityAdapter:
         return steps
 
     async def delete_step(self, step_id: str) -> bool:
-        """Delete a Step by primary key in memory."""
-        return self._delete_seed_row("steps", step_id, EntityPrefix.STEP)
+        """Delete a Step by primary key in memory (ON DELETE RESTRICT)."""
+        _ = parse_prefixed_uuid7(step_id, EntityPrefix.STEP)
+        if self._is_step_referenced(step_id):
+            msg = f"Step '{step_id}' is referenced by a persisted workflow."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                msg,
+                extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "entity_id": step_id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+            )
+        deleted = self._delete_seed_row("steps", step_id, EntityPrefix.STEP)
+        if step_id in self._store.step_criteria_blocks:
+            del self._store.step_criteria_blocks[step_id]
+        return deleted
 
     async def update_execution_occ(self, execution_id: str, updates: ExecutionUpdateDTO) -> bool:
         """Apply partial ExecutionUpdateDTO updates to a persisted ExecutionRecord with OCC checking."""
@@ -1972,12 +2191,15 @@ class InMemoryEntityAdapter:
         return True
 
     async def upsert_report_artifact(self, artifact: ReportArtifact) -> str:
-        """Upsert a ReportArtifact in memory."""
+        """Upsert a ReportArtifact in memory with VIRTUAL created_at timestamp alignment."""
         _ = parse_prefixed_uuid7(artifact.id, EntityPrefix.REPORT)
         _ = parse_prefixed_uuid7(artifact.execution_id, EntityPrefix.EXECUTION)
         _ = parse_prefixed_uuid7(artifact.workflow_id, EntityPrefix.WORKFLOW)
         _ = parse_prefixed_uuid7(artifact.profile_id, EntityPrefix.OUTPUT_PROFILE)
-        self._store.seed_tables["report_artifacts"][artifact.id] = artifact
+        virtual_created_at = _extract_uuid7_timestamp(artifact.id, EntityPrefix.REPORT)
+        self._store.seed_tables["report_artifacts"][artifact.id] = artifact.model_copy(
+            update={"created_at": virtual_created_at}
+        )
         return artifact.id
 
     async def get_report_artifact(self, report_id: str) -> ReportArtifact | None:
@@ -2154,6 +2376,9 @@ class InMemoryAsyncPgConnection:
             self._store.current_org_reset_count += 1
             return "RESET"
 
+        if normalized.startswith("SET CONSTRAINTS "):
+            return "SET CONSTRAINTS"
+
         if "SET DEFAULT_TOAST_COMPRESSION" in normalized or "CREATE TABLE" in normalized:
             self._store.migrations_applied += 1
             return "CREATE TABLE"
@@ -2162,7 +2387,17 @@ class InMemoryAsyncPgConnection:
             for tbl in self._store.seed_tables:
                 if f"TRUNCATE TABLE {tbl.upper()}" in normalized:
                     self._store.seed_tables[tbl].clear()
+                    if tbl == "steps":
+                        self._store.step_criteria_blocks.clear()
+                    if tbl == "workflows":
+                        self._store.workflow_step_refs.clear()
                     return "TRUNCATE TABLE"
+            if "TRUNCATE TABLE STEP_CRITERIA_BLOCKS" in normalized:
+                self._store.step_criteria_blocks.clear()
+                return "TRUNCATE TABLE"
+            if "TRUNCATE TABLE WORKFLOW_STEP_REFS" in normalized:
+                self._store.workflow_step_refs.clear()
+                return "TRUNCATE TABLE"
             if "TRUNCATE TABLE EXECUTIONS" in normalized:
                 self._store.executions.clear()
                 self._store.nodes.clear()
@@ -2242,7 +2477,11 @@ class InMemoryAsyncPgConnection:
             mime_type = str(args[1])
             pdf_bytes = bytes(args[2]) if isinstance(args[2], (bytes, bytearray, memoryview)) else b""
             size_bytes = int(str(args[3]))
-            created_at = args[4] if isinstance(args[4], datetime) else datetime.now(UTC)
+            created_at = (
+                args[4]
+                if len(args) > 4 and isinstance(args[4], datetime)
+                else _extract_uuid7_timestamp(report_id, EntityPrefix.REPORT)
+            )
             await self._entities.save_report_binary(
                 ReportBinaryPayloadDTO(
                     report_id=report_id,
@@ -2253,6 +2492,69 @@ class InMemoryAsyncPgConnection:
                 )
             )
             return "INSERT 0 1"
+
+        if "DELETE FROM STEP_CRITERIA_BLOCKS" in normalized:
+            if not args:
+                self._store.step_criteria_blocks.clear()
+                return "DELETE"
+            stp_id = format_prefixed_uuid7(str(args[0]), EntityPrefix.STEP)
+            if stp_id in self._store.step_criteria_blocks:
+                del self._store.step_criteria_blocks[stp_id]
+                return "DELETE 1"
+            return "DELETE 0"
+
+        if "INSERT INTO STEP_CRITERIA_BLOCKS" in normalized:
+            stp_id = format_prefixed_uuid7(str(args[0]), EntityPrefix.STEP)
+            raw_blks = args[1] if len(args) > 1 and isinstance(args[1], Sequence) else ()
+            raw_pos = args[2] if len(args) > 2 and isinstance(args[2], Sequence) else ()
+            indexed_pairs: list[tuple[int, str]] = []
+            for pos_val, blk_val in zip(raw_pos, raw_blks, strict=True):
+                blk_id = format_prefixed_uuid7(str(blk_val), EntityPrefix.PROMPT_BLOCK)
+                blk_uuid = parse_prefixed_uuid7(blk_id, EntityPrefix.PROMPT_BLOCK)
+                if (
+                    self._store.seed_tables["prompt_blocks"]
+                    and str(blk_uuid) not in self._store.seed_tables["prompt_blocks"]
+                    and blk_id not in self._store.seed_tables["prompt_blocks"]
+                ):
+                    raise _InMemorySqlStateError(
+                        f"insert or update on table 'step_criteria_blocks' violates foreign key constraint ({blk_id})",
+                        sqlstate="23503",
+                    )
+                indexed_pairs.append((int(str(pos_val)), blk_id))
+            indexed_pairs.sort(key=lambda pair: pair[0])
+            self._store.step_criteria_blocks[stp_id] = tuple(pair[1] for pair in indexed_pairs)
+            return f"INSERT 0 {len(indexed_pairs)}"
+
+        if "DELETE FROM WORKFLOW_STEP_REFS" in normalized:
+            if not args:
+                self._store.workflow_step_refs.clear()
+                return "DELETE"
+            wf_id = format_prefixed_uuid7(str(args[0]), EntityPrefix.WORKFLOW)
+            if wf_id in self._store.workflow_step_refs:
+                del self._store.workflow_step_refs[wf_id]
+                return "DELETE 1"
+            return "DELETE 0"
+
+        if "INSERT INTO WORKFLOW_STEP_REFS" in normalized:
+            wf_id = format_prefixed_uuid7(str(args[0]), EntityPrefix.WORKFLOW)
+            raw_stps = args[1] if len(args) > 1 and isinstance(args[1], Sequence) else ()
+            formatted_stps: list[str] = []
+            for stp_val in raw_stps:
+                stp_id = format_prefixed_uuid7(str(stp_val), EntityPrefix.STEP)
+                stp_uuid = parse_prefixed_uuid7(stp_id, EntityPrefix.STEP)
+                if (
+                    self._store.seed_tables["steps"]
+                    and str(stp_uuid) not in self._store.seed_tables["steps"]
+                    and stp_id not in self._store.seed_tables["steps"]
+                ):
+                    raise _InMemorySqlStateError(
+                        f"insert or update on table 'workflow_step_refs' violates foreign key constraint ({stp_id})",
+                        sqlstate="23503",
+                    )
+                if stp_id not in formatted_stps:
+                    formatted_stps.append(stp_id)
+            self._store.workflow_step_refs[wf_id] = tuple(formatted_stps)
+            return f"INSERT 0 {len(formatted_stps)}"
 
         if "UPDATE REPORT_ARTIFACTS" in normalized:
             report_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
@@ -2297,6 +2599,29 @@ class InMemoryAsyncPgConnection:
                     mcp_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.MCP_GATEWAY)
                     mcp_uuid = parse_prefixed_uuid7(mcp_prefixed, EntityPrefix.MCP_GATEWAY)
                     self._entities._assert_mcp_gateway_not_referenced(mcp_prefixed, mcp_uuid)
+                if tbl == "prompt_blocks" and isinstance(args[0], (uuid.UUID, str)):
+                    blk_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.PROMPT_BLOCK)
+                    blk_uuid = parse_prefixed_uuid7(blk_prefixed, EntityPrefix.PROMPT_BLOCK)
+                    if self._entities._is_prompt_block_referenced(blk_prefixed, blk_uuid):
+                        raise _InMemorySqlStateError(
+                            f"update or delete on table 'prompt_blocks' violates foreign key constraint ({blk_prefixed})",
+                            sqlstate="23503",
+                        )
+                if tbl == "steps" and isinstance(args[0], (uuid.UUID, str)):
+                    stp_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.STEP)
+                    if self._entities._is_step_referenced(stp_prefixed):
+                        raise _InMemorySqlStateError(
+                            f"update or delete on table 'steps' violates foreign key constraint ({stp_prefixed})",
+                            sqlstate="23503",
+                        )
+                if tbl == "output_profiles" and isinstance(args[0], (uuid.UUID, str)):
+                    prf_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.OUTPUT_PROFILE)
+                    prf_uuid = parse_prefixed_uuid7(prf_prefixed, EntityPrefix.OUTPUT_PROFILE)
+                    if self._entities._is_output_profile_referenced(prf_prefixed, prf_uuid):
+                        raise _InMemorySqlStateError(
+                            f"update or delete on table 'output_profiles' violates foreign key constraint ({prf_prefixed})",
+                            sqlstate="23503",
+                        )
                 if row_id in self._store.seed_tables[tbl]:
                     del self._store.seed_tables[tbl][row_id]
                     if tbl == "organizations" and isinstance(args[0], (uuid.UUID, str)):
@@ -2306,6 +2631,14 @@ class InMemoryAsyncPgConnection:
                         mcp_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.MCP_GATEWAY)
                         mcp_uuid = parse_prefixed_uuid7(mcp_prefixed, EntityPrefix.MCP_GATEWAY)
                         self._entities._cascade_delete_mcp_gateway_secrets(mcp_prefixed, mcp_uuid)
+                    if tbl == "steps" and isinstance(args[0], (uuid.UUID, str)):
+                        stp_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.STEP)
+                        if stp_prefixed in self._store.step_criteria_blocks:
+                            del self._store.step_criteria_blocks[stp_prefixed]
+                    if tbl == "workflows" and isinstance(args[0], (uuid.UUID, str)):
+                        wf_prefixed = format_prefixed_uuid7(args[0], EntityPrefix.WORKFLOW)
+                        if wf_prefixed in self._store.workflow_step_refs:
+                            del self._store.workflow_step_refs[wf_prefixed]
                     return "DELETE 1"
                 if tbl in _TABLE_TO_ENTITY_PREFIX and isinstance(args[0], (uuid.UUID, str)):
                     prefixed_key = format_prefixed_uuid7(args[0], _TABLE_TO_ENTITY_PREFIX[tbl])
@@ -2316,6 +2649,10 @@ class InMemoryAsyncPgConnection:
                         if tbl == "mcp_gateways":
                             mcp_uuid = parse_prefixed_uuid7(prefixed_key, EntityPrefix.MCP_GATEWAY)
                             self._entities._cascade_delete_mcp_gateway_secrets(prefixed_key, mcp_uuid)
+                        if tbl == "steps" and prefixed_key in self._store.step_criteria_blocks:
+                            del self._store.step_criteria_blocks[prefixed_key]
+                        if tbl == "workflows" and prefixed_key in self._store.workflow_step_refs:
+                            del self._store.workflow_step_refs[prefixed_key]
                         return "DELETE 1"
                 return "DELETE 0"
 
@@ -2485,6 +2822,7 @@ class InMemoryAsyncPgConnection:
             sorted_execs = sorted(self._store.executions.values(), key=lambda r: r.created_at, reverse=True)
             return tuple(self._build_execution_record_row(rec) for rec in sorted_execs)
 
+        outer_tbl = self._extract_outer_from_table(query)
         for tbl in (
             "organizations",
             "users",
@@ -2500,7 +2838,7 @@ class InMemoryAsyncPgConnection:
             "output_profiles",
             "report_artifacts",
         ):
-            if f"FROM {tbl.upper()}" in normalized:
+            if outer_tbl == tbl:
                 cols = self._extract_select_columns(query)
                 mapped_rows: list[dict[str, _ColumnValue]] = []
                 for entry in self._store.seed_tables[tbl].values():
@@ -2534,12 +2872,26 @@ class InMemoryAsyncPgConnection:
 
         return ()
 
-    @staticmethod
     def _zip_select_row(
+        self,
         cols: list[str],
         entry: Sequence[_ColumnValue],
     ) -> dict[str, _ColumnValue]:
-        """Map SELECT column names to stored positional values, synthesizing VIRTUAL created_at if omitted on INSERT."""
+        """Map SELECT column names to stored positional values, synthesizing VIRTUAL created_at and junction arrays."""
+        if "criteria_block_ids" in cols and len(entry) == len(cols) - 1:
+            non_projected_cols = [c for c in cols if c != "criteria_block_ids"]
+            mapped_step = {col: val for col, val in zip(non_projected_cols, entry, strict=False)}
+            step_pk: _ColumnValue = entry[0] if entry else None
+            criteria_uuids: tuple[uuid.UUID, ...] = ()
+            if isinstance(step_pk, (uuid.UUID, str)):
+                stp_id = format_prefixed_uuid7(step_pk, EntityPrefix.STEP)
+                if stp_id in self._store.step_criteria_blocks:
+                    criteria_uuids = tuple(
+                        parse_prefixed_uuid7(bid, EntityPrefix.PROMPT_BLOCK)
+                        for bid in self._store.step_criteria_blocks[stp_id]
+                    )
+            mapped_step["criteria_block_ids"] = criteria_uuids
+            return mapped_step
         if "created_at" in cols and len(entry) == len(cols) - 1:
             non_virtual_cols = [c for c in cols if c != "created_at"]
             mapped = {col: val for col, val in zip(non_virtual_cols, entry, strict=False)}
@@ -2555,16 +2907,75 @@ class InMemoryAsyncPgConnection:
         return {col: val for col, val in zip(cols, entry, strict=False)}
 
     @staticmethod
-    def _extract_select_columns(query: str) -> list[str]:
-        """Extract column names from a SELECT col1, col2, ... FROM statement."""
+    def _find_outer_from_index(norm_q: str) -> int:
+        """Find the character index of the top-level ' FROM ' keyword outside parentheses."""
+        upper = norm_q.upper()
+        depth = 0
+        for idx, ch in enumerate(upper):
+            if ch == "(":
+                depth += 1
+            elif ch == ")" and depth > 0:
+                depth -= 1
+            elif depth == 0 and upper.startswith(" FROM ", idx):
+                return idx
+        return -1
+
+    @classmethod
+    def _extract_outer_from_table(cls, query: str) -> str | None:
+        """Extract the outer FROM table identifier ignoring scalar subqueries."""
+        norm_q = " ".join(query.strip().split())
+        from_idx = cls._find_outer_from_index(norm_q)
+        if from_idx == -1:
+            return None
+        after_from = norm_q[from_idx + 6 :].strip()
+        if not after_from:
+            return None
+        return after_from.split()[0].strip().lower()
+
+    @classmethod
+    def _extract_select_columns(cls, query: str) -> list[str]:
+        """Extract column names or aliases from a SELECT col1, col2, ... FROM statement."""
         norm_q = " ".join(query.strip().split())
         upper = norm_q.upper()
         select_idx = upper.find("SELECT ")
-        from_idx = upper.find(" FROM ")
-        if select_idx == -1 or from_idx == -1:
+        from_idx = cls._find_outer_from_index(norm_q)
+        if select_idx == -1 or from_idx == -1 or from_idx <= select_idx + 7:
             return []
         cols_part = norm_q[select_idx + 7 : from_idx]
-        return [c.strip().lower() for c in cols_part.split(",") if c.strip()]
+        items: list[str] = []
+        depth = 0
+        start = 0
+        for idx, ch in enumerate(cols_part):
+            if ch == "(":
+                depth += 1
+            elif ch == ")" and depth > 0:
+                depth -= 1
+            elif ch == "," and depth == 0:
+                items.append(cols_part[start:idx].strip())
+                start = idx + 1
+        tail = cols_part[start:].strip()
+        if tail:
+            items.append(tail)
+
+        resolved_cols: list[str] = []
+        for expr in items:
+            if not expr:
+                continue
+            expr_upper = expr.upper()
+            as_pos = -1
+            p_depth = 0
+            for idx, ch in enumerate(expr_upper):
+                if ch == "(":
+                    p_depth += 1
+                elif ch == ")" and p_depth > 0:
+                    p_depth -= 1
+                elif p_depth == 0 and expr_upper.startswith(" AS ", idx):
+                    as_pos = idx
+            if as_pos != -1:
+                resolved_cols.append(expr[as_pos + 4 :].strip().lower())
+            else:
+                resolved_cols.append(expr.strip().lower())
+        return resolved_cols
 
     @staticmethod
     def _build_execution_record_row(rec: ExecutionRecord) -> InMemoryAsyncPgRecord:
@@ -2619,7 +3030,9 @@ class InMemoryAsyncPgConnection:
                 "created_at": rec.created_at,
                 "updated_at": rec.updated_at,
                 "completed_at": rec.completed_at,
-                "created_by": rec.created_by,
+                "created_by": parse_prefixed_uuid7(rec.created_by, EntityPrefix.USER)
+                if rec.created_by is not None
+                else None,
                 "organization_id": rec.organization_id,
                 "state_version": rec.state_version,
             }
@@ -2645,6 +3058,38 @@ class InMemoryAsyncPgConnection:
         _ = timeout
         normalized = " ".join(query.strip().split()).upper()
 
+        if "INSERT INTO WORKFLOWS" in normalized and args:
+            wf_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+            row_id = str(wf_uuid)
+            wf_prefixed = format_prefixed_uuid7(wf_uuid, EntityPrefix.WORKFLOW)
+            wf_bucket = self._store.seed_tables["workflows"]
+            expected_version = int(str(args[5]))
+            existing_wf_entry: _SeedRowEntry | None = None
+            if row_id in wf_bucket:
+                existing_wf_entry = wf_bucket[row_id]
+            elif wf_prefixed in wf_bucket:
+                existing_wf_entry = wf_bucket[wf_prefixed]
+
+            if existing_wf_entry is not None:
+                if isinstance(existing_wf_entry, Workflow):
+                    actual_wf_version = existing_wf_entry.version
+                elif isinstance(existing_wf_entry, BaseModel):
+                    raise TypeError(f"Unexpected BaseModel in workflows bucket: {type(existing_wf_entry).__name__}")
+                else:
+                    actual_wf_version = int(str(existing_wf_entry[5]))
+                if actual_wf_version != expected_version:
+                    return None
+                next_version = actual_wf_version + 1
+                updated_row = [_to_column_value(a) for a in args]
+                updated_row[5] = next_version
+                if wf_prefixed in wf_bucket:
+                    del wf_bucket[wf_prefixed]
+                wf_bucket[row_id] = tuple(updated_row)
+                return InMemoryAsyncPgRecord({"version": next_version})
+
+            wf_bucket[row_id] = tuple(_to_column_value(a) for a in args)
+            return InMemoryAsyncPgRecord({"version": expected_version})
+
         if (
             "SELECT COUNT(*)::BIGINT AS ROW_COUNT FROM " in normalized
             or "SELECT COUNT(*) AS ROW_COUNT FROM " in normalized
@@ -2666,6 +3111,14 @@ class InMemoryAsyncPgConnection:
             ):
                 if f"FROM {tbl.upper()}" in normalized:
                     return InMemoryAsyncPgRecord({"row_count": len(self._store.seed_tables[tbl])})
+            if "FROM STEP_CRITERIA_BLOCKS" in normalized:
+                return InMemoryAsyncPgRecord(
+                    {"row_count": sum(len(v) for v in self._store.step_criteria_blocks.values())}
+                )
+            if "FROM WORKFLOW_STEP_REFS" in normalized:
+                return InMemoryAsyncPgRecord(
+                    {"row_count": sum(len(v) for v in self._store.workflow_step_refs.values())}
+                )
             if "FROM EXECUTIONS" in normalized:
                 return InMemoryAsyncPgRecord({"row_count": len(self._store.executions)})
             if "FROM REPORT_BINARIES" in normalized:
@@ -2737,6 +3190,7 @@ class InMemoryAsyncPgConnection:
                         return InMemoryAsyncPgRecord(mapped)
             return None
 
+        outer_tbl = self._extract_outer_from_table(query)
         for tbl in (
             "organizations",
             "users",
@@ -2752,7 +3206,7 @@ class InMemoryAsyncPgConnection:
             "output_profiles",
             "report_artifacts",
         ):
-            if f"FROM {tbl.upper()}" in normalized and args:
+            if outer_tbl == tbl and args:
                 row_id = str(args[0])
                 if row_id not in self._store.seed_tables[tbl]:
                     return None

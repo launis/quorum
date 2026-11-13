@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from uuid import UUID
+
 from pydantic_core import to_json
 
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
@@ -34,9 +37,11 @@ from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
 
 __all__ = [
     "_DELETE_PROMPT_BLOCK_SQL",
+    "_DELETE_STEP_CRITERIA_BLOCKS_SQL",
     "_DELETE_STEP_SQL",
     "_GET_PROMPT_BLOCK_SQL",
     "_GET_STEP_SQL",
+    "_INSERT_STEP_CRITERIA_BLOCKS_SQL",
     "_LIST_PROMPT_BLOCKS_SQL",
     "_LIST_STEPS_SQL",
     "_UPSERT_PROMPT_BLOCK_SQL",
@@ -82,26 +87,37 @@ _LIST_PROMPT_BLOCKS_SQL: str = """SELECT id, slug, organization_id, label, descr
        computed_max, instruction_text, role_enforcement, tone_directives, protocol_instructions FROM prompt_blocks"""
 
 _UPSERT_STEP_SQL: str = """INSERT INTO steps (id, slug, organization_id, name, description, type, hook, role_block_id,
-    extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids, pre_hooks, post_hooks, safety,
+    extraction_protocol_block_id, execution_persona_block_id, pre_hooks, post_hooks, safety,
     allowed_mcp_tools, mcp_tool_params, cognitive_tier, expected_inputs, is_system_core, engine_type, zone)
-VALUES ($1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6, $7, $8::uuid, $9::uuid, $10::uuid, $11::jsonb,
-    $12::jsonb, $13::jsonb, $14, $15::jsonb, $16::jsonb, $17, $18::jsonb, $19, $20, $21)
+VALUES ($1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6, $7, $8::uuid, $9::uuid, $10::uuid,
+    $11::jsonb, $12::jsonb, $13, $14::jsonb, $15::jsonb, $16, $17::jsonb, $18, $19, $20)
 ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, organization_id = EXCLUDED.organization_id, name = EXCLUDED.name,
     description = EXCLUDED.description, type = EXCLUDED.type, hook = EXCLUDED.hook,
     role_block_id = EXCLUDED.role_block_id, extraction_protocol_block_id = EXCLUDED.extraction_protocol_block_id,
-    execution_persona_block_id = EXCLUDED.execution_persona_block_id, criteria_block_ids = EXCLUDED.criteria_block_ids,
+    execution_persona_block_id = EXCLUDED.execution_persona_block_id,
     pre_hooks = EXCLUDED.pre_hooks, post_hooks = EXCLUDED.post_hooks, safety = EXCLUDED.safety,
     allowed_mcp_tools = EXCLUDED.allowed_mcp_tools, mcp_tool_params = EXCLUDED.mcp_tool_params,
     cognitive_tier = EXCLUDED.cognitive_tier, expected_inputs = EXCLUDED.expected_inputs,
     is_system_core = EXCLUDED.is_system_core, engine_type = EXCLUDED.engine_type, zone = EXCLUDED.zone"""
 
-_GET_STEP_SQL: str = """SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
-       extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids, pre_hooks, post_hooks,
+_DELETE_STEP_CRITERIA_BLOCKS_SQL: str = "DELETE FROM step_criteria_blocks WHERE step_id = $1::uuid"
+
+_INSERT_STEP_CRITERIA_BLOCKS_SQL: str = """INSERT INTO step_criteria_blocks (step_id, prompt_block_id, position)
+SELECT $1::uuid, blk_id, pos
+FROM UNNEST($2::uuid[], $3::int[]) AS u(blk_id, pos)"""
+
+_STEP_CRITERIA_PROJECTION: str = (
+    "COALESCE((SELECT array_agg(scb.prompt_block_id ORDER BY scb.position ASC) "
+    "FROM step_criteria_blocks scb WHERE scb.step_id = steps.id), ARRAY[]::uuid[]) AS criteria_block_ids"
+)
+
+_GET_STEP_SQL: str = f"""SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
+       extraction_protocol_block_id, execution_persona_block_id, {_STEP_CRITERIA_PROJECTION}, pre_hooks, post_hooks,
        safety, allowed_mcp_tools, mcp_tool_params, cognitive_tier, expected_inputs, is_system_core,
        engine_type, zone FROM steps WHERE id = $1::uuid"""
 
-_LIST_STEPS_SQL: str = """SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
-       extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids, pre_hooks, post_hooks,
+_LIST_STEPS_SQL: str = f"""SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
+       extraction_protocol_block_id, execution_persona_block_id, {_STEP_CRITERIA_PROJECTION}, pre_hooks, post_hooks,
        safety, allowed_mcp_tools, mcp_tool_params, cognitive_tier, expected_inputs, is_system_core,
        engine_type, zone FROM steps"""
 
@@ -355,6 +371,30 @@ async def get_prompt_block_row(conn: AsyncPgConnectionProtocol, timeout: float, 
     return hydrate_prompt_block_row(row)
 
 
+def _decode_criteria_block_ids(raw: object) -> object:
+    """Decode ordered criteria_block_ids from a PostgreSQL uuid[] array or JSON payload.
+
+    Args:
+        raw: Raw database column payload (Sequence[UUID], Sequence[str], or JSON string/bytes).
+
+    Returns:
+        Ordered list of formatted blk_<hex32> strings, or the raw payload for Pydantic fail-fast rejection.
+    """
+    decoded = _decode_jsonb_column(raw)
+    if not isinstance(decoded, Sequence) or isinstance(decoded, (str, bytes, bytearray)):
+        return decoded
+    formatted_ids: list[str] = []
+    for item in decoded:
+        if isinstance(item, UUID):
+            formatted_ids.append(format_prefixed_uuid7(item, EntityPrefix.PROMPT_BLOCK))
+        elif isinstance(item, str) and "_" in item:
+            parsed_uuid = parse_prefixed_uuid7(item, EntityPrefix.PROMPT_BLOCK)
+            formatted_ids.append(format_prefixed_uuid7(parsed_uuid, EntityPrefix.PROMPT_BLOCK))
+        else:
+            formatted_ids.append(format_prefixed_uuid7(_coerce_uuid_or_str(item), EntityPrefix.PROMPT_BLOCK))
+    return formatted_ids
+
+
 def hydrate_step_row(row: AsyncPgRecordProtocol) -> Step:
     """Hydrate a Step from a database row.
 
@@ -382,7 +422,7 @@ def hydrate_step_row(row: AsyncPgRecordProtocol) -> Step:
             "role_block_id": _format_optional_uuid7(row["role_block_id"], blk_p),
             "extraction_protocol_block_id": _format_optional_uuid7(row["extraction_protocol_block_id"], blk_p),
             "execution_persona_block_id": _format_optional_uuid7(row["execution_persona_block_id"], blk_p),
-            "criteria_block_ids": _decode_jsonb_column(row["criteria_block_ids"]),
+            "criteria_block_ids": _decode_criteria_block_ids(row["criteria_block_ids"]),
             "pre_hooks": _decode_jsonb_column(row["pre_hooks"]),
             "post_hooks": _decode_jsonb_column(row["post_hooks"]),
             "safety": row["safety"],
@@ -400,7 +440,7 @@ def hydrate_step_row(row: AsyncPgRecordProtocol) -> Step:
 
 
 async def upsert_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step: Step) -> str:
-    """Persist a Step into steps.
+    """Persist a Step into steps and synchronize ordered step_criteria_blocks via UNNEST.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
@@ -413,15 +453,26 @@ async def upsert_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step:
     Raises:
         AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
     """
+    step_uuid = parse_prefixed_uuid7(step.id, EntityPrefix.STEP)
+    seen_blk_uuids: set[UUID] = set()
+    criteria_uuids: list[UUID] = []
+    criteria_positions: list[int] = []
+    for blk_id in step.criteria_block_ids:
+        blk_uuid = parse_prefixed_uuid7(blk_id, EntityPrefix.PROMPT_BLOCK)
+        if blk_uuid not in seen_blk_uuids:
+            seen_blk_uuids.add(blk_uuid)
+            criteria_positions.append(len(criteria_uuids))
+            criteria_uuids.append(blk_uuid)
+
     dumped = step.model_dump(mode="json")
     tier_str: str | None = None
     if step.cognitive_tier is not None:
         tier_str = str(step.cognitive_tier)
-    return await execute_entity_upsert(
+    await execute_entity_upsert(
         conn,
         timeout,
         _UPSERT_STEP_SQL,
-        parse_prefixed_uuid7(step.id, EntityPrefix.STEP),
+        step_uuid,
         step.slug,
         _parse_org_uuid7(step.organization_id),
         to_json(dumped["name"]).decode("utf-8"),
@@ -431,7 +482,6 @@ async def upsert_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step:
         _parse_optional_uuid7(step.role_block_id, EntityPrefix.PROMPT_BLOCK),
         _parse_optional_uuid7(step.extraction_protocol_block_id, EntityPrefix.PROMPT_BLOCK),
         _parse_optional_uuid7(step.execution_persona_block_id, EntityPrefix.PROMPT_BLOCK),
-        to_json(dumped["criteria_block_ids"]).decode("utf-8"),
         to_json(dumped["pre_hooks"]).decode("utf-8"),
         to_json(dumped["post_hooks"]).decode("utf-8"),
         step.safety,
@@ -445,6 +495,29 @@ async def upsert_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step:
         entity_id=step.id,
         entity_label="step",
     )
+
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        await conn.execute(_DELETE_STEP_CRITERIA_BLOCKS_SQL, step_uuid, timeout=effective_timeout)
+        if criteria_uuids:
+            await conn.execute(
+                _INSERT_STEP_CRITERIA_BLOCKS_SQL,
+                step_uuid,
+                criteria_uuids,
+                criteria_positions,
+                timeout=effective_timeout,
+            )
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="UPSERT",
+            table_name="step_criteria_blocks",
+            entity_id=step.id,
+        ) from exc
+
+    return step.id
 
 
 async def get_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step_id: str) -> Step | None:

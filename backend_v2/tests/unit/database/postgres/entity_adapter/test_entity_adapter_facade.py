@@ -390,7 +390,7 @@ async def test_entity_adapter_full_end_to_end_facade_delegation() -> None:
             mime_type="application/pdf",
             pdf_bytes=b"%PDF-1.7 facade",
             size_bytes=15,
-            created_at=datetime.now(UTC),
+            created_at=rep.created_at,
         )
         sec = TenantSecretDTO(
             id=generate_opaque_id(EntityPrefix.TENANT_SECRET),

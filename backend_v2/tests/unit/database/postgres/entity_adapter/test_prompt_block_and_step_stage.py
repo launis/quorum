@@ -11,10 +11,13 @@ from __future__ import annotations
 import pytest
 
 from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    delete_prompt_block_row,
+    delete_step_row,
     get_prompt_block_row,
     get_step_row,
     hydrate_prompt_block_row,
     hydrate_step_row,
+    list_step_rows,
     upsert_prompt_block_row,
     upsert_step_row,
 )
@@ -356,3 +359,88 @@ def test_hydrate_prompt_block_row_unknown_category_raises_validation_failed_with
     assert exc_info.value.details["table_name"] == "prompt_blocks"
     assert exc_info.value.details["entity_id"] == blk_id
     assert ErrorCodes.VALIDATION_FAILED.name in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_step_criteria_blocks_unnest_order_and_delete_prompt_block_restrict() -> None:
+    """Verify UNNEST step_criteria_blocks synchronization preserves position order and enforces ON DELETE RESTRICT."""
+    from unittest.mock import AsyncMock
+
+    from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+        _decode_criteria_block_ids,
+    )
+    from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+        list_prompt_block_rows as list_prompt_block_rows_fn,
+    )
+
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        blk_1 = SystemRulePromptBlockFactory.build()
+        blk_2 = SystemRulePromptBlockFactory.build()
+        blk_3 = SystemRulePromptBlockFactory.build()
+        blk_proto = _build_protocol_block()
+        for blk in (blk_1, blk_2, blk_3, blk_proto):
+            await upsert_prompt_block_row(conn, _TIMEOUT, blk)
+
+        ordered_step = _build_step(
+            extraction_protocol_block_id=blk_proto.id,
+            criteria_block_ids=[blk_3.id, blk_1.id, blk_2.id],
+        )
+        await upsert_step_row(conn, _TIMEOUT, ordered_step)
+        fetched = await get_step_row(conn, _TIMEOUT, ordered_step.id)
+        assert fetched is not None
+        assert fetched.criteria_block_ids == [blk_3.id, blk_1.id, blk_2.id]
+
+        # Re-order and trim criteria_block_ids via atomic DELETE + UNNEST INSERT
+        reordered_step = ordered_step.model_copy(update={"criteria_block_ids": [blk_2.id, blk_3.id]})
+        await upsert_step_row(conn, _TIMEOUT, reordered_step)
+        listed = await list_step_rows(conn, _TIMEOUT)
+        assert len(listed) == 1
+        assert listed[0].criteria_block_ids == [blk_2.id, blk_3.id]
+
+        # blk_1 is no longer referenced and can be deleted
+        assert await delete_prompt_block_row(conn, _TIMEOUT, blk_1.id) is True
+
+        # Negative 1: Deleting blk_2 referenced via step_criteria_blocks raises DELETE_BLOCKED_BY_USAGE (400)
+        with pytest.raises(AppException) as crit_exc:
+            await delete_prompt_block_row(conn, _TIMEOUT, blk_2.id)
+        assert crit_exc.value.status_code == 400
+        assert crit_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+        # Negative 2: Deleting blk_proto referenced via extraction_protocol_block_id raises DELETE_BLOCKED_BY_USAGE (400)
+        with pytest.raises(AppException) as proto_exc:
+            await delete_prompt_block_row(conn, _TIMEOUT, blk_proto.id)
+        assert proto_exc.value.status_code == 400
+        assert proto_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+        # Boundary: LOGIC step with empty criteria_block_ids clears junction rows cleanly
+        logic_step = _build_step(
+            step_type=StepType.LOGIC,
+            hook="Causal_Discovery_Hook",
+            extraction_protocol_block_id=None,
+            criteria_block_ids=[],
+            cognitive_tier=None,
+        )
+        await upsert_step_row(conn, _TIMEOUT, logic_step)
+        fetched_logic = await get_step_row(conn, _TIMEOUT, logic_step.id)
+        assert fetched_logic is not None
+        assert fetched_logic.criteria_block_ids == []
+        listed_blocks = await list_prompt_block_rows_fn(conn, _TIMEOUT)
+        assert {b.id for b in listed_blocks} == {blk_proto.id, blk_2.id, blk_3.id}
+        assert _decode_criteria_block_ids([blk_2.id, blk_3.id.split("_", 1)[1]]) == [blk_2.id, blk_3.id]
+        assert _decode_criteria_block_ids(42) == 42
+        assert await delete_step_row(conn, _TIMEOUT, ordered_step.id) is True
+        assert await delete_prompt_block_row(conn, _TIMEOUT, blk_2.id) is True
+
+        failing_conn = AsyncMock()
+        failing_conn.fetch.side_effect = RuntimeError("db select lost")
+        with pytest.raises(AppException) as pb_list_exc:
+            await list_prompt_block_rows_fn(failing_conn, _TIMEOUT)
+        assert pb_list_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as stp_list_exc:
+            await list_step_rows(failing_conn, _TIMEOUT)
+        assert stp_list_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    finally:
+        await pool.release(conn)

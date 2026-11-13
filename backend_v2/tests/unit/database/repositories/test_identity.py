@@ -211,6 +211,39 @@ async def test_user_crud_and_case_insensitive_email(
         )
     )
     assert created_from_dto.startswith("usr_")
+    persisted_member = await repo.get_user(created_from_dto)
+    assert persisted_member is not None
+    assert persisted_member.created_by == USER_ID
+
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError) as bad_creator_exc:
+        UserCreate(
+            email="bad@example.com",
+            password="securepassword123",
+            name="Bad Creator",
+            role=UserRole.MEMBER,
+            organization_id=ORG_ID,
+            is_active=True,
+            language="fi",
+            theme_mode="light",
+            created_by=ORG_ID,
+        )
+    assert "expected 'usr'" in str(bad_creator_exc.value)
+
+    with pytest.raises(AppException) as malformed_creator_exc:
+        await repo.create_user(
+            User.model_construct(
+                id=USER_MISSING,
+                email="malformed@example.com",
+                name="Malformed Creator",
+                role=UserRole.MEMBER,
+                is_active=True,
+                organization_id=ORG_ID,
+                created_by="not_a_uuid",
+            )
+        )
+    assert malformed_creator_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
     assert await repo.delete_user(USER_ID) is True
     assert await repo.get_user(USER_ID) is None

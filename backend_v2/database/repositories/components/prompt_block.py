@@ -149,52 +149,21 @@ class PromptBlockRepositoryImpl(BaseRepository):
             return True
 
     async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
-        """Delete a PromptBlock by ID after checking active step references when force_delete is False.
+        """Delete a PromptBlock by ID, relying on PostgreSQL ON DELETE RESTRICT for active references.
 
         Args:
             block_id: Canonical blk_<hex32> prompt block identifier.
-            force_delete: When True, bypasses active step usage checks.
+            force_delete: Retained for interface compatibility; relational integrity is enforced by SQL.
 
         Returns:
             True if deleted, False if the prompt block did not exist.
 
         Raises:
-            AppException: With DELETE_BLOCKED_BY_USAGE (HTTP 400) if referenced by a Step.
+            AppException: With DELETE_BLOCKED_BY_USAGE (HTTP 400) if referenced by a Step or OutputProfile.
         """
+        _ = force_delete
         async with self._acquire_entities() as entities:
             existing = await entities.get_prompt_block(block_id)
             if existing is None:
                 return False
-
-            if not force_delete:
-                steps = await entities.list_steps()
-                for step in steps:
-                    referenced_ids = {
-                        step.role_block_id,
-                        step.extraction_protocol_block_id,
-                        step.execution_persona_block_id,
-                        *step.criteria_block_ids,
-                    }
-                    if block_id in referenced_ids:
-                        logger.error(
-                            "[PromptBlockRepository] %s: PromptBlock %s delete blocked by step %s usage.",
-                            ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                            block_id,
-                            step.id,
-                            extra={
-                                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                                "prompt_block_id": block_id,
-                                "step_id": step.id,
-                            },
-                        )
-                        raise AppException(
-                            message=f"PromptBlock delete blocked by step '{step.id}' usage.",
-                            details={
-                                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                                "prompt_block_id": block_id,
-                                "step_id": step.id,
-                            },
-                            status_code=400,
-                        )
-
             return await entities.delete_prompt_block(block_id)

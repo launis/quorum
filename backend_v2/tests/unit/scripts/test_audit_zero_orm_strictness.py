@@ -266,7 +266,12 @@ def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(
     assert "usage_records" in CANONICAL_ENTITY_PK_TABLES
     assert "model_registries" in CANONICAL_ENTITY_PK_TABLES
     assert "mcp_gateways" in CANONICAL_ENTITY_PK_TABLES
-    assert len(CLOSED_POSTGRES_TABLES) == 19
+    assert len(CANONICAL_ENTITY_PK_TABLES) == 16
+    assert "step_criteria_blocks" not in CANONICAL_ENTITY_PK_TABLES
+    assert "workflow_step_refs" not in CANONICAL_ENTITY_PK_TABLES
+    assert "step_criteria_blocks" in CLOSED_POSTGRES_TABLES
+    assert "workflow_step_refs" in CLOSED_POSTGRES_TABLES
+    assert len(CLOSED_POSTGRES_TABLES) == 21
     assert CANONICAL_NAMED_ENTITY_TABLES["workflows"] == "name"
     assert CANONICAL_NAMED_ENTITY_TABLES["model_registries"] == "name"
     assert CANONICAL_NAMED_ENTITY_TABLES["mcp_gateways"] == "name"

@@ -223,6 +223,9 @@ class WorkflowRepositoryImpl(BaseRepository):
             next_model_registry_id = existing.model_registry_id
             if updates.model_registry_id is not None:
                 next_model_registry_id = updates.model_registry_id
+            next_mcp_gateway_id = existing.mcp_gateway_id
+            if "mcp_gateway_id" in fields_set:
+                next_mcp_gateway_id = updates.mcp_gateway_id
 
             validated = Workflow(
                 id=existing.id,
@@ -234,7 +237,7 @@ class WorkflowRepositoryImpl(BaseRepository):
                 is_public=existing.is_public,
                 organization_id=existing.organization_id,
                 default_profile_id=next_default_profile_id,
-                mcp_gateway_id=existing.mcp_gateway_id,
+                mcp_gateway_id=next_mcp_gateway_id,
                 model_registry_id=next_model_registry_id,
                 default_strictness_level=next_strictness,
                 default_lexical_strictness_level=next_lexical_strictness,
@@ -249,7 +252,17 @@ class WorkflowRepositoryImpl(BaseRepository):
                 steps=next_steps,
                 historical_context_mode=next_historical_mode,
             )
-            return await entities.upsert_workflow(validated)
+            await entities.upsert_workflow(validated)
+            persisted = await entities.get_workflow(workflow_id)
+            if persisted is None:
+                logger.error(
+                    "[WorkflowRepository] %s: Workflow %s missing after update",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    workflow_id,
+                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": workflow_id},
+                )
+                raise WorkflowNotFoundError(workflow_id)
+            return persisted.id
 
     async def update_workflow_definition(self, workflow_id: str, definition_data: WorkflowUpdateDTO) -> str:
         """Update a workflow definition in-place.
@@ -466,47 +479,21 @@ class WorkflowRepositoryImpl(BaseRepository):
             return await entities.upsert_step(validated)
 
     async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
-        """Delete a step by primary key ID after checking active workflow step references.
+        """Delete a step by primary key ID, relying on PostgreSQL ON DELETE RESTRICT for workflow references.
 
         Args:
             step_id: Canonical stp_<hex32> step identifier.
-            force_delete: When True, bypasses the active workflow reference check.
+            force_delete: Retained for interface compatibility; relational integrity is enforced by SQL.
 
         Returns:
             True if deleted, False if the step did not exist.
 
         Raises:
-            AppException: With DELETE_BLOCKED_BY_USAGE (HTTP 400) if referenced by a workflow.
+            AppException: With DELETE_BLOCKED_BY_USAGE (HTTP 400) if referenced by workflow_step_refs.
         """
+        _ = force_delete
         async with self._acquire_entities() as entities:
             existing = await entities.get_step(step_id)
             if existing is None:
                 return False
-
-            if not force_delete:
-                workflows = await entities.list_workflows()
-                for wf in workflows:
-                    for rule in wf.steps:
-                        if rule.task_blueprint == step_id:
-                            logger.error(
-                                "[WorkflowRepository] %s: Step delete blocked by workflow %s usage for step %s",
-                                ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                                wf.id,
-                                step_id,
-                                extra={
-                                    "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                                    "step_id": step_id,
-                                    "workflow_id": wf.id,
-                                },
-                            )
-                            raise AppException(
-                                message="Step delete blocked by workflow usage.",
-                                details={
-                                    "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                                    "step_id": step_id,
-                                    "workflow_id": wf.id,
-                                },
-                                status_code=400,
-                            )
-
             return await entities.delete_step(step_id)

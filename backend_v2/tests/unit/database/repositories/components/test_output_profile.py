@@ -135,3 +135,45 @@ async def test_output_profile_invalid_prefix_and_storage_fault_failure() -> None
         assert fault_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
     finally:
         pool.clear_faults()
+
+
+@pytest.mark.asyncio
+async def test_delete_output_profile_blocked_by_workflow_default_and_target_block_uuid_validation(
+    repo: OutputProfileRepositoryImpl,
+    base_uow: InMemoryUnitOfWork,
+    sample_output_profile: OutputProfile,
+) -> None:
+    """Verify delete_output_profile enforces deferrable FK restrict and OutputProfile validates blk_ target blocks."""
+    from backend_v2.tests.factories.model_factories import ReportArtifactFactory, WorkflowFactory
+
+    await repo.create_output_profile(sample_output_profile)
+    referencing_wf = WorkflowFactory.build(id=_WF_ID, default_profile_id=sample_output_profile.id)
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.upsert_workflow(referencing_wf)
+
+    # Negative 1: Workflow default_profile_id reference blocks deletion with DELETE_BLOCKED_BY_USAGE
+    with pytest.raises(AppException) as wf_ref_exc:
+        await repo.delete_output_profile(sample_output_profile.id)
+    assert wf_ref_exc.value.status_code == 400
+    assert wf_ref_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    # Detach workflow default_profile_id, attach ReportArtifact.profile_id, verify still blocked
+    detached_wf = referencing_wf.model_copy(update={"default_profile_id": None})
+    report_ref = ReportArtifactFactory.build(workflow_id=_WF_ID, profile_id=sample_output_profile.id)
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        await uow.entities.upsert_workflow(detached_wf)
+        await uow.entities.upsert_report_artifact(report_ref)
+
+    with pytest.raises(AppException) as rep_ref_exc:
+        await repo.delete_output_profile(sample_output_profile.id)
+    assert rep_ref_exc.value.status_code == 400
+    assert rep_ref_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    # Negative 2: Invalid variance_target_block or user_role_target_block fails schema validation
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        OutputProfileFactory.build(variance_target_block="invalid_block_id")
+
+    with pytest.raises(ValidationError):
+        OutputProfileFactory.build(user_role_target_block=_WF_ID)

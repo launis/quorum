@@ -248,7 +248,7 @@ async def test_step_crud_delete_blocked_by_usage_and_not_found_failures(
     )
     assert created_step_id.startswith("stp_")
 
-    # Workflow referencing _STP_ID blocks non-forced deletion
+    # Workflow referencing _STP_ID blocks deletion unconditionally via workflow_step_refs ON DELETE RESTRICT
     wf_using_step = sample_workflow.model_copy(
         update={
             "steps": [
@@ -266,8 +266,32 @@ async def test_step_crud_delete_blocked_by_usage_and_not_found_failures(
     assert blocked_exc.value.status_code == 400
     assert blocked_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
 
+    with pytest.raises(AppException) as forced_blocked_exc:
+        await repo.delete_step(_STP_ID, force_delete=True)
+    assert forced_blocked_exc.value.status_code == 400
+    assert forced_blocked_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    # Removing the referencing workflow unlocks step deletion
+    assert await repo.delete_workflow(wf_using_step.id) is True
     assert await repo.delete_step(_STP_ID, force_delete=True) is True
     assert await repo.get_step_by_id(_STP_ID) is None
+
+    # Verify save_workflow SQL OCC increments version on update and rejects stale version with 409 CONFLICT
+    occ_wf = sample_workflow.model_copy(update={"version": 1})
+    await repo.save_workflow(occ_wf)
+    loaded_v1 = await repo.get_workflow_by_id(occ_wf.id)
+    assert loaded_v1 is not None
+    assert loaded_v1.version == 1
+
+    await repo.save_workflow(loaded_v1.model_copy(update={"status": "ACTIVE"}))
+    loaded_v2 = await repo.get_workflow_by_id(occ_wf.id)
+    assert loaded_v2 is not None
+    assert loaded_v2.version == 2
+
+    with pytest.raises(AppException) as stale_occ_exc:
+        await repo.save_workflow(occ_wf)
+    assert stale_occ_exc.value.status_code == 409
+    assert stale_occ_exc.value.details["error_code"] == ErrorCodes.CONFLICT.value
 
 
 @pytest.mark.asyncio

@@ -133,7 +133,7 @@ _LIST_ORGANIZATIONS_SQL: str = """SELECT id, slug, name, created_at, is_active, 
 
 _UPSERT_USER_SQL: str = """INSERT INTO users (id, slug, firebase_uid, email, name, role, organization_id, is_active,
     language, theme_mode, created_by, deleted_at)
-VALUES ($1::uuid, $2, $3, $4, $5, $6, $7::uuid, $8, $9, $10, $11, $12::timestamptz)
+VALUES ($1::uuid, $2, $3, $4, $5, $6, $7::uuid, $8, $9, $10, $11::uuid, $12::timestamptz)
 ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, firebase_uid = EXCLUDED.firebase_uid, email = EXCLUDED.email,
     name = EXCLUDED.name, role = EXCLUDED.role, organization_id = EXCLUDED.organization_id,
     is_active = EXCLUDED.is_active, language = EXCLUDED.language, theme_mode = EXCLUDED.theme_mode,
@@ -496,7 +496,7 @@ def hydrate_user_row(row: AsyncPgRecordProtocol) -> User:
             "language": row["language"],
             "theme_mode": row["theme_mode"],
             "created_at": row["created_at"],
-            "created_by": row["created_by"],
+            "created_by": _format_optional_uuid7(row["created_by"], EntityPrefix.USER),
             "deleted_at": row["deleted_at"],
         },
         table_name="users",
@@ -532,7 +532,7 @@ async def upsert_user_row(conn: AsyncPgConnectionProtocol, timeout: float, user:
         user.is_active,
         str(user.language),
         user.theme_mode,
-        user.created_by,
+        _parse_optional_uuid7(user.created_by, EntityPrefix.USER),
         user.deleted_at,
         entity_id=user.id,
         entity_label="user",

@@ -18,11 +18,13 @@ if TYPE_CHECKING:
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import (
     OPAQUE_STRIPE_ID_REGEX,
     PrefixedUUID7,
     V2CoreBase,
     generate_uuid7_opaque_id,
+    parse_prefixed_uuid7,
 )
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.system_config import DataDictionaryField, MCPAuditTrace
@@ -375,6 +377,28 @@ class ExecutionRecord(ExecutionCoreFields):
         str | None,
         Field(default=None, description="ID of the organization for this execution"),
     ] = None
+
+    @field_validator("created_by")
+    @classmethod
+    def _validate_created_by_user_id(cls, v: str | None) -> str | None:
+        """Validate optional created_by user identifier against canonical usr_ UUIDv7 format.
+
+        Args:
+            v: Optional candidate user identifier string.
+
+        Returns:
+            Validated user identifier string, or None.
+
+        Raises:
+            ValueError: If v fails usr_<hex32> UUIDv7 validation.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.USER)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     def without_profile_synthesis(self, profile_id: str) -> Self:
         """Return an immutable copy with the specified profile synthesis removed.

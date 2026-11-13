@@ -368,6 +368,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
             )
         dumped = existing.model_dump(mode="python")
         dumped.update(updates.model_dump(mode="python", exclude_unset=True))
+        dumped["version"] = existing.version + 1
         updated = Workflow.model_validate(dumped)
         self._save_isolated(workflow_id, updated)
         return workflow_id
@@ -438,6 +439,14 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
         self._check_fault("delete_step")
+        _ = force_delete
+        for wf in self._storage.values():
+            if isinstance(wf, Workflow) and any(rule.task_blueprint == step_id for rule in wf.steps):
+                raise AppException(
+                    message=f"Step '{step_id}' is referenced by workflow '{wf.id}'.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                )
         if step_id in self._steps:
             del self._steps[step_id]
             return True
@@ -445,6 +454,19 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def save_workflow(self, workflow: Workflow) -> str:
         self._check_fault("save_workflow")
+        existing = self._get_isolated(workflow.id)
+        if isinstance(existing, Workflow):
+            if existing.version != workflow.version:
+                raise AppException(
+                    message=(
+                        f"Optimistic concurrency conflict for workflow '{workflow.id}': "
+                        f"expected version={workflow.version}, actual version={existing.version}."
+                    ),
+                    status_code=409,
+                    details={"error_code": ErrorCodes.CONFLICT.value},
+                )
+            self._save_isolated(workflow.id, workflow.model_copy(update={"version": existing.version + 1}))
+            return workflow.id
         self._save_isolated(workflow.id, workflow)
         return workflow.id
 
@@ -602,6 +624,11 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
 class InMemoryPromptBlockRepository(BaseInMemoryRepository[PromptBlock], IPromptBlockRepository):
     """In-memory fake implementation of IPromptBlockRepository."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._workflow_repo: InMemoryWorkflowRepository | None = None
+        self._profile_repo: InMemoryOutputProfileRepository | None = None
+
     def seed_raw_prompt_block(self, block_id: str, raw_block: Any) -> None:
         """Seed a raw dictionary or domain model into prompt block storage for testing."""
         self._storage[block_id] = copy.deepcopy(raw_block)
@@ -649,6 +676,29 @@ class InMemoryPromptBlockRepository(BaseInMemoryRepository[PromptBlock], IPrompt
 
     async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
         self._check_fault("delete_prompt_block")
+        _ = force_delete
+        if self._workflow_repo is not None:
+            for step in self._workflow_repo._steps.values():
+                if isinstance(step, Step) and (
+                    block_id in (step.role_block_id, step.extraction_protocol_block_id, step.execution_persona_block_id)
+                    or block_id in step.criteria_block_ids
+                ):
+                    raise AppException(
+                        message=f"Prompt block '{block_id}' is referenced by step '{step.id}'.",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                    )
+        if self._profile_repo is not None:
+            for profile in self._profile_repo._storage.values():
+                if isinstance(profile, OutputProfile) and block_id in (
+                    profile.variance_target_block,
+                    profile.user_role_target_block,
+                ):
+                    raise AppException(
+                        message=f"Prompt block '{block_id}' is referenced by output profile '{profile.id}'.",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                    )
         if block_id in self._storage:
             del self._storage[block_id]
             return True
@@ -662,6 +712,11 @@ class InMemoryPromptBlockRepository(BaseInMemoryRepository[PromptBlock], IPrompt
 
 class InMemoryOutputProfileRepository(BaseInMemoryRepository[OutputProfile], IOutputProfileRepository):
     """In-memory fake implementation of IOutputProfileRepository."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._workflow_repo: InMemoryWorkflowRepository | None = None
+        self._report_repo: InMemoryReportArtifactRepository | None = None
 
     async def get_all_output_profiles(self) -> list[OutputProfile]:
         self._check_fault("get_all_output_profiles")
@@ -704,6 +759,22 @@ class InMemoryOutputProfileRepository(BaseInMemoryRepository[OutputProfile], IOu
 
     async def delete_output_profile(self, profile_id: str) -> bool:
         self._check_fault("delete_output_profile")
+        if self._workflow_repo is not None:
+            for wf in self._workflow_repo._storage.values():
+                if isinstance(wf, Workflow) and wf.default_profile_id == profile_id:
+                    raise AppException(
+                        message=f"Output profile '{profile_id}' is referenced by workflow '{wf.id}'.",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                    )
+        if self._report_repo is not None:
+            for report in self._report_repo._storage.values():
+                if isinstance(report, ReportArtifact) and report.profile_id == profile_id:
+                    raise AppException(
+                        message=f"Output profile '{profile_id}' is referenced by report artifact '{report.id}'.",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value},
+                    )
         if profile_id in self._storage:
             del self._storage[profile_id]
             return True
@@ -1128,6 +1199,10 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         self._output_profiles = output_profiles or InMemoryOutputProfileRepository()
         self._system = system or InMemorySystemRepository()
         self._audit = audit or InMemoryAuditRepository()
+        self._prompt_blocks._workflow_repo = self._workflows
+        self._prompt_blocks._profile_repo = self._output_profiles
+        self._output_profiles._workflow_repo = self._workflows
+        self._output_profiles._report_repo = self._report_artifacts
 
     def _all_sub_repos(self) -> tuple[BaseInMemoryRepository[Any], ...]:
         return (

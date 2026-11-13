@@ -738,6 +738,7 @@ class WorkflowUpdateDTO(BaseDTO):
         passivity_penalty: Updated passivity penalty ratio.
         status: Updated workflow status.
         model_registry_id: Updated model registry ID.
+        mcp_gateway_id: Updated MCP gateway ID.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -774,6 +775,7 @@ class WorkflowUpdateDTO(BaseDTO):
     ] = None
     status: Annotated[str | None, Field(default=None, description="Updated workflow status")] = None
     model_registry_id: Annotated[str | None, Field(default=None, description="Updated model registry ID")] = None
+    mcp_gateway_id: Annotated[str | None, Field(default=None, description="Updated MCP gateway ID")] = None
 
     @field_validator("model_registry_id")
     @classmethod
@@ -790,6 +792,25 @@ class WorkflowUpdateDTO(BaseDTO):
             return None
         try:
             parse_prefixed_uuid7(v, EntityPrefix.MODEL_REGISTRY)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
+
+    @field_validator("mcp_gateway_id")
+    @classmethod
+    def _validate_update_mcp_gateway_id(cls, v: str | None) -> str | None:
+        """Validate optional updated mcp_gateway_id against canonical mcp_ UUIDv7 format.
+
+        Args:
+            v: Optional candidate MCP gateway identifier.
+
+        Returns:
+            Validated MCP gateway identifier or None.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.MCP_GATEWAY)
         except AppException as exc:
             raise ValueError(exc.message) from exc
         return v

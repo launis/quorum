@@ -109,7 +109,7 @@ async def test_delete_prompt_block_blocked_by_usage_and_force_delete(
     base_uow: InMemoryUnitOfWork,
     sample_system_rule: SystemRulePromptBlock,
 ) -> None:
-    """Negative & Positive: delete_prompt_block blocks on Step reference unless force_delete is True."""
+    """Negative & Positive: delete_prompt_block enforces ON DELETE RESTRICT regardless of force_delete until unreferenced."""
     await repo.create_prompt_block(sample_system_rule)
     step = Step(
         id=_STP_ID,
@@ -130,9 +130,16 @@ async def test_delete_prompt_block_blocked_by_usage_and_force_delete(
 
     with pytest.raises(AppException) as exc:
         await repo.delete_prompt_block(sample_system_rule.id, force_delete=False)
-
     assert exc.value.status_code == 400
     assert exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    with pytest.raises(AppException) as force_exc:
+        await repo.delete_prompt_block(sample_system_rule.id, force_delete=True)
+    assert force_exc.value.status_code == 400
+    assert force_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+    async with InMemoryUnitOfWork(base_uow.store) as uow:
+        assert await uow.entities.delete_step(step.id) is True
 
     assert await repo.delete_prompt_block(sample_system_rule.id, force_delete=True) is True
     assert await repo.get_prompt_block_by_id(sample_system_rule.id) is None

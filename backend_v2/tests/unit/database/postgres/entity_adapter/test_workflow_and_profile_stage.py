@@ -320,3 +320,119 @@ def test_hydrate_workflow_row_corrupt_steps_raises_validation_failed() -> None:
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert exc_info.value.details["table_name"] == "workflows"
     assert exc_info.value.details["entity_id"] == wf.id
+
+
+@pytest.mark.asyncio
+async def test_workflow_version_sql_occ_step_refs_and_deferrable_default_profile_restrict() -> None:
+    """Verify upsert_workflow_row SQL OCC increments version, rejects stale version with 409, and enforces FK restrict."""
+    from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+        delete_step_row,
+        upsert_step_row,
+    )
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import Step, StepRule
+    from backend_v2.models.enums import EngineType, StepType, StepZone
+
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        step_a = Step(
+            id=generate_opaque_id(EntityPrefix.STEP),
+            slug="step_alpha",
+            organization_id=None,
+            name=I18nText(translations={"en": "Alpha", "fi": "Alfa"}),
+            description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+            type=StepType.LOGIC,
+            hook="Causal_Discovery_Hook",
+            criteria_block_ids=[],
+            engine_type=EngineType.PROMPT,
+            zone=StepZone.ZONE_B,
+            pre_hooks=[],
+            post_hooks=[],
+            allowed_mcp_tools=[],
+            mcp_tool_params={},
+            expected_inputs=[],
+        )
+        await upsert_step_row(conn, _TIMEOUT, step_a)
+
+        prf_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
+        sr_1 = "sr_0195f3a0000070008000000000000001"
+        sr_2 = "sr_0195f3a0000070008000000000000002"
+        wf_v1 = WorkflowFactory.build(
+            version=1,
+            default_profile_id=prf_id,
+            steps=[
+                StepRule(
+                    id=sr_1,
+                    task_blueprint=step_a.id,
+                    depends_on=[],
+                    input_mappings={},
+                ),
+                StepRule(
+                    id=sr_2,
+                    task_blueprint=step_a.id,
+                    depends_on=[sr_1],
+                    input_mappings={},
+                ),
+            ],
+        )
+        prf = OutputProfileFactory.build(id=prf_id, workflow_id=wf_v1.id, content_blocks=[])
+
+        # Initial insert preserves version=1 and deduplicates workflow_step_refs
+        await upsert_workflow_row(conn, _TIMEOUT, wf_v1)
+        await upsert_output_profile_row(conn, _TIMEOUT, prf)
+        persisted_v1 = await get_workflow_row(conn, _TIMEOUT, wf_v1.id)
+        assert persisted_v1 is not None
+        assert persisted_v1.version == 1
+        assert pool.store.workflow_step_refs[wf_v1.id] == (step_a.id,)
+
+        # Subsequent upsert with matching version=1 atomically increments stored version to 2
+        await upsert_workflow_row(conn, _TIMEOUT, persisted_v1)
+        persisted_v2 = await get_workflow_row(conn, _TIMEOUT, wf_v1.id)
+        assert persisted_v2 is not None
+        assert persisted_v2.version == 2
+
+        # Negative 1: Stale version=1 update raises AppException(CONFLICT, status_code=409)
+        with pytest.raises(AppException) as occ_exc:
+            await upsert_workflow_row(conn, _TIMEOUT, wf_v1)
+        assert occ_exc.value.status_code == 409
+        assert occ_exc.value.details["error_code"] == ErrorCodes.CONFLICT.value
+
+        # Negative 2: Deleting default_profile_id target raises DELETE_BLOCKED_BY_USAGE (400) via SET CONSTRAINTS IMMEDIATE
+        with pytest.raises(AppException) as prf_restrict_exc:
+            await delete_output_profile_row(conn, _TIMEOUT, prf.id)
+        assert prf_restrict_exc.value.status_code == 400
+        assert prf_restrict_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+        # Negative 3: Deleting referenced step raises DELETE_BLOCKED_BY_USAGE (400) via workflow_step_refs ON DELETE RESTRICT
+        with pytest.raises(AppException) as stp_restrict_exc:
+            await delete_step_row(conn, _TIMEOUT, step_a.id)
+        assert stp_restrict_exc.value.status_code == 400
+        assert stp_restrict_exc.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+
+        from unittest.mock import AsyncMock
+
+        from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+            list_output_profile_rows,
+            list_workflow_rows,
+        )
+
+        assert [w.id for w in await list_workflow_rows(conn, _TIMEOUT)] == [wf_v1.id]
+        assert [p.id for p in await list_output_profile_rows(conn, _TIMEOUT)] == [prf.id]
+
+        failing_conn = AsyncMock()
+        failing_conn.fetch.side_effect = RuntimeError("db list lost")
+        failing_conn.execute.side_effect = RuntimeError("db set constraints lost")
+        with pytest.raises(AppException) as wf_list_exc:
+            await list_workflow_rows(failing_conn, _TIMEOUT)
+        assert wf_list_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as prf_list_exc:
+            await list_output_profile_rows(failing_conn, _TIMEOUT)
+        assert prf_list_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        with pytest.raises(AppException) as prf_del_exc:
+            await delete_output_profile_row(failing_conn, _TIMEOUT, prf.id)
+        assert prf_del_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    finally:
+        await pool.release(conn)

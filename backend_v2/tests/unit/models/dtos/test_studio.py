@@ -436,3 +436,48 @@ def test_create_dtos_and_metadata_dtos_bva_and_negative_partitions() -> None:
     assert prof_list.items == []
     with pytest.raises(ValidationError):
         OutputProfileListResponse.model_validate({"items": "not_a_list"})
+
+
+def test_workflow_create_and_update_dto_model_registry_and_mcp_gateway_validation() -> None:
+    """Verify WorkflowCreateDTO and WorkflowUpdateDTO enforce mrg_ and mcp_ UUIDv7 prefixes."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+
+    valid_mrg = "mrg_0195f3a0000070008000bf23c2670ad5"
+    valid_mcp = "mcp_0195f3a00000700080008172bda70c86"
+
+    created = WorkflowCreateDTO(
+        slug="wf_typed_fks",
+        name="Typed FK Workflow",
+        model_registry_id=valid_mrg,
+        mcp_gateway_id=valid_mcp,
+    )
+    assert created.model_registry_id == valid_mrg
+    assert created.mcp_gateway_id == valid_mcp
+
+    updated = WorkflowUpdateDTO(
+        model_registry_id=valid_mrg,
+        mcp_gateway_id=valid_mcp,
+    )
+    assert updated.model_registry_id == valid_mrg
+    assert updated.mcp_gateway_id == valid_mcp
+
+    updated_nulls = WorkflowUpdateDTO()
+    assert updated_nulls.model_registry_id is None
+    assert updated_nulls.mcp_gateway_id is None
+
+    with pytest.raises((AppException, ValidationError)) as create_mrg_exc:
+        WorkflowCreateDTO(
+            slug="wf_bad_mrg",
+            name="Bad MRG",
+            model_registry_id=valid_mcp,
+        )
+    if isinstance(create_mrg_exc.value, AppException):
+        assert create_mrg_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises((AppException, ValidationError)) as update_mcp_exc:
+        WorkflowUpdateDTO(mcp_gateway_id="mrg_0195f3a0000070008000bf23c2670ad5")
+    if isinstance(update_mcp_exc.value, AppException):
+        assert update_mcp_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises((AppException, ValidationError)):
+        WorkflowUpdateDTO(model_registry_id="not_a_uuid")

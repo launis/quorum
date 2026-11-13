@@ -248,6 +248,9 @@ async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exce
         "org_0195f3a0000070008000000000000010",
         "P1",
     )
+    wf_repo = InMemoryWorkflowRepository()
+    assert isinstance(service.output_profile_repo, InMemoryOutputProfileRepository)
+    service.output_profile_repo._workflow_repo = wf_repo
     await service.output_profile_repo.create_output_profile(p1)
 
     workflow = Workflow(
@@ -264,6 +267,7 @@ async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exce
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="mrg_0195f3a0000070008000e26807f3bfa3",
     )
+    await wf_repo.save_workflow(workflow)
     mock_workflow_service.list_workflows.return_value = [workflow]
 
     with pytest.raises(AppException) as exc_info:
@@ -271,8 +275,6 @@ async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exce
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
-    assert exc_info.value.details["profile_id"] == profile_id
-    assert exc_info.value.details["workflow_id"] == workflow_id
     assert await service.output_profile_repo.get_output_profile_by_id(profile_id) is not None
 
 
@@ -745,3 +747,40 @@ async def test_save_output_profile_cross_tenant_idor_org_preservation_and_unknow
     reassigned_org_payload = tenant_a_profile.model_copy(update={"organization_id": org_b})
     saved = await service.save_output_profile(initiator_a, tenant_a_profile.id, reassigned_org_payload)
     assert saved.organization_id == org_a
+
+
+def test_output_profile_dto_target_block_prefix_validation() -> None:
+    """Verify OutputProfileCreateDTO and OutputProfileUpdateDTO enforce blk_ UUIDv7 on target blocks."""
+    from pydantic import ValidationError
+
+    from backend_v2.models.dtos.output_profile import OutputProfileCreateDTO, OutputProfileUpdateDTO
+
+    valid_blk = "blk_0195f3a0000070008000000000000001"
+    created = OutputProfileCreateDTO(
+        slug="prf_typed_blocks",
+        workflow_id="wf_0195f3a0000070008000000000000001",
+        name=I18nText(translations={"en": "Typed Blocks"}),
+        variance_target_block=valid_blk,
+        user_role_target_block=valid_blk,
+    )
+    assert created.variance_target_block == valid_blk
+    assert created.user_role_target_block == valid_blk
+
+    updated = OutputProfileUpdateDTO(variance_target_block=valid_blk, user_role_target_block=None)
+    assert updated.variance_target_block == valid_blk
+    assert updated.user_role_target_block is None
+
+    with pytest.raises((AppException, ValidationError)) as bad_sys_exc:
+        OutputProfileCreateDTO(
+            slug="prf_bad_sys",
+            workflow_id="wf_0195f3a0000070008000000000000001",
+            name=I18nText(translations={"en": "Bad Sys"}),
+            variance_target_block="sys_global_score",
+        )
+    if isinstance(bad_sys_exc.value, AppException):
+        assert bad_sys_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises((AppException, ValidationError)) as bad_prefix_exc:
+        OutputProfileUpdateDTO(user_role_target_block="stp_0195f3a0000070008000000000000001")
+    if isinstance(bad_prefix_exc.value, AppException):
+        assert bad_prefix_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

@@ -71,10 +71,10 @@ __all__ = [
     "upsert_report_artifact_row",
 ]
 
-_SAVE_REPORT_BINARY_SQL: str = """INSERT INTO report_binaries (report_id, mime_type, pdf_bytes, size_bytes, created_at)
-VALUES ($1::uuid, $2, $3::bytea, $4::bigint, $5::timestamptz)
+_SAVE_REPORT_BINARY_SQL: str = """INSERT INTO report_binaries (report_id, mime_type, pdf_bytes, size_bytes)
+VALUES ($1::uuid, $2, $3::bytea, $4::bigint)
 ON CONFLICT (report_id) DO UPDATE SET mime_type = EXCLUDED.mime_type, pdf_bytes = EXCLUDED.pdf_bytes,
-    size_bytes = EXCLUDED.size_bytes, created_at = EXCLUDED.created_at"""
+    size_bytes = EXCLUDED.size_bytes"""
 
 _MARK_REPORT_ARTIFACT_PDF_SQL: str = (
     "UPDATE report_artifacts SET has_pdf = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1::uuid"
@@ -92,11 +92,19 @@ _EXECUTION_COLS: str = """id, workflow_id, workflow_version, active_profile_id, 
     dag_cost_usd, cumulative_synthesis_cost, cost_estimate, models_used, execution_summary, metadata,
     duration_ms, error, created_at, updated_at, completed_at, created_by, organization_id, state_version"""
 
-_SAVE_EXECUTION_SQL: str = f"""INSERT INTO executions ({_EXECUTION_COLS}) VALUES (
+_EXECUTION_INSERT_COLS: str = """id, workflow_id, workflow_version, active_profile_id, output_profile_id, status,
+    target_locale, progress, status_message, raw_inputs, frozen_context, frozen_context_storage_path,
+    pdf_report_path, steps, step_states, profile_syntheses, source_identity_manifest, execution_trace,
+    execution_trace_storage_path, context_variables, context_variables_storage_path, is_resumable,
+    prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens, cumulative_synthesis_tokens,
+    dag_cost_usd, cumulative_synthesis_cost, cost_estimate, models_used, execution_summary, metadata,
+    duration_ms, error, updated_at, completed_at, created_by, organization_id, state_version"""
+
+_SAVE_EXECUTION_SQL: str = f"""INSERT INTO executions ({_EXECUTION_INSERT_COLS}) VALUES (
     $1::uuid, $2::uuid, $3, $4::uuid, $5::uuid, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12, $13, $14::jsonb,
     $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19, $20::jsonb, $21, $22, $23::bigint, $24::bigint,
     $25::bigint, $26::bigint, $27::bigint, $28::numeric, $29::numeric, $30::numeric, $31::jsonb, $32::jsonb,
-    $33::jsonb, $34::bigint, $35, $36::timestamptz, $37::timestamptz, $38::timestamptz, $39, $40::uuid, $41
+    $33::jsonb, $34::bigint, $35, $36::timestamptz, $37::timestamptz, $38::uuid, $39::uuid, $40
 ) ON CONFLICT (id) DO UPDATE SET
     workflow_id = EXCLUDED.workflow_id, workflow_version = EXCLUDED.workflow_version,
     active_profile_id = EXCLUDED.active_profile_id, output_profile_id = EXCLUDED.output_profile_id,
@@ -125,9 +133,12 @@ _GET_EXECUTION_SQL: str = f"{_SELECT_EXECUTIONS_BASE_SQL} WHERE id = $1::uuid"
 _REPORT_ARTIFACT_COLS: str = """id, execution_id, workflow_id, profile_id, locale, title, status,
     storage_paths, metadata, custom_preface_md, error_message, has_pdf, created_at, updated_at"""
 
-_UPSERT_REPORT_ARTIFACT_SQL: str = f"""INSERT INTO report_artifacts ({_REPORT_ARTIFACT_COLS}) VALUES (
+_REPORT_ARTIFACT_INSERT_COLS: str = """id, execution_id, workflow_id, profile_id, locale, title, status,
+    storage_paths, metadata, custom_preface_md, error_message, has_pdf, updated_at"""
+
+_UPSERT_REPORT_ARTIFACT_SQL: str = f"""INSERT INTO report_artifacts ({_REPORT_ARTIFACT_INSERT_COLS}) VALUES (
     $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12,
-    $13::timestamptz, $14::timestamptz
+    $13::timestamptz
 ) ON CONFLICT (id) DO UPDATE SET execution_id = EXCLUDED.execution_id, workflow_id = EXCLUDED.workflow_id,
     profile_id = EXCLUDED.profile_id, locale = EXCLUDED.locale, title = EXCLUDED.title, status = EXCLUDED.status,
     storage_paths = EXCLUDED.storage_paths, metadata = EXCLUDED.metadata,
@@ -207,7 +218,6 @@ async def save_report_binary_row(conn: _Conn, timeout: float | None, dto: Report
         dto.mime_type,
         dto.pdf_bytes,
         dto.size_bytes,
-        dto.created_at,
         entity_id=dto.report_id,
     )
     await execute_entity_upsert(
@@ -310,7 +320,7 @@ def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
             "completed_at": row["completed_at"],
-            "created_by": row["created_by"],
+            "created_by": _format_optional_uuid7(row["created_by"], EntityPrefix.USER),
             "organization_id": _format_org_uuid7(row["organization_id"]),
             "state_version": int(str(row["state_version"])),
         },
@@ -345,6 +355,7 @@ async def save_execution_row(
     wf_uuid = parse_prefixed_uuid7(record.workflow_id, EntityPrefix.WORKFLOW)
     active_prf_uuid = _parse_optional_uuid7(record.active_profile_id, EntityPrefix.OUTPUT_PROFILE)
     output_prf_uuid = _parse_optional_uuid7(record.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
+    created_by_uuid = _parse_optional_uuid7(record.created_by, EntityPrefix.USER)
     org_uuid = _parse_org_uuid7(record.organization_id)
     # Enforce conditional expected_state_version OCC check and atomic increment
     persisted_state_version = record.state_version
@@ -430,10 +441,9 @@ async def save_execution_row(
         metadata_json,
         record.duration_ms,
         record.error,
-        record.created_at,
         record.updated_at,
         record.completed_at,
-        record.created_by,
+        created_by_uuid,
         org_uuid,
         persisted_state_version,
         entity_id=record.id,
@@ -532,7 +542,6 @@ async def upsert_report_artifact_row(conn: AsyncPgConnectionProtocol, timeout: f
         artifact.custom_preface_md,
         artifact.error_message,
         False,
-        artifact.created_at,
         artifact.updated_at,
         entity_id=artifact.id,
         entity_label="report_artifact",

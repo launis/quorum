@@ -8,13 +8,14 @@ from typing import Annotated, Self
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
-from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase, parse_prefixed_uuid7
 from backend_v2.models.domain.output_profile import STANDARD_MATRIX_VISIBLE_COLUMNS
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.dtos.base import BaseResponseDTO
 from backend_v2.models.enums import (
     DisplayScale,
+    EntityPrefix,
     LaxDisplayScale,
     LaxSourcesDisplayMode,
     LaxSystemLocale,
@@ -222,7 +223,9 @@ class OutputProfileCreateDTO(V2CoreBase):
     variance_target_block: Annotated[
         str | None,
         Field(
-            default=None, description="PromptBlock ID providing the cognitive evaluation score for variance validation."
+            default=None,
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="PromptBlock ID providing the cognitive evaluation score for variance validation.",
         ),
     ] = None
     user_role_target_block: Annotated[
@@ -233,6 +236,18 @@ class OutputProfileCreateDTO(V2CoreBase):
             description="PromptBlock ID providing evaluated score for user role classification.",
         ),
     ] = None
+
+    @field_validator("variance_target_block", "user_role_target_block")
+    @classmethod
+    def _validate_create_target_prompt_block_ids(cls, v: str | None) -> str | None:
+        """Validate optional target block references against canonical blk_ UUIDv7 format."""
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.PROMPT_BLOCK)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     @model_validator(mode="after")
     def validate_custom_scale_bounds(self) -> Self:
@@ -451,7 +466,9 @@ class OutputProfileUpdateDTO(V2CoreBase):
     variance_target_block: Annotated[
         str | None,
         Field(
-            default=None, description="PromptBlock ID providing the cognitive evaluation score for variance validation."
+            default=None,
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="PromptBlock ID providing the cognitive evaluation score for variance validation.",
         ),
     ] = None
     user_role_target_block: Annotated[
@@ -462,6 +479,18 @@ class OutputProfileUpdateDTO(V2CoreBase):
             description="PromptBlock ID providing evaluated score for user role classification.",
         ),
     ] = None
+
+    @field_validator("variance_target_block", "user_role_target_block")
+    @classmethod
+    def _validate_create_target_prompt_block_ids(cls, v: str | None) -> str | None:
+        """Validate optional target block references against canonical blk_ UUIDv7 format."""
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.PROMPT_BLOCK)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
     @model_validator(mode="after")
     def validate_custom_scale_bounds(self) -> Self:

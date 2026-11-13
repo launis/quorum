@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any
+
 from polyfactory.factories.pydantic_factory import ModelFactory
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TenantSecretDTO
-from backend_v2.models.core_base import I18nText, generate_opaque_id, generate_uuid7
+from backend_v2.models.core_base import (
+    I18nText,
+    generate_opaque_id,
+    generate_uuid7,
+    parse_prefixed_uuid7,
+)
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archival import PrecedentDTO
 from backend_v2.models.domain.base import AuditLogRecord, UsageRecord
@@ -365,6 +374,8 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
     __set_as_default_factory_for_type__ = True
 
     display_scale: DisplayScale = DisplayScale.ORIGINAL
+    variance_target_block: str | None = None
+    user_role_target_block: str | None = None
 
     @classmethod
     def organization_id(cls) -> str:
@@ -628,6 +639,21 @@ class ExecutionStepFactory(ModelFactory[ExecutionStep]):
         return generate_opaque_id(EntityPrefix.STEP)
 
 
+def _extract_factory_uuid7_timestamp(prefixed_id: str, prefix: EntityPrefix) -> datetime:
+    """Derive the UTC timestamp embedded in a canonical UUIDv7 Opaque Stripe ID.
+
+    Args:
+        prefixed_id: Canonical Opaque Stripe ID carrying a version 7 UUID.
+        prefix: Expected EntityPrefix enum member.
+
+    Returns:
+        UTC-aware datetime decoded from the top 48 bits of the UUIDv7 identifier.
+    """
+    parsed = parse_prefixed_uuid7(prefixed_id, prefix)
+    timestamp_ms = (parsed.int >> 80) & ((1 << 48) - 1)
+    return datetime.fromtimestamp(timestamp_ms / 1000.0, tz=UTC)
+
+
 class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
     """Polyfactory model factory for ExecutionRecord persistent execution records."""
 
@@ -642,6 +668,37 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
     completion_tokens: int = 0
     cached_tokens: int = 0
     reasoning_tokens: int = 0
+
+    @classmethod
+    def created_by(cls) -> str:
+        """Generate a valid creator user Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'usr_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.USER)
+
+    @classmethod
+    def build(cls, factory_use_construct: bool = False, **kwargs: Any) -> ExecutionRecord:
+        """Build an ExecutionRecord aligning default created_at with UUIDv7 id timestamp.
+
+        Args:
+            factory_use_construct: Whether to bypass Pydantic validation via model_construct.
+            **kwargs: Explicit field overrides for the generated ExecutionRecord.
+
+        Returns:
+            Validated ExecutionRecord instance.
+        """
+        if "created_at" not in kwargs:
+            resolved_id = kwargs["id"] if "id" in kwargs else None
+            if not isinstance(resolved_id, str):
+                resolved_id = cls.id()
+                kwargs["id"] = resolved_id
+            try:
+                kwargs["created_at"] = _extract_factory_uuid7_timestamp(resolved_id, EntityPrefix.EXECUTION)
+            except AppException, ValueError:
+                pass
+        return super().build(factory_use_construct=factory_use_construct, **kwargs)
 
     @classmethod
     def execution_trace(cls) -> list[ErrorTraceEvent | TombstoneEvent | TraceEvent]:
@@ -778,6 +835,28 @@ class ReportArtifactFactory(ModelFactory[ReportArtifact]):
     status: ReportStatus = ReportStatus.READY
     custom_preface_md: str | None = None
     error_message: str | None = None
+
+    @classmethod
+    def build(cls, factory_use_construct: bool = False, **kwargs: Any) -> ReportArtifact:
+        """Build a ReportArtifact aligning default created_at with UUIDv7 id timestamp.
+
+        Args:
+            factory_use_construct: Whether to bypass Pydantic validation via model_construct.
+            **kwargs: Explicit field overrides for the generated ReportArtifact.
+
+        Returns:
+            Validated ReportArtifact instance.
+        """
+        if "created_at" not in kwargs:
+            resolved_id = kwargs["id"] if "id" in kwargs else None
+            if not isinstance(resolved_id, str):
+                resolved_id = cls.id()
+                kwargs["id"] = resolved_id
+            try:
+                kwargs["created_at"] = _extract_factory_uuid7_timestamp(resolved_id, EntityPrefix.REPORT)
+            except AppException, ValueError:
+                pass
+        return super().build(factory_use_construct=factory_use_construct, **kwargs)
 
     @classmethod
     def id(cls) -> str:

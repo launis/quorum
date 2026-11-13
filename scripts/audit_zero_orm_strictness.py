@@ -6,7 +6,7 @@ and backend_v2/database/migrations/001_pg19_uuidv7_schema.sql:
 - ZORM001: Bans imports of sqlalchemy, alembic, or orjson.
 - ZORM002: Bans untyped dictionary subscript annotations targeting Any/object and dict(r) row unpacking.
 - ZORM003: Bans broad except Exception handlers lacking explicit AppException re-raise.
-- ZORM004: Enforces that SQL CREATE TABLE identifiers belong strictly to the closed 15-table set.
+- ZORM004: Enforces that SQL CREATE TABLE identifiers belong strictly to the closed 21-table set.
 - ZORM005: Bans calling llm_client, execute_structured_task, or execute_chat_task inside database/UoW modules.
 - ZORM006: Enforces that record subscript column keys in graph_adapter.py and entity_adapter.py map 1:1
   to declared domain model fields.
@@ -92,7 +92,7 @@ CANONICAL_NAMED_ENTITY_TABLES: dict[str, str] = {
     "report_artifacts": "title",
 }
 
-# Define closed 19-table topology and banned symbol sets
+# Define closed 21-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -101,7 +101,9 @@ CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
         "tenant_secrets",
         "execution_assignments",
         "workflows",
+        "workflow_step_refs",
         "steps",
+        "step_criteria_blocks",
         "prompt_blocks",
         "task_briefs",
         "output_profiles",

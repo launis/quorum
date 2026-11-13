@@ -1121,7 +1121,7 @@ async def test_clone_workflow_remaps_causal_source_step_id(
     )
     wf = _valid_workflow(
         wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_0195f3a0000070008000000000000123"
-    ).model_copy(update={"steps": [causal_step, specialist_step]})
+    ).model_copy(update={"steps": [causal_step, specialist_step], "default_profile_id": None})
     await mock_workflow_repo.save_workflow(wf)
 
     cloned_wf = await workflow_service.clone_workflow(admin_token, wf.id)
@@ -1194,14 +1194,13 @@ async def test_delete_step_blocked_by_workflow_usage_raises(
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
-    assert exc_info.value.details["step_id"] == step_data.id
-    assert exc_info.value.details["workflow_id"] == wf.id
+    assert await mock_workflow_repo.get_step_by_id(step_data.id) is not None
 
 
 async def test_delete_step_force_delete_bypasses_workflow_usage_check(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    """Tests that force_delete=True deletes a step even when referenced by a workflow."""
+    """Tests that ON DELETE RESTRICT blocks step deletion even when force_delete=True until referencing workflows are removed."""
     step_data = _valid_step(
         "stp_0195f3a00000700080000123456789ab", is_system_core=False, org_id="org_0195f3a0000070008000000000000123"
     )
@@ -1218,6 +1217,13 @@ async def test_delete_step_force_delete_bypasses_workflow_usage_check(
     )
     await mock_workflow_repo.save_workflow(wf)
 
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.delete_step(admin_token, step_data.id, force_delete=True)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+    assert await mock_workflow_repo.get_step_by_id(step_data.id) is not None
+
+    await mock_workflow_repo.delete_workflow(wf.id)
     await workflow_service.delete_step(admin_token, step_data.id, force_delete=True)
     persisted = await mock_workflow_repo.get_step_by_id(step_data.id)
     assert persisted is None
@@ -1529,7 +1535,7 @@ async def test_clone_workflow_executes_parent_before_child_atomically_in_single_
     await wf_repo.save_workflow(source_wf)
     await op_repo.create_output_profile(source_profile)
 
-    # 1. Verify parent Workflow (default_profile_id=None) is written BEFORE child OutputProfile and rolls back UoW on fault
+    # 1. Verify parent Workflow (with pre-mapped default_profile_id under deferrable FK) is written BEFORE child OutputProfile and aborts UoW on fault
     op_repo.inject_fault("create_output_profile", AppException(message="Child insert aborted", status_code=500))
     try:
         with pytest.raises(AppException):
@@ -1544,11 +1550,13 @@ async def test_clone_workflow_executes_parent_before_child_atomically_in_single_
     all_wfs_at_child_step = await wf_repo.get_all_workflows(organization_id=admin_token.organization_id, role="ADMIN")
     aborted_clones = [w for w in all_wfs_at_child_step if w.id != source_wf.id]
     assert len(aborted_clones) == 1
-    assert aborted_clones[0].default_profile_id is None
+    assert aborted_clones[0].default_profile_id is not None
+    assert aborted_clones[0].default_profile_id != source_profile.id
+    assert aborted_clones[0].version == 1
     await wf_repo.delete_workflow(aborted_clones[0].id)
     opened_uows.clear()
 
-    # 2. Verify full parent -> child -> default_profile_id binding executes in a single committed UoW
+    # 2. Verify full parent -> child clone executes with a single save_workflow call and version == 1 in one committed UoW
     saves_before = wf_repo.get_call_count("save_workflow")
     creates_before = op_repo.get_call_count("create_output_profile")
 
@@ -1559,9 +1567,10 @@ async def test_clone_workflow_executes_parent_before_child_atomically_in_single_
     assert single_uow._finalized is True
     assert root_uow.store.current_org_reset_count == 2
     assert get_active_uow() is None
-    assert wf_repo.get_call_count("save_workflow") - saves_before == 2
+    assert wf_repo.get_call_count("save_workflow") - saves_before == 1
     assert op_repo.get_call_count("create_output_profile") - creates_before == 1
     assert cloned.slug == "strategic_board_audit"
+    assert cloned.version == 1
     assert cloned.default_profile_id is not None
     assert cloned.default_profile_id != source_profile.id
 
@@ -1569,3 +1578,41 @@ async def test_clone_workflow_executes_parent_before_child_atomically_in_single_
     assert cloned_profile is not None
     assert cloned_profile.slug == "executive_summary_profile"
     assert cloned_profile.workflow_id == cloned.id
+
+
+async def test_save_workflow_enforces_sql_occ_version_increment_and_conflict(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+) -> None:
+    """Verify save_workflow increments Workflow.version and raises 409 CONFLICT on stale version."""
+    wf_id = "wf_0195f3a00000700080000123456789ef"
+    initial_wf = _valid_workflow(wf_id=wf_id, org_id="org_0195f3a0000070008000000000000123")
+    assert initial_wf.version == 1
+    await mock_workflow_repo.save_workflow(initial_wf)
+
+    saved_v2 = await workflow_service.save_workflow(admin_token, wf_id, initial_wf)
+    assert saved_v2.version == 2
+
+    with pytest.raises(AppException) as stale_exc:
+        await workflow_service.save_workflow(admin_token, wf_id, initial_wf)
+    assert stale_exc.value.status_code == 409
+    assert stale_exc.value.details["error_code"] == ErrorCodes.CONFLICT.value
+
+
+async def test_clone_workflow_with_missing_default_profile_raises_validation_failed(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+) -> None:
+    """Verify clone_workflow fails fast when default_profile_id is absent from workflow output profiles."""
+    orphan_wf = _valid_workflow(
+        wf_id="wf_0195f3a00000700080000123456789aa",
+        org_id="org_0195f3a0000070008000000000000123",
+    )
+    await mock_workflow_repo.save_workflow(orphan_wf)
+
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.clone_workflow(admin_token, orphan_wf.id)
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

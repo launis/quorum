@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+from uuid import UUID
+
+from fastapi import status
 from pydantic import TypeAdapter
 from pydantic_core import to_json
 
@@ -21,7 +25,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     validate_hydrated_row,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.step import StepRule
@@ -29,15 +33,19 @@ from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import EntityPrefix
 
+logger = logging.getLogger(__name__)
+
 _STEP_RULE_LIST_ADAPTER: TypeAdapter[list[StepRule]] = TypeAdapter(list[StepRule])
 
 __all__ = [
     "_DELETE_OUTPUT_PROFILE_SQL",
     "_DELETE_TASK_BRIEF_SQL",
     "_DELETE_WORKFLOW_SQL",
+    "_DELETE_WORKFLOW_STEP_REFS_SQL",
     "_GET_OUTPUT_PROFILE_SQL",
     "_GET_TASK_BRIEF_SQL",
     "_GET_WORKFLOW_SQL",
+    "_INSERT_WORKFLOW_STEP_REFS_SQL",
     "_LIST_OUTPUT_PROFILES_SQL",
     "_LIST_TASK_BRIEFS_SQL",
     "_LIST_WORKFLOWS_SQL",
@@ -69,7 +77,7 @@ _UPSERT_WORKFLOW_SQL: str = """INSERT INTO workflows (id, slug, name, descriptio
 VALUES ($1::uuid, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8::uuid, $9::uuid, $10::uuid, $11::uuid,
     $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb, $22::jsonb, $23)
 ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, name = EXCLUDED.name, description = EXCLUDED.description,
-    status = EXCLUDED.status, version = EXCLUDED.version, is_public = EXCLUDED.is_public,
+    status = EXCLUDED.status, version = workflows.version + 1, is_public = EXCLUDED.is_public,
     organization_id = EXCLUDED.organization_id, default_profile_id = EXCLUDED.default_profile_id,
     mcp_gateway_id = EXCLUDED.mcp_gateway_id, model_registry_id = EXCLUDED.model_registry_id,
     default_strictness_level = EXCLUDED.default_strictness_level,
@@ -80,7 +88,15 @@ ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, name = EXCLUDED.name, descr
     enable_semantic_smoothing = EXCLUDED.enable_semantic_smoothing,
     enable_eager_anonymization = EXCLUDED.enable_eager_anonymization,
     system_audit_trail = EXCLUDED.system_audit_trail, expected_inputs = EXCLUDED.expected_inputs,
-    steps = EXCLUDED.steps, historical_context_mode = EXCLUDED.historical_context_mode"""
+    steps = EXCLUDED.steps, historical_context_mode = EXCLUDED.historical_context_mode
+WHERE workflows.version = $6
+RETURNING version"""
+
+_DELETE_WORKFLOW_STEP_REFS_SQL: str = "DELETE FROM workflow_step_refs WHERE workflow_id = $1::uuid"
+
+_INSERT_WORKFLOW_STEP_REFS_SQL: str = """INSERT INTO workflow_step_refs (workflow_id, step_id)
+SELECT $1::uuid, stp_id
+FROM UNNEST($2::uuid[]) AS u(stp_id)"""
 
 _GET_WORKFLOW_SQL: str = """SELECT id, slug, name, description, status, version, is_public, organization_id,
        default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
@@ -108,7 +124,7 @@ _UPSERT_OUTPUT_PROFILE_SQL: str = """INSERT INTO output_profiles (id, slug, work
 VALUES ($1::uuid, $2, $3::uuid, $4::uuid, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb,
     $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
     $19::jsonb, $20::jsonb, $21::jsonb, $22::jsonb, $23, $24, $25, $26, $27, $28,
-    $29, $30, $31, $32, $33, $34::jsonb, $35::jsonb, $36::jsonb, $37, $38, $39, $40)
+    $29, $30, $31, $32, $33, $34::jsonb, $35::jsonb, $36::jsonb, $37, $38, $39::uuid, $40::uuid)
 ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, workflow_id = EXCLUDED.workflow_id,
     organization_id = EXCLUDED.organization_id, name = EXCLUDED.name, description = EXCLUDED.description,
     user_role_label = EXCLUDED.user_role_label, custom_preface = EXCLUDED.custom_preface,
@@ -270,7 +286,7 @@ def hydrate_workflow_row(row: AsyncPgRecordProtocol) -> Workflow:
 
 
 async def upsert_workflow_row(conn: AsyncPgConnectionProtocol, timeout: float, wf: Workflow) -> str:
-    """Persist a Workflow into workflows.
+    """Persist a Workflow into workflows with SQL OCC and workflow_step_refs synchronization.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
@@ -281,39 +297,100 @@ async def upsert_workflow_row(conn: AsyncPgConnectionProtocol, timeout: float, w
         Canonical wf_<hex> workflow identifier.
 
     Raises:
-        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+        AppException: With VALIDATION_FAILED on invalid ID, CONFLICT on stale version,
+            or STORAGE_ACCESS_FAILED if persistence fails.
     """
+    wf_uuid = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
+    seen_step_uuids: set[UUID] = set()
+    step_ref_uuids: list[UUID] = []
+    for rule in wf.steps:
+        stp_uuid = parse_prefixed_uuid7(rule.task_blueprint, EntityPrefix.STEP)
+        if stp_uuid not in seen_step_uuids:
+            seen_step_uuids.add(stp_uuid)
+            step_ref_uuids.append(stp_uuid)
+
     dumped = wf.model_dump(mode="json")
-    return await execute_entity_upsert(
-        conn,
-        timeout,
-        _UPSERT_WORKFLOW_SQL,
-        parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW),
-        wf.slug,
-        to_json(dumped["name"]).decode("utf-8"),
-        to_json(dumped["description"]).decode("utf-8"),
-        wf.status,
-        wf.version,
-        wf.is_public,
-        _parse_org_uuid7(wf.organization_id),
-        _parse_optional_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE),
-        _parse_optional_uuid7(wf.mcp_gateway_id, EntityPrefix.MCP_GATEWAY),
-        parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.MODEL_REGISTRY),
-        wf.default_strictness_level,
-        wf.default_lexical_strictness_level,
-        wf.security_penalty,
-        wf.post_hoc_penalty,
-        wf.passivity_penalty,
-        wf.enable_contextual_overrides,
-        wf.enable_semantic_smoothing,
-        wf.enable_eager_anonymization,
-        wf.system_audit_trail,
-        to_json(dumped["expected_inputs"]).decode("utf-8"),
-        to_json(dumped["steps"]).decode("utf-8"),
-        str(wf.historical_context_mode),
-        entity_id=wf.id,
-        entity_label="workflow",
-    )
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        row = await conn.fetchrow(
+            _UPSERT_WORKFLOW_SQL,
+            wf_uuid,
+            wf.slug,
+            to_json(dumped["name"]).decode("utf-8"),
+            to_json(dumped["description"]).decode("utf-8"),
+            wf.status,
+            wf.version,
+            wf.is_public,
+            _parse_org_uuid7(wf.organization_id),
+            _parse_optional_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE),
+            _parse_optional_uuid7(wf.mcp_gateway_id, EntityPrefix.MCP_GATEWAY),
+            parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.MODEL_REGISTRY),
+            wf.default_strictness_level,
+            wf.default_lexical_strictness_level,
+            wf.security_penalty,
+            wf.post_hoc_penalty,
+            wf.passivity_penalty,
+            wf.enable_contextual_overrides,
+            wf.enable_semantic_smoothing,
+            wf.enable_eager_anonymization,
+            wf.system_audit_trail,
+            to_json(dumped["expected_inputs"]).decode("utf-8"),
+            to_json(dumped["steps"]).decode("utf-8"),
+            str(wf.historical_context_mode),
+            timeout=effective_timeout,
+        )
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="UPSERT",
+            table_name="workflows",
+            entity_id=wf.id,
+        ) from exc
+
+    if row is None:
+        msg = f"Optimistic concurrency conflict for workflow '{wf.id}' at expected version={wf.version}."
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.CONFLICT.name,
+            msg,
+            extra={
+                "error_code": ErrorCodes.CONFLICT.value,
+                "workflow_id": wf.id,
+                "expected_version": wf.version,
+            },
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_409_CONFLICT,
+            details={
+                "error_code": ErrorCodes.CONFLICT.value,
+                "workflow_id": wf.id,
+                "expected_version": wf.version,
+            },
+        )
+
+    try:
+        await conn.execute(_DELETE_WORKFLOW_STEP_REFS_SQL, wf_uuid, timeout=effective_timeout)
+        if step_ref_uuids:
+            await conn.execute(
+                _INSERT_WORKFLOW_STEP_REFS_SQL,
+                wf_uuid,
+                step_ref_uuids,
+                timeout=effective_timeout,
+            )
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="UPSERT",
+            table_name="workflow_step_refs",
+            entity_id=wf.id,
+        ) from exc
+
+    return wf.id
 
 
 async def get_workflow_row(conn: AsyncPgConnectionProtocol, timeout: float, workflow_id: str) -> Workflow | None:
@@ -391,8 +468,8 @@ def hydrate_output_profile_row(row: AsyncPgRecordProtocol) -> OutputProfile:
             "content_blocks": _decode_jsonb_column(row["content_blocks"]),
             "show_sources_summary_box": row["show_sources_summary_box"],
             "sources_display_mode": row["sources_display_mode"],
-            "variance_target_block": row["variance_target_block"],
-            "user_role_target_block": row["user_role_target_block"],
+            "variance_target_block": _format_optional_uuid7(row["variance_target_block"], EntityPrefix.PROMPT_BLOCK),
+            "user_role_target_block": _format_optional_uuid7(row["user_role_target_block"], EntityPrefix.PROMPT_BLOCK),
         },
         table_name="output_profiles",
         entity_id=prf_id,
@@ -459,8 +536,8 @@ async def upsert_output_profile_row(conn: AsyncPgConnectionProtocol, timeout: fl
         to_json(dumped["content_blocks"]).decode("utf-8"),
         profile.show_sources_summary_box,
         str(profile.sources_display_mode),
-        profile.variance_target_block,
-        profile.user_role_target_block,
+        _parse_optional_uuid7(profile.variance_target_block, EntityPrefix.PROMPT_BLOCK),
+        _parse_optional_uuid7(profile.user_role_target_block, EntityPrefix.PROMPT_BLOCK),
         entity_id=profile.id,
         entity_label="output_profile",
     )
@@ -707,6 +784,18 @@ async def delete_output_profile_row(
         AppException: With VALIDATION_FAILED, DELETE_BLOCKED_BY_USAGE, or STORAGE_ACCESS_FAILED.
     """
     prf_uuid = parse_prefixed_uuid7(profile_id, EntityPrefix.OUTPUT_PROFILE)
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        await conn.execute("SET CONSTRAINTS workflows_default_profile_id_fkey IMMEDIATE", timeout=effective_timeout)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise translate_postgres_exception(
+            exc,
+            operation="DELETE",
+            table_name="output_profiles",
+            entity_id=profile_id,
+        ) from exc
     return await execute_entity_delete(
         conn,
         timeout,

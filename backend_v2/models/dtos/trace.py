@@ -5,14 +5,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Self, override
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import V2CoreBase, parse_prefixed_uuid7
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.dtos.schema_manifest import JsonSchemaNode
-from backend_v2.models.enums import LaxExecutionStatus
+from backend_v2.models.enums import EntityPrefix, LaxExecutionStatus
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.execution import (
@@ -61,6 +62,28 @@ class ExecutionCreateDTO(BaseDTO):
     organization_id: Annotated[str | None, Field(default=None, description="Organization ID")] = None
     created_by: Annotated[str | None, Field(default=None, description="Creator user ID")] = None
     metadata: Annotated[ExecutionMetadata | None, Field(default=None, description="Typed metadata SSOT")] = None
+
+    @field_validator("created_by")
+    @classmethod
+    def _validate_created_by_user_id(cls, v: str | None) -> str | None:
+        """Validate optional created_by user identifier against canonical usr_ UUIDv7 format.
+
+        Args:
+            v: Optional candidate user identifier string.
+
+        Returns:
+            Validated user identifier string, or None.
+
+        Raises:
+            ValueError: If v fails usr_<hex32> UUIDv7 validation.
+        """
+        if v is None:
+            return None
+        try:
+            parse_prefixed_uuid7(v, EntityPrefix.USER)
+        except AppException as exc:
+            raise ValueError(exc.message) from exc
+        return v
 
 
 class ExecutionUpdateDTO(BaseDTO):

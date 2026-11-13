@@ -615,52 +615,38 @@ class StudioWorkflowService:
             )
         return new_steps
 
-    async def _clone_workflow_profiles(
+    async def _persist_cloned_workflow_profiles(
         self,
         initiator: TokenData,
-        source_workflow_id: str,
+        source_profiles: list[OutputProfile],
         target_workflow_id: str,
-    ) -> dict[str, str]:
-        """Deep-clone output profiles attached to the source workflow.
+        profile_mapping: dict[str, str],
+    ) -> None:
+        """Persist deep-cloned output profiles bound to pre-generated target IDs.
 
         Args:
             initiator: The user token data.
-            source_workflow_id: Original workflow ID.
+            source_profiles: Source OutputProfile models attached to the original workflow.
             target_workflow_id: Newly generated workflow ID.
-
-        Returns:
-            Mapping from original output profile IDs to cloned output profile IDs.
-
-        Raises:
-            AppException (ErrorCodes.VALIDATION_FAILED): If a corrupted output profile is encountered.
+            profile_mapping: Pre-generated mapping from original profile IDs to cloned profile IDs.
         """
-        all_profiles = await self.output_profile_repo.get_all_output_profiles()
-        profile_mapping: dict[str, str] = {}
-
-        for p_obj in all_profiles:
-            if p_obj.workflow_id == source_workflow_id:
-                new_profile_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
-                profile_mapping[p_obj.id] = new_profile_id
-                cloned_profile = p_obj.model_copy(
-                    update={
-                        "id": new_profile_id,
-                        "workflow_id": target_workflow_id,
-                        "organization_id": (
-                            p_obj.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
-                        ),
-                    }
-                )
-                await self.output_profile_repo.create_output_profile(cloned_profile)
-
-        return profile_mapping
+        for p_obj in source_profiles:
+            cloned_profile = p_obj.model_copy(
+                update={
+                    "id": profile_mapping[p_obj.id],
+                    "workflow_id": target_workflow_id,
+                    "organization_id": (
+                        p_obj.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+                    ),
+                }
+            )
+            await self.output_profile_repo.create_output_profile(cloned_profile)
 
     async def clone_workflow(self, initiator: TokenData, id: str) -> WorkflowResponseDTO:
         """Clone an existing workflow and its output profiles inside one atomic Unit of Work session.
 
-        Executes parent-before-child foreign-key ordering:
-        1. Insert cloned Workflow with default_profile_id=None (preserving original slug).
-        2. Insert cloned OutputProfile rows referencing workflow_id=new_id (preserving original slugs).
-        3. Bind Workflow.default_profile_id to the cloned default profile UUID when present.
+        Pre-generates cloned output profile IDs so the cloned Workflow is persisted once (version=1)
+        with its target default_profile_id while workflows_default_profile_id_fkey is deferred until commit.
 
         Args:
             initiator: The user token data.
@@ -682,6 +668,39 @@ class StudioWorkflowService:
             target_org_id = wf.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
             enforce_modification_rights(initiator, target_org_id)
 
+            all_profiles = await self.output_profile_repo.get_all_output_profiles()
+            source_profiles = [p_obj for p_obj in all_profiles if p_obj.workflow_id == id]
+            profile_mapping: dict[str, str] = {
+                p_obj.id: generate_opaque_id(EntityPrefix.OUTPUT_PROFILE) for p_obj in source_profiles
+            }
+            resolved_default_profile_id: str | None = None
+            if wf.default_profile_id is not None:
+                if wf.default_profile_id not in profile_mapping:
+                    msg = (
+                        f"Cannot clone workflow '{wf.id}': default_profile_id "
+                        f"'{wf.default_profile_id}' is missing from workflow output profiles."
+                    )
+                    logger.error(
+                        "[StudioWorkflowService] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        extra={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "workflow_id": wf.id,
+                            "default_profile_id": wf.default_profile_id,
+                        },
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=422,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "workflow_id": wf.id,
+                            "default_profile_id": wf.default_profile_id,
+                        },
+                    )
+                resolved_default_profile_id = profile_mapping[wf.default_profile_id]
+
             new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
             cloned_name: I18nText | str = (
                 wf.name.with_copy_suffix() if isinstance(wf.name, I18nText) else f"{wf.name} (Copy)"
@@ -691,28 +710,19 @@ class StudioWorkflowService:
             }
             new_steps = self._clone_workflow_steps(wf.steps, sr_mapping)
 
-            initial_cloned_workflow = wf.model_copy(
+            cloned_workflow = wf.model_copy(
                 update={
                     "id": new_id,
                     "name": cloned_name,
                     "organization_id": target_org_id,
+                    "version": 1,
                     "steps": new_steps,
-                    "default_profile_id": None,
+                    "default_profile_id": resolved_default_profile_id,
                 }
             )
-            DAGCompilerService.validate_workflow(initial_cloned_workflow)
-            await self.workflow_repo.save_workflow(initial_cloned_workflow)
-
-            profile_mapping = await self._clone_workflow_profiles(initiator, id, new_id)
-
-            resolved_default_profile_id: str | None = None
-            if wf.default_profile_id is not None and wf.default_profile_id in profile_mapping:
-                resolved_default_profile_id = profile_mapping[wf.default_profile_id]
-            if resolved_default_profile_id is not None:
-                bound_cloned_workflow = initial_cloned_workflow.model_copy(
-                    update={"default_profile_id": resolved_default_profile_id}
-                )
-                await self.workflow_repo.save_workflow(bound_cloned_workflow)
+            DAGCompilerService.validate_workflow(cloned_workflow)
+            await self.workflow_repo.save_workflow(cloned_workflow)
+            await self._persist_cloned_workflow_profiles(initiator, source_profiles, new_id, profile_mapping)
 
             saved = await self._require_workflow(initiator, new_id, after_save=True)
             await self._sync_output_profiles_for_workflow(saved)
@@ -857,32 +867,6 @@ class StudioWorkflowService:
                 status_code=403,
                 details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
             )
-
-        if not force_delete:
-            all_workflows = await self.workflow_repo.get_all_workflows()
-            for wf in all_workflows:
-                if any(rule.task_blueprint == id for rule in wf.steps):
-                    logger.error(
-                        "[StudioService] %s: Cannot delete step %s because it is used in workflow %s.",
-                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
-                        id,
-                        wf.id,
-                        exc_info=True,
-                        extra={
-                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                            "step_id": id,
-                            "workflow_id": wf.id,
-                        },
-                    )
-                    raise AppException(
-                        message=f"Cannot delete step {id} because it is referenced in workflow {wf.id}.",
-                        status_code=400,
-                        details={
-                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                            "step_id": id,
-                            "workflow_id": wf.id,
-                        },
-                    )
 
         await self.workflow_repo.delete_step(id, force_delete=force_delete)
 

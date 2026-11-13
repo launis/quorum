@@ -80,21 +80,21 @@ async def test_list_report_artifacts_by_execution_roundtrip_and_ordering(
     base_time = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
 
     older_report = ReportArtifactFactory.build(
+        id="rep_0195f3a0000070008000000000000001",
         execution_id=target_exe_id,
         title="Older Report",
-        created_at=base_time,
         updated_at=base_time,
     )
     newer_report = ReportArtifactFactory.build(
+        id="rep_0195f3a003e870008000000000000002",
         execution_id=target_exe_id,
         title="Newer Report",
-        created_at=base_time + timedelta(minutes=10),
         updated_at=base_time + timedelta(minutes=10),
     )
     unrelated_report = ReportArtifactFactory.build(
+        id="rep_0195f3a007d070008000000000000003",
         execution_id=other_exe_id,
         title="Unrelated Execution Report",
-        created_at=base_time + timedelta(minutes=20),
         updated_at=base_time + timedelta(minutes=20),
     )
 

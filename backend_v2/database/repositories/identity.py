@@ -20,7 +20,7 @@ from backend_v2.models.auth import (
     UserCreate,
     UserUpdate,
 )
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
 from backend_v2.models.enums import EntityPrefix
 
 logger = logging.getLogger(__name__)
@@ -254,6 +254,8 @@ class IdentityRepositoryImpl(BaseRepository):
                 created_at=datetime.now(UTC),
                 created_by=user_data.created_by,
             )
+        if user_model.created_by is not None:
+            parse_prefixed_uuid7(user_model.created_by, EntityPrefix.USER)
         async with self._acquire_entities() as entities:
             return await entities.upsert_user(user_model)
 
