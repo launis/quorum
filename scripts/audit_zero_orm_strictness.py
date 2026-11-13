@@ -92,7 +92,7 @@ CANONICAL_NAMED_ENTITY_TABLES: dict[str, str] = {
     "report_artifacts": "title",
 }
 
-# Define closed 21-table topology and banned symbol sets
+# Define closed 22-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -110,6 +110,7 @@ CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
         "model_registries",
         "mcp_gateways",
         "executions",
+        "execution_payloads",
         "report_artifacts",
         "report_binaries",
         "audit_logs",

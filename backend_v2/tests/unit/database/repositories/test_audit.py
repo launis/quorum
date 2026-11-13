@@ -125,7 +125,7 @@ async def test_get_detailed_usage_org_and_user_scopes(
     """Verify get_detailed_usage combines SQL rollup totals with execution model and workflow breakdowns."""
     org_id = "org_0195f3a0000070018234567890abcdef"
     usr_id = "usr_0195f3a0000070028234567890abcdef"
-    wf_id = "wor_0195f3a0000070018234567890abcdef"
+    wf_id = "wf_0195f3a0000070018234567890abcdef"
     completed_1 = datetime(2026, 8, 15, 12, 0, 0, tzinfo=UTC)
     completed_2 = datetime(2026, 8, 16, 12, 0, 0, tzinfo=UTC)
 

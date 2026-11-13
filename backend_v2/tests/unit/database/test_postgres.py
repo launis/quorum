@@ -525,6 +525,7 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
     )
     execution_record = ExecutionRecord(
         id=exec_id,
+        organization_id=generate_uuid7_opaque_id(EntityPrefix.ORGANIZATION),
         workflow_id=wf_id,
         workflow_version=2,
         status=ExecutionStatus.PASSED,
@@ -622,14 +623,14 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
 
 
 def test_schema_dto_naming_parity() -> None:
-    """Assert 1:1 bi-directional column-to-field naming parity across all 21 tables and MCP JSONB structures."""
+    """Assert 1:1 bi-directional column-to-field naming parity across all 22 tables and MCP JSONB structures."""
     sql_text = _MIGRATION_SQL_PATH.read_text(encoding="utf-8")
     assert "SET default_toast_compression = 'lz4';" in sql_text
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_nodes_run_created" in sql_text
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_edges_run_created" in sql_text
 
     parsed_tables = _extract_sql_table_columns(sql_text)
-    expected_21_tables = {
+    expected_22_tables = {
         "organizations",
         "users",
         "invitations",
@@ -645,6 +646,7 @@ def test_schema_dto_naming_parity() -> None:
         "workflow_step_refs",
         "output_profiles",
         "executions",
+        "execution_payloads",
         "report_artifacts",
         "report_binaries",
         "quorum_nodes",
@@ -652,7 +654,7 @@ def test_schema_dto_naming_parity() -> None:
         "audit_logs",
         "usage_records",
     }
-    assert set(parsed_tables.keys()) == expected_21_tables
+    assert set(parsed_tables.keys()) == expected_22_tables
 
     # 1. quorum_nodes <-> PropositionNode + NodeDraft.local_key
     assert parsed_tables["quorum_nodes"] == set(PropositionNode.model_fields.keys()) | {"local_key"}
@@ -663,8 +665,26 @@ def test_schema_dto_naming_parity() -> None:
     # 3. report_binaries <-> ReportBinaryPayloadDTO
     assert parsed_tables["report_binaries"] == set(ReportBinaryPayloadDTO.model_fields.keys())
 
-    # 4. executions <-> ExecutionRecord
-    assert parsed_tables["executions"] == set(ExecutionRecord.model_fields.keys())
+    # 4. executions + execution_payloads <-> ExecutionRecord 1:1 hot/cold sidecar split
+    sidecar_payload_fields = {
+        "raw_inputs",
+        "frozen_context",
+        "context_variables",
+        "execution_trace",
+        "profile_syntheses",
+    }
+    deprecated_domain_fields = {
+        "active_profile_id",
+        "frozen_context_storage_path",
+        "pdf_report_path",
+        "step_states",
+        "execution_trace_storage_path",
+        "context_variables_storage_path",
+    }
+    assert parsed_tables["execution_payloads"] == sidecar_payload_fields | {"execution_id", "updated_at"}
+    assert parsed_tables["executions"] == (
+        set(ExecutionRecord.model_fields.keys()) - sidecar_payload_fields - deprecated_domain_fields
+    )
 
     # 5. report_artifacts <-> ReportArtifact + has_pdf sidecar flag
     assert parsed_tables["report_artifacts"] == set(ReportArtifact.model_fields.keys()) | {"has_pdf"}
@@ -1351,6 +1371,7 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
         await unbound_uow.entities.save_execution(
             ExecutionRecord(
                 id=run_id,
+                organization_id=generate_uuid7_opaque_id(EntityPrefix.ORGANIZATION),
                 workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
                 target_locale="en",
                 execution_trace=[],
@@ -1420,6 +1441,7 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
         )
         exec_record = ExecutionRecord(
             id=run_id,
+            organization_id=generate_uuid7_opaque_id(EntityPrefix.ORGANIZATION),
             workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
             target_locale="en",
             execution_trace=[],
@@ -1795,6 +1817,7 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
 
     sample_exec = ExecutionRecord(
         id=generate_uuid7_opaque_id(EntityPrefix.EXECUTION),
+        organization_id=org_sample.id,
         workflow_id=wf_sample.id,
         workflow_version=2,
         output_profile_id=profile_sample.id,

@@ -1,9 +1,11 @@
-"""PostgreSQL 19 SQL constants, hydration, and persistence stage for executions, report_artifacts, and binaries."""
+"""PostgreSQL 19 SQL constants, hydration, and persistence stage for executions, payloads, and reports."""
 
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import UTC, datetime
+from typing import Never
 
 from fastapi import status
 from pydantic_core import to_json
@@ -14,9 +16,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _decode_jsonb_column,
     _encode_optional_jsonb,
     _format_optional_uuid7,
-    _format_org_uuid7,
     _parse_optional_uuid7,
-    _parse_org_uuid7,
     _ReportBinaryRowDTO,
     execute_entity_delete,
     execute_entity_upsert,
@@ -25,7 +25,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     validate_hydrated_row,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
@@ -52,8 +52,11 @@ __all__ = [
     "_LIST_REPORT_ARTIFACTS_BY_EXECUTION_SQL",
     "_LIST_REPORT_ARTIFACTS_SQL",
     "_MARK_REPORT_ARTIFACT_PDF_SQL",
+    "_PROBE_EXECUTION_STATE_VERSION_SQL",
     "_SAVE_EXECUTION_SQL",
     "_SAVE_REPORT_BINARY_SQL",
+    "_UPDATE_EXECUTION_OCC_SQL",
+    "_UPSERT_EXECUTION_PAYLOAD_SQL",
     "_UPSERT_REPORT_ARTIFACT_SQL",
     "apply_execution_updates",
     "delete_execution_row",
@@ -62,6 +65,7 @@ __all__ = [
     "get_report_artifact_row",
     "get_report_binary_row",
     "hydrate_execution_row",
+    "hydrate_execution_summary_row",
     "hydrate_report_artifact_row",
     "list_execution_rows",
     "list_executions_filtered_rows",
@@ -85,51 +89,78 @@ _GET_REPORT_BINARY_SQL: str = (
     "SELECT report_id, mime_type, pdf_bytes, size_bytes, created_at FROM report_binaries WHERE report_id = $1::uuid"
 )
 
-_EXECUTION_COLS: str = """id, workflow_id, workflow_version, active_profile_id, output_profile_id, status,
-    target_locale, progress, status_message, raw_inputs, frozen_context, frozen_context_storage_path,
-    pdf_report_path, steps, step_states, profile_syntheses, source_identity_manifest, execution_trace,
-    execution_trace_storage_path, context_variables, context_variables_storage_path, is_resumable,
+_EXECUTION_COLS: str = """id, organization_id, workflow_id, workflow_version, state_version, output_profile_id,
+    status, target_locale, progress, status_message, steps, source_identity_manifest, is_resumable,
     prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens, cumulative_synthesis_tokens,
     dag_cost_usd, cumulative_synthesis_cost, cost_estimate, models_used, execution_summary, metadata,
-    duration_ms, error, created_at, updated_at, completed_at, created_by, organization_id, state_version"""
+    duration_ms, error, created_by, created_at, updated_at, completed_at"""
 
-_EXECUTION_INSERT_COLS: str = """id, workflow_id, workflow_version, active_profile_id, output_profile_id, status,
-    target_locale, progress, status_message, raw_inputs, frozen_context, frozen_context_storage_path,
-    pdf_report_path, steps, step_states, profile_syntheses, source_identity_manifest, execution_trace,
-    execution_trace_storage_path, context_variables, context_variables_storage_path, is_resumable,
-    prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens, cumulative_synthesis_tokens,
-    dag_cost_usd, cumulative_synthesis_cost, cost_estimate, models_used, execution_summary, metadata,
-    duration_ms, error, updated_at, completed_at, created_by, organization_id, state_version"""
+_EXECUTION_INSERT_COLS: str = """id, organization_id, workflow_id, workflow_version, state_version,
+    output_profile_id, status, target_locale, progress, status_message, steps, source_identity_manifest,
+    is_resumable, prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens,
+    cumulative_synthesis_tokens, dag_cost_usd, cumulative_synthesis_cost, cost_estimate, models_used,
+    execution_summary, metadata, duration_ms, error, created_by, updated_at, completed_at"""
 
 _SAVE_EXECUTION_SQL: str = f"""INSERT INTO executions ({_EXECUTION_INSERT_COLS}) VALUES (
-    $1::uuid, $2::uuid, $3, $4::uuid, $5::uuid, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12, $13, $14::jsonb,
-    $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19, $20::jsonb, $21, $22, $23::bigint, $24::bigint,
-    $25::bigint, $26::bigint, $27::bigint, $28::numeric, $29::numeric, $30::numeric, $31::jsonb, $32::jsonb,
-    $33::jsonb, $34::bigint, $35, $36::timestamptz, $37::timestamptz, $38::uuid, $39::uuid, $40
+    $1::uuid, $2::uuid, $3::uuid, $4, $5, $6::uuid, $7, $8, $9, $10, $11::jsonb, $12::jsonb,
+    $13, $14::bigint, $15::bigint, $16::bigint, $17::bigint, $18::bigint, $19::numeric,
+    $20::numeric, $21::numeric, $22::jsonb, $23::jsonb, $24::jsonb, $25::bigint, $26,
+    $27::uuid, $28::timestamptz, $29::timestamptz
 ) ON CONFLICT (id) DO UPDATE SET
-    workflow_id = EXCLUDED.workflow_id, workflow_version = EXCLUDED.workflow_version,
-    active_profile_id = EXCLUDED.active_profile_id, output_profile_id = EXCLUDED.output_profile_id,
-    status = EXCLUDED.status, target_locale = EXCLUDED.target_locale, progress = EXCLUDED.progress,
-    status_message = EXCLUDED.status_message, raw_inputs = EXCLUDED.raw_inputs,
-    frozen_context = EXCLUDED.frozen_context, frozen_context_storage_path = EXCLUDED.frozen_context_storage_path,
-    pdf_report_path = EXCLUDED.pdf_report_path, steps = EXCLUDED.steps, step_states = EXCLUDED.step_states,
-    profile_syntheses = EXCLUDED.profile_syntheses, source_identity_manifest = EXCLUDED.source_identity_manifest,
-    execution_trace = EXCLUDED.execution_trace, execution_trace_storage_path = EXCLUDED.execution_trace_storage_path,
-    context_variables = EXCLUDED.context_variables,
-    context_variables_storage_path = EXCLUDED.context_variables_storage_path, is_resumable = EXCLUDED.is_resumable,
+    organization_id = EXCLUDED.organization_id, workflow_id = EXCLUDED.workflow_id,
+    workflow_version = EXCLUDED.workflow_version, state_version = EXCLUDED.state_version,
+    output_profile_id = EXCLUDED.output_profile_id, status = EXCLUDED.status,
+    target_locale = EXCLUDED.target_locale, progress = EXCLUDED.progress,
+    status_message = EXCLUDED.status_message, steps = EXCLUDED.steps,
+    source_identity_manifest = EXCLUDED.source_identity_manifest, is_resumable = EXCLUDED.is_resumable,
     prompt_tokens = EXCLUDED.prompt_tokens, completion_tokens = EXCLUDED.completion_tokens,
     cached_tokens = EXCLUDED.cached_tokens, reasoning_tokens = EXCLUDED.reasoning_tokens,
     cumulative_synthesis_tokens = EXCLUDED.cumulative_synthesis_tokens, dag_cost_usd = EXCLUDED.dag_cost_usd,
     cumulative_synthesis_cost = EXCLUDED.cumulative_synthesis_cost, cost_estimate = EXCLUDED.cost_estimate,
     models_used = EXCLUDED.models_used, execution_summary = EXCLUDED.execution_summary,
     metadata = EXCLUDED.metadata, duration_ms = EXCLUDED.duration_ms, error = EXCLUDED.error,
-    updated_at = EXCLUDED.updated_at, completed_at = EXCLUDED.completed_at,
-    created_by = EXCLUDED.created_by, organization_id = EXCLUDED.organization_id,
-    state_version = EXCLUDED.state_version"""
+    created_by = EXCLUDED.created_by, updated_at = EXCLUDED.updated_at, completed_at = EXCLUDED.completed_at"""
+
+_UPDATE_EXECUTION_OCC_SQL: str = """UPDATE executions SET
+    organization_id = $3::uuid, workflow_id = $4::uuid, workflow_version = $5,
+    output_profile_id = $6::uuid, status = $7, target_locale = $8, progress = $9,
+    status_message = $10, steps = $11::jsonb, source_identity_manifest = $12::jsonb,
+    is_resumable = $13, prompt_tokens = $14::bigint, completion_tokens = $15::bigint,
+    cached_tokens = $16::bigint, reasoning_tokens = $17::bigint,
+    cumulative_synthesis_tokens = $18::bigint, dag_cost_usd = $19::numeric,
+    cumulative_synthesis_cost = $20::numeric, cost_estimate = $21::numeric,
+    models_used = $22::jsonb, execution_summary = $23::jsonb, metadata = $24::jsonb,
+    duration_ms = $25::bigint, error = $26, created_by = $27::uuid,
+    updated_at = $28::timestamptz, completed_at = $29::timestamptz,
+    state_version = state_version + 1
+WHERE id = $1::uuid AND state_version = $2
+RETURNING state_version"""
+
+_PROBE_EXECUTION_STATE_VERSION_SQL: str = "SELECT state_version FROM executions WHERE id = $1::uuid"
+
+_UPSERT_EXECUTION_PAYLOAD_SQL: str = """INSERT INTO execution_payloads (
+    execution_id, raw_inputs, frozen_context, context_variables,
+    execution_trace, profile_syntheses, updated_at
+) VALUES (
+    $1::uuid, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::timestamptz
+) ON CONFLICT (execution_id) DO UPDATE SET
+    raw_inputs = EXCLUDED.raw_inputs, frozen_context = EXCLUDED.frozen_context,
+    context_variables = EXCLUDED.context_variables, execution_trace = EXCLUDED.execution_trace,
+    profile_syntheses = EXCLUDED.profile_syntheses, updated_at = EXCLUDED.updated_at"""
 
 _SELECT_EXECUTIONS_BASE_SQL: str = f"SELECT {_EXECUTION_COLS} FROM executions"
 _LIST_EXECUTIONS_SQL: str = f"{_SELECT_EXECUTIONS_BASE_SQL} ORDER BY created_at DESC"
-_GET_EXECUTION_SQL: str = f"{_SELECT_EXECUTIONS_BASE_SQL} WHERE id = $1::uuid"
+_GET_EXECUTION_SQL: str = """SELECT
+    e.id, e.organization_id, e.workflow_id, e.workflow_version, e.state_version, e.output_profile_id,
+    e.status, e.target_locale, e.progress, e.status_message, e.steps, e.source_identity_manifest,
+    e.is_resumable, e.prompt_tokens, e.completion_tokens, e.cached_tokens, e.reasoning_tokens,
+    e.cumulative_synthesis_tokens, e.dag_cost_usd, e.cumulative_synthesis_cost, e.cost_estimate,
+    e.models_used, e.execution_summary, e.metadata, e.duration_ms, e.error, e.created_by,
+    e.created_at, e.updated_at, e.completed_at,
+    ep.raw_inputs, ep.frozen_context, ep.context_variables, ep.execution_trace, ep.profile_syntheses
+FROM executions e
+INNER JOIN execution_payloads ep ON ep.execution_id = e.id
+WHERE e.id = $1::uuid"""
 
 _REPORT_ARTIFACT_COLS: str = """id, execution_id, workflow_id, profile_id, locale, title, status,
     storage_paths, metadata, custom_preface_md, error_message, has_pdf, created_at, updated_at"""
@@ -151,7 +182,7 @@ _GET_REPORT_ARTIFACT_SQL: str = f"{_LIST_REPORT_ARTIFACTS_SQL} WHERE id = $1::uu
 
 
 async def _fetch_row(
-    conn: _Conn, timeout: float | None, sql: str, uid: object, eid: str, table_name: str = "executions"
+    conn: _Conn, timeout: float | None, sql: str, uid: uuid.UUID, eid: str, table_name: str = "executions"
 ) -> AsyncPgRecordProtocol | None:
     """Execute fetchrow with timeout and translate driver errors to AppException.
 
@@ -267,14 +298,14 @@ async def get_report_binary_row(conn: _Conn, timeout: float | None, report_id: s
     )
 
 
-def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
-    """Hydrate an ExecutionRecord from an asyncpg database record.
+def hydrate_execution_summary_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
+    """Hydrate a summary ExecutionRecord from the 30-column executions table without sidecar joins.
 
     Args:
-        row: Database record from executions.
+        row: Database record from the hot executions table.
 
     Returns:
-        Validated ExecutionRecord domain model.
+        Validated ExecutionRecord with default empty sidecar containers and frozen_context=None.
 
     Raises:
         AppException: With VALIDATION_FAILED if UUID identifiers or row fields are invalid.
@@ -284,26 +315,25 @@ def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
         ExecutionRecord,
         {
             "id": exe_id,
+            "organization_id": format_prefixed_uuid7(
+                _coerce_uuid_or_str(row["organization_id"]),
+                EntityPrefix.ORGANIZATION,
+            ),
             "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
             "workflow_version": row["workflow_version"],
-            "active_profile_id": _format_optional_uuid7(row["active_profile_id"], EntityPrefix.OUTPUT_PROFILE),
+            "state_version": int(str(row["state_version"])),
             "output_profile_id": _format_optional_uuid7(row["output_profile_id"], EntityPrefix.OUTPUT_PROFILE),
             "status": row["status"],
             "target_locale": row["target_locale"],
             "progress": row["progress"],
             "status_message": row["status_message"],
-            "raw_inputs": _decode_jsonb_column(row["raw_inputs"]),
-            "frozen_context": _decode_jsonb_column(row["frozen_context"]),
-            "frozen_context_storage_path": row["frozen_context_storage_path"],
-            "pdf_report_path": row["pdf_report_path"],
+            "raw_inputs": {"dynamic_inputs": {}},
+            "frozen_context": None,
             "steps": _decode_jsonb_column(row["steps"]),
-            "step_states": _decode_jsonb_column(row["step_states"]),
-            "profile_syntheses": _decode_jsonb_column(row["profile_syntheses"]),
+            "profile_syntheses": {},
             "source_identity_manifest": _decode_jsonb_column(row["source_identity_manifest"]),
-            "execution_trace": _decode_jsonb_column(row["execution_trace"]),
-            "execution_trace_storage_path": row["execution_trace_storage_path"],
-            "context_variables": _decode_jsonb_column(row["context_variables"]),
-            "context_variables_storage_path": row["context_variables_storage_path"],
+            "execution_trace": [],
+            "context_variables": {},
             "is_resumable": row["is_resumable"],
             "prompt_tokens": int(str(row["prompt_tokens"])),
             "completion_tokens": int(str(row["completion_tokens"])),
@@ -318,15 +348,94 @@ def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
             "metadata": _decode_jsonb_column(row["metadata"]),
             "duration_ms": int(str(row["duration_ms"])),
             "error": row["error"],
+            "created_by": _format_optional_uuid7(row["created_by"], EntityPrefix.USER),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
             "completed_at": row["completed_at"],
-            "created_by": _format_optional_uuid7(row["created_by"], EntityPrefix.USER),
-            "organization_id": _format_org_uuid7(row["organization_id"]),
-            "state_version": int(str(row["state_version"])),
         },
         table_name="executions",
         entity_id=exe_id,
+    )
+
+
+def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
+    """Hydrate a full ExecutionRecord from an INNER JOIN of executions and execution_payloads.
+
+    Args:
+        row: Database record combining hot executions columns and lz4 execution_payloads columns.
+
+    Returns:
+        Validated ExecutionRecord domain model including cold sidecar payloads.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if UUID identifiers or JSONB sidecar payloads are invalid.
+    """
+    summary = hydrate_execution_summary_row(row)
+    dumped = summary.model_dump(mode="json", exclude_none=True)
+    dumped["raw_inputs"] = _decode_jsonb_column(row["raw_inputs"])
+    dumped["frozen_context"] = _decode_jsonb_column(row["frozen_context"])
+    dumped["context_variables"] = _decode_jsonb_column(row["context_variables"])
+    dumped["execution_trace"] = _decode_jsonb_column(row["execution_trace"])
+    dumped["profile_syntheses"] = _decode_jsonb_column(row["profile_syntheses"])
+    return validate_hydrated_row(
+        ExecutionRecord,
+        dumped,
+        table_name="executions",
+        entity_id=summary.id,
+    )
+
+
+def _raise_missing_execution(execution_id: str) -> Never:
+    """Log RFC 7807 structured error and raise ResourceNotFoundError (HTTP 404) for a missing execution."""
+    msg = f"Execution with ID '{execution_id}' not found."
+    logger.error(
+        "[PostgresEntityAdapter] %s: %s",
+        ErrorCodes.RESOURCE_NOT_FOUND.name,
+        msg,
+        exc_info=True,
+        extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": execution_id},
+    )
+    raise ResourceNotFoundError("Execution", execution_id)
+
+
+async def _raise_execution_occ_miss(
+    conn: _Conn,
+    effective_timeout: float,
+    exec_uuid: uuid.UUID,
+    exec_id: str,
+    expected_state_version: int,
+) -> Never:
+    """Probe executions.state_version on OCC update miss and raise 404 Not Found or 409 Conflict."""
+    probe_row = await _fetch_row(conn, effective_timeout, _PROBE_EXECUTION_STATE_VERSION_SQL, exec_uuid, exec_id)
+    if probe_row is None:
+        _raise_missing_execution(exec_id)
+
+    actual_state_version = int(str(probe_row["state_version"]))
+    msg = (
+        f"Optimistic concurrency conflict for execution '{exec_id}': "
+        f"expected state_version={expected_state_version}, actual state_version={actual_state_version}."
+    )
+    logger.error(
+        "[PostgresEntityAdapter] %s: %s",
+        ErrorCodes.CONFLICT.name,
+        msg,
+        exc_info=True,
+        extra={
+            "error_code": ErrorCodes.CONFLICT.value,
+            "execution_id": exec_id,
+            "expected_state_version": expected_state_version,
+            "actual_state_version": actual_state_version,
+        },
+    )
+    raise AppException(
+        message=msg,
+        status_code=status.HTTP_409_CONFLICT,
+        details={
+            "error_code": ErrorCodes.CONFLICT.value,
+            "execution_id": exec_id,
+            "expected_state_version": expected_state_version,
+            "actual_state_version": actual_state_version,
+        },
     )
 
 
@@ -337,61 +446,44 @@ async def save_execution_row(
     *,
     expected_state_version: int | None = None,
 ) -> str:
-    """Persist an ExecutionRecord into the PostgreSQL 19 executions table with OCC enforcement.
+    """Persist an ExecutionRecord across executions and execution_payloads with atomic SQL OCC.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
         timeout: Command execution timeout in seconds.
-        record: Validated ExecutionRecord domain model.
-        expected_state_version: Optional expected state_version for optimistic concurrency control.
+        record: Validated ExecutionRecord domain model with non-null organization_id.
+        expected_state_version: Optional expected state_version for single-statement SQL OCC.
 
     Returns:
         Canonical exe_<uuid7_hex> execution identifier.
 
     Raises:
-        AppException: With VALIDATION_FAILED on invalid ID, CONFLICT on OCC version mismatch,
+        ResourceNotFoundError: With RESOURCE_NOT_FOUND (HTTP 404) when expected_state_version targets a missing ID.
+        AppException: With VALIDATION_FAILED on missing/invalid ID, CONFLICT on OCC version mismatch,
             or STORAGE_ACCESS_FAILED if persistence fails.
     """
+    if record.organization_id is None:
+        msg = f"Execution '{record.id}' requires a non-null canonical organization_id."
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": record.id},
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": record.id},
+        )
+
+    effective_timeout = resolve_effective_timeout(timeout)
     exec_uuid = parse_prefixed_uuid7(record.id, EntityPrefix.EXECUTION)
+    org_uuid = parse_prefixed_uuid7(record.organization_id, EntityPrefix.ORGANIZATION)
     wf_uuid = parse_prefixed_uuid7(record.workflow_id, EntityPrefix.WORKFLOW)
-    active_prf_uuid = _parse_optional_uuid7(record.active_profile_id, EntityPrefix.OUTPUT_PROFILE)
     output_prf_uuid = _parse_optional_uuid7(record.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
     created_by_uuid = _parse_optional_uuid7(record.created_by, EntityPrefix.USER)
-    org_uuid = _parse_org_uuid7(record.organization_id)
-    # Enforce conditional expected_state_version OCC check and atomic increment
-    persisted_state_version = record.state_version
-    if expected_state_version is not None:
-        existing = await get_execution_row(conn, timeout, record.id)
-        actual_state_version = 1
-        if existing is not None:
-            actual_state_version = existing.state_version
-        if actual_state_version != expected_state_version:
-            msg = (
-                f"Optimistic concurrency conflict for execution '{record.id}': "
-                f"expected state_version={expected_state_version}, actual state_version={actual_state_version}."
-            )
-            logger.error(
-                "[PostgresEntityAdapter] %s: %s",
-                ErrorCodes.CONFLICT.name,
-                msg,
-                exc_info=True,
-                extra={
-                    "error_code": ErrorCodes.CONFLICT.value,
-                    "execution_id": record.id,
-                    "expected_state_version": expected_state_version,
-                    "actual_state_version": actual_state_version,
-                },
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_409_CONFLICT,
-                details={
-                    "error_code": ErrorCodes.CONFLICT.value,
-                    "expected_state_version": expected_state_version,
-                    "actual_state_version": actual_state_version,
-                },
-            )
-        persisted_state_version = actual_state_version + 1
+
     dumped = record.model_dump(mode="json", exclude_none=True)
     frozen_context_json: str | None = None
     if record.frozen_context is not None:
@@ -403,57 +495,116 @@ async def save_execution_row(
     if record.metadata is not None:
         metadata_json = _encode_optional_jsonb(dumped["metadata"])
 
+    steps_json = to_json(dumped["steps"]).decode("utf-8")
+    manifest_json = to_json(dumped["source_identity_manifest"]).decode("utf-8")
+    models_used_json = to_json(dumped["models_used"]).decode("utf-8")
+    raw_inputs_json = to_json(dumped["raw_inputs"]).decode("utf-8")
+    context_vars_json = to_json(dumped["context_variables"]).decode("utf-8")
+    trace_json = to_json(dumped["execution_trace"]).decode("utf-8")
+    syntheses_json = to_json(dumped["profile_syntheses"]).decode("utf-8")
+
+    if expected_state_version is None:
+        await execute_entity_upsert(
+            conn,
+            effective_timeout,
+            _SAVE_EXECUTION_SQL,
+            exec_uuid,
+            org_uuid,
+            wf_uuid,
+            record.workflow_version,
+            record.state_version,
+            output_prf_uuid,
+            record.status.value,
+            record.target_locale,
+            record.progress,
+            record.status_message,
+            steps_json,
+            manifest_json,
+            record.is_resumable,
+            record.prompt_tokens,
+            record.completion_tokens,
+            record.cached_tokens,
+            record.reasoning_tokens,
+            record.cumulative_synthesis_tokens,
+            record.dag_cost_usd,
+            record.cumulative_synthesis_cost,
+            record.cost_estimate,
+            models_used_json,
+            execution_summary_json,
+            metadata_json,
+            record.duration_ms,
+            record.error,
+            created_by_uuid,
+            record.updated_at,
+            record.completed_at,
+            entity_id=record.id,
+            entity_label="execution",
+        )
+    else:
+        try:
+            occ_row = await conn.fetchrow(
+                _UPDATE_EXECUTION_OCC_SQL,
+                exec_uuid,
+                expected_state_version,
+                org_uuid,
+                wf_uuid,
+                record.workflow_version,
+                output_prf_uuid,
+                record.status.value,
+                record.target_locale,
+                record.progress,
+                record.status_message,
+                steps_json,
+                manifest_json,
+                record.is_resumable,
+                record.prompt_tokens,
+                record.completion_tokens,
+                record.cached_tokens,
+                record.reasoning_tokens,
+                record.cumulative_synthesis_tokens,
+                record.dag_cost_usd,
+                record.cumulative_synthesis_cost,
+                record.cost_estimate,
+                models_used_json,
+                execution_summary_json,
+                metadata_json,
+                record.duration_ms,
+                record.error,
+                created_by_uuid,
+                record.updated_at,
+                record.completed_at,
+                timeout=effective_timeout,
+            )
+        except AppException:
+            raise
+        except Exception as exc:
+            raise translate_postgres_exception(
+                exc,
+                operation="UPDATE",
+                table_name="executions",
+                entity_id=record.id,
+            ) from exc
+        if occ_row is None:
+            await _raise_execution_occ_miss(conn, effective_timeout, exec_uuid, record.id, expected_state_version)
+
     return await execute_entity_upsert(
         conn,
-        timeout,
-        _SAVE_EXECUTION_SQL,
+        effective_timeout,
+        _UPSERT_EXECUTION_PAYLOAD_SQL,
         exec_uuid,
-        wf_uuid,
-        record.workflow_version,
-        active_prf_uuid,
-        output_prf_uuid,
-        record.status.value,
-        record.target_locale,
-        record.progress,
-        record.status_message,
-        to_json(dumped["raw_inputs"]).decode("utf-8"),
+        raw_inputs_json,
         frozen_context_json,
-        record.frozen_context_storage_path,
-        record.pdf_report_path,
-        to_json(dumped["steps"]).decode("utf-8"),
-        to_json(dumped["step_states"]).decode("utf-8"),
-        to_json(dumped["profile_syntheses"]).decode("utf-8"),
-        to_json(dumped["source_identity_manifest"]).decode("utf-8"),
-        to_json(dumped["execution_trace"]).decode("utf-8"),
-        record.execution_trace_storage_path,
-        to_json(dumped["context_variables"]).decode("utf-8"),
-        record.context_variables_storage_path,
-        record.is_resumable,
-        record.prompt_tokens,
-        record.completion_tokens,
-        record.cached_tokens,
-        record.reasoning_tokens,
-        record.cumulative_synthesis_tokens,
-        record.dag_cost_usd,
-        record.cumulative_synthesis_cost,
-        record.cost_estimate,
-        to_json(dumped["models_used"]).decode("utf-8"),
-        execution_summary_json,
-        metadata_json,
-        record.duration_ms,
-        record.error,
+        context_vars_json,
+        trace_json,
+        syntheses_json,
         record.updated_at,
-        record.completed_at,
-        created_by_uuid,
-        org_uuid,
-        persisted_state_version,
         entity_id=record.id,
-        entity_label="execution",
+        entity_label="execution_payload",
     )
 
 
 async def get_execution_row(conn: AsyncPgConnectionProtocol, timeout: float, exec_id: str) -> ExecutionRecord | None:
-    """Retrieve and reconstitute an ExecutionRecord from PostgreSQL by execution_id.
+    """Retrieve and reconstitute a full ExecutionRecord via INNER JOIN with execution_payloads.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
@@ -464,7 +615,7 @@ async def get_execution_row(conn: AsyncPgConnectionProtocol, timeout: float, exe
         Reconstituted ExecutionRecord instance or None if not found.
 
     Raises:
-        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
+        AppException: With VALIDATION_FAILED on invalid ID/corrupt row or STORAGE_ACCESS_FAILED on query error.
     """
     exec_uuid = parse_prefixed_uuid7(exec_id, EntityPrefix.EXECUTION)
     row = await _fetch_row(conn, timeout, _GET_EXECUTION_SQL, exec_uuid, exec_id)
@@ -571,14 +722,14 @@ async def get_report_artifact_row(conn: _Conn, timeout: float, rep_id: str) -> R
 
 
 async def list_execution_rows(conn: _Conn, timeout: float) -> list[ExecutionRecord]:
-    """List all ExecutionRecord rows ordered by created_at DESC.
+    """List summary ExecutionRecord rows ordered by created_at DESC without sidecar joins.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
         timeout: Command execution timeout in seconds.
 
     Returns:
-        List of hydrated ExecutionRecord models ordered newest-first.
+        List of summary ExecutionRecord models ordered newest-first.
 
     Raises:
         AppException: With VALIDATION_FAILED on corrupt row or STORAGE_ACCESS_FAILED on query error.
@@ -595,7 +746,7 @@ async def list_execution_rows(conn: _Conn, timeout: float) -> list[ExecutionReco
             table_name="executions",
             entity_id="*",
         ) from exc
-    return [hydrate_execution_row(r) for r in rows]
+    return [hydrate_execution_summary_row(r) for r in rows]
 
 
 async def list_executions_filtered_rows(
@@ -608,7 +759,7 @@ async def list_executions_filtered_rows(
     status: ExecutionStatus | None = None,
     limit: int = 100,
 ) -> list[ExecutionRecord]:
-    """List ExecutionRecord rows filtered by indexed columns and ordered by id DESC.
+    """List summary ExecutionRecord rows filtered by indexed columns and ordered by id DESC.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
@@ -620,7 +771,7 @@ async def list_executions_filtered_rows(
         limit: Maximum number of records to return.
 
     Returns:
-        List of hydrated ExecutionRecord models ordered by id DESC.
+        List of summary ExecutionRecord models ordered by id DESC.
 
     Raises:
         AppException: With VALIDATION_FAILED on invalid filter ID or STORAGE_ACCESS_FAILED on query error.
@@ -661,7 +812,7 @@ async def list_executions_filtered_rows(
             table_name="executions",
             entity_id="*",
         ) from exc
-    return [hydrate_execution_row(r) for r in rows]
+    return [hydrate_execution_summary_row(r) for r in rows]
 
 
 _DELETE_EXECUTION_SQL: str = "DELETE FROM executions WHERE id = $1::uuid"
@@ -749,13 +900,6 @@ def apply_execution_updates(existing: ExecutionRecord, updates: ExecutionUpdateD
     stage1 = _apply_nullable_execution_fields(existing, updates)
     fields_set = updates.model_fields_set
     next_frozen_context = updates.frozen_context if "frozen_context" in fields_set else stage1.frozen_context
-    next_frozen_storage_path = (
-        None
-        if ("frozen_context" in fields_set and updates.frozen_context is not None)
-        else stage1.frozen_context_storage_path
-    )
-    next_trace_storage_path = None if updates.execution_trace is not None else stage1.execution_trace_storage_path
-    next_ctx_storage_path = None if updates.context_variables is not None else stage1.context_variables_storage_path
     next_state_version = stage1.state_version
     if updates.expected_state_version is None and updates.state_version is not None:
         next_state_version = updates.state_version
@@ -767,12 +911,12 @@ def apply_execution_updates(existing: ExecutionRecord, updates: ExecutionUpdateD
             "steps": _coalesce_optional(updates.steps, stage1.steps),
             "step_states": _coalesce_optional(updates.step_states, stage1.step_states),
             "execution_trace": _coalesce_optional(updates.execution_trace, stage1.execution_trace),
-            "execution_trace_storage_path": next_trace_storage_path,
+            "execution_trace_storage_path": None,
             "frozen_context": next_frozen_context,
-            "frozen_context_storage_path": next_frozen_storage_path,
+            "frozen_context_storage_path": None,
             "profile_syntheses": _coalesce_optional(updates.profile_syntheses, stage1.profile_syntheses),
             "context_variables": _coalesce_optional(updates.context_variables, stage1.context_variables),
-            "context_variables_storage_path": next_ctx_storage_path,
+            "context_variables_storage_path": None,
             "is_resumable": _coalesce_optional(updates.is_resumable, stage1.is_resumable),
             "prompt_tokens": _coalesce_optional(updates.prompt_tokens, stage1.prompt_tokens),
             "completion_tokens": _coalesce_optional(updates.completion_tokens, stage1.completion_tokens),
@@ -812,7 +956,7 @@ async def update_execution_occ_row(
     execution_id: str,
     updates: ExecutionUpdateDTO,
 ) -> bool:
-    """Apply partial ExecutionUpdateDTO updates to an existing ExecutionRecord with OCC checking.
+    """Apply partial ExecutionUpdateDTO updates to an existing ExecutionRecord with SQL OCC checking.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
@@ -821,21 +965,25 @@ async def update_execution_occ_row(
         updates: Validated ExecutionUpdateDTO carrying field updates and optional expected_state_version.
 
     Returns:
-        True if the execution existed and was updated, False if no matching execution exists.
+        True when the execution and its execution_payloads sidecar are atomically updated.
 
     Raises:
+        ResourceNotFoundError: With RESOURCE_NOT_FOUND (HTTP 404) when execution_id does not exist.
         AppException: With VALIDATION_FAILED on invalid ID/payload, CONFLICT on OCC mismatch,
             or STORAGE_ACCESS_FAILED on database error.
     """
     existing = await get_execution_row(conn, timeout, execution_id)
     if existing is None:
-        return False
+        _raise_missing_execution(execution_id)
     merged = apply_execution_updates(existing, updates)
+    resolved_expected: int | None = updates.expected_state_version
+    if resolved_expected is None and updates.state_version is None:
+        resolved_expected = existing.state_version
     await save_execution_row(
         conn,
         timeout,
         merged,
-        expected_state_version=updates.expected_state_version,
+        expected_state_version=resolved_expected,
     )
     return True
 

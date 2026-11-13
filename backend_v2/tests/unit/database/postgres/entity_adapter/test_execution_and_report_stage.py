@@ -7,6 +7,7 @@ size mismatch checks, and driver fault translation.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -37,11 +38,21 @@ from backend_v2.database.postgres.pool import (
     decode_jsonb_binary,
     encode_jsonb_binary,
 )
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.core_base import generate_opaque_id, parse_prefixed_uuid7
-from backend_v2.models.domain.execution import ExecutionSummarySnapshot, FrozenContext
+from backend_v2.models.domain.execution import (
+    ExecutionStep,
+    ExecutionSummarySnapshot,
+    FrozenContext,
+    MCPAuditTrace,
+)
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix, ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -347,8 +358,8 @@ async def test_save_execution_row_excludes_none_in_metadata_and_encode_jsonb_bin
             wraps=execute_entity_upsert,
         ) as spy_upsert:
             await save_execution_row(conn, _TIMEOUT, exec_rec)
-            assert spy_upsert.call_args is not None
-            metadata_sql_arg = spy_upsert.call_args.args[35]
+            assert len(spy_upsert.call_args_list) == 2
+            metadata_sql_arg = spy_upsert.call_args_list[0].args[26]
         assert isinstance(metadata_sql_arg, str)
         parsed_metadata = from_json(metadata_sql_arg)
         assert "initiator_id" not in parsed_metadata["global_context_vars"]
@@ -424,7 +435,9 @@ async def test_list_update_occ_and_delete_execution_and_report_rows_roundtrip() 
 
         missing_exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
         noop_update = ExecutionUpdateDTO(progress=25)
-        assert await update_execution_occ_row(conn, _TIMEOUT, missing_exe_id, noop_update) is False
+        with pytest.raises(ResourceNotFoundError) as missing_occ_err:
+            await update_execution_occ_row(conn, _TIMEOUT, missing_exe_id, noop_update)
+        assert missing_occ_err.value.status_code == 404
         assert await delete_execution_row(conn, _TIMEOUT, missing_exe_id) is False
         assert await delete_report_artifact_row(conn, _TIMEOUT, generate_opaque_id(EntityPrefix.REPORT)) is False
 
@@ -647,4 +660,164 @@ async def test_list_executions_filtered_rows_invalid_ids_and_faults_fail_fast() 
         assert app_err.value is direct_app_err
     finally:
         pool.clear_faults()
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_execution_and_lz4_payloads_sidecar_roundtrip_preserves_profile_syntheses_and_mcp_audit() -> None:
+    """Verify full get_execution_row joins execution_payloads while list queries hydrate lean summary rows."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        prf_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
+        stp_id = generate_opaque_id(EntityPrefix.STEP)
+        trc_id = "trc_0195f3a0000070018234567890abcdef"
+        audit_trace = MCPAuditTrace(
+            id=trc_id,
+            tool_id="tavily_search",
+            step_name=stp_id,
+            query="enterprise cloud margins",
+            reasoning="verify empirical benchmark",
+            timestamp=datetime(2026, 9, 1, 10, 0, 0, tzinfo=UTC),
+        )
+        frozen_ctx = FrozenContext(
+            compiled_prompts={stp_id: "<system>Evaluate</system>"},
+            injected_theory=InjectedTheoryManifestDTO(theories={}),
+            generated_schemas=GeneratedSchemaManifestDTO(schemas={}),
+            ui_hints_snapshot={},
+            mcp_tool_audit=[audit_trace],
+        )
+        synth_cache = RenderedSynthesisCache(
+            row_explanations={"blk_0195f3a0000070008000000000000001": "Consistent strategic execution."},
+            row_curated_quotes={"blk_0195f3a0000070008000000000000001": ["Margins grew 400 bps."]},
+            variance_explanation="Minimal inter-document variance.",
+            cited_sources=["doc_q4_report"],
+        )
+        exec_rec = ExecutionRecordFactory.build(
+            output_profile_id=prf_id,
+            raw_inputs=WorkflowInputs(dynamic_inputs={"brief": "Q4 Strategy"}),
+            frozen_context=frozen_ctx,
+            context_variables=ContextVariablesDTO(variables={"segment": "enterprise"}),
+            profile_syntheses={prf_id: synth_cache},
+            steps=[
+                ExecutionStep(
+                    id=stp_id,
+                    label="Matrix Step",
+                    status=ExecutionStatus.PASSED,
+                    prompt_tokens=320,
+                    completion_tokens=110,
+                )
+            ],
+        )
+        await save_execution_row(conn, _TIMEOUT, exec_rec)
+
+        full_loaded = await get_execution_row(conn, _TIMEOUT, exec_rec.id)
+        assert full_loaded is not None
+        assert len(full_loaded.steps) == 1
+        assert full_loaded.steps[0].id == stp_id
+        assert full_loaded.raw_inputs.dynamic_inputs == {"brief": "Q4 Strategy"}
+        assert full_loaded.context_variables.variables == {"segment": "enterprise"}
+        assert full_loaded.frozen_context is not None
+        assert len(full_loaded.frozen_context.mcp_tool_audit) == 1
+        assert full_loaded.frozen_context.mcp_tool_audit[0].id == trc_id
+        assert prf_id in full_loaded.profile_syntheses
+        assert full_loaded.profile_syntheses[prf_id].variance_explanation == "Minimal inter-document variance."
+
+        summary_all = await list_execution_rows(conn, _TIMEOUT)
+        assert len(summary_all) == 1
+        assert summary_all[0].frozen_context is None
+        assert summary_all[0].profile_syntheses == {}
+        assert summary_all[0].raw_inputs.dynamic_inputs == {}
+        assert summary_all[0].context_variables.variables == {}
+        assert summary_all[0].execution_trace == []
+        assert len(summary_all[0].steps) == 1
+
+        summary_filtered = await list_executions_filtered_rows(
+            conn,
+            _TIMEOUT,
+            organization_id=exec_rec.organization_id,
+        )
+        assert len(summary_filtered) == 1
+        assert summary_filtered[0].frozen_context is None
+        assert summary_filtered[0].profile_syntheses == {}
+    finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_save_execution_row_concurrent_taskgroup_occ_race_raises_conflict_409() -> None:
+    """Verify two concurrent TaskGroup tasks racing on expected_state_version=1 commit one and fail one with 409."""
+    pool = InMemoryAsyncPgPool()
+    conn_seed = await pool.acquire()
+    try:
+        exec_rec = ExecutionRecordFactory.build(state_version=1, progress=10)
+        await save_execution_row(conn_seed, _TIMEOUT, exec_rec)
+    finally:
+        await pool.release(conn_seed)
+
+    outcomes: list[str | AppException] = []
+
+    async def _worker(new_progress: int) -> None:
+        worker_conn = await pool.acquire()
+        try:
+            saved_id = await save_execution_row(
+                worker_conn,
+                _TIMEOUT,
+                exec_rec.model_copy(update={"progress": new_progress}),
+                expected_state_version=1,
+            )
+            outcomes.append(saved_id)
+        except AppException as exc:
+            outcomes.append(exc)
+        finally:
+            await pool.release(worker_conn)
+
+    async with asyncio.TaskGroup() as tg:
+        tg.create_task(_worker(55))
+        tg.create_task(_worker(85))
+
+    successes = [item for item in outcomes if isinstance(item, str)]
+    conflicts = [item for item in outcomes if isinstance(item, AppException)]
+    assert successes == [exec_rec.id]
+    assert len(conflicts) == 1
+    assert conflicts[0].status_code == 409
+    assert conflicts[0].details["error_code"] == ErrorCodes.CONFLICT.value
+
+    conn_check = await pool.acquire()
+    try:
+        after_race = await get_execution_row(conn_check, _TIMEOUT, exec_rec.id)
+        assert after_race is not None
+        assert after_race.state_version == 2
+        assert after_race.progress in {55, 85}
+    finally:
+        await pool.release(conn_check)
+
+
+@pytest.mark.asyncio
+async def test_save_execution_row_missing_execution_id_raises_resource_not_found_404() -> None:
+    """Verify expected_state_version against missing ID raises 404 and null organization_id raises 400."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        missing_rec = ExecutionRecordFactory.build(state_version=2)
+        with pytest.raises(ResourceNotFoundError) as not_found_save:
+            await save_execution_row(conn, _TIMEOUT, missing_rec, expected_state_version=2)
+        assert not_found_save.value.status_code == 404
+        assert not_found_save.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+        with pytest.raises(ResourceNotFoundError) as not_found_occ:
+            await update_execution_occ_row(
+                conn,
+                _TIMEOUT,
+                missing_rec.id,
+                ExecutionUpdateDTO(progress=80, expected_state_version=2),
+            )
+        assert not_found_occ.value.status_code == 404
+
+        null_org_rec = ExecutionRecordFactory.build().model_copy(update={"organization_id": None})
+        with pytest.raises(AppException) as null_org_err:
+            await save_execution_row(conn, _TIMEOUT, null_org_rec)
+        assert null_org_err.value.status_code == 400
+        assert null_org_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    finally:
         await pool.release(conn)

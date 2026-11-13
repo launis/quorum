@@ -15,6 +15,7 @@ import backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage as
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _COLLECTION_TO_TABLE_MAP,
     CANONICAL_SEED_TABLES,
+    resolve_effective_timeout,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -38,11 +39,21 @@ from backend_v2.models.domain.workflow import Workflow
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "_TRUNCATE_ALL_TABLES_SQL",
     "seed_collection_batch_rows",
+    "truncate_seed_tables_rows",
     "verify_seed_table_counts_rows",
 ]
 
 type _Conn = AsyncPgConnectionProtocol
+
+_TRUNCATE_ALL_TABLES_SQL: str = (
+    "TRUNCATE TABLE report_binaries, report_artifacts, quorum_edges, quorum_nodes, "
+    "execution_assignments, execution_payloads, executions, workflow_step_refs, "
+    "step_criteria_blocks, output_profiles, workflows, steps, task_briefs, prompt_blocks, "
+    "tenant_secrets, mcp_gateways, model_registries, audit_logs, usage_records, "
+    "invitations, users, organizations RESTART IDENTITY CASCADE"
+)
 
 
 def _log_storage_error(msg: str, table: str, *, exc_info: bool = True) -> AppException:
@@ -183,3 +194,22 @@ async def verify_seed_table_counts_rows(conn: _Conn, timeout: float, expected: M
     if "mcp_gateways" in expected and expected["mcp_gateways"] >= 1:
         await _iam.list_mcp_gateway_rows(conn, timeout)
     return actual_counts
+
+
+async def truncate_seed_tables_rows(conn: _Conn, timeout: float) -> None:
+    """Truncate all 22 canonical PostgreSQL 19 tables including execution_payloads with RESTART IDENTITY CASCADE.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+
+    Raises:
+        AppException: With STORAGE_ACCESS_FAILED if the database truncate command fails.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
+    try:
+        await conn.execute(_TRUNCATE_ALL_TABLES_SQL, timeout=effective_timeout)
+    except Exception as exc:
+        if isinstance(exc, AppException):
+            raise
+        raise _log_storage_error(f"Failed to truncate canonical tables: {exc}", "executions") from exc

@@ -7,11 +7,12 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
+from polyfactory import Use
 from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.auth import SystemOrganizations, TenantSecretDTO
+from backend_v2.models.auth import TenantSecretDTO
 from backend_v2.models.core_base import (
     I18nText,
     generate_opaque_id,
@@ -921,6 +922,7 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
     target_locale: str = "en"
     status: ExecutionStatus = ExecutionStatus.PENDING
     workflow_version: int = 1
+    organization_id = Use(generate_opaque_id, EntityPrefix.ORGANIZATION)
     active_profile_id: str | None = None
     output_profile_id: str | None = None
     prompt_tokens: int = 0
@@ -948,8 +950,6 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
         Returns:
             Validated ExecutionRecord instance.
         """
-        if "organization_id" not in kwargs:
-            kwargs["organization_id"] = SystemOrganizations.ROOT_SYSTEM
         if "created_at" not in kwargs:
             resolved_id = kwargs["id"] if "id" in kwargs else None
             if not isinstance(resolved_id, str):
@@ -1032,15 +1032,6 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
             Canonical Opaque Stripe ID with 'wf_' prefix.
         """
         return generate_opaque_id(EntityPrefix.WORKFLOW)
-
-    @classmethod
-    def organization_id(cls) -> str:
-        """Generate an associated organization ID.
-
-        Returns:
-            Canonical Opaque Stripe ID with 'org_' prefix.
-        """
-        return generate_opaque_id(EntityPrefix.ORGANIZATION)
 
     @classmethod
     def initiator_id(cls) -> str:

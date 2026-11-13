@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -72,34 +71,35 @@ _MCP_MISSING_ID = "mcp_0195f3a0000070018234567890abcde9"
 
 
 @pytest.mark.asyncio
-async def test_hydrate_blob_fails_fast_on_empty_blob_failure() -> None:
-    """Verify an empty offloaded execution trace blob triggers Fail-Fast DATA_CORRUPTION."""
+async def test_get_execution_fails_fast_on_corrupt_sidecar_payload_failure() -> None:
+    """Verify corrupt JSONB in execution_payloads triggers Fail-Fast VALIDATION_FAILED on get_execution."""
     base_uow = InMemoryUnitOfWork()
     repo = UnifiedWorkflowRepository(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
-    offloaded_record = ExecutionRecordFactory.build(
+    valid_record = ExecutionRecordFactory.build(
         id=_EXE_ID,
+        organization_id=_ORG_ID,
         workflow_id=_WF_ID,
         execution_trace=[],
-        execution_trace_storage_path="executions/exe_0195f3a0000070008123456789abcdef/execution_trace.json",
     )
     async with InMemoryUnitOfWork(base_uow.store) as uow:
-        await uow.entities.save_execution(offloaded_record)
+        await uow.entities.save_execution(valid_record)
 
-    mock_blob_driver = AsyncMock()
-    mock_blob_driver.read.return_value = b"   "
+    existing_sidecar = base_uow.store.execution_payloads[_EXE_ID]
+    base_uow.store.execution_payloads[_EXE_ID] = existing_sidecar.model_copy(
+        update={"context_variables": '{"invalid_cv_key": 1}'}
+    )
 
-    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_blob_driver):
-        with pytest.raises(AppException) as exc_info:
-            await repo.get_execution(_EXE_ID, hydrate=True)
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_execution(_EXE_ID, hydrate=True)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.DATA_CORRUPTION.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
-async def test_offload_blob_fails_fast_on_storage_crash_failure() -> None:
-    """Verify failing to offload >100KB execution_trace raises AppException(INTERNAL_SERVER_ERROR)."""
+async def test_large_execution_trace_roundtrip_uses_sidecar_and_missing_update_raises_not_found() -> None:
+    """Verify >100KB execution_trace persists in execution_payloads sidecar and missing update raises 404."""
     base_uow = InMemoryUnitOfWork()
     repo = UnifiedWorkflowRepository(uow_factory=lambda: InMemoryUnitOfWork(base_uow.store))
 
@@ -107,7 +107,7 @@ async def test_offload_blob_fails_fast_on_storage_crash_failure() -> None:
         TraceEvent(
             event_id=generate_uuid7(),
             timestamp=datetime.now(UTC),
-            step_name="step_1",
+            step_name=_BLK_ID,
             event_type="progress",
             content=ProgressTracePayloadDTO(message="x" * 2048, progress_pct=50),
             metadata=TraceEventMetadataDTO(mcp_audit_traces=[]),
@@ -117,21 +117,23 @@ async def test_offload_blob_fails_fast_on_storage_crash_failure() -> None:
     ]
     initial_record = ExecutionRecordFactory.build(
         id=_EXE_ID,
+        organization_id=_ORG_ID,
         workflow_id=_WF_ID,
         execution_trace=[],
     )
     async with InMemoryUnitOfWork(base_uow.store) as uow:
         await uow.entities.save_execution(initial_record)
 
-    mock_blob_driver = AsyncMock()
-    mock_blob_driver.save.side_effect = RuntimeError("Storage crash")
+    assert await repo.update_execution(_EXE_ID, ExecutionUpdateDTO(execution_trace=large_events)) is True
+    hydrated = await repo.get_execution(_EXE_ID)
+    assert hydrated is not None
+    assert len(hydrated.execution_trace) == 60
 
-    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_blob_driver):
-        with pytest.raises(AppException) as exc_info:
-            await repo.update_execution(_EXE_ID, ExecutionUpdateDTO(execution_trace=large_events))
-
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+    with pytest.raises(ResourceNotFoundError):
+        await repo.update_execution(
+            "exe_0195f3a0000070008123456789abcde9",
+            ExecutionUpdateDTO(execution_trace=large_events),
+        )
 
 
 @pytest.mark.asyncio

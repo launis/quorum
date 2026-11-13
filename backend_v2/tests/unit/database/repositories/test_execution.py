@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from backend_v2.database.postgres.pool import PostgresPoolManager
 from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext, MCPAuditTrace
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.trace import (
     ExecutionCreateDTO,
@@ -23,7 +22,6 @@ from backend_v2.models.dtos.trace import (
 )
 from backend_v2.models.enums import ExecutionStatus, StorageBackend, SystemLocale
 from backend_v2.models.state import TraceEvent
-from backend_v2.services.file_driver import FileDriver
 from backend_v2.settings import Settings
 from backend_v2.tests.factories.model_factories import ExecutionRecordFactory
 from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool, InMemoryUnitOfWork
@@ -266,14 +264,14 @@ async def test_update_execution_optimistic_concurrency_control_conflict_failure(
     base_uow: InMemoryUnitOfWork,
     valid_execution_doc: ExecutionRecord,
 ) -> None:
-    """Positive & Negative: verify OCC state_version increments, missing returns False, and stale raises 409 CONFLICT."""
-    assert (
+    """Positive & Negative: verify OCC state_version increments, missing raises 404, and stale raises 409 CONFLICT."""
+    with pytest.raises(ResourceNotFoundError) as missing_exc:
         await repo.update_execution(
             _EXE_MISSING,
             ExecutionUpdateDTO(status=ExecutionStatus.RUNNING, expected_state_version=1),
         )
-        is False
-    )
+    assert missing_exc.value.status_code == 404
+    assert missing_exc.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value
 
     seeded = valid_execution_doc.model_copy(update={"state_version": 2})
     async with InMemoryUnitOfWork(base_uow.store) as uow:
@@ -300,12 +298,12 @@ async def test_update_execution_optimistic_concurrency_control_conflict_failure(
 
 
 @pytest.mark.asyncio
-async def test_large_blob_offload_and_hydration_roundtrip_and_errors(
+async def test_large_sidecar_payload_roundtrip_and_recent_completed_hydration(
     repo: ExecutionRepositoryImpl,
     base_uow: InMemoryUnitOfWork,
     valid_execution_doc: ExecutionRecord,
 ) -> None:
-    """Positive & Negative: verify >100KB blob offloading, hydration, pending empty-blob tolerance, and corruption errors."""
+    """Verify >100KB payloads persist in execution_payloads sidecar and get_recent_completed_executions hydrates them."""
     big_events = [_make_trace_event("x" * 600) for _ in range(220)]
     big_fc = FrozenContext(
         compiled_prompts={"large": "p" * 110_000},
@@ -315,123 +313,90 @@ async def test_large_blob_offload_and_hydration_roundtrip_and_errors(
         mcp_tool_audit=[],
     )
     big_cv = ContextVariablesDTO(variables={"blob": "v" * 110_000})
+    synth_cache = RenderedSynthesisCache(
+        row_explanations={_BLK_ID: "Sidecar cached synthesis."},
+        variance_explanation="Consistent.",
+    )
 
-    saved_blobs: dict[str, bytes] = {}
-    mock_storage = AsyncMock(spec=FileDriver)
-
-    async def _save_blob(path: str, data: bytes | str) -> bool:
-        saved_blobs[path] = data.encode("utf-8") if isinstance(data, str) else data
-        return True
-
-    async def _read_blob(path: str) -> bytes:
-        return saved_blobs[path]
-
-    mock_storage.save.side_effect = _save_blob
-    mock_storage.read.side_effect = _read_blob
-
+    seeded = valid_execution_doc.model_copy(update={"profile_syntheses": {_PRF_ID: synth_cache}})
     async with InMemoryUnitOfWork(base_uow.store) as uow:
-        await uow.entities.save_execution(valid_execution_doc)
+        await uow.entities.save_execution(seeded)
 
-    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
-        assert await repo.update_execution(_EXE_MISSING, ExecutionUpdateDTO(execution_trace=big_events)) is False
-        assert (
-            await repo.update_execution(
-                _EXE_ID,
-                ExecutionUpdateDTO(
-                    execution_trace=big_events,
-                    frozen_context=big_fc,
-                    context_variables=big_cv,
-                ),
-            )
-            is True
+    with pytest.raises(ResourceNotFoundError):
+        await repo.update_execution(_EXE_MISSING, ExecutionUpdateDTO(execution_trace=big_events))
+
+    assert (
+        await repo.update_execution(
+            _EXE_ID,
+            ExecutionUpdateDTO(
+                execution_trace=big_events,
+                frozen_context=big_fc,
+                context_variables=big_cv,
+            ),
         )
+        is True
+    )
 
-        raw_stored = await repo.get_execution(_EXE_ID, hydrate=False)
-        assert raw_stored is not None
-        assert raw_stored.execution_trace == []
-        assert raw_stored.frozen_context is None or raw_stored.frozen_context.compiled_prompts == {}
-        assert raw_stored.execution_trace_storage_path is not None
-        assert raw_stored.frozen_context_storage_path is not None
-        assert raw_stored.context_variables_storage_path is not None
+    # Summary list omits cold sidecar joins
+    listed_summaries = await repo.get_all_executions(organization_id=_ORG_ID)
+    assert len(listed_summaries) == 1
+    assert listed_summaries[0].frozen_context is None
+    assert listed_summaries[0].profile_syntheses == {}
+    assert listed_summaries[0].execution_trace == []
 
-        hydrated = await repo.get_execution(_EXE_ID, hydrate=True)
-        assert hydrated is not None
-        assert len(hydrated.execution_trace) == 220
-        assert hydrated.frozen_context is not None
-        assert "large" in hydrated.frozen_context.compiled_prompts
-        assert "blob" in hydrated.context_variables.variables
+    # Direct get_execution and get_recent_completed_executions hydrate full sidecar payloads
+    hydrated = await repo.get_execution(_EXE_ID)
+    assert hydrated is not None
+    assert len(hydrated.execution_trace) == 220
+    assert hydrated.frozen_context is not None
+    assert "large" in hydrated.frozen_context.compiled_prompts
+    assert "blob" in hydrated.context_variables.variables
+    assert _PRF_ID in hydrated.profile_syntheses
 
-        # Running execution tolerates empty trace blob
-        running_offloaded = ExecutionRecordFactory.build(
-            id=_EXE_ID_2,
-            workflow_id=_WF_ID,
-            status=ExecutionStatus.RUNNING,
-            execution_trace_storage_path=f"executions/{_EXE_ID_2}/execution_trace.json",
-            frozen_context_storage_path=None,
-            context_variables_storage_path=None,
-        )
-        saved_blobs[f"executions/{_EXE_ID_2}/execution_trace.json"] = b""
-        async with InMemoryUnitOfWork(base_uow.store) as uow:
-            await uow.entities.save_execution(running_offloaded)
-        hydrated_running = await repo.get_execution(_EXE_ID_2)
-        assert hydrated_running is not None
-        assert hydrated_running.execution_trace == []
-
-        # Completed execution with empty trace blob raises DATA_CORRUPTION
-        passed_empty = running_offloaded.model_copy(update={"status": ExecutionStatus.PASSED})
-        async with InMemoryUnitOfWork(base_uow.store) as uow:
-            await uow.entities.save_execution(passed_empty)
-        with pytest.raises(AppException) as empty_exc:
-            await repo.get_execution(_EXE_ID_2)
-        assert empty_exc.value.status_code == 500
-        assert empty_exc.value.details["error_code"] == ErrorCodes.DATA_CORRUPTION.value
-
-        # Storage save failure raises INTERNAL_SERVER_ERROR
-        mock_storage.save.side_effect = RuntimeError("disk full")
-        with pytest.raises(AppException) as save_exc:
-            await repo.update_execution(_EXE_ID, ExecutionUpdateDTO(execution_trace=big_events))
-        assert save_exc.value.status_code == 500
-        assert save_exc.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+    recent = await repo.get_recent_completed_executions(limit=1)
+    assert len(recent) == 1
+    assert len(recent[0].execution_trace) == 220
+    assert _PRF_ID in recent[0].profile_syntheses
 
 
 @pytest.mark.asyncio
-async def test_hydrate_frozen_context_and_context_vars_corruption_failures(
+async def test_corrupt_sidecar_frozen_context_and_context_vars_raise_validation_failed(
     repo: ExecutionRepositoryImpl,
     base_uow: InMemoryUnitOfWork,
 ) -> None:
-    """Negative: corrupt or empty frozen_context / context_variables blobs raise DATA_CORRUPTION."""
-    mock_storage = AsyncMock(spec=FileDriver)
-    mock_storage.read.return_value = b""
-
+    """Negative: corrupt frozen_context or context_variables JSONB in execution_payloads raises VALIDATION_FAILED."""
     fc_rec = ExecutionRecordFactory.build(
         id=_EXE_ID,
+        organization_id=_ORG_ID,
         workflow_id=_WF_ID,
         status=ExecutionStatus.PASSED,
-        execution_trace_storage_path=None,
-        frozen_context_storage_path=f"executions/{_EXE_ID}/frozen_context.json",
-        context_variables_storage_path=None,
     )
     cv_rec = ExecutionRecordFactory.build(
         id=_EXE_ID_2,
+        organization_id=_ORG_ID,
         workflow_id=_WF_ID,
         status=ExecutionStatus.PASSED,
-        execution_trace_storage_path=None,
-        frozen_context_storage_path=None,
-        context_variables_storage_path=f"executions/{_EXE_ID_2}/context_variables.json",
     )
     async with InMemoryUnitOfWork(base_uow.store) as uow:
         await uow.entities.save_execution(fc_rec)
         await uow.entities.save_execution(cv_rec)
 
-    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
-        with pytest.raises(AppException) as fc_exc:
-            await repo.get_execution(_EXE_ID)
-        assert fc_exc.value.details["error_code"] == ErrorCodes.DATA_CORRUPTION.value
+    base_uow.store.execution_payloads[_EXE_ID] = base_uow.store.execution_payloads[_EXE_ID].model_copy(
+        update={"frozen_context": '{"unknown_corrupt_key": 1}'}
+    )
+    base_uow.store.execution_payloads[_EXE_ID_2] = base_uow.store.execution_payloads[_EXE_ID_2].model_copy(
+        update={"context_variables": '{"unknown_cv_key": 1}'}
+    )
 
-        mock_storage.read.return_value = json.dumps({"invalid_cv": 1}).encode("utf-8")
-        with pytest.raises(AppException) as cv_exc:
-            await repo.get_execution(_EXE_ID_2)
-        assert cv_exc.value.details["error_code"] == ErrorCodes.DATA_CORRUPTION.value
+    with pytest.raises(AppException) as fc_exc:
+        await repo.get_execution(_EXE_ID)
+    assert fc_exc.value.status_code == 500
+    assert fc_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises(AppException) as cv_exc:
+        await repo.get_execution(_EXE_ID_2)
+    assert cv_exc.value.status_code == 500
+    assert cv_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

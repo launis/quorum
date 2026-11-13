@@ -53,7 +53,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_165/04_phase4_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_165/04_phase4_plan.md] @[docs/epic/EPIC_165_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_165/04_phase4_plan.md] @[docs/epic/EPIC_165_tracker.md]`
-  - [ ] Step 4.1: executions + execution_payloads (COMPRESSION lz4) 1:1 Sidecar Split & Atomic Single-Statement state_version SQL OCC
+  - [x] Step 4.1: executions + execution_payloads (COMPRESSION lz4) 1:1 Sidecar Split & Atomic Single-Statement state_version SQL OCC
   - [ ] Step 4.2: Full-Duplex Backend Eradication of ExecutionRecord.step_states, active_profile_id, pdf_report_path & *_storage_path (Preserving profile_syntheses)
   - [ ] Step 4.3: Constraint-Enforcing InMemoryUnitOfWork & 22-Table audit_zero_orm_strictness.py (ZORM004-ZORM008)
   - [ ] Step 4.4: Flutter ExecutionRecord, ExecutionStep & Dashboard View Full-Duplex Parity
@@ -235,7 +235,7 @@
 | REQ-165-010 | Enforce kernel `ON DELETE RESTRICT` on `execution_assignments` FKs (dropping `_check_active_assignment_usage`) and `organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE` across all 120 tenant-scoped `ROOT_SYSTEM` seed rows (`119` Studio rows hydrated + `1` existing `mcp_gateways` row) and Studio models/DTOs. | Phase 3, Step 3.2 | [x] Completed |
 | REQ-165-011 | Expose and wire $O(1)$ indexed SQL query methods (`get_execution_assignment_by_token_hash`, `get_execution_assignment_by_execution_id`, `list_execution_assignments_by_organization`, `list_executions_filtered`) on `EntityPersistencePort` and `PostgresEntityAdapter`, dropping `count_executions_by_matrix`. | Phase 3, Step 3.3 | [x] Completed |
 | REQ-165-012 | Synchronize non-nullable `@StrictOpaqueIdConverter() required String organizationId` across Flutter Studio Freezed models (`TaskBrief`, `Workflow`, `NodeStrategy`, `PromptBlock`, `OutputProfile`) and their 3 Studio UI callers. | Phase 3, Step 3.4 | [x] Completed |
-| REQ-165-013 | Split `executions` into the lean 30-column hot table and 1:1 `execution_payloads` (`COMPRESSION lz4`) sidecar table, delete `_offload_payloads`/`_hydrate_payloads`, and enforce atomic single-statement `WHERE state_version = $2` SQL OCC. | Phase 4, Step 4.1 | [ ] Pending |
+| REQ-165-013 | Split `executions` into the lean 30-column hot table and 1:1 `execution_payloads` (`COMPRESSION lz4`) sidecar table, delete `_offload_payloads`/`_hydrate_payloads`, and enforce atomic single-statement `WHERE state_version = $2` SQL OCC. | Phase 4, Step 4.1 | [x] Completed |
 | REQ-165-014 | Eradicate `ExecutionRecord.step_states`, `active_profile_id`, `pdf_report_path`, and `*_storage_path` across all Python models, DTOs, services, DAG Orchestrator stages, workers, and CLI scripts while preserving Stage 2 `profile_syntheses`. | Phase 4, Step 4.2 | [ ] Pending |
 | REQ-165-015 | Upgrade `InMemoryUnitOfWork` and `InMemoryEntityAdapter` to enforce 22-table FK/UNIQUE/OCC constraints in unit tests, and update `audit_zero_orm_strictness.py` to the 22-table topology, 16-table `CANONICAL_ENTITY_PK_TABLES`, and `ZORM008`. | Phase 4, Step 4.3 | [ ] Pending |
 | REQ-165-016 | Synchronize Flutter `ExecutionRecord`, `ExecutionStep`, `ExecutionView`, `DashboardView`, and `ResultDashboard` by removing `stepStates`, `activeProfileId`, `pdfReportPath`, and `*_StoragePath` while retaining `profileSyntheses`. | Phase 4, Step 4.4 | [ ] Pending |

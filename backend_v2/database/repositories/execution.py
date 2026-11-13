@@ -2,35 +2,29 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 
-from pydantic import TypeAdapter
-
-from backend_v2.database.postgres.entity_adapter import apply_execution_updates
 from backend_v2.database.repositories.base import BaseRepository
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix, ExecutionStatus
-from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-from backend_v2.services.storage import get_storage_driver
-
-logger = logging.getLogger(__name__)
-
-_BLOB_OFFLOAD_THRESHOLD_BYTES = 100_000
-_TRACE_LIST_ADAPTER: TypeAdapter[list[ErrorTraceEvent | TombstoneEvent | TraceEvent]] = TypeAdapter(
-    list[ErrorTraceEvent | TombstoneEvent | TraceEvent]
-)
+from backend_v2.models.state import TraceEvent
 
 __all__ = ["ExecutionRepositoryImpl"]
 
 
 def _completed_at_sort_key(record: ExecutionRecord) -> datetime:
-    """Resolve a timezone-aware UTC sort timestamp for completed executions."""
+    """Resolve a timezone-aware UTC sort timestamp for completed executions.
+
+    Args:
+        record: ExecutionRecord candidate to sort.
+
+    Returns:
+        UTC-aware completion timestamp, or datetime.min (UTC) when completed_at is None.
+    """
     if record.completed_at is None:
         return datetime.min.replace(tzinfo=UTC)
     if record.completed_at.tzinfo is None:
@@ -41,209 +35,19 @@ def _completed_at_sort_key(record: ExecutionRecord) -> datetime:
 class ExecutionRepositoryImpl(BaseRepository):
     """Repository implementation for ExecutionRecord persistence via EntityPersistencePort."""
 
-    async def _save_blob_payload(self, blob_path: str, payload_bytes: bytes, execution_id: str) -> None:
-        """Persist an oversized execution JSON blob via the configured object storage driver.
-
-        Args:
-            blob_path: Relative blob storage path.
-            payload_bytes: UTF-8 JSON bytes to persist.
-            execution_id: Associated execution ID for structured error context.
-
-        Raises:
-            AppException: With INTERNAL_SERVER_ERROR (HTTP 500) if blob write fails.
-        """
-        driver = get_storage_driver()
-        try:
-            await driver.save(blob_path, payload_bytes)
-        except Exception as exc:
-            logger.error(
-                "[ExecutionRepository] %s: Failed to offload blob %s for execution %s: %s",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                blob_path,
-                execution_id,
-                exc,
-                extra={
-                    "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value,
-                    "execution_id": execution_id,
-                    "path": blob_path,
-                },
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Failed to offload execution blob '{blob_path}'.",
-                status_code=500,
-                details={
-                    "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value,
-                    "execution_id": execution_id,
-                    "path": blob_path,
-                },
-            ) from exc
-
-    async def _offload_record_blobs(self, record: ExecutionRecord) -> ExecutionRecord:
-        """Offload oversized execution_trace, frozen_context, and context_variables payloads to blob storage.
-
-        Args:
-            record: ExecutionRecord candidate prior to database persistence.
-
-        Returns:
-            ExecutionRecord with >100KB fields replaced by blob storage references.
-        """
-        current = record
-        if current.execution_trace:
-            trace_bytes = _TRACE_LIST_ADAPTER.dump_json(current.execution_trace, exclude_none=True)
-            if len(trace_bytes) > _BLOB_OFFLOAD_THRESHOLD_BYTES:
-                blob_path = f"executions/{current.id}/execution_trace.json"
-                await self._save_blob_payload(blob_path, trace_bytes, current.id)
-                current = current.model_copy(update={"execution_trace": [], "execution_trace_storage_path": blob_path})
-
-        if current.frozen_context is not None:
-            fc_bytes = current.frozen_context.model_dump_json().encode("utf-8")
-            if len(fc_bytes) > _BLOB_OFFLOAD_THRESHOLD_BYTES:
-                blob_path = f"executions/{current.id}/frozen_context.json"
-                await self._save_blob_payload(blob_path, fc_bytes, current.id)
-                current = current.model_copy(update={"frozen_context": None, "frozen_context_storage_path": blob_path})
-
-        if current.context_variables.variables:
-            cv_bytes = current.context_variables.model_dump_json().encode("utf-8")
-            if len(cv_bytes) > _BLOB_OFFLOAD_THRESHOLD_BYTES:
-                blob_path = f"executions/{current.id}/context_variables.json"
-                await self._save_blob_payload(blob_path, cv_bytes, current.id)
-                current = current.model_copy(
-                    update={
-                        "context_variables": ContextVariablesDTO(variables={}),
-                        "context_variables_storage_path": blob_path,
-                    }
-                )
-
-        return current
-
-    async def _hydrate_record_blobs(self, record: ExecutionRecord) -> ExecutionRecord:
-        """Hydrate offloaded blob payloads back onto an ExecutionRecord.
-
-        Args:
-            record: ExecutionRecord loaded from PostgreSQL 19.
-
-        Returns:
-            Hydrated ExecutionRecord with offloaded JSON blobs restored.
-
-        Raises:
-            AppException: With DATA_CORRUPTION (HTTP 500) if a referenced blob is missing or corrupt.
-        """
-        driver = get_storage_driver()
-        current = record
-
-        if current.execution_trace_storage_path:
-            path_val = current.execution_trace_storage_path
-            try:
-                blob_bytes = await driver.read(path_val)
-                if not blob_bytes:
-                    if str(current.status).upper() in ("PENDING", "RUNNING"):
-                        current = current.model_copy(update={"execution_trace": []})
-                    else:
-                        raise ValueError(f"Empty execution_trace blob at {path_val}")
-                else:
-                    hydrated_trace = _TRACE_LIST_ADAPTER.validate_json(blob_bytes)
-                    current = current.model_copy(update={"execution_trace": hydrated_trace})
-            except Exception as exc:
-                logger.error(
-                    "[ExecutionRepository] %s: Failed to hydrate execution_trace blob %s for %s: %s",
-                    ErrorCodes.DATA_CORRUPTION.name,
-                    path_val,
-                    current.id,
-                    exc,
-                    extra={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": path_val},
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to hydrate execution_trace blob '{path_val}'.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": path_val},
-                ) from exc
-
-        if current.frozen_context_storage_path:
-            path_val = current.frozen_context_storage_path
-            try:
-                blob_bytes = await driver.read(path_val)
-                if not blob_bytes:
-                    raise ValueError(f"Empty frozen_context blob at {path_val}")
-                hydrated_fc = FrozenContext.model_validate_json(blob_bytes)
-                current = current.model_copy(update={"frozen_context": hydrated_fc})
-            except Exception as exc:
-                logger.error(
-                    "[ExecutionRepository] %s: Failed to hydrate frozen_context blob %s for %s: %s",
-                    ErrorCodes.DATA_CORRUPTION.name,
-                    path_val,
-                    current.id,
-                    exc,
-                    extra={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": path_val},
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to hydrate frozen_context blob '{path_val}'.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": path_val},
-                ) from exc
-
-        if current.context_variables_storage_path:
-            path_val = current.context_variables_storage_path
-            try:
-                blob_bytes = await driver.read(path_val)
-                if not blob_bytes:
-                    raise ValueError(f"Empty context_variables blob at {path_val}")
-                hydrated_cv = ContextVariablesDTO.model_validate_json(blob_bytes)
-                current = current.model_copy(update={"context_variables": hydrated_cv})
-            except Exception as exc:
-                logger.error(
-                    "[ExecutionRepository] %s: Failed to hydrate context_variables blob %s for %s: %s",
-                    ErrorCodes.DATA_CORRUPTION.name,
-                    path_val,
-                    current.id,
-                    exc,
-                    extra={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": path_val},
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to hydrate context_variables blob '{path_val}'.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": path_val},
-                ) from exc
-
-        return current
-
-    @staticmethod
-    def _updates_exceed_blob_threshold(updates: ExecutionUpdateDTO) -> bool:
-        """Check whether an ExecutionUpdateDTO contains any payload exceeding 100KB."""
-        if updates.execution_trace is not None:
-            trace_bytes = _TRACE_LIST_ADAPTER.dump_json(updates.execution_trace, exclude_none=True)
-            if len(trace_bytes) > _BLOB_OFFLOAD_THRESHOLD_BYTES:
-                return True
-        if updates.frozen_context is not None:
-            fc_bytes = updates.frozen_context.model_dump_json().encode("utf-8")
-            if len(fc_bytes) > _BLOB_OFFLOAD_THRESHOLD_BYTES:
-                return True
-        if updates.context_variables is not None and updates.context_variables.variables:
-            cv_bytes = updates.context_variables.model_dump_json().encode("utf-8")
-            if len(cv_bytes) > _BLOB_OFFLOAD_THRESHOLD_BYTES:
-                return True
-        return False
-
     async def get_execution(self, execution_id: str, hydrate: bool = True) -> ExecutionRecord | None:
-        """Retrieve an ExecutionRecord by primary key ID.
+        """Retrieve a fully hydrated ExecutionRecord by primary key ID.
 
         Args:
             execution_id: Canonical exe_<hex32> execution identifier.
-            hydrate: When True, restores offloaded blob payloads from object storage.
+            hydrate: Retained for interface parity; primary-key lookups always join execution_payloads.
 
         Returns:
             Validated ExecutionRecord if found, otherwise None.
         """
+        _ = hydrate
         async with self._acquire_entities() as entities:
-            record = await entities.get_execution(execution_id)
-        if record is None:
-            return None
-        if hydrate:
-            return await self._hydrate_record_blobs(record)
-        return record
+            return await entities.get_execution(execution_id)
 
     async def get_execution_status(self, execution_id: str) -> str | None:
         """Retrieve the lifecycle status string for an execution run.
@@ -304,44 +108,28 @@ class ExecutionRepositoryImpl(BaseRepository):
             created_at=now,
             updated_at=now,
         )
-        offloaded = await self._offload_record_blobs(record)
         async with self._acquire_entities() as entities:
-            return await entities.save_execution(offloaded)
+            return await entities.save_execution(record)
 
     async def update_execution(self, execution_id: str, updates: ExecutionUpdateDTO) -> bool:
-        """Apply partial updates to an ExecutionRecord with OCC enforcement and >100KB blob offloading.
+        """Apply partial updates to an ExecutionRecord with atomic SQL state_version OCC enforcement.
 
         Args:
             execution_id: Canonical exe_<hex32> execution identifier.
             updates: Validated ExecutionUpdateDTO carrying partial state changes.
 
         Returns:
-            True if updated, False if the execution record does not exist.
+            True when the execution record and its sidecar payload are atomically updated.
 
         Raises:
+            ResourceNotFoundError: With RESOURCE_NOT_FOUND (HTTP 404) when execution_id does not exist.
             AppException: With CONFLICT (HTTP 409) when expected_state_version mismatches.
         """
-        if not self._updates_exceed_blob_threshold(updates):
-            async with self._acquire_entities() as entities:
-                return await entities.update_execution_occ(execution_id, updates)
-
         async with self._acquire_entities() as entities:
-            existing = await entities.get_execution(execution_id)
-            if existing is None:
-                return False
-            merged = apply_execution_updates(existing, updates)
-            if "execution_trace" in updates.model_fields_set and updates.execution_trace is not None:
-                merged = merged.model_copy(update={"execution_trace_storage_path": None})
-            if "frozen_context" in updates.model_fields_set and updates.frozen_context is not None:
-                merged = merged.model_copy(update={"frozen_context_storage_path": None})
-            if "context_variables" in updates.model_fields_set and updates.context_variables is not None:
-                merged = merged.model_copy(update={"context_variables_storage_path": None})
-            offloaded = await self._offload_record_blobs(merged)
-            await entities.save_execution(offloaded, expected_state_version=updates.expected_state_version)
-            return True
+            return await entities.update_execution_occ(execution_id, updates)
 
     async def append_trace_event(self, execution_id: str, event_data: TraceEvent) -> bool:
-        """Append a single TraceEvent onto an ExecutionRecord.
+        """Append a single TraceEvent onto an ExecutionRecord sidecar payload.
 
         Args:
             execution_id: Canonical exe_<hex32> execution identifier.
@@ -354,17 +142,14 @@ class ExecutionRepositoryImpl(BaseRepository):
             existing = await entities.get_execution(execution_id)
             if existing is None:
                 return False
-            hydrated = await self._hydrate_record_blobs(existing)
-            next_trace = [*hydrated.execution_trace, event_data]
-            updated = hydrated.model_copy(
+            next_trace = [*existing.execution_trace, event_data]
+            updated = existing.model_copy(
                 update={
                     "execution_trace": next_trace,
-                    "execution_trace_storage_path": None,
                     "updated_at": datetime.now(UTC),
                 }
             )
-            offloaded = await self._offload_record_blobs(updated)
-            await entities.save_execution(offloaded)
+            await entities.save_execution(updated)
             return True
 
     async def delete_execution(self, execution_id: str) -> bool:
@@ -384,14 +169,14 @@ class ExecutionRepositoryImpl(BaseRepository):
         organization_id: str | None = None,
         user_id: str | None = None,
     ) -> list[ExecutionRecord]:
-        """List execution records filtered by organization_id and creator user_id via indexed SQL.
+        """List summary execution records filtered by organization_id and creator user_id via indexed SQL.
 
         Args:
             organization_id: Optional organization filter.
             user_id: Optional creator user filter matched against ExecutionRecord.created_by.
 
         Returns:
-            List of matching ExecutionRecord domain models ordered by id DESC.
+            List of matching summary ExecutionRecord domain models ordered by id DESC.
         """
         async with self._acquire_entities() as entities:
             return await entities.list_executions_filtered(
@@ -401,13 +186,13 @@ class ExecutionRepositoryImpl(BaseRepository):
             )
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
-        """Retrieve the most recently completed execution runs ordered by completed_at DESC.
+        """Retrieve the most recently completed execution runs hydrated with sidecar payloads.
 
         Args:
             limit: Maximum number of completed executions to return.
 
         Returns:
-            List of completed ExecutionRecord domain models.
+            List of fully hydrated completed ExecutionRecord domain models ordered by completed_at DESC.
         """
         if limit <= 0:
             return []
@@ -416,5 +201,10 @@ class ExecutionRepositoryImpl(BaseRepository):
                 status=ExecutionStatus.PASSED,
                 limit=max(limit * 5, 100),
             )
-        completed.sort(key=_completed_at_sort_key, reverse=True)
-        return completed[:limit]
+            completed.sort(key=_completed_at_sort_key, reverse=True)
+            hydrated: list[ExecutionRecord] = []
+            for candidate in completed[:limit]:
+                full_record = await entities.get_execution(candidate.id)
+                if full_record is not None:
+                    hydrated.append(full_record)
+            return hydrated

@@ -1,11 +1,12 @@
--- PostgreSQL 19 Sovereign Zero-ORM Schema (Closed 21-Table Topology)
+-- PostgreSQL 19 Sovereign Zero-ORM Schema (Closed 22-Table Topology)
 -- Enforces RFC 9562 native uuidv7(), VIRTUAL generated timestamps, extended statistics,
 -- lz4 TOAST compression, Flat FinOps columns, junction referential integrity, and 1:1 Pydantic V2 Domain DTO parity.
 
 SET default_toast_compression = 'lz4';
 
 -- Automatic One-Way Pre-Production Cutover: Drop pre-cutover tables when legacy system_configs,
--- legacy TEXT primary keys, or pre-junction steps.criteria_block_ids columns exist so all 21 tables recreate cleanly.
+-- legacy TEXT primary keys, pre-junction steps.criteria_block_ids, pre-split executions.step_states,
+-- or missing execution_payloads sidecar exist so all 22 tables recreate cleanly.
 DO $$
 BEGIN
     IF EXISTS (
@@ -22,6 +23,15 @@ BEGIN
         WHERE table_schema = 'public'
           AND table_name = 'steps'
           AND column_name = 'criteria_block_ids'
+    ) OR EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'executions'
+          AND column_name = 'step_states'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'execution_payloads'
     ) THEN
         DROP TABLE IF EXISTS
             report_binaries,
@@ -31,6 +41,7 @@ BEGIN
             dependency_edges,
             proposition_nodes,
             execution_assignments,
+            execution_payloads,
             executions,
             workflow_step_refs,
             step_criteria_blocks,
@@ -323,63 +334,64 @@ BEGIN
     END IF;
 END $$;
 
--- 11. Executions (Analytical Runs, Flat FinOps Columns & lz4-Compressed Trace Events)
+-- 11. Executions (Lean 30-Column Hot Lifecycle & Flat FinOps Table) + 1:1 lz4 Execution Payloads Sidecar
 CREATE TABLE IF NOT EXISTS executions (
-    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    id UUID PRIMARY KEY DEFAULT uuidv7() CHECK (uuid_extract_version(id) = 7),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE RESTRICT,
-    workflow_version INTEGER NOT NULL DEFAULT 1,
-    state_version INTEGER NOT NULL DEFAULT 1,
-    active_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
+    workflow_version INTEGER NOT NULL DEFAULT 1 CHECK (workflow_version >= 1),
+    state_version INTEGER NOT NULL DEFAULT 1 CHECK (state_version >= 1),
     output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
-    status TEXT NOT NULL DEFAULT 'PENDING',
+    status TEXT NOT NULL,
     target_locale TEXT NOT NULL,
-    progress INTEGER CHECK (progress >= 0 AND progress <= 100),
+    progress INTEGER CHECK (progress IS NULL OR (progress >= 0 AND progress <= 100)),
     status_message TEXT,
-    raw_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
-    frozen_context JSONB,
-    frozen_context_storage_path TEXT,
-    pdf_report_path TEXT,
     steps JSONB NOT NULL DEFAULT '[]'::jsonb,
-    step_states JSONB NOT NULL DEFAULT '{}'::jsonb,
-    profile_syntheses JSONB NOT NULL DEFAULT '{}'::jsonb,
     source_identity_manifest JSONB NOT NULL DEFAULT '{}'::jsonb,
-    execution_trace JSONB NOT NULL DEFAULT '[]'::jsonb,
-    execution_trace_storage_path TEXT,
-    context_variables JSONB NOT NULL DEFAULT '{}'::jsonb,
-    context_variables_storage_path TEXT,
     is_resumable BOOLEAN NOT NULL DEFAULT FALSE,
-    prompt_tokens BIGINT NOT NULL DEFAULT 0,
-    completion_tokens BIGINT NOT NULL DEFAULT 0,
-    cached_tokens BIGINT NOT NULL DEFAULT 0,
-    reasoning_tokens BIGINT NOT NULL DEFAULT 0,
-    cumulative_synthesis_tokens BIGINT NOT NULL DEFAULT 0,
-    dag_cost_usd NUMERIC(10, 6) NOT NULL DEFAULT 0.000000,
-    cumulative_synthesis_cost NUMERIC(10, 6) NOT NULL DEFAULT 0.000000,
-    cost_estimate NUMERIC(10, 6) NOT NULL DEFAULT 0.000000,
+    prompt_tokens BIGINT NOT NULL DEFAULT 0 CHECK (prompt_tokens >= 0),
+    completion_tokens BIGINT NOT NULL DEFAULT 0 CHECK (completion_tokens >= 0),
+    cached_tokens BIGINT NOT NULL DEFAULT 0 CHECK (cached_tokens >= 0),
+    reasoning_tokens BIGINT NOT NULL DEFAULT 0 CHECK (reasoning_tokens >= 0),
+    cumulative_synthesis_tokens BIGINT NOT NULL DEFAULT 0 CHECK (cumulative_synthesis_tokens >= 0),
+    dag_cost_usd NUMERIC(14, 6) NOT NULL DEFAULT 0,
+    cumulative_synthesis_cost NUMERIC(14, 6) NOT NULL DEFAULT 0,
+    cost_estimate NUMERIC(14, 6) NOT NULL DEFAULT 0,
     models_used JSONB NOT NULL DEFAULT '{}'::jsonb,
     execution_summary JSONB,
     metadata JSONB,
-    duration_ms BIGINT NOT NULL DEFAULT 0,
+    duration_ms BIGINT NOT NULL DEFAULT 0 CHECK (duration_ms >= 0),
     error TEXT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMPTZ,
-    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
-    CONSTRAINT enforce_execution_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_execution_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
     CONSTRAINT enforce_execution_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
-    CONSTRAINT enforce_execution_active_profile_uuidv7 CHECK (active_profile_id IS NULL OR uuid_extract_version(active_profile_id) = 7),
-    CONSTRAINT enforce_execution_output_profile_uuidv7 CHECK (output_profile_id IS NULL OR uuid_extract_version(output_profile_id) = 7),
-    CONSTRAINT enforce_execution_created_by_uuidv7 CHECK (created_by IS NULL OR uuid_extract_version(created_by) = 7),
-    CONSTRAINT enforce_execution_organization_uuidv7 CHECK (organization_id IS NULL OR uuid_extract_version(organization_id) = 7)
+    CONSTRAINT enforce_execution_output_profile_uuidv7 CHECK (
+        output_profile_id IS NULL OR uuid_extract_version(output_profile_id) = 7
+    ),
+    CONSTRAINT enforce_execution_created_by_uuidv7 CHECK (
+        created_by IS NULL OR uuid_extract_version(created_by) = 7
+    )
 );
 ALTER TABLE executions ADD COLUMN IF NOT EXISTS state_version INTEGER NOT NULL DEFAULT 1;
+CREATE INDEX IF NOT EXISTS idx_executions_org_id_created ON executions(organization_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_executions_workflow_id ON executions(workflow_id);
-CREATE INDEX IF NOT EXISTS idx_executions_active_profile_id ON executions(active_profile_id);
 CREATE INDEX IF NOT EXISTS idx_executions_output_profile_id ON executions(output_profile_id);
 CREATE INDEX IF NOT EXISTS idx_executions_created_by ON executions(created_by);
-CREATE INDEX IF NOT EXISTS idx_executions_organization_id ON executions(organization_id);
-CREATE INDEX IF NOT EXISTS idx_executions_org_id_created ON executions(organization_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_executions_status ON executions(status);
+
+CREATE TABLE IF NOT EXISTS execution_payloads (
+    execution_id UUID PRIMARY KEY REFERENCES executions(id) ON DELETE CASCADE,
+    raw_inputs JSONB COMPRESSION lz4 NOT NULL,
+    frozen_context JSONB COMPRESSION lz4,
+    context_variables JSONB COMPRESSION lz4 NOT NULL,
+    execution_trace JSONB COMPRESSION lz4 NOT NULL,
+    profile_syntheses JSONB COMPRESSION lz4 NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT enforce_execution_payload_uuidv7 CHECK (uuid_extract_version(execution_id) = 7)
+);
 
 -- 12. Report Artifacts (Materialized Report Metadata)
 CREATE TABLE IF NOT EXISTS report_artifacts (

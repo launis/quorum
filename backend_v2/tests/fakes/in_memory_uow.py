@@ -30,6 +30,7 @@ from backend_v2.database.postgres.entity_adapter import (
     _TABLE_TO_ENTITY_PREFIX,
     apply_execution_updates,
     hydrate_execution_row,
+    hydrate_execution_summary_row,
 )
 from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
     hydrate_audit_log_row,
@@ -40,7 +41,7 @@ from backend_v2.database.postgres.pool import (
     AsyncPgRecordProtocol,
     AsyncPgTransactionProtocol,
 )
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import (
     ExecutionAssignment,
     Invitation,
@@ -136,6 +137,32 @@ class _StoredNodeEntry(V2CoreBase):
     local_key: Annotated[str | None, Field(default=None, description="Optional wave-local symbolic key.")] = None
 
 
+class _StoredExecutionPayload(V2CoreBase):
+    """Immutable in-memory storage entry for a persisted execution_payloads sidecar row.
+
+    Attributes:
+        execution_id: Canonical exe_<uuid7_hex> primary key matching executions.id.
+        raw_inputs: Serialized JSONB string for raw_inputs.
+        frozen_context: Optional serialized JSONB string for frozen_context.
+        context_variables: Serialized JSONB string for context_variables.
+        execution_trace: Serialized JSONB string for execution_trace.
+        profile_syntheses: Serialized JSONB string for profile_syntheses.
+        updated_at: UTC timestamp when the payload sidecar was written.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    execution_id: Annotated[str, Field(description="Canonical execution primary key.")]
+    raw_inputs: Annotated[str, Field(description="Serialized raw_inputs JSONB string.")]
+    frozen_context: Annotated[
+        str | None, Field(default=None, description="Serialized frozen_context JSONB string.")
+    ] = None
+    context_variables: Annotated[str, Field(description="Serialized context_variables JSONB string.")]
+    execution_trace: Annotated[str, Field(description="Serialized execution_trace JSONB string.")]
+    profile_syntheses: Annotated[str, Field(description="Serialized profile_syntheses JSONB string.")]
+    updated_at: Annotated[datetime, Field(description="Payload last updated timestamp.")]
+
+
 class _StoreSnapshot(V2CoreBase):
     """Immutable point-in-time snapshot of the in-memory PostgreSQL store for rollback.
 
@@ -144,7 +171,8 @@ class _StoreSnapshot(V2CoreBase):
         edges: Map of edge_id to DependencyEdge.
         report_binaries: Map of report_id to ReportBinaryPayloadDTO.
         report_has_pdf: Map of report_id to boolean PDF availability flag.
-        executions: Map of execution_id to ExecutionRecord.
+        executions: Map of execution_id to summary ExecutionRecord.
+        execution_payloads: Map of execution_id to _StoredExecutionPayload sidecar.
         migrations_applied: Count of DDL migration executions.
     """
 
@@ -158,6 +186,10 @@ class _StoreSnapshot(V2CoreBase):
     ]
     report_has_pdf: Annotated[dict[str, bool], Field(default_factory=dict, description="Report PDF flags.")]
     executions: Annotated[dict[str, ExecutionRecord], Field(default_factory=dict, description="Stored executions.")]
+    execution_payloads: Annotated[
+        dict[str, _StoredExecutionPayload],
+        Field(default_factory=dict, description="Stored lz4 execution_payloads sidecars."),
+    ]
     audit_logs: Annotated[dict[str, AuditLogRecord], Field(default_factory=dict, description="Stored audit logs.")]
     usage_records: Annotated[dict[str, UsageRecord], Field(default_factory=dict, description="Stored usage records.")]
     step_criteria_blocks: Annotated[
@@ -209,6 +241,7 @@ class _InMemoryPostgresStore:
         self.report_binaries: dict[str, ReportBinaryPayloadDTO] = {}
         self.report_has_pdf: dict[str, bool] = {}
         self.executions: dict[str, ExecutionRecord] = {}
+        self.execution_payloads: dict[str, _StoredExecutionPayload] = {}
         self.audit_logs: dict[str, AuditLogRecord] = {}
         self.usage_records: dict[str, UsageRecord] = {}
         self.seed_tables: dict[str, dict[str, _SeedRowEntry]] = {
@@ -244,6 +277,7 @@ class _InMemoryPostgresStore:
             report_binaries=dict(self.report_binaries),
             report_has_pdf=dict(self.report_has_pdf),
             executions=dict(self.executions),
+            execution_payloads=dict(self.execution_payloads),
             audit_logs=dict(self.audit_logs),
             usage_records=dict(self.usage_records),
             step_criteria_blocks=dict(self.step_criteria_blocks),
@@ -263,6 +297,7 @@ class _InMemoryPostgresStore:
         self.report_binaries = dict(snapshot.report_binaries)
         self.report_has_pdf = dict(snapshot.report_has_pdf)
         self.executions = dict(snapshot.executions)
+        self.execution_payloads = dict(snapshot.execution_payloads)
         self.audit_logs = dict(snapshot.audit_logs)
         self.usage_records = dict(snapshot.usage_records)
         self.step_criteria_blocks = dict(snapshot.step_criteria_blocks)
@@ -287,26 +322,17 @@ def _extract_uuid7_timestamp(prefixed_id: str, prefix: EntityPrefix) -> datetime
 
 _EXECUTION_INSERT_COLUMNS: tuple[str, ...] = (
     "id",
+    "organization_id",
     "workflow_id",
     "workflow_version",
-    "active_profile_id",
+    "state_version",
     "output_profile_id",
     "status",
     "target_locale",
     "progress",
     "status_message",
-    "raw_inputs",
-    "frozen_context",
-    "frozen_context_storage_path",
-    "pdf_report_path",
     "steps",
-    "step_states",
-    "profile_syntheses",
     "source_identity_manifest",
-    "execution_trace",
-    "execution_trace_storage_path",
-    "context_variables",
-    "context_variables_storage_path",
     "is_resumable",
     "prompt_tokens",
     "completion_tokens",
@@ -321,25 +347,23 @@ _EXECUTION_INSERT_COLUMNS: tuple[str, ...] = (
     "metadata",
     "duration_ms",
     "error",
+    "created_by",
     "updated_at",
     "completed_at",
-    "created_by",
-    "organization_id",
-    "state_version",
 )
 
 
 def _hydrate_in_memory_execution_record(args: Sequence[object]) -> ExecutionRecord:
-    """Hydrate an ExecutionRecord from parameterized INSERT INTO EXECUTIONS bind arguments.
+    """Hydrate a summary ExecutionRecord from parameterized INSERT INTO EXECUTIONS bind arguments.
 
-    Delegates directly to the canonical PostgreSQL `hydrate_execution_row` adapter function,
+    Delegates directly to the canonical PostgreSQL `hydrate_execution_summary_row` adapter function,
     synthesizing the PostgreSQL 19 VIRTUAL `created_at` column from the UUIDv7 primary key.
 
     Args:
-        args: Positional SQL bind parameters for executions insertion.
+        args: Positional SQL bind parameters for hot executions insertion.
 
     Returns:
-        Hydrated ExecutionRecord domain instance.
+        Hydrated summary ExecutionRecord domain instance.
     """
     row_columns = dict(
         zip(
@@ -351,7 +375,70 @@ def _hydrate_in_memory_execution_record(args: Sequence[object]) -> ExecutionReco
     exec_uuid_val = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
     exec_id = format_prefixed_uuid7(exec_uuid_val, EntityPrefix.EXECUTION)
     row_columns["created_at"] = _extract_uuid7_timestamp(exec_id, EntityPrefix.EXECUTION)
-    return hydrate_execution_row(InMemoryAsyncPgRecord(row_columns))
+    return hydrate_execution_summary_row(InMemoryAsyncPgRecord(row_columns))
+
+
+def _build_execution_summary_row_dict(rec: ExecutionRecord) -> dict[str, _ColumnValue]:
+    """Serialize a stored ExecutionRecord into the 30 hot columns of the executions table."""
+    if rec.organization_id is None:
+        raise ValueError(f"Execution '{rec.id}' lacks organization_id.")
+    dumped = rec.model_dump(mode="json", exclude_none=True)
+    exec_summary_str: str | None = None
+    if rec.execution_summary is not None:
+        exec_summary_str = to_json(dumped["execution_summary"]).decode("utf-8")
+    metadata_str: str | None = None
+    if rec.metadata is not None:
+        metadata_str = to_json(dumped["metadata"]).decode("utf-8")
+    return {
+        "id": parse_prefixed_uuid7(rec.id, EntityPrefix.EXECUTION),
+        "organization_id": parse_prefixed_uuid7(rec.organization_id, EntityPrefix.ORGANIZATION),
+        "workflow_id": parse_prefixed_uuid7(rec.workflow_id, EntityPrefix.WORKFLOW),
+        "workflow_version": rec.workflow_version,
+        "state_version": rec.state_version,
+        "output_profile_id": (
+            parse_prefixed_uuid7(rec.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
+            if rec.output_profile_id is not None
+            else None
+        ),
+        "status": rec.status.value,
+        "target_locale": rec.target_locale,
+        "progress": rec.progress,
+        "status_message": rec.status_message,
+        "steps": to_json(dumped["steps"]).decode("utf-8"),
+        "source_identity_manifest": to_json(dumped["source_identity_manifest"]).decode("utf-8"),
+        "is_resumable": rec.is_resumable,
+        "prompt_tokens": rec.prompt_tokens,
+        "completion_tokens": rec.completion_tokens,
+        "cached_tokens": rec.cached_tokens,
+        "reasoning_tokens": rec.reasoning_tokens,
+        "cumulative_synthesis_tokens": rec.cumulative_synthesis_tokens,
+        "dag_cost_usd": rec.dag_cost_usd,
+        "cumulative_synthesis_cost": rec.cumulative_synthesis_cost,
+        "cost_estimate": rec.cost_estimate,
+        "models_used": to_json(dumped["models_used"]).decode("utf-8"),
+        "execution_summary": exec_summary_str,
+        "metadata": metadata_str,
+        "duration_ms": rec.duration_ms,
+        "error": rec.error,
+        "created_by": parse_prefixed_uuid7(rec.created_by, EntityPrefix.USER) if rec.created_by is not None else None,
+        "created_at": rec.created_at,
+        "updated_at": rec.updated_at,
+        "completed_at": rec.completed_at,
+    }
+
+
+def _build_execution_joined_row_record(
+    rec: ExecutionRecord,
+    payload: _StoredExecutionPayload,
+) -> InMemoryAsyncPgRecord:
+    """Combine a hot executions row with its lz4 execution_payloads sidecar into an InMemoryAsyncPgRecord."""
+    cols = _build_execution_summary_row_dict(rec)
+    cols["raw_inputs"] = payload.raw_inputs
+    cols["frozen_context"] = payload.frozen_context
+    cols["context_variables"] = payload.context_variables
+    cols["execution_trace"] = payload.execution_trace
+    cols["profile_syntheses"] = payload.profile_syntheses
+    return InMemoryAsyncPgRecord(cols)
 
 
 def _hydrate_in_memory_proposition_node(row: Sequence[object]) -> _StoredNodeEntry:
@@ -1198,7 +1285,7 @@ class InMemoryEntityAdapter:
         *,
         expected_state_version: int | None = None,
     ) -> str:
-        """Persist an ExecutionRecord in memory with full roundtrip validation and OCC enforcement.
+        """Persist an ExecutionRecord in memory across hot executions and cold execution_payloads with OCC enforcement.
 
         Args:
             record: Validated ExecutionRecord domain model.
@@ -1208,14 +1295,42 @@ class InMemoryEntityAdapter:
             Canonical exe_<uuid7_hex> execution identifier.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid ID or CONFLICT on state_version mismatch.
+            ResourceNotFoundError: When expected_state_version is set and record.id does not exist (404).
+            AppException: With VALIDATION_FAILED on missing/invalid organization_id or IDs, or CONFLICT on stale state_version (409).
         """
         _ = parse_prefixed_uuid7(record.id, EntityPrefix.EXECUTION)
+        if record.organization_id is None:
+            msg = f"Execution '{record.id}' must define a non-null canonical organization_id."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": record.id},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": record.id},
+            )
+        _ = parse_prefixed_uuid7(record.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(record.workflow_id, EntityPrefix.WORKFLOW)
+        if record.output_profile_id is not None:
+            _ = parse_prefixed_uuid7(record.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
+        if record.created_by is not None:
+            _ = parse_prefixed_uuid7(record.created_by, EntityPrefix.USER)
+
         target_record = record
         if expected_state_version is not None:
-            actual_version = 1
-            if record.id in self._store.executions:
-                actual_version = self._store.executions[record.id].state_version
+            if record.id not in self._store.executions:
+                missing_msg = f"Execution with ID '{record.id}' not found."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    missing_msg,
+                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": record.id},
+                )
+                raise ResourceNotFoundError("Execution", record.id)
+            actual_version = self._store.executions[record.id].state_version
             if actual_version != expected_state_version:
                 msg = (
                     f"Optimistic concurrency conflict for execution '{record.id}': "
@@ -1242,32 +1357,44 @@ class InMemoryEntityAdapter:
                     },
                 )
             target_record = record.model_copy(update={"state_version": actual_version + 1})
-        if record.created_by is not None:
-            _ = parse_prefixed_uuid7(record.created_by, EntityPrefix.USER)
+
         virtual_created_at = _extract_uuid7_timestamp(record.id, EntityPrefix.EXECUTION)
-        reconstituted = ExecutionRecord.model_validate(
-            target_record.model_copy(update={"created_at": virtual_created_at}).model_dump(
-                mode="json",
-                exclude_none=True,
-            ),
-            strict=False,
+        stamped = target_record.model_copy(update={"created_at": virtual_created_at})
+        summary_row = InMemoryAsyncPgRecord(_build_execution_summary_row_dict(stamped))
+        self._store.executions[record.id] = hydrate_execution_summary_row(summary_row)
+
+        dumped = stamped.model_dump(mode="json", exclude_none=True)
+        frozen_json: str | None = None
+        if stamped.frozen_context is not None:
+            frozen_json = to_json(dumped["frozen_context"]).decode("utf-8")
+        self._store.execution_payloads[record.id] = _StoredExecutionPayload(
+            execution_id=record.id,
+            raw_inputs=to_json(dumped["raw_inputs"]).decode("utf-8"),
+            frozen_context=frozen_json,
+            context_variables=to_json(dumped["context_variables"]).decode("utf-8"),
+            execution_trace=to_json(dumped["execution_trace"]).decode("utf-8"),
+            profile_syntheses=to_json(dumped["profile_syntheses"]).decode("utf-8"),
+            updated_at=stamped.updated_at,
         )
-        self._store.executions[record.id] = reconstituted
         return record.id
 
     async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
-        """Retrieve an ExecutionRecord by execution_id.
+        """Retrieve a full ExecutionRecord by joining executions and execution_payloads in memory.
 
         Args:
             execution_id: Canonical exe_<uuid7_hex> execution identifier.
 
         Returns:
-            Stored ExecutionRecord or None if not found.
+            Hydrated ExecutionRecord or None if not found.
         """
         _ = parse_prefixed_uuid7(execution_id, EntityPrefix.EXECUTION)
-        if execution_id in self._store.executions:
-            return self._store.executions[execution_id]
-        return None
+        if execution_id not in self._store.executions or execution_id not in self._store.execution_payloads:
+            return None
+        joined_row = _build_execution_joined_row_record(
+            self._store.executions[execution_id],
+            self._store.execution_payloads[execution_id],
+        )
+        return hydrate_execution_row(joined_row)
 
     async def list_executions(self) -> list[ExecutionRecord]:
         """List all persisted ExecutionRecord entities ordered by created_at descending.
@@ -1779,7 +1906,9 @@ class InMemoryEntityAdapter:
             del self._store.usage_records[uid]
 
     def _cascade_delete_execution_children(self, execution_id: str) -> None:
-        """Cascade-delete report_artifacts, report_binaries, and graph elements for an execution."""
+        """Cascade-delete execution_payloads, report_artifacts, report_binaries, and graph elements."""
+        if execution_id in self._store.execution_payloads:
+            del self._store.execution_payloads[execution_id]
         rep_bucket = self._store.seed_tables["report_artifacts"]
         rep_keys = [
             rk for rk, rv in rep_bucket.items() if isinstance(rv, ReportArtifact) and rv.execution_id == execution_id
@@ -2368,9 +2497,19 @@ class InMemoryEntityAdapter:
         """Apply partial ExecutionUpdateDTO updates to a persisted ExecutionRecord with OCC checking."""
         existing = await self.get_execution(execution_id)
         if existing is None:
-            return False
+            msg = f"Execution with ID '{execution_id}' not found."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                msg,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": execution_id},
+            )
+            raise ResourceNotFoundError("Execution", execution_id)
         merged = apply_execution_updates(existing, updates)
-        await self.save_execution(merged, expected_state_version=updates.expected_state_version)
+        resolved_expected: int | None = updates.expected_state_version
+        if resolved_expected is None and updates.state_version is None:
+            resolved_expected = existing.state_version
+        await self.save_execution(merged, expected_state_version=resolved_expected)
         return True
 
     async def delete_execution(self, execution_id: str) -> bool:
@@ -2576,34 +2715,30 @@ class InMemoryAsyncPgConnection:
             return "CREATE TABLE"
 
         if normalized.startswith("TRUNCATE TABLE "):
+            if "EXECUTION_PAYLOADS" in normalized:
+                self._store.execution_payloads.clear()
+            if "EXECUTIONS" in normalized:
+                self._store.executions.clear()
+                self._store.execution_payloads.clear()
+                self._store.nodes.clear()
+                self._store.edges.clear()
             for tbl in self._store.seed_tables:
-                if f"TRUNCATE TABLE {tbl.upper()}" in normalized:
+                if tbl.upper() in normalized:
                     self._store.seed_tables[tbl].clear()
                     if tbl == "steps":
                         self._store.step_criteria_blocks.clear()
                     if tbl == "workflows":
                         self._store.workflow_step_refs.clear()
-                    return "TRUNCATE TABLE"
-            if "TRUNCATE TABLE STEP_CRITERIA_BLOCKS" in normalized:
+            if "STEP_CRITERIA_BLOCKS" in normalized:
                 self._store.step_criteria_blocks.clear()
-                return "TRUNCATE TABLE"
-            if "TRUNCATE TABLE WORKFLOW_STEP_REFS" in normalized:
+            if "WORKFLOW_STEP_REFS" in normalized:
                 self._store.workflow_step_refs.clear()
-                return "TRUNCATE TABLE"
-            if "TRUNCATE TABLE EXECUTIONS" in normalized:
-                self._store.executions.clear()
-                self._store.nodes.clear()
-                self._store.edges.clear()
-                return "TRUNCATE TABLE"
-            if "TRUNCATE TABLE REPORT_BINARIES" in normalized:
+            if "REPORT_BINARIES" in normalized:
                 self._store.report_binaries.clear()
-                return "TRUNCATE TABLE"
-            if "TRUNCATE TABLE AUDIT_LOGS" in normalized:
+            if "AUDIT_LOGS" in normalized:
                 self._store.audit_logs.clear()
-                return "TRUNCATE TABLE"
-            if "TRUNCATE TABLE USAGE_RECORDS" in normalized:
+            if "USAGE_RECORDS" in normalized:
                 self._store.usage_records.clear()
-                return "TRUNCATE TABLE"
             return "TRUNCATE TABLE"
 
         if "INSERT INTO AUDIT_LOGS" in normalized:
@@ -2754,6 +2889,21 @@ class InMemoryAsyncPgConnection:
             self._store.report_has_pdf[report_id] = True
             return "UPDATE 1"
 
+        if "INSERT INTO EXECUTION_PAYLOADS" in normalized:
+            exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+            exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
+            updated_at_val = args[6] if isinstance(args[6], datetime) else datetime.now(UTC)
+            self._store.execution_payloads[exec_id] = _StoredExecutionPayload(
+                execution_id=exec_id,
+                raw_inputs=str(args[1]),
+                frozen_context=str(args[2]) if args[2] is not None else None,
+                context_variables=str(args[3]),
+                execution_trace=str(args[4]),
+                profile_syntheses=str(args[5]),
+                updated_at=updated_at_val,
+            )
+            return "INSERT 0 1"
+
         if "INSERT INTO EXECUTIONS" in normalized:
             record = _hydrate_in_memory_execution_record(args)
             self._store.executions[record.id] = record
@@ -2873,11 +3023,13 @@ class InMemoryAsyncPgConnection:
         if "DELETE FROM EXECUTIONS" in normalized:
             if not args:
                 self._store.executions.clear()
+                self._store.execution_payloads.clear()
                 return "DELETE"
             exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
             exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
             if exec_id in self._store.executions:
                 del self._store.executions[exec_id]
+                self._entities._cascade_delete_execution_children(exec_id)
                 return "DELETE 1"
             return "DELETE 0"
 
@@ -3192,67 +3344,6 @@ class InMemoryAsyncPgConnection:
                 resolved_cols.append(expr.strip().lower())
         return resolved_cols
 
-    @staticmethod
-    def _build_execution_record_row(rec: ExecutionRecord) -> InMemoryAsyncPgRecord:
-        """Convert a stored ExecutionRecord into an InMemoryAsyncPgRecord."""
-        dumped = rec.model_dump(mode="json", exclude_none=True)
-        frozen_ctx_str: str | None = None
-        if rec.frozen_context is not None:
-            frozen_ctx_str = to_json(dumped["frozen_context"]).decode("utf-8")
-        exec_summary_str: str | None = None
-        if rec.execution_summary is not None:
-            exec_summary_str = to_json(dumped["execution_summary"]).decode("utf-8")
-        metadata_str: str | None = None
-        if rec.metadata is not None:
-            metadata_str = to_json(dumped["metadata"]).decode("utf-8")
-        return InMemoryAsyncPgRecord(
-            {
-                "id": parse_prefixed_uuid7(rec.id, EntityPrefix.EXECUTION),
-                "workflow_id": rec.workflow_id,
-                "workflow_version": rec.workflow_version,
-                "active_profile_id": rec.active_profile_id,
-                "output_profile_id": rec.output_profile_id,
-                "status": rec.status.value,
-                "target_locale": rec.target_locale,
-                "progress": rec.progress,
-                "status_message": rec.status_message,
-                "raw_inputs": to_json(dumped["raw_inputs"]).decode("utf-8"),
-                "frozen_context": frozen_ctx_str,
-                "frozen_context_storage_path": rec.frozen_context_storage_path,
-                "pdf_report_path": rec.pdf_report_path,
-                "steps": to_json(dumped["steps"]).decode("utf-8"),
-                "step_states": to_json(dumped["step_states"]).decode("utf-8"),
-                "profile_syntheses": to_json(dumped["profile_syntheses"]).decode("utf-8"),
-                "source_identity_manifest": to_json(dumped["source_identity_manifest"]).decode("utf-8"),
-                "execution_trace": to_json(dumped["execution_trace"]).decode("utf-8"),
-                "execution_trace_storage_path": rec.execution_trace_storage_path,
-                "context_variables": to_json(dumped["context_variables"]).decode("utf-8"),
-                "context_variables_storage_path": rec.context_variables_storage_path,
-                "is_resumable": rec.is_resumable,
-                "prompt_tokens": rec.prompt_tokens,
-                "completion_tokens": rec.completion_tokens,
-                "cached_tokens": rec.cached_tokens,
-                "reasoning_tokens": rec.reasoning_tokens,
-                "cumulative_synthesis_tokens": rec.cumulative_synthesis_tokens,
-                "dag_cost_usd": rec.dag_cost_usd,
-                "cumulative_synthesis_cost": rec.cumulative_synthesis_cost,
-                "cost_estimate": rec.cost_estimate,
-                "models_used": to_json(dumped["models_used"]).decode("utf-8"),
-                "execution_summary": exec_summary_str,
-                "metadata": metadata_str,
-                "duration_ms": rec.duration_ms,
-                "error": rec.error,
-                "created_at": rec.created_at,
-                "updated_at": rec.updated_at,
-                "completed_at": rec.completed_at,
-                "created_by": parse_prefixed_uuid7(rec.created_by, EntityPrefix.USER)
-                if rec.created_by is not None
-                else None,
-                "organization_id": rec.organization_id,
-                "state_version": rec.state_version,
-            }
-        )
-
     async def fetchrow(
         self,
         query: str,
@@ -3272,6 +3363,27 @@ class InMemoryAsyncPgConnection:
         self._check_fault("fetchrow")
         _ = timeout
         normalized = " ".join(query.strip().split()).upper()
+
+        if "UPDATE EXECUTIONS SET" in normalized and "RETURNING STATE_VERSION" in normalized and len(args) >= 29:
+            exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+            exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
+            expected_version = int(str(args[1]))
+            if exec_id not in self._store.executions:
+                return None
+            current_rec = self._store.executions[exec_id]
+            if current_rec.state_version != expected_version:
+                return None
+            next_version = current_rec.state_version + 1
+            insert_args: tuple[object, ...] = (
+                args[0],
+                args[2],
+                args[3],
+                args[4],
+                next_version,
+                *args[5:29],
+            )
+            self._store.executions[exec_id] = _hydrate_in_memory_execution_record(insert_args)
+            return InMemoryAsyncPgRecord({"state_version": next_version})
 
         if "INSERT INTO WORKFLOWS" in normalized and args:
             wf_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
@@ -3334,6 +3446,8 @@ class InMemoryAsyncPgConnection:
                 return InMemoryAsyncPgRecord(
                     {"row_count": sum(len(v) for v in self._store.workflow_step_refs.values())}
                 )
+            if "FROM EXECUTION_PAYLOADS" in normalized:
+                return InMemoryAsyncPgRecord({"row_count": len(self._store.execution_payloads)})
             if "FROM EXECUTIONS" in normalized:
                 return InMemoryAsyncPgRecord({"row_count": len(self._store.executions)})
             if "FROM REPORT_BINARIES" in normalized:
@@ -3391,9 +3505,20 @@ class InMemoryAsyncPgConnection:
         if "FROM EXECUTIONS" in normalized:
             exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
             exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
+            if "SELECT STATE_VERSION FROM EXECUTIONS" in normalized:
+                if exec_id not in self._store.executions:
+                    return None
+                return InMemoryAsyncPgRecord({"state_version": self._store.executions[exec_id].state_version})
+            if "INNER JOIN EXECUTION_PAYLOADS" in normalized:
+                if exec_id not in self._store.executions or exec_id not in self._store.execution_payloads:
+                    return None
+                return _build_execution_joined_row_record(
+                    self._store.executions[exec_id],
+                    self._store.execution_payloads[exec_id],
+                )
             if exec_id not in self._store.executions:
                 return None
-            return self._build_execution_record_row(self._store.executions[exec_id])
+            return InMemoryAsyncPgRecord(_build_execution_summary_row_dict(self._store.executions[exec_id]))
 
         if "FROM USERS" in normalized and "LOWER(EMAIL) = LOWER($1)" in normalized and args:
             target_email = str(args[0]).strip().lower()
@@ -3498,7 +3623,7 @@ class InMemoryAsyncPgConnection:
             limit_val = int(str(args[param_idx]))
             matched = matched[:limit_val]
 
-        return tuple(self._build_execution_record_row(rec) for rec in matched)
+        return tuple(InMemoryAsyncPgRecord(_build_execution_summary_row_dict(rec)) for rec in matched)
 
     def _fetch_execution_assignment_rows(
         self,

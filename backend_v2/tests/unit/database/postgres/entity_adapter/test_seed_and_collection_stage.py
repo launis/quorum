@@ -24,6 +24,7 @@ from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
 )
 from backend_v2.database.postgres.entity_adapter.seed_and_collection_stage import (
     seed_collection_batch_rows,
+    truncate_seed_tables_rows,
     verify_seed_table_counts_rows,
 )
 from backend_v2.database.postgres.pool import AsyncPgRecordProtocol
@@ -509,6 +510,39 @@ async def test_seed_and_ledger_fault_translation_failure() -> None:
         with pytest.raises(AppException) as direct_del_exc:
             await delete_tenant_secret_row(conn, _TIMEOUT, sec_id)
         assert direct_del_exc.value is direct_app_err
+
+        with pytest.raises(AppException) as direct_trunc_exc:
+            await truncate_seed_tables_rows(conn, _TIMEOUT)
+        assert direct_trunc_exc.value is direct_app_err
+
+        pool.inject_fault("execute", RuntimeError("simulated truncate failure"))
+        with pytest.raises(AppException) as trunc_exc:
+            await truncate_seed_tables_rows(conn, _TIMEOUT)
+        assert trunc_exc.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
     finally:
         pool.clear_faults()
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_truncate_seed_tables_rows_clears_executions_and_execution_payloads() -> None:
+    """Verify truncate_seed_tables_rows clears all 22 tables including executions and execution_payloads."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        org = _build_org()
+        exec_rec = ExecutionRecordFactory.build(organization_id=org.id)
+        await seed_collection_batch_rows(conn, _TIMEOUT, "organizations", [org])
+        await seed_collection_batch_rows(conn, _TIMEOUT, "executions", [exec_rec])
+        assert len(pool.store.executions) == 1
+        assert len(pool.store.execution_payloads) == 1
+
+        await truncate_seed_tables_rows(conn, _TIMEOUT)
+
+        assert len(pool.store.executions) == 0
+        assert len(pool.store.execution_payloads) == 0
+        counts = await verify_seed_table_counts_rows(conn, _TIMEOUT, {"organizations": 0, "executions": 0})
+        assert counts["organizations"] == 0
+        assert counts["executions"] == 0
+    finally:
         await pool.release(conn)
