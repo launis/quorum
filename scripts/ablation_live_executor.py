@@ -341,15 +341,12 @@ class ModelRegistryMetadataDTO(BaseModel):
 
 
 class SeedRegistryEntryDTO(BaseModel):
-    """Raw seed entry for a model registry in system_config."""
+    """Raw seed entry for a model registry in model_registries."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: Annotated[str, Field(description="Opaque model registry identifier.")]
     name: Annotated[str, Field(description="Human-readable model registry name.")]
-    type: Annotated[str, Field(default="model_registry", description="System configuration document type.")] = (
-        "model_registry"
-    )
     slug: Annotated[str | None, Field(default=None, description="Optional URL-safe registry slug.")] = None
     default_provider: Annotated[str, Field(default="google", description="Default provider identifier.")] = "google"
     tier_definitions: Annotated[
@@ -391,19 +388,18 @@ def resolve_model_telemetry(
     if type(data) is not dict:
         return {}
 
-    sys_configs = data["system_config"] if "system_config" in data else []
+    model_registries = data["model_registries"] if "model_registries" in data else []
     raw_configs: Sequence[JsonValue] = []
-    if type(sys_configs) is dict:
-        raw_configs = list(sys_configs.values())
-    elif type(sys_configs) is list:
-        raw_configs = sys_configs
+    if type(model_registries) is dict:
+        raw_configs = list(model_registries.values())
+    elif type(model_registries) is list:
+        raw_configs = model_registries
 
     registries: list[SeedRegistryEntryDTO] = []
     for c in raw_configs:
         try:
             entry = SeedRegistryEntryDTO.model_validate(c)
-            if entry.type == "model_registry":
-                registries.append(entry)
+            registries.append(entry)
         except ValidationError, TypeError, ValueError:
             continue
 

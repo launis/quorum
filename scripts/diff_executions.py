@@ -1473,11 +1473,11 @@ def extract_workflow_provenance(seed: Mapping[str, JsonValue], workflow_id: str 
 
 
 def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: str) -> list[PhysicalModelBindingDTO]:
-    """Resolve physical model bindings and execution hyperparameters from system config for a specific registry.
+    """Resolve physical model bindings and execution hyperparameters from model_registries for a specific registry.
 
     Args:
-        seed: Complete seed data dictionary containing system_config.
-        registry_id: Mandatory identifier of the target ModelRegistry (e.g. 'sys_e26807f3bfa3454d').
+        seed: Complete seed data dictionary containing model_registries.
+        registry_id: Mandatory identifier of the target ModelRegistry (e.g. 'mrg_0195f3a00000700e826807f3bfa3454d').
 
     Returns:
         List of PhysicalModelBindingDTOs for active strategies (e.g. fast, reasoning, synthesis).
@@ -1498,21 +1498,21 @@ def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: 
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
-    sys_configs = seed.get("system_config", [])
+    raw_registries = seed.get("model_registries", [])
     configs_list = []
-    if isinstance(sys_configs, dict):
-        configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
-    elif isinstance(sys_configs, list):
-        configs_list = [v for v in sys_configs if isinstance(v, dict)]
+    if isinstance(raw_registries, dict):
+        configs_list = [v for v in raw_registries.values() if isinstance(v, dict)]
+    elif isinstance(raw_registries, list):
+        configs_list = [v for v in raw_registries if isinstance(v, dict)]
 
     target_cfg = next(
-        (cfg for cfg in configs_list if cfg.get("id") == registry_id and cfg.get("type") == "model_registry"),
+        (cfg for cfg in configs_list if cfg.get("id") == registry_id),
         None,
     )
 
     if not target_cfg:
         logger.error(
-            "Target ModelRegistry not found in system_config seed collection.",
+            "Target ModelRegistry not found in model_registries seed collection.",
             extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "registry_id": registry_id},
             exc_info=True,
         )
@@ -2623,8 +2623,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     reg_id = frozen_data.get("model_registry_id")
 
                 reg_name = str(reg_id)
-                sys_configs = seed.get("system_config", [])
-                configs_list = sys_configs.values() if isinstance(sys_configs, dict) else sys_configs
+                raw_registries = seed.get("model_registries", [])
+                configs_list = raw_registries.values() if isinstance(raw_registries, dict) else raw_registries
                 for cfg in configs_list:
                     if isinstance(cfg, dict) and cfg.get("id") == str(reg_id):
                         reg_name = cfg.get("name_fi") or cfg.get("name") or str(reg_id)

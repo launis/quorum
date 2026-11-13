@@ -428,6 +428,42 @@ def test_audit_parity_report_inheritance_and_aliases(tmp_path: Path) -> None:
     )
 
 
+def test_audit_dto_parity_model_registry_and_profile_aliases(tmp_path: Path) -> None:
+    """Verify SystemConfigModelRegistry -> ModelConfig and ModelProfile -> LlmModelConfig alias parity."""
+    backend_dir = tmp_path / "backend"
+    backend_dir.mkdir()
+    frontend_dir = tmp_path / "frontend"
+    frontend_dir.mkdir()
+
+    (backend_dir / "system_config.py").write_text(
+        "class ModelProfile:\n    model_name: str\n    provider: str\n\n"
+        "class SystemConfigModelRegistry:\n    id: str\n    name: str\n    default_provider: str\n",
+        encoding="utf-8",
+    )
+    (frontend_dir / "model_config.dart").write_text(
+        "@freezed\nabstract class LlmModelConfig with _$LlmModelConfig {\n"
+        "  const factory LlmModelConfig({\n    required String modelName,\n    required String provider,\n  }) = _LlmModelConfig;\n}\n"
+        "@freezed\nabstract class ModelConfig with _$ModelConfig {\n"
+        "  const factory ModelConfig({\n    required String id,\n    required String name,\n    required String defaultProvider,\n  }) = _ModelConfig;\n}\n",
+        encoding="utf-8",
+    )
+    ok_report = audit_parity_report(backend_dir, frontend_dir)
+    assert ok_report.is_success is True
+    assert ok_report.shared_models_count == 2
+
+    # Negative: unexpected legacy parsingMode field in LlmModelConfig is flagged
+    (frontend_dir / "model_config.dart").write_text(
+        "@freezed\nabstract class LlmModelConfig with _$LlmModelConfig {\n"
+        "  const factory LlmModelConfig({\n    required String modelName,\n    required String provider,\n    required String parsingMode,\n  }) = _LlmModelConfig;\n}\n"
+        "@freezed\nabstract class ModelConfig with _$ModelConfig {\n"
+        "  const factory ModelConfig({\n    required String id,\n    required String name,\n    required String defaultProvider,\n  }) = _ModelConfig;\n}\n",
+        encoding="utf-8",
+    )
+    fail_report = audit_parity_report(backend_dir, frontend_dir)
+    assert fail_report.is_success is False
+    assert any(m.field_name == "parsing_mode" for m in fail_report.mismatches)
+
+
 def test_audit_dto_parity_main_cli_execution(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test CLI main() for DTO parity auditing across success, fail-on-mismatch, and --no-fail-on-mismatch modes."""
     backend_dir = tmp_path / "backend"

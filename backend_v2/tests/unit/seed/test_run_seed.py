@@ -39,8 +39,8 @@ VALID_USER: dict[str, JsonValue] = {
     "created_at": "2026-01-01T00:00:00Z",
 }
 
-VALID_SYSTEM_CONFIG: dict[str, JsonValue] = {
-    "id": "mrg_1234567890abcdef1234567890abcdef",
+VALID_MODEL_REGISTRY: dict[str, JsonValue] = {
+    "id": "mrg_0195f3a0000070018234567890abcdef",
     "name": "Default Model Registry",
     "default_provider": "ai_studio",
     "tier_definitions": {
@@ -49,6 +49,19 @@ VALID_SYSTEM_CONFIG: dict[str, JsonValue] = {
         "deep": {"provider": "ai_studio", "model_name": "gemini-2.5-pro"},
         "reasoning": {"provider": "ai_studio", "model_name": "gemini-2.5-pro"},
     },
+}
+
+VALID_MCP_GATEWAY: dict[str, JsonValue] = {
+    "id": "mcp_0195f3a00000700080008172bda70c86",
+    "organization_id": "org_0195f3a0000070008000000000000001",
+    "name": "Tavily MCP Gateway",
+    "slug": "default_mcp_gateway",
+    "endpoint_url": "https://mcp.tavily.com/mcp",
+    "transport_type": "streamable_http",
+    "auth_type": "bearer",
+    "auth_env_var": None,
+    "timeout_seconds": 30,
+    "tools": [],
 }
 
 VALID_PROMPT_BLOCK: dict[str, JsonValue] = {
@@ -70,7 +83,7 @@ VALID_STEP: dict[str, JsonValue] = {
 }
 
 VALID_WORKFLOW: dict[str, JsonValue] = {
-    "id": "wor_0195f3a0000070018234567890abcdef",
+    "id": "wf_0195f3a0000070018234567890abcdef",
     "slug": "test_workflow",
     "name": "Test Workflow",
     "description": "Test description",
@@ -79,7 +92,8 @@ VALID_WORKFLOW: dict[str, JsonValue] = {
     "is_public": True,
     "default_profile_id": "prf_0195f3a0000070018234567890abcdef",
     "historical_context_mode": "DISABLED",
-    "model_registry_id": "mrg_1234567890abcdef1234567890abcdef",
+    "model_registry_id": "mrg_0195f3a0000070018234567890abcdef",
+    "mcp_gateway_id": "mcp_0195f3a00000700080008172bda70c86",
     "steps": [],
 }
 
@@ -88,7 +102,7 @@ VALID_OUTPUT_PROFILE: dict[str, JsonValue] = {
     "slug": "test_profile",
     "name": {"translations": {"en": "Test Profile", "fi": "Testiprofiili"}},
     "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
-    "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+    "workflow_id": "wf_0195f3a0000070018234567890abcdef",
     "target_block_order": ["executive_summary_block"],
 }
 
@@ -102,11 +116,12 @@ VALID_TASK_BRIEF: dict[str, JsonValue] = {
 
 
 def _build_full_valid_seed_payload() -> run_seed.ValidatedSeedBufferDTO:
-    """Return a minimal valid 9-collection seed payload as ValidatedSeedBufferDTO."""
+    """Return a minimal valid 10-collection seed payload as ValidatedSeedBufferDTO."""
     raw_seed_payload: dict[str, JsonValue] = {
         "organizations": [VALID_ORGANIZATION],
         "users": [VALID_USER],
-        "system_config": [VALID_SYSTEM_CONFIG],
+        "model_registries": [VALID_MODEL_REGISTRY],
+        "mcp_gateways": [VALID_MCP_GATEWAY],
         "prompt_blocks": [VALID_PROMPT_BLOCK],
         "task_briefs": [VALID_TASK_BRIEF],
         "steps": [VALID_STEP],
@@ -216,7 +231,8 @@ async def test_seed_postgres_full_materialization_and_count_verification() -> No
     assert counts["organizations"] == 1
     assert counts["users"] == 1
     assert counts["tenant_secrets"] == 0
-    assert counts["system_configs"] == 1
+    assert counts["model_registries"] == 1
+    assert counts["mcp_gateways"] == 1
     assert counts["prompt_blocks"] == 1
     assert counts["task_briefs"] == 1
     assert counts["steps"] == 1
@@ -411,7 +427,8 @@ def test_seeder_preflight_validates_all_standard_collections() -> None:
         "organizations": [VALID_ORGANIZATION],
         "workflows": [VALID_WORKFLOW],
         "users": [],
-        "system_config": [],
+        "model_registries": [],
+        "mcp_gateways": [],
         "prompt_blocks": [],
         "steps": [],
         "output_profiles": [],
@@ -428,7 +445,16 @@ def test_seeder_preflight_validates_all_standard_collections() -> None:
     assert "workflows" in buffers
     assert len(buffers["workflows"]) == 1
     assert buffers.workflows[0].id == VALID_WORKFLOW["id"]
-    for col in ["users", "system_config", "prompt_blocks", "task_briefs", "steps", "output_profiles", "executions"]:
+    for col in [
+        "users",
+        "model_registries",
+        "mcp_gateways",
+        "prompt_blocks",
+        "task_briefs",
+        "steps",
+        "output_profiles",
+        "executions",
+    ]:
         assert col in buffers
         assert buffers[col] == []
     with pytest.raises(KeyError):

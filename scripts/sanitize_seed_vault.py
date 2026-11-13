@@ -51,7 +51,6 @@ from backend_v2.models.enums import (
     EntityPrefix,
     PromptBlockCategory,
     StepType,
-    SystemConfigID,
 )
 from backend_v2.settings import get_settings
 
@@ -86,6 +85,7 @@ __all__ = [
 
 _CAUSAL_COHESION_MATRIX_BLOCK_ID: str = "blk_0195f3a00000700c80a1e50000000001"
 _SYSTEM_ORG_UUID7_ID: str = "org_0195f3a0000070008000000000000001"
+_DEFAULT_MCP_GATEWAY_ID: str = "mcp_0195f3a00000700080008172bda70c86"
 
 
 def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix) -> str:
@@ -102,8 +102,11 @@ def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix
         return generate_uuid7_opaque_id(expected_prefix)
 
     cleaned = raw_id.strip()
-    if cleaned == SystemConfigID.MCP_GATEWAYS.value:
-        return SystemConfigID.MCP_GATEWAYS.value
+    if expected_prefix == EntityPrefix.MCP_GATEWAY and cleaned in (
+        "sys_default_mcp_gateway",
+        _DEFAULT_MCP_GATEWAY_ID,
+    ):
+        return _DEFAULT_MCP_GATEWAY_ID
     if expected_prefix == EntityPrefix.ORGANIZATION and cleaned in (
         "org_system000000",
         "org_0195f3a0000070008000000000000000",
@@ -114,8 +117,8 @@ def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix
 
     if "_" in cleaned:
         _, hex_part = cleaned.split("_", 1)
-        if expected_prefix == EntityPrefix.SYSTEM_CONFIG and hex_part.lower() == "8172bda70c8641c5":
-            return SystemConfigID.MCP_GATEWAYS.value
+        if expected_prefix == EntityPrefix.MCP_GATEWAY and hex_part.lower() == "8172bda70c8641c5":
+            return _DEFAULT_MCP_GATEWAY_ID
         if re.fullmatch(r"[0-9a-fA-F]{32}", hex_part):
             h32 = hex_part.lower()
             if expected_prefix == EntityPrefix.TDA or uuid.UUID(hex=h32).version == 7:
@@ -922,9 +925,9 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
                 w["default_profile_id"], EntityPrefix.OUTPUT_PROFILE
             )
         if "mcp_gateway_id" in w and w["mcp_gateway_id"] is not None:
-            w["mcp_gateway_id"] = _upgrade_or_generate_opaque_id(w["mcp_gateway_id"], EntityPrefix.SYSTEM_CONFIG)
+            w["mcp_gateway_id"] = _upgrade_or_generate_opaque_id(w["mcp_gateway_id"], EntityPrefix.MCP_GATEWAY)
         if "model_registry_id" in w and w["model_registry_id"] is not None:
-            w["model_registry_id"] = _upgrade_or_generate_opaque_id(w["model_registry_id"], EntityPrefix.SYSTEM_CONFIG)
+            w["model_registry_id"] = _upgrade_or_generate_opaque_id(w["model_registry_id"], EntityPrefix.MODEL_REGISTRY)
 
         if "steps" in w and isinstance(w["steps"], list):
             w["steps"] = _sanitize_workflow_step_references(w["steps"])
@@ -1089,20 +1092,32 @@ def sanitize_task_briefs(task_briefs: Sequence[Any]) -> list[JsonValue]:
 
 
 def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
-    """Upgrades IDs in system_config, organizations, and users collections in-place.
+    """Upgrades IDs in model_registries, mcp_gateways, organizations, and users collections in-place.
 
     Args:
         data: Root seed_data.json dictionary.
     """
-    if "system_config" in data and isinstance(data["system_config"], list):
-        raw_sys_cfgs: Sequence[Any] = data["system_config"]
-        new_sys_cfgs: list[JsonValue] = []
-        for item in raw_sys_cfgs:
-            cfg: dict[str, JsonValue] = dict(item)
-            raw_cfg_id = cfg["id"] if "id" in cfg else None
-            cfg["id"] = _upgrade_or_generate_opaque_id(raw_cfg_id, EntityPrefix.SYSTEM_CONFIG)
-            new_sys_cfgs.append(cfg)
-        data["system_config"] = new_sys_cfgs
+    if "model_registries" in data and isinstance(data["model_registries"], list):
+        raw_regs: Sequence[Any] = data["model_registries"]
+        new_regs: list[JsonValue] = []
+        for item in raw_regs:
+            reg: dict[str, JsonValue] = dict(item)
+            raw_reg_id = reg["id"] if "id" in reg else None
+            reg["id"] = _upgrade_or_generate_opaque_id(raw_reg_id, EntityPrefix.MODEL_REGISTRY)
+            new_regs.append(reg)
+        data["model_registries"] = new_regs
+
+    if "mcp_gateways" in data and isinstance(data["mcp_gateways"], list):
+        raw_gws: Sequence[Any] = data["mcp_gateways"]
+        new_gws: list[JsonValue] = []
+        for item in raw_gws:
+            gw: dict[str, JsonValue] = dict(item)
+            raw_gw_id = gw["id"] if "id" in gw else None
+            gw["id"] = _upgrade_or_generate_opaque_id(raw_gw_id, EntityPrefix.MCP_GATEWAY)
+            raw_gw_org = gw["organization_id"] if "organization_id" in gw else _SYSTEM_ORG_UUID7_ID
+            gw["organization_id"] = _upgrade_or_generate_opaque_id(raw_gw_org, EntityPrefix.ORGANIZATION)
+            new_gws.append(gw)
+        data["mcp_gateways"] = new_gws
 
     if "organizations" in data and isinstance(data["organizations"], list):
         raw_orgs: Sequence[Any] = data["organizations"]
@@ -1195,7 +1210,7 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
         backup_file = create_vault_backup(seed_path)
         backup_path_str = str(backup_file)
 
-    # 0. Upgrade auxiliary collections (system_config, organizations, users)
+    # 0. Upgrade auxiliary collections (model_registries, mcp_gateways, organizations, users)
     _sanitize_auxiliary_collections(data)
 
     # 1. Sanitize prompt_blocks

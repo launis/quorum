@@ -742,9 +742,11 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
     clean_7_col_seed = {
         "organizations": [{"id": org_id, "name": "Quorum Org"}],
         "users": [{"id": usr_id, "name": "Root User", "organization_id": org_id}],
-        "system_config": [
+        "model_registries": [
             {"id": sys_reg_id, "name": "Default Model Registry"},
-            {"id": sys_mcp_id, "name": "Tavily MCP Gateway"},
+        ],
+        "mcp_gateways": [
+            {"id": sys_mcp_id, "organization_id": org_id, "name": "Tavily MCP Gateway"},
         ],
         "prompt_blocks": [
             _create_clean_matrix_block(block_id=blk_id),
@@ -835,8 +837,12 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
             {"id": org_id, "name": "   ", "node_id": "nod_legacy"},
         ],
         "users": [{"id": "usr_legacy_slug", "name": ""}],
-        "system_config": [{"id": sys_reg_id}],
-        "prompt_blocks": [{"id": blk_id, "label": {"translations": {}}}],
+        "model_registries": [{"id": sys_reg_id}],
+        "mcp_gateways": [{"id": sys_mcp_id, "organization_id": org_id}],
+        "prompt_blocks": [
+            {"id": blk_id, "label": {"translations": {}}},
+            {"id": "srf_0195f3a0000070008000000000000099", "label": {"translations": {"en": "Wrong srf prefix"}}},
+        ],
         "steps": [{"id": stp_id, "name": "not-an-i18n-dict"}],
         "workflows": [
             {"id": stp_id, "name": {"translations": {"en": "Wrong Prefix Workflow"}}, "model_registry_id": sys_reg_id}
@@ -854,7 +860,8 @@ def test_audit_canonical_entity_ids_positive_and_negative_partitions(tmp_path: P
     bad_fk_data = {
         "organizations": [{"id": org_id, "name": "Org 1"}],
         "users": [{"id": usr_id, "name": "User 1", "organization_id": "org_unknown"}],
-        "system_config": [{"id": sys_reg_id, "name": "Registry"}],
+        "model_registries": [{"id": sys_reg_id, "name": "Registry"}],
+        "mcp_gateways": [{"id": sys_mcp_id, "organization_id": "org_unknown", "name": "Gateway"}],
         "prompt_blocks": [_create_clean_matrix_block(block_id=blk_id)],
         "steps": [],
         "workflows": [

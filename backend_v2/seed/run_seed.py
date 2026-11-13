@@ -288,7 +288,8 @@ class ValidatedSeedBufferDTO(BaseModel):
     """Strongly typed container for validated in-memory seed collections.
 
     Attributes:
-        system_config: Validated system configuration entities.
+        model_registries: Validated model registry entities.
+        mcp_gateways: Validated MCP gateway entities.
         workflows: Validated workflow blueprint entities.
         prompt_blocks: Validated polymorphic prompt block entities.
         task_briefs: Validated reusable task brief entities.

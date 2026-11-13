@@ -145,10 +145,10 @@ def test_model_strategies_are_bound_to_registry() -> None:
 
     # 1. Collect valid tiers from registry
     valid_tiers: set[str] = set()
-    sys_configs = data["system_config"] if "system_config" in data else []
-    for sys_cfg in sys_configs:
-        if "type" in sys_cfg and sys_cfg["type"] == "model_registry" and "tier_definitions" in sys_cfg:
-            valid_tiers.update(sys_cfg["tier_definitions"].keys())
+    model_registries = data["model_registries"] if "model_registries" in data else []
+    for reg_cfg in model_registries:
+        if "tier_definitions" in reg_cfg:
+            valid_tiers.update(reg_cfg["tier_definitions"].keys())
 
     assert valid_tiers, "Model registry must contain at least one cognitive tier"
 
@@ -399,9 +399,8 @@ def test_model_registry_calibrated_limits() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    sys_configs = data["system_config"] if "system_config" in data else []
-    model_registries = [c for c in sys_configs if "type" in c and c["type"] == "model_registry"]
-    assert model_registries, "SystemConfig with type 'model_registry' must exist in seed"
+    model_registries = data["model_registries"] if "model_registries" in data else []
+    assert model_registries, "model_registries collection must exist in seed"
 
     required_tiers = {"deep", "fast", "balanced", "reasoning"}
     for registry_conf in model_registries:

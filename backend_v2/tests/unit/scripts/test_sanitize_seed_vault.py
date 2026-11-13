@@ -212,7 +212,8 @@ def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
 
     # 2. Auxiliary collections
     aux_data: dict[str, JsonValue] = {
-        "system_config": [{"id": "sys_8172bda70c8641c5", "gateways": []}],
+        "model_registries": [{"id": "sys_e826807f3bfa3454", "name": "Google Stack"}],
+        "mcp_gateways": [{"id": "sys_8172bda70c8641c5", "organization_id": "org_system000000", "tools": []}],
         "organizations": [
             {"id": "org_system000000", "name": "System"},
             {"id": "org_e531d2ed8a6641f6", "name": "Default"},
@@ -223,7 +224,8 @@ def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
     }
     _sanitize_auxiliary_collections(aux_data)
     aux_dump = json.dumps(aux_data)
-    assert "0195f3a00000700080008172bda70c86" in aux_dump
+    assert '"mrg_0195f3a00000700e8826807f3bfa3454"' in aux_dump
+    assert '"mcp_0195f3a00000700080008172bda70c86"' in aux_dump
     assert '"org_0195f3a0000070008000000000000001"' in aux_dump
     assert '"org_0195f3a00000700e8531d2ed8a6641f6"' in aux_dump
     assert '"usr_0195f3a0000070078a9c1b2e4d5f6a8b"' in aux_dump

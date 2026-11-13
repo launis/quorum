@@ -1210,14 +1210,14 @@ def resolve_comparison_registries(
     with target_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    sys_configs = data["system_config"] if "system_config" in data else []
+    raw_registries = data["model_registries"] if "model_registries" in data else []
     configs_list = []
-    if type(sys_configs) is dict:
-        configs_list = [v for v in sys_configs.values() if type(v) is dict]
-    elif isinstance(sys_configs, list):
-        configs_list = [v for v in sys_configs if type(v) is dict]
+    if type(raw_registries) is dict:
+        configs_list = [v for v in raw_registries.values() if type(v) is dict]
+    elif isinstance(raw_registries, list):
+        configs_list = [v for v in raw_registries if type(v) is dict]
 
-    registries = [c for c in configs_list if ("type" in c and c["type"] == "model_registry")]
+    registries = list(configs_list)
     if len(registries) < 2:
         msg = f"Differential comparison requires at least 2 model registries in database, found {len(registries)}."
         raise ValueError(msg)

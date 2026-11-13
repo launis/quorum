@@ -1640,11 +1640,10 @@ class TestCoverageExpansion:
 
         db_file = tmp_path / "db.json"
         seed = {
-            "system_config": [
+            "model_registries": [
                 {
-                    "id": "cfg_1",
+                    "id": "mrg_0195f3a0000070018234567890abcdef",
                     "name": "Test OpenAI Registry",
-                    "type": "model_registry",
                     "default_provider": "openai",
                     "models": {
                         "o1_low": {"model_name": "o1-mini", "thinking_budget_tokens": 1000},
@@ -1672,7 +1671,7 @@ class TestCoverageExpansion:
         from scripts.run_e2e_variance_test import resolve_model_telemetry
 
         empty_db = tmp_path / "empty.json"
-        empty_db.write_text(json.dumps({"system_config": []}), encoding="utf-8")
+        empty_db.write_text(json.dumps({"model_registries": []}), encoding="utf-8")
         assert resolve_model_telemetry(empty_db) == {}
 
         bad_json = tmp_path / "bad.json"
@@ -1683,7 +1682,7 @@ class TestCoverageExpansion:
         from scripts.run_e2e_variance_test import print_model_telemetry
 
         empty_db = tmp_path / "empty.json"
-        empty_db.write_text(json.dumps({"system_config": []}), encoding="utf-8")
+        empty_db.write_text(json.dumps({"model_registries": []}), encoding="utf-8")
         print_model_telemetry(empty_db)
         out = capsys.readouterr().out
         assert "Warning: Model registry not found" in out

@@ -11,16 +11,16 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
-from backend_v2.models.domain.task_brief import TaskBrief
 from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
 from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY, SeedCollectionName
 from backend_v2.tests.factories.model_factories import TaskBriefFactory
 
 
-def test_system_config_discriminator_mcp_gateways() -> None:
-    """Tests the discriminator correctly resolves SystemConfigMCPGateways."""
-    adapter = STANDARD_REGISTRY["system_config"]["model"]
+def test_mcp_gateways_registry_entry_validates_gateway() -> None:
+    """Verify mcp_gateways registry entry resolves SystemConfigMCPGateways with organization_id."""
+    assert SeedCollectionName.MCP_GATEWAYS.value == "mcp_gateways"
+    adapter = STANDARD_REGISTRY["mcp_gateways"]["model"]
     assert isinstance(adapter, TypeAdapter)
     tool = AllowedMCPTool(
         tool_id="mcp_tavily_search",
@@ -29,21 +29,22 @@ def test_system_config_discriminator_mcp_gateways() -> None:
         input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
     )
     data = {
-        "id": "cfg_0195f3a0000070008123456789abcdef",
+        "id": "mcp_0195f3a0000070008123456789abcdef",
+        "organization_id": "org_0195f3a0000070008000000000000001",
         "name": "Tavily MCP Gateway",
         "slug": "default_mcp_gateway",
-        "type": "mcp_gateways",
         "tools": [tool.model_dump(mode="json")],
     }
     result = adapter.validate_python(data)
     assert isinstance(result, SystemConfigMCPGateways)
-    assert result.type == "mcp_gateways"
+    assert result.organization_id == "org_0195f3a0000070008000000000000001"
     assert len(result.tools) == 1
 
 
-def test_system_config_discriminator_model_registry() -> None:
-    """Tests the discriminator correctly resolves SystemConfigModelRegistry."""
-    adapter = STANDARD_REGISTRY["system_config"]["model"]
+def test_model_registries_registry_entry_validates_registry() -> None:
+    """Verify model_registries registry entry resolves SystemConfigModelRegistry without type discriminator."""
+    assert SeedCollectionName.MODEL_REGISTRIES.value == "model_registries"
+    adapter = STANDARD_REGISTRY["model_registries"]["model"]
     assert isinstance(adapter, TypeAdapter)
     profile = ModelProfile(
         model_name="gpt-4o",
@@ -52,33 +53,46 @@ def test_system_config_discriminator_model_registry() -> None:
         additional_params=ProviderExtraParamsDTO(),
     )
     data = {
-        "id": "cfg_0195f3a0000070008123456789abcdef",
-        "name": "Tavily MCP Gateway",
-        "type": "model_registry",
+        "id": "mrg_0195f3a0000070008123456789abcdef",
+        "name": "OpenAI Stack",
         "tier_definitions": {tier.value: profile.model_dump(mode="json") for tier in CognitiveTier},
     }
     result = adapter.validate_python(data)
     assert isinstance(result, SystemConfigModelRegistry)
-    assert result.type == "model_registry"
     assert CognitiveTier.FAST in result.tier_definitions
 
 
-def test_system_config_discriminator_missing_type_fails() -> None:
-    """Tests that missing type discriminator tag triggers ValidationError."""
-    adapter = STANDARD_REGISTRY["system_config"]["model"]
+def test_mcp_gateways_missing_organization_id_fails() -> None:
+    """Negative test: missing organization_id or retired type field triggers ValidationError."""
+    adapter = STANDARD_REGISTRY["mcp_gateways"]["model"]
     assert isinstance(adapter, TypeAdapter)
-    data = {"id": "cfg_0195f3a0000070008123456789abcdef", "other": "value"}
     with pytest.raises(ValidationError):
-        adapter.validate_python(data)
+        adapter.validate_python({"id": "mcp_0195f3a0000070008123456789abcdef", "name": "Missing Org"})
+    with pytest.raises(ValidationError):
+        adapter.validate_python(
+            {
+                "id": "mcp_0195f3a0000070008123456789abcdef",
+                "organization_id": "org_0195f3a0000070008000000000000001",
+                "name": "Extra Type",
+                "type": "mcp_gateways",
+            }
+        )
 
 
-def test_system_config_discriminator_unknown_type_fails() -> None:
-    """Tests that unknown type discriminator tag triggers ValidationError."""
-    adapter = STANDARD_REGISTRY["system_config"]["model"]
+def test_model_registries_wrong_prefix_or_extra_type_fails() -> None:
+    """Negative test: wrong entity prefix or retired type field on model_registries fails validation."""
+    adapter = STANDARD_REGISTRY["model_registries"]["model"]
     assert isinstance(adapter, TypeAdapter)
-    data = {"id": "cfg_0195f3a0000070008123456789abcdef", "type": "unknown_config_type"}
     with pytest.raises(ValidationError):
-        adapter.validate_python(data)
+        adapter.validate_python({"id": "mcp_0195f3a0000070008123456789abcdef", "name": "Wrong Prefix"})
+    with pytest.raises(ValidationError):
+        adapter.validate_python(
+            {
+                "id": "mrg_0195f3a0000070008123456789abcdef",
+                "name": "Retired Type",
+                "type": "model_registry",
+            }
+        )
 
 
 def test_task_brief_registry_entry_and_validation_error() -> None:
@@ -88,8 +102,8 @@ def test_task_brief_registry_entry_and_validation_error() -> None:
     adapter = STANDARD_REGISTRY["task_briefs"]["model"]
     assert isinstance(adapter, TypeAdapter)
     sample = TaskBriefFactory.build().model_dump(mode="json")
-    hydrated = adapter.validate_python(sample)
-    assert isinstance(hydrated, TaskBrief)
+    validated = adapter.validate_python(sample)
+    assert validated.id == sample["id"]
 
     with pytest.raises(ValidationError):
-        adapter.validate_python({"id": "blk_0195f3a0000070008123456789abcdef"})
+        adapter.validate_python({"id": "invalid_prefix_id"})

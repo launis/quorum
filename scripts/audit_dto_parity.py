@@ -327,6 +327,8 @@ EXPLICIT_MODEL_ALIASES: Final[dict[str, str]] = {
     "workflowresponsedto": "workflow",
     "useradminview": "user",
     "systemconfigmcpgateways": "mcpgateway",
+    "systemconfigmodelregistry": "modelconfig",
+    "modelprofile": "llmmodelconfig",
     "taskbriefresponsedto": "taskbrief",
 }
 

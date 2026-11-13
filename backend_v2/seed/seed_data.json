@@ -1,9 +1,8 @@
 {
-  "system_config": [
+  "model_registries": [
     {
-      "id": "sys_0195f3a00000700e826807f3bfa3454d",
+      "id": "mrg_0195f3a00000700e826807f3bfa3454d",
       "name": "Google AI Studio Stack",
-      "type": "model_registry",
       "default_provider": "ai_studio",
       "tier_definitions": {
         "fast": {
@@ -14,7 +13,6 @@
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 200,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
@@ -28,7 +26,6 @@
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
@@ -42,7 +39,6 @@
           "supports_grounding": true,
           "tpm_limit": 4000000,
           "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
@@ -56,7 +52,6 @@
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
@@ -65,9 +60,8 @@
       }
     },
     {
-      "id": "sys_0195f3a00000700b81c2d3e4f5a60718",
+      "id": "mrg_0195f3a00000700b81c2d3e4f5a60718",
       "name": "Google Cloud Vertex AI Sovereign Stack",
-      "type": "model_registry",
       "default_provider": "vertex_ai",
       "tier_definitions": {
         "fast": {
@@ -78,7 +72,6 @@
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 200,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "vertex_ai",
           "caching_strategy": "prompt_caching",
@@ -94,7 +87,6 @@
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "vertex_ai",
           "caching_strategy": "prompt_caching",
@@ -110,7 +102,6 @@
           "supports_grounding": true,
           "tpm_limit": 4000000,
           "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "vertex_ai",
           "caching_strategy": "prompt_caching",
@@ -126,7 +117,6 @@
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "vertex_ai",
           "caching_strategy": "prompt_caching",
@@ -137,9 +127,8 @@
       }
     },
     {
-      "id": "sys_0195f3a0000070068f8b1c4a2e0d49f1",
+      "id": "mrg_0195f3a0000070068f8b1c4a2e0d49f1",
       "name": "OpenAI O-Series Stack",
-      "type": "model_registry",
       "default_provider": "openai",
       "tier_definitions": {
         "fast": {
@@ -150,7 +139,6 @@
           "supports_grounding": false,
           "tpm_limit": 2000000,
           "rpm_limit": 1000,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "openai",
           "caching_strategy": "prompt_caching",
@@ -164,7 +152,6 @@
           "supports_grounding": false,
           "tpm_limit": 2000000,
           "rpm_limit": 1000,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "openai",
           "caching_strategy": "prompt_caching",
@@ -180,7 +167,6 @@
           "supports_grounding": false,
           "tpm_limit": 2000000,
           "rpm_limit": 1000,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "openai",
           "caching_strategy": "prompt_caching",
@@ -196,7 +182,6 @@
           "supports_grounding": false,
           "tpm_limit": 2000000,
           "rpm_limit": 1000,
-          "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "openai",
           "caching_strategy": "prompt_caching",
@@ -205,9 +190,12 @@
           }
         }
       }
-    },
+    }
+  ],
+  "mcp_gateways": [
     {
-      "id": "sys_0195f3a00000700080008172bda70c86",
+      "id": "mcp_0195f3a00000700080008172bda70c86",
+      "organization_id": "org_0195f3a0000070008000000000000001",
       "name": "Tavily MCP Gateway",
       "slug": "default_mcp_gateway",
       "endpoint_url": "https://mcp.tavily.com/mcp",
@@ -215,7 +203,6 @@
       "auth_type": "bearer",
       "auth_env_var": null,
       "timeout_seconds": 30,
-      "type": "mcp_gateways",
       "tools": [
         {
           "tool_id": "tavily_search",
@@ -20822,8 +20809,8 @@
       "version": 1,
       "is_public": true,
       "default_profile_id": "prf_0195f3a0000070058d6e7f8091a2b3c4",
-      "mcp_gateway_id": "sys_0195f3a00000700080008172bda70c86",
-      "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+      "mcp_gateway_id": "mcp_0195f3a00000700080008172bda70c86",
+      "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
       "default_strictness_level": 0,
       "default_lexical_strictness_level": 50,
       "security_penalty": 0.0,
@@ -21160,8 +21147,8 @@
       "version": 1,
       "is_public": true,
       "default_profile_id": "prf_0195f3a00000700a88f1d71000000001",
-      "mcp_gateway_id": "sys_0195f3a00000700080008172bda70c86",
-      "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+      "mcp_gateway_id": "mcp_0195f3a00000700080008172bda70c86",
+      "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
       "default_strictness_level": 0,
       "default_lexical_strictness_level": 50,
       "security_penalty": 0.0,
@@ -21396,8 +21383,8 @@
       "version": 1,
       "is_public": true,
       "default_profile_id": "prf_0195f3a00000700b89e2d71000000002",
-      "mcp_gateway_id": "sys_0195f3a00000700080008172bda70c86",
-      "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
+      "mcp_gateway_id": "mcp_0195f3a00000700080008172bda70c86",
+      "model_registry_id": "mrg_0195f3a00000700e826807f3bfa3454d",
       "default_strictness_level": 0,
       "default_lexical_strictness_level": 50,
       "security_penalty": 0.0,

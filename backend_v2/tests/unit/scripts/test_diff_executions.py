@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pytest
@@ -455,7 +456,7 @@ class TestWorkflowProvenance:
         assert extract_workflow_provenance({}, "wf_unknown") is None
         assert extract_workflow_provenance({"workflows": []}, "wf_unknown") is None
 
-        synthetic_seed = {
+        synthetic_seed: dict[str, JsonValue] = {
             "workflows": [
                 {
                     "id": "wf_test_first",
@@ -480,7 +481,7 @@ class TestPhysicalModelBindings:
     """Test suite for resolve_physical_model_bindings and PhysicalModelBindingDTO."""
 
     def test_resolve_physical_model_bindings_from_seed(self) -> None:
-        """Positive: Verify bindings extracted from seed system_config match registered models."""
+        """Positive: Verify bindings extracted from seed model_registries match registered models."""
         seed_path = Path(__file__).resolve().parents[3] / "seed" / "seed_data.json"
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
@@ -507,14 +508,14 @@ class TestPhysicalModelBindings:
     def test_resolve_physical_model_bindings_missing_registry_fails_fast(self) -> None:
         """Negative: Unknown registry or empty seed data fails fast with ResourceNotFoundError."""
         with pytest.raises(ResourceNotFoundError):
-            resolve_physical_model_bindings({}, registry_id="sys_unknown")
+            resolve_physical_model_bindings({}, registry_id="mrg_unknown")
 
         seed_path = Path(__file__).resolve().parents[3] / "seed" / "seed_data.json"
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
 
         with pytest.raises(ResourceNotFoundError):
-            resolve_physical_model_bindings(seed, registry_id="sys_nonexistent")
+            resolve_physical_model_bindings(seed, registry_id="mrg_nonexistent")
 
 
 class TestInputOntologyAndUserVolume:
@@ -896,7 +897,7 @@ class TestEvaluationHelpers:
 def _create_synthetic_run(
     base_dir: Path,
     run_id: str,
-    evaluations: list[dict[str, JsonValue]],
+    evaluations: Sequence[Mapping[str, JsonValue]],
     input_text: str = "Tämä on laadukas syötetiedosto käyttäjältä. Johtajuus on selkeää ja vastuullista.",
     prompt_tokens: int = 1200,
     completion_tokens: int = 350,
@@ -936,7 +937,7 @@ def _create_synthetic_run(
             "event_type": "decision",
             "step_name": "evaluation_step",
             "content": {
-                "evaluations": evaluations,
+                "evaluations": [dict(e) for e in evaluations],
             },
         },
     ]
@@ -1074,6 +1075,9 @@ class TestDiffReportDTOs:
             scale_score=5.0,
             scale_name="Expert",
             concept_description="Visionary clarity in organizational leadership.",
+            anti_patterns=[],
+            acceptance_criteria=[],
+            syntactic_anchors=[],
         )
         eval_snap = AtomEvaluationSnapshotDTO(
             run_name="run_1",
@@ -1562,18 +1566,20 @@ def test_diff_executions_main_cli_help(capsys: pytest.CaptureFixture[str]) -> No
 
 def test_diff_executions_main_cli_delegation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verifies that diff_executions.py main() parses arguments and delegates to run_diff."""
-    called: dict[str, JsonValue] = {}
+    captured_ids: list[str] | None = None
+    captured_output: str | None = None
 
     def mock_run_diff(execution_ids: list[str] | None = None, output_file: str | None = None) -> str:
-        called["execution_ids"] = execution_ids
-        called["output_file"] = output_file
+        nonlocal captured_ids, captured_output
+        captured_ids = execution_ids
+        captured_output = output_file
         return "mock_report.md"
 
     monkeypatch.setattr("scripts.diff_executions.run_diff", mock_run_diff)
     main(["exe_1", "exe_2", "-o", "custom_report.md"])
 
-    assert called["execution_ids"] == ["exe_1", "exe_2"]
-    assert called["output_file"] == "custom_report.md"
+    assert captured_ids == ["exe_1", "exe_2"]
+    assert captured_output == "custom_report.md"
 
 
 class TestClusterBootstrapKappa:

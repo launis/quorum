@@ -75,7 +75,7 @@ __all__ = [
     "run_full_database_audit",
 ]
 
-# 8-collection canonical Opaque Stripe ID prefix and display field contracts
+# 9-collection canonical Opaque Stripe ID prefix and display field contracts
 SEED_COLLECTION_ALLOWED_PREFIXES: dict[str, frozenset[str]] = {
     "organizations": frozenset({EntityPrefix.ORGANIZATION}),
     "users": frozenset({EntityPrefix.USER}),
@@ -1177,7 +1177,7 @@ def _has_valid_display_value(collection: str, display_val: Any) -> bool:
     Returns:
         True if the display field is present and non-empty.
     """
-    if collection in {"organizations", "users", "system_config"}:
+    if collection in {"organizations", "users", "model_registries", "mcp_gateways"}:
         return isinstance(display_val, str) and bool(display_val.strip())
     if display_val is None or isinstance(display_val, (str, int, float, bool, list, tuple, set)):
         return False
@@ -1197,15 +1197,15 @@ def _has_valid_display_value(collection: str, display_val: Any) -> bool:
 
 
 def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
-    """Audit all 7 seed collections for canonical Opaque Stripe IDs, display names, and FK integrity.
+    """Audit all 9 seed collections for canonical Opaque Stripe IDs, display names, and FK integrity.
 
     Args:
         data: Top-level seed dictionary mapping collection names to record sequences.
 
     Returns:
-        List of AuditIssue violations discovered across the 7 collections.
+        List of AuditIssue violations discovered across the 9 collections.
     """
-    # Enforce 7-collection canonical id, display name, and FK referential integrity
+    # Enforce 9-collection canonical id, display name, and FK referential integrity
     issues: list[AuditIssue] = []
     seen_ids: set[str] = set()
     collection_ids: dict[str, set[str]] = {col: set() for col in SEED_COLLECTION_ALLOWED_PREFIXES}
@@ -1278,10 +1278,26 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
                 )
 
     organization_ids = collection_ids["organizations"] | set(_SYSTEM_ORGANIZATION_SENTINELS)
-    system_config_ids = collection_ids["system_config"]
+    model_registry_ids = collection_ids["model_registries"]
+    mcp_gateway_ids = collection_ids["mcp_gateways"]
     output_profile_ids = collection_ids["output_profiles"]
     workflow_ids = collection_ids["workflows"]
     prompt_block_ids = collection_ids["prompt_blocks"]
+
+    mcp_gateways = data["mcp_gateways"] if "mcp_gateways" in data else []
+    for idx, gw in enumerate(mcp_gateways):
+        gw_id = str(gw["id"]) if "id" in gw else f"mcp_gateways[{idx}]"
+        org_id = gw["organization_id"] if "organization_id" in gw else None
+        if org_id is not None and str(org_id) not in organization_ids:
+            issues.append(
+                AuditIssue(
+                    collection="mcp_gateways",
+                    entity_id=gw_id,
+                    field_path="organization_id",
+                    issue_type="ORPHAN_ORGANIZATION_ID",
+                    message=f"MCPGateway '{gw_id}' references unknown organization_id '{org_id}'.",
+                )
+            )
 
     users = data["users"] if "users" in data else []
     for idx, usr in enumerate(users):
@@ -1302,7 +1318,7 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
     for idx, wf in enumerate(workflows):
         wf_id = str(wf["id"]) if "id" in wf else f"workflows[{idx}]"
         model_reg_id = wf["model_registry_id"] if "model_registry_id" in wf else None
-        if not isinstance(model_reg_id, str) or model_reg_id not in system_config_ids:
+        if not isinstance(model_reg_id, str) or model_reg_id not in model_registry_ids:
             issues.append(
                 AuditIssue(
                     collection="workflows",
@@ -1314,7 +1330,7 @@ def audit_canonical_entity_ids(data: Any) -> list[AuditIssue]:
             )
 
         mcp_gw_id = wf["mcp_gateway_id"] if "mcp_gateway_id" in wf else None
-        if mcp_gw_id is not None and str(mcp_gw_id) not in system_config_ids:
+        if mcp_gw_id is not None and str(mcp_gw_id) not in mcp_gateway_ids:
             issues.append(
                 AuditIssue(
                     collection="workflows",

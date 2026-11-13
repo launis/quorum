@@ -437,7 +437,7 @@ def test_resolve_model_telemetry_live(tmp_path: Path) -> None:
 
     # Test empty file
     empty_file = tmp_path / "empty_direct.json"
-    empty_file.write_text(json.dumps({"system_config": []}), encoding="utf-8")
+    empty_file.write_text(json.dumps({"model_registries": []}), encoding="utf-8")
     assert resolve_model_telemetry(empty_file) == {}
 
     # Test malformed JSON
@@ -445,18 +445,17 @@ def test_resolve_model_telemetry_live(tmp_path: Path) -> None:
     bad_file.write_text("{bad", encoding="utf-8")
     assert resolve_model_telemetry(bad_file) == {}
 
-    # Test mock custom DB with reasoning models, dict system_config, and various tiers
+    # Test mock custom DB with reasoning models, dict model_registries, and various tiers
     reg_id = generate_opaque_id(EntityPrefix.MODEL_REGISTRY)
     mock_db = tmp_path / "mock_db.json"
     mock_db.write_text(
         json.dumps(
             {
-                "system_config": {
+                "model_registries": {
                     "reg_1": {
                         "id": reg_id,
                         "slug": "test-registry-slug",
                         "name": "Test Registry Name",
-                        "type": "model_registry",
                         "default_provider": "google",
                         "tier_definitions": {
                             "fast": {
@@ -620,7 +619,7 @@ def test_print_model_telemetry_output(tmp_path: Path, capsys: pytest.CaptureFixt
     """Verify print_model_telemetry output formatting and warning on empty DB."""
     # Empty DB
     empty_file = tmp_path / "empty.json"
-    empty_file.write_text(json.dumps({"system_config": []}), encoding="utf-8")
+    empty_file.write_text(json.dumps({"model_registries": []}), encoding="utf-8")
     print_model_telemetry(empty_file)
     out = capsys.readouterr().out
     assert "Warning: Model registry not found" in out
@@ -631,11 +630,10 @@ def test_print_model_telemetry_output(tmp_path: Path, capsys: pytest.CaptureFixt
     mock_db.write_text(
         json.dumps(
             {
-                "system_config": [
+                "model_registries": [
                     {
                         "id": pop_reg_id,
                         "name": "Populated Registry",
-                        "type": "model_registry",
                         "default_provider": "google",
                         "tier_definitions": {
                             "fast": {
