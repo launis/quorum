@@ -6,13 +6,15 @@ and backend_v2/database/migrations/001_pg19_uuidv7_schema.sql:
 - ZORM001: Bans imports of sqlalchemy, alembic, or orjson.
 - ZORM002: Bans untyped dictionary subscript annotations targeting Any/object and dict(r) row unpacking.
 - ZORM003: Bans broad except Exception handlers lacking explicit AppException re-raise.
-- ZORM004: Enforces that SQL CREATE TABLE identifiers belong strictly to the closed 21-table set.
+- ZORM004: Enforces that SQL CREATE TABLE identifiers belong strictly to the closed 22-table set.
 - ZORM005: Bans calling llm_client, execute_structured_task, or execute_chat_task inside database/UoW modules.
 - ZORM006: Enforces that record subscript column keys in graph_adapter.py and entity_adapter.py map 1:1
   to declared domain model fields.
 - ZORM007: Enforces O(1) primary-key lookups (driver.get over Filter('id', '==', ...)), public
   PostgresUnitOfWork.pool_manager access, mandatory apply_migrations() preflight before
   verify_schema_tables(), and idempotent ALTER TABLE ... ADD COLUMN IF NOT EXISTS DDL parity.
+- ZORM008: Bans StorageDriver imports and references, unwrapped .model_validate/.validate_python calls
+  in entity_adapter stage modules outside validate_hydrated_row, and unparameterized SELECT * list scans.
 """
 
 from __future__ import annotations
@@ -166,7 +168,6 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "workflow_id",
         "workflow_version",
         "state_version",
-        "active_profile_id",
         "output_profile_id",
         "status",
         "target_locale",
@@ -174,16 +175,11 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "status_message",
         "raw_inputs",
         "frozen_context",
-        "frozen_context_storage_path",
-        "pdf_report_path",
         "steps",
-        "step_states",
         "profile_syntheses",
         "source_identity_manifest",
         "execution_trace",
-        "execution_trace_storage_path",
         "context_variables",
-        "context_variables_storage_path",
         "is_resumable",
         "prompt_tokens",
         "completion_tokens",
@@ -395,10 +391,38 @@ _ALTER_ADD_COLUMN_REGEX = re.compile(
     re.IGNORECASE,
 )
 
-# Ban TEXT primary keys across the 15-table PostgreSQL 19 topology
+# Ban TEXT primary keys across the 22-table PostgreSQL 19 topology
 _BANNED_TEXT_PK_REGEX = re.compile(
     r"\bid\s+TEXT\s+PRIMARY\s+KEY\b",
     re.IGNORECASE,
+)
+
+_BANNED_UNPARAMETERIZED_SELECT_STAR_REGEX = re.compile(
+    r"\bSELECT\s+\*\s+FROM\s+[a-zA-Z0-9_.]+\b(?![^;]*\bWHERE\b)",
+    re.IGNORECASE,
+)
+
+BANNED_STORAGE_DRIVER_SYMBOLS: frozenset[str] = frozenset(
+    {
+        "StorageDriver",
+        "PostgresStorageDriver",
+    }
+)
+
+BANNED_STORAGE_DRIVER_MODULES: frozenset[str] = frozenset(
+    {
+        "backend_v2.database.driver",
+        "backend_v2.database.postgres.storage_driver",
+    }
+)
+
+_ENTITY_ADAPTER_HYDRATION_METHODS: frozenset[str] = frozenset(
+    {
+        "model_validate",
+        "model_validate_json",
+        "validate_python",
+        "validate_json",
+    }
 )
 
 # Canonical UUIDv7 PK, FK REFERENCES, SQL DEFAULT, and slug SQL filter regexes
@@ -444,11 +468,13 @@ class ZeroOrmRuleCode(StrEnum):
         ZORM001: Bans imports of sqlalchemy, alembic, or orjson.
         ZORM002: Bans untyped mapping annotations and dict(r) record unpacking.
         ZORM003: Bans broad except Exception handlers without AppException re-raise.
-        ZORM004: Enforces closed 15-table PostgreSQL DDL topology.
+        ZORM004: Enforces closed 22-table PostgreSQL DDL topology.
         ZORM005: Bans LLM client or task execution calls inside database/UoW modules.
         ZORM006: Enforces 1:1 column subscript parity in database adapters.
         ZORM007: Enforces O(1) PK lookups, public UoW pool_manager property, preflight apply_migrations(),
             and idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS schema evolution parity.
+        ZORM008: Bans StorageDriver imports/references, unwrapped .model_validate/.validate_python calls
+            in entity_adapter stage modules, and unparameterized SELECT * list scans.
     """
 
     ZORM001 = "ZORM001"
@@ -458,6 +484,7 @@ class ZeroOrmRuleCode(StrEnum):
     ZORM005 = "ZORM005"
     ZORM006 = "ZORM006"
     ZORM007 = "ZORM007"
+    ZORM008 = "ZORM008"
 
 
 class ZeroOrmFindingDTO(BaseModel):
@@ -524,6 +551,7 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         is_db_scope: bool = True,
         *,
         is_uow_file: bool = False,
+        is_entity_adapter_stage: bool = False,
     ) -> None:
         """Initialize the AST visitor for a target Python source file.
 
@@ -532,13 +560,16 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
             is_adapter_file: True if checking SQL column subscript parity (ZORM006).
             is_db_scope: True if enforcing database/UoW-specific rules (ZORM002, ZORM003, ZORM005).
             is_uow_file: True if visiting uow.py where _pool_manager is defined.
+            is_entity_adapter_stage: True if visiting an entity_adapter stage module outside coercion_and_constants.py.
         """
         self.filepath = filepath
         self.is_adapter_file = is_adapter_file
         self.is_db_scope = is_db_scope
         self.is_uow_file = is_uow_file
+        self.is_entity_adapter_stage = is_entity_adapter_stage
         self.findings: list[ZeroOrmFindingDTO] = []
         self._in_finally: bool = False
+        self._reported_storage_driver_lines: set[int] = set()
 
     def _record(self, lineno: int, rule_code: ZeroOrmRuleCode, message: str) -> None:
         """Append a ZeroOrmFindingDTO to the visitor's findings list.
@@ -558,7 +589,7 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         )
 
     def visit_Import(self, node: ast.Import) -> None:
-        """Inspect standard import statements for ZORM001 banned libraries.
+        """Inspect standard import statements for ZORM001 banned libraries and ZORM008 StorageDriver modules.
 
         Args:
             node: AST Import node.
@@ -571,10 +602,17 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
                     ZeroOrmRuleCode.ZORM001,
                     f"Banned import '{alias.name}' detected; use Zero-ORM asyncpg + pydantic_core.",
                 )
+            if alias.name in BANNED_STORAGE_DRIVER_MODULES or alias.asname in BANNED_STORAGE_DRIVER_SYMBOLS:
+                self._reported_storage_driver_lines.add(node.lineno)
+                self._record(
+                    node.lineno,
+                    ZeroOrmRuleCode.ZORM008,
+                    f"Banned legacy StorageDriver import '{alias.name}' detected; use EntityPersistencePort exclusively.",
+                )
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        """Inspect from-import statements for ZORM001 banned libraries.
+        """Inspect from-import statements for ZORM001 banned libraries and ZORM008 StorageDriver symbols.
 
         Args:
             node: AST ImportFrom node.
@@ -587,6 +625,38 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
                     ZeroOrmRuleCode.ZORM001,
                     f"Banned import from '{node.module}' detected; use Zero-ORM asyncpg + pydantic_core.",
                 )
+            if node.module in BANNED_STORAGE_DRIVER_MODULES:
+                self._reported_storage_driver_lines.add(node.lineno)
+                self._record(
+                    node.lineno,
+                    ZeroOrmRuleCode.ZORM008,
+                    f"Banned import from retired '{node.module}' detected; use EntityPersistencePort exclusively.",
+                )
+        for alias in node.names:
+            if (
+                alias.name in BANNED_STORAGE_DRIVER_SYMBOLS or alias.asname in BANNED_STORAGE_DRIVER_SYMBOLS
+            ) and node.lineno not in self._reported_storage_driver_lines:
+                self._reported_storage_driver_lines.add(node.lineno)
+                self._record(
+                    node.lineno,
+                    ZeroOrmRuleCode.ZORM008,
+                    f"Banned legacy symbol '{alias.name}' imported; use EntityPersistencePort exclusively.",
+                )
+        self.generic_visit(node)
+
+    def visit_Name(self, node: ast.Name) -> None:
+        """Inspect identifier references for ZORM008 retired StorageDriver symbols.
+
+        Args:
+            node: AST Name node.
+        """
+        if node.id in BANNED_STORAGE_DRIVER_SYMBOLS and node.lineno not in self._reported_storage_driver_lines:
+            self._reported_storage_driver_lines.add(node.lineno)
+            self._record(
+                node.lineno,
+                ZeroOrmRuleCode.ZORM008,
+                f"Banned legacy StorageDriver reference '{node.id}' detected; use EntityPersistencePort exclusively.",
+            )
         self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
@@ -727,6 +797,13 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
                         ZeroOrmRuleCode.ZORM005,
                         f"Banned LLM client usage '{node.func.value.id}.{node.func.attr}' inside database/UoW layer.",
                     )
+                if self.is_entity_adapter_stage and node.func.attr in _ENTITY_ADAPTER_HYDRATION_METHODS:
+                    self._record(
+                        node.lineno,
+                        ZeroOrmRuleCode.ZORM008,
+                        f"Unwrapped '.{node.func.attr}(...)' call inside entity_adapter stage module is banned; "
+                        "route row hydration exclusively through validate_hydrated_row(...).",
+                    )
         self.generic_visit(node)
 
     def visit_Try(self, node: ast.Try) -> None:
@@ -768,19 +845,26 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Constant(self, node: ast.Constant) -> None:
-        """Inspect string constants in database scope for banned SQL slug WHERE/JOIN predicates.
+        """Inspect string constants in database scope for banned SQL slug predicates and SELECT * list scans.
 
         Args:
             node: AST Constant node.
         """
-        # Ban SQL WHERE/JOIN predicates on informational slug column
-        if self.is_db_scope and isinstance(node.value, str) and _SQL_SLUG_FILTER_REGEX.search(node.value):
-            self._record(
-                node.lineno,
-                ZeroOrmRuleCode.ZORM007,
-                "SQL query filters or joins on informational column 'slug'; "
-                "all relational lookups and joins must use canonical 'id' columns.",
-            )
+        if self.is_db_scope and isinstance(node.value, str):
+            if _SQL_SLUG_FILTER_REGEX.search(node.value):
+                self._record(
+                    node.lineno,
+                    ZeroOrmRuleCode.ZORM007,
+                    "SQL query filters or joins on informational column 'slug'; "
+                    "all relational lookups and joins must use canonical 'id' columns.",
+                )
+            if _BANNED_UNPARAMETERIZED_SELECT_STAR_REGEX.search(node.value):
+                self._record(
+                    node.lineno,
+                    ZeroOrmRuleCode.ZORM008,
+                    "Unparameterized 'SELECT * FROM' list scan is banned in Zero-ORM SQL; "
+                    "project explicit column lists exclusively.",
+                )
         self.generic_visit(node)
 
 
@@ -807,13 +891,15 @@ def audit_python_file(filepath: Path, *, is_db_scope: bool = True) -> list[ZeroO
             )
         ]
 
-    # Enforce ZORM006 column subscript parity across entity_adapter sub-modules
+    # Enforce ZORM006 column subscript parity and ZORM008 validate_hydrated_row wrapper across entity_adapter sub-modules
     is_adapter = filepath.name in {"graph_adapter.py", "entity_adapter.py"} or "entity_adapter" in filepath.parts
+    is_stage = "entity_adapter" in filepath.parts and filepath.name not in {"coercion_and_constants.py", "__init__.py"}
     visitor = _ZeroOrmAstVisitor(
         filepath=str(filepath),
         is_adapter_file=is_adapter,
         is_db_scope=is_db_scope,
         is_uow_file=filepath.name == "uow.py",
+        is_entity_adapter_stage=is_stage,
     )
     visitor.visit(tree)
     return visitor.findings
@@ -887,7 +973,7 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
                     lineno=lineno,
                     rule_code=ZeroOrmRuleCode.ZORM004,
                     message=(
-                        f"Table '{table_name}' is outside the closed 15-table PostgreSQL topology: "
+                        f"Table '{table_name}' is outside the closed 22-table PostgreSQL topology: "
                         f"{sorted(CLOSED_POSTGRES_TABLES)}."
                     ),
                 )
@@ -901,8 +987,22 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
                 lineno=lineno,
                 rule_code=ZeroOrmRuleCode.ZORM004,
                 message=(
-                    "SQL table declares 'id TEXT PRIMARY KEY'; all 15 PostgreSQL 19 tables "
+                    "SQL table declares 'id TEXT PRIMARY KEY'; all 16 canonical entity PK tables "
                     "must use 'id UUID PRIMARY KEY DEFAULT uuidv7()'."
+                ),
+            )
+        )
+
+    for star_match in _BANNED_UNPARAMETERIZED_SELECT_STAR_REGEX.finditer(uncommented):
+        star_lineno = content.count("\n", 0, star_match.start()) + 1
+        findings.append(
+            ZeroOrmFindingDTO(
+                filepath=str(filepath),
+                lineno=star_lineno,
+                rule_code=ZeroOrmRuleCode.ZORM008,
+                message=(
+                    "Unparameterized 'SELECT * FROM' list scan is banned in Zero-ORM SQL; "
+                    "project explicit column lists exclusively."
                 ),
             )
         )
@@ -1139,7 +1239,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Zero-ORM Strictness & Closed PostgreSQL 19 Topology AST Auditor.\n\n"
-            "Enforces ZORM001-ZORM007 across backend_v2/database/postgres/, "
+            "Enforces ZORM001-ZORM008 across backend_v2/database/postgres/, "
             "proposition_graph.py, and 001_pg19_uuidv7_schema.sql."
         ),
         epilog=(

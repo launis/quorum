@@ -163,6 +163,17 @@ class _StoredExecutionPayload(V2CoreBase):
     updated_at: Annotated[datetime, Field(description="Payload last updated timestamp.")]
 
 
+class _SeedTableSnapshot(V2CoreBase):
+    """Immutable point-in-time snapshot of a single in-memory seed table."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)
+
+    rows: Annotated[
+        dict[str, _SeedRowEntry],
+        Field(default_factory=dict, description="Stored table rows keyed by canonical or UUID string."),
+    ]
+
+
 class _StoreSnapshot(V2CoreBase):
     """Immutable point-in-time snapshot of the in-memory PostgreSQL store for rollback.
 
@@ -173,6 +184,7 @@ class _StoreSnapshot(V2CoreBase):
         report_has_pdf: Map of report_id to boolean PDF availability flag.
         executions: Map of execution_id to summary ExecutionRecord.
         execution_payloads: Map of execution_id to _StoredExecutionPayload sidecar.
+        seed_tables: Map of canonical table name to _SeedTableSnapshot.
         migrations_applied: Count of DDL migration executions.
     """
 
@@ -199,6 +211,10 @@ class _StoreSnapshot(V2CoreBase):
     workflow_step_refs: Annotated[
         dict[str, tuple[str, ...]],
         Field(default_factory=dict, description="Workflow step reference junction rows keyed by workflow_id."),
+    ]
+    seed_tables: Annotated[
+        dict[str, _SeedTableSnapshot],
+        Field(default_factory=dict, description="Deep-copied seed_tables snapshot."),
     ]
     seed_counts: Annotated[dict[str, int], Field(default_factory=dict, description="Seeded table counts.")]
     migrations_applied: Annotated[int, Field(default=0, ge=0, description="DDL migrations applied count.")]
@@ -282,6 +298,15 @@ class _InMemoryPostgresStore:
             usage_records=dict(self.usage_records),
             step_criteria_blocks=dict(self.step_criteria_blocks),
             workflow_step_refs=dict(self.workflow_step_refs),
+            seed_tables={
+                tbl: _SeedTableSnapshot(
+                    rows={
+                        rk: (rv.model_copy(deep=True) if isinstance(rv, BaseModel) else tuple(rv))
+                        for rk, rv in rows.items()
+                    }
+                )
+                for tbl, rows in self.seed_tables.items()
+            },
             seed_counts={tbl: len(rows) for tbl, rows in self.seed_tables.items()},
             migrations_applied=self.migrations_applied,
         )
@@ -302,7 +327,313 @@ class _InMemoryPostgresStore:
         self.usage_records = dict(snapshot.usage_records)
         self.step_criteria_blocks = dict(snapshot.step_criteria_blocks)
         self.workflow_step_refs = dict(snapshot.workflow_step_refs)
+        if snapshot.seed_tables:
+            self.seed_tables = {
+                tbl: {
+                    rk: (rv.model_copy(deep=True) if isinstance(rv, BaseModel) else tuple(rv))
+                    for rk, rv in snap.rows.items()
+                }
+                for tbl, snap in snapshot.seed_tables.items()
+            }
         self.migrations_applied = snapshot.migrations_applied
+
+    def is_table_populated(self, table: str) -> bool:
+        """Return True when the named table contains at least one persisted row."""
+        if table == "executions":
+            return bool(self.executions)
+        return bool(self.seed_tables[table])
+
+    def has_table_row(self, table: str, entity_id: str, prefix: EntityPrefix) -> bool:
+        """Return True when entity_id (or its raw UUID string) exists in table."""
+        ent_uuid = parse_prefixed_uuid7(entity_id, prefix)
+        if table == "executions":
+            return entity_id in self.executions
+        bucket = self.seed_tables[table]
+        return entity_id in bucket or str(ent_uuid) in bucket
+
+    def assert_parent_exists_if_populated(
+        self,
+        parent_table: str,
+        entity_id: str | None,
+        prefix: EntityPrefix,
+        *,
+        child_table: str,
+        via_sqlstate: bool = False,
+    ) -> None:
+        """Enforce child->parent FK integrity whenever parent_table is populated."""
+        if entity_id is None or not self.is_table_populated(parent_table):
+            return
+        if self.has_table_row(parent_table, entity_id, prefix):
+            return
+        if via_sqlstate:
+            raise _InMemorySqlStateError(
+                f"insert or update on table '{child_table}' violates foreign key constraint ({entity_id})",
+                sqlstate="23503",
+            )
+        msg = (
+            f"Foreign key violation on table '{child_table}': referenced '{parent_table}' "
+            f"entity '{entity_id}' does not exist."
+        )
+        logger.error(
+            "[_InMemoryPostgresStore] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "child_table": child_table,
+                "parent_table": parent_table,
+                "entity_id": entity_id,
+            },
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            details={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "table": child_table,
+                "entity_id": entity_id,
+            },
+        )
+
+    @staticmethod
+    def _raise_unique_violation(
+        *,
+        table: str,
+        constraint: str,
+        entity_id: str,
+        via_sqlstate: bool,
+    ) -> None:
+        """Raise either SQLSTATE 23505 or AppException(ErrorCodes.CONFLICT, 409) for UNIQUE violations."""
+        if via_sqlstate:
+            raise _InMemorySqlStateError(
+                f"duplicate key value violates unique constraint '{constraint}' on '{table}' ({entity_id})",
+                sqlstate="23505",
+            )
+        msg = f"Unique constraint '{constraint}' violated on table '{table}' for entity '{entity_id}'."
+        logger.error(
+            "[_InMemoryPostgresStore] %s: %s",
+            ErrorCodes.CONFLICT.name,
+            msg,
+            extra={"error_code": ErrorCodes.CONFLICT.value, "table": table, "entity_id": entity_id},
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_409_CONFLICT,
+            details={"error_code": ErrorCodes.CONFLICT.value, "table": table, "entity_id": entity_id},
+        )
+
+    def assert_user_unique(
+        self,
+        user_id: str,
+        email: str,
+        firebase_uid: str | None,
+        *,
+        via_sqlstate: bool = False,
+    ) -> None:
+        """Enforce UNIQUE constraints on users.email (case-insensitive) and users.firebase_uid."""
+        usr_uuid_str = str(parse_prefixed_uuid7(user_id, EntityPrefix.USER))
+        norm_email = email.strip().lower()
+        for key, entry in self.seed_tables["users"].items():
+            if key in (user_id, usr_uuid_str):
+                continue
+            if isinstance(entry, User):
+                if entry.id == user_id:
+                    continue
+                if str(entry.email).strip().lower() == norm_email:
+                    self._raise_unique_violation(
+                        table="users",
+                        constraint="users_email_key",
+                        entity_id=user_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+                if firebase_uid is not None and entry.firebase_uid == firebase_uid:
+                    self._raise_unique_violation(
+                        table="users",
+                        constraint="users_firebase_uid_key",
+                        entity_id=user_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+            elif isinstance(entry, Sequence) and len(entry) >= 4:
+                if str(entry[0]) == usr_uuid_str:
+                    continue
+                if str(entry[3]).strip().lower() == norm_email:
+                    self._raise_unique_violation(
+                        table="users",
+                        constraint="users_email_key",
+                        entity_id=user_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+                if firebase_uid is not None and entry[2] is not None and str(entry[2]) == firebase_uid:
+                    self._raise_unique_violation(
+                        table="users",
+                        constraint="users_firebase_uid_key",
+                        entity_id=user_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+
+    def assert_invitation_unique(
+        self,
+        invitation_id: str,
+        token_hash: str,
+        *,
+        via_sqlstate: bool = False,
+    ) -> None:
+        """Enforce UNIQUE constraint on invitations.token_hash."""
+        inv_uuid_str = str(parse_prefixed_uuid7(invitation_id, EntityPrefix.INVITATION))
+        for key, entry in self.seed_tables["invitations"].items():
+            if key in (invitation_id, inv_uuid_str):
+                continue
+            if isinstance(entry, Invitation):
+                if entry.id != invitation_id and entry.token_hash == token_hash:
+                    self._raise_unique_violation(
+                        table="invitations",
+                        constraint="invitations_token_hash_key",
+                        entity_id=invitation_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+            elif isinstance(entry, Sequence) and len(entry) >= 5:
+                if str(entry[0]) != inv_uuid_str and str(entry[4]) == token_hash:
+                    self._raise_unique_violation(
+                        table="invitations",
+                        constraint="invitations_token_hash_key",
+                        entity_id=invitation_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+
+    def assert_assignment_unique(
+        self,
+        assignment_id: str,
+        token_hash: str,
+        *,
+        via_sqlstate: bool = False,
+    ) -> None:
+        """Enforce UNIQUE constraint on execution_assignments.token_hash."""
+        asg_uuid_str = str(parse_prefixed_uuid7(assignment_id, EntityPrefix.ASSIGNMENT))
+        for key, entry in self.seed_tables["execution_assignments"].items():
+            if key in (assignment_id, asg_uuid_str):
+                continue
+            if isinstance(entry, ExecutionAssignment):
+                if entry.id != assignment_id and entry.token_hash == token_hash:
+                    self._raise_unique_violation(
+                        table="execution_assignments",
+                        constraint="execution_assignments_token_hash_key",
+                        entity_id=assignment_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+            elif isinstance(entry, Sequence) and len(entry) >= 15:
+                if str(entry[0]) != asg_uuid_str and str(entry[14]) == token_hash:
+                    self._raise_unique_violation(
+                        table="execution_assignments",
+                        constraint="execution_assignments_token_hash_key",
+                        entity_id=assignment_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+
+    def assert_tenant_secret_unique(
+        self,
+        secret_id: str,
+        org_id: str,
+        scope: str,
+        target_identifier: str,
+        *,
+        via_sqlstate: bool = False,
+    ) -> None:
+        """Enforce UNIQUE constraint uq_tenant_secrets_org_scope_target."""
+        sec_uuid_str = str(parse_prefixed_uuid7(secret_id, EntityPrefix.TENANT_SECRET))
+        org_uuid_str = str(parse_prefixed_uuid7(org_id, EntityPrefix.ORGANIZATION))
+        for key, entry in self.seed_tables["tenant_secrets"].items():
+            if key in (secret_id, sec_uuid_str):
+                continue
+            if isinstance(entry, TenantSecretDTO):
+                if (
+                    entry.id != secret_id
+                    and entry.organization_id == org_id
+                    and entry.scope.value == scope
+                    and entry.target_identifier == target_identifier
+                ):
+                    self._raise_unique_violation(
+                        table="tenant_secrets",
+                        constraint="uq_tenant_secrets_org_scope_target",
+                        entity_id=secret_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+            elif isinstance(entry, Sequence) and len(entry) >= 5:
+                if (
+                    str(entry[0]) != sec_uuid_str
+                    and str(entry[1]) == org_uuid_str
+                    and str(entry[3]) == scope
+                    and str(entry[4]) == target_identifier
+                ):
+                    self._raise_unique_violation(
+                        table="tenant_secrets",
+                        constraint="uq_tenant_secrets_org_scope_target",
+                        entity_id=secret_id,
+                        via_sqlstate=via_sqlstate,
+                    )
+
+    def assert_deferred_workflow_default_profiles(self, snapshot: _StoreSnapshot | None) -> None:
+        """Enforce ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED on workflows.default_profile_id at commit."""
+        snap_profiles = (
+            snapshot.seed_tables["output_profiles"].rows
+            if snapshot is not None and "output_profiles" in snapshot.seed_tables
+            else {}
+        )
+        for wf_entry in self.seed_tables["workflows"].values():
+            default_prf_id: str | None = None
+            if isinstance(wf_entry, Workflow):
+                default_prf_id = wf_entry.default_profile_id
+            elif isinstance(wf_entry, Sequence) and len(wf_entry) > 8 and wf_entry[8] is not None:
+                default_prf_id = format_prefixed_uuid7(str(wf_entry[8]), EntityPrefix.OUTPUT_PROFILE)
+            if default_prf_id is None:
+                continue
+            if self.has_table_row("output_profiles", default_prf_id, EntityPrefix.OUTPUT_PROFILE):
+                continue
+            raw_prf_uuid = str(parse_prefixed_uuid7(default_prf_id, EntityPrefix.OUTPUT_PROFILE))
+            if default_prf_id in snap_profiles or raw_prf_uuid in snap_profiles:
+                msg = (
+                    f"Deferred foreign key violation: output profile '{default_prf_id}' is still referenced "
+                    f"by workflows.default_profile_id at commit."
+                )
+                logger.error(
+                    "[_InMemoryPostgresStore] %s: %s",
+                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                    msg,
+                    extra={
+                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                        "entity_id": default_prf_id,
+                    },
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={
+                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                        "entity_id": default_prf_id,
+                    },
+                )
+            if self.is_table_populated("output_profiles"):
+                msg = (
+                    f"Deferred foreign key violation: workflows.default_profile_id '{default_prf_id}' "
+                    f"does not exist in output_profiles."
+                )
+                logger.error(
+                    "[_InMemoryPostgresStore] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={
+                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                        "entity_id": default_prf_id,
+                    },
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={
+                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                        "table": "workflows",
+                        "entity_id": default_prf_id,
+                    },
+                )
 
 
 def _extract_uuid7_timestamp(prefixed_id: str, prefix: EntityPrefix) -> datetime:
@@ -594,6 +925,12 @@ class InMemoryGraphAdapter:
                 or dangling edge endpoint keys.
         """
         _ = parse_prefixed_uuid7(run_id, EntityPrefix.EXECUTION)
+        self._store.assert_parent_exists_if_populated(
+            "executions",
+            run_id,
+            EntityPrefix.EXECUTION,
+            child_table="quorum_nodes",
+        )
 
         seen_keys: set[str] = set()
         for draft in node_drafts:
@@ -906,8 +1243,21 @@ class InMemoryEntityAdapter:
         _ = parse_prefixed_uuid7(user.id, EntityPrefix.USER)
         if user.organization_id is not None:
             _ = parse_prefixed_uuid7(user.organization_id, EntityPrefix.ORGANIZATION)
+            self._store.assert_parent_exists_if_populated(
+                "organizations",
+                user.organization_id,
+                EntityPrefix.ORGANIZATION,
+                child_table="users",
+            )
         if user.created_by is not None:
             _ = parse_prefixed_uuid7(user.created_by, EntityPrefix.USER)
+            self._store.assert_parent_exists_if_populated(
+                "users",
+                user.created_by,
+                EntityPrefix.USER,
+                child_table="users",
+            )
+        self._store.assert_user_unique(user.id, str(user.email), user.firebase_uid)
         self._store.seed_tables["users"][user.id] = user
         return user.id
 
@@ -957,6 +1307,20 @@ class InMemoryEntityAdapter:
         """
         _ = parse_prefixed_uuid7(invitation.id, EntityPrefix.INVITATION)
         _ = parse_prefixed_uuid7(invitation.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(invitation.invited_by, EntityPrefix.USER)
+        self._store.assert_parent_exists_if_populated(
+            "organizations",
+            invitation.organization_id,
+            EntityPrefix.ORGANIZATION,
+            child_table="invitations",
+        )
+        self._store.assert_parent_exists_if_populated(
+            "users",
+            invitation.invited_by,
+            EntityPrefix.USER,
+            child_table="invitations",
+        )
+        self._store.assert_invitation_unique(invitation.id, invitation.token_hash)
         self._store.seed_tables["invitations"][invitation.id] = invitation
         return invitation.id
 
@@ -1006,8 +1370,33 @@ class InMemoryEntityAdapter:
         """
         _ = parse_prefixed_uuid7(secret.id, EntityPrefix.TENANT_SECRET)
         _ = parse_prefixed_uuid7(secret.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(secret.updated_by, EntityPrefix.USER)
+        self._store.assert_parent_exists_if_populated(
+            "organizations",
+            secret.organization_id,
+            EntityPrefix.ORGANIZATION,
+            child_table="tenant_secrets",
+        )
+        self._store.assert_parent_exists_if_populated(
+            "users",
+            secret.updated_by,
+            EntityPrefix.USER,
+            child_table="tenant_secrets",
+        )
         if secret.scope == SecretScope.MCP_GATEWAY:
             _ = parse_prefixed_uuid7(secret.target_identifier, EntityPrefix.MCP_GATEWAY)
+            self._store.assert_parent_exists_if_populated(
+                "mcp_gateways",
+                secret.target_identifier,
+                EntityPrefix.MCP_GATEWAY,
+                child_table="tenant_secrets",
+            )
+        self._store.assert_tenant_secret_unique(
+            secret.id,
+            secret.organization_id,
+            secret.scope.value,
+            secret.target_identifier,
+        )
         self._store.seed_tables["tenant_secrets"][secret.id] = secret
         return secret.id
 
@@ -1078,6 +1467,59 @@ class InMemoryEntityAdapter:
         """
         _ = parse_prefixed_uuid7(assignment.id, EntityPrefix.ASSIGNMENT)
         _ = parse_prefixed_uuid7(assignment.organization_id, EntityPrefix.ORGANIZATION)
+        _ = parse_prefixed_uuid7(assignment.workflow_id, EntityPrefix.WORKFLOW)
+        _ = parse_prefixed_uuid7(assignment.created_by, EntityPrefix.USER)
+        self._store.assert_parent_exists_if_populated(
+            "organizations",
+            assignment.organization_id,
+            EntityPrefix.ORGANIZATION,
+            child_table="execution_assignments",
+        )
+        self._store.assert_parent_exists_if_populated(
+            "workflows",
+            assignment.workflow_id,
+            EntityPrefix.WORKFLOW,
+            child_table="execution_assignments",
+        )
+        self._store.assert_parent_exists_if_populated(
+            "users",
+            assignment.created_by,
+            EntityPrefix.USER,
+            child_table="execution_assignments",
+        )
+        if assignment.assigned_user_id is not None:
+            _ = parse_prefixed_uuid7(assignment.assigned_user_id, EntityPrefix.USER)
+            self._store.assert_parent_exists_if_populated(
+                "users",
+                assignment.assigned_user_id,
+                EntityPrefix.USER,
+                child_table="execution_assignments",
+            )
+        if assignment.output_profile_id is not None:
+            _ = parse_prefixed_uuid7(assignment.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
+            self._store.assert_parent_exists_if_populated(
+                "output_profiles",
+                assignment.output_profile_id,
+                EntityPrefix.OUTPUT_PROFILE,
+                child_table="execution_assignments",
+            )
+        if assignment.task_brief_id is not None:
+            _ = parse_prefixed_uuid7(assignment.task_brief_id, EntityPrefix.TASK_BRIEF)
+            self._store.assert_parent_exists_if_populated(
+                "task_briefs",
+                assignment.task_brief_id,
+                EntityPrefix.TASK_BRIEF,
+                child_table="execution_assignments",
+            )
+        if assignment.execution_id is not None:
+            _ = parse_prefixed_uuid7(assignment.execution_id, EntityPrefix.EXECUTION)
+            self._store.assert_parent_exists_if_populated(
+                "executions",
+                assignment.execution_id,
+                EntityPrefix.EXECUTION,
+                child_table="execution_assignments",
+            )
+        self._store.assert_assignment_unique(assignment.id, assignment.token_hash)
         self._store.seed_tables["execution_assignments"][assignment.id] = assignment
         return assignment.id
 
@@ -1205,6 +1647,12 @@ class InMemoryEntityAdapter:
         """
         _ = parse_prefixed_uuid7(brief.id, EntityPrefix.TASK_BRIEF)
         _ = parse_prefixed_uuid7(brief.organization_id, EntityPrefix.ORGANIZATION)
+        self._store.assert_parent_exists_if_populated(
+            "organizations",
+            brief.organization_id,
+            EntityPrefix.ORGANIZATION,
+            child_table="task_briefs",
+        )
         self._store.seed_tables["task_briefs"][brief.id] = brief
         return brief.id
 
@@ -1261,6 +1709,12 @@ class InMemoryEntityAdapter:
             )
 
         _ = parse_prefixed_uuid7(payload.report_id, EntityPrefix.REPORT)
+        self._store.assert_parent_exists_if_populated(
+            "report_artifacts",
+            payload.report_id,
+            EntityPrefix.REPORT,
+            child_table="report_binaries",
+        )
         virtual_created_at = _extract_uuid7_timestamp(payload.report_id, EntityPrefix.REPORT)
         self._store.report_binaries[payload.report_id] = payload.model_copy(update={"created_at": virtual_created_at})
         self._store.report_has_pdf[payload.report_id] = True
@@ -1314,10 +1768,34 @@ class InMemoryEntityAdapter:
             )
         _ = parse_prefixed_uuid7(record.organization_id, EntityPrefix.ORGANIZATION)
         _ = parse_prefixed_uuid7(record.workflow_id, EntityPrefix.WORKFLOW)
+        self._store.assert_parent_exists_if_populated(
+            "organizations",
+            record.organization_id,
+            EntityPrefix.ORGANIZATION,
+            child_table="executions",
+        )
+        self._store.assert_parent_exists_if_populated(
+            "workflows",
+            record.workflow_id,
+            EntityPrefix.WORKFLOW,
+            child_table="executions",
+        )
         if record.output_profile_id is not None:
             _ = parse_prefixed_uuid7(record.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
+            self._store.assert_parent_exists_if_populated(
+                "output_profiles",
+                record.output_profile_id,
+                EntityPrefix.OUTPUT_PROFILE,
+                child_table="executions",
+            )
         if record.created_by is not None:
             _ = parse_prefixed_uuid7(record.created_by, EntityPrefix.USER)
+            self._store.assert_parent_exists_if_populated(
+                "users",
+                record.created_by,
+                EntityPrefix.USER,
+                child_table="executions",
+            )
 
         target_record = record
         if expected_state_version is not None:

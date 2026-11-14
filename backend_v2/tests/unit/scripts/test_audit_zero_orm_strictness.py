@@ -12,6 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 from scripts.audit_zero_orm_strictness import (
+    APPROVED_ADAPTER_RECORD_COLUMNS,
     CANONICAL_ENTITY_PK_TABLES,
     CANONICAL_NAMED_ENTITY_TABLES,
     CLOSED_POSTGRES_TABLES,
@@ -270,9 +271,23 @@ def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(
     assert len(CANONICAL_ENTITY_PK_TABLES) == 16
     assert "step_criteria_blocks" not in CANONICAL_ENTITY_PK_TABLES
     assert "workflow_step_refs" not in CANONICAL_ENTITY_PK_TABLES
+    assert "execution_payloads" not in CANONICAL_ENTITY_PK_TABLES
+    assert "report_binaries" not in CANONICAL_ENTITY_PK_TABLES
+    assert "quorum_nodes" not in CANONICAL_ENTITY_PK_TABLES
+    assert "quorum_edges" not in CANONICAL_ENTITY_PK_TABLES
     assert "step_criteria_blocks" in CLOSED_POSTGRES_TABLES
     assert "workflow_step_refs" in CLOSED_POSTGRES_TABLES
-    assert len(CLOSED_POSTGRES_TABLES) == 21
+    assert "execution_payloads" in CLOSED_POSTGRES_TABLES
+    assert len(CLOSED_POSTGRES_TABLES) == 22
+    for removed_col in (
+        "active_profile_id",
+        "frozen_context_storage_path",
+        "pdf_report_path",
+        "step_states",
+        "execution_trace_storage_path",
+        "context_variables_storage_path",
+    ):
+        assert removed_col not in APPROVED_ADAPTER_RECORD_COLUMNS
     assert CANONICAL_NAMED_ENTITY_TABLES["workflows"] == "name"
     assert CANONICAL_NAMED_ENTITY_TABLES["model_registries"] == "name"
     assert CANONICAL_NAMED_ENTITY_TABLES["mcp_gateways"] == "name"
@@ -347,3 +362,56 @@ def test_zorm004_and_zorm007_canonical_pk_display_name_fk_default_and_slug_bans(
     assert len(slug_py_findings) == 1
     assert slug_py_findings[0].rule_code == ZeroOrmRuleCode.ZORM007
     assert "SQL query filters or joins on informational column 'slug'" in slug_py_findings[0].message
+
+
+def test_zorm008_bans_storage_driver_unwrapped_hydration_and_unparameterized_select_star(tmp_path: Path) -> None:
+    """Verify ZORM008 rejects StorageDriver references, unwrapped stage model_validate, and SELECT * list scans."""
+    # 1. Positive path: coercion_and_constants.py is allowed to implement validate_hydrated_row
+    adapter_dir = tmp_path / "entity_adapter"
+    adapter_dir.mkdir()
+    coercion_file = adapter_dir / "coercion_and_constants.py"
+    coercion_file.write_text(
+        "def validate_hydrated_row(cls_obj: object, payload: object) -> object:\n"
+        "    return cls_obj.model_validate(payload, strict=False)\n",
+        encoding="utf-8",
+    )
+    assert audit_python_file(coercion_file, is_db_scope=True) == []
+
+    # 2. Negative path A: StorageDriver import and symbol reference in non-db service module
+    legacy_service = tmp_path / "legacy_service.py"
+    legacy_service.write_text(
+        "from backend_v2.database.driver import StorageDriver\n"
+        "from backend_v2.database.postgres.storage_driver import PostgresStorageDriver\n"
+        "def resolve(drv: StorageDriver) -> object:\n"
+        "    return drv\n",
+        encoding="utf-8",
+    )
+    svc_findings = audit_python_file(legacy_service, is_db_scope=False)
+    assert [f.rule_code for f in svc_findings] == [
+        ZeroOrmRuleCode.ZORM008,
+        ZeroOrmRuleCode.ZORM008,
+        ZeroOrmRuleCode.ZORM008,
+    ]
+
+    # 3. Negative path B: unwrapped .model_validate / .validate_python and SELECT * list scan in entity_adapter stage
+    bad_stage = adapter_dir / "execution_and_report_stage.py"
+    bad_stage.write_text(
+        "LIST_ALL_SQL = 'SELECT * FROM executions ORDER BY id DESC'\n"
+        "def hydrate_bad(cls_obj: object, adapter_obj: object, payload: object) -> object:\n"
+        "    adapter_obj.validate_python(payload)\n"
+        "    return cls_obj.model_validate(payload)\n",
+        encoding="utf-8",
+    )
+    stage_findings = audit_python_file(bad_stage, is_db_scope=True)
+    assert [f.rule_code for f in stage_findings] == [
+        ZeroOrmRuleCode.ZORM008,
+        ZeroOrmRuleCode.ZORM008,
+        ZeroOrmRuleCode.ZORM008,
+    ]
+
+    # 4. Negative path C: unparameterized SELECT * list scan in SQL migration file
+    bad_star_sql = tmp_path / "bad_star.sql"
+    bad_star_sql.write_text("SELECT * FROM workflows;\n", encoding="utf-8")
+    sql_star_findings = audit_sql_migration_file(bad_star_sql)
+    assert len(sql_star_findings) == 1
+    assert sql_star_findings[0].rule_code == ZeroOrmRuleCode.ZORM008
