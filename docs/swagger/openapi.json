@@ -11184,33 +11184,9 @@
             "title": "Execution Trace",
             "description": "Immutable log of all events."
           },
-          "execution_trace_storage_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Execution Trace Storage Path",
-            "description": "Path to offloaded trace JSON in Cloud Storage."
-          },
           "context_variables": {
             "$ref": "#/components/schemas/ContextVariablesDTO",
             "description": "Current snapshots of context variables (the dynamic blackboard)."
-          },
-          "context_variables_storage_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Context Variables Storage Path",
-            "description": "Path to offloaded context variables JSON in Cloud Storage."
           },
           "progress": {
             "anyOf": [
@@ -11263,18 +11239,6 @@
             "description": "Monotonically increasing optimistic concurrency control version",
             "default": 1
           },
-          "active_profile_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Active Profile Id",
-            "description": "The ID of the output profile selected for formatting and printing."
-          },
           "raw_inputs": {
             "$ref": "#/components/schemas/WorkflowInputs-Output",
             "description": "Raw user inputs by role"
@@ -11289,30 +11253,6 @@
               }
             ],
             "description": "Immutable snapshot of context"
-          },
-          "frozen_context_storage_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Frozen Context Storage Path",
-            "description": "Optional path to Blob Storage offloaded Frozen Context JSON"
-          },
-          "pdf_report_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pdf Report Path",
-            "description": "Path to the generated PDF Execution Report."
           },
           "output_profile_id": {
             "anyOf": [
@@ -11333,14 +11273,6 @@
             "type": "array",
             "title": "Steps",
             "description": "Real-time status tracking and FinOps telemetry for DAG nodes (SSOT)"
-          },
-          "step_states": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ExecutionStep"
-            },
-            "type": "object",
-            "title": "Step States",
-            "description": "Transitional step_states lookup mapping"
           },
           "profile_syntheses": {
             "additionalProperties": {
@@ -14021,19 +13953,6 @@
             "description": "Penalizes new tokens based on whether they appear in the text so far.",
             "x-ui-label": "Presence Penalty"
           },
-          "parsing_mode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parsing Mode",
-            "description": "Instructor parsing mode (e.g. 'STRUCTURED_JSON', 'JSON').",
-            "x-ui-label": "Parsing Mode"
-          },
           "caching_strategy": {
             "anyOf": [
               {
@@ -14089,7 +14008,7 @@
           "rpm_limit"
         ],
         "title": "LLMProviderConfig",
-        "description": "Configuration for an LLM Provider.\n\nAttributes:\n    id: Configuration ID (unique key).\n    provider: Provider type (e.g. 'openai', 'vertex_ai').\n    model_name: Model identifier (e.g. 'gpt-4', 'gemini-pro').\n    api_key: API Key (masked on read).\n    base_url: Base URL for API calls.\n    temperature: Sampling temperature.\n    top_p: Nucleus sampling probability.\n    top_k: Top-K sampling limit.\n    tpm_limit: Tokens per minute limit. 0=unlimited.\n    rpm_limit: Requests per minute limit. 0=unlimited.\n    default_max_tokens: Default max output tokens.\n    parsing_mode: Instructor parsing mode.\n    caching_strategy: Caching strategy.\n    vertex_location: Google Cloud Region (Vertex AI only).\n    supports_grounding: Whether this model supports Google Search Grounding.\n    is_active: Whether this provider is active.\n    additional_params: Additional provider-specific parameters."
+        "description": "Configuration for an LLM Provider.\n\nAttributes:\n    id: Configuration ID (unique key).\n    provider: Provider type (e.g. 'openai', 'vertex_ai').\n    model_name: Model identifier (e.g. 'gpt-4', 'gemini-pro').\n    api_key: API Key (masked on read).\n    base_url: Base URL for API calls.\n    temperature: Sampling temperature.\n    top_p: Nucleus sampling probability.\n    top_k: Top-K sampling limit.\n    tpm_limit: Tokens per minute limit. 0=unlimited.\n    rpm_limit: Requests per minute limit. 0=unlimited.\n    default_max_tokens: Default max output tokens.\n    caching_strategy: Caching strategy.\n    vertex_location: Google Cloud Region (Vertex AI only).\n    supports_grounding: Whether this model supports Google Search Grounding.\n    is_active: Whether this provider is active.\n    additional_params: Additional provider-specific parameters."
       },
       "LevelStatsDTO": {
         "properties": {
@@ -16119,16 +16038,10 @@
             "description": "URL routing helper field. Strictly no data relation role."
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
-            "description": "Tenant organization ID."
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -16283,6 +16196,7 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "label",
           "description",
           "scales"
@@ -17856,30 +17770,6 @@
             "description": "Supports Google Search Grounding",
             "default": false
           },
-          "api_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Api Key",
-            "description": "Optional override API key"
-          },
-          "parsing_mode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parsing Mode",
-            "description": "Parser logic flag (e.g. 'STRUCTURED_JSON')"
-          },
           "caching_strategy": {
             "anyOf": [
               {
@@ -17922,7 +17812,7 @@
           "model_name"
         ],
         "title": "ModelProfile",
-        "description": "A flattened physical AI model representation.\n\nAttributes:\n    provider: Underlying model provider identifier.\n    model_name: The underlying API model name.\n    temperature: Generation temperature.\n    top_p: Nucleus sampling probability.\n    top_k: Top-K sampling parameter.\n    tpm_limit: Tokens per minute limit.\n    rpm_limit: Requests per minute limit.\n    max_tokens: Max generated tokens.\n    frequency_penalty: Frequency penalty.\n    presence_penalty: Presence penalty.\n    allowed_tools: Enabled tools.\n    supports_grounding: Supports Google Search Grounding.\n    api_key: Optional override API key.\n    parsing_mode: Parser logic flag.\n    caching_strategy: Cache strategy identifier.\n    thinking_budget_tokens: Reasoning/thinking token budget for reasoning models.\n    additional_params: Additional provider-specific parameters.\n    is_active: Whether the model is actively available."
+        "description": "A flattened physical AI model representation.\n\nAttributes:\n    provider: Underlying model provider identifier.\n    model_name: The underlying API model name.\n    temperature: Generation temperature.\n    top_p: Nucleus sampling probability.\n    top_k: Top-K sampling parameter.\n    tpm_limit: Tokens per minute limit.\n    rpm_limit: Requests per minute limit.\n    max_tokens: Max generated tokens.\n    frequency_penalty: Frequency penalty.\n    presence_penalty: Presence penalty.\n    allowed_tools: Enabled tools.\n    supports_grounding: Supports Google Search Grounding.\n    caching_strategy: Cache strategy identifier.\n    thinking_budget_tokens: Reasoning/thinking token budget for reasoning models.\n    additional_params: Additional provider-specific parameters.\n    is_active: Whether the model is actively available."
       },
       "ModelRegistryDeleteResponse": {
         "properties": {
@@ -18369,16 +18259,10 @@
             "description": "ID of the associated Workflow"
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
-            "description": "Tenant organization ID."
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "name": {
             "$ref": "#/components/schemas/I18nText",
@@ -18849,6 +18733,7 @@
           "id",
           "slug",
           "workflow_id",
+          "organization_id",
           "name"
         ],
         "title": "OutputProfile",
@@ -18856,6 +18741,12 @@
       },
       "OutputProfileResponseDTO": {
         "properties": {
+          "organization_id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Organization Id",
+            "description": "Explicitly exposed for Admin Studio UI routing."
+          },
           "id": {
             "type": "string",
             "title": "Id"
@@ -19299,6 +19190,7 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
+          "organization_id",
           "id",
           "slug",
           "workflow_id",
@@ -19562,16 +19454,10 @@
             "description": "URL routing helper field. Strictly no data relation role."
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
-            "description": "Tenant organization ID."
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -19659,6 +19545,7 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "label",
           "description"
         ],
@@ -20099,16 +19986,10 @@
             "description": "URL routing helper field. Strictly no data relation role."
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
-            "description": "Tenant organization ID."
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -20185,6 +20066,7 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "label",
           "description"
         ],
@@ -23563,16 +23445,10 @@
             "description": "Human-readable identifier (e.g., 'step_guard')"
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
-            "description": "Tenant organization ID."
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "name": {
             "$ref": "#/components/schemas/I18nText",
@@ -23736,6 +23612,7 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "name"
         ],
         "title": "Step",
@@ -24063,14 +23940,8 @@
             "description": "Human-readable identifier (e.g., 'step_guard')"
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
             "description": "Explicitly exposed for Admin Studio UI routing."
           },
@@ -24236,6 +24107,7 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "name"
         ],
         "title": "StepResponseDTO",
@@ -24765,20 +24637,19 @@
             "type": "string",
             "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
-            "description": "System config ID"
+            "description": "MCP gateway ID (mcp_<hex32>)."
+          },
+          "organization_id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Organization Id",
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "name": {
             "type": "string",
             "minLength": 1,
             "title": "Name",
             "description": "Human-readable gateway title."
-          },
-          "type": {
-            "type": "string",
-            "const": "mcp_gateways",
-            "title": "Type",
-            "description": "Config type discriminator.",
-            "default": "mcp_gateways"
           },
           "slug": {
             "type": "string",
@@ -24848,11 +24719,12 @@
         "type": "object",
         "required": [
           "id",
+          "organization_id",
           "name",
           "slug"
         ],
-        "title": "mcp_gateways",
-        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable gateway title.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
+        "title": "SystemConfigMCPGateways",
+        "description": "Registry entry for an external MCP tool gateway stored in mcp_gateways.\n\nAttributes:\n    id: Canonical MCP gateway Opaque Stripe ID (mcp_<hex32>).\n    organization_id: Owning tenant organization Opaque Stripe ID (org_<hex32>).\n    name: Human-readable gateway title.\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
       },
       "SystemConfigMCPGateways-Output": {
         "properties": {
@@ -24860,20 +24732,19 @@
             "type": "string",
             "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
-            "description": "System config ID"
+            "description": "MCP gateway ID (mcp_<hex32>)."
+          },
+          "organization_id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Organization Id",
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "name": {
             "type": "string",
             "minLength": 1,
             "title": "Name",
             "description": "Human-readable gateway title."
-          },
-          "type": {
-            "type": "string",
-            "const": "mcp_gateways",
-            "title": "Type",
-            "description": "Config type discriminator.",
-            "default": "mcp_gateways"
           },
           "slug": {
             "type": "string",
@@ -24943,11 +24814,12 @@
         "type": "object",
         "required": [
           "id",
+          "organization_id",
           "name",
           "slug"
         ],
-        "title": "mcp_gateways",
-        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable gateway title.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
+        "title": "SystemConfigMCPGateways",
+        "description": "Registry entry for an external MCP tool gateway stored in mcp_gateways.\n\nAttributes:\n    id: Canonical MCP gateway Opaque Stripe ID (mcp_<hex32>).\n    organization_id: Owning tenant organization Opaque Stripe ID (org_<hex32>).\n    name: Human-readable gateway title.\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
       },
       "SystemConfigModelRegistry": {
         "properties": {
@@ -24955,20 +24827,13 @@
             "type": "string",
             "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
-            "description": "System config ID"
+            "description": "Model registry ID (mrg_<hex32>)"
           },
           "name": {
             "type": "string",
             "minLength": 1,
             "title": "Name",
             "description": "Human-readable title"
-          },
-          "type": {
-            "type": "string",
-            "const": "model_registry",
-            "title": "Type",
-            "description": "Type of config",
-            "default": "model_registry"
           },
           "slug": {
             "anyOf": [
@@ -24980,7 +24845,7 @@
               }
             ],
             "title": "Slug",
-            "description": "System Config identifier slug"
+            "description": "Model registry identifier slug"
           },
           "default_provider": {
             "$ref": "#/components/schemas/LLMProvider",
@@ -25006,8 +24871,8 @@
           "name",
           "tier_definitions"
         ],
-        "title": "model_registry",
-        "description": "V2 Flattened Model Registry System Config.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable title.\n    type: Discriminator literal ('model_registry').\n    slug: System Config identifier slug.\n    default_provider: Default LLM provider.\n    tier_definitions: Direct mapping of the four canonical cognitive tiers to physical profiles."
+        "title": "SystemConfigModelRegistry",
+        "description": "V2 Flattened Model Registry configuration stored in model_registries.\n\nAttributes:\n    id: Canonical Model Registry Opaque Stripe ID (mrg_<hex32>).\n    name: Human-readable title.\n    slug: Informational model registry identifier slug.\n    default_provider: Default LLM provider.\n    tier_definitions: Direct mapping of the four canonical cognitive tiers to physical profiles."
       },
       "SystemConfigOptionDTO": {
         "properties": {
@@ -25065,16 +24930,10 @@
             "description": "URL routing helper field. Strictly no data relation role."
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
-            "description": "Tenant organization ID."
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -25158,6 +25017,7 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "label",
           "description"
         ],
@@ -25538,7 +25398,7 @@
           "label"
         ],
         "title": "TaskAssignmentBriefDTO",
-        "description": "Hydrated TaskBrief summary embedded in task assignment responses.\n\nAttributes:\n    id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).\n    label: Localized title of the task brief.\n    instruction_text: Optional plain-text or markdown task instructions.\n    source_url: Optional reference document or external resource URL."
+        "description": "Frozen publication-time TaskBrief snapshot embedded in execution assignments and responses.\n\nAttributes:\n    id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).\n    label: Localized title of the task brief.\n    instruction_text: Optional plain-text or markdown task instructions.\n    source_url: Optional reference document or external resource URL."
       },
       "TaskBrief": {
         "properties": {
@@ -25555,16 +25415,10 @@
             "description": "Human-readable routing helper field with zero data relation role."
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
-            "description": "Tenant organization ID or None for system briefs."
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -25599,12 +25453,13 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "label",
           "description",
           "instruction_text"
         ],
         "title": "TaskBrief",
-        "description": "Immutable domain model for a reusable human-facing task brief and case description.\n\nAttributes:\n    id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).\n    slug: Human-readable routing helper identifier with zero data relation role.\n    organization_id: Owning Organization Opaque Stripe ID or None for system-wide briefs.\n    label: Localized title of the task brief.\n    description: Localized summary description of the task brief.\n    instruction_text: Detailed plain-text or markdown task instructions shown to assignees.\n    source_url: Optional external reference document or resource URL."
+        "description": "Immutable domain model for a reusable human-facing task brief and case description.\n\nAttributes:\n    id: Canonical TaskBrief Opaque Stripe ID (tbr_<hex32>).\n    slug: Human-readable routing helper identifier with zero data relation role.\n    organization_id: Owning Organization Opaque Stripe ID (org_<hex32>).\n    label: Localized title of the task brief.\n    description: Localized summary description of the task brief.\n    instruction_text: Detailed plain-text or markdown task instructions shown to assignees.\n    source_url: Optional external reference document or resource URL."
       },
       "TaskBriefDeleteResponse": {
         "properties": {
@@ -25643,14 +25498,8 @@
             "description": "Human-readable routing helper field with zero data relation role."
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
             "description": "Explicitly exposed for Admin Studio UI routing."
           },
@@ -25687,6 +25536,7 @@
         "required": [
           "id",
           "slug",
+          "organization_id",
           "label",
           "description",
           "instruction_text"
@@ -27442,15 +27292,10 @@
             "default": false
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Organization Id"
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Organization Id",
+            "description": "Owning tenant organization ID (org_<hex32>)."
           },
           "default_profile_id": {
             "anyOf": [
@@ -27468,20 +27313,20 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^sys_[a-fA-F0-9]{32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Mcp Gateway Id",
-            "description": "The system_config ID of the MCP gateways configuration attached to this workflow."
+            "description": "The MCP gateway ID (mcp_<hex32>) attached to this workflow."
           },
           "model_registry_id": {
             "type": "string",
-            "pattern": "^sys_[a-fA-F0-9]{32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Model Registry Id",
-            "description": "System config ID of the attached model registry"
+            "description": "Model registry ID (mrg_<hex32>) attached to this workflow."
           },
           "default_strictness_level": {
             "type": "integer",
@@ -27576,6 +27421,7 @@
           "description",
           "status",
           "version",
+          "organization_id",
           "model_registry_id",
           "historical_context_mode"
         ],
@@ -27833,14 +27679,8 @@
             "default": false
           },
           "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Organization Id",
             "description": "Explicitly exposed for Admin Studio UI routing."
           },
@@ -27860,20 +27700,20 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^sys_[a-fA-F0-9]{32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Mcp Gateway Id",
-            "description": "The system_config ID of the MCP gateways configuration attached to this workflow."
+            "description": "The MCP gateway ID (mcp_<hex32>) attached to this workflow."
           },
           "model_registry_id": {
             "type": "string",
-            "pattern": "^sys_[a-fA-F0-9]{32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Model Registry Id",
-            "description": "System config ID of the attached model registry"
+            "description": "Model registry ID (mrg_<hex32>) attached to this workflow."
           },
           "default_strictness_level": {
             "type": "integer",
@@ -27976,6 +27816,7 @@
           "description",
           "status",
           "version",
+          "organization_id",
           "model_registry_id",
           "historical_context_mode"
         ],
